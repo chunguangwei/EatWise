@@ -1,0 +1,40 @@
+# 分析规则（《技术选型与双端架构》§7.3）
+# CI 门禁：flutter analyze 零告警；dart format 行宽 80。
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    # 防同步任务漏 await（§7.3 强制项）
+    unawaited_futures: error
+  exclude:
+    - "lib/app/l10n/**" # slang 生成产物
+
+linter:
+  rules:
+    # §7.3 强制项
+    - always_declare_return_types
+    - avoid_dynamic_calls
+    - require_trailing_commas
+    - prefer_single_quotes
+    - unawaited_futures
+    # 项目追加严格项
+    - always_use_package_imports
+    - avoid_catches_without_on_clauses
+    - avoid_empty_else
+    - avoid_relative_lib_imports
+    - avoid_types_as_parameter_names
+    - cancel_subscriptions
+    - close_sinks
+    - comment_references
+    - directives_ordering
+    - eol_at_end_of_file
+    - no_default_cases
+    - noop_primitive_operations
+    - prefer_final_locals
+    - unnecessary_late
+    - unnecessary_null_checks
+    - use_string_in_part_of_directives

@@ -1,0 +1,9 @@
+# slang 配置（《规格-i18n中英双语》§2.1）
+base_locale: zh-CN
+input_directory: i18n
+input_file_pattern: .i18n.json
+output_directory: lib/app/l10n
+flutter_integration: true
+namespaces: false
+lazy: false
+fallback_strategy: base_locale

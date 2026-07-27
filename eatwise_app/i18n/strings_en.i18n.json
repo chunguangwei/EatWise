@@ -1,0 +1,95 @@
+{
+  "common": {
+    "appName": "EatWise",
+    "action": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "undo": "Undo",
+      "retry": "Retry"
+    }
+  },
+  "fasting": {
+    "home": {
+      "title": "Fasting Timer",
+      "endFast": "End fast",
+      "extend": "Extend",
+      "startPlan": "Choose your fasting plan",
+      "stateEating": "Eating window",
+      "stateFasting": "Fasting",
+      "stateFastingExtended": "Fasting · Extended",
+      "stateNoPlan": "No fasting plan yet",
+      "attribution": "This fast counts toward ${date}",
+      "extendedBadge": "Extended +${minutes} min"
+    }
+  },
+  "record": {
+    "home": {
+      "title": "Log",
+      "logMeal": "Log a bite"
+    },
+    "empty": {
+      "title": "No food stories yet — tap the orange button to log your first bite?"
+    },
+    "toast": {
+      "recorded": "Logged"
+    }
+  },
+  "notification": {
+    "fasting": {
+      "eatSoon": "Eating window opens in 15 min",
+      "eatStart": "Time to eat! This fast counts toward ${date} ✅",
+      "fastStart": "Your fasting window has started — you're doing great, keep it up!"
+    }
+  },
+  "nutrition": {
+    "signalCard": {
+      "advice": {
+        "kcal": {
+          "green": "Your calories are right on track today — nice and steady, keep it up! 🌱",
+          "yellowLow": "You're a bit under on calories — ${meal_action}. Your body will thank you.",
+          "yellowHigh": "Calories are a touch high — ${meal_action} and you're right back on track.",
+          "redLow": "You're well under today — outside your fasting window, do eat well: ${meal_action}.",
+          "redHigh": "A bit over on calories — no stress! ${meal_action}. Tomorrow's a fresh day.",
+          "zero": "No calories logged yet — did a meal slip by?"
+        },
+        "protein": {
+          "green": "Protein nailed it! Your muscles are sending you a heart 💪",
+          "yellowLow": "Protein is almost there — ${meal_action} and you've got it.",
+          "redLow": "Protein's on the low side today — ${meal_action} to give your body a boost.",
+          "redHigh": "A little much protein today — ${meal_action} for a comfier balance.",
+          "zero": "No protein logged yet — did a meal slip by?"
+        },
+        "carb": {
+          "green": "Carbs are just right — steady energy all the way.",
+          "yellowLow": "Carbs are a bit low — ${meal_action} to keep the afternoon slump away.",
+          "yellowHigh": "Carbs are a touch high — ${meal_action} to keep your blood sugar steady.",
+          "redLow": "Carbs are well under today — ${meal_action}. Don't shortchange your body.",
+          "redHigh": "Carbs ran quite high — ${meal_action} to keep your blood sugar steadier.",
+          "zero": "No carbs logged yet — did a meal slip by?"
+        },
+        "fat": {
+          "green": "Healthy fat intake — your skin and glow will love it.",
+          "yellowLow": "Good fats are a bit low — ${meal_action}; they help absorb vitamins.",
+          "yellowHigh": "Fat's a touch high — ${meal_action} for a lighter feel.",
+          "redLow": "Good fats are well under today — ${meal_action}; your body needs them to absorb vitamins.",
+          "redHigh": "Fat's on the high side — ${meal_action} for a lighter feel.",
+          "zero": "No fat logged yet — did a meal slip by?"
+        },
+        "meal": {
+          "breakfast": "add an egg or a glass of soy milk at breakfast",
+          "lunch": "go for a palm-size portion of lean meat or tofu at lunch",
+          "dinner": "pick something steamed or lightly poached for dinner, and stop at 80% full",
+          "snack": "grab a handful of nuts or a yogurt as a snack"
+        }
+      }
+    }
+  },
+  "settings": {
+    "language": {
+      "title": "Language",
+      "system": "System",
+      "zhCN": "简体中文",
+      "en": "English"
+    }
+  }
+}

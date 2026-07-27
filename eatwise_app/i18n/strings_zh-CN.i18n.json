@@ -1,0 +1,95 @@
+{
+  "common": {
+    "appName": "EatWise",
+    "action": {
+      "save": "保存",
+      "cancel": "取消",
+      "undo": "撤销",
+      "retry": "重试"
+    }
+  },
+  "fasting": {
+    "home": {
+      "title": "断食计时",
+      "endFast": "结束断食",
+      "extend": "延长",
+      "startPlan": "选择你的断食方案",
+      "stateEating": "进食窗口中",
+      "stateFasting": "断食中",
+      "stateFastingExtended": "断食中 · 已延长",
+      "stateNoPlan": "还未开始断食方案",
+      "attribution": "本次断食计入 ${date}",
+      "extendedBadge": "已延长 +${minutes} 分钟"
+    }
+  },
+  "record": {
+    "home": {
+      "title": "记录",
+      "logMeal": "记一笔"
+    },
+    "empty": {
+      "title": "肚子的故事还没写呢，点橙色按钮记一笔？"
+    },
+    "toast": {
+      "recorded": "已记录"
+    }
+  },
+  "notification": {
+    "fasting": {
+      "eatSoon": "还有 15 分钟就可以进食啦",
+      "eatStart": "可以进食啦，本次断食计入 ${date} ✅",
+      "fastStart": "断食窗口开始啦，今天也很棒，加油坚持～"
+    }
+  },
+  "nutrition": {
+    "signalCard": {
+      "advice": {
+        "kcal": {
+          "green": "今天热量刚刚好，节奏很稳，继续保持～ 🌱",
+          "yellowLow": "今天吃得有点少，${meal_action}，身体会感谢你的。",
+          "yellowHigh": "热量有一点点高，${meal_action}，就回来啦。",
+          "redLow": "今天摄入太少了，断食之外也要好好吃饭哦，${meal_action}。",
+          "redHigh": "热量小超啦，别焦虑，${meal_action}，明天又是新的一天。",
+          "zero": "好像还没记到今天的热量哦，是不是漏了一餐？"
+        },
+        "protein": {
+          "green": "蛋白质满分！肌肉群给你比心 💪",
+          "yellowLow": "蛋白质还差一点，${meal_action}，就够啦。",
+          "redLow": "今天蛋白质有点少 🟡 ${meal_action}，给身体加点料。",
+          "redHigh": "蛋白质有点多啦，${meal_action}，均衡一点更舒服。",
+          "zero": "好像还没记到蛋白质哦，是不是漏了一餐？"
+        },
+        "carb": {
+          "green": "碳水刚刚好，能量供应稳稳的。",
+          "yellowLow": "碳水略少，${meal_action}，下午不容易犯困哦。",
+          "yellowHigh": "碳水略高，${meal_action}，让血糖稳一点。",
+          "redLow": "今天碳水太少了，${meal_action}，别亏待身体。",
+          "redHigh": "碳水超得有点多，${meal_action}，让血糖稳一点。",
+          "zero": "好像还没记到碳水哦，是不是漏了一餐？"
+        },
+        "fat": {
+          "green": "脂肪摄入很健康，皮肤和气色都会喜欢。",
+          "yellowLow": "好脂肪有点少，${meal_action}，帮助吸收维生素。",
+          "yellowHigh": "脂肪略高，${meal_action}，清淡一点更轻盈。",
+          "redLow": "好脂肪太少了，${meal_action}，身体需要它们帮忙吸收维生素。",
+          "redHigh": "脂肪有点高了，${meal_action}，清淡一点更轻盈。",
+          "zero": "好像还没记到脂肪哦，是不是漏了一餐？"
+        },
+        "meal": {
+          "breakfast": "早餐加个鸡蛋或一杯豆浆",
+          "lunch": "午餐来份掌心大的瘦肉或豆腐",
+          "dinner": "晚餐选清蒸/白灼，七分饱就好",
+          "snack": "加餐来把坚果或一杯酸奶"
+        }
+      }
+    }
+  },
+  "settings": {
+    "language": {
+      "title": "语言",
+      "system": "跟随系统",
+      "zhCN": "简体中文",
+      "en": "English"
+    }
+  }
+}
