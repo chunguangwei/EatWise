@@ -4,6 +4,7 @@ import 'package:eatwise/features/demo/presentation/demo_home_screen.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_home_page.dart';
 import 'package:eatwise/features/home/presentation/home_shell.dart';
 import 'package:eatwise/features/home/presentation/placeholder_pages.dart';
+import 'package:eatwise/features/nutrition/presentation/nutrition_data_page.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
 import 'package:eatwise/features/onboarding/presentation/questionnaire_screen.dart';
 import 'package:eatwise/features/onboarding/presentation/recommendation_screen.dart';
@@ -59,12 +60,12 @@ GoRouter createAppRouter({required OnboardingGate gate, AuthGate? authGate}) {
               ),
             ],
           ),
-          // 数据：M4 占位（四态空态 + 去记录 CTA）。
+          // 数据：M4 营养数据页（信号灯四卡 + 趋势 + 专业数据折叠）。
           StatefulShellBranch(
             routes: <RouteBase>[
               GoRoute(
                 path: '/data',
-                builder: (context, state) => const DataPlaceholderPage(),
+                builder: (context, state) => const NutritionDataPage(),
               ),
             ],
           ),

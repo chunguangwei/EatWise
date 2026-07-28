@@ -232,6 +232,39 @@
     }
   },
   "nutrition": {
+    "data": {
+      "dateSwitcher": {
+        "prevDay": "Previous day",
+        "nextDay": "Next day",
+        "backToToday": "Back to today",
+        "today": "Today"
+      },
+      "summary": {
+        "allGreen": "Nice and steady today — give yourself a pat on the back 🌱",
+        "hasYellow": "Solid day overall — a nutrient or two needs a small top-up",
+        "hasRed": "A couple of red flags today — no stress, just follow the tips below",
+        "empty": "Nothing logged this day — log a meal and the signal lights come on",
+        "fallbackGoal": "Using default goals for now — complete your profile for sharper targets"
+      },
+      "localEstimate": "Local estimate — the cloud fine-tunes it once you're online",
+      "proDetails": {
+        "title": "Pro data",
+        "expand": "View details",
+        "collapse": "Collapse",
+        "target": "Target",
+        "actual": "Intake",
+        "percent": "% of goal",
+        "rda": "RDA ref.",
+        "rdaNote": "RDA values are general adult dietary references (pending nutritionist sign-off) — your personal goals follow your plan"
+      },
+      "trend": {
+        "title": "Last 7 days",
+        "kcal": "Calories",
+        "fasting": "Fasting",
+        "empty": "Log a few more days and your trend line starts moving",
+        "hourUnit": "h"
+      }
+    },
     "signalCard": {
       "zone": {
         "green": "On track",

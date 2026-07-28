@@ -5,32 +5,13 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-/// 数据/社区/我的 占位页（四态规范 3.2.2 空态统一结构：
+/// 社区/我的 占位页（四态规范 3.2.2 空态统一结构：
 /// 插画位（线性图标）→ 主文案 → 副文案 → CTA 主按钮，中英双语）。
 ///
-/// 正式页面随 M4 数据 / M5 社区 / M7 我的 迭代落地，本文件仅交付
+/// 正式页面随 M5 社区 / M7 我的 迭代落地，本文件仅交付
 /// 符合四态规范的空态占位，CTA 已接真实出口或「即将上线」提示。
-
-/// 数据页占位：空态文案取自四态规范 3.2.2（不出现误导性信号灯），
-/// CTA「去记录」跳记录 Tab。
-class DataPlaceholderPage extends StatelessWidget {
-  const DataPlaceholderPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Translations.of(context);
-    return _PlaceholderScaffold(
-      title: t.home.tab.data,
-      icon: Icons.insights_outlined,
-      emptyTitle: t.home.data.emptyTitle,
-      emptySubtitle: t.home.data.emptySubtitle,
-      ctaLabel: t.home.data.cta,
-      onCta: () => context.go('/record'),
-    );
-  }
-}
+/// M4 数据页已由 nutrition 模块正式页（NutritionDataPage）替换。
 
 /// 社区页占位：空态文案取自四态规范 3.2.2，CTA「发布打卡」为 P1 能力，
 /// 当前给「即将上线」提示（不阻断、不误导）。

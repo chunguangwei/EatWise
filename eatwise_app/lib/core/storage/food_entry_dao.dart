@@ -160,4 +160,22 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
           ..where((c) => c.userId.equals(userId) & c.date.equals(localDate)))
         .getSingleOrNull();
   }
+
+  /// 日期区间聚合缓存流（M4 数据页近 7 日趋势用；含端点，按日期升序）。
+  Stream<List<DailyNutritionCache>> watchDailyNutritionRange(
+    String userId,
+    String fromDate,
+    String toDate,
+  ) {
+    return (select(dailyNutritionCaches)
+          ..where(
+            (c) =>
+                c.userId.equals(userId) &
+                c.date.isBetweenValues(fromDate, toDate),
+          )
+          ..orderBy(<OrderingTerm Function(DailyNutritionCaches)>[
+            (c) => OrderingTerm.asc(c.date),
+          ]))
+        .watch();
+  }
 }

@@ -232,6 +232,39 @@
     }
   },
   "nutrition": {
+    "data": {
+      "dateSwitcher": {
+        "prevDay": "前一天",
+        "nextDay": "后一天",
+        "backToToday": "回到今天",
+        "today": "今天"
+      },
+      "summary": {
+        "allGreen": "今天的营养节奏很稳，给你点个赞 🌱",
+        "hasYellow": "今天总体不错，个别营养素还差一点点",
+        "hasRed": "有几盏小红灯，别急，跟着下面的建议慢慢调",
+        "empty": "这一天还没有记录，记一笔信号灯就会亮起来",
+        "fallbackGoal": "当前按默认目标估算，补全身体资料后会更准哦"
+      },
+      "localEstimate": "本地预估，联网后云端自动校准",
+      "proDetails": {
+        "title": "专业数据",
+        "expand": "查看详情",
+        "collapse": "收起",
+        "target": "目标",
+        "actual": "已摄入",
+        "percent": "占比",
+        "rda": "RDA 参考",
+        "rdaNote": "RDA 为成人通用膳食参考值〔待营养专业背书〕，个人目标以你的方案为准"
+      },
+      "trend": {
+        "title": "近 7 日趋势",
+        "kcal": "热量",
+        "fasting": "断食时长",
+        "empty": "记满几天，趋势曲线就跑起来啦",
+        "hourUnit": "小时"
+      }
+    },
     "signalCard": {
       "zone": {
         "green": "达标",

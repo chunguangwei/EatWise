@@ -149,6 +149,7 @@ class _Translations$nutrition$en extends Translations$nutrition$zh_CN {
 	final TranslationsEn _root; // ignore: unused_field
 
 	// Translations
+	@override late final _Translations$nutrition$data$en data = _Translations$nutrition$data$en._(_root);
 	@override late final _Translations$nutrition$signalCard$en signalCard = _Translations$nutrition$signalCard$en._(_root);
 }
 
@@ -516,6 +517,20 @@ class _Translations$notification$fasting$en extends Translations$notification$fa
 	@override String get fastStart => 'Your fasting window has started — you\'re doing great, keep it up!';
 }
 
+// Path: nutrition.data
+class _Translations$nutrition$data$en extends Translations$nutrition$data$zh_CN {
+	_Translations$nutrition$data$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override late final _Translations$nutrition$data$dateSwitcher$en dateSwitcher = _Translations$nutrition$data$dateSwitcher$en._(_root);
+	@override late final _Translations$nutrition$data$summary$en summary = _Translations$nutrition$data$summary$en._(_root);
+	@override String get localEstimate => 'Local estimate — the cloud fine-tunes it once you\'re online';
+	@override late final _Translations$nutrition$data$proDetails$en proDetails = _Translations$nutrition$data$proDetails$en._(_root);
+	@override late final _Translations$nutrition$data$trend$en trend = _Translations$nutrition$data$trend$en._(_root);
+}
+
 // Path: nutrition.signalCard
 class _Translations$nutrition$signalCard$en extends Translations$nutrition$signalCard$zh_CN {
 	_Translations$nutrition$signalCard$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -677,6 +692,64 @@ class _Translations$fasting$home$greeting$en extends Translations$fasting$home$g
 	@override String get afternoon => 'Good afternoon';
 	@override String get evening => 'Good evening';
 	@override String get night => 'Still up? A glass of water and an early night is self-care too';
+}
+
+// Path: nutrition.data.dateSwitcher
+class _Translations$nutrition$data$dateSwitcher$en extends Translations$nutrition$data$dateSwitcher$zh_CN {
+	_Translations$nutrition$data$dateSwitcher$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get prevDay => 'Previous day';
+	@override String get nextDay => 'Next day';
+	@override String get backToToday => 'Back to today';
+	@override String get today => 'Today';
+}
+
+// Path: nutrition.data.summary
+class _Translations$nutrition$data$summary$en extends Translations$nutrition$data$summary$zh_CN {
+	_Translations$nutrition$data$summary$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get allGreen => 'Nice and steady today — give yourself a pat on the back 🌱';
+	@override String get hasYellow => 'Solid day overall — a nutrient or two needs a small top-up';
+	@override String get hasRed => 'A couple of red flags today — no stress, just follow the tips below';
+	@override String get empty => 'Nothing logged this day — log a meal and the signal lights come on';
+	@override String get fallbackGoal => 'Using default goals for now — complete your profile for sharper targets';
+}
+
+// Path: nutrition.data.proDetails
+class _Translations$nutrition$data$proDetails$en extends Translations$nutrition$data$proDetails$zh_CN {
+	_Translations$nutrition$data$proDetails$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Pro data';
+	@override String get expand => 'View details';
+	@override String get collapse => 'Collapse';
+	@override String get target => 'Target';
+	@override String get actual => 'Intake';
+	@override String get percent => '% of goal';
+	@override String get rda => 'RDA ref.';
+	@override String get rdaNote => 'RDA values are general adult dietary references (pending nutritionist sign-off) — your personal goals follow your plan';
+}
+
+// Path: nutrition.data.trend
+class _Translations$nutrition$data$trend$en extends Translations$nutrition$data$trend$zh_CN {
+	_Translations$nutrition$data$trend$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Last 7 days';
+	@override String get kcal => 'Calories';
+	@override String get fasting => 'Fasting';
+	@override String get empty => 'Log a few more days and your trend line starts moving';
+	@override String get hourUnit => 'h';
 }
 
 // Path: nutrition.signalCard.zone
@@ -964,6 +1037,29 @@ extension on TranslationsEn {
 			'notification.fasting.eatSoon' => 'Eating window opens in 15 min',
 			'notification.fasting.eatStart' => ({required Object date}) => 'Time to eat! This fast counts toward ${date} ✅',
 			'notification.fasting.fastStart' => 'Your fasting window has started — you\'re doing great, keep it up!',
+			'nutrition.data.dateSwitcher.prevDay' => 'Previous day',
+			'nutrition.data.dateSwitcher.nextDay' => 'Next day',
+			'nutrition.data.dateSwitcher.backToToday' => 'Back to today',
+			'nutrition.data.dateSwitcher.today' => 'Today',
+			'nutrition.data.summary.allGreen' => 'Nice and steady today — give yourself a pat on the back 🌱',
+			'nutrition.data.summary.hasYellow' => 'Solid day overall — a nutrient or two needs a small top-up',
+			'nutrition.data.summary.hasRed' => 'A couple of red flags today — no stress, just follow the tips below',
+			'nutrition.data.summary.empty' => 'Nothing logged this day — log a meal and the signal lights come on',
+			'nutrition.data.summary.fallbackGoal' => 'Using default goals for now — complete your profile for sharper targets',
+			'nutrition.data.localEstimate' => 'Local estimate — the cloud fine-tunes it once you\'re online',
+			'nutrition.data.proDetails.title' => 'Pro data',
+			'nutrition.data.proDetails.expand' => 'View details',
+			'nutrition.data.proDetails.collapse' => 'Collapse',
+			'nutrition.data.proDetails.target' => 'Target',
+			'nutrition.data.proDetails.actual' => 'Intake',
+			'nutrition.data.proDetails.percent' => '% of goal',
+			'nutrition.data.proDetails.rda' => 'RDA ref.',
+			'nutrition.data.proDetails.rdaNote' => 'RDA values are general adult dietary references (pending nutritionist sign-off) — your personal goals follow your plan',
+			'nutrition.data.trend.title' => 'Last 7 days',
+			'nutrition.data.trend.kcal' => 'Calories',
+			'nutrition.data.trend.fasting' => 'Fasting',
+			'nutrition.data.trend.empty' => 'Log a few more days and your trend line starts moving',
+			'nutrition.data.trend.hourUnit' => 'h',
 			'nutrition.signalCard.zone.green' => 'On track',
 			'nutrition.signalCard.zone.yellow' => 'Heads-up',
 			'nutrition.signalCard.zone.red' => 'Warning',

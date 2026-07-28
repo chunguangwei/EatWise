@@ -157,6 +157,7 @@ class Translations$nutrition$zh_CN {
 	final Translations _root; // ignore: unused_field
 
 	// Translations
+	late final Translations$nutrition$data$zh_CN data = Translations$nutrition$data$zh_CN.internal(_root);
 	late final Translations$nutrition$signalCard$zh_CN signalCard = Translations$nutrition$signalCard$zh_CN.internal(_root);
 }
 
@@ -745,6 +746,23 @@ class Translations$notification$fasting$zh_CN {
 	String get fastStart => '断食窗口开始啦，今天也很棒，加油坚持～';
 }
 
+// Path: nutrition.data
+class Translations$nutrition$data$zh_CN {
+	Translations$nutrition$data$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+	late final Translations$nutrition$data$dateSwitcher$zh_CN dateSwitcher = Translations$nutrition$data$dateSwitcher$zh_CN.internal(_root);
+	late final Translations$nutrition$data$summary$zh_CN summary = Translations$nutrition$data$summary$zh_CN.internal(_root);
+
+	/// zh-CN: '本地预估，联网后云端自动校准'
+	String get localEstimate => '本地预估，联网后云端自动校准';
+
+	late final Translations$nutrition$data$proDetails$zh_CN proDetails = Translations$nutrition$data$proDetails$zh_CN.internal(_root);
+	late final Translations$nutrition$data$trend$zh_CN trend = Translations$nutrition$data$trend$zh_CN.internal(_root);
+}
+
 // Path: nutrition.signalCard
 class Translations$nutrition$signalCard$zh_CN {
 	Translations$nutrition$signalCard$zh_CN.internal(this._root);
@@ -991,6 +1009,108 @@ class Translations$fasting$home$greeting$zh_CN {
 
 	/// zh-CN: '这么晚还醒着？喝口水早点睡也是养生哦'
 	String get night => '这么晚还醒着？喝口水早点睡也是养生哦';
+}
+
+// Path: nutrition.data.dateSwitcher
+class Translations$nutrition$data$dateSwitcher$zh_CN {
+	Translations$nutrition$data$dateSwitcher$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '前一天'
+	String get prevDay => '前一天';
+
+	/// zh-CN: '后一天'
+	String get nextDay => '后一天';
+
+	/// zh-CN: '回到今天'
+	String get backToToday => '回到今天';
+
+	/// zh-CN: '今天'
+	String get today => '今天';
+}
+
+// Path: nutrition.data.summary
+class Translations$nutrition$data$summary$zh_CN {
+	Translations$nutrition$data$summary$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '今天的营养节奏很稳，给你点个赞 🌱'
+	String get allGreen => '今天的营养节奏很稳，给你点个赞 🌱';
+
+	/// zh-CN: '今天总体不错，个别营养素还差一点点'
+	String get hasYellow => '今天总体不错，个别营养素还差一点点';
+
+	/// zh-CN: '有几盏小红灯，别急，跟着下面的建议慢慢调'
+	String get hasRed => '有几盏小红灯，别急，跟着下面的建议慢慢调';
+
+	/// zh-CN: '这一天还没有记录，记一笔信号灯就会亮起来'
+	String get empty => '这一天还没有记录，记一笔信号灯就会亮起来';
+
+	/// zh-CN: '当前按默认目标估算，补全身体资料后会更准哦'
+	String get fallbackGoal => '当前按默认目标估算，补全身体资料后会更准哦';
+}
+
+// Path: nutrition.data.proDetails
+class Translations$nutrition$data$proDetails$zh_CN {
+	Translations$nutrition$data$proDetails$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '专业数据'
+	String get title => '专业数据';
+
+	/// zh-CN: '查看详情'
+	String get expand => '查看详情';
+
+	/// zh-CN: '收起'
+	String get collapse => '收起';
+
+	/// zh-CN: '目标'
+	String get target => '目标';
+
+	/// zh-CN: '已摄入'
+	String get actual => '已摄入';
+
+	/// zh-CN: '占比'
+	String get percent => '占比';
+
+	/// zh-CN: 'RDA 参考'
+	String get rda => 'RDA 参考';
+
+	/// zh-CN: 'RDA 为成人通用膳食参考值〔待营养专业背书〕，个人目标以你的方案为准'
+	String get rdaNote => 'RDA 为成人通用膳食参考值〔待营养专业背书〕，个人目标以你的方案为准';
+}
+
+// Path: nutrition.data.trend
+class Translations$nutrition$data$trend$zh_CN {
+	Translations$nutrition$data$trend$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '近 7 日趋势'
+	String get title => '近 7 日趋势';
+
+	/// zh-CN: '热量'
+	String get kcal => '热量';
+
+	/// zh-CN: '断食时长'
+	String get fasting => '断食时长';
+
+	/// zh-CN: '记满几天，趋势曲线就跑起来啦'
+	String get empty => '记满几天，趋势曲线就跑起来啦';
+
+	/// zh-CN: '小时'
+	String get hourUnit => '小时';
 }
 
 // Path: nutrition.signalCard.zone
@@ -1358,6 +1478,29 @@ extension on Translations {
 			'notification.fasting.eatSoon' => '还有 15 分钟就可以进食啦',
 			'notification.fasting.eatStart' => ({required Object date}) => '可以进食啦，本次断食计入 ${date} ✅',
 			'notification.fasting.fastStart' => '断食窗口开始啦，今天也很棒，加油坚持～',
+			'nutrition.data.dateSwitcher.prevDay' => '前一天',
+			'nutrition.data.dateSwitcher.nextDay' => '后一天',
+			'nutrition.data.dateSwitcher.backToToday' => '回到今天',
+			'nutrition.data.dateSwitcher.today' => '今天',
+			'nutrition.data.summary.allGreen' => '今天的营养节奏很稳，给你点个赞 🌱',
+			'nutrition.data.summary.hasYellow' => '今天总体不错，个别营养素还差一点点',
+			'nutrition.data.summary.hasRed' => '有几盏小红灯，别急，跟着下面的建议慢慢调',
+			'nutrition.data.summary.empty' => '这一天还没有记录，记一笔信号灯就会亮起来',
+			'nutrition.data.summary.fallbackGoal' => '当前按默认目标估算，补全身体资料后会更准哦',
+			'nutrition.data.localEstimate' => '本地预估，联网后云端自动校准',
+			'nutrition.data.proDetails.title' => '专业数据',
+			'nutrition.data.proDetails.expand' => '查看详情',
+			'nutrition.data.proDetails.collapse' => '收起',
+			'nutrition.data.proDetails.target' => '目标',
+			'nutrition.data.proDetails.actual' => '已摄入',
+			'nutrition.data.proDetails.percent' => '占比',
+			'nutrition.data.proDetails.rda' => 'RDA 参考',
+			'nutrition.data.proDetails.rdaNote' => 'RDA 为成人通用膳食参考值〔待营养专业背书〕，个人目标以你的方案为准',
+			'nutrition.data.trend.title' => '近 7 日趋势',
+			'nutrition.data.trend.kcal' => '热量',
+			'nutrition.data.trend.fasting' => '断食时长',
+			'nutrition.data.trend.empty' => '记满几天，趋势曲线就跑起来啦',
+			'nutrition.data.trend.hourUnit' => '小时',
 			'nutrition.signalCard.zone.green' => '达标',
 			'nutrition.signalCard.zone.yellow' => '适量提醒',
 			'nutrition.signalCard.zone.red' => '警示',
