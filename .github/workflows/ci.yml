@@ -1,0 +1,121 @@
+# EatWise CI 流水线
+# 门禁：Flutter 端 format / analyze / test，服务端 lint / build / test，食物库数据校验。
+# 触发：push 与 PR（main 分支）。
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  app:
+    name: Flutter App (format / analyze / test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: eatwise_app
+    steps:
+      - uses: actions/checkout@v4
+
+      # 版本与项目内 .tooling SDK 保持一致（3.44.8 stable）。
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.8"
+          channel: stable
+          cache: true
+
+      - name: pub get
+        run: flutter pub get
+
+      - name: slang 代码生成（i18n）
+        run: dart run slang
+
+      - name: drift 代码生成
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: 格式化检查（零 diff 门禁）
+        run: dart format --set-exit-if-changed .
+
+      # 注意：本机中文路径下 `flutter analyze` 会崩（SDK bug），
+      # 统一使用等效的 `dart analyze`；CI 路径为 ASCII，两者均可，保持口径一致用后者。
+      - name: 静态分析（零 issue 门禁）
+        run: dart analyze --fatal-infos --fatal-warnings
+
+      - name: 测试（全绿门禁）
+        run: flutter test --reporter expanded
+
+  server:
+    name: NestJS Server (lint / build / test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: eatwise_server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: eatwise_server/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: Prisma Client 生成
+        run: npx prisma generate
+
+      - name: lint（零 error 门禁）
+        run: npm run lint
+
+      - name: 构建
+        run: npm run build
+
+      - name: 单测
+        run: npm test
+
+      - name: e2e
+        run: npm run test:e2e
+
+  data:
+    name: Food Data (seed 管线校验)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # CI 不重复拉取 USDA 原始数据（体积大且外网依赖不稳定），
+      # 在 /tmp 副本里用样本模式跑通管线并执行内置质量校验（非负 / kcal 偏差 / id 唯一），
+      # 避免覆盖已提交的全量种子文件。
+      - name: 管线样本模式 + 质量校验（/tmp 副本）
+        run: |
+          cp -R eatwise_data /tmp/eatwise_data_ci
+          cd /tmp/eatwise_data_ci
+          python3 scripts/build_seed.py --skip-usda
+          python3 - <<'EOF'
+          import json
+          with open("foods.seed.json") as f:
+              d = json.load(f)
+          assert d["foods"], "样本模式产出为空"
+          print("sample build ok,", len(d["foods"]), "items")
+          with open("reports/validation_report.json") as f:
+              r = json.load(f)
+          assert not r.get("errors"), f"校验存在 error: {r['errors'][:3]}"
+          print("validation ok, warnings:", len(r.get("warnings", [])))
+          EOF
+
+      - name: 校验已提交的种子文件可被解析
+        run: |
+          python3 - <<'EOF'
+          import json
+          for p in ("eatwise_data/foods.seed.json", "eatwise_app/assets/foods/foods.seed.json"):
+              with open(p) as f:
+                  d = json.load(f)
+              assert d["foods"], f"{p} 食物条目为空"
+              print(p, "ok,", len(d["foods"]), "items,", d.get("version"))
+          EOF

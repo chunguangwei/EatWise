@@ -22,55 +22,52 @@ void main() {
   });
 
   Map<String, dynamic> sampleDoc(String version) => <String, dynamic>{
-        'version': version,
-        'sources': <String>['curated'],
-        'foods': <Map<String, dynamic>>[
-          <String, dynamic>{
-            'id': 'curated-steamed-rice',
-            'name_zh': '米饭',
-            'name_en': 'Steamed Rice',
-            'aliases_zh': <String>['白米饭', '大米饭'],
-            'aliases_en': <String>['cooked rice', 'white rice'],
-            'kcal': 116.0,
-            'protein_g': 2.6,
-            'carb_g': 25.9,
-            'fat_g': 0.3,
-            'source': 'curated',
-            'zh_verified': true,
-          },
-          <String, dynamic>{
-            'id': 'curated-chicken-breast',
-            'name_zh': '鸡胸肉',
-            'name_en': 'Chicken Breast (Cooked)',
-            'aliases_zh': <String>['鸡胸'],
-            'aliases_en': <String>['grilled chicken breast'],
-            'kcal': 133.0,
-            'protein_g': 19.4,
-            'carb_g': 2.5,
-            'fat_g': 5.0,
-            'source': 'curated',
-            'zh_verified': true,
-          },
-          <String, dynamic>{
-            'id': 'usda-171287',
-            'name_zh': null,
-            'name_en': 'Apples, raw, with skin',
-            'aliases_zh': <String>[],
-            'aliases_en': <String>['apples, raw, with skin'],
-            'kcal': 52.0,
-            'protein_g': 0.3,
-            'carb_g': 13.8,
-            'fat_g': 0.2,
-            'source': 'usda-sr',
-            'zh_verified': false,
-          },
-        ],
-      };
+    'version': version,
+    'sources': <String>['curated'],
+    'foods': <Map<String, dynamic>>[
+      <String, dynamic>{
+        'id': 'curated-steamed-rice',
+        'name_zh': '米饭',
+        'name_en': 'Steamed Rice',
+        'aliases_zh': <String>['白米饭', '大米饭'],
+        'aliases_en': <String>['cooked rice', 'white rice'],
+        'kcal': 116.0,
+        'protein_g': 2.6,
+        'carb_g': 25.9,
+        'fat_g': 0.3,
+        'source': 'curated',
+        'zh_verified': true,
+      },
+      <String, dynamic>{
+        'id': 'curated-chicken-breast',
+        'name_zh': '鸡胸肉',
+        'name_en': 'Chicken Breast (Cooked)',
+        'aliases_zh': <String>['鸡胸'],
+        'aliases_en': <String>['grilled chicken breast'],
+        'kcal': 133.0,
+        'protein_g': 19.4,
+        'carb_g': 2.5,
+        'fat_g': 5.0,
+        'source': 'curated',
+        'zh_verified': true,
+      },
+      <String, dynamic>{
+        'id': 'usda-171287',
+        'name_zh': null,
+        'name_en': 'Apples, raw, with skin',
+        'aliases_zh': <String>[],
+        'aliases_en': <String>['apples, raw, with skin'],
+        'kcal': 52.0,
+        'protein_g': 0.3,
+        'carb_g': 13.8,
+        'fat_g': 0.2,
+        'source': 'usda-sr',
+        'zh_verified': false,
+      },
+    ],
+  };
 
-  FoodSeedLoader loader(
-    SharedPreferences prefs,
-    String version,
-  ) {
+  FoodSeedLoader loader(SharedPreferences prefs, String version) {
     return FoodSeedLoader(
       db: db,
       prefs: prefs,
@@ -126,8 +123,7 @@ void main() {
   test('真实种子资产：全量导入后中文/英文搜索均有结果', () async {
     final file = File('assets/foods/foods.seed.json');
     expect(file.existsSync(), isTrue, reason: 'pubspec 声明的食物库种子资产');
-    final doc =
-        jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+    final doc = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
     final expected = (doc['foods']! as List<dynamic>).length;
 
     final prefs = await SharedPreferences.getInstance();
