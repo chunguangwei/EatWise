@@ -157,7 +157,44 @@
       "stateFastingExtended": "断食中 · 已延长",
       "stateNoPlan": "还未开始断食方案",
       "attribution": "本次断食计入 ${date}",
-      "extendedBadge": "已延长 +${minutes} 分钟"
+      "extendedBadge": "已延长 +${minutes} 分钟",
+      "extendLimit": "单次最多延长 4 小时",
+      "planTag": "${id} · 进食窗 ${start}–${end}",
+      "noPlanSubtitle": "3 个小问题，帮你找到最适合的断食节奏",
+      "celebrationTitle": "断食完成！身体悄悄做了次大扫除 ✨",
+      "celebrationBadge": "断食完成 ✨",
+      "signalEmpty": "今天还没记录，记一笔后信号灯会亮起来",
+      "greeting": {
+        "morning": "早上好",
+        "noon": "中午好",
+        "afternoon": "下午好",
+        "evening": "晚上好",
+        "night": "这么晚还醒着？喝口水早点睡也是养生哦"
+      }
+    }
+  },
+  "home": {
+    "tab": {
+      "home": "首页",
+      "record": "记录",
+      "data": "数据",
+      "community": "社区",
+      "profile": "我的"
+    },
+    "data": {
+      "emptyTitle": "数据曲线正在热身，多记几天它就跑起来啦。",
+      "emptySubtitle": "连续记录几天，趋势和信号灯就会跑起来。",
+      "cta": "去记录"
+    },
+    "community": {
+      "emptyTitle": "这里在等今天第一口美食登场。",
+      "emptySubtitle": "打卡流与挑战赛正在筹备中。",
+      "cta": "发布打卡",
+      "comingSoon": "社区功能即将上线，敬请期待"
+    },
+    "profile": {
+      "emptyTitle": "个人中心正在装修",
+      "emptySubtitle": "方案、目标与更多设置会陆续搬进来。"
     }
   },
   "notification": {
@@ -169,6 +206,11 @@
   },
   "nutrition": {
     "signalCard": {
+      "zone": {
+        "green": "达标",
+        "yellow": "适量提醒",
+        "red": "警示"
+      },
       "advice": {
         "kcal": {
           "green": "今天热量刚刚好，节奏很稳，继续保持～ 🌱",

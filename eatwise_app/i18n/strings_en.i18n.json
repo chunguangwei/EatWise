@@ -157,7 +157,44 @@
       "stateFastingExtended": "Fasting · Extended",
       "stateNoPlan": "No fasting plan yet",
       "attribution": "This fast counts toward ${date}",
-      "extendedBadge": "Extended +${minutes} min"
+      "extendedBadge": "Extended +${minutes} min",
+      "extendLimit": "You can extend by up to 4 hours per fast",
+      "planTag": "${id} · Eating window ${start}–${end}",
+      "noPlanSubtitle": "Answer 3 quick questions to find your fasting rhythm",
+      "celebrationTitle": "Fast complete! Your body just did a quiet deep-clean ✨",
+      "celebrationBadge": "Fast complete ✨",
+      "signalEmpty": "Nothing logged today — log a bite and your signal lights will show up",
+      "greeting": {
+        "morning": "Good morning",
+        "noon": "Good noon",
+        "afternoon": "Good afternoon",
+        "evening": "Good evening",
+        "night": "Still up? A glass of water and an early night is self-care too"
+      }
+    }
+  },
+  "home": {
+    "tab": {
+      "home": "Home",
+      "record": "Log",
+      "data": "Stats",
+      "community": "Community",
+      "profile": "Me"
+    },
+    "data": {
+      "emptyTitle": "Your trends are warming up — log a few days to get them moving.",
+      "emptySubtitle": "Keep logging for a few days and your trends and signal lights will come alive.",
+      "cta": "Log a bite"
+    },
+    "community": {
+      "emptyTitle": "Waiting for today's first check-in to show up.",
+      "emptySubtitle": "Check-ins and challenges are on the way.",
+      "cta": "Check in",
+      "comingSoon": "Community is coming soon — stay tuned"
+    },
+    "profile": {
+      "emptyTitle": "Your profile is under construction",
+      "emptySubtitle": "Plans, goals and more settings are moving in soon."
     }
   },
   "notification": {
@@ -169,6 +206,11 @@
   },
   "nutrition": {
     "signalCard": {
+      "zone": {
+        "green": "On track",
+        "yellow": "Heads-up",
+        "red": "Warning"
+      },
       "advice": {
         "kcal": {
           "green": "Your calories are right on track today — nice and steady, keep it up! 🌱",

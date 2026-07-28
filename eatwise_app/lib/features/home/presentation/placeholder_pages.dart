@@ -1,0 +1,168 @@
+import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/theme/app_colors.dart';
+import 'package:eatwise/core/theme/app_spacing.dart';
+import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+/// 数据/社区/我的 占位页（四态规范 3.2.2 空态统一结构：
+/// 插画位（线性图标）→ 主文案 → 副文案 → CTA 主按钮，中英双语）。
+///
+/// 正式页面随 M4 数据 / M5 社区 / M7 我的 迭代落地，本文件仅交付
+/// 符合四态规范的空态占位，CTA 已接真实出口或「即将上线」提示。
+
+/// 数据页占位：空态文案取自四态规范 3.2.2（不出现误导性信号灯），
+/// CTA「去记录」跳记录 Tab。
+class DataPlaceholderPage extends StatelessWidget {
+  const DataPlaceholderPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Translations.of(context);
+    return _PlaceholderScaffold(
+      title: t.home.tab.data,
+      icon: Icons.insights_outlined,
+      emptyTitle: t.home.data.emptyTitle,
+      emptySubtitle: t.home.data.emptySubtitle,
+      ctaLabel: t.home.data.cta,
+      onCta: () => context.go('/record'),
+    );
+  }
+}
+
+/// 社区页占位：空态文案取自四态规范 3.2.2，CTA「发布打卡」为 P1 能力，
+/// 当前给「即将上线」提示（不阻断、不误导）。
+class CommunityPlaceholderPage extends StatelessWidget {
+  const CommunityPlaceholderPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Translations.of(context);
+    return _PlaceholderScaffold(
+      title: t.home.tab.community,
+      icon: Icons.people_outline,
+      emptyTitle: t.home.community.emptyTitle,
+      emptySubtitle: t.home.community.emptySubtitle,
+      ctaLabel: t.home.community.cta,
+      onCta: () => ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.home.community.comingSoon))),
+    );
+  }
+}
+
+/// 我的页占位：空态 + 语言设置（D-15：设置内可手动切换，即时生效）。
+class ProfilePlaceholderPage extends StatelessWidget {
+  const ProfilePlaceholderPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Translations.of(context);
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    return _PlaceholderScaffold(
+      title: t.home.tab.profile,
+      icon: Icons.person_outline,
+      emptyTitle: t.home.profile.emptyTitle,
+      emptySubtitle: t.home.profile.emptySubtitle,
+      ctaLabel: null,
+      onCta: null,
+      footer: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(t.settings.language.title, style: textStyles.textXl),
+          const SizedBox(height: AppSpacing.s2),
+          Wrap(
+            spacing: AppSpacing.s2,
+            children: <Widget>[
+              OutlinedButton(
+                onPressed: () => LocaleSettings.useDeviceLocale(),
+                child: Text(t.settings.language.system),
+              ),
+              OutlinedButton(
+                onPressed: () => LocaleSettings.setLocale(AppLocale.zhCn),
+                child: Text(t.settings.language.zhCN),
+              ),
+              OutlinedButton(
+                onPressed: () => LocaleSettings.setLocale(AppLocale.en),
+                child: Text(t.settings.language.en),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 空态占位统一结构（四态规范 3.2.2；触控区 ≥44px）。
+class _PlaceholderScaffold extends StatelessWidget {
+  const _PlaceholderScaffold({
+    required this.title,
+    required this.icon,
+    required this.emptyTitle,
+    required this.emptySubtitle,
+    required this.ctaLabel,
+    required this.onCta,
+    this.footer,
+  });
+
+  final String title;
+  final IconData icon;
+  final String emptyTitle;
+  final String emptySubtitle;
+  final String? ctaLabel;
+  final VoidCallback? onCta;
+  final Widget? footer;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    return Scaffold(
+      backgroundColor: colors.bgPrimary,
+      appBar: AppBar(
+        backgroundColor: colors.bgPrimary,
+        title: Text(title, style: textStyles.textXl),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.s4),
+          children: <Widget>[
+            const SizedBox(height: AppSpacing.s16),
+            Icon(icon, size: 64, color: colors.textSecondary),
+            const SizedBox(height: AppSpacing.s4),
+            Text(
+              emptyTitle,
+              style: textStyles.textXl,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.s2),
+            Text(
+              emptySubtitle,
+              style: textStyles.textSm.copyWith(color: colors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            if (ctaLabel != null) ...<Widget>[
+              const SizedBox(height: AppSpacing.s6),
+              FilledButton(
+                onPressed: onCta,
+                style: FilledButton.styleFrom(
+                  backgroundColor: colors.brandPrimary,
+                  minimumSize: const Size.fromHeight(AppSpacing.s12),
+                ),
+                child: Text(
+                  ctaLabel!,
+                  style: textStyles.textBase.copyWith(color: Colors.white),
+                ),
+              ),
+            ],
+            if (footer != null) ...<Widget>[
+              const SizedBox(height: AppSpacing.s8),
+              footer!,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

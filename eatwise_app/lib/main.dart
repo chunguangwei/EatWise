@@ -1,11 +1,16 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/app/router/app_router.dart';
+import 'package:eatwise/core/notification/local_notification_service.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
+import 'package:eatwise/features/fasting/application/fasting_notification_texts.dart';
+import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
+import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
+import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -35,6 +40,16 @@ Future<void> main() async {
   // M3/M7：本地数据库（drift，D-17；SQLCipher 加密接入点见规格-数据同步 §7.2）。
   final docsDir = await getApplicationDocumentsDirectory();
   final db = AppDatabase.openAt(docsDir.path);
+  // M2：本地通知服务初始化（D-09；失败不阻断计时主流程，权限拒绝走
+  // App 内横幅降级，合规 §3）。渠道文案走 i18n（D-15）。
+  final notificationService = LocalNotificationService();
+  try {
+    await notificationService.initialize(
+      channel: fastingReminderChannel(LocaleSettings.currentLocale.buildSync()),
+    );
+  } on Object {
+    // 防御：通知插件初始化失败时计时照常，提醒功能降级。
+  }
   runApp(
     TranslationProvider(
       child: ProviderScope(
@@ -42,6 +57,15 @@ Future<void> main() async {
           sharedPreferencesProvider.overrideWithValue(prefs),
           onboardingGateProvider.overrideWithValue(gate),
           appDatabaseProvider.overrideWithValue(db),
+          localNotificationServiceProvider.overrideWithValue(
+            notificationService,
+          ),
+          // 首页信号卡数据源：record 仓储当日聚合流（本地预估，§2.6）。
+          todayNutritionCacheProvider.overrideWith(
+            (ref) => ref
+                .watch(recordRepositoryProvider)
+                .watchDailyNutrition(DateTime.now()),
+          ),
         ],
         child: EatWiseApp(gate: gate),
       ),

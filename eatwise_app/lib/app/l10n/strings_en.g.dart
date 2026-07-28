@@ -44,6 +44,7 @@ class TranslationsEn extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$record$en record = _Translations$record$en._(_root);
 	@override late final _Translations$common$en common = _Translations$common$en._(_root);
 	@override late final _Translations$fasting$en fasting = _Translations$fasting$en._(_root);
+	@override late final _Translations$home$en home = _Translations$home$en._(_root);
 	@override late final _Translations$notification$en notification = _Translations$notification$en._(_root);
 	@override late final _Translations$nutrition$en nutrition = _Translations$nutrition$en._(_root);
 	@override late final _Translations$settings$en settings = _Translations$settings$en._(_root);
@@ -111,6 +112,19 @@ class _Translations$fasting$en extends Translations$fasting$zh_CN {
 
 	// Translations
 	@override late final _Translations$fasting$home$en home = _Translations$fasting$home$en._(_root);
+}
+
+// Path: home
+class _Translations$home$en extends Translations$home$zh_CN {
+	_Translations$home$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override late final _Translations$home$tab$en tab = _Translations$home$tab$en._(_root);
+	@override late final _Translations$home$data$en data = _Translations$home$data$en._(_root);
+	@override late final _Translations$home$community$en community = _Translations$home$community$en._(_root);
+	@override late final _Translations$home$profile$en profile = _Translations$home$profile$en._(_root);
 }
 
 // Path: notification
@@ -358,6 +372,63 @@ class _Translations$fasting$home$en extends Translations$fasting$home$zh_CN {
 	@override String get stateNoPlan => 'No fasting plan yet';
 	@override String attribution({required Object date}) => 'This fast counts toward ${date}';
 	@override String extendedBadge({required Object minutes}) => 'Extended +${minutes} min';
+	@override String get extendLimit => 'You can extend by up to 4 hours per fast';
+	@override String planTag({required Object id, required Object start, required Object end}) => '${id} · Eating window ${start}–${end}';
+	@override String get noPlanSubtitle => 'Answer 3 quick questions to find your fasting rhythm';
+	@override String get celebrationTitle => 'Fast complete! Your body just did a quiet deep-clean ✨';
+	@override String get celebrationBadge => 'Fast complete ✨';
+	@override String get signalEmpty => 'Nothing logged today — log a bite and your signal lights will show up';
+	@override late final _Translations$fasting$home$greeting$en greeting = _Translations$fasting$home$greeting$en._(_root);
+}
+
+// Path: home.tab
+class _Translations$home$tab$en extends Translations$home$tab$zh_CN {
+	_Translations$home$tab$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get home => 'Home';
+	@override String get record => 'Log';
+	@override String get data => 'Stats';
+	@override String get community => 'Community';
+	@override String get profile => 'Me';
+}
+
+// Path: home.data
+class _Translations$home$data$en extends Translations$home$data$zh_CN {
+	_Translations$home$data$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get emptyTitle => 'Your trends are warming up — log a few days to get them moving.';
+	@override String get emptySubtitle => 'Keep logging for a few days and your trends and signal lights will come alive.';
+	@override String get cta => 'Log a bite';
+}
+
+// Path: home.community
+class _Translations$home$community$en extends Translations$home$community$zh_CN {
+	_Translations$home$community$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get emptyTitle => 'Waiting for today\'s first check-in to show up.';
+	@override String get emptySubtitle => 'Check-ins and challenges are on the way.';
+	@override String get cta => 'Check in';
+	@override String get comingSoon => 'Community is coming soon — stay tuned';
+}
+
+// Path: home.profile
+class _Translations$home$profile$en extends Translations$home$profile$zh_CN {
+	_Translations$home$profile$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get emptyTitle => 'Your profile is under construction';
+	@override String get emptySubtitle => 'Plans, goals and more settings are moving in soon.';
 }
 
 // Path: notification.fasting
@@ -379,6 +450,7 @@ class _Translations$nutrition$signalCard$en extends Translations$nutrition$signa
 	final TranslationsEn _root; // ignore: unused_field
 
 	// Translations
+	@override late final _Translations$nutrition$signalCard$zone$en zone = _Translations$nutrition$signalCard$zone$en._(_root);
 	@override late final _Translations$nutrition$signalCard$advice$en advice = _Translations$nutrition$signalCard$advice$en._(_root);
 }
 
@@ -495,6 +567,32 @@ class _Translations$onboarding$recommendation$reason$en extends Translations$onb
 	@override String get experienced => 'With your experience, 16:8 is a steady default — and 18:6 is there when you want more.';
 	@override String get healthUpgrade => 'With experience and health-check goals, 18:6 suits you better. Ease into it.';
 	@override String get fallback => 'Let\'s start with the crowd favorite 16:8 — you can adjust it anytime in Profile.';
+}
+
+// Path: fasting.home.greeting
+class _Translations$fasting$home$greeting$en extends Translations$fasting$home$greeting$zh_CN {
+	_Translations$fasting$home$greeting$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get morning => 'Good morning';
+	@override String get noon => 'Good noon';
+	@override String get afternoon => 'Good afternoon';
+	@override String get evening => 'Good evening';
+	@override String get night => 'Still up? A glass of water and an early night is self-care too';
+}
+
+// Path: nutrition.signalCard.zone
+class _Translations$nutrition$signalCard$zone$en extends Translations$nutrition$signalCard$zone$zh_CN {
+	_Translations$nutrition$signalCard$zone$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get green => 'On track';
+	@override String get yellow => 'Heads-up';
+	@override String get red => 'Warning';
 }
 
 // Path: nutrition.signalCard.advice
@@ -723,9 +821,37 @@ extension on TranslationsEn {
 			'fasting.home.stateNoPlan' => 'No fasting plan yet',
 			'fasting.home.attribution' => ({required Object date}) => 'This fast counts toward ${date}',
 			'fasting.home.extendedBadge' => ({required Object minutes}) => 'Extended +${minutes} min',
+			'fasting.home.extendLimit' => 'You can extend by up to 4 hours per fast',
+			'fasting.home.planTag' => ({required Object id, required Object start, required Object end}) => '${id} · Eating window ${start}–${end}',
+			'fasting.home.noPlanSubtitle' => 'Answer 3 quick questions to find your fasting rhythm',
+			'fasting.home.celebrationTitle' => 'Fast complete! Your body just did a quiet deep-clean ✨',
+			'fasting.home.celebrationBadge' => 'Fast complete ✨',
+			'fasting.home.signalEmpty' => 'Nothing logged today — log a bite and your signal lights will show up',
+			'fasting.home.greeting.morning' => 'Good morning',
+			'fasting.home.greeting.noon' => 'Good noon',
+			'fasting.home.greeting.afternoon' => 'Good afternoon',
+			'fasting.home.greeting.evening' => 'Good evening',
+			'fasting.home.greeting.night' => 'Still up? A glass of water and an early night is self-care too',
+			'home.tab.home' => 'Home',
+			'home.tab.record' => 'Log',
+			'home.tab.data' => 'Stats',
+			'home.tab.community' => 'Community',
+			'home.tab.profile' => 'Me',
+			'home.data.emptyTitle' => 'Your trends are warming up — log a few days to get them moving.',
+			'home.data.emptySubtitle' => 'Keep logging for a few days and your trends and signal lights will come alive.',
+			'home.data.cta' => 'Log a bite',
+			'home.community.emptyTitle' => 'Waiting for today\'s first check-in to show up.',
+			'home.community.emptySubtitle' => 'Check-ins and challenges are on the way.',
+			'home.community.cta' => 'Check in',
+			'home.community.comingSoon' => 'Community is coming soon — stay tuned',
+			'home.profile.emptyTitle' => 'Your profile is under construction',
+			'home.profile.emptySubtitle' => 'Plans, goals and more settings are moving in soon.',
 			'notification.fasting.eatSoon' => 'Eating window opens in 15 min',
 			'notification.fasting.eatStart' => ({required Object date}) => 'Time to eat! This fast counts toward ${date} ✅',
 			'notification.fasting.fastStart' => 'Your fasting window has started — you\'re doing great, keep it up!',
+			'nutrition.signalCard.zone.green' => 'On track',
+			'nutrition.signalCard.zone.yellow' => 'Heads-up',
+			'nutrition.signalCard.zone.red' => 'Warning',
 			'nutrition.signalCard.advice.kcal.green' => 'Your calories are right on track today — nice and steady, keep it up! 🌱',
 			'nutrition.signalCard.advice.kcal.yellowLow' => ({required Object meal_action}) => 'You\'re a bit under on calories — ${meal_action}. Your body will thank you.',
 			'nutrition.signalCard.advice.kcal.yellowHigh' => ({required Object meal_action}) => 'Calories are a touch high — ${meal_action} and you\'re right back on track.',

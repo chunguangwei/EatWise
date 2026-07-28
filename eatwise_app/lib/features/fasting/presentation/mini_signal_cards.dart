@@ -1,0 +1,265 @@
+import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/theme/app_colors.dart';
+import 'package:eatwise/core/theme/app_radii.dart';
+import 'package:eatwise/core/theme/app_shadows.dart';
+import 'package:eatwise/core/theme/app_spacing.dart';
+import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/fasting/domain/daily_nutrition.dart';
+import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
+import 'package:eatwise/features/fasting/domain/nutrition_rule_config.dart';
+import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
+import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// 首页底部一行三色 mini signal-card（设计稿 §4.2-①：蛋白/碳水/热量，
+/// 点按跳数据页；§4.1 信号卡：色+图标+文字三重编码，D-05 阈值判定）。
+///
+/// 数据流：record 模块当日聚合缓存（本地预估）→ [DailyIntake] →
+/// `evaluateDailySignals`（signal_light/daily_nutrition 领域纯函数）→
+/// 落区渲染；当日 0 条记录走空态（四态规范 3.4：不出现误导性信号灯）。
+
+/// 每日营养目标（M1 引导写入的快照；缺失时按 D-04 兜底公式重算）。
+final nutritionGoalProvider = Provider<NutritionGoal>((ref) {
+  final snapshot = ref.watch(onboardingStoreProvider).loadNutritionGoal();
+  if (snapshot != null) {
+    return NutritionGoal(
+      bmr: null,
+      tdee: null,
+      targetKcal: snapshot.targetKcal,
+      proteinG: snapshot.proteinG,
+      carbG: snapshot.carbG,
+      fatG: snapshot.fatG,
+      usedFallback: snapshot.usedFallback,
+      configVersion: snapshot.configVersion,
+    );
+  }
+  return computeNutritionGoal(
+    const UserProfileInput(),
+    NutritionRuleConfig.defaults,
+  );
+});
+
+/// 当日营养聚合缓存流（数据源端口）。
+///
+/// 默认空流：未装配记录仓储的环境（如无 db 的测试）下信号卡走空态——
+/// 首页计时为本地计算，绝不因信号卡数据源缺失而破版（四态规范 3.4）。
+/// 生产由 main 在 ProviderScope override 为 record 仓储的当日聚合流。
+final todayNutritionCacheProvider = StreamProvider<DailyNutritionCache?>((ref) {
+  return Stream<DailyNutritionCache?>.value(null);
+});
+
+/// 当日累计摄入（聚合缓存 → 领域输入；0 条记录 → null 走空态）。
+final todayIntakeProvider = Provider<DailyIntake?>((ref) {
+  final cache = ref.watch(todayNutritionCacheProvider).valueOrNull;
+  if (cache == null || cache.entryCount == 0) return null;
+  return DailyIntake(
+    entryCount: cache.entryCount,
+    kcal: cache.kcal,
+    proteinG: cache.proteinG,
+    carbG: cache.carbG,
+    fatG: cache.fatG,
+  );
+});
+
+/// 当日信号灯判定结果（D-05 阈值，规则热配置当前用内置默认值）。
+final todaySignalsProvider = Provider<DailySignal>((ref) {
+  final intake = ref.watch(todayIntakeProvider);
+  final goal = ref.watch(nutritionGoalProvider);
+  return evaluateDailySignals(
+    intake ??
+        const DailyIntake(
+          entryCount: 0,
+          kcal: 0,
+          proteinG: 0,
+          carbG: 0,
+          fatG: 0,
+        ),
+    goal,
+    NutritionRuleConfig.defaults,
+  );
+});
+
+/// 一行三色 mini signal-card（蛋白/碳水/热量）。
+class MiniSignalCards extends ConsumerWidget {
+  const MiniSignalCards({required this.onTap, super.key});
+
+  /// 点按任一卡片（设计稿 §4.2-①：跳数据页）。
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = Translations.of(context);
+    final signal = ref.watch(todaySignalsProvider);
+    if (!signal.hasData) {
+      return _EmptySignalCard(
+        message: t.fasting.home.signalEmpty,
+        onTap: onTap,
+      );
+    }
+    return Row(
+      children: <Widget>[
+        _MiniSignalCard(
+          nutrient: NutrientType.protein,
+          label: t.record.nutrition.protein,
+          verdict: signal.verdicts[NutrientType.protein]!,
+          onTap: onTap,
+        ),
+        const SizedBox(width: AppSpacing.s2),
+        _MiniSignalCard(
+          nutrient: NutrientType.carb,
+          label: t.record.nutrition.carb,
+          verdict: signal.verdicts[NutrientType.carb]!,
+          onTap: onTap,
+        ),
+        const SizedBox(width: AppSpacing.s2),
+        _MiniSignalCard(
+          nutrient: NutrientType.kcal,
+          label: t.record.nutrition.kcal,
+          verdict: signal.verdicts[NutrientType.kcal]!,
+          onTap: onTap,
+        ),
+      ],
+    );
+  }
+}
+
+/// 空态卡（四态规范 3.4：当日无记录 → 引导去记录，不出现信号灯）。
+class _EmptySignalCard extends StatelessWidget {
+  const _EmptySignalCard({required this.message, required this.onTap});
+
+  final String message;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
+    return Semantics(
+      button: true,
+      label: message,
+      child: Material(
+        color: colors.bgSecondary,
+        borderRadius: radii.rLg,
+        child: InkWell(
+          borderRadius: radii.rLg,
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.all(AppSpacing.s4),
+            child: Row(
+              children: <Widget>[
+                Icon(
+                  Icons.restaurant_outlined,
+                  color: colors.textSecondary,
+                  size: 24,
+                ),
+                const SizedBox(width: AppSpacing.s2),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: textStyles.textSm.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 单张 mini 信号卡：颜色 + 图标 + 文字三重编码（绝不单靠颜色，PRD M8）。
+class _MiniSignalCard extends StatelessWidget {
+  const _MiniSignalCard({
+    required this.nutrient,
+    required this.label,
+    required this.verdict,
+    required this.onTap,
+  });
+
+  final NutrientType nutrient;
+  final String label;
+  final SignalVerdict verdict;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
+    final shadows = Theme.of(context).extension<AppShadows>()!;
+    final t = Translations.of(context);
+    final (color, icon, zoneLabel) = switch (verdict.zone) {
+      SignalZone.green => (
+        colors.signalGreen,
+        Icons.check_circle,
+        t.nutrition.signalCard.zone.green,
+      ),
+      SignalZone.yellow => (
+        colors.signalYellow,
+        Icons.error,
+        t.nutrition.signalCard.zone.yellow,
+      ),
+      SignalZone.red => (
+        colors.signalRed,
+        Icons.cancel,
+        t.nutrition.signalCard.zone.red,
+      ),
+    };
+    return Expanded(
+      child: Semantics(
+        button: true,
+        label: '$label $zoneLabel',
+        child: Material(
+          color: colors.bgSecondary,
+          borderRadius: radii.rLg,
+          child: InkWell(
+            borderRadius: radii.rLg,
+            onTap: onTap,
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 64),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s2,
+                vertical: AppSpacing.s2,
+              ),
+              decoration: BoxDecoration(
+                borderRadius: radii.rLg,
+                boxShadow: shadows.shadowSm,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(icon, color: color, size: 20),
+                  const SizedBox(height: AppSpacing.s1),
+                  Text(
+                    label,
+                    style: textStyles.textSm.copyWith(
+                      color: colors.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    zoneLabel,
+                    style: textStyles.textXs.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

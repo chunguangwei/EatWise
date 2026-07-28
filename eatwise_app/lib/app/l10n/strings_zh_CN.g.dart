@@ -45,6 +45,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$record$zh_CN record = Translations$record$zh_CN.internal(_root);
 	late final Translations$common$zh_CN common = Translations$common$zh_CN.internal(_root);
 	late final Translations$fasting$zh_CN fasting = Translations$fasting$zh_CN.internal(_root);
+	late final Translations$home$zh_CN home = Translations$home$zh_CN.internal(_root);
 	late final Translations$notification$zh_CN notification = Translations$notification$zh_CN.internal(_root);
 	late final Translations$nutrition$zh_CN nutrition = Translations$nutrition$zh_CN.internal(_root);
 	late final Translations$settings$zh_CN settings = Translations$settings$zh_CN.internal(_root);
@@ -119,6 +120,19 @@ class Translations$fasting$zh_CN {
 
 	// Translations
 	late final Translations$fasting$home$zh_CN home = Translations$fasting$home$zh_CN.internal(_root);
+}
+
+// Path: home
+class Translations$home$zh_CN {
+	Translations$home$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+	late final Translations$home$tab$zh_CN tab = Translations$home$tab$zh_CN.internal(_root);
+	late final Translations$home$data$zh_CN data = Translations$home$data$zh_CN.internal(_root);
+	late final Translations$home$community$zh_CN community = Translations$home$community$zh_CN.internal(_root);
+	late final Translations$home$profile$zh_CN profile = Translations$home$profile$zh_CN.internal(_root);
 }
 
 // Path: notification
@@ -496,6 +510,104 @@ class Translations$fasting$home$zh_CN {
 
 	/// zh-CN: '已延长 +${minutes} 分钟'
 	String extendedBadge({required Object minutes}) => '已延长 +${minutes} 分钟';
+
+	/// zh-CN: '单次最多延长 4 小时'
+	String get extendLimit => '单次最多延长 4 小时';
+
+	/// zh-CN: '${id} · 进食窗 ${start}–${end}'
+	String planTag({required Object id, required Object start, required Object end}) => '${id} · 进食窗 ${start}–${end}';
+
+	/// zh-CN: '3 个小问题，帮你找到最适合的断食节奏'
+	String get noPlanSubtitle => '3 个小问题，帮你找到最适合的断食节奏';
+
+	/// zh-CN: '断食完成！身体悄悄做了次大扫除 ✨'
+	String get celebrationTitle => '断食完成！身体悄悄做了次大扫除 ✨';
+
+	/// zh-CN: '断食完成 ✨'
+	String get celebrationBadge => '断食完成 ✨';
+
+	/// zh-CN: '今天还没记录，记一笔后信号灯会亮起来'
+	String get signalEmpty => '今天还没记录，记一笔后信号灯会亮起来';
+
+	late final Translations$fasting$home$greeting$zh_CN greeting = Translations$fasting$home$greeting$zh_CN.internal(_root);
+}
+
+// Path: home.tab
+class Translations$home$tab$zh_CN {
+	Translations$home$tab$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '首页'
+	String get home => '首页';
+
+	/// zh-CN: '记录'
+	String get record => '记录';
+
+	/// zh-CN: '数据'
+	String get data => '数据';
+
+	/// zh-CN: '社区'
+	String get community => '社区';
+
+	/// zh-CN: '我的'
+	String get profile => '我的';
+}
+
+// Path: home.data
+class Translations$home$data$zh_CN {
+	Translations$home$data$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '数据曲线正在热身，多记几天它就跑起来啦。'
+	String get emptyTitle => '数据曲线正在热身，多记几天它就跑起来啦。';
+
+	/// zh-CN: '连续记录几天，趋势和信号灯就会跑起来。'
+	String get emptySubtitle => '连续记录几天，趋势和信号灯就会跑起来。';
+
+	/// zh-CN: '去记录'
+	String get cta => '去记录';
+}
+
+// Path: home.community
+class Translations$home$community$zh_CN {
+	Translations$home$community$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '这里在等今天第一口美食登场。'
+	String get emptyTitle => '这里在等今天第一口美食登场。';
+
+	/// zh-CN: '打卡流与挑战赛正在筹备中。'
+	String get emptySubtitle => '打卡流与挑战赛正在筹备中。';
+
+	/// zh-CN: '发布打卡'
+	String get cta => '发布打卡';
+
+	/// zh-CN: '社区功能即将上线，敬请期待'
+	String get comingSoon => '社区功能即将上线，敬请期待';
+}
+
+// Path: home.profile
+class Translations$home$profile$zh_CN {
+	Translations$home$profile$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '个人中心正在装修'
+	String get emptyTitle => '个人中心正在装修';
+
+	/// zh-CN: '方案、目标与更多设置会陆续搬进来。'
+	String get emptySubtitle => '方案、目标与更多设置会陆续搬进来。';
 }
 
 // Path: notification.fasting
@@ -523,6 +635,7 @@ class Translations$nutrition$signalCard$zh_CN {
 	final Translations _root; // ignore: unused_field
 
 	// Translations
+	late final Translations$nutrition$signalCard$zone$zh_CN zone = Translations$nutrition$signalCard$zone$zh_CN.internal(_root);
 	late final Translations$nutrition$signalCard$advice$zh_CN advice = Translations$nutrition$signalCard$advice$zh_CN.internal(_root);
 }
 
@@ -686,6 +799,48 @@ class Translations$onboarding$recommendation$reason$zh_CN {
 
 	/// zh-CN: '先按人气最高的 16:8 开始，随时可以在「我的」里调整。'
 	String get fallback => '先按人气最高的 16:8 开始，随时可以在「我的」里调整。';
+}
+
+// Path: fasting.home.greeting
+class Translations$fasting$home$greeting$zh_CN {
+	Translations$fasting$home$greeting$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '早上好'
+	String get morning => '早上好';
+
+	/// zh-CN: '中午好'
+	String get noon => '中午好';
+
+	/// zh-CN: '下午好'
+	String get afternoon => '下午好';
+
+	/// zh-CN: '晚上好'
+	String get evening => '晚上好';
+
+	/// zh-CN: '这么晚还醒着？喝口水早点睡也是养生哦'
+	String get night => '这么晚还醒着？喝口水早点睡也是养生哦';
+}
+
+// Path: nutrition.signalCard.zone
+class Translations$nutrition$signalCard$zone$zh_CN {
+	Translations$nutrition$signalCard$zone$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '达标'
+	String get green => '达标';
+
+	/// zh-CN: '适量提醒'
+	String get yellow => '适量提醒';
+
+	/// zh-CN: '警示'
+	String get red => '警示';
 }
 
 // Path: nutrition.signalCard.advice
@@ -988,9 +1143,37 @@ extension on Translations {
 			'fasting.home.stateNoPlan' => '还未开始断食方案',
 			'fasting.home.attribution' => ({required Object date}) => '本次断食计入 ${date}',
 			'fasting.home.extendedBadge' => ({required Object minutes}) => '已延长 +${minutes} 分钟',
+			'fasting.home.extendLimit' => '单次最多延长 4 小时',
+			'fasting.home.planTag' => ({required Object id, required Object start, required Object end}) => '${id} · 进食窗 ${start}–${end}',
+			'fasting.home.noPlanSubtitle' => '3 个小问题，帮你找到最适合的断食节奏',
+			'fasting.home.celebrationTitle' => '断食完成！身体悄悄做了次大扫除 ✨',
+			'fasting.home.celebrationBadge' => '断食完成 ✨',
+			'fasting.home.signalEmpty' => '今天还没记录，记一笔后信号灯会亮起来',
+			'fasting.home.greeting.morning' => '早上好',
+			'fasting.home.greeting.noon' => '中午好',
+			'fasting.home.greeting.afternoon' => '下午好',
+			'fasting.home.greeting.evening' => '晚上好',
+			'fasting.home.greeting.night' => '这么晚还醒着？喝口水早点睡也是养生哦',
+			'home.tab.home' => '首页',
+			'home.tab.record' => '记录',
+			'home.tab.data' => '数据',
+			'home.tab.community' => '社区',
+			'home.tab.profile' => '我的',
+			'home.data.emptyTitle' => '数据曲线正在热身，多记几天它就跑起来啦。',
+			'home.data.emptySubtitle' => '连续记录几天，趋势和信号灯就会跑起来。',
+			'home.data.cta' => '去记录',
+			'home.community.emptyTitle' => '这里在等今天第一口美食登场。',
+			'home.community.emptySubtitle' => '打卡流与挑战赛正在筹备中。',
+			'home.community.cta' => '发布打卡',
+			'home.community.comingSoon' => '社区功能即将上线，敬请期待',
+			'home.profile.emptyTitle' => '个人中心正在装修',
+			'home.profile.emptySubtitle' => '方案、目标与更多设置会陆续搬进来。',
 			'notification.fasting.eatSoon' => '还有 15 分钟就可以进食啦',
 			'notification.fasting.eatStart' => ({required Object date}) => '可以进食啦，本次断食计入 ${date} ✅',
 			'notification.fasting.fastStart' => '断食窗口开始啦，今天也很棒，加油坚持～',
+			'nutrition.signalCard.zone.green' => '达标',
+			'nutrition.signalCard.zone.yellow' => '适量提醒',
+			'nutrition.signalCard.zone.red' => '警示',
 			'nutrition.signalCard.advice.kcal.green' => '今天热量刚刚好，节奏很稳，继续保持～ 🌱',
 			'nutrition.signalCard.advice.kcal.yellowLow' => ({required Object meal_action}) => '今天吃得有点少，${meal_action}，身体会感谢你的。',
 			'nutrition.signalCard.advice.kcal.yellowHigh' => ({required Object meal_action}) => '热量有一点点高，${meal_action}，就回来啦。',
