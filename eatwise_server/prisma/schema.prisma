@@ -1,0 +1,229 @@
+// EatWise 数据模型 —— 对齐《后端API契约 v1.0》§二 与 PRD 第五章 8 实体
+// 同步字段约定（D-20）：clientRequestId 幂等唯一约束、version/updatedAt（LWW 仲裁）、
+// 软删 deletedAt（tombstone）。所有时间戳 UTC 存储（D-07）。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String   @id @default(uuid())
+  phone              String?  @unique // E.164
+  wechatOpenId       String?  @unique
+  appleSub           String?  @unique
+  nickname           String?
+  avatarUrl          String?
+  gender             String? // male / female
+  birthYear          Int?
+  heightCm           Float?
+  weightKg           Float?
+  activityLevel      String? // sedentary / light / moderate / high
+  goal               String? // fat_loss / health_metric / routine / trial
+  locale             String   @default("zh-CN") // D-15
+  timezone           String   @default("Asia/Shanghai") // IANA，D-07
+  themePref          String   @default("system")
+  accessibilityPrefs Json?
+  onboardingStatus   String   @default("none") // none / skipped / completed
+  exportStatus       String?
+  deletionStatus     String? // null / pending（D-18，7 天冷静期〔假设〕）
+  version            Int      @default(1)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+
+  fastingPlans    FastingPlan[]
+  fastingRecords  FastingRecord[]
+  foodEntries     FoodEntry[]
+  dailyNutrition  DailyNutrition[]
+  streak          Streak?
+  posts           Post[]
+  idempotencyKeys IdempotencyKey[]
+  refreshTokens   RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid())
+  userId     String
+  tokenHash  String    @unique // 不透明随机串哈希，滑动轮换 + Reuse Detection（§1.2）
+  deviceId   String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  replacedBy String?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model FastingPlan {
+  id                String   @id @default(uuid())
+  userId            String
+  planType          String // 14:10 / 16:8 / 18:6（5:2 仅展示不入库，D-03）
+  eatingWindowStart String // 本地时刻 HH:mm，配合 User.timezone 解释
+  eatingWindowEnd   String
+  effectiveDate     String // 生效本地日 YYYY-MM-DD，次日 0 点生效（D-06）
+  status            String // current / pending / expired；同 userId 仅一条 current
+  clientRequestId   String?
+  version           Int      @default(1)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, clientRequestId])
+  @@index([userId, status])
+  @@map("fasting_plans")
+}
+
+model FastingRecord {
+  id              String   @id @default(uuid())
+  userId          String
+  attributionDate String // 归属本地日 = 进食窗口所属自然日，服务端算（D-07）
+  plannedStartAt  DateTime
+  plannedEndAt    DateTime // 含延长后移（D-10）
+  actualStartAt   DateTime?
+  actualEndAt     DateTime?
+  extendedMinutes Int      @default(0) // 累计 ≤240（D-10）
+  fastedMinutes   Int?
+  result          String   @default("on_track") // on_track / completed / ended_early / broken / makeup
+  isQualified     Boolean  @default(false) // 达标判定服务端执行（D-08，容差热调）
+  eventLog        Json? // 状态变更日志 append-only
+  clientRequestId String?
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, clientRequestId])
+  @@index([userId, attributionDate])
+  @@map("fasting_records")
+}
+
+model FoodEntry {
+  id                String   @id @default(uuid())
+  userId            String
+  clientRequestId   String // 幂等键 = userId + clientRequestId（D-20）
+  eatenAt           DateTime
+  foodId            String
+  grams             Float
+  inputMethod       String // photo / voice / frequent / manual
+  photoUrl          String?
+  nutritionSnapshot Json // {kcal, proteinG, carbsG, fatG} 服务端按份量换算快照
+  version           Int      @default(1) // etag / LWW 版本号
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt // LWW 仲裁基准，数据库时钟赋值
+  deletedAt         DateTime? // 软删 tombstone，保留 90 天〔假设〕
+
+  user User @relation(fields: [userId], references: [id])
+  food Food @relation(fields: [foodId], references: [id])
+
+  @@unique([userId, clientRequestId])
+  @@index([userId, updatedAt, id]) // syncToken 增量下游标
+  @@map("food_entries")
+}
+
+model Food {
+  id             String   @id @default(uuid())
+  nameZh         String // 双语食物字段（D-15/D-16）
+  nameEn         String
+  aliases        String[] // 中英混合别名
+  kcalPer100g    Float
+  proteinPer100g Float
+  carbsPer100g   Float
+  fatPer100g     Float
+  category       String?
+  source         String? // cn_fct / usda
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  entries FoodEntry[]
+
+  @@map("foods")
+}
+
+model DailyNutrition {
+  id        String   @id @default(uuid())
+  userId    String
+  date      String // 本地日 YYYY-MM-DD
+  kcal      Float    @default(0)
+  proteinG  Float    @default(0)
+  carbsG    Float    @default(0)
+  fatG      Float    @default(0)
+  targets   Json? // 当日目标快照（D-04）
+  signals   Json? // 四营养素信号灯（D-05）
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+  @@map("daily_nutrition")
+}
+
+model Streak {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  currentStreak    Int      @default(0)
+  longestStreak    Int      @default(0)
+  lastQualifiedDate String?
+  milestones       Json? // {3: achievedAt, 7: ..., 30: ...}
+  makeupCards      Json? // {stock, month, usedDates[]}（D-12：月初 2 张/上限 2/仅 7 天内/月底清零）
+  version          Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("streaks")
+}
+
+model Post {
+  id              String   @id @default(uuid())
+  userId          String
+  clientRequestId String?
+  text            String
+  imageUrls       String[]
+  streakDaysAtPost Int?
+  likeCount       Int      @default(0)
+  auditStatus     String   @default("pending") // pending / approved / rejected（先审后发 D-17）
+  auditReason     Json? // 双语 {zh, en}
+  visibility      String   @default("public") // self / followers / public 预留
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, clientRequestId])
+  @@index([auditStatus, createdAt])
+  @@map("posts")
+}
+
+// 幂等表（D-20）：相同 (userId, clientRequestId) 重放返回首次结果，保留 90 天〔假设〕
+model IdempotencyKey {
+  id              String   @id @default(uuid())
+  userId          String
+  clientRequestId String
+  endpoint        String
+  payloadHash     String // 同键不同体 → 409 IDEMPOTENCY_PAYLOAD_MISMATCH
+  responseBody    Json
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, clientRequestId, endpoint])
+  @@map("idempotency_keys")
+}
