@@ -129,6 +129,33 @@
       "undone": "已撤销",
       "syncFailed": "这条记录没被保存，请重新提交"
     },
+    "photo": {
+      "pickTitle": "拍照识别食物",
+      "takePhoto": "拍照",
+      "fromGallery": "从相册选择",
+      "recognizing": "识别中…",
+      "unavailable": "暂时识别不了，手动搜索一样快",
+      "deniedTitle": "相机未授权",
+      "deniedBody": "拍不了照也能记，手动搜一样快",
+      "openSettings": "去开启",
+      "useManual": "手动搜索"
+    },
+    "voice": {
+      "listening": "正在听… 说说吃了什么，如「一碗米饭」",
+      "tapToStart": "点一下开始说话",
+      "finish": "完成",
+      "unavailable": "这台设备暂时用不了语音识别，打字搜一样快",
+      "deniedTitle": "麦克风未授权",
+      "deniedBody": "开不了语音也能记，打字搜一样快",
+      "noMatch": "没听出是什么食物，换个说法或手动搜索"
+    },
+    "frequent": {
+      "title": "常吃的食物",
+      "empty": "多记几笔，常吃榜就出来啦"
+    },
+    "card": {
+      "pleaseConfirm": "请确认"
+    },
     "home": {
       "title": "记录",
       "logMeal": "记一笔"

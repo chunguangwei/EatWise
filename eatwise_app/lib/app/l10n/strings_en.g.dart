@@ -90,6 +90,10 @@ class _Translations$record$en extends Translations$record$zh_CN {
 	@override late final _Translations$record$amount$en amount = _Translations$record$amount$en._(_root);
 	@override late final _Translations$record$nutrition$en nutrition = _Translations$record$nutrition$en._(_root);
 	@override late final _Translations$record$toast$en toast = _Translations$record$toast$en._(_root);
+	@override late final _Translations$record$photo$en photo = _Translations$record$photo$en._(_root);
+	@override late final _Translations$record$voice$en voice = _Translations$record$voice$en._(_root);
+	@override late final _Translations$record$frequent$en frequent = _Translations$record$frequent$en._(_root);
+	@override late final _Translations$record$card$en card = _Translations$record$card$en._(_root);
 	@override late final _Translations$record$home$en home = _Translations$record$home$en._(_root);
 	@override late final _Translations$record$empty$en empty = _Translations$record$empty$en._(_root);
 }
@@ -333,6 +337,61 @@ class _Translations$record$toast$en extends Translations$record$toast$zh_CN {
 	@override String get undo => 'Undo';
 	@override String get undone => 'Undone';
 	@override String get syncFailed => 'This record wasn\'t saved — please submit again';
+}
+
+// Path: record.photo
+class _Translations$record$photo$en extends Translations$record$photo$zh_CN {
+	_Translations$record$photo$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get pickTitle => 'Snap to recognize';
+	@override String get takePhoto => 'Take photo';
+	@override String get fromGallery => 'Choose from album';
+	@override String get recognizing => 'Recognizing…';
+	@override String get unavailable => 'Recognition isn\'t available right now — a quick manual search works just as well';
+	@override String get deniedTitle => 'Camera not allowed';
+	@override String get deniedBody => 'No camera? No problem — searching manually is just as fast';
+	@override String get openSettings => 'Open Settings';
+	@override String get useManual => 'Search manually';
+}
+
+// Path: record.voice
+class _Translations$record$voice$en extends Translations$record$voice$zh_CN {
+	_Translations$record$voice$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get listening => 'Listening… say what you ate, e.g. "a bowl of rice"';
+	@override String get tapToStart => 'Tap to start speaking';
+	@override String get finish => 'Done';
+	@override String get unavailable => 'Speech recognition isn\'t available on this device — typing works just as well';
+	@override String get deniedTitle => 'Microphone not allowed';
+	@override String get deniedBody => 'No voice? No problem — typing a search is just as fast';
+	@override String get noMatch => 'Couldn\'t catch the food — try rephrasing or search manually';
+}
+
+// Path: record.frequent
+class _Translations$record$frequent$en extends Translations$record$frequent$zh_CN {
+	_Translations$record$frequent$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Frequently logged';
+	@override String get empty => 'Log a few more meals and your usuals will show up here';
+}
+
+// Path: record.card
+class _Translations$record$card$en extends Translations$record$card$zh_CN {
+	_Translations$record$card$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get pleaseConfirm => 'Please confirm';
 }
 
 // Path: record.home
@@ -840,6 +899,25 @@ extension on TranslationsEn {
 			'record.toast.undo' => 'Undo',
 			'record.toast.undone' => 'Undone',
 			'record.toast.syncFailed' => 'This record wasn\'t saved — please submit again',
+			'record.photo.pickTitle' => 'Snap to recognize',
+			'record.photo.takePhoto' => 'Take photo',
+			'record.photo.fromGallery' => 'Choose from album',
+			'record.photo.recognizing' => 'Recognizing…',
+			'record.photo.unavailable' => 'Recognition isn\'t available right now — a quick manual search works just as well',
+			'record.photo.deniedTitle' => 'Camera not allowed',
+			'record.photo.deniedBody' => 'No camera? No problem — searching manually is just as fast',
+			'record.photo.openSettings' => 'Open Settings',
+			'record.photo.useManual' => 'Search manually',
+			'record.voice.listening' => 'Listening… say what you ate, e.g. "a bowl of rice"',
+			'record.voice.tapToStart' => 'Tap to start speaking',
+			'record.voice.finish' => 'Done',
+			'record.voice.unavailable' => 'Speech recognition isn\'t available on this device — typing works just as well',
+			'record.voice.deniedTitle' => 'Microphone not allowed',
+			'record.voice.deniedBody' => 'No voice? No problem — typing a search is just as fast',
+			'record.voice.noMatch' => 'Couldn\'t catch the food — try rephrasing or search manually',
+			'record.frequent.title' => 'Frequently logged',
+			'record.frequent.empty' => 'Log a few more meals and your usuals will show up here',
+			'record.card.pleaseConfirm' => 'Please confirm',
 			'record.home.title' => 'Log',
 			'record.home.logMeal' => 'Log a bite',
 			'record.empty.title' => 'No food stories yet — tap the orange button to log your first bite?',

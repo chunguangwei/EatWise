@@ -84,4 +84,64 @@ final class RecordStrings {
 
   /// record.toast.syncFailed
   String get toastSyncFailed => _t.record.toast.syncFailed;
+
+  /// record.photo.pickTitle
+  String get photoPickTitle => _t.record.photo.pickTitle;
+
+  /// record.photo.takePhoto
+  String get photoTakePhoto => _t.record.photo.takePhoto;
+
+  /// record.photo.fromGallery
+  String get photoFromGallery => _t.record.photo.fromGallery;
+
+  /// record.photo.recognizing
+  String get photoRecognizing => _t.record.photo.recognizing;
+
+  /// record.photo.unavailable
+  String get photoUnavailable => _t.record.photo.unavailable;
+
+  /// record.photo.deniedTitle
+  String get photoDeniedTitle => _t.record.photo.deniedTitle;
+
+  /// record.photo.deniedBody
+  String get photoDeniedBody => _t.record.photo.deniedBody;
+
+  /// record.photo.openSettings
+  String get photoOpenSettings => _t.record.photo.openSettings;
+
+  /// record.photo.useManual
+  String get photoUseManual => _t.record.photo.useManual;
+
+  /// record.voice.listening
+  String get voiceListening => _t.record.voice.listening;
+
+  /// record.voice.tapToStart
+  String get voiceTapToStart => _t.record.voice.tapToStart;
+
+  /// record.voice.finish
+  String get voiceFinish => _t.record.voice.finish;
+
+  /// record.voice.unavailable
+  String get voiceUnavailable => _t.record.voice.unavailable;
+
+  /// record.voice.deniedTitle
+  String get voiceDeniedTitle => _t.record.voice.deniedTitle;
+
+  /// record.voice.deniedBody
+  String get voiceDeniedBody => _t.record.voice.deniedBody;
+
+  /// record.voice.noMatch
+  String get voiceNoMatch => _t.record.voice.noMatch;
+
+  /// record.frequent.title
+  String get frequentTitle => _t.record.frequent.title;
+
+  /// record.frequent.empty
+  String get frequentEmpty => _t.record.frequent.empty;
+
+  /// record.card.pleaseConfirm
+  String get cardPleaseConfirm => _t.record.card.pleaseConfirm;
+
+  /// common.action.cancel
+  String get cancelAction => _t.common.action.cancel;
 }

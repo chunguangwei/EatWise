@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
+import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/record/data/food_search_remote.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
@@ -10,6 +11,11 @@ import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/data/record_sync_engine.dart';
 import 'package:eatwise/features/record/data/remote_record_sync.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
+import 'package:eatwise/features/record/recognition/data/food_recognition_service.dart';
+import 'package:eatwise/features/record/recognition/data/frequent_foods.dart';
+import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
+import 'package:eatwise/features/record/recognition/voice/speech_gateway.dart';
+import 'package:eatwise/features/record/recognition/voice/voice_text_parser.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -104,4 +110,49 @@ final StreamProvider<DailyNutritionCache?> recordTodayNutritionProvider =
       return ref
           .watch(recordRepositoryProvider)
           .watchDailyNutrition(DateTime.now());
+    });
+
+// ---- M3 三入口（拍照识别 / 语音录入 / 常吃复用，PRD M3 / D-16） ----
+
+/// 本次入账的录入方式（三入口各自写入；手动搜索为默认）。
+final StateProvider<EntrySource> recordEntrySourceProvider =
+    StateProvider<EntrySource>((ref) => EntrySource.manual);
+
+/// 结果卡是否标「请确认」（拍照低置信度，PRD M3 异常与边界）。
+final StateProvider<bool> recordLowConfidenceProvider = StateProvider<bool>(
+  (ref) => false,
+);
+
+/// 拍照/相册取图（生产 ImagePicker；测试 override 为 fake）。
+final Provider<PhotoPickerGateway> photoPickerGatewayProvider =
+    Provider<PhotoPickerGateway>((ref) => ImagePickerPhotoGateway());
+
+/// 拍照识别服务（D-16）。**当前为远端 stub**：服务端识别端点未实现，
+/// 任何输入都返回 RecognitionUnavailable → UI 走手动搜索兜底。
+/// 〔待外部确认：第三方食物识别 API 选型 M0 定〕
+final Provider<FoodRecognitionService> foodRecognitionServiceProvider =
+    Provider<FoodRecognitionService>((ref) {
+      return RemoteFoodRecognitionStub(dio: ref.watch(apiDioProvider));
+    });
+
+/// 系统 ASR（生产 speech_to_text；测试 override 为 fake）。
+final Provider<SpeechGateway> speechGatewayProvider = Provider<SpeechGateway>(
+  (ref) => SpeechToTextGateway(),
+);
+
+/// 语音轻量解析器（纯 Dart：词典匹配 + 份量正则，D-16）。
+final Provider<VoiceTextParser> voiceTextParserProvider =
+    Provider<VoiceTextParser>((ref) => const VoiceTextParser());
+
+/// 常吃聚合查询（food_entries ⋈ foods，本地 drift）。
+final Provider<FrequentFoodsQuery> frequentFoodsQueryProvider =
+    Provider<FrequentFoodsQuery>((ref) {
+      return FrequentFoodsQuery(ref.watch(recordRepositoryProvider).db);
+    });
+
+/// 常吃 Top N（PRD M3 常吃复用）。
+final FutureProvider<List<Food>> recordFrequentFoodsProvider =
+    FutureProvider<List<Food>>((ref) {
+      final repo = ref.watch(recordRepositoryProvider);
+      return ref.watch(frequentFoodsQueryProvider).topFrequent(repo.userId);
     });

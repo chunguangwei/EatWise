@@ -129,12 +129,13 @@ void main() {
     await settleUi(tester);
   });
 
-  testWidgets('三入口为占位：点击提示即将上线', (tester) async {
+  testWidgets('拍照入口弹出取图来源选择（拍照/从相册选择）', (tester) async {
     await pumpPage(tester);
     await tester.tap(find.text('拍照记'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('即将上线，先用手动搜索记一笔吧'), findsOneWidget);
+    expect(find.text('拍照'), findsOneWidget);
+    expect(find.text('从相册选择'), findsOneWidget);
     await settleUi(tester);
   });
 

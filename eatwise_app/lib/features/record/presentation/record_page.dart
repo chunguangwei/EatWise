@@ -12,12 +12,17 @@ import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
+import 'package:eatwise/features/record/recognition/presentation/frequent_flow.dart';
+import 'package:eatwise/features/record/recognition/presentation/photo_flow.dart';
+import 'package:eatwise/features/record/recognition/presentation/voice_flow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// M3 记录页（PRD M3：三入口 + 双语搜索 + 份量编辑 + 乐观更新 +
 /// D-11 撤销吐司 + D-20「待同步 N 条」入口）。
 ///
+/// 三入口已接通：拍照识别（D-16 远端 stub + 手动搜索兜底）、
+/// 语音录入（系统 ASR + 自研解析）、常吃复用（本地高频聚合）。
 /// 不注册路由，由主代理统一集成到 Tab 结构。
 class RecordPage extends ConsumerStatefulWidget {
   const RecordPage({super.key});
@@ -53,12 +58,14 @@ class _RecordPageState extends ConsumerState<RecordPage> {
         foodId: food.id,
         amountG: amount,
         mealUtc: DateTime.now().toUtc(),
-        source: EntrySource.manual,
+        source: ref.read(recordEntrySourceProvider),
       ),
     );
     if (!mounted) return;
     ref.read(recordSelectedFoodProvider.notifier).state = null;
     ref.read(recordSearchQueryProvider.notifier).state = '';
+    ref.read(recordEntrySourceProvider.notifier).state = EntrySource.manual;
+    ref.read(recordLowConfidenceProvider.notifier).state = false;
     _searchController.clear();
     messenger.showSnackBar(
       SnackBar(
@@ -88,6 +95,10 @@ class _RecordPageState extends ConsumerState<RecordPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 三入口（拍照/语音/常吃）填充份量时同步进输入框。
+    ref.listen<String>(recordAmountTextProvider, (previous, next) {
+      if (_amountController.text != next) _amountController.text = next;
+    });
     final s = RecordStrings.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
@@ -157,7 +168,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                   ),
                 ),
               ),
-            // 三入口占位（拍照/语音/常吃，仅 UI，识别能力见 D-16 后续任务）。
+            // 三入口（D-16）：拍照识别 / 语音录入 / 常吃复用。
             Padding(
               padding: const EdgeInsets.all(AppSpacing.s4),
               child: Row(
@@ -165,19 +176,19 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                   _EntryCard(
                     icon: Icons.photo_camera_outlined,
                     label: s.entryPhoto,
-                    onTap: () => _showComingSoon(s),
+                    onTap: () => unawaited(startPhotoRecognition(context, ref)),
                   ),
                   const SizedBox(width: AppSpacing.s2),
                   _EntryCard(
                     icon: Icons.mic_none_outlined,
                     label: s.entryVoice,
-                    onTap: () => _showComingSoon(s),
+                    onTap: () => unawaited(startVoiceInput(context, ref)),
                   ),
                   const SizedBox(width: AppSpacing.s2),
                   _EntryCard(
                     icon: Icons.favorite_border_outlined,
                     label: s.entryFrequent,
-                    onTap: () => _showComingSoon(s),
+                    onTap: () => unawaited(startFrequentPick(context)),
                   ),
                 ],
               ),
@@ -238,7 +249,10 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                               food;
                           ref.read(recordAmountTextProvider.notifier).state =
                               '100';
-                          _amountController.text = '100';
+                          ref.read(recordEntrySourceProvider.notifier).state =
+                              EntrySource.manual;
+                          ref.read(recordLowConfidenceProvider.notifier).state =
+                              false;
                         },
                       );
                     },
@@ -280,20 +294,18 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                 isEn: isEn,
                 amountController: _amountController,
                 onConfirm: () => unawaited(_confirm(s)),
-                onClose: () =>
-                    ref.read(recordSelectedFoodProvider.notifier).state = null,
+                onClose: () {
+                  ref.read(recordSelectedFoodProvider.notifier).state = null;
+                  ref.read(recordEntrySourceProvider.notifier).state =
+                      EntrySource.manual;
+                  ref.read(recordLowConfidenceProvider.notifier).state = false;
+                },
                 shadows: shadows,
               ),
           ],
         ),
       ),
     );
-  }
-
-  void _showComingSoon(RecordStrings s) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(s.comingSoon)));
   }
 }
 
@@ -372,6 +384,7 @@ class _SelectedFoodCard extends ConsumerWidget {
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final radii = Theme.of(context).extension<AppRadii>()!;
     final nutrition = ref.watch(recordDraftNutritionProvider);
+    final lowConfidence = ref.watch(recordLowConfidenceProvider);
 
     return Container(
       margin: const EdgeInsets.all(AppSpacing.s4),
@@ -385,6 +398,25 @@ class _SelectedFoodCard extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
+          // 低置信度标「请确认」（PRD M3：不直接入账高风险结果）。
+          if (lowConfidence)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s2,
+                  vertical: AppSpacing.s1,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.brandAccent,
+                  borderRadius: radii.rSm,
+                ),
+                child: Text(
+                  s.cardPleaseConfirm,
+                  style: textStyles.textXs.copyWith(color: colors.bgPrimary),
+                ),
+              ),
+            ),
           Row(
             children: <Widget>[
               Expanded(

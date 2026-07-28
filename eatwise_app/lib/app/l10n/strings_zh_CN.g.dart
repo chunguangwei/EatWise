@@ -95,6 +95,10 @@ class Translations$record$zh_CN {
 	late final Translations$record$amount$zh_CN amount = Translations$record$amount$zh_CN.internal(_root);
 	late final Translations$record$nutrition$zh_CN nutrition = Translations$record$nutrition$zh_CN.internal(_root);
 	late final Translations$record$toast$zh_CN toast = Translations$record$toast$zh_CN.internal(_root);
+	late final Translations$record$photo$zh_CN photo = Translations$record$photo$zh_CN.internal(_root);
+	late final Translations$record$voice$zh_CN voice = Translations$record$voice$zh_CN.internal(_root);
+	late final Translations$record$frequent$zh_CN frequent = Translations$record$frequent$zh_CN.internal(_root);
+	late final Translations$record$card$zh_CN card = Translations$record$card$zh_CN.internal(_root);
 	late final Translations$record$home$zh_CN home = Translations$record$home$zh_CN.internal(_root);
 	late final Translations$record$empty$zh_CN empty = Translations$record$empty$zh_CN.internal(_root);
 }
@@ -443,6 +447,99 @@ class Translations$record$toast$zh_CN {
 
 	/// zh-CN: '这条记录没被保存，请重新提交'
 	String get syncFailed => '这条记录没被保存，请重新提交';
+}
+
+// Path: record.photo
+class Translations$record$photo$zh_CN {
+	Translations$record$photo$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '拍照识别食物'
+	String get pickTitle => '拍照识别食物';
+
+	/// zh-CN: '拍照'
+	String get takePhoto => '拍照';
+
+	/// zh-CN: '从相册选择'
+	String get fromGallery => '从相册选择';
+
+	/// zh-CN: '识别中…'
+	String get recognizing => '识别中…';
+
+	/// zh-CN: '暂时识别不了，手动搜索一样快'
+	String get unavailable => '暂时识别不了，手动搜索一样快';
+
+	/// zh-CN: '相机未授权'
+	String get deniedTitle => '相机未授权';
+
+	/// zh-CN: '拍不了照也能记，手动搜一样快'
+	String get deniedBody => '拍不了照也能记，手动搜一样快';
+
+	/// zh-CN: '去开启'
+	String get openSettings => '去开启';
+
+	/// zh-CN: '手动搜索'
+	String get useManual => '手动搜索';
+}
+
+// Path: record.voice
+class Translations$record$voice$zh_CN {
+	Translations$record$voice$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '正在听… 说说吃了什么，如「一碗米饭」'
+	String get listening => '正在听… 说说吃了什么，如「一碗米饭」';
+
+	/// zh-CN: '点一下开始说话'
+	String get tapToStart => '点一下开始说话';
+
+	/// zh-CN: '完成'
+	String get finish => '完成';
+
+	/// zh-CN: '这台设备暂时用不了语音识别，打字搜一样快'
+	String get unavailable => '这台设备暂时用不了语音识别，打字搜一样快';
+
+	/// zh-CN: '麦克风未授权'
+	String get deniedTitle => '麦克风未授权';
+
+	/// zh-CN: '开不了语音也能记，打字搜一样快'
+	String get deniedBody => '开不了语音也能记，打字搜一样快';
+
+	/// zh-CN: '没听出是什么食物，换个说法或手动搜索'
+	String get noMatch => '没听出是什么食物，换个说法或手动搜索';
+}
+
+// Path: record.frequent
+class Translations$record$frequent$zh_CN {
+	Translations$record$frequent$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '常吃的食物'
+	String get title => '常吃的食物';
+
+	/// zh-CN: '多记几笔，常吃榜就出来啦'
+	String get empty => '多记几笔，常吃榜就出来啦';
+}
+
+// Path: record.card
+class Translations$record$card$zh_CN {
+	Translations$record$card$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '请确认'
+	String get pleaseConfirm => '请确认';
 }
 
 // Path: record.home
@@ -1196,6 +1293,25 @@ extension on Translations {
 			'record.toast.undo' => '撤销',
 			'record.toast.undone' => '已撤销',
 			'record.toast.syncFailed' => '这条记录没被保存，请重新提交',
+			'record.photo.pickTitle' => '拍照识别食物',
+			'record.photo.takePhoto' => '拍照',
+			'record.photo.fromGallery' => '从相册选择',
+			'record.photo.recognizing' => '识别中…',
+			'record.photo.unavailable' => '暂时识别不了，手动搜索一样快',
+			'record.photo.deniedTitle' => '相机未授权',
+			'record.photo.deniedBody' => '拍不了照也能记，手动搜一样快',
+			'record.photo.openSettings' => '去开启',
+			'record.photo.useManual' => '手动搜索',
+			'record.voice.listening' => '正在听… 说说吃了什么，如「一碗米饭」',
+			'record.voice.tapToStart' => '点一下开始说话',
+			'record.voice.finish' => '完成',
+			'record.voice.unavailable' => '这台设备暂时用不了语音识别，打字搜一样快',
+			'record.voice.deniedTitle' => '麦克风未授权',
+			'record.voice.deniedBody' => '开不了语音也能记，打字搜一样快',
+			'record.voice.noMatch' => '没听出是什么食物，换个说法或手动搜索',
+			'record.frequent.title' => '常吃的食物',
+			'record.frequent.empty' => '多记几笔，常吃榜就出来啦',
+			'record.card.pleaseConfirm' => '请确认',
 			'record.home.title' => '记录',
 			'record.home.logMeal' => '记一笔',
 			'record.empty.title' => '肚子的故事还没写呢，点橙色按钮记一笔？',

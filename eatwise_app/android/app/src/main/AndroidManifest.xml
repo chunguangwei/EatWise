@@ -8,6 +8,11 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <!-- 提醒震动（安装时权限） -->
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- 拍照识别（M3）：首次点击「拍照」入口时申请，拒绝降级手动搜索（合规 §3.2） -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- 语音录入（M3 系统 SpeechRecognizer）：首次点击「语音」入口时申请（合规 §3.2） -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- 相册选图走系统 Photo Picker 主路径，不申请 READ_MEDIA_IMAGES（合规 §3.2〔假设〕） -->
     <application
         android:label="eatwise"
         android:name="${applicationName}"
@@ -60,6 +65,10 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- 语音录入：检测系统 SpeechRecognizer 服务可用性（API 30+ 包可见性） -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
     </queries>
 </manifest>

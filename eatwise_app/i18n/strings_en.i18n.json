@@ -129,6 +129,33 @@
       "undone": "Undone",
       "syncFailed": "This record wasn't saved — please submit again"
     },
+    "photo": {
+      "pickTitle": "Snap to recognize",
+      "takePhoto": "Take photo",
+      "fromGallery": "Choose from album",
+      "recognizing": "Recognizing…",
+      "unavailable": "Recognition isn't available right now — a quick manual search works just as well",
+      "deniedTitle": "Camera not allowed",
+      "deniedBody": "No camera? No problem — searching manually is just as fast",
+      "openSettings": "Open Settings",
+      "useManual": "Search manually"
+    },
+    "voice": {
+      "listening": "Listening… say what you ate, e.g. \"a bowl of rice\"",
+      "tapToStart": "Tap to start speaking",
+      "finish": "Done",
+      "unavailable": "Speech recognition isn't available on this device — typing works just as well",
+      "deniedTitle": "Microphone not allowed",
+      "deniedBody": "No voice? No problem — typing a search is just as fast",
+      "noMatch": "Couldn't catch the food — try rephrasing or search manually"
+    },
+    "frequent": {
+      "title": "Frequently logged",
+      "empty": "Log a few more meals and your usuals will show up here"
+    },
+    "card": {
+      "pleaseConfirm": "Please confirm"
+    },
     "home": {
       "title": "Log",
       "logMeal": "Log a bite"
