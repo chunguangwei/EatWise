@@ -15,6 +15,10 @@ import 'package:eatwise/features/fasting/presentation/fasting_ring.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/streak/application/streak_controller.dart';
+import 'package:eatwise/features/streak/presentation/milestone_badge.dart';
+import 'package:eatwise/features/streak/presentation/streak_banner.dart';
+import 'package:eatwise/features/streak/presentation/streak_break_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -39,6 +43,8 @@ class _FastingHomePageState extends ConsumerState<FastingHomePage> {
     // 每秒 tick 刷新倒计时（倒计时 = 锚点 − now，小组件同源，《规格-M2》§8）。
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       ref.read(fastingTimerControllerProvider.notifier).tick();
+      // M5：前台跨过本地 0 点时对前一日结算（§2.4 本地结算为主）。
+      ref.read(streakControllerProvider.notifier).settleIfNeeded();
     });
   }
 
@@ -148,6 +154,18 @@ class _TimerBody extends ConsumerWidget {
     final snapshot = timer.snapshot!;
     final location = ref.watch(deviceLocationProvider);
     final controller = ref.read(fastingTimerControllerProvider.notifier);
+    final streak = ref.watch(streakControllerProvider);
+
+    // M5：断签弹窗（T3/T4 结算后下次进入前台弹出；每断签日只自动弹 1 次）。
+    ref.listen(streakControllerProvider, (previous, next) {
+      final popupDate = next.pendingBreakPopupDate;
+      if (popupDate != null && popupDate != previous?.pendingBreakPopupDate) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          _showBreakDialog(context, ref, popupDate);
+        });
+      }
+    });
 
     final isFasting =
         timer.state == FastingState.fasting ||
@@ -189,6 +207,23 @@ class _TimerBody extends ConsumerWidget {
             ),
           ),
         ),
+        const SizedBox(height: AppSpacing.s2),
+        // M5 问候区连胜展示（streak=0 不显示火焰，显示引导文案；999+ 截断）。
+        Align(
+          alignment: Alignment.centerLeft,
+          child: StreakBanner(currentStreak: streak.currentStreak),
+        ),
+        // M5 里程碑徽章滑入（3/7/30 首次解锁；reduced-motion 降级静态淡入）。
+        if (streak.justUnlockedMilestone != null)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.s3),
+            child: MilestoneBadge(
+              days: streak.justUnlockedMilestone!,
+              onDismiss: () => ref
+                  .read(streakControllerProvider.notifier)
+                  .consumeMilestone(),
+            ),
+          ),
         const SizedBox(height: AppSpacing.s6),
         // 居中 220px 计时环（断食绿弧 / 进食橙弧；中心 48px 倒计时 + 状态）。
         Center(
@@ -300,6 +335,48 @@ class _TimerBody extends ConsumerWidget {
         MiniSignalCards(onTap: () => context.go('/data')),
         const SizedBox(height: AppSpacing.s8),
       ],
+    );
+  }
+
+  /// 断签弹窗（§4 三要素齐全；频控：每断签日只自动弹 1 次）。
+  void _showBreakDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String missedDate,
+  ) {
+    final t = Translations.of(context);
+    final notifier = ref.read(streakControllerProvider.notifier);
+    final streak = ref.read(streakControllerProvider);
+    notifier.markBreakPopupShown(missedDate);
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StreakBreakDialog(
+        visualState: streak.mendVisualState,
+        cardsLeft: streak.mendCardBalance,
+        restoreDays: notifier.previewMendRestore(missedDate),
+        onMend: () async {
+          Navigator.pop(dialogContext);
+          try {
+            final result = await notifier.useMendCard(missedDate);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    t.streak.kBreak.mendSuccess(days: result.restoredStreak),
+                  ),
+                ),
+              );
+            }
+          } on Object {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(t.streak.kBreak.mendFailed)),
+              );
+            }
+          }
+        },
+        onDismiss: () => Navigator.pop(dialogContext),
+      ),
     );
   }
 

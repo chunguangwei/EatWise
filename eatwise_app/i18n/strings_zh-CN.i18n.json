@@ -312,6 +312,39 @@
       }
     }
   },
+  "streak": {
+    "home": {
+      "streakDays": "连续 ${days} 天 🔥",
+      "startHint": "完成今天断食，开启第 1 天"
+    },
+    "milestone": {
+      "title": "连续 ${days} 天！你已经超过了 80% 的伙伴 🎉",
+      "badgeLabel": "${days} 天连胜",
+      "share": "分享",
+      "accept": "收下啦",
+      "shareComingSoon": "分享图卡即将上线，先把这份坚持记在心里"
+    },
+    "break": {
+      "title": "哎呀，连胜中断了",
+      "howItWorks": "连胜只按「断食打卡达标」累计：每天按计划完成断食窗口（提前不超过 15 分钟也算达标）即连胜 +1；饮食记录天数单独统计，不影响连胜。中断后连胜归零，7 天内可用补签卡恢复。",
+      "cardsLeft": "本月剩余补签卡：${n} 张",
+      "mendCta": "使用补签卡，恢复 ${days} 天连胜",
+      "mendSuccess": "已恢复 ${days} 天连胜 🎉",
+      "mendFailed": "补签失败，请稍后重试",
+      "exhausted": "本月补签卡已用完，下月 1 日将发放 2 张新卡",
+      "unmendable": "断签已超过 7 天，补签窗口已关闭。从今天开始新的连胜吧！",
+      "dismiss": "知道了，重新开始"
+    },
+    "profile": {
+      "title": "连胜",
+      "current": "当前连胜",
+      "longest": "历史最长",
+      "daysUnit": "天",
+      "mendCards": "补签卡",
+      "mendCardsValue": "${n} 张",
+      "mendEntry": "去补签"
+    }
+  },
   "settings": {
     "language": {
       "title": "语言",

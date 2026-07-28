@@ -47,6 +47,7 @@ class TranslationsEn extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$home$en home = _Translations$home$en._(_root);
 	@override late final _Translations$notification$en notification = _Translations$notification$en._(_root);
 	@override late final _Translations$nutrition$en nutrition = _Translations$nutrition$en._(_root);
+	@override late final _Translations$streak$en streak = _Translations$streak$en._(_root);
 	@override late final _Translations$settings$en settings = _Translations$settings$en._(_root);
 	@override late final _Translations$auth$en auth = _Translations$auth$en._(_root);
 }
@@ -151,6 +152,19 @@ class _Translations$nutrition$en extends Translations$nutrition$zh_CN {
 	// Translations
 	@override late final _Translations$nutrition$data$en data = _Translations$nutrition$data$en._(_root);
 	@override late final _Translations$nutrition$signalCard$en signalCard = _Translations$nutrition$signalCard$en._(_root);
+}
+
+// Path: streak
+class _Translations$streak$en extends Translations$streak$zh_CN {
+	_Translations$streak$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override late final _Translations$streak$home$en home = _Translations$streak$home$en._(_root);
+	@override late final _Translations$streak$milestone$en milestone = _Translations$streak$milestone$en._(_root);
+	@override late final _Translations$streak$kBreak$en kBreak = _Translations$streak$kBreak$en._(_root);
+	@override late final _Translations$streak$profile$en profile = _Translations$streak$profile$en._(_root);
 }
 
 // Path: settings
@@ -540,6 +554,65 @@ class _Translations$nutrition$signalCard$en extends Translations$nutrition$signa
 	// Translations
 	@override late final _Translations$nutrition$signalCard$zone$en zone = _Translations$nutrition$signalCard$zone$en._(_root);
 	@override late final _Translations$nutrition$signalCard$advice$en advice = _Translations$nutrition$signalCard$advice$en._(_root);
+}
+
+// Path: streak.home
+class _Translations$streak$home$en extends Translations$streak$home$zh_CN {
+	_Translations$streak$home$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String streakDays({required Object days}) => '${days}-day streak 🔥';
+	@override String get startHint => 'Finish today\'s fast to start day 1';
+}
+
+// Path: streak.milestone
+class _Translations$streak$milestone$en extends Translations$streak$milestone$zh_CN {
+	_Translations$streak$milestone$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String title({required Object days}) => '${days}-day streak! You\'ve outlasted 80% of the community 🎉';
+	@override String badgeLabel({required Object days}) => '${days}-day streak';
+	@override String get share => 'Share';
+	@override String get accept => 'Keep it';
+	@override String get shareComingSoon => 'Share cards are coming soon — savor the win for now';
+}
+
+// Path: streak.kBreak
+class _Translations$streak$kBreak$en extends Translations$streak$kBreak$zh_CN {
+	_Translations$streak$kBreak$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Your streak was interrupted';
+	@override String get howItWorks => 'Your streak counts only days you complete your fasting plan (ending up to 15 min early still counts). Meal-log days are tracked separately and don\'t affect your streak. A missed day resets it to 0 — use a Mend Card within 7 days to restore it.';
+	@override String cardsLeft({required Object n}) => 'Mend Cards left this month: ${n}';
+	@override String mendCta({required Object days}) => 'Use a Mend Card to restore your ${days}-day streak';
+	@override String mendSuccess({required Object days}) => 'Streak restored to ${days} days 🎉';
+	@override String get mendFailed => 'Couldn\'t use the Mend Card. Please try again later.';
+	@override String get exhausted => 'No Mend Cards left this month. You\'ll get 2 new ones on the 1st.';
+	@override String get unmendable => 'This miss is over 7 days old and can no longer be mended. Start a fresh streak today!';
+	@override String get dismiss => 'Got it, start fresh';
+}
+
+// Path: streak.profile
+class _Translations$streak$profile$en extends Translations$streak$profile$zh_CN {
+	_Translations$streak$profile$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Streak';
+	@override String get current => 'Current streak';
+	@override String get longest => 'Longest streak';
+	@override String get daysUnit => 'days';
+	@override String get mendCards => 'Mend Cards';
+	@override String mendCardsValue({required Object n}) => '${n} left';
+	@override String get mendEntry => 'Mend now';
 }
 
 // Path: settings.language
@@ -1090,6 +1163,29 @@ extension on TranslationsEn {
 			'nutrition.signalCard.advice.meal.lunch' => 'go for a palm-size portion of lean meat or tofu at lunch',
 			'nutrition.signalCard.advice.meal.dinner' => 'pick something steamed or lightly poached for dinner, and stop at 80% full',
 			'nutrition.signalCard.advice.meal.snack' => 'grab a handful of nuts or a yogurt as a snack',
+			'streak.home.streakDays' => ({required Object days}) => '${days}-day streak 🔥',
+			'streak.home.startHint' => 'Finish today\'s fast to start day 1',
+			'streak.milestone.title' => ({required Object days}) => '${days}-day streak! You\'ve outlasted 80% of the community 🎉',
+			'streak.milestone.badgeLabel' => ({required Object days}) => '${days}-day streak',
+			'streak.milestone.share' => 'Share',
+			'streak.milestone.accept' => 'Keep it',
+			'streak.milestone.shareComingSoon' => 'Share cards are coming soon — savor the win for now',
+			'streak.kBreak.title' => 'Your streak was interrupted',
+			'streak.kBreak.howItWorks' => 'Your streak counts only days you complete your fasting plan (ending up to 15 min early still counts). Meal-log days are tracked separately and don\'t affect your streak. A missed day resets it to 0 — use a Mend Card within 7 days to restore it.',
+			'streak.kBreak.cardsLeft' => ({required Object n}) => 'Mend Cards left this month: ${n}',
+			'streak.kBreak.mendCta' => ({required Object days}) => 'Use a Mend Card to restore your ${days}-day streak',
+			'streak.kBreak.mendSuccess' => ({required Object days}) => 'Streak restored to ${days} days 🎉',
+			'streak.kBreak.mendFailed' => 'Couldn\'t use the Mend Card. Please try again later.',
+			'streak.kBreak.exhausted' => 'No Mend Cards left this month. You\'ll get 2 new ones on the 1st.',
+			'streak.kBreak.unmendable' => 'This miss is over 7 days old and can no longer be mended. Start a fresh streak today!',
+			'streak.kBreak.dismiss' => 'Got it, start fresh',
+			'streak.profile.title' => 'Streak',
+			'streak.profile.current' => 'Current streak',
+			'streak.profile.longest' => 'Longest streak',
+			'streak.profile.daysUnit' => 'days',
+			'streak.profile.mendCards' => 'Mend Cards',
+			'streak.profile.mendCardsValue' => ({required Object n}) => '${n} left',
+			'streak.profile.mendEntry' => 'Mend now',
 			'settings.language.title' => 'Language',
 			'settings.language.system' => 'System',
 			'settings.language.zhCN' => '简体中文',

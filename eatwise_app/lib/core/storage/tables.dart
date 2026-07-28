@@ -117,6 +117,55 @@ class Foods extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// FastingRecord 断食历史（M5 streak 结算与 M6 趋势数据源）。
+///
+/// 归属日 `attributionDate` 按 D-07 冻结（进食窗口所属自然日，写入后不改写）；
+/// `qualified` 为 D-08 达标判定，streak 唯一口径（D-12）。
+/// 时间锚点全部 UTC epoch 秒（《规格-M2》§3.1）。
+class FastingRecords extends Table {
+  /// 本地主键：`userId-attributionDate`（每归属日至多一条关闭记录，幂等 upsert）。
+  TextColumn get localId => text()();
+
+  /// 归属用户；未登录为 `anonymous`。
+  TextColumn get userId => text()();
+
+  /// 打卡归属日（本地时区 yyyy-MM-dd，D-07，冻结不改写）。
+  TextColumn get attributionDate => text()();
+
+  /// 断食开始锚点（UTC epoch 秒）。
+  IntColumn get startUtc => integer()();
+
+  /// 实际结束锚点（UTC epoch 秒）。
+  IntColumn get endUtc => integer()();
+
+  /// 实际断食时长（秒）。
+  IntColumn get actualSec => integer()();
+
+  /// 计划断食时长（秒，含延长）。
+  IntColumn get plannedSec => integer()();
+
+  /// 本周期累计延长分钟数（D-10）。
+  IntColumn get extendedMinutes => integer()();
+
+  /// 终态（CycleResult 枚举名）。
+  TextColumn get result => text()();
+
+  /// 是否达标（D-08，streak 唯一口径，D-12）。
+  BoolColumn get qualified => boolean()();
+
+  /// 上行幂等键（UUIDv4，F2 上报复用，§2.2）。
+  TextColumn get clientRequestId => text()();
+
+  /// 四态同步状态（D-20）。
+  TextColumn get syncStatus => textEnum<SyncStatus>()();
+
+  /// 本地创建时间（UTC ISO8601）。
+  TextColumn get createdAtUtc => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {localId};
+}
+
 /// DailyNutrition 聚合缓存（PRD 第五章：由 FoodEntry 聚合）。
 ///
 /// 正式口径由服务端派生（§2.6，D-12 一致性约束）；本表为客户端离线期间的

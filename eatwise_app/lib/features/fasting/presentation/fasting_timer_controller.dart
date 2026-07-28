@@ -13,6 +13,7 @@ import 'package:eatwise/features/fasting/domain/fasting_record.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_cycle_store.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/streak/application/streak_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -53,6 +54,22 @@ final fastingCycleStoreProvider = Provider<FastingCycleStore>((ref) {
 final fastingClockProvider = Provider<int Function()>((ref) {
   return () => DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
 });
+
+/// 周期关闭（达标/不达标）钩子（M5 streak 接线）：默认转发给
+/// [StreakController.onFastClosed]（落 drift + 本地推演 + F2 上行后拉 S1 对账）；
+/// 失败静默降级，不阻断计时主流程（四态规范：本地计算永不等网络）。
+final fastingStreakHookProvider =
+    Provider<FutureOr<void> Function(FastingRecord record)>((ref) {
+      return (record) async {
+        try {
+          await ref
+              .read(streakControllerProvider.notifier)
+              .onFastClosed(record);
+        } on Object {
+          // streak 依赖未注入/网络失败：计时主流程不受影响，恢复后对账。
+        }
+      };
+    });
 
 /// 断食计时主页状态。
 final class FastingTimerState {
@@ -133,6 +150,10 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
       final closed = result.closedRecords.isEmpty
           ? null
           : result.closedRecords.last;
+      // 重启恢复补关闭的周期：逐条触发 streak 接线（落库/推演/上行）。
+      for (final record in result.closedRecords) {
+        _emitClosed(record);
+      }
       return _resolve(
         plan,
         result.snapshot,
@@ -208,6 +229,7 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     if (cycle != null && now >= cycle.plannedEndUtc) {
       final record = completeCycleOnTime(cycle, _location);
       _store.clearActiveCycle();
+      _emitClosed(record);
       _reschedule(plan, 0, RescheduleReason.stateTransition);
       state = _resolve(
         plan,
@@ -229,6 +251,7 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     final now = _now();
     final record = manualEndFast(cycle, now, _location);
     _store.clearActiveCycle();
+    _emitClosed(record);
     // T3/T4/T9：进食窗口以实际破窗时刻开启，结束锚点不后移。
     _store.saveEarlyEatEndUtc(cycle.eatWindowEndUtc);
     _reschedule(plan, 0, RescheduleReason.manualEndFast);
@@ -264,6 +287,11 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     if (state.celebrating) {
       state = state.copyWith(celebrating: false);
     }
+  }
+
+  /// 周期关闭统一出口：转发 streak 钩子（M5，失败不阻断计时主流程）。
+  void _emitClosed(FastingRecord record) {
+    unawaited(Future.sync(() => ref.read(fastingStreakHookProvider)(record)));
   }
 
   void _reschedule(FastingPlan plan, int extensionMinutes, RescheduleReason r) {

@@ -2490,6 +2490,814 @@ class DailyNutritionCachesCompanion
   }
 }
 
+class $FastingRecordsTable extends FastingRecords
+    with TableInfo<$FastingRecordsTable, FastingRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FastingRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _localIdMeta = const VerificationMeta(
+    'localId',
+  );
+  @override
+  late final GeneratedColumn<String> localId = GeneratedColumn<String>(
+    'local_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _attributionDateMeta = const VerificationMeta(
+    'attributionDate',
+  );
+  @override
+  late final GeneratedColumn<String> attributionDate = GeneratedColumn<String>(
+    'attribution_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startUtcMeta = const VerificationMeta(
+    'startUtc',
+  );
+  @override
+  late final GeneratedColumn<int> startUtc = GeneratedColumn<int>(
+    'start_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endUtcMeta = const VerificationMeta('endUtc');
+  @override
+  late final GeneratedColumn<int> endUtc = GeneratedColumn<int>(
+    'end_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _actualSecMeta = const VerificationMeta(
+    'actualSec',
+  );
+  @override
+  late final GeneratedColumn<int> actualSec = GeneratedColumn<int>(
+    'actual_sec',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _plannedSecMeta = const VerificationMeta(
+    'plannedSec',
+  );
+  @override
+  late final GeneratedColumn<int> plannedSec = GeneratedColumn<int>(
+    'planned_sec',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _extendedMinutesMeta = const VerificationMeta(
+    'extendedMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> extendedMinutes = GeneratedColumn<int>(
+    'extended_minutes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _resultMeta = const VerificationMeta('result');
+  @override
+  late final GeneratedColumn<String> result = GeneratedColumn<String>(
+    'result',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _qualifiedMeta = const VerificationMeta(
+    'qualified',
+  );
+  @override
+  late final GeneratedColumn<bool> qualified = GeneratedColumn<bool>(
+    'qualified',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("qualified" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _clientRequestIdMeta = const VerificationMeta(
+    'clientRequestId',
+  );
+  @override
+  late final GeneratedColumn<String> clientRequestId = GeneratedColumn<String>(
+    'client_request_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<SyncStatus, String> syncStatus =
+      GeneratedColumn<String>(
+        'sync_status',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<SyncStatus>($FastingRecordsTable.$convertersyncStatus);
+  static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
+    'createdAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> createdAtUtc = GeneratedColumn<String>(
+    'created_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    localId,
+    userId,
+    attributionDate,
+    startUtc,
+    endUtc,
+    actualSec,
+    plannedSec,
+    extendedMinutes,
+    result,
+    qualified,
+    clientRequestId,
+    syncStatus,
+    createdAtUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'fasting_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FastingRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('local_id')) {
+      context.handle(
+        _localIdMeta,
+        localId.isAcceptableOrUnknown(data['local_id']!, _localIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_localIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('attribution_date')) {
+      context.handle(
+        _attributionDateMeta,
+        attributionDate.isAcceptableOrUnknown(
+          data['attribution_date']!,
+          _attributionDateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_attributionDateMeta);
+    }
+    if (data.containsKey('start_utc')) {
+      context.handle(
+        _startUtcMeta,
+        startUtc.isAcceptableOrUnknown(data['start_utc']!, _startUtcMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startUtcMeta);
+    }
+    if (data.containsKey('end_utc')) {
+      context.handle(
+        _endUtcMeta,
+        endUtc.isAcceptableOrUnknown(data['end_utc']!, _endUtcMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endUtcMeta);
+    }
+    if (data.containsKey('actual_sec')) {
+      context.handle(
+        _actualSecMeta,
+        actualSec.isAcceptableOrUnknown(data['actual_sec']!, _actualSecMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_actualSecMeta);
+    }
+    if (data.containsKey('planned_sec')) {
+      context.handle(
+        _plannedSecMeta,
+        plannedSec.isAcceptableOrUnknown(data['planned_sec']!, _plannedSecMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_plannedSecMeta);
+    }
+    if (data.containsKey('extended_minutes')) {
+      context.handle(
+        _extendedMinutesMeta,
+        extendedMinutes.isAcceptableOrUnknown(
+          data['extended_minutes']!,
+          _extendedMinutesMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_extendedMinutesMeta);
+    }
+    if (data.containsKey('result')) {
+      context.handle(
+        _resultMeta,
+        result.isAcceptableOrUnknown(data['result']!, _resultMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_resultMeta);
+    }
+    if (data.containsKey('qualified')) {
+      context.handle(
+        _qualifiedMeta,
+        qualified.isAcceptableOrUnknown(data['qualified']!, _qualifiedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_qualifiedMeta);
+    }
+    if (data.containsKey('client_request_id')) {
+      context.handle(
+        _clientRequestIdMeta,
+        clientRequestId.isAcceptableOrUnknown(
+          data['client_request_id']!,
+          _clientRequestIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_clientRequestIdMeta);
+    }
+    if (data.containsKey('created_at_utc')) {
+      context.handle(
+        _createdAtUtcMeta,
+        createdAtUtc.isAcceptableOrUnknown(
+          data['created_at_utc']!,
+          _createdAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtUtcMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {localId};
+  @override
+  FastingRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FastingRecord(
+      localId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      attributionDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}attribution_date'],
+      )!,
+      startUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}start_utc'],
+      )!,
+      endUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}end_utc'],
+      )!,
+      actualSec: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}actual_sec'],
+      )!,
+      plannedSec: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}planned_sec'],
+      )!,
+      extendedMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}extended_minutes'],
+      )!,
+      result: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}result'],
+      )!,
+      qualified: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}qualified'],
+      )!,
+      clientRequestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_request_id'],
+      )!,
+      syncStatus: $FastingRecordsTable.$convertersyncStatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}sync_status'],
+        )!,
+      ),
+      createdAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at_utc'],
+      )!,
+    );
+  }
+
+  @override
+  $FastingRecordsTable createAlias(String alias) {
+    return $FastingRecordsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<SyncStatus, String, String> $convertersyncStatus =
+      const EnumNameConverter<SyncStatus>(SyncStatus.values);
+}
+
+class FastingRecord extends DataClass implements Insertable<FastingRecord> {
+  /// 本地主键：`userId-attributionDate`（每归属日至多一条关闭记录，幂等 upsert）。
+  final String localId;
+
+  /// 归属用户；未登录为 `anonymous`。
+  final String userId;
+
+  /// 打卡归属日（本地时区 yyyy-MM-dd，D-07，冻结不改写）。
+  final String attributionDate;
+
+  /// 断食开始锚点（UTC epoch 秒）。
+  final int startUtc;
+
+  /// 实际结束锚点（UTC epoch 秒）。
+  final int endUtc;
+
+  /// 实际断食时长（秒）。
+  final int actualSec;
+
+  /// 计划断食时长（秒，含延长）。
+  final int plannedSec;
+
+  /// 本周期累计延长分钟数（D-10）。
+  final int extendedMinutes;
+
+  /// 终态（CycleResult 枚举名）。
+  final String result;
+
+  /// 是否达标（D-08，streak 唯一口径，D-12）。
+  final bool qualified;
+
+  /// 上行幂等键（UUIDv4，F2 上报复用，§2.2）。
+  final String clientRequestId;
+
+  /// 四态同步状态（D-20）。
+  final SyncStatus syncStatus;
+
+  /// 本地创建时间（UTC ISO8601）。
+  final String createdAtUtc;
+  const FastingRecord({
+    required this.localId,
+    required this.userId,
+    required this.attributionDate,
+    required this.startUtc,
+    required this.endUtc,
+    required this.actualSec,
+    required this.plannedSec,
+    required this.extendedMinutes,
+    required this.result,
+    required this.qualified,
+    required this.clientRequestId,
+    required this.syncStatus,
+    required this.createdAtUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['local_id'] = Variable<String>(localId);
+    map['user_id'] = Variable<String>(userId);
+    map['attribution_date'] = Variable<String>(attributionDate);
+    map['start_utc'] = Variable<int>(startUtc);
+    map['end_utc'] = Variable<int>(endUtc);
+    map['actual_sec'] = Variable<int>(actualSec);
+    map['planned_sec'] = Variable<int>(plannedSec);
+    map['extended_minutes'] = Variable<int>(extendedMinutes);
+    map['result'] = Variable<String>(result);
+    map['qualified'] = Variable<bool>(qualified);
+    map['client_request_id'] = Variable<String>(clientRequestId);
+    {
+      map['sync_status'] = Variable<String>(
+        $FastingRecordsTable.$convertersyncStatus.toSql(syncStatus),
+      );
+    }
+    map['created_at_utc'] = Variable<String>(createdAtUtc);
+    return map;
+  }
+
+  FastingRecordsCompanion toCompanion(bool nullToAbsent) {
+    return FastingRecordsCompanion(
+      localId: Value(localId),
+      userId: Value(userId),
+      attributionDate: Value(attributionDate),
+      startUtc: Value(startUtc),
+      endUtc: Value(endUtc),
+      actualSec: Value(actualSec),
+      plannedSec: Value(plannedSec),
+      extendedMinutes: Value(extendedMinutes),
+      result: Value(result),
+      qualified: Value(qualified),
+      clientRequestId: Value(clientRequestId),
+      syncStatus: Value(syncStatus),
+      createdAtUtc: Value(createdAtUtc),
+    );
+  }
+
+  factory FastingRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FastingRecord(
+      localId: serializer.fromJson<String>(json['localId']),
+      userId: serializer.fromJson<String>(json['userId']),
+      attributionDate: serializer.fromJson<String>(json['attributionDate']),
+      startUtc: serializer.fromJson<int>(json['startUtc']),
+      endUtc: serializer.fromJson<int>(json['endUtc']),
+      actualSec: serializer.fromJson<int>(json['actualSec']),
+      plannedSec: serializer.fromJson<int>(json['plannedSec']),
+      extendedMinutes: serializer.fromJson<int>(json['extendedMinutes']),
+      result: serializer.fromJson<String>(json['result']),
+      qualified: serializer.fromJson<bool>(json['qualified']),
+      clientRequestId: serializer.fromJson<String>(json['clientRequestId']),
+      syncStatus: $FastingRecordsTable.$convertersyncStatus.fromJson(
+        serializer.fromJson<String>(json['syncStatus']),
+      ),
+      createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'localId': serializer.toJson<String>(localId),
+      'userId': serializer.toJson<String>(userId),
+      'attributionDate': serializer.toJson<String>(attributionDate),
+      'startUtc': serializer.toJson<int>(startUtc),
+      'endUtc': serializer.toJson<int>(endUtc),
+      'actualSec': serializer.toJson<int>(actualSec),
+      'plannedSec': serializer.toJson<int>(plannedSec),
+      'extendedMinutes': serializer.toJson<int>(extendedMinutes),
+      'result': serializer.toJson<String>(result),
+      'qualified': serializer.toJson<bool>(qualified),
+      'clientRequestId': serializer.toJson<String>(clientRequestId),
+      'syncStatus': serializer.toJson<String>(
+        $FastingRecordsTable.$convertersyncStatus.toJson(syncStatus),
+      ),
+      'createdAtUtc': serializer.toJson<String>(createdAtUtc),
+    };
+  }
+
+  FastingRecord copyWith({
+    String? localId,
+    String? userId,
+    String? attributionDate,
+    int? startUtc,
+    int? endUtc,
+    int? actualSec,
+    int? plannedSec,
+    int? extendedMinutes,
+    String? result,
+    bool? qualified,
+    String? clientRequestId,
+    SyncStatus? syncStatus,
+    String? createdAtUtc,
+  }) => FastingRecord(
+    localId: localId ?? this.localId,
+    userId: userId ?? this.userId,
+    attributionDate: attributionDate ?? this.attributionDate,
+    startUtc: startUtc ?? this.startUtc,
+    endUtc: endUtc ?? this.endUtc,
+    actualSec: actualSec ?? this.actualSec,
+    plannedSec: plannedSec ?? this.plannedSec,
+    extendedMinutes: extendedMinutes ?? this.extendedMinutes,
+    result: result ?? this.result,
+    qualified: qualified ?? this.qualified,
+    clientRequestId: clientRequestId ?? this.clientRequestId,
+    syncStatus: syncStatus ?? this.syncStatus,
+    createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+  );
+  FastingRecord copyWithCompanion(FastingRecordsCompanion data) {
+    return FastingRecord(
+      localId: data.localId.present ? data.localId.value : this.localId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      attributionDate: data.attributionDate.present
+          ? data.attributionDate.value
+          : this.attributionDate,
+      startUtc: data.startUtc.present ? data.startUtc.value : this.startUtc,
+      endUtc: data.endUtc.present ? data.endUtc.value : this.endUtc,
+      actualSec: data.actualSec.present ? data.actualSec.value : this.actualSec,
+      plannedSec: data.plannedSec.present
+          ? data.plannedSec.value
+          : this.plannedSec,
+      extendedMinutes: data.extendedMinutes.present
+          ? data.extendedMinutes.value
+          : this.extendedMinutes,
+      result: data.result.present ? data.result.value : this.result,
+      qualified: data.qualified.present ? data.qualified.value : this.qualified,
+      clientRequestId: data.clientRequestId.present
+          ? data.clientRequestId.value
+          : this.clientRequestId,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FastingRecord(')
+          ..write('localId: $localId, ')
+          ..write('userId: $userId, ')
+          ..write('attributionDate: $attributionDate, ')
+          ..write('startUtc: $startUtc, ')
+          ..write('endUtc: $endUtc, ')
+          ..write('actualSec: $actualSec, ')
+          ..write('plannedSec: $plannedSec, ')
+          ..write('extendedMinutes: $extendedMinutes, ')
+          ..write('result: $result, ')
+          ..write('qualified: $qualified, ')
+          ..write('clientRequestId: $clientRequestId, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAtUtc: $createdAtUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    localId,
+    userId,
+    attributionDate,
+    startUtc,
+    endUtc,
+    actualSec,
+    plannedSec,
+    extendedMinutes,
+    result,
+    qualified,
+    clientRequestId,
+    syncStatus,
+    createdAtUtc,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FastingRecord &&
+          other.localId == this.localId &&
+          other.userId == this.userId &&
+          other.attributionDate == this.attributionDate &&
+          other.startUtc == this.startUtc &&
+          other.endUtc == this.endUtc &&
+          other.actualSec == this.actualSec &&
+          other.plannedSec == this.plannedSec &&
+          other.extendedMinutes == this.extendedMinutes &&
+          other.result == this.result &&
+          other.qualified == this.qualified &&
+          other.clientRequestId == this.clientRequestId &&
+          other.syncStatus == this.syncStatus &&
+          other.createdAtUtc == this.createdAtUtc);
+}
+
+class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
+  final Value<String> localId;
+  final Value<String> userId;
+  final Value<String> attributionDate;
+  final Value<int> startUtc;
+  final Value<int> endUtc;
+  final Value<int> actualSec;
+  final Value<int> plannedSec;
+  final Value<int> extendedMinutes;
+  final Value<String> result;
+  final Value<bool> qualified;
+  final Value<String> clientRequestId;
+  final Value<SyncStatus> syncStatus;
+  final Value<String> createdAtUtc;
+  final Value<int> rowid;
+  const FastingRecordsCompanion({
+    this.localId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.attributionDate = const Value.absent(),
+    this.startUtc = const Value.absent(),
+    this.endUtc = const Value.absent(),
+    this.actualSec = const Value.absent(),
+    this.plannedSec = const Value.absent(),
+    this.extendedMinutes = const Value.absent(),
+    this.result = const Value.absent(),
+    this.qualified = const Value.absent(),
+    this.clientRequestId = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FastingRecordsCompanion.insert({
+    required String localId,
+    required String userId,
+    required String attributionDate,
+    required int startUtc,
+    required int endUtc,
+    required int actualSec,
+    required int plannedSec,
+    required int extendedMinutes,
+    required String result,
+    required bool qualified,
+    required String clientRequestId,
+    required SyncStatus syncStatus,
+    required String createdAtUtc,
+    this.rowid = const Value.absent(),
+  }) : localId = Value(localId),
+       userId = Value(userId),
+       attributionDate = Value(attributionDate),
+       startUtc = Value(startUtc),
+       endUtc = Value(endUtc),
+       actualSec = Value(actualSec),
+       plannedSec = Value(plannedSec),
+       extendedMinutes = Value(extendedMinutes),
+       result = Value(result),
+       qualified = Value(qualified),
+       clientRequestId = Value(clientRequestId),
+       syncStatus = Value(syncStatus),
+       createdAtUtc = Value(createdAtUtc);
+  static Insertable<FastingRecord> custom({
+    Expression<String>? localId,
+    Expression<String>? userId,
+    Expression<String>? attributionDate,
+    Expression<int>? startUtc,
+    Expression<int>? endUtc,
+    Expression<int>? actualSec,
+    Expression<int>? plannedSec,
+    Expression<int>? extendedMinutes,
+    Expression<String>? result,
+    Expression<bool>? qualified,
+    Expression<String>? clientRequestId,
+    Expression<String>? syncStatus,
+    Expression<String>? createdAtUtc,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (localId != null) 'local_id': localId,
+      if (userId != null) 'user_id': userId,
+      if (attributionDate != null) 'attribution_date': attributionDate,
+      if (startUtc != null) 'start_utc': startUtc,
+      if (endUtc != null) 'end_utc': endUtc,
+      if (actualSec != null) 'actual_sec': actualSec,
+      if (plannedSec != null) 'planned_sec': plannedSec,
+      if (extendedMinutes != null) 'extended_minutes': extendedMinutes,
+      if (result != null) 'result': result,
+      if (qualified != null) 'qualified': qualified,
+      if (clientRequestId != null) 'client_request_id': clientRequestId,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FastingRecordsCompanion copyWith({
+    Value<String>? localId,
+    Value<String>? userId,
+    Value<String>? attributionDate,
+    Value<int>? startUtc,
+    Value<int>? endUtc,
+    Value<int>? actualSec,
+    Value<int>? plannedSec,
+    Value<int>? extendedMinutes,
+    Value<String>? result,
+    Value<bool>? qualified,
+    Value<String>? clientRequestId,
+    Value<SyncStatus>? syncStatus,
+    Value<String>? createdAtUtc,
+    Value<int>? rowid,
+  }) {
+    return FastingRecordsCompanion(
+      localId: localId ?? this.localId,
+      userId: userId ?? this.userId,
+      attributionDate: attributionDate ?? this.attributionDate,
+      startUtc: startUtc ?? this.startUtc,
+      endUtc: endUtc ?? this.endUtc,
+      actualSec: actualSec ?? this.actualSec,
+      plannedSec: plannedSec ?? this.plannedSec,
+      extendedMinutes: extendedMinutes ?? this.extendedMinutes,
+      result: result ?? this.result,
+      qualified: qualified ?? this.qualified,
+      clientRequestId: clientRequestId ?? this.clientRequestId,
+      syncStatus: syncStatus ?? this.syncStatus,
+      createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (localId.present) {
+      map['local_id'] = Variable<String>(localId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (attributionDate.present) {
+      map['attribution_date'] = Variable<String>(attributionDate.value);
+    }
+    if (startUtc.present) {
+      map['start_utc'] = Variable<int>(startUtc.value);
+    }
+    if (endUtc.present) {
+      map['end_utc'] = Variable<int>(endUtc.value);
+    }
+    if (actualSec.present) {
+      map['actual_sec'] = Variable<int>(actualSec.value);
+    }
+    if (plannedSec.present) {
+      map['planned_sec'] = Variable<int>(plannedSec.value);
+    }
+    if (extendedMinutes.present) {
+      map['extended_minutes'] = Variable<int>(extendedMinutes.value);
+    }
+    if (result.present) {
+      map['result'] = Variable<String>(result.value);
+    }
+    if (qualified.present) {
+      map['qualified'] = Variable<bool>(qualified.value);
+    }
+    if (clientRequestId.present) {
+      map['client_request_id'] = Variable<String>(clientRequestId.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(
+        $FastingRecordsTable.$convertersyncStatus.toSql(syncStatus.value),
+      );
+    }
+    if (createdAtUtc.present) {
+      map['created_at_utc'] = Variable<String>(createdAtUtc.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FastingRecordsCompanion(')
+          ..write('localId: $localId, ')
+          ..write('userId: $userId, ')
+          ..write('attributionDate: $attributionDate, ')
+          ..write('startUtc: $startUtc, ')
+          ..write('endUtc: $endUtc, ')
+          ..write('actualSec: $actualSec, ')
+          ..write('plannedSec: $plannedSec, ')
+          ..write('extendedMinutes: $extendedMinutes, ')
+          ..write('result: $result, ')
+          ..write('qualified: $qualified, ')
+          ..write('clientRequestId: $clientRequestId, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2497,8 +3305,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $FoodEntriesTable foodEntries = $FoodEntriesTable(this);
   late final $DailyNutritionCachesTable dailyNutritionCaches =
       $DailyNutritionCachesTable(this);
+  late final $FastingRecordsTable fastingRecords = $FastingRecordsTable(this);
   late final FoodDao foodDao = FoodDao(this as AppDatabase);
   late final FoodEntryDao foodEntryDao = FoodEntryDao(this as AppDatabase);
+  late final FastingRecordDao fastingRecordDao = FastingRecordDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2507,6 +3319,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     foods,
     foodEntries,
     dailyNutritionCaches,
+    fastingRecords,
   ];
 }
 
@@ -3862,6 +4675,374 @@ typedef $$DailyNutritionCachesTableProcessedTableManager =
       DailyNutritionCache,
       PrefetchHooks Function()
     >;
+typedef $$FastingRecordsTableCreateCompanionBuilder =
+    FastingRecordsCompanion Function({
+      required String localId,
+      required String userId,
+      required String attributionDate,
+      required int startUtc,
+      required int endUtc,
+      required int actualSec,
+      required int plannedSec,
+      required int extendedMinutes,
+      required String result,
+      required bool qualified,
+      required String clientRequestId,
+      required SyncStatus syncStatus,
+      required String createdAtUtc,
+      Value<int> rowid,
+    });
+typedef $$FastingRecordsTableUpdateCompanionBuilder =
+    FastingRecordsCompanion Function({
+      Value<String> localId,
+      Value<String> userId,
+      Value<String> attributionDate,
+      Value<int> startUtc,
+      Value<int> endUtc,
+      Value<int> actualSec,
+      Value<int> plannedSec,
+      Value<int> extendedMinutes,
+      Value<String> result,
+      Value<bool> qualified,
+      Value<String> clientRequestId,
+      Value<SyncStatus> syncStatus,
+      Value<String> createdAtUtc,
+      Value<int> rowid,
+    });
+
+class $$FastingRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $FastingRecordsTable> {
+  $$FastingRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get localId => $composableBuilder(
+    column: $table.localId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get attributionDate => $composableBuilder(
+    column: $table.attributionDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get startUtc => $composableBuilder(
+    column: $table.startUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get endUtc => $composableBuilder(
+    column: $table.endUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get actualSec => $composableBuilder(
+    column: $table.actualSec,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get plannedSec => $composableBuilder(
+    column: $table.plannedSec,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get extendedMinutes => $composableBuilder(
+    column: $table.extendedMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get result => $composableBuilder(
+    column: $table.result,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get qualified => $composableBuilder(
+    column: $table.qualified,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get clientRequestId => $composableBuilder(
+    column: $table.clientRequestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<SyncStatus, SyncStatus, String>
+  get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FastingRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FastingRecordsTable> {
+  $$FastingRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get localId => $composableBuilder(
+    column: $table.localId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get attributionDate => $composableBuilder(
+    column: $table.attributionDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get startUtc => $composableBuilder(
+    column: $table.startUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get endUtc => $composableBuilder(
+    column: $table.endUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get actualSec => $composableBuilder(
+    column: $table.actualSec,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get plannedSec => $composableBuilder(
+    column: $table.plannedSec,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get extendedMinutes => $composableBuilder(
+    column: $table.extendedMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get result => $composableBuilder(
+    column: $table.result,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get qualified => $composableBuilder(
+    column: $table.qualified,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get clientRequestId => $composableBuilder(
+    column: $table.clientRequestId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FastingRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FastingRecordsTable> {
+  $$FastingRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get localId =>
+      $composableBuilder(column: $table.localId, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get attributionDate => $composableBuilder(
+    column: $table.attributionDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get startUtc =>
+      $composableBuilder(column: $table.startUtc, builder: (column) => column);
+
+  GeneratedColumn<int> get endUtc =>
+      $composableBuilder(column: $table.endUtc, builder: (column) => column);
+
+  GeneratedColumn<int> get actualSec =>
+      $composableBuilder(column: $table.actualSec, builder: (column) => column);
+
+  GeneratedColumn<int> get plannedSec => $composableBuilder(
+    column: $table.plannedSec,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get extendedMinutes => $composableBuilder(
+    column: $table.extendedMinutes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get result =>
+      $composableBuilder(column: $table.result, builder: (column) => column);
+
+  GeneratedColumn<bool> get qualified =>
+      $composableBuilder(column: $table.qualified, builder: (column) => column);
+
+  GeneratedColumn<String> get clientRequestId => $composableBuilder(
+    column: $table.clientRequestId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<SyncStatus, String> get syncStatus =>
+      $composableBuilder(
+        column: $table.syncStatus,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => column,
+  );
+}
+
+class $$FastingRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FastingRecordsTable,
+          FastingRecord,
+          $$FastingRecordsTableFilterComposer,
+          $$FastingRecordsTableOrderingComposer,
+          $$FastingRecordsTableAnnotationComposer,
+          $$FastingRecordsTableCreateCompanionBuilder,
+          $$FastingRecordsTableUpdateCompanionBuilder,
+          (
+            FastingRecord,
+            BaseReferences<_$AppDatabase, $FastingRecordsTable, FastingRecord>,
+          ),
+          FastingRecord,
+          PrefetchHooks Function()
+        > {
+  $$FastingRecordsTableTableManager(
+    _$AppDatabase db,
+    $FastingRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FastingRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FastingRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FastingRecordsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> localId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> attributionDate = const Value.absent(),
+                Value<int> startUtc = const Value.absent(),
+                Value<int> endUtc = const Value.absent(),
+                Value<int> actualSec = const Value.absent(),
+                Value<int> plannedSec = const Value.absent(),
+                Value<int> extendedMinutes = const Value.absent(),
+                Value<String> result = const Value.absent(),
+                Value<bool> qualified = const Value.absent(),
+                Value<String> clientRequestId = const Value.absent(),
+                Value<SyncStatus> syncStatus = const Value.absent(),
+                Value<String> createdAtUtc = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FastingRecordsCompanion(
+                localId: localId,
+                userId: userId,
+                attributionDate: attributionDate,
+                startUtc: startUtc,
+                endUtc: endUtc,
+                actualSec: actualSec,
+                plannedSec: plannedSec,
+                extendedMinutes: extendedMinutes,
+                result: result,
+                qualified: qualified,
+                clientRequestId: clientRequestId,
+                syncStatus: syncStatus,
+                createdAtUtc: createdAtUtc,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String localId,
+                required String userId,
+                required String attributionDate,
+                required int startUtc,
+                required int endUtc,
+                required int actualSec,
+                required int plannedSec,
+                required int extendedMinutes,
+                required String result,
+                required bool qualified,
+                required String clientRequestId,
+                required SyncStatus syncStatus,
+                required String createdAtUtc,
+                Value<int> rowid = const Value.absent(),
+              }) => FastingRecordsCompanion.insert(
+                localId: localId,
+                userId: userId,
+                attributionDate: attributionDate,
+                startUtc: startUtc,
+                endUtc: endUtc,
+                actualSec: actualSec,
+                plannedSec: plannedSec,
+                extendedMinutes: extendedMinutes,
+                result: result,
+                qualified: qualified,
+                clientRequestId: clientRequestId,
+                syncStatus: syncStatus,
+                createdAtUtc: createdAtUtc,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FastingRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FastingRecordsTable,
+      FastingRecord,
+      $$FastingRecordsTableFilterComposer,
+      $$FastingRecordsTableOrderingComposer,
+      $$FastingRecordsTableAnnotationComposer,
+      $$FastingRecordsTableCreateCompanionBuilder,
+      $$FastingRecordsTableUpdateCompanionBuilder,
+      (
+        FastingRecord,
+        BaseReferences<_$AppDatabase, $FastingRecordsTable, FastingRecord>,
+      ),
+      FastingRecord,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3872,4 +5053,6 @@ class $AppDatabaseManager {
       $$FoodEntriesTableTableManager(_db, _db.foodEntries);
   $$DailyNutritionCachesTableTableManager get dailyNutritionCaches =>
       $$DailyNutritionCachesTableTableManager(_db, _db.dailyNutritionCaches);
+  $$FastingRecordsTableTableManager get fastingRecords =>
+      $$FastingRecordsTableTableManager(_db, _db.fastingRecords);
 }

@@ -3,6 +3,7 @@ import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
+import 'package:eatwise/features/streak/presentation/streak_profile_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -52,6 +53,9 @@ class ProfilePlaceholderPage extends StatelessWidget {
       footer: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
+          // M5：连胜卡片（当前/历史最长/补签卡库存 + 补签入口）。
+          const StreakProfileCard(),
+          const SizedBox(height: AppSpacing.s6),
           Text(t.settings.language.title, style: textStyles.textXl),
           const SizedBox(height: AppSpacing.s2),
           Wrap(

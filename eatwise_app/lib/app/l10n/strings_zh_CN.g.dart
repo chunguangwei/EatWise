@@ -48,6 +48,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$home$zh_CN home = Translations$home$zh_CN.internal(_root);
 	late final Translations$notification$zh_CN notification = Translations$notification$zh_CN.internal(_root);
 	late final Translations$nutrition$zh_CN nutrition = Translations$nutrition$zh_CN.internal(_root);
+	late final Translations$streak$zh_CN streak = Translations$streak$zh_CN.internal(_root);
 	late final Translations$settings$zh_CN settings = Translations$settings$zh_CN.internal(_root);
 	late final Translations$auth$zh_CN auth = Translations$auth$zh_CN.internal(_root);
 }
@@ -159,6 +160,19 @@ class Translations$nutrition$zh_CN {
 	// Translations
 	late final Translations$nutrition$data$zh_CN data = Translations$nutrition$data$zh_CN.internal(_root);
 	late final Translations$nutrition$signalCard$zh_CN signalCard = Translations$nutrition$signalCard$zh_CN.internal(_root);
+}
+
+// Path: streak
+class Translations$streak$zh_CN {
+	Translations$streak$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+	late final Translations$streak$home$zh_CN home = Translations$streak$home$zh_CN.internal(_root);
+	late final Translations$streak$milestone$zh_CN milestone = Translations$streak$milestone$zh_CN.internal(_root);
+	late final Translations$streak$kBreak$zh_CN kBreak = Translations$streak$kBreak$zh_CN.internal(_root);
+	late final Translations$streak$profile$zh_CN profile = Translations$streak$profile$zh_CN.internal(_root);
 }
 
 // Path: settings
@@ -772,6 +786,111 @@ class Translations$nutrition$signalCard$zh_CN {
 	// Translations
 	late final Translations$nutrition$signalCard$zone$zh_CN zone = Translations$nutrition$signalCard$zone$zh_CN.internal(_root);
 	late final Translations$nutrition$signalCard$advice$zh_CN advice = Translations$nutrition$signalCard$advice$zh_CN.internal(_root);
+}
+
+// Path: streak.home
+class Translations$streak$home$zh_CN {
+	Translations$streak$home$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '连续 ${days} 天 🔥'
+	String streakDays({required Object days}) => '连续 ${days} 天 🔥';
+
+	/// zh-CN: '完成今天断食，开启第 1 天'
+	String get startHint => '完成今天断食，开启第 1 天';
+}
+
+// Path: streak.milestone
+class Translations$streak$milestone$zh_CN {
+	Translations$streak$milestone$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '连续 ${days} 天！你已经超过了 80% 的伙伴 🎉'
+	String title({required Object days}) => '连续 ${days} 天！你已经超过了 80% 的伙伴 🎉';
+
+	/// zh-CN: '${days} 天连胜'
+	String badgeLabel({required Object days}) => '${days} 天连胜';
+
+	/// zh-CN: '分享'
+	String get share => '分享';
+
+	/// zh-CN: '收下啦'
+	String get accept => '收下啦';
+
+	/// zh-CN: '分享图卡即将上线，先把这份坚持记在心里'
+	String get shareComingSoon => '分享图卡即将上线，先把这份坚持记在心里';
+}
+
+// Path: streak.kBreak
+class Translations$streak$kBreak$zh_CN {
+	Translations$streak$kBreak$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '哎呀，连胜中断了'
+	String get title => '哎呀，连胜中断了';
+
+	/// zh-CN: '连胜只按「断食打卡达标」累计：每天按计划完成断食窗口（提前不超过 15 分钟也算达标）即连胜 +1；饮食记录天数单独统计，不影响连胜。中断后连胜归零，7 天内可用补签卡恢复。'
+	String get howItWorks => '连胜只按「断食打卡达标」累计：每天按计划完成断食窗口（提前不超过 15 分钟也算达标）即连胜 +1；饮食记录天数单独统计，不影响连胜。中断后连胜归零，7 天内可用补签卡恢复。';
+
+	/// zh-CN: '本月剩余补签卡：${n} 张'
+	String cardsLeft({required Object n}) => '本月剩余补签卡：${n} 张';
+
+	/// zh-CN: '使用补签卡，恢复 ${days} 天连胜'
+	String mendCta({required Object days}) => '使用补签卡，恢复 ${days} 天连胜';
+
+	/// zh-CN: '已恢复 ${days} 天连胜 🎉'
+	String mendSuccess({required Object days}) => '已恢复 ${days} 天连胜 🎉';
+
+	/// zh-CN: '补签失败，请稍后重试'
+	String get mendFailed => '补签失败，请稍后重试';
+
+	/// zh-CN: '本月补签卡已用完，下月 1 日将发放 2 张新卡'
+	String get exhausted => '本月补签卡已用完，下月 1 日将发放 2 张新卡';
+
+	/// zh-CN: '断签已超过 7 天，补签窗口已关闭。从今天开始新的连胜吧！'
+	String get unmendable => '断签已超过 7 天，补签窗口已关闭。从今天开始新的连胜吧！';
+
+	/// zh-CN: '知道了，重新开始'
+	String get dismiss => '知道了，重新开始';
+}
+
+// Path: streak.profile
+class Translations$streak$profile$zh_CN {
+	Translations$streak$profile$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '连胜'
+	String get title => '连胜';
+
+	/// zh-CN: '当前连胜'
+	String get current => '当前连胜';
+
+	/// zh-CN: '历史最长'
+	String get longest => '历史最长';
+
+	/// zh-CN: '天'
+	String get daysUnit => '天';
+
+	/// zh-CN: '补签卡'
+	String get mendCards => '补签卡';
+
+	/// zh-CN: '${n} 张'
+	String mendCardsValue({required Object n}) => '${n} 张';
+
+	/// zh-CN: '去补签'
+	String get mendEntry => '去补签';
 }
 
 // Path: settings.language
@@ -1531,6 +1650,29 @@ extension on Translations {
 			'nutrition.signalCard.advice.meal.lunch' => '午餐来份掌心大的瘦肉或豆腐',
 			'nutrition.signalCard.advice.meal.dinner' => '晚餐选清蒸/白灼，七分饱就好',
 			'nutrition.signalCard.advice.meal.snack' => '加餐来把坚果或一杯酸奶',
+			'streak.home.streakDays' => ({required Object days}) => '连续 ${days} 天 🔥',
+			'streak.home.startHint' => '完成今天断食，开启第 1 天',
+			'streak.milestone.title' => ({required Object days}) => '连续 ${days} 天！你已经超过了 80% 的伙伴 🎉',
+			'streak.milestone.badgeLabel' => ({required Object days}) => '${days} 天连胜',
+			'streak.milestone.share' => '分享',
+			'streak.milestone.accept' => '收下啦',
+			'streak.milestone.shareComingSoon' => '分享图卡即将上线，先把这份坚持记在心里',
+			'streak.kBreak.title' => '哎呀，连胜中断了',
+			'streak.kBreak.howItWorks' => '连胜只按「断食打卡达标」累计：每天按计划完成断食窗口（提前不超过 15 分钟也算达标）即连胜 +1；饮食记录天数单独统计，不影响连胜。中断后连胜归零，7 天内可用补签卡恢复。',
+			'streak.kBreak.cardsLeft' => ({required Object n}) => '本月剩余补签卡：${n} 张',
+			'streak.kBreak.mendCta' => ({required Object days}) => '使用补签卡，恢复 ${days} 天连胜',
+			'streak.kBreak.mendSuccess' => ({required Object days}) => '已恢复 ${days} 天连胜 🎉',
+			'streak.kBreak.mendFailed' => '补签失败，请稍后重试',
+			'streak.kBreak.exhausted' => '本月补签卡已用完，下月 1 日将发放 2 张新卡',
+			'streak.kBreak.unmendable' => '断签已超过 7 天，补签窗口已关闭。从今天开始新的连胜吧！',
+			'streak.kBreak.dismiss' => '知道了，重新开始',
+			'streak.profile.title' => '连胜',
+			'streak.profile.current' => '当前连胜',
+			'streak.profile.longest' => '历史最长',
+			'streak.profile.daysUnit' => '天',
+			'streak.profile.mendCards' => '补签卡',
+			'streak.profile.mendCardsValue' => ({required Object n}) => '${n} 张',
+			'streak.profile.mendEntry' => '去补签',
 			'settings.language.title' => '语言',
 			'settings.language.system' => '跟随系统',
 			'settings.language.zhCN' => '简体中文',

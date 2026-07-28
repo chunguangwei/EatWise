@@ -312,6 +312,39 @@
       }
     }
   },
+  "streak": {
+    "home": {
+      "streakDays": "${days}-day streak 🔥",
+      "startHint": "Finish today's fast to start day 1"
+    },
+    "milestone": {
+      "title": "${days}-day streak! You've outlasted 80% of the community 🎉",
+      "badgeLabel": "${days}-day streak",
+      "share": "Share",
+      "accept": "Keep it",
+      "shareComingSoon": "Share cards are coming soon — savor the win for now"
+    },
+    "break": {
+      "title": "Your streak was interrupted",
+      "howItWorks": "Your streak counts only days you complete your fasting plan (ending up to 15 min early still counts). Meal-log days are tracked separately and don't affect your streak. A missed day resets it to 0 — use a Mend Card within 7 days to restore it.",
+      "cardsLeft": "Mend Cards left this month: ${n}",
+      "mendCta": "Use a Mend Card to restore your ${days}-day streak",
+      "mendSuccess": "Streak restored to ${days} days 🎉",
+      "mendFailed": "Couldn't use the Mend Card. Please try again later.",
+      "exhausted": "No Mend Cards left this month. You'll get 2 new ones on the 1st.",
+      "unmendable": "This miss is over 7 days old and can no longer be mended. Start a fresh streak today!",
+      "dismiss": "Got it, start fresh"
+    },
+    "profile": {
+      "title": "Streak",
+      "current": "Current streak",
+      "longest": "Longest streak",
+      "daysUnit": "days",
+      "mendCards": "Mend Cards",
+      "mendCardsValue": "${n} left",
+      "mendEntry": "Mend now"
+    }
+  },
   "settings": {
     "language": {
       "title": "Language",

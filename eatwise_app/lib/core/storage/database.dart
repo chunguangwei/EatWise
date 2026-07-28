@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:eatwise/core/storage/fasting_record_dao.dart';
 import 'package:eatwise/core/storage/food_dao.dart';
 import 'package:eatwise/core/storage/food_entry_dao.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
@@ -17,8 +18,8 @@ part 'database.g.dart';
 /// 〔集成说明〕SQLCipher 加密（《规格-数据同步与四态持久化》§7.2）在 M0 另行
 /// 接入，本类预留 QueryExecutor 注入点，加密 executor 就绪后无需改表结构。
 @DriftDatabase(
-  tables: <Type>[FoodEntries, Foods, DailyNutritionCaches],
-  daos: <Type>[FoodDao, FoodEntryDao],
+  tables: <Type>[FoodEntries, Foods, DailyNutritionCaches, FastingRecords],
+  daos: <Type>[FoodDao, FoodEntryDao, FastingRecordDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
@@ -37,5 +38,15 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      // v2：新增 FastingRecords（M5 streak 结算 / M6 趋势数据源）。
+      if (from < 2) {
+        await m.createTable(fastingRecords);
+      }
+    },
+  );
 }
