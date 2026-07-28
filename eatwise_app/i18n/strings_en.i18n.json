@@ -259,5 +259,26 @@
       "zhCN": "简体中文",
       "en": "English"
     }
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in with phone",
+      "subtitle": "New numbers are registered automatically after verification",
+      "phoneLabel": "Phone number",
+      "phoneHint": "Enter your 11-digit phone number",
+      "codeLabel": "Verification code",
+      "codeHint": "6-digit code",
+      "sendCode": "Send code",
+      "resendIn": "Resend in ${seconds}s",
+      "login": "Sign in",
+      "loggingIn": "Signing in…",
+      "codeSent": "Verification code sent",
+      "invalidPhone": "Please enter a valid phone number",
+      "invalidCode": "Please enter the 6-digit code",
+      "mockHint": "In local dev the code is always 123456"
+    },
+    "logout": "Sign out",
+    "logoutConfirm": "Sign out now? Unsynced records stay on this device.",
+    "loggedOut": "Signed out"
   }
 }

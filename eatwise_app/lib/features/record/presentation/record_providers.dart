@@ -1,18 +1,23 @@
 import 'dart:async';
 
+import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
+import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/record/data/food_search_remote.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
+import 'package:eatwise/features/record/data/record_sync_engine.dart';
+import 'package:eatwise/features/record/data/remote_record_sync.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 
-/// 记录同步远程端（M3 用 Fake 模拟；M7 替换为真实 REST 实现）。
+/// 记录同步远程端（M7 真实 REST 实现；测试 override 为 FakeRecordRemote）。
 final Provider<RecordRemote> recordRemoteProvider = Provider<RecordRemote>((
   ref,
 ) {
-  return FakeRecordRemote();
+  return RemoteRecordSync(dio: ref.watch(apiDioProvider), location: tz.local);
 });
 
 /// M3 记录仓库。
@@ -35,12 +40,35 @@ final StateProvider<String> recordSearchQueryProvider = StateProvider<String>(
   (ref) => '',
 );
 
+/// 食物搜索（D-16）：本地优先 + 远端 K1 补充（远端结果合入本地缓存）；
+/// dio 不可用/远端失败时静默降级为纯本地 drift 双语搜索。
+final Provider<RemoteFoodSearch> remoteFoodSearchProvider =
+    Provider<RemoteFoodSearch>((ref) {
+      return RemoteFoodSearch(
+        dio: ref.watch(apiDioProvider),
+        db: ref.watch(recordRepositoryProvider).db,
+      );
+    });
+
 /// 双语食物搜索结果（D-15/D-16）。
 final FutureProvider<List<Food>> recordFoodSearchProvider =
-    FutureProvider<List<Food>>((ref) {
-      return ref
-          .watch(recordRepositoryProvider)
-          .searchFoods(ref.watch(recordSearchQueryProvider));
+    FutureProvider<List<Food>>((ref) async {
+      final query = ref.watch(recordSearchQueryProvider);
+      try {
+        return await ref.watch(remoteFoodSearchProvider).search(query);
+      } on Object {
+        // 防御：网络层未装配（如测试只注入仓储）时降级纯本地。
+        return ref.read(recordRepositoryProvider).searchFoods(query);
+      }
+    });
+
+/// 记录同步引擎（启动/登录成功后 syncNow：先上行 pending 再增量下行）。
+final Provider<RecordSyncEngine> recordSyncEngineProvider =
+    Provider<RecordSyncEngine>((ref) {
+      return RecordSyncEngine(
+        repository: ref.watch(recordRepositoryProvider),
+        prefs: ref.watch(sharedPreferencesProvider),
+      );
     });
 
 /// 当前选中的食物（确认前可修改份量）。

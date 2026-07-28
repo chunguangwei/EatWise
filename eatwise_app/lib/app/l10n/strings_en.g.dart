@@ -48,6 +48,7 @@ class TranslationsEn extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$notification$en notification = _Translations$notification$en._(_root);
 	@override late final _Translations$nutrition$en nutrition = _Translations$nutrition$en._(_root);
 	@override late final _Translations$settings$en settings = _Translations$settings$en._(_root);
+	@override late final _Translations$auth$en auth = _Translations$auth$en._(_root);
 }
 
 // Path: notify
@@ -155,6 +156,19 @@ class _Translations$settings$en extends Translations$settings$zh_CN {
 
 	// Translations
 	@override late final _Translations$settings$language$en language = _Translations$settings$language$en._(_root);
+}
+
+// Path: auth
+class _Translations$auth$en extends Translations$auth$zh_CN {
+	_Translations$auth$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override late final _Translations$auth$login$en login = _Translations$auth$login$en._(_root);
+	@override String get logout => 'Sign out';
+	@override String get logoutConfirm => 'Sign out now? Unsynced records stay on this device.';
+	@override String get loggedOut => 'Signed out';
 }
 
 // Path: notify.channel
@@ -465,6 +479,29 @@ class _Translations$settings$language$en extends Translations$settings$language$
 	@override String get system => 'System';
 	@override String get zhCN => '简体中文';
 	@override String get en => 'English';
+}
+
+// Path: auth.login
+class _Translations$auth$login$en extends Translations$auth$login$zh_CN {
+	_Translations$auth$login$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Sign in with phone';
+	@override String get subtitle => 'New numbers are registered automatically after verification';
+	@override String get phoneLabel => 'Phone number';
+	@override String get phoneHint => 'Enter your 11-digit phone number';
+	@override String get codeLabel => 'Verification code';
+	@override String get codeHint => '6-digit code';
+	@override String get sendCode => 'Send code';
+	@override String resendIn({required Object seconds}) => 'Resend in ${seconds}s';
+	@override String get login => 'Sign in';
+	@override String get loggingIn => 'Signing in…';
+	@override String get codeSent => 'Verification code sent';
+	@override String get invalidPhone => 'Please enter a valid phone number';
+	@override String get invalidCode => 'Please enter the 6-digit code';
+	@override String get mockHint => 'In local dev the code is always 123456';
 }
 
 // Path: notify.channel.fastingReminders
@@ -883,6 +920,23 @@ extension on TranslationsEn {
 			'settings.language.system' => 'System',
 			'settings.language.zhCN' => '简体中文',
 			'settings.language.en' => 'English',
+			'auth.login.title' => 'Sign in with phone',
+			'auth.login.subtitle' => 'New numbers are registered automatically after verification',
+			'auth.login.phoneLabel' => 'Phone number',
+			'auth.login.phoneHint' => 'Enter your 11-digit phone number',
+			'auth.login.codeLabel' => 'Verification code',
+			'auth.login.codeHint' => '6-digit code',
+			'auth.login.sendCode' => 'Send code',
+			'auth.login.resendIn' => ({required Object seconds}) => 'Resend in ${seconds}s',
+			'auth.login.login' => 'Sign in',
+			'auth.login.loggingIn' => 'Signing in…',
+			'auth.login.codeSent' => 'Verification code sent',
+			'auth.login.invalidPhone' => 'Please enter a valid phone number',
+			'auth.login.invalidCode' => 'Please enter the 6-digit code',
+			'auth.login.mockHint' => 'In local dev the code is always 123456',
+			'auth.logout' => 'Sign out',
+			'auth.logoutConfirm' => 'Sign out now? Unsynced records stay on this device.',
+			'auth.loggedOut' => 'Signed out',
 			_ => null,
 		};
 	}

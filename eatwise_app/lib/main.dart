@@ -1,10 +1,16 @@
+import 'dart:async';
+
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/app/router/app_router.dart';
+import 'package:eatwise/core/network/network_providers.dart';
+import 'package:eatwise/core/network/token_store.dart';
 import 'package:eatwise/core/notification/local_notification_service.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/food_seed_loader.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
+import 'package:eatwise/features/auth/application/auth_gate.dart';
+import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_texts.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
@@ -58,34 +64,57 @@ Future<void> main() async {
   } on Object {
     // 防御：通知插件初始化失败时计时照常，提醒功能降级。
   }
+  // D-13：登录门禁（独立标志，与引导门禁协调）；令牌存 Keychain/Keystore
+  // （契约 §6.2）。启动恢复会话：有 refreshToken 即登录态，accessToken
+  // 过期由拦截器 401 refresh 无感续期。
+  final authGate = AuthGate();
+  // session 清理回调需引用 container 自身：先留位后赋值，回避自引用。
+  void Function()? handleSessionCleared;
+  final container = ProviderContainer(
+    overrides: <Override>[
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      onboardingGateProvider.overrideWithValue(gate),
+      appDatabaseProvider.overrideWithValue(db),
+      localNotificationServiceProvider.overrideWithValue(notificationService),
+      tokenStoreProvider.overrideWithValue(SecureTokenStore()),
+      authGateProvider.overrideWithValue(authGate),
+      // refresh 失败清会话 → 强制回登录页。
+      apiSessionClearedHandlerProvider.overrideWithValue(
+        () => handleSessionCleared?.call(),
+      ),
+      // 首页信号卡数据源：record 仓储当日聚合流（本地预估，§2.6）。
+      todayNutritionCacheProvider.overrideWith(
+        (ref) => ref
+            .watch(recordRepositoryProvider)
+            .watchDailyNutrition(DateTime.now()),
+      ),
+    ],
+  );
+  handleSessionCleared = () =>
+      container.read(authControllerProvider.notifier).onSessionCleared();
+  await container.read(authControllerProvider.notifier).restore();
+  if (authGate.loggedIn) {
+    // §2.1：App 启动触发一轮同步（先上行 pending 再增量下行）。
+    unawaited(container.read(recordSyncEngineProvider).syncNow());
+  }
   runApp(
     TranslationProvider(
-      child: ProviderScope(
-        overrides: <Override>[
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          onboardingGateProvider.overrideWithValue(gate),
-          appDatabaseProvider.overrideWithValue(db),
-          localNotificationServiceProvider.overrideWithValue(
-            notificationService,
-          ),
-          // 首页信号卡数据源：record 仓储当日聚合流（本地预估，§2.6）。
-          todayNutritionCacheProvider.overrideWith(
-            (ref) => ref
-                .watch(recordRepositoryProvider)
-                .watchDailyNutrition(DateTime.now()),
-          ),
-        ],
-        child: EatWiseApp(gate: gate),
+      child: UncontrolledProviderScope(
+        container: container,
+        child: EatWiseApp(gate: gate, authGate: authGate),
       ),
     ),
   );
 }
 
 class EatWiseApp extends StatefulWidget {
-  const EatWiseApp({super.key, this.gate});
+  const EatWiseApp({super.key, this.gate, this.authGate});
 
   /// 新手引导门禁；缺省按「已完成」处理（保留 M0 演示冒烟路径）。
   final OnboardingGate? gate;
+
+  /// 登录门禁（D-13）；缺省视为已登录（保留既有测试/演示路径）。
+  final AuthGate? authGate;
 
   @override
   State<EatWiseApp> createState() => _EatWiseAppState();
@@ -94,6 +123,7 @@ class EatWiseApp extends StatefulWidget {
 class _EatWiseAppState extends State<EatWiseApp> {
   late final GoRouter _router = createAppRouter(
     gate: widget.gate ?? OnboardingGate(completed: true),
+    authGate: widget.authGate,
   );
 
   @override

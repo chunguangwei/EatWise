@@ -23,6 +23,27 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
     )..where((e) => e.localId.equals(localId))).getSingleOrNull();
   }
 
+  /// 按服务端主键取单条（增量下行对账用，§2.4）。
+  Future<FoodEntry?> getByServerId(String serverId) {
+    return (select(
+      foodEntries,
+    )..where((e) => e.serverId.equals(serverId))).getSingleOrNull();
+  }
+
+  /// 按幂等键取单条（增量下行与本地待发记录对账用，§2.2/§2.4）。
+  Future<FoodEntry?> getByClientRequestId(String clientRequestId) {
+    return (select(foodEntries)
+          ..where((e) => e.clientRequestId.equals(clientRequestId)))
+        .getSingleOrNull();
+  }
+
+  /// 本地软删（tombstone）：服务端下行删除时置位（保留行供查询幂等）。
+  Future<void> markDeleted(String localId) {
+    return (update(foodEntries)..where((e) => e.localId.equals(localId))).write(
+      const FoodEntriesCompanion(deleted: Value(true)),
+    );
+  }
+
   /// 更新单条（份量/快照/同步字段等）。
   Future<void> updateEntry(String localId, FoodEntriesCompanion entry) {
     return (update(

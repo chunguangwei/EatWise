@@ -1,3 +1,5 @@
+import 'package:eatwise/features/auth/application/auth_gate.dart';
+import 'package:eatwise/features/auth/presentation/login_page.dart';
 import 'package:eatwise/features/demo/presentation/demo_home_screen.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_home_page.dart';
 import 'package:eatwise/features/home/presentation/home_shell.dart';
@@ -15,16 +17,26 @@ import 'package:go_router/go_router.dart';
 /// 首页（断食计时）/记录/数据/社区/我的，底栏固定，切换保留分支状态。
 /// M1：首次进入（引导未完成）重定向到 /onboarding 问卷流；
 /// 一键启动完成后（[OnboardingGate.completed] = true）进首页。
-GoRouter createAppRouter({required OnboardingGate gate}) {
+/// D-13：登录门禁（[AuthGate]，可空——缺省视为已登录，保留 M0 演示路径）：
+/// 未登录 → /login；已登录 → 按引导门禁走 /onboarding 或首页。
+/// 登录态与引导完成是两个独立标志。
+GoRouter createAppRouter({required OnboardingGate gate, AuthGate? authGate}) {
   return GoRouter(
     initialLocation: '/',
+    refreshListenable: authGate,
     redirect: (context, state) {
+      final loggedIn = authGate?.loggedIn ?? true;
+      final onLogin = state.matchedLocation == '/login';
       final onOnboarding = state.matchedLocation.startsWith('/onboarding');
+      if (!loggedIn) return onLogin ? null : '/login';
+      if (onLogin) return gate.completed ? '/' : '/onboarding';
       if (!gate.completed && !onOnboarding) return '/onboarding';
       if (gate.completed && onOnboarding) return '/';
       return null;
     },
     routes: <RouteBase>[
+      // D-13 登录页（独立路由，不进 Tab Shell）。
+      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             HomeShell(navigationShell: navigationShell),

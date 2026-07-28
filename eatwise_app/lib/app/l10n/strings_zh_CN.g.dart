@@ -49,6 +49,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$notification$zh_CN notification = Translations$notification$zh_CN.internal(_root);
 	late final Translations$nutrition$zh_CN nutrition = Translations$nutrition$zh_CN.internal(_root);
 	late final Translations$settings$zh_CN settings = Translations$settings$zh_CN.internal(_root);
+	late final Translations$auth$zh_CN auth = Translations$auth$zh_CN.internal(_root);
 }
 
 // Path: notify
@@ -163,6 +164,25 @@ class Translations$settings$zh_CN {
 
 	// Translations
 	late final Translations$settings$language$zh_CN language = Translations$settings$language$zh_CN.internal(_root);
+}
+
+// Path: auth
+class Translations$auth$zh_CN {
+	Translations$auth$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+	late final Translations$auth$login$zh_CN login = Translations$auth$login$zh_CN.internal(_root);
+
+	/// zh-CN: '退出登录'
+	String get logout => '退出登录';
+
+	/// zh-CN: '确定退出登录吗？未同步的记录会保留在本机。'
+	String get logoutConfirm => '确定退出登录吗？未同步的记录会保留在本机。';
+
+	/// zh-CN: '已退出登录'
+	String get loggedOut => '已退出登录';
 }
 
 // Path: notify.channel
@@ -658,6 +678,57 @@ class Translations$settings$language$zh_CN {
 
 	/// zh-CN: 'English'
 	String get en => 'English';
+}
+
+// Path: auth.login
+class Translations$auth$login$zh_CN {
+	Translations$auth$login$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '手机号登录'
+	String get title => '手机号登录';
+
+	/// zh-CN: '未注册的手机号验证后将自动注册'
+	String get subtitle => '未注册的手机号验证后将自动注册';
+
+	/// zh-CN: '手机号'
+	String get phoneLabel => '手机号';
+
+	/// zh-CN: '请输入 11 位手机号'
+	String get phoneHint => '请输入 11 位手机号';
+
+	/// zh-CN: '验证码'
+	String get codeLabel => '验证码';
+
+	/// zh-CN: '6 位验证码'
+	String get codeHint => '6 位验证码';
+
+	/// zh-CN: '获取验证码'
+	String get sendCode => '获取验证码';
+
+	/// zh-CN: '${seconds}s 后重新发送'
+	String resendIn({required Object seconds}) => '${seconds}s 后重新发送';
+
+	/// zh-CN: '登录'
+	String get login => '登录';
+
+	/// zh-CN: '登录中…'
+	String get loggingIn => '登录中…';
+
+	/// zh-CN: '验证码已发送，请查收'
+	String get codeSent => '验证码已发送，请查收';
+
+	/// zh-CN: '请输入正确的手机号'
+	String get invalidPhone => '请输入正确的手机号';
+
+	/// zh-CN: '请输入 6 位数字验证码'
+	String get invalidCode => '请输入 6 位数字验证码';
+
+	/// zh-CN: '本地联调环境验证码固定为 123456'
+	String get mockHint => '本地联调环境验证码固定为 123456';
 }
 
 // Path: notify.channel.fastingReminders
@@ -1205,6 +1276,23 @@ extension on Translations {
 			'settings.language.system' => '跟随系统',
 			'settings.language.zhCN' => '简体中文',
 			'settings.language.en' => 'English',
+			'auth.login.title' => '手机号登录',
+			'auth.login.subtitle' => '未注册的手机号验证后将自动注册',
+			'auth.login.phoneLabel' => '手机号',
+			'auth.login.phoneHint' => '请输入 11 位手机号',
+			'auth.login.codeLabel' => '验证码',
+			'auth.login.codeHint' => '6 位验证码',
+			'auth.login.sendCode' => '获取验证码',
+			'auth.login.resendIn' => ({required Object seconds}) => '${seconds}s 后重新发送',
+			'auth.login.login' => '登录',
+			'auth.login.loggingIn' => '登录中…',
+			'auth.login.codeSent' => '验证码已发送，请查收',
+			'auth.login.invalidPhone' => '请输入正确的手机号',
+			'auth.login.invalidCode' => '请输入 6 位数字验证码',
+			'auth.login.mockHint' => '本地联调环境验证码固定为 123456',
+			'auth.logout' => '退出登录',
+			'auth.logoutConfirm' => '确定退出登录吗？未同步的记录会保留在本机。',
+			'auth.loggedOut' => '已退出登录',
 			_ => null,
 		};
 	}

@@ -2,7 +2,9 @@ import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 /// 数据/社区/我的 占位页（四态规范 3.2.2 空态统一结构：
@@ -87,6 +89,45 @@ class ProfilePlaceholderPage extends StatelessWidget {
                 child: Text(t.settings.language.en),
               ),
             ],
+          ),
+          // D-13 登出入口（T15：本地未同步数据保留，不随登出清除）。
+          const SizedBox(height: AppSpacing.s6),
+          Consumer(
+            builder: (context, ref, _) {
+              final colors = Theme.of(context).extension<AppColors>()!;
+              return OutlinedButton(
+                onPressed: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      content: Text(t.auth.logoutConfirm),
+                      actions: <Widget>[
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: Text(t.common.action.cancel),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          child: Text(t.auth.logout),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed != true || !context.mounted) return;
+                  await ref.read(authControllerProvider.notifier).logout();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(t.auth.loggedOut)));
+                  }
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colors.signalRed,
+                  minimumSize: const Size.fromHeight(AppSpacing.s12),
+                ),
+                child: Text(t.auth.logout),
+              );
+            },
           ),
         ],
       ),
