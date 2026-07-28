@@ -1,0 +1,142 @@
+import 'package:drift/drift.dart';
+import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/storage/sync_status.dart';
+import 'package:eatwise/core/storage/tables.dart';
+
+part 'food_entry_dao.g.dart';
+
+/// FoodEntry DAO（四态持久化 + DailyNutrition 聚合缓存）。
+@DriftAccessor(tables: <Type>[FoodEntries, DailyNutritionCaches])
+class FoodEntryDao extends DatabaseAccessor<AppDatabase>
+    with _$FoodEntryDaoMixin {
+  FoodEntryDao(super.db);
+
+  /// 入账（乐观更新：UI 经流订阅立即可见）。
+  Future<void> insertEntry(FoodEntriesCompanion entry) {
+    return into(foodEntries).insert(entry);
+  }
+
+  /// 按本地主键取单条。
+  Future<FoodEntry?> getByLocalId(String localId) {
+    return (select(
+      foodEntries,
+    )..where((e) => e.localId.equals(localId))).getSingleOrNull();
+  }
+
+  /// 更新单条（份量/快照/同步字段等）。
+  Future<void> updateEntry(String localId, FoodEntriesCompanion entry) {
+    return (update(
+      foodEntries,
+    )..where((e) => e.localId.equals(localId))).write(entry);
+  }
+
+  /// 物理删除（D-11 撤销窗内撤回 / T7 校验拒绝回滚，此时上行未成功，
+  /// 云端无此记录，无需 tombstone）。
+  Future<void> deleteEntry(String localId) {
+    return (delete(foodEntries)..where((e) => e.localId.equals(localId))).go();
+  }
+
+  /// 指定用户全部待上行记录（重试用，按创建时间升序，§2.3 批内顺序）。
+  Future<List<FoodEntry>> pendingEntries(String userId) {
+    return (select(foodEntries)
+          ..where(
+            (e) =>
+                e.userId.equals(userId) &
+                e.syncStatus.equalsValue(SyncStatus.pending) &
+                e.deleted.equals(false),
+          )
+          ..orderBy(<OrderingTerm Function(FoodEntries)>[
+            (e) => OrderingTerm.asc(e.createdAtUtc),
+          ]))
+        .get();
+  }
+
+  /// 「待同步 N 条」计数流（§4.1：pending + submitting + conflicted > 0 时
+  /// 展示入口；删除窗内的新增同样计入）。
+  Stream<int> watchPendingCount(String userId) {
+    final count = foodEntries.localId.count();
+    final query = selectOnly(foodEntries)
+      ..addColumns(<Expression<Object>>[count])
+      ..where(
+        foodEntries.userId.equals(userId) &
+            foodEntries.deleted.equals(false) &
+            foodEntries.syncStatus.equalsValue(SyncStatus.synced).not(),
+      );
+    return query.map((row) => row.read(count) ?? 0).watchSingle();
+  }
+
+  /// 某日有效记录（聚合与记录列表用，排除 tombstone）。
+  Future<List<FoodEntry>> entriesForDate(String userId, String localDate) {
+    return (select(foodEntries)
+          ..where(
+            (e) =>
+                e.userId.equals(userId) &
+                e.localDate.equals(localDate) &
+                e.deleted.equals(false),
+          )
+          ..orderBy(<OrderingTerm Function(FoodEntries)>[
+            (e) => OrderingTerm.asc(e.datetimeUtc),
+          ]))
+        .get();
+  }
+
+  /// 从 FoodEntry 营养快照重算某日聚合并写入缓存（§2.6 本地预估）。
+  Future<void> recomputeDailyNutrition(
+    String userId,
+    String localDate, {
+    required String updatedAtUtc,
+  }) async {
+    final kcalSum = foodEntries.kcal.sum();
+    final proteinSum = foodEntries.proteinG.sum();
+    final carbSum = foodEntries.carbG.sum();
+    final fatSum = foodEntries.fatG.sum();
+    final entryCount = foodEntries.localId.count();
+    final query = selectOnly(foodEntries)
+      ..addColumns(<Expression<Object>>[
+        kcalSum,
+        proteinSum,
+        carbSum,
+        fatSum,
+        entryCount,
+      ])
+      ..where(
+        foodEntries.userId.equals(userId) &
+            foodEntries.localDate.equals(localDate) &
+            foodEntries.deleted.equals(false),
+      );
+    final row = await query.getSingle();
+    await into(dailyNutritionCaches).insertOnConflictUpdate(
+      DailyNutritionCachesCompanion(
+        userId: Value(userId),
+        date: Value(localDate),
+        entryCount: Value(row.read(entryCount) ?? 0),
+        kcal: Value(row.read(kcalSum) ?? 0),
+        proteinG: Value(row.read(proteinSum) ?? 0),
+        carbG: Value(row.read(carbSum) ?? 0),
+        fatG: Value(row.read(fatSum) ?? 0),
+        isLocalEstimate: const Value(true),
+        updatedAtUtc: Value(updatedAtUtc),
+      ),
+    );
+  }
+
+  /// 某日聚合缓存流（记录页展示「本地预估」用）。
+  Stream<DailyNutritionCache?> watchDailyNutrition(
+    String userId,
+    String localDate,
+  ) {
+    return (select(dailyNutritionCaches)
+          ..where((c) => c.userId.equals(userId) & c.date.equals(localDate)))
+        .watchSingleOrNull();
+  }
+
+  /// 取某日聚合缓存（一次性读取）。
+  Future<DailyNutritionCache?> getDailyNutrition(
+    String userId,
+    String localDate,
+  ) {
+    return (select(dailyNutritionCaches)
+          ..where((c) => c.userId.equals(userId) & c.date.equals(localDate)))
+        .getSingleOrNull();
+  }
+}

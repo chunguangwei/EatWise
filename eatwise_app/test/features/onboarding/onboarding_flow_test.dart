@@ -1,0 +1,273 @@
+import 'dart:convert';
+
+import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
+import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
+import 'package:eatwise/main.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/timezone.dart' as tz;
+
+import '../fasting/tz_test_helper.dart';
+
+/// M1 新手引导全流程 widget 测试：
+/// 问卷全路径 / 跳过兜底 / 续答 / 一键启动跳转 / 双语切换。
+void main() {
+  // 固定时钟：2026-07-28 15:00（Asia/Shanghai）= 07:00 UTC。
+  final fixedNowUtc =
+      DateTime.utc(2026, 7, 28, 7).millisecondsSinceEpoch ~/ 1000;
+  late tz.Location shanghai;
+
+  setUpAll(() async {
+    await initTestTimeZones();
+    shanghai = tz.getLocation('Asia/Shanghai');
+  });
+
+  setUp(() {
+    LocaleSettings.setLocaleSync(AppLocale.zhCn);
+  });
+
+  /// 以 [completed] 门禁状态启动 App；返回门禁与存储便于断言。
+  Future<({OnboardingGate gate, OnboardingStore store})> pumpApp(
+    WidgetTester tester, {
+    required bool completed,
+    Map<String, Object> initialPrefs = const <String, Object>{},
+  }) async {
+    SharedPreferences.setMockInitialValues(initialPrefs);
+    final prefs = await SharedPreferences.getInstance();
+    final store = SharedPreferencesOnboardingStore(prefs);
+    final gate = OnboardingGate(completed: completed);
+    await tester.pumpWidget(
+      TranslationProvider(
+        child: ProviderScope(
+          overrides: <Override>[
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            onboardingGateProvider.overrideWithValue(gate),
+            deviceLocationProvider.overrideWithValue(shanghai),
+            nowUtcProvider.overrideWithValue(fixedNowUtc),
+          ],
+          child: EatWiseApp(gate: gate),
+        ),
+      ),
+    );
+    // 注：不用 pumpAndSettle——go_router/slang 存在持续帧调度，settle 不收敛。
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    return (gate: gate, store: store);
+  }
+
+  Future<void> pumpFrames(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+  }
+
+  Future<void> answerAndNext(WidgetTester tester, String optionName) async {
+    await tester.tap(
+      find.byKey(ValueKey<String>('onboarding.quiz.option.$optionName')),
+    );
+    await pumpFrames(tester);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.quiz.next')),
+    );
+    await pumpFrames(tester);
+  }
+
+  testWidgets('首进重定向到问卷；完成 3 题 → 推荐 → 一键启动 → 首页', (tester) async {
+    final (:gate, :store) = await pumpApp(tester, completed: false);
+
+    // 首进重定向 /onboarding，展示 Q1
+    expect(find.text('你的小目标是？'), findsOneWidget);
+    expect(find.text('第 1 题，共 3 题'), findsOneWidget);
+
+    await answerAndNext(tester, 'loseWeight');
+    expect(find.text('你现在的作息是？'), findsOneWidget);
+
+    await answerAndNext(tester, 'regular');
+    expect(find.text('之前试过轻断食吗？'), findsOneWidget);
+
+    await answerAndNext(tester, 'beginner');
+
+    // 推荐页：主方案卡（14:10）+ 备选卡（16:8）+ 推荐理由
+    expect(find.text('为你推荐的方案'), findsOneWidget);
+    expect(find.text('主推荐'), findsOneWidget);
+    expect(find.text('14:10 温和入门'), findsOneWidget);
+    expect(find.text('进食窗口 10:00–20:00'), findsOneWidget);
+    expect(find.text('零基础起步，14:10 最温和，先让身体慢慢习惯节奏。'), findsOneWidget);
+    expect(find.text('16:8 经典节奏'), findsOneWidget);
+
+    // 一键启动 → 写入方案 + 营养目标兜底 + 跳转首页占位
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.recommendation.start')),
+    );
+    await pumpFrames(tester);
+
+    expect(gate.completed, isTrue);
+    expect(store.isOnboardingCompleted, isTrue);
+    expect(find.text('断食计时'), findsOneWidget); // 首页占位（M0 演示页）
+    // 兜底提示（D-04：缺基础信息 → 2000 kcal 兜底并提示补全）
+    expect(find.textContaining('2000 kcal'), findsOneWidget);
+
+    final plan = store.loadActivePlan()!;
+    expect(plan.plan.id, '14:10');
+    expect(plan.plan.eatStartMinutes, 600);
+    expect(plan.startedAtUtc, fixedNowUtc);
+    expect(plan.initialState, isNotEmpty);
+    final goal = store.loadNutritionGoal()!;
+    expect(goal.usedFallback, isTrue);
+    expect(goal.targetKcal, 2000);
+    // 完成后续答进度已清除
+    expect(store.loadQuizProgress(), isNull);
+  });
+
+  testWidgets('跳过问卷 → 默认 16:8 兜底，不阻断进首页', (tester) async {
+    final (:gate, :store) = await pumpApp(tester, completed: false);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.quiz.skip')),
+    );
+    await pumpFrames(tester);
+
+    // 兜底推荐：16:8 主卡 + 兜底理由
+    expect(find.text('16:8 经典节奏'), findsOneWidget);
+    expect(find.text('进食窗口 12:00–20:00'), findsOneWidget);
+    expect(find.text('先按人气最高的 16:8 开始，随时可以在「我的」里调整。'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.recommendation.start')),
+    );
+    await pumpFrames(tester);
+
+    expect(gate.completed, isTrue);
+    expect(store.loadActivePlan()!.plan.id, '16:8');
+    expect(find.text('断食计时'), findsOneWidget);
+  });
+
+  testWidgets('问卷中途退出 → 进度本地保存，下次进入续答', (tester) async {
+    final (:gate, :store) = await pumpApp(
+      tester,
+      completed: false,
+      initialPrefs: <String, Object>{
+        'onboarding.quizProgress': jsonEncode(<String, dynamic>{
+          'answers': <String, String>{'q1': 'loseWeight'},
+          'currentStep': 1,
+        }),
+      },
+    );
+    expect(gate.completed, isFalse);
+
+    // 直接从 Q2 续答
+    expect(find.text('你现在的作息是？'), findsOneWidget);
+    expect(find.text('第 2 题，共 3 题'), findsOneWidget);
+
+    // 上一题的答案仍在（返回 Q1 可见已选）
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.quiz.back')),
+    );
+    await pumpFrames(tester);
+    expect(find.text('你的小目标是？'), findsOneWidget);
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    expect(store.loadQuizProgress()!.answers['q1'], 'loseWeight');
+  });
+
+  testWidgets('备选卡可升为主推荐；5:2 仅说明不可选', (tester) async {
+    await pumpApp(tester, completed: false);
+
+    // 改善体检指标 + 有经验 → 18:6 主推荐，5:2 备选（D-03 附加规则）
+    await answerAndNext(tester, 'improveHealth');
+    await answerAndNext(tester, 'regular');
+    await answerAndNext(tester, 'experienced');
+
+    expect(find.text('18:6 进阶挑战'), findsOneWidget);
+    expect(find.text('想改善体检指标又有经验，18:6 更适合你，记得循序渐进哦。'), findsOneWidget);
+    expect(find.text('5:2 轻断食'), findsOneWidget);
+    expect(find.text('后续版本提供'), findsOneWidget);
+    // 5:2 无「选这个」按钮
+    expect(
+      find.byKey(
+        const ValueKey<String>('onboarding.recommendation.select.5:2'),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('备选方案一键升级为主推荐', (tester) async {
+    await pumpApp(tester, completed: false);
+    await answerAndNext(tester, 'justTrying');
+    await answerAndNext(tester, 'shiftWork'); // 轮班 → 窗口可自由调整提示
+    await answerAndNext(tester, 'beginner');
+
+    expect(find.text('14:10 温和入门'), findsOneWidget);
+    expect(find.text('你的作息不太固定，进食窗口可以随时自由调整，跟着生活节奏走就好。'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('onboarding.recommendation.select.16:8'),
+      ),
+    );
+    await pumpFrames(tester);
+
+    // 主卡换成 16:8，备选换成 14:10
+    expect(find.text('16:8 经典节奏'), findsOneWidget);
+    expect(find.text('14:10 温和入门'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('onboarding.recommendation.select.14:10'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('原理科普卡占位页含「非医疗建议」免责文案', (tester) async {
+    await pumpApp(tester, completed: false);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.quiz.skip')),
+    );
+    await pumpFrames(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.recommendation.science')),
+    );
+    await pumpFrames(tester);
+
+    expect(find.text('断食原理小科普'), findsOneWidget);
+    expect(find.textContaining('非医疗建议'), findsOneWidget);
+  });
+
+  testWidgets('双语切换：中英文案即时生效（D-15）', (tester) async {
+    await pumpApp(tester, completed: false);
+    expect(find.text('你的小目标是？'), findsOneWidget);
+
+    LocaleSettings.setLocaleSync(AppLocale.en);
+    await pumpFrames(tester);
+    expect(find.text("What's your goal?"), findsOneWidget);
+    expect(find.text('Question 1 of 3'), findsOneWidget);
+
+    // 英文路径走跳过 → 英文兜底推荐
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.quiz.skip')),
+    );
+    await pumpFrames(tester);
+    expect(find.text('16:8 Classic Rhythm'), findsOneWidget);
+    expect(find.text('Eating window 12:00–20:00'), findsOneWidget);
+    expect(
+      find.text(
+        "Let's start with the crowd favorite 16:8 — you can adjust it anytime in Profile.",
+      ),
+      findsOneWidget,
+    );
+
+    // 切回中文
+    LocaleSettings.setLocaleSync(AppLocale.zhCn);
+    await pumpFrames(tester);
+    expect(find.text('16:8 经典节奏'), findsOneWidget);
+  });
+
+  testWidgets('已完成引导 → 直达首页，不再进问卷', (tester) async {
+    await pumpApp(tester, completed: true);
+    expect(find.text('断食计时'), findsOneWidget);
+    expect(find.text('你的小目标是？'), findsNothing);
+  });
+}

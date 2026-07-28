@@ -1,4 +1,142 @@
 {
+  "notify": {
+    "channel": {
+      "fastingReminders": {
+        "name": "断食提醒",
+        "description": "进食窗口与断食窗口的到点提醒"
+      }
+    },
+    "permissionBanner": "开启通知，到点提醒你进食与断食",
+    "exactAlarmHint": "系统省电策略可能延迟提醒，建议允许精确闹钟"
+  },
+  "onboarding": {
+    "quiz": {
+      "title": "3 个小问题，帮你找到最适合的断食节奏 🌱",
+      "progress": "第 ${step} 题，共 ${total} 题",
+      "skip": "跳过，先看看",
+      "next": "继续",
+      "finish": "看看我的方案",
+      "back": "上一题",
+      "q1": {
+        "title": "你的小目标是？",
+        "options": {
+          "loseWeight": "减脂塑形",
+          "improveHealth": "改善体检指标",
+          "adjustSchedule": "调整作息",
+          "justTrying": "先试试看"
+        }
+      },
+      "q2": {
+        "title": "你现在的作息是？",
+        "options": {
+          "regular": "规律（朝九晚五）",
+          "shiftWork": "轮班或夜班",
+          "flexible": "自由职业·不规律"
+        }
+      },
+      "q3": {
+        "title": "之前试过轻断食吗？",
+        "options": {
+          "beginner": "零基础",
+          "triedButStopped": "试过但没坚持",
+          "experienced": "有断食经验"
+        }
+      }
+    },
+    "plans": {
+      "p14x10": {
+        "name": "14:10 温和入门",
+        "desc": "每天断食 14 小时、进食窗口 10 小时，身体几乎无感，最容易坚持。"
+      },
+      "p16x8": {
+        "name": "16:8 经典节奏",
+        "desc": "每天断食 16 小时、进食窗口 8 小时，人气最高的经典方案。"
+      },
+      "p18x6": {
+        "name": "18:6 进阶挑战",
+        "desc": "每天断食 18 小时，适合已有经验、想更进一步的你。"
+      },
+      "p5x2": {
+        "name": "5:2 轻断食",
+        "desc": "每周 5 天正常吃、2 天轻断食。完整计时流将在后续版本提供，先了解为主。"
+      }
+    },
+    "recommendation": {
+      "title": "为你推荐的方案",
+      "mainBadge": "主推荐",
+      "altTitle": "也可以试试",
+      "select": "选这个",
+      "selected": "已选择",
+      "startNow": "一键启动",
+      "window": "进食窗口 ${start}–${end}",
+      "scienceLink": "断食是什么原理？",
+      "comingSoon": "后续版本提供",
+      "reason": {
+        "beginner": "零基础起步，14:10 最温和，先让身体慢慢习惯节奏。",
+        "triedButStopped": "之前试过没坚持？16:8 配上灵活的窗口，这次轻轻松松来。",
+        "experienced": "有经验的你，16:8 稳定输出，状态好还能进阶 18:6。",
+        "healthUpgrade": "想改善体检指标又有经验，18:6 更适合你，记得循序渐进哦。",
+        "fallback": "先按人气最高的 16:8 开始，随时可以在「我的」里调整。"
+      },
+      "flexibleHint": "你的作息不太固定，进食窗口可以随时自由调整，跟着生活节奏走就好。",
+      "fallbackNotice": "每日营养目标先按 ${kcal} kcal 估算，去「我的」补全身高体重后会更准哦。"
+    },
+    "science": {
+      "title": "断食原理小科普",
+      "card1Title": "给身体一点休息时间",
+      "card1Body": "断食期间，身体会慢慢切换到燃脂模式，用储存的能量供能。",
+      "card2Title": "不是节食，是节奏",
+      "card2Body": "轻断食关注「什么时候吃」，而不是「这不能吃那不能吃」，进食窗口里好好吃饭很重要。",
+      "disclaimer": "本内容仅为健康科普，非医疗建议。如有基础疾病，或在孕期、哺乳期等特殊情况，请先咨询医生。",
+      "back": "返回"
+    }
+  },
+  "record": {
+    "page": {
+      "title": "记录",
+      "confirm": "确认记录",
+      "loggedToday": "今日已记 ${count} 笔",
+      "todayKcal": "今日约 ${kcal} 千卡（待云端校准）"
+    },
+    "entries": {
+      "photo": "拍照记",
+      "voice": "语音记",
+      "frequent": "常吃",
+      "comingSoon": "即将上线，先用手动搜索记一笔吧"
+    },
+    "pending": {
+      "banner": "还有 ${count} 条记录在路上，联网后自动同步"
+    },
+    "search": {
+      "hint": "搜索食物（中文或英文）",
+      "empty": "没找到？换个关键词试试"
+    },
+    "amount": {
+      "label": "份量（克）",
+      "invalid": "请输入大于 0 的份量"
+    },
+    "nutrition": {
+      "kcal": "热量",
+      "protein": "蛋白质",
+      "carb": "碳水",
+      "fat": "脂肪",
+      "kcalUnit": "千卡",
+      "gramUnit": "克"
+    },
+    "toast": {
+      "recorded": "已记录",
+      "undo": "撤销",
+      "undone": "已撤销",
+      "syncFailed": "这条记录没被保存，请重新提交"
+    },
+    "home": {
+      "title": "记录",
+      "logMeal": "记一笔"
+    },
+    "empty": {
+      "title": "肚子的故事还没写呢，点橙色按钮记一笔？"
+    }
+  },
   "common": {
     "appName": "EatWise",
     "action": {
@@ -20,18 +158,6 @@
       "stateNoPlan": "还未开始断食方案",
       "attribution": "本次断食计入 ${date}",
       "extendedBadge": "已延长 +${minutes} 分钟"
-    }
-  },
-  "record": {
-    "home": {
-      "title": "记录",
-      "logMeal": "记一笔"
-    },
-    "empty": {
-      "title": "肚子的故事还没写呢，点橙色按钮记一笔？"
-    },
-    "toast": {
-      "recorded": "已记录"
     }
   },
   "notification": {

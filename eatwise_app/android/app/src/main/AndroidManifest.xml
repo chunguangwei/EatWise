@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 通知与提醒（D-09 本地通知；合规 §3.2 Android 权限清单） -->
+    <!-- 窗口提醒：Android 13+ 运行时权限，拒绝后计时不阻断、App 内横幅引导 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- 窗口到点提醒的精确触发；未授权时降级为不精确闹钟（合规 §3.2） -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <!-- 设备重启后恢复本地提醒调度（《规格-M2》§6-B14，普通权限无需弹窗） -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- 提醒震动（安装时权限） -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
     <application
         android:label="eatwise"
         android:name="${applicationName}"
@@ -30,6 +39,17 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- flutter_local_notifications：重启/换装后恢复已排程的本地通知
+             （《规格-M2》§6-B14；App 侧另有首开对账重排兜底） -->
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

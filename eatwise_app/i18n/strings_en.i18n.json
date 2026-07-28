@@ -1,4 +1,142 @@
 {
+  "notify": {
+    "channel": {
+      "fastingReminders": {
+        "name": "Fasting reminders",
+        "description": "Reminders for when your eating and fasting windows start"
+      }
+    },
+    "permissionBanner": "Turn on notifications to get reminded when your eating and fasting windows start",
+    "exactAlarmHint": "Battery-saving policies may delay reminders — allow exact alarms for on-time alerts"
+  },
+  "onboarding": {
+    "quiz": {
+      "title": "3 quick questions to find your fasting rhythm 🌱",
+      "progress": "Question ${step} of ${total}",
+      "skip": "Skip for now",
+      "next": "Continue",
+      "finish": "See my plan",
+      "back": "Back",
+      "q1": {
+        "title": "What's your goal?",
+        "options": {
+          "loseWeight": "Lose weight & tone up",
+          "improveHealth": "Improve health check results",
+          "adjustSchedule": "Fix my daily routine",
+          "justTrying": "Just curious"
+        }
+      },
+      "q2": {
+        "title": "What's your daily schedule like?",
+        "options": {
+          "regular": "Regular (9 to 5)",
+          "shiftWork": "Shift or night work",
+          "flexible": "Freelance & flexible"
+        }
+      },
+      "q3": {
+        "title": "Have you tried intermittent fasting?",
+        "options": {
+          "beginner": "Brand new",
+          "triedButStopped": "Tried, but it didn't stick",
+          "experienced": "Experienced"
+        }
+      }
+    },
+    "plans": {
+      "p14x10": {
+        "name": "14:10 Gentle Start",
+        "desc": "Fast 14 hours a day with a 10-hour eating window — barely feels like fasting, and it's the easiest to keep."
+      },
+      "p16x8": {
+        "name": "16:8 Classic Rhythm",
+        "desc": "Fast 16 hours with an 8-hour eating window — the most popular classic."
+      },
+      "p18x6": {
+        "name": "18:6 Advanced",
+        "desc": "An 18-hour daily fast, for experienced fasters ready for the next step."
+      },
+      "p5x2": {
+        "name": "5:2 Fasting",
+        "desc": "Eat normally 5 days a week and fast lightly on 2. The full timer flow comes in a later version — get to know it first."
+      }
+    },
+    "recommendation": {
+      "title": "Your recommended plan",
+      "mainBadge": "Top pick",
+      "altTitle": "Worth a try",
+      "select": "Choose this",
+      "selected": "Selected",
+      "startNow": "Start now",
+      "window": "Eating window ${start}–${end}",
+      "scienceLink": "How does fasting work?",
+      "comingSoon": "Coming in a later version",
+      "reason": {
+        "beginner": "New to fasting? 14:10 is the gentlest way to ease your body into the rhythm.",
+        "triedButStopped": "Tried before and it didn't stick? 16:8 with a flexible window makes this round feel easy.",
+        "experienced": "With your experience, 16:8 is a steady default — and 18:6 is there when you want more.",
+        "healthUpgrade": "With experience and health-check goals, 18:6 suits you better. Ease into it.",
+        "fallback": "Let's start with the crowd favorite 16:8 — you can adjust it anytime in Profile."
+      },
+      "flexibleHint": "Your schedule isn't fixed, so feel free to shift your eating window around your life.",
+      "fallbackNotice": "Your daily nutrition goal is estimated at ${kcal} kcal for now — add your height & weight in Profile for a precise target."
+    },
+    "science": {
+      "title": "How fasting works",
+      "card1Title": "Give your body a break",
+      "card1Body": "During a fast, your body gradually switches to fat-burning mode, running on stored energy.",
+      "card2Title": "A rhythm, not a diet",
+      "card2Body": "Fasting is about when you eat, not what you can't eat — eating well inside your window matters.",
+      "disclaimer": "This content is general wellness information, not medical advice. If you are pregnant, breastfeeding, or managing a medical condition, please consult your doctor first.",
+      "back": "Back"
+    }
+  },
+  "record": {
+    "page": {
+      "title": "Records",
+      "confirm": "Log it",
+      "loggedToday": "${count} logged today",
+      "todayKcal": "~${kcal} kcal today (to be calibrated)"
+    },
+    "entries": {
+      "photo": "Photo",
+      "voice": "Voice",
+      "frequent": "Usual",
+      "comingSoon": "Coming soon — search manually to log for now"
+    },
+    "pending": {
+      "banner": "${count} record(s) still on the way — will sync when online"
+    },
+    "search": {
+      "hint": "Search foods (Chinese or English)",
+      "empty": "No match? Try another keyword"
+    },
+    "amount": {
+      "label": "Amount (g)",
+      "invalid": "Enter an amount greater than 0"
+    },
+    "nutrition": {
+      "kcal": "Calories",
+      "protein": "Protein",
+      "carb": "Carbs",
+      "fat": "Fat",
+      "kcalUnit": "kcal",
+      "gramUnit": "g"
+    },
+    "toast": {
+      "recorded": "Logged",
+      "undo": "Undo",
+      "undone": "Undone",
+      "syncFailed": "This record wasn't saved — please submit again"
+    },
+    "home": {
+      "title": "Log",
+      "logMeal": "Log a bite"
+    },
+    "empty": {
+      "title": "No food stories yet — tap the orange button to log your first bite?"
+    }
+  },
   "common": {
     "appName": "EatWise",
     "action": {
@@ -20,18 +158,6 @@
       "stateNoPlan": "No fasting plan yet",
       "attribution": "This fast counts toward ${date}",
       "extendedBadge": "Extended +${minutes} min"
-    }
-  },
-  "record": {
-    "home": {
-      "title": "Log",
-      "logMeal": "Log a bite"
-    },
-    "empty": {
-      "title": "No food stories yet — tap the orange button to log your first bite?"
-    },
-    "toast": {
-      "recorded": "Logged"
     }
   },
   "notification": {
