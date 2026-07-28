@@ -1,0 +1,3297 @@
+{
+  "seedVersion": "2026.07.1",
+  "generatedAt": "2026-07-28T08:20:12Z",
+  "counts": {
+    "total": 7455,
+    "usda-sr": 7283,
+    "curated": 172,
+    "bilingual": 172,
+    "zh_verified_true": 172
+  },
+  "errors": [],
+  "warnings": [
+    {
+      "rule": "W1",
+      "id": "curated-bok-choy",
+      "kcal": 15.0,
+      "est_4_4_9": 19.5,
+      "deviation": 0.3,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "curated-celery",
+      "kcal": 17.0,
+      "est_4_4_9": 22.2,
+      "deviation": 0.306,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "curated-chives",
+      "kcal": 26.0,
+      "est_4_4_9": 31.6,
+      "deviation": 0.215,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "curated-green-pepper",
+      "kcal": 22.0,
+      "est_4_4_9": 28.3,
+      "deviation": 0.286,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "curated-bitter-melon",
+      "kcal": 19.0,
+      "est_4_4_9": 24.5,
+      "deviation": 0.289,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "curated-green-beans",
+      "kcal": 28.0,
+      "est_4_4_9": 34.4,
+      "deviation": 0.229,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "curated-long-beans",
+      "kcal": 29.0,
+      "est_4_4_9": 35.8,
+      "deviation": 0.234,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "curated-button-mushroom",
+      "kcal": 22.0,
+      "est_4_4_9": 28.3,
+      "deviation": 0.286,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "curated-shiitake-fresh",
+      "kcal": 26.0,
+      "est_4_4_9": 32.3,
+      "deviation": 0.242,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-167567",
+      "kcal": 472.0,
+      "est_4_4_9": 622.5,
+      "deviation": 0.319,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-167606",
+      "kcal": 182.0,
+      "est_4_4_9": 231.3,
+      "deviation": 0.271,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-167681",
+      "kcal": 218.0,
+      "est_4_4_9": 351.6,
+      "deviation": 0.613,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-167682",
+      "kcal": 11.0,
+      "est_4_4_9": 8.4,
+      "deviation": 0.236,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-167707",
+      "kcal": 227.0,
+      "est_4_4_9": 366.6,
+      "deviation": 0.615,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-167723",
+      "kcal": 134.0,
+      "est_4_4_9": 22.0,
+      "deviation": 0.836,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-167746",
+      "kcal": 29.0,
+      "est_4_4_9": 44.3,
+      "deviation": 0.528,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-167747",
+      "kcal": 22.0,
+      "est_4_4_9": 30.6,
+      "deviation": 0.391,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-167748",
+      "kcal": 17.0,
+      "est_4_4_9": 25.3,
+      "deviation": 0.488,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-167749",
+      "kcal": 47.0,
+      "est_4_4_9": 72.7,
+      "deviation": 0.547,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-167802",
+      "kcal": 17.0,
+      "est_4_4_9": 25.7,
+      "deviation": 0.512,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-167806",
+      "kcal": 250.0,
+      "est_4_4_9": 337.7,
+      "deviation": 0.351,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168155",
+      "kcal": 30.0,
+      "est_4_4_9": 46.6,
+      "deviation": 0.553,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168156",
+      "kcal": 25.0,
+      "est_4_4_9": 36.1,
+      "deviation": 0.444,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168157",
+      "kcal": 21.0,
+      "est_4_4_9": 29.4,
+      "deviation": 0.4,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168384",
+      "kcal": 23.0,
+      "est_4_4_9": 30.7,
+      "deviation": 0.335,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168385",
+      "kcal": 23.0,
+      "est_4_4_9": 28.7,
+      "deviation": 0.248,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168389",
+      "kcal": 20.0,
+      "est_4_4_9": 25.3,
+      "deviation": 0.265,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168390",
+      "kcal": 22.0,
+      "est_4_4_9": 27.8,
+      "deviation": 0.264,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168391",
+      "kcal": 30.0,
+      "est_4_4_9": 40.7,
+      "deviation": 0.357,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168392",
+      "kcal": 34.0,
+      "est_4_4_9": 43.0,
+      "deviation": 0.265,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168393",
+      "kcal": 17.0,
+      "est_4_4_9": 20.6,
+      "deviation": 0.212,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168395",
+      "kcal": 33.0,
+      "est_4_4_9": 43.4,
+      "deviation": 0.315,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168405",
+      "kcal": 44.0,
+      "est_4_4_9": 53.9,
+      "deviation": 0.225,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168406",
+      "kcal": 22.0,
+      "est_4_4_9": 30.9,
+      "deviation": 0.405,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168407",
+      "kcal": 32.0,
+      "est_4_4_9": 38.7,
+      "deviation": 0.209,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168408",
+      "kcal": 23.0,
+      "est_4_4_9": 28.2,
+      "deviation": 0.226,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168409",
+      "kcal": 15.0,
+      "est_4_4_9": 18.1,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168413",
+      "kcal": 15.0,
+      "est_4_4_9": 18.6,
+      "deviation": 0.24,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168416",
+      "kcal": 64.0,
+      "est_4_4_9": 83.4,
+      "deviation": 0.303,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168417",
+      "kcal": 60.0,
+      "est_4_4_9": 74.1,
+      "deviation": 0.235,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168419",
+      "kcal": 34.0,
+      "est_4_4_9": 43.8,
+      "deviation": 0.288,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168420",
+      "kcal": 37.0,
+      "est_4_4_9": 45.8,
+      "deviation": 0.238,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168421",
+      "kcal": 35.0,
+      "est_4_4_9": 42.7,
+      "deviation": 0.22,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168423",
+      "kcal": 31.0,
+      "est_4_4_9": 38.2,
+      "deviation": 0.232,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168424",
+      "kcal": 27.0,
+      "est_4_4_9": 32.5,
+      "deviation": 0.204,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168425",
+      "kcal": 29.0,
+      "est_4_4_9": 34.9,
+      "deviation": 0.203,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168427",
+      "kcal": 106.0,
+      "est_4_4_9": 129.8,
+      "deviation": 0.225,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168428",
+      "kcal": 101.0,
+      "est_4_4_9": 124.5,
+      "deviation": 0.233,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168429",
+      "kcal": 13.0,
+      "est_4_4_9": 16.2,
+      "deviation": 0.246,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168431",
+      "kcal": 13.0,
+      "est_4_4_9": 16.2,
+      "deviation": 0.246,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168434",
+      "kcal": 22.0,
+      "est_4_4_9": 28.1,
+      "deviation": 0.277,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168435",
+      "kcal": 39.0,
+      "est_4_4_9": 47.5,
+      "deviation": 0.218,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168438",
+      "kcal": 22.0,
+      "est_4_4_9": 27.1,
+      "deviation": 0.232,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168439",
+      "kcal": 16.0,
+      "est_4_4_9": 19.8,
+      "deviation": 0.238,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168440",
+      "kcal": 14.0,
+      "est_4_4_9": 17.8,
+      "deviation": 0.271,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168441",
+      "kcal": 12.0,
+      "est_4_4_9": 15.4,
+      "deviation": 0.283,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168447",
+      "kcal": 21.0,
+      "est_4_4_9": 26.2,
+      "deviation": 0.248,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168458",
+      "kcal": 35.0,
+      "est_4_4_9": 46.3,
+      "deviation": 0.323,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168460",
+      "kcal": 81.0,
+      "est_4_4_9": 100.5,
+      "deviation": 0.241,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168461",
+      "kcal": 125.0,
+      "est_4_4_9": 153.9,
+      "deviation": 0.231,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168462",
+      "kcal": 23.0,
+      "est_4_4_9": 29.6,
+      "deviation": 0.287,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168463",
+      "kcal": 23.0,
+      "est_4_4_9": 29.9,
+      "deviation": 0.3,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168465",
+      "kcal": 19.0,
+      "est_4_4_9": 22.8,
+      "deviation": 0.2,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168487",
+      "kcal": 42.0,
+      "est_4_4_9": 53.1,
+      "deviation": 0.264,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168488",
+      "kcal": 24.0,
+      "est_4_4_9": 30.4,
+      "deviation": 0.267,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168489",
+      "kcal": 11.0,
+      "est_4_4_9": 13.7,
+      "deviation": 0.245,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168491",
+      "kcal": 24.0,
+      "est_4_4_9": 31.0,
+      "deviation": 0.292,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168492",
+      "kcal": 21.0,
+      "est_4_4_9": 26.6,
+      "deviation": 0.267,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168494",
+      "kcal": 18.0,
+      "est_4_4_9": 23.2,
+      "deviation": 0.289,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168495",
+      "kcal": 32.0,
+      "est_4_4_9": 41.0,
+      "deviation": 0.281,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168497",
+      "kcal": 11.0,
+      "est_4_4_9": 13.8,
+      "deviation": 0.255,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168499",
+      "kcal": 19.0,
+      "est_4_4_9": 23.3,
+      "deviation": 0.226,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168500",
+      "kcal": 78.0,
+      "est_4_4_9": 95.6,
+      "deviation": 0.226,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168502",
+      "kcal": 15.0,
+      "est_4_4_9": 18.1,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168503",
+      "kcal": 15.0,
+      "est_4_4_9": 18.1,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168504",
+      "kcal": 15.0,
+      "est_4_4_9": 18.1,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168508",
+      "kcal": 27.0,
+      "est_4_4_9": 34.2,
+      "deviation": 0.267,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168511",
+      "kcal": 28.0,
+      "est_4_4_9": 34.5,
+      "deviation": 0.232,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168512",
+      "kcal": 28.0,
+      "est_4_4_9": 34.5,
+      "deviation": 0.232,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168514",
+      "kcal": 23.0,
+      "est_4_4_9": 28.1,
+      "deviation": 0.222,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168516",
+      "kcal": 24.0,
+      "est_4_4_9": 29.7,
+      "deviation": 0.237,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168517",
+      "kcal": 12.0,
+      "est_4_4_9": 15.4,
+      "deviation": 0.283,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168520",
+      "kcal": 23.0,
+      "est_4_4_9": 28.1,
+      "deviation": 0.222,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168521",
+      "kcal": 17.0,
+      "est_4_4_9": 21.0,
+      "deviation": 0.235,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168522",
+      "kcal": 20.0,
+      "est_4_4_9": 24.5,
+      "deviation": 0.225,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168523",
+      "kcal": 33.0,
+      "est_4_4_9": 39.9,
+      "deviation": 0.209,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168524",
+      "kcal": 36.0,
+      "est_4_4_9": 44.0,
+      "deviation": 0.222,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168528",
+      "kcal": 34.0,
+      "est_4_4_9": 41.1,
+      "deviation": 0.209,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168529",
+      "kcal": 22.0,
+      "est_4_4_9": 30.9,
+      "deviation": 0.405,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168531",
+      "kcal": 60.0,
+      "est_4_4_9": 74.1,
+      "deviation": 0.235,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168534",
+      "kcal": 32.0,
+      "est_4_4_9": 39.1,
+      "deviation": 0.222,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168537",
+      "kcal": 28.0,
+      "est_4_4_9": 34.5,
+      "deviation": 0.232,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168547",
+      "kcal": 20.0,
+      "est_4_4_9": 24.2,
+      "deviation": 0.21,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168551",
+      "kcal": 101.0,
+      "est_4_4_9": 124.5,
+      "deviation": 0.233,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168557",
+      "kcal": 22.0,
+      "est_4_4_9": 28.1,
+      "deviation": 0.277,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168565",
+      "kcal": 21.0,
+      "est_4_4_9": 26.8,
+      "deviation": 0.276,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168569",
+      "kcal": 28.0,
+      "est_4_4_9": 33.8,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168571",
+      "kcal": 16.0,
+      "est_4_4_9": 19.3,
+      "deviation": 0.206,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168572",
+      "kcal": 12.0,
+      "est_4_4_9": 15.0,
+      "deviation": 0.25,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168574",
+      "kcal": 88.0,
+      "est_4_4_9": 108.3,
+      "deviation": 0.231,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168580",
+      "kcal": 33.0,
+      "est_4_4_9": 41.2,
+      "deviation": 0.248,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168582",
+      "kcal": 32.0,
+      "est_4_4_9": 39.9,
+      "deviation": 0.247,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168584",
+      "kcal": 34.0,
+      "est_4_4_9": 42.7,
+      "deviation": 0.256,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168746",
+      "kcal": 43.0,
+      "est_4_4_9": 16.0,
+      "deviation": 0.628,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168747",
+      "kcal": 41.0,
+      "est_4_4_9": 13.6,
+      "deviation": 0.668,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168748",
+      "kcal": 28.0,
+      "est_4_4_9": 4.4,
+      "deviation": 0.843,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168749",
+      "kcal": 29.0,
+      "est_4_4_9": 7.2,
+      "deviation": 0.752,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168750",
+      "kcal": 237.0,
+      "est_4_4_9": 181.2,
+      "deviation": 0.235,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168752",
+      "kcal": 174.0,
+      "est_4_4_9": 109.5,
+      "deviation": 0.371,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168753",
+      "kcal": 110.0,
+      "est_4_4_9": 47.3,
+      "deviation": 0.57,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168872",
+      "kcal": 246.0,
+      "est_4_4_9": 397.0,
+      "deviation": 0.614,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-168873",
+      "kcal": 40.0,
+      "est_4_4_9": 66.5,
+      "deviation": 0.662,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169058",
+      "kcal": 132.0,
+      "est_4_4_9": 217.5,
+      "deviation": 0.648,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169070",
+      "kcal": 50.0,
+      "est_4_4_9": 27.2,
+      "deviation": 0.456,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169071",
+      "kcal": 49.0,
+      "est_4_4_9": 5.2,
+      "deviation": 0.894,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169137",
+      "kcal": 21.0,
+      "est_4_4_9": 25.7,
+      "deviation": 0.224,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169138",
+      "kcal": 50.0,
+      "est_4_4_9": 61.4,
+      "deviation": 0.228,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169139",
+      "kcal": 67.0,
+      "est_4_4_9": 83.1,
+      "deviation": 0.24,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169140",
+      "kcal": 78.0,
+      "est_4_4_9": 95.6,
+      "deviation": 0.226,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169202",
+      "kcal": 21.0,
+      "est_4_4_9": 26.6,
+      "deviation": 0.267,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169206",
+      "kcal": 15.0,
+      "est_4_4_9": 19.0,
+      "deviation": 0.267,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169207",
+      "kcal": 19.0,
+      "est_4_4_9": 24.7,
+      "deviation": 0.3,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169208",
+      "kcal": 24.0,
+      "est_4_4_9": 31.0,
+      "deviation": 0.292,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169209",
+      "kcal": 18.0,
+      "est_4_4_9": 23.2,
+      "deviation": 0.289,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169210",
+      "kcal": 27.0,
+      "est_4_4_9": 33.9,
+      "deviation": 0.256,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169211",
+      "kcal": 12.0,
+      "est_4_4_9": 15.4,
+      "deviation": 0.283,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169212",
+      "kcal": 19.0,
+      "est_4_4_9": 23.2,
+      "deviation": 0.221,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169213",
+      "kcal": 29.0,
+      "est_4_4_9": 37.7,
+      "deviation": 0.3,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169219",
+      "kcal": 21.0,
+      "est_4_4_9": 26.0,
+      "deviation": 0.238,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169221",
+      "kcal": 34.0,
+      "est_4_4_9": 41.1,
+      "deviation": 0.209,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169224",
+      "kcal": 29.0,
+      "est_4_4_9": 37.4,
+      "deviation": 0.29,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169225",
+      "kcal": 10.0,
+      "est_4_4_9": 13.0,
+      "deviation": 0.3,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169238",
+      "kcal": 36.0,
+      "est_4_4_9": 43.6,
+      "deviation": 0.211,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169239",
+      "kcal": 28.0,
+      "est_4_4_9": 34.9,
+      "deviation": 0.246,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169240",
+      "kcal": 36.0,
+      "est_4_4_9": 43.6,
+      "deviation": 0.211,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169243",
+      "kcal": 29.0,
+      "est_4_4_9": 36.2,
+      "deviation": 0.248,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169244",
+      "kcal": 43.0,
+      "est_4_4_9": 53.2,
+      "deviation": 0.237,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169245",
+      "kcal": 32.0,
+      "est_4_4_9": 39.1,
+      "deviation": 0.222,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169247",
+      "kcal": 17.0,
+      "est_4_4_9": 20.7,
+      "deviation": 0.218,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169249",
+      "kcal": 15.0,
+      "est_4_4_9": 18.1,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169251",
+      "kcal": 22.0,
+      "est_4_4_9": 28.3,
+      "deviation": 0.286,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169252",
+      "kcal": 28.0,
+      "est_4_4_9": 34.5,
+      "deviation": 0.232,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169253",
+      "kcal": 26.0,
+      "est_4_4_9": 33.1,
+      "deviation": 0.273,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169254",
+      "kcal": 25.0,
+      "est_4_4_9": 30.7,
+      "deviation": 0.228,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169255",
+      "kcal": 22.0,
+      "est_4_4_9": 26.7,
+      "deviation": 0.214,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169256",
+      "kcal": 27.0,
+      "est_4_4_9": 34.0,
+      "deviation": 0.259,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169257",
+      "kcal": 26.0,
+      "est_4_4_9": 32.9,
+      "deviation": 0.265,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169258",
+      "kcal": 20.0,
+      "est_4_4_9": 26.3,
+      "deviation": 0.315,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169259",
+      "kcal": 19.0,
+      "est_4_4_9": 23.4,
+      "deviation": 0.232,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169261",
+      "kcal": 22.0,
+      "est_4_4_9": 27.4,
+      "deviation": 0.245,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169270",
+      "kcal": 15.0,
+      "est_4_4_9": 18.1,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169271",
+      "kcal": 15.0,
+      "est_4_4_9": 18.5,
+      "deviation": 0.233,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169272",
+      "kcal": 19.0,
+      "est_4_4_9": 25.2,
+      "deviation": 0.326,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169274",
+      "kcal": 20.0,
+      "est_4_4_9": 25.2,
+      "deviation": 0.26,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169275",
+      "kcal": 18.0,
+      "est_4_4_9": 21.8,
+      "deviation": 0.211,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169284",
+      "kcal": 122.0,
+      "est_4_4_9": 151.1,
+      "deviation": 0.239,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169285",
+      "kcal": 19.0,
+      "est_4_4_9": 23.6,
+      "deviation": 0.242,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169286",
+      "kcal": 23.0,
+      "est_4_4_9": 29.3,
+      "deviation": 0.274,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169287",
+      "kcal": 29.0,
+      "est_4_4_9": 36.6,
+      "deviation": 0.262,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169288",
+      "kcal": 34.0,
+      "est_4_4_9": 43.3,
+      "deviation": 0.274,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169289",
+      "kcal": 18.0,
+      "est_4_4_9": 21.8,
+      "deviation": 0.211,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169292",
+      "kcal": 15.0,
+      "est_4_4_9": 18.8,
+      "deviation": 0.253,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169301",
+      "kcal": 19.0,
+      "est_4_4_9": 24.6,
+      "deviation": 0.295,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169302",
+      "kcal": 20.0,
+      "est_4_4_9": 25.0,
+      "deviation": 0.25,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169313",
+      "kcal": 22.0,
+      "est_4_4_9": 27.8,
+      "deviation": 0.264,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169314",
+      "kcal": 15.0,
+      "est_4_4_9": 19.0,
+      "deviation": 0.267,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169315",
+      "kcal": 33.0,
+      "est_4_4_9": 43.4,
+      "deviation": 0.315,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169319",
+      "kcal": 20.0,
+      "est_4_4_9": 24.3,
+      "deviation": 0.215,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169325",
+      "kcal": 28.0,
+      "est_4_4_9": 33.8,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169326",
+      "kcal": 28.0,
+      "est_4_4_9": 33.8,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169327",
+      "kcal": 28.0,
+      "est_4_4_9": 33.8,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169329",
+      "kcal": 28.0,
+      "est_4_4_9": 35.1,
+      "deviation": 0.254,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169330",
+      "kcal": 28.0,
+      "est_4_4_9": 35.1,
+      "deviation": 0.254,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169331",
+      "kcal": 28.0,
+      "est_4_4_9": 35.5,
+      "deviation": 0.268,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169332",
+      "kcal": 42.0,
+      "est_4_4_9": 51.2,
+      "deviation": 0.219,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169334",
+      "kcal": 8.0,
+      "est_4_4_9": 9.6,
+      "deviation": 0.2,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169337",
+      "kcal": 14.0,
+      "est_4_4_9": 17.4,
+      "deviation": 0.243,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169343",
+      "kcal": 20.0,
+      "est_4_4_9": 24.9,
+      "deviation": 0.245,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169350",
+      "kcal": 23.0,
+      "est_4_4_9": 28.2,
+      "deviation": 0.226,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169354",
+      "kcal": 37.0,
+      "est_4_4_9": 45.8,
+      "deviation": 0.238,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169356",
+      "kcal": 36.0,
+      "est_4_4_9": 43.6,
+      "deviation": 0.211,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169357",
+      "kcal": 29.0,
+      "est_4_4_9": 34.9,
+      "deviation": 0.203,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169368",
+      "kcal": 21.0,
+      "est_4_4_9": 25.7,
+      "deviation": 0.224,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169369",
+      "kcal": 81.0,
+      "est_4_4_9": 100.5,
+      "deviation": 0.241,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169370",
+      "kcal": 125.0,
+      "est_4_4_9": 153.9,
+      "deviation": 0.231,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169371",
+      "kcal": 20.0,
+      "est_4_4_9": 24.2,
+      "deviation": 0.21,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169376",
+      "kcal": 22.0,
+      "est_4_4_9": 28.3,
+      "deviation": 0.286,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169377",
+      "kcal": 29.0,
+      "est_4_4_9": 36.2,
+      "deviation": 0.248,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169382",
+      "kcal": 37.0,
+      "est_4_4_9": 44.7,
+      "deviation": 0.208,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169387",
+      "kcal": 25.0,
+      "est_4_4_9": 31.1,
+      "deviation": 0.244,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169388",
+      "kcal": 15.0,
+      "est_4_4_9": 19.7,
+      "deviation": 0.313,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169389",
+      "kcal": 31.0,
+      "est_4_4_9": 39.1,
+      "deviation": 0.261,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169390",
+      "kcal": 32.0,
+      "est_4_4_9": 39.9,
+      "deviation": 0.247,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169391",
+      "kcal": 32.0,
+      "est_4_4_9": 39.9,
+      "deviation": 0.247,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169394",
+      "kcal": 27.0,
+      "est_4_4_9": 32.5,
+      "deviation": 0.204,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169400",
+      "kcal": 23.0,
+      "est_4_4_9": 30.0,
+      "deviation": 0.304,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169402",
+      "kcal": 35.0,
+      "est_4_4_9": 44.1,
+      "deviation": 0.26,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169403",
+      "kcal": 31.0,
+      "est_4_4_9": 37.4,
+      "deviation": 0.206,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169405",
+      "kcal": 34.0,
+      "est_4_4_9": 43.6,
+      "deviation": 0.282,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169572",
+      "kcal": 29.0,
+      "est_4_4_9": 6.0,
+      "deviation": 0.793,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169573",
+      "kcal": 125.0,
+      "est_4_4_9": 62.8,
+      "deviation": 0.498,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169574",
+      "kcal": 186.0,
+      "est_4_4_9": 28.9,
+      "deviation": 0.845,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169575",
+      "kcal": 27.0,
+      "est_4_4_9": 3.6,
+      "deviation": 0.867,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169593",
+      "kcal": 228.0,
+      "est_4_4_9": 433.3,
+      "deviation": 0.9,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169594",
+      "kcal": 220.0,
+      "est_4_4_9": 423.5,
+      "deviation": 0.925,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169597",
+      "kcal": 198.0,
+      "est_4_4_9": 383.6,
+      "deviation": 0.937,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169713",
+      "kcal": 316.0,
+      "est_4_4_9": 439.6,
+      "deviation": 0.391,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169722",
+      "kcal": 216.0,
+      "est_4_4_9": 358.2,
+      "deviation": 0.658,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169882",
+      "kcal": 268.0,
+      "est_4_4_9": 382.8,
+      "deviation": 0.428,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169957",
+      "kcal": 30.0,
+      "est_4_4_9": 37.4,
+      "deviation": 0.247,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169963",
+      "kcal": 28.0,
+      "est_4_4_9": 33.8,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169964",
+      "kcal": 33.0,
+      "est_4_4_9": 39.6,
+      "deviation": 0.2,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169968",
+      "kcal": 26.0,
+      "est_4_4_9": 33.1,
+      "deviation": 0.273,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169969",
+      "kcal": 28.0,
+      "est_4_4_9": 34.5,
+      "deviation": 0.232,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169970",
+      "kcal": 29.0,
+      "est_4_4_9": 36.3,
+      "deviation": 0.252,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169972",
+      "kcal": 41.0,
+      "est_4_4_9": 50.4,
+      "deviation": 0.229,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169973",
+      "kcal": 42.0,
+      "est_4_4_9": 51.2,
+      "deviation": 0.219,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169976",
+      "kcal": 23.0,
+      "est_4_4_9": 28.1,
+      "deviation": 0.222,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169979",
+      "kcal": 16.0,
+      "est_4_4_9": 19.4,
+      "deviation": 0.213,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169980",
+      "kcal": 14.0,
+      "est_4_4_9": 17.4,
+      "deviation": 0.243,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169986",
+      "kcal": 25.0,
+      "est_4_4_9": 30.3,
+      "deviation": 0.212,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169991",
+      "kcal": 19.0,
+      "est_4_4_9": 23.8,
+      "deviation": 0.253,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169992",
+      "kcal": 23.0,
+      "est_4_4_9": 28.3,
+      "deviation": 0.23,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169994",
+      "kcal": 30.0,
+      "est_4_4_9": 36.7,
+      "deviation": 0.223,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169995",
+      "kcal": 24.0,
+      "est_4_4_9": 31.0,
+      "deviation": 0.292,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169996",
+      "kcal": 36.0,
+      "est_4_4_9": 44.0,
+      "deviation": 0.222,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-169997",
+      "kcal": 23.0,
+      "est_4_4_9": 27.7,
+      "deviation": 0.204,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170022",
+      "kcal": 20.0,
+      "est_4_4_9": 24.2,
+      "deviation": 0.21,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170053",
+      "kcal": 15.0,
+      "est_4_4_9": 18.1,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170068",
+      "kcal": 11.0,
+      "est_4_4_9": 15.3,
+      "deviation": 0.391,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170075",
+      "kcal": 311.0,
+      "est_4_4_9": 373.5,
+      "deviation": 0.201,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170076",
+      "kcal": 22.0,
+      "est_4_4_9": 27.1,
+      "deviation": 0.232,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170077",
+      "kcal": 20.0,
+      "est_4_4_9": 24.2,
+      "deviation": 0.21,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170079",
+      "kcal": 12.0,
+      "est_4_4_9": 14.9,
+      "deviation": 0.242,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170086",
+      "kcal": 62.0,
+      "est_4_4_9": 75.3,
+      "deviation": 0.215,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170087",
+      "kcal": 22.0,
+      "est_4_4_9": 26.7,
+      "deviation": 0.214,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170091",
+      "kcal": 26.0,
+      "est_4_4_9": 36.8,
+      "deviation": 0.415,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170095",
+      "kcal": 43.0,
+      "est_4_4_9": 52.1,
+      "deviation": 0.212,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170096",
+      "kcal": 15.0,
+      "est_4_4_9": 18.7,
+      "deviation": 0.247,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170098",
+      "kcal": 22.0,
+      "est_4_4_9": 27.4,
+      "deviation": 0.245,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170119",
+      "kcal": 15.0,
+      "est_4_4_9": 18.1,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170120",
+      "kcal": 21.0,
+      "est_4_4_9": 26.2,
+      "deviation": 0.248,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170121",
+      "kcal": 18.0,
+      "est_4_4_9": 21.8,
+      "deviation": 0.211,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170123",
+      "kcal": 19.0,
+      "est_4_4_9": 23.6,
+      "deviation": 0.242,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170124",
+      "kcal": 34.0,
+      "est_4_4_9": 43.3,
+      "deviation": 0.274,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170126",
+      "kcal": 19.0,
+      "est_4_4_9": 22.8,
+      "deviation": 0.2,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170132",
+      "kcal": 20.0,
+      "est_4_4_9": 25.0,
+      "deviation": 0.25,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170140",
+      "kcal": 29.0,
+      "est_4_4_9": 37.2,
+      "deviation": 0.283,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170143",
+      "kcal": 22.0,
+      "est_4_4_9": 26.7,
+      "deviation": 0.214,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170260",
+      "kcal": 124.0,
+      "est_4_4_9": 154.7,
+      "deviation": 0.248,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170267",
+      "kcal": 49.0,
+      "est_4_4_9": 74.3,
+      "deviation": 0.516,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170289",
+      "kcal": 224.0,
+      "est_4_4_9": 384.1,
+      "deviation": 0.715,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170375",
+      "kcal": 22.0,
+      "est_4_4_9": 26.9,
+      "deviation": 0.223,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170376",
+      "kcal": 27.0,
+      "est_4_4_9": 34.2,
+      "deviation": 0.267,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170379",
+      "kcal": 34.0,
+      "est_4_4_9": 41.2,
+      "deviation": 0.212,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170380",
+      "kcal": 28.0,
+      "est_4_4_9": 34.9,
+      "deviation": 0.246,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170381",
+      "kcal": 22.0,
+      "est_4_4_9": 28.9,
+      "deviation": 0.314,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170382",
+      "kcal": 25.0,
+      "est_4_4_9": 32.1,
+      "deviation": 0.284,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170383",
+      "kcal": 43.0,
+      "est_4_4_9": 51.9,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170386",
+      "kcal": 8.0,
+      "est_4_4_9": 9.6,
+      "deviation": 0.2,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170388",
+      "kcal": 27.0,
+      "est_4_4_9": 33.3,
+      "deviation": 0.233,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170389",
+      "kcal": 24.0,
+      "est_4_4_9": 29.7,
+      "deviation": 0.237,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170390",
+      "kcal": 13.0,
+      "est_4_4_9": 16.6,
+      "deviation": 0.277,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170391",
+      "kcal": 12.0,
+      "est_4_4_9": 15.4,
+      "deviation": 0.283,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170392",
+      "kcal": 15.0,
+      "est_4_4_9": 18.5,
+      "deviation": 0.233,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170397",
+      "kcal": 23.0,
+      "est_4_4_9": 28.1,
+      "deviation": 0.222,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170398",
+      "kcal": 24.0,
+      "est_4_4_9": 29.5,
+      "deviation": 0.229,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170399",
+      "kcal": 19.0,
+      "est_4_4_9": 23.4,
+      "deviation": 0.232,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170401",
+      "kcal": 20.0,
+      "est_4_4_9": 24.9,
+      "deviation": 0.245,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170404",
+      "kcal": 17.0,
+      "est_4_4_9": 20.5,
+      "deviation": 0.206,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170405",
+      "kcal": 20.0,
+      "est_4_4_9": 24.5,
+      "deviation": 0.225,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170406",
+      "kcal": 32.0,
+      "est_4_4_9": 39.0,
+      "deviation": 0.219,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170407",
+      "kcal": 33.0,
+      "est_4_4_9": 39.9,
+      "deviation": 0.209,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170408",
+      "kcal": 33.0,
+      "est_4_4_9": 40.4,
+      "deviation": 0.224,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170416",
+      "kcal": 36.0,
+      "est_4_4_9": 44.4,
+      "deviation": 0.233,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170422",
+      "kcal": 124.0,
+      "est_4_4_9": 149.9,
+      "deviation": 0.209,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170432",
+      "kcal": 23.0,
+      "est_4_4_9": 28.8,
+      "deviation": 0.252,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170433",
+      "kcal": 20.0,
+      "est_4_4_9": 25.2,
+      "deviation": 0.26,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170467",
+      "kcal": 14.0,
+      "est_4_4_9": 17.9,
+      "deviation": 0.279,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170468",
+      "kcal": 22.0,
+      "est_4_4_9": 27.5,
+      "deviation": 0.25,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170469",
+      "kcal": 29.0,
+      "est_4_4_9": 37.2,
+      "deviation": 0.283,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170470",
+      "kcal": 21.0,
+      "est_4_4_9": 25.4,
+      "deviation": 0.21,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170474",
+      "kcal": 19.0,
+      "est_4_4_9": 23.5,
+      "deviation": 0.237,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170478",
+      "kcal": 74.0,
+      "est_4_4_9": 89.5,
+      "deviation": 0.209,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170481",
+      "kcal": 21.0,
+      "est_4_4_9": 25.9,
+      "deviation": 0.233,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170486",
+      "kcal": 271.0,
+      "est_4_4_9": 341.6,
+      "deviation": 0.261,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170487",
+      "kcal": 16.0,
+      "est_4_4_9": 20.2,
+      "deviation": 0.262,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170495",
+      "kcal": 290.0,
+      "est_4_4_9": 394.9,
+      "deviation": 0.362,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170502",
+      "kcal": 16.0,
+      "est_4_4_9": 19.4,
+      "deviation": 0.213,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170503",
+      "kcal": 26.0,
+      "est_4_4_9": 32.9,
+      "deviation": 0.265,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170504",
+      "kcal": 19.0,
+      "est_4_4_9": 23.4,
+      "deviation": 0.232,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170505",
+      "kcal": 16.0,
+      "est_4_4_9": 19.8,
+      "deviation": 0.238,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170506",
+      "kcal": 12.0,
+      "est_4_4_9": 15.4,
+      "deviation": 0.283,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170518",
+      "kcal": 20.0,
+      "est_4_4_9": 25.2,
+      "deviation": 0.26,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170531",
+      "kcal": 23.0,
+      "est_4_4_9": 29.9,
+      "deviation": 0.3,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170534",
+      "kcal": 15.0,
+      "est_4_4_9": 18.8,
+      "deviation": 0.253,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170535",
+      "kcal": 14.0,
+      "est_4_4_9": 17.3,
+      "deviation": 0.236,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170544",
+      "kcal": 24.0,
+      "est_4_4_9": 30.0,
+      "deviation": 0.25,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170549",
+      "kcal": 11.0,
+      "est_4_4_9": 13.4,
+      "deviation": 0.218,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170677",
+      "kcal": 43.0,
+      "est_4_4_9": 86.4,
+      "deviation": 1.009,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170917",
+      "kcal": 313.0,
+      "est_4_4_9": 406.0,
+      "deviation": 0.297,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170918",
+      "kcal": 333.0,
+      "est_4_4_9": 410.2,
+      "deviation": 0.232,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170919",
+      "kcal": 311.0,
+      "est_4_4_9": 377.5,
+      "deviation": 0.214,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170921",
+      "kcal": 279.0,
+      "est_4_4_9": 339.2,
+      "deviation": 0.216,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170922",
+      "kcal": 298.0,
+      "est_4_4_9": 429.8,
+      "deviation": 0.442,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170924",
+      "kcal": 325.0,
+      "est_4_4_9": 406.4,
+      "deviation": 0.25,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170925",
+      "kcal": 305.0,
+      "est_4_4_9": 415.3,
+      "deviation": 0.362,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170928",
+      "kcal": 271.0,
+      "est_4_4_9": 356.2,
+      "deviation": 0.314,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170930",
+      "kcal": 292.0,
+      "est_4_4_9": 358.3,
+      "deviation": 0.227,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170931",
+      "kcal": 251.0,
+      "est_4_4_9": 327.3,
+      "deviation": 0.304,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170932",
+      "kcal": 318.0,
+      "est_4_4_9": 430.1,
+      "deviation": 0.353,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170935",
+      "kcal": 315.0,
+      "est_4_4_9": 400.4,
+      "deviation": 0.271,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170936",
+      "kcal": 272.0,
+      "est_4_4_9": 354.7,
+      "deviation": 0.304,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170937",
+      "kcal": 295.0,
+      "est_4_4_9": 356.8,
+      "deviation": 0.209,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-170938",
+      "kcal": 276.0,
+      "est_4_4_9": 358.6,
+      "deviation": 0.299,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171315",
+      "kcal": 263.0,
+      "est_4_4_9": 391.1,
+      "deviation": 0.487,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171316",
+      "kcal": 337.0,
+      "est_4_4_9": 413.5,
+      "deviation": 0.227,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171317",
+      "kcal": 233.0,
+      "est_4_4_9": 320.1,
+      "deviation": 0.374,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171318",
+      "kcal": 237.0,
+      "est_4_4_9": 324.3,
+      "deviation": 0.368,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171319",
+      "kcal": 282.0,
+      "est_4_4_9": 381.5,
+      "deviation": 0.353,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171320",
+      "kcal": 247.0,
+      "est_4_4_9": 349.2,
+      "deviation": 0.414,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171321",
+      "kcal": 274.0,
+      "est_4_4_9": 403.0,
+      "deviation": 0.471,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171322",
+      "kcal": 253.0,
+      "est_4_4_9": 342.8,
+      "deviation": 0.355,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171328",
+      "kcal": 265.0,
+      "est_4_4_9": 350.3,
+      "deviation": 0.322,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171329",
+      "kcal": 282.0,
+      "est_4_4_9": 388.5,
+      "deviation": 0.378,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171332",
+      "kcal": 342.0,
+      "est_4_4_9": 413.8,
+      "deviation": 0.21,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171333",
+      "kcal": 331.0,
+      "est_4_4_9": 412.8,
+      "deviation": 0.247,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171872",
+      "kcal": 78.0,
+      "est_4_4_9": 10.0,
+      "deviation": 0.872,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171890",
+      "kcal": 1.0,
+      "est_4_4_9": 0.4,
+      "deviation": 0.6,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171906",
+      "kcal": 58.0,
+      "est_4_4_9": 4.8,
+      "deviation": 0.917,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171907",
+      "kcal": 40.0,
+      "est_4_4_9": 1.2,
+      "deviation": 0.97,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171908",
+      "kcal": 83.0,
+      "est_4_4_9": 16.8,
+      "deviation": 0.798,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171919",
+      "kcal": 250.0,
+      "est_4_4_9": 0.4,
+      "deviation": 0.998,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171925",
+      "kcal": 83.0,
+      "est_4_4_9": 10.4,
+      "deviation": 0.875,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171926",
+      "kcal": 1.0,
+      "est_4_4_9": 0.4,
+      "deviation": 0.6,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171927",
+      "kcal": 4.0,
+      "est_4_4_9": 5.2,
+      "deviation": 0.3,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-171936",
+      "kcal": 2.0,
+      "est_4_4_9": 4.0,
+      "deviation": 1.0,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-172232",
+      "kcal": 23.0,
+      "est_4_4_9": 28.2,
+      "deviation": 0.226,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-172233",
+      "kcal": 43.0,
+      "est_4_4_9": 51.9,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-172235",
+      "kcal": 237.0,
+      "est_4_4_9": 10.0,
+      "deviation": 0.958,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-172238",
+      "kcal": 23.0,
+      "est_4_4_9": 37.3,
+      "deviation": 0.622,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-172240",
+      "kcal": 19.0,
+      "est_4_4_9": 1.2,
+      "deviation": 0.937,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-172241",
+      "kcal": 88.0,
+      "est_4_4_9": 70.0,
+      "deviation": 0.205,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-172243",
+      "kcal": 322.0,
+      "est_4_4_9": 250.0,
+      "deviation": 0.224,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-172803",
+      "kcal": 53.0,
+      "est_4_4_9": 110.8,
+      "deviation": 1.091,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-172804",
+      "kcal": 51.0,
+      "est_4_4_9": 96.8,
+      "deviation": 0.898,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-172805",
+      "kcal": 97.0,
+      "est_4_4_9": 191.6,
+      "deviation": 0.975,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173164",
+      "kcal": 164.0,
+      "est_4_4_9": 63.6,
+      "deviation": 0.612,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173168",
+      "kcal": 371.0,
+      "est_4_4_9": 169.1,
+      "deviation": 0.544,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173176",
+      "kcal": 160.0,
+      "est_4_4_9": 55.6,
+      "deviation": 0.653,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173185",
+      "kcal": 83.0,
+      "est_4_4_9": 11.2,
+      "deviation": 0.865,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173190",
+      "kcal": 85.0,
+      "est_4_4_9": 10.8,
+      "deviation": 0.873,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173191",
+      "kcal": 85.0,
+      "est_4_4_9": 11.6,
+      "deviation": 0.864,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173192",
+      "kcal": 88.0,
+      "est_4_4_9": 12.0,
+      "deviation": 0.864,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173193",
+      "kcal": 85.0,
+      "est_4_4_9": 11.2,
+      "deviation": 0.868,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173194",
+      "kcal": 83.0,
+      "est_4_4_9": 12.4,
+      "deviation": 0.851,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173195",
+      "kcal": 80.0,
+      "est_4_4_9": 13.6,
+      "deviation": 0.83,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173196",
+      "kcal": 82.0,
+      "est_4_4_9": 9.6,
+      "deviation": 0.883,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173198",
+      "kcal": 76.0,
+      "est_4_4_9": 14.4,
+      "deviation": 0.811,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173200",
+      "kcal": 80.0,
+      "est_4_4_9": 15.2,
+      "deviation": 0.81,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173201",
+      "kcal": 81.0,
+      "est_4_4_9": 8.4,
+      "deviation": 0.896,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173202",
+      "kcal": 112.0,
+      "est_4_4_9": 54.0,
+      "deviation": 0.518,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173208",
+      "kcal": 86.0,
+      "est_4_4_9": 15.2,
+      "deviation": 0.823,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173215",
+      "kcal": 2.0,
+      "est_4_4_9": 0.8,
+      "deviation": 0.6,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173218",
+      "kcal": 2.0,
+      "est_4_4_9": 0.8,
+      "deviation": 0.6,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173237",
+      "kcal": 217.0,
+      "est_4_4_9": 358.0,
+      "deviation": 0.65,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173469",
+      "kcal": 21.0,
+      "est_4_4_9": 3.6,
+      "deviation": 0.829,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173470",
+      "kcal": 101.0,
+      "est_4_4_9": 135.3,
+      "deviation": 0.34,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173471",
+      "kcal": 288.0,
+      "est_4_4_9": 51.7,
+      "deviation": 0.82,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173475",
+      "kcal": 44.0,
+      "est_4_4_9": 53.1,
+      "deviation": 0.207,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173662",
+      "kcal": 149.0,
+      "est_4_4_9": 52.8,
+      "deviation": 0.646,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173665",
+      "kcal": 308.0,
+      "est_4_4_9": 131.9,
+      "deviation": 0.572,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173755",
+      "kcal": 222.0,
+      "est_4_4_9": 380.3,
+      "deviation": 0.713,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173858",
+      "kcal": 158.0,
+      "est_4_4_9": 246.4,
+      "deviation": 0.559,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-173886",
+      "kcal": 331.0,
+      "est_4_4_9": 397.3,
+      "deviation": 0.2,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174109",
+      "kcal": 88.0,
+      "est_4_4_9": 10.8,
+      "deviation": 0.877,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174110",
+      "kcal": 84.0,
+      "est_4_4_9": 9.2,
+      "deviation": 0.89,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174120",
+      "kcal": 1.0,
+      "est_4_4_9": 0.4,
+      "deviation": 0.6,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174134",
+      "kcal": 3.0,
+      "est_4_4_9": 3.6,
+      "deviation": 0.2,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174141",
+      "kcal": 68.0,
+      "est_4_4_9": 40.4,
+      "deviation": 0.406,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174145",
+      "kcal": 46.0,
+      "est_4_4_9": 4.0,
+      "deviation": 0.913,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174146",
+      "kcal": 56.0,
+      "est_4_4_9": 23.6,
+      "deviation": 0.579,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174163",
+      "kcal": 4.0,
+      "est_4_4_9": 5.2,
+      "deviation": 0.3,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174164",
+      "kcal": 4.0,
+      "est_4_4_9": 5.2,
+      "deviation": 0.3,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174177",
+      "kcal": 1.0,
+      "est_4_4_9": 4.5,
+      "deviation": 3.5,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174528",
+      "kcal": 12.0,
+      "est_4_4_9": 15.6,
+      "deviation": 0.3,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174635",
+      "kcal": 200.0,
+      "est_4_4_9": 355.2,
+      "deviation": 0.776,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174639",
+      "kcal": 346.0,
+      "est_4_4_9": 431.6,
+      "deviation": 0.247,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174810",
+      "kcal": 119.0,
+      "est_4_4_9": 53.6,
+      "deviation": 0.55,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174812",
+      "kcal": 153.0,
+      "est_4_4_9": 52.5,
+      "deviation": 0.657,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174819",
+      "kcal": 250.0,
+      "est_4_4_9": 0.4,
+      "deviation": 0.998,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174833",
+      "kcal": 83.0,
+      "est_4_4_9": 10.8,
+      "deviation": 0.87,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174834",
+      "kcal": 83.0,
+      "est_4_4_9": 10.4,
+      "deviation": 0.875,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174835",
+      "kcal": 82.0,
+      "est_4_4_9": 9.6,
+      "deviation": 0.883,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174836",
+      "kcal": 83.0,
+      "est_4_4_9": 10.8,
+      "deviation": 0.87,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174837",
+      "kcal": 82.0,
+      "est_4_4_9": 10.8,
+      "deviation": 0.868,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174838",
+      "kcal": 80.0,
+      "est_4_4_9": 10.4,
+      "deviation": 0.87,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174839",
+      "kcal": 86.0,
+      "est_4_4_9": 10.8,
+      "deviation": 0.874,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174840",
+      "kcal": 74.0,
+      "est_4_4_9": 10.0,
+      "deviation": 0.865,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174841",
+      "kcal": 83.0,
+      "est_4_4_9": 8.8,
+      "deviation": 0.894,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174843",
+      "kcal": 81.0,
+      "est_4_4_9": 10.8,
+      "deviation": 0.867,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174844",
+      "kcal": 108.0,
+      "est_4_4_9": 46.0,
+      "deviation": 0.574,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174845",
+      "kcal": 82.0,
+      "est_4_4_9": 12.8,
+      "deviation": 0.844,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174848",
+      "kcal": 81.0,
+      "est_4_4_9": 8.0,
+      "deviation": 0.901,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174849",
+      "kcal": 82.0,
+      "est_4_4_9": 21.2,
+      "deviation": 0.741,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-174873",
+      "kcal": 1.0,
+      "est_4_4_9": 1.2,
+      "deviation": 0.2,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-175043",
+      "kcal": 325.0,
+      "est_4_4_9": 394.8,
+      "deviation": 0.215,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-175097",
+      "kcal": 336.0,
+      "est_4_4_9": 190.3,
+      "deviation": 0.434,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-175098",
+      "kcal": 327.0,
+      "est_4_4_9": 236.1,
+      "deviation": 0.278,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
+      "id": "usda-175112",
+      "kcal": 152.0,
+      "est_4_4_9": 47.6,
+      "deviation": 0.687,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    }
+  ],
+  "warningSummary": {
+    "W1_kcal_deviation_gt_20pct": 410
+  }
+}

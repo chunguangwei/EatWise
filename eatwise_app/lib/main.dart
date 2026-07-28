@@ -2,6 +2,7 @@ import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/app/router/app_router.dart';
 import 'package:eatwise/core/notification/local_notification_service.dart';
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/storage/food_seed_loader.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_texts.dart';
@@ -40,6 +41,13 @@ Future<void> main() async {
   // M3/M7：本地数据库（drift，D-17；SQLCipher 加密接入点见规格-数据同步 §7.2）。
   final docsDir = await getApplicationDocumentsDirectory();
   final db = AppDatabase.openAt(docsDir.path);
+  // D-16：首次启动导入双语食物库种子（幂等，按版本号跳过）；
+  // 资产缺失/解析失败不阻断启动，食物搜索降级为仅已导入数据。
+  try {
+    await FoodSeedLoader(db: db, prefs: prefs).ensureSeeded();
+  } on Object {
+    // 防御：种子导入失败时手动录入与已入库数据仍可用。
+  }
   // M2：本地通知服务初始化（D-09；失败不阻断计时主流程，权限拒绝走
   // App 内横幅降级，合规 §3）。渠道文案走 i18n（D-15）。
   final notificationService = LocalNotificationService();

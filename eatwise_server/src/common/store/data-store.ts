@@ -144,6 +144,9 @@ export class DataStore {
   readonly fastingPlans = new Map<string, FastingPlanEntity>();
   readonly fastingRecords = new Map<string, FastingRecordEntity>();
   readonly foods = new Map<string, FoodEntity>();
+
+  /** 已加载的 foods.seed.json 版本号（D-16 全量库幂等加载标记，见 food-seed-loader.ts）。 */
+  foodSeedVersion: string | null = null;
   readonly foodEntries = new Map<string, FoodEntryEntity>();
   readonly streaks = new Map<string, StreakEntity>(); // key: userId
   readonly idempotency = new Map<string, IdempotencyRecord>(); // key: userId|endpoint|clientRequestId
