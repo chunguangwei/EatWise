@@ -49,6 +49,7 @@ class TranslationsEn extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$nutrition$en nutrition = _Translations$nutrition$en._(_root);
 	@override late final _Translations$streak$en streak = _Translations$streak$en._(_root);
 	@override late final _Translations$settings$en settings = _Translations$settings$en._(_root);
+	@override late final _Translations$social$en social = _Translations$social$en._(_root);
 	@override late final _Translations$auth$en auth = _Translations$auth$en._(_root);
 }
 
@@ -175,6 +176,17 @@ class _Translations$settings$en extends Translations$settings$zh_CN {
 
 	// Translations
 	@override late final _Translations$settings$language$en language = _Translations$settings$language$en._(_root);
+}
+
+// Path: social
+class _Translations$social$en extends Translations$social$zh_CN {
+	_Translations$social$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override late final _Translations$social$feed$en feed = _Translations$social$feed$en._(_root);
+	@override late final _Translations$social$compose$en compose = _Translations$social$compose$en._(_root);
 }
 
 // Path: auth
@@ -626,6 +638,54 @@ class _Translations$settings$language$en extends Translations$settings$language$
 	@override String get system => 'System';
 	@override String get zhCN => '简体中文';
 	@override String get en => 'English';
+}
+
+// Path: social.feed
+class _Translations$social$feed$en extends Translations$social$feed$zh_CN {
+	_Translations$social$feed$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Community';
+	@override String get emptyTitle => 'Waiting for today\'s first check-in to show up.';
+	@override String get emptySubtitle => 'Post your first check-in and light the way for others.';
+	@override String get emptyCta => 'Check in';
+	@override String get errorTitle => 'Couldn\'t load the feed. Please try again.';
+	@override String get pendingBadge => 'Under review — visible only to you';
+	@override String streakBadge({required Object days}) => '${days}-day streak';
+	@override String get like => 'Like';
+	@override String get report => 'Report';
+	@override String get reportConfirm => 'Report this check-in? It will be taken down and sent for manual review.';
+	@override String get reported => 'Reported. Thanks for the heads-up.';
+	@override String get reportFailed => 'Couldn\'t report. Please try again later.';
+	@override String get expand => 'Expand';
+	@override String get collapse => 'Collapse';
+	@override String get justNow => 'Just now';
+	@override String minutesAgo({required Object n}) => '${n} min ago';
+	@override String hoursAgo({required Object n}) => '${n} hr ago';
+	@override String daysAgo({required Object n}) => '${n} d ago';
+	@override String get anonymous => 'EatWise buddy';
+}
+
+// Path: social.compose
+class _Translations$social$compose$en extends Translations$social$compose$zh_CN {
+	_Translations$social$compose$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'New check-in';
+	@override String get hint => 'Capture this moment of persistence…';
+	@override String charCount({required Object n}) => '${n}/500';
+	@override String get addPhoto => 'Add photo';
+	@override String get removePhoto => 'Remove photo';
+	@override String get photoUploadTodo => 'Photo upload is coming soon — posting text only this time';
+	@override String streakBadge({required Object days}) => 'Current streak: ${days} days 🔥';
+	@override String get noStreak => 'Finish today\'s fast and your check-in will carry the streak badge';
+	@override String get publish => 'Post';
+	@override String get publishFailed => 'Couldn\'t post. Please try again.';
+	@override String get emptyText => 'Write something first';
 }
 
 // Path: auth.login
@@ -1190,6 +1250,36 @@ extension on TranslationsEn {
 			'settings.language.system' => 'System',
 			'settings.language.zhCN' => '简体中文',
 			'settings.language.en' => 'English',
+			'social.feed.title' => 'Community',
+			'social.feed.emptyTitle' => 'Waiting for today\'s first check-in to show up.',
+			'social.feed.emptySubtitle' => 'Post your first check-in and light the way for others.',
+			'social.feed.emptyCta' => 'Check in',
+			'social.feed.errorTitle' => 'Couldn\'t load the feed. Please try again.',
+			'social.feed.pendingBadge' => 'Under review — visible only to you',
+			'social.feed.streakBadge' => ({required Object days}) => '${days}-day streak',
+			'social.feed.like' => 'Like',
+			'social.feed.report' => 'Report',
+			'social.feed.reportConfirm' => 'Report this check-in? It will be taken down and sent for manual review.',
+			'social.feed.reported' => 'Reported. Thanks for the heads-up.',
+			'social.feed.reportFailed' => 'Couldn\'t report. Please try again later.',
+			'social.feed.expand' => 'Expand',
+			'social.feed.collapse' => 'Collapse',
+			'social.feed.justNow' => 'Just now',
+			'social.feed.minutesAgo' => ({required Object n}) => '${n} min ago',
+			'social.feed.hoursAgo' => ({required Object n}) => '${n} hr ago',
+			'social.feed.daysAgo' => ({required Object n}) => '${n} d ago',
+			'social.feed.anonymous' => 'EatWise buddy',
+			'social.compose.title' => 'New check-in',
+			'social.compose.hint' => 'Capture this moment of persistence…',
+			'social.compose.charCount' => ({required Object n}) => '${n}/500',
+			'social.compose.addPhoto' => 'Add photo',
+			'social.compose.removePhoto' => 'Remove photo',
+			'social.compose.photoUploadTodo' => 'Photo upload is coming soon — posting text only this time',
+			'social.compose.streakBadge' => ({required Object days}) => 'Current streak: ${days} days 🔥',
+			'social.compose.noStreak' => 'Finish today\'s fast and your check-in will carry the streak badge',
+			'social.compose.publish' => 'Post',
+			'social.compose.publishFailed' => 'Couldn\'t post. Please try again.',
+			'social.compose.emptyText' => 'Write something first',
 			'auth.login.title' => 'Sign in with phone',
 			'auth.login.subtitle' => 'New numbers are registered automatically after verification',
 			'auth.login.phoneLabel' => 'Phone number',

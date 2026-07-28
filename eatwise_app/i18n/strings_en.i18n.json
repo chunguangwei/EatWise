@@ -353,6 +353,42 @@
       "en": "English"
     }
   },
+  "social": {
+    "feed": {
+      "title": "Community",
+      "emptyTitle": "Waiting for today's first check-in to show up.",
+      "emptySubtitle": "Post your first check-in and light the way for others.",
+      "emptyCta": "Check in",
+      "errorTitle": "Couldn't load the feed. Please try again.",
+      "pendingBadge": "Under review — visible only to you",
+      "streakBadge": "${days}-day streak",
+      "like": "Like",
+      "report": "Report",
+      "reportConfirm": "Report this check-in? It will be taken down and sent for manual review.",
+      "reported": "Reported. Thanks for the heads-up.",
+      "reportFailed": "Couldn't report. Please try again later.",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "justNow": "Just now",
+      "minutesAgo": "${n} min ago",
+      "hoursAgo": "${n} hr ago",
+      "daysAgo": "${n} d ago",
+      "anonymous": "EatWise buddy"
+    },
+    "compose": {
+      "title": "New check-in",
+      "hint": "Capture this moment of persistence…",
+      "charCount": "${n}/500",
+      "addPhoto": "Add photo",
+      "removePhoto": "Remove photo",
+      "photoUploadTodo": "Photo upload is coming soon — posting text only this time",
+      "streakBadge": "Current streak: ${days} days 🔥",
+      "noStreak": "Finish today's fast and your check-in will carry the streak badge",
+      "publish": "Post",
+      "publishFailed": "Couldn't post. Please try again.",
+      "emptyText": "Write something first"
+    }
+  },
   "auth": {
     "login": {
       "title": "Sign in with phone",

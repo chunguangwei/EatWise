@@ -123,6 +123,36 @@ export interface StreakEntity {
   updatedAt: Date;
 }
 
+export type AuditStatus = 'pending' | 'approved' | 'rejected';
+
+/** 打卡帖（契约 §3.9 / Post 实体，先审后发 D-17） */
+export interface PostEntity {
+  id: string;
+  userId: string;
+  clientRequestId: string | null;
+  text: string;
+  imageUrls: string[];
+  /** 发布时的连续达标天数（服务端权威计算，D-12 口径） */
+  streakDaysAtPost: number | null;
+  likeCount: number;
+  auditStatus: AuditStatus;
+  /** 双语审核原因（rejected 时展示给作者） */
+  auditReason: { zh: string; en: string } | null;
+  visibility: string; // self / followers / public 预留
+  version: number;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+}
+
+/** 审核队列条目（机审异常/疑似 与 举报复核共用，D-17 转人工） */
+export interface ModerationQueueItem {
+  postId: string;
+  source: 'auto' | 'report';
+  reason: string;
+  createdAt: Date;
+}
+
 export interface IdempotencyRecord {
   userId: string;
   clientRequestId: string;
@@ -150,6 +180,19 @@ export class DataStore {
   readonly foodEntries = new Map<string, FoodEntryEntity>();
   readonly streaks = new Map<string, StreakEntity>(); // key: userId
   readonly idempotency = new Map<string, IdempotencyRecord>(); // key: userId|endpoint|clientRequestId
+
+  /** 打卡帖（M5 P1） */
+  readonly posts = new Map<string, PostEntity>();
+  /** 点赞幂等键（契约 §四：postId+userId 唯一约束） */
+  readonly postLikes = new Set<string>(); // key: postId|userId
+  /** 举报幂等键（同用户同帖一次） */
+  readonly postReports = new Map<string, { reason: string | null; createdAt: Date }>(); // key: postId|userId
+  /** 人工审核队列（机审疑似 + 举报复核，D-17） */
+  readonly moderationQueue: ModerationQueueItem[] = [];
+
+  postLikeKey(postId: string, userId: string): string {
+    return `${postId}|${userId}`;
+  }
 
   /** 短信验证码（〔假设〕mock：固定 123456，生产应落 Redis 并接短信通道） */
   readonly smsCodes = new Map<string, { code: string; sentAt: Date; attempts: number }>();

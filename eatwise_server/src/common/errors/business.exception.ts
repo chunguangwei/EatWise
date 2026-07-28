@@ -51,4 +51,9 @@ export const err = {
   makeupCardEmpty: () => new BusinessException('MAKEUP_CARD_EMPTY', HttpStatus.BAD_REQUEST),
   makeupOutOfWindow: () => new BusinessException('MAKEUP_OUT_OF_WINDOW', HttpStatus.BAD_REQUEST),
   makeupAlreadyUsed: () => new BusinessException('MAKEUP_ALREADY_USED', HttpStatus.CONFLICT),
+
+  // 社区打卡（M5 / D-17 先审后发）
+  postContentRejected: (reason?: { zh: string; en: string }) =>
+    new BusinessException('POST_CONTENT_REJECTED', HttpStatus.BAD_REQUEST, { reason }),
+  resourceGone: () => new BusinessException('RESOURCE_GONE', HttpStatus.GONE),
 };

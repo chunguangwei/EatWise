@@ -50,6 +50,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$nutrition$zh_CN nutrition = Translations$nutrition$zh_CN.internal(_root);
 	late final Translations$streak$zh_CN streak = Translations$streak$zh_CN.internal(_root);
 	late final Translations$settings$zh_CN settings = Translations$settings$zh_CN.internal(_root);
+	late final Translations$social$zh_CN social = Translations$social$zh_CN.internal(_root);
 	late final Translations$auth$zh_CN auth = Translations$auth$zh_CN.internal(_root);
 }
 
@@ -183,6 +184,17 @@ class Translations$settings$zh_CN {
 
 	// Translations
 	late final Translations$settings$language$zh_CN language = Translations$settings$language$zh_CN.internal(_root);
+}
+
+// Path: social
+class Translations$social$zh_CN {
+	Translations$social$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+	late final Translations$social$feed$zh_CN feed = Translations$social$feed$zh_CN.internal(_root);
+	late final Translations$social$compose$zh_CN compose = Translations$social$compose$zh_CN.internal(_root);
 }
 
 // Path: auth
@@ -912,6 +924,114 @@ class Translations$settings$language$zh_CN {
 
 	/// zh-CN: 'English'
 	String get en => 'English';
+}
+
+// Path: social.feed
+class Translations$social$feed$zh_CN {
+	Translations$social$feed$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '社区'
+	String get title => '社区';
+
+	/// zh-CN: '这里在等今天第一口美食登场。'
+	String get emptyTitle => '这里在等今天第一口美食登场。';
+
+	/// zh-CN: '发布你的第一条打卡，给同样在坚持的人一点光。'
+	String get emptySubtitle => '发布你的第一条打卡，给同样在坚持的人一点光。';
+
+	/// zh-CN: '发布打卡'
+	String get emptyCta => '发布打卡';
+
+	/// zh-CN: '打卡流加载失败，请稍后重试'
+	String get errorTitle => '打卡流加载失败，请稍后重试';
+
+	/// zh-CN: '内容审核中，仅自己可见'
+	String get pendingBadge => '内容审核中，仅自己可见';
+
+	/// zh-CN: '连续 ${days} 天'
+	String streakBadge({required Object days}) => '连续 ${days} 天';
+
+	/// zh-CN: '点赞'
+	String get like => '点赞';
+
+	/// zh-CN: '举报'
+	String get report => '举报';
+
+	/// zh-CN: '确定举报这条打卡吗？举报后内容将下架并提交人工复核。'
+	String get reportConfirm => '确定举报这条打卡吗？举报后内容将下架并提交人工复核。';
+
+	/// zh-CN: '已举报，感谢反馈'
+	String get reported => '已举报，感谢反馈';
+
+	/// zh-CN: '举报失败，请稍后重试'
+	String get reportFailed => '举报失败，请稍后重试';
+
+	/// zh-CN: '展开'
+	String get expand => '展开';
+
+	/// zh-CN: '收起'
+	String get collapse => '收起';
+
+	/// zh-CN: '刚刚'
+	String get justNow => '刚刚';
+
+	/// zh-CN: '${n} 分钟前'
+	String minutesAgo({required Object n}) => '${n} 分钟前';
+
+	/// zh-CN: '${n} 小时前'
+	String hoursAgo({required Object n}) => '${n} 小时前';
+
+	/// zh-CN: '${n} 天前'
+	String daysAgo({required Object n}) => '${n} 天前';
+
+	/// zh-CN: 'EatWise 伙伴'
+	String get anonymous => 'EatWise 伙伴';
+}
+
+// Path: social.compose
+class Translations$social$compose$zh_CN {
+	Translations$social$compose$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '发布打卡'
+	String get title => '发布打卡';
+
+	/// zh-CN: '记录这一刻的坚持…'
+	String get hint => '记录这一刻的坚持…';
+
+	/// zh-CN: '${n}/500'
+	String charCount({required Object n}) => '${n}/500';
+
+	/// zh-CN: '添加图片'
+	String get addPhoto => '添加图片';
+
+	/// zh-CN: '移除图片'
+	String get removePhoto => '移除图片';
+
+	/// zh-CN: '图片上传即将支持，本次先发布文字'
+	String get photoUploadTodo => '图片上传即将支持，本次先发布文字';
+
+	/// zh-CN: '当前连续 ${days} 天 🔥'
+	String streakBadge({required Object days}) => '当前连续 ${days} 天 🔥';
+
+	/// zh-CN: '完成今天的断食，打卡就会带上连胜徽章哦'
+	String get noStreak => '完成今天的断食，打卡就会带上连胜徽章哦';
+
+	/// zh-CN: '发布'
+	String get publish => '发布';
+
+	/// zh-CN: '发布失败，请稍后重试'
+	String get publishFailed => '发布失败，请稍后重试';
+
+	/// zh-CN: '先写点什么吧'
+	String get emptyText => '先写点什么吧';
 }
 
 // Path: auth.login
@@ -1677,6 +1797,36 @@ extension on Translations {
 			'settings.language.system' => '跟随系统',
 			'settings.language.zhCN' => '简体中文',
 			'settings.language.en' => 'English',
+			'social.feed.title' => '社区',
+			'social.feed.emptyTitle' => '这里在等今天第一口美食登场。',
+			'social.feed.emptySubtitle' => '发布你的第一条打卡，给同样在坚持的人一点光。',
+			'social.feed.emptyCta' => '发布打卡',
+			'social.feed.errorTitle' => '打卡流加载失败，请稍后重试',
+			'social.feed.pendingBadge' => '内容审核中，仅自己可见',
+			'social.feed.streakBadge' => ({required Object days}) => '连续 ${days} 天',
+			'social.feed.like' => '点赞',
+			'social.feed.report' => '举报',
+			'social.feed.reportConfirm' => '确定举报这条打卡吗？举报后内容将下架并提交人工复核。',
+			'social.feed.reported' => '已举报，感谢反馈',
+			'social.feed.reportFailed' => '举报失败，请稍后重试',
+			'social.feed.expand' => '展开',
+			'social.feed.collapse' => '收起',
+			'social.feed.justNow' => '刚刚',
+			'social.feed.minutesAgo' => ({required Object n}) => '${n} 分钟前',
+			'social.feed.hoursAgo' => ({required Object n}) => '${n} 小时前',
+			'social.feed.daysAgo' => ({required Object n}) => '${n} 天前',
+			'social.feed.anonymous' => 'EatWise 伙伴',
+			'social.compose.title' => '发布打卡',
+			'social.compose.hint' => '记录这一刻的坚持…',
+			'social.compose.charCount' => ({required Object n}) => '${n}/500',
+			'social.compose.addPhoto' => '添加图片',
+			'social.compose.removePhoto' => '移除图片',
+			'social.compose.photoUploadTodo' => '图片上传即将支持，本次先发布文字',
+			'social.compose.streakBadge' => ({required Object days}) => '当前连续 ${days} 天 🔥',
+			'social.compose.noStreak' => '完成今天的断食，打卡就会带上连胜徽章哦',
+			'social.compose.publish' => '发布',
+			'social.compose.publishFailed' => '发布失败，请稍后重试',
+			'social.compose.emptyText' => '先写点什么吧',
 			'auth.login.title' => '手机号登录',
 			'auth.login.subtitle' => '未注册的手机号验证后将自动注册',
 			'auth.login.phoneLabel' => '手机号',

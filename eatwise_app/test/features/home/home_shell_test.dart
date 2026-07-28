@@ -4,6 +4,7 @@ import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
+import 'package:eatwise/features/social/application/feed_controller.dart';
 import 'package:eatwise/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../fasting/presentation/fasting_presentation_test_helper.dart';
 import '../fasting/tz_test_helper.dart';
+import '../social/social_test_fakes.dart';
 
 /// 5 Tab 骨架 widget 测试：底栏五个分支渲染与切换、占位页四态空态文案、
 /// 分支状态保留（IndexedStack）。
@@ -52,6 +54,8 @@ void main() {
             localNotificationServiceProvider.overrideWithValue(
               FakeNotificationService(),
             ),
+            // M5：社区 Tab 已接真实打卡流，注入内存桩避免真实网络。
+            socialApiProvider.overrideWithValue(FakeSocialApi()),
             fastingClockProvider.overrideWithValue(() => bjtUtc(28, 0)),
             deviceLocationProvider.overrideWithValue(bjt),
           ],
@@ -89,14 +93,15 @@ void main() {
     expect(find.text('数据曲线正在热身，多记几天它就跑起来啦。'), findsOneWidget);
     expect(find.text('去记录'), findsOneWidget);
 
-    // 社区 Tab：空态 + CTA「即将上线」提示
+    // 社区 Tab：真实打卡流（M5）——空流 → 空态 + CTA「发布打卡」进发布页
     await tester.tap(find.text('社区'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('这里在等今天第一口美食登场。'), findsOneWidget);
     await tester.tap(find.text('发布打卡'));
     await tester.pump();
-    expect(find.text('社区功能即将上线，敬请期待'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('0/500'), findsOneWidget); // 发布页字数计数
 
     // 我的 Tab：空态 + 语言设置（D-15）
     await tester.tap(find.text('我的'));

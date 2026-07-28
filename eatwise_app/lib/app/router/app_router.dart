@@ -10,6 +10,8 @@ import 'package:eatwise/features/onboarding/presentation/questionnaire_screen.da
 import 'package:eatwise/features/onboarding/presentation/recommendation_screen.dart';
 import 'package:eatwise/features/onboarding/presentation/science_card_screen.dart';
 import 'package:eatwise/features/record/presentation/record_page.dart';
+import 'package:eatwise/features/social/presentation/community_feed_page.dart';
+import 'package:eatwise/features/social/presentation/compose_page.dart';
 import 'package:go_router/go_router.dart';
 
 /// 应用路由表（go_router，D-17）。
@@ -69,12 +71,18 @@ GoRouter createAppRouter({required OnboardingGate gate, AuthGate? authGate}) {
               ),
             ],
           ),
-          // 社区：M5 占位（四态空态 + 即将上线提示）。
+          // 社区：M5 打卡流（单列卡片）+ 发布页（FAB 进入）。
           StatefulShellBranch(
             routes: <RouteBase>[
               GoRoute(
                 path: '/community',
-                builder: (context, state) => const CommunityPlaceholderPage(),
+                builder: (context, state) => const CommunityFeedPage(),
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: 'compose',
+                    builder: (context, state) => const ComposePage(),
+                  ),
+                ],
               ),
             ],
           ),

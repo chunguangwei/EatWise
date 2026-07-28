@@ -28,6 +28,8 @@ const zh: Record<string, string> = {
   MAKEUP_CARD_EMPTY: '本月补签卡已用完',
   MAKEUP_OUT_OF_WINDOW: '只能补最近 7 天内的断签日',
   MAKEUP_ALREADY_USED: '该日期已经补签过了',
+  POST_CONTENT_REJECTED: '内容未通过审核，无法发布',
+  RESOURCE_GONE: '该内容已删除',
 };
 
 const en: Record<string, string> = {
@@ -49,6 +51,8 @@ const en: Record<string, string> = {
   MAKEUP_CARD_EMPTY: 'No makeup cards left this month',
   MAKEUP_OUT_OF_WINDOW: 'Only missed days within the last 7 days can be made up',
   MAKEUP_ALREADY_USED: 'This date has already been made up',
+  POST_CONTENT_REJECTED: 'Content did not pass review and cannot be published',
+  RESOURCE_GONE: 'This content has been deleted',
 };
 
 export function translate(code: string, locale: Locale): string {

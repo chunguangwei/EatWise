@@ -7,33 +7,13 @@ import 'package:eatwise/features/streak/presentation/streak_profile_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// 社区/我的 占位页（四态规范 3.2.2 空态统一结构：
+/// 我的 占位页（四态规范 3.2.2 空态统一结构：
 /// 插画位（线性图标）→ 主文案 → 副文案 → CTA 主按钮，中英双语）。
 ///
-/// 正式页面随 M5 社区 / M7 我的 迭代落地，本文件仅交付
-/// 符合四态规范的空态占位，CTA 已接真实出口或「即将上线」提示。
-/// M4 数据页已由 nutrition 模块正式页（NutritionDataPage）替换。
-
-/// 社区页占位：空态文案取自四态规范 3.2.2，CTA「发布打卡」为 P1 能力，
-/// 当前给「即将上线」提示（不阻断、不误导）。
-class CommunityPlaceholderPage extends StatelessWidget {
-  const CommunityPlaceholderPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Translations.of(context);
-    return _PlaceholderScaffold(
-      title: t.home.tab.community,
-      icon: Icons.people_outline,
-      emptyTitle: t.home.community.emptyTitle,
-      emptySubtitle: t.home.community.emptySubtitle,
-      ctaLabel: t.home.community.cta,
-      onCta: () => ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.home.community.comingSoon))),
-    );
-  }
-}
+/// 正式页面随 M7 我的 迭代落地，本文件仅交付
+/// 符合四态规范的空态占位。
+/// M4 数据页已由 nutrition 模块正式页（NutritionDataPage）替换；
+/// M5 社区已由 social 模块打卡流（CommunityFeedPage）替换。
 
 /// 我的页占位：空态 + 语言设置（D-15：设置内可手动切换，即时生效）。
 class ProfilePlaceholderPage extends StatelessWidget {

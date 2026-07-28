@@ -10,6 +10,7 @@ import { FoodModule } from './food/food.module';
 import { HealthController } from './health/health.controller';
 import { InfraModule } from './infra/infra.module';
 import { NutritionModule } from './nutrition/nutrition.module';
+import { SocialModule } from './social/social.module';
 import { StreakModule } from './streak/streak.module';
 import { SyncModule } from './sync/sync.module';
 import { UserModule } from './user/user.module';
@@ -25,6 +26,7 @@ import { UserModule } from './user/user.module';
     FastingModule,
     FoodModule,
     NutritionModule,
+    SocialModule,
     StreakModule,
     SyncModule,
   ],
