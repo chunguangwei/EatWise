@@ -312,6 +312,60 @@
       }
     }
   },
+  "reports": {
+    "title": "趋势与报告",
+    "entry": "趋势与深度报告",
+    "trend": {
+      "title": "成长趋势",
+      "dim": {
+        "weight": "体重",
+        "kcal": "热量",
+        "fasting": "断食时长"
+      },
+      "range": {
+        "d7": "7 天",
+        "d30": "30 天"
+      },
+      "unit": {
+        "kg": "公斤",
+        "kcal": "千卡",
+        "hour": "小时"
+      },
+      "empty": "数据曲线正在热身，多记几天它就跑起来啦",
+      "ctaRecord": "去记录",
+      "ctaFast": "去断食",
+      "ctaWeight": "记体重"
+    },
+    "growth": {
+      "title": "${days} 天成长轨迹",
+      "qualifiedDays": "断食达标",
+      "recordedDays": "记录天数",
+      "avgFasting": "平均断食",
+      "weightDelta": "体重变化",
+      "daysUnit": "天",
+      "hourUnit": "小时",
+      "kgUnit": "公斤",
+      "noValue": "—",
+      "empty": "还没有足迹，先记一笔或完成一次断食吧"
+    },
+    "weekly": {
+      "title": "本周报告",
+      "range": "${start} – ${end}",
+      "qualified": "达标 ${days} 天",
+      "entries": "记录 ${count} 条",
+      "greenRatio": "绿灯占比 ${percent}%",
+      "cheer": {
+        "great": "这一周节奏超稳，给自己点个大大的赞 🌱",
+        "mixed": "有起有落很正常，稳住节奏，下周继续～",
+        "start": "先动起来就很棒，数据会陪你一起进步。"
+      },
+      "empty": "周报还差一点点数据，记一笔或完成一次断食就生成啦"
+    },
+    "monthly": {
+      "title": "本月报告",
+      "placeholder": "月报完整版将于 V1.2 提供，先把周报跑起来～"
+    }
+  },
   "streak": {
     "home": {
       "streakDays": "连续 ${days} 天 🔥",

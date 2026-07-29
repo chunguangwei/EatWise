@@ -312,6 +312,60 @@
       }
     }
   },
+  "reports": {
+    "title": "Trends & reports",
+    "entry": "Trends & deep reports",
+    "trend": {
+      "title": "Growth trends",
+      "dim": {
+        "weight": "Weight",
+        "kcal": "Calories",
+        "fasting": "Fasting"
+      },
+      "range": {
+        "d7": "7D",
+        "d30": "30D"
+      },
+      "unit": {
+        "kg": "kg",
+        "kcal": "kcal",
+        "hour": "h"
+      },
+      "empty": "Your trends are warming up — log a few days to get them moving.",
+      "ctaRecord": "Log now",
+      "ctaFast": "Start fasting",
+      "ctaWeight": "Log weight"
+    },
+    "growth": {
+      "title": "${days}-day journey",
+      "qualifiedDays": "Fasting goals hit",
+      "recordedDays": "Days logged",
+      "avgFasting": "Avg. fast",
+      "weightDelta": "Weight change",
+      "daysUnit": "d",
+      "hourUnit": "h",
+      "kgUnit": "kg",
+      "noValue": "—",
+      "empty": "No footprints yet — log a meal or finish a fast to start."
+    },
+    "weekly": {
+      "title": "This week",
+      "range": "${start} – ${end}",
+      "qualified": "${days} days on target",
+      "entries": "${count} entries logged",
+      "greenRatio": "${percent}% green lights",
+      "cheer": {
+        "great": "Rock-steady week — give yourself a big thumbs-up 🌱",
+        "mixed": "Ups and downs are normal. Keep the rhythm next week~",
+        "start": "Starting is what counts — your data will grow with you."
+      },
+      "empty": "Almost there — log a meal or finish a fast to unlock your weekly report."
+    },
+    "monthly": {
+      "title": "This month",
+      "placeholder": "The full monthly report arrives in V1.2 — weekly report first~"
+    }
+  },
   "streak": {
     "home": {
       "streakDays": "${days}-day streak 🔥",

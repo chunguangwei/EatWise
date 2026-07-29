@@ -1,9 +1,17 @@
 pluginManagement {
     val flutterSdkPath =
         run {
-            val properties = java.util.Properties()
-            file("local.properties").inputStream().use { properties.load(it) }
-            val flutterSdkPath = properties.getProperty("flutter.sdk")
+            // 注意：java.util.Properties.load() 按 ISO-8859-1 解码，
+            // 当 Flutter SDK 路径含非 ASCII 字符（如中文目录「个人文件」）时会乱码，
+            // 导致 includeBuild 找不到 flutter_tools/gradle。
+            // 这里改为按 UTF-8 逐行解析 flutter.sdk。
+            val localPropertiesFile = file("local.properties")
+            val flutterSdkPath =
+                localPropertiesFile
+                    .readLines(Charsets.UTF_8)
+                    .firstOrNull { it.startsWith("flutter.sdk=") }
+                    ?.substringAfter("=")
+                    ?.trim()
             require(flutterSdkPath != null) { "flutter.sdk not set in local.properties" }
             flutterSdkPath
         }

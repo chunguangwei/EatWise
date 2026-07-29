@@ -10,6 +10,7 @@ import 'package:eatwise/features/onboarding/presentation/questionnaire_screen.da
 import 'package:eatwise/features/onboarding/presentation/recommendation_screen.dart';
 import 'package:eatwise/features/onboarding/presentation/science_card_screen.dart';
 import 'package:eatwise/features/record/presentation/record_page.dart';
+import 'package:eatwise/features/reports/presentation/reports_page.dart';
 import 'package:eatwise/features/social/presentation/community_feed_page.dart';
 import 'package:eatwise/features/social/presentation/compose_page.dart';
 import 'package:go_router/go_router.dart';
@@ -62,12 +63,20 @@ GoRouter createAppRouter({required OnboardingGate gate, AuthGate? authGate}) {
               ),
             ],
           ),
-          // 数据：M4 营养数据页（信号灯四卡 + 趋势 + 专业数据折叠）。
+          // 数据：M4 营养数据页（信号灯四卡 + 趋势 + 专业数据折叠）
+          // + M6 趋势与深度报告二级页（/data/reports）。
           StatefulShellBranch(
             routes: <RouteBase>[
               GoRoute(
                 path: '/data',
                 builder: (context, state) => const NutritionDataPage(),
+                routes: <RouteBase>[
+                  // M6：趋势与深度报告二级页。
+                  GoRoute(
+                    path: 'reports',
+                    builder: (context, state) => const ReportsPage(),
+                  ),
+                ],
               ),
             ],
           ),

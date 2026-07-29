@@ -47,6 +47,7 @@ class TranslationsEn extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$home$en home = _Translations$home$en._(_root);
 	@override late final _Translations$notification$en notification = _Translations$notification$en._(_root);
 	@override late final _Translations$nutrition$en nutrition = _Translations$nutrition$en._(_root);
+	@override late final _Translations$reports$en reports = _Translations$reports$en._(_root);
 	@override late final _Translations$streak$en streak = _Translations$streak$en._(_root);
 	@override late final _Translations$settings$en settings = _Translations$settings$en._(_root);
 	@override late final _Translations$social$en social = _Translations$social$en._(_root);
@@ -153,6 +154,21 @@ class _Translations$nutrition$en extends Translations$nutrition$zh_CN {
 	// Translations
 	@override late final _Translations$nutrition$data$en data = _Translations$nutrition$data$en._(_root);
 	@override late final _Translations$nutrition$signalCard$en signalCard = _Translations$nutrition$signalCard$en._(_root);
+}
+
+// Path: reports
+class _Translations$reports$en extends Translations$reports$zh_CN {
+	_Translations$reports$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Trends & reports';
+	@override String get entry => 'Trends & deep reports';
+	@override late final _Translations$reports$trend$en trend = _Translations$reports$trend$en._(_root);
+	@override late final _Translations$reports$growth$en growth = _Translations$reports$growth$en._(_root);
+	@override late final _Translations$reports$weekly$en weekly = _Translations$reports$weekly$en._(_root);
+	@override late final _Translations$reports$monthly$en monthly = _Translations$reports$monthly$en._(_root);
 }
 
 // Path: streak
@@ -568,6 +584,69 @@ class _Translations$nutrition$signalCard$en extends Translations$nutrition$signa
 	@override late final _Translations$nutrition$signalCard$advice$en advice = _Translations$nutrition$signalCard$advice$en._(_root);
 }
 
+// Path: reports.trend
+class _Translations$reports$trend$en extends Translations$reports$trend$zh_CN {
+	_Translations$reports$trend$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Growth trends';
+	@override late final _Translations$reports$trend$dim$en dim = _Translations$reports$trend$dim$en._(_root);
+	@override late final _Translations$reports$trend$range$en range = _Translations$reports$trend$range$en._(_root);
+	@override late final _Translations$reports$trend$unit$en unit = _Translations$reports$trend$unit$en._(_root);
+	@override String get empty => 'Your trends are warming up — log a few days to get them moving.';
+	@override String get ctaRecord => 'Log now';
+	@override String get ctaFast => 'Start fasting';
+	@override String get ctaWeight => 'Log weight';
+}
+
+// Path: reports.growth
+class _Translations$reports$growth$en extends Translations$reports$growth$zh_CN {
+	_Translations$reports$growth$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String title({required Object days}) => '${days}-day journey';
+	@override String get qualifiedDays => 'Fasting goals hit';
+	@override String get recordedDays => 'Days logged';
+	@override String get avgFasting => 'Avg. fast';
+	@override String get weightDelta => 'Weight change';
+	@override String get daysUnit => 'd';
+	@override String get hourUnit => 'h';
+	@override String get kgUnit => 'kg';
+	@override String get noValue => '—';
+	@override String get empty => 'No footprints yet — log a meal or finish a fast to start.';
+}
+
+// Path: reports.weekly
+class _Translations$reports$weekly$en extends Translations$reports$weekly$zh_CN {
+	_Translations$reports$weekly$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'This week';
+	@override String range({required Object start, required Object end}) => '${start} – ${end}';
+	@override String qualified({required Object days}) => '${days} days on target';
+	@override String entries({required Object count}) => '${count} entries logged';
+	@override String greenRatio({required Object percent}) => '${percent}% green lights';
+	@override late final _Translations$reports$weekly$cheer$en cheer = _Translations$reports$weekly$cheer$en._(_root);
+	@override String get empty => 'Almost there — log a meal or finish a fast to unlock your weekly report.';
+}
+
+// Path: reports.monthly
+class _Translations$reports$monthly$en extends Translations$reports$monthly$zh_CN {
+	_Translations$reports$monthly$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'This month';
+	@override String get placeholder => 'The full monthly report arrives in V1.2 — weekly report first~';
+}
+
 // Path: streak.home
 class _Translations$streak$home$en extends Translations$streak$home$zh_CN {
 	_Translations$streak$home$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -911,6 +990,53 @@ class _Translations$nutrition$signalCard$advice$en extends Translations$nutritio
 	@override late final _Translations$nutrition$signalCard$advice$meal$en meal = _Translations$nutrition$signalCard$advice$meal$en._(_root);
 }
 
+// Path: reports.trend.dim
+class _Translations$reports$trend$dim$en extends Translations$reports$trend$dim$zh_CN {
+	_Translations$reports$trend$dim$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get weight => 'Weight';
+	@override String get kcal => 'Calories';
+	@override String get fasting => 'Fasting';
+}
+
+// Path: reports.trend.range
+class _Translations$reports$trend$range$en extends Translations$reports$trend$range$zh_CN {
+	_Translations$reports$trend$range$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get d7 => '7D';
+	@override String get d30 => '30D';
+}
+
+// Path: reports.trend.unit
+class _Translations$reports$trend$unit$en extends Translations$reports$trend$unit$zh_CN {
+	_Translations$reports$trend$unit$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get kg => 'kg';
+	@override String get kcal => 'kcal';
+	@override String get hour => 'h';
+}
+
+// Path: reports.weekly.cheer
+class _Translations$reports$weekly$cheer$en extends Translations$reports$weekly$cheer$zh_CN {
+	_Translations$reports$weekly$cheer$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get great => 'Rock-steady week — give yourself a big thumbs-up 🌱';
+	@override String get mixed => 'Ups and downs are normal. Keep the rhythm next week~';
+	@override String get start => 'Starting is what counts — your data will grow with you.';
+}
+
 // Path: onboarding.quiz.q1.options
 class _Translations$onboarding$quiz$q1$options$en extends Translations$onboarding$quiz$q1$options$zh_CN {
 	_Translations$onboarding$quiz$q1$options$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -1223,6 +1349,42 @@ extension on TranslationsEn {
 			'nutrition.signalCard.advice.meal.lunch' => 'go for a palm-size portion of lean meat or tofu at lunch',
 			'nutrition.signalCard.advice.meal.dinner' => 'pick something steamed or lightly poached for dinner, and stop at 80% full',
 			'nutrition.signalCard.advice.meal.snack' => 'grab a handful of nuts or a yogurt as a snack',
+			'reports.title' => 'Trends & reports',
+			'reports.entry' => 'Trends & deep reports',
+			'reports.trend.title' => 'Growth trends',
+			'reports.trend.dim.weight' => 'Weight',
+			'reports.trend.dim.kcal' => 'Calories',
+			'reports.trend.dim.fasting' => 'Fasting',
+			'reports.trend.range.d7' => '7D',
+			'reports.trend.range.d30' => '30D',
+			'reports.trend.unit.kg' => 'kg',
+			'reports.trend.unit.kcal' => 'kcal',
+			'reports.trend.unit.hour' => 'h',
+			'reports.trend.empty' => 'Your trends are warming up — log a few days to get them moving.',
+			'reports.trend.ctaRecord' => 'Log now',
+			'reports.trend.ctaFast' => 'Start fasting',
+			'reports.trend.ctaWeight' => 'Log weight',
+			'reports.growth.title' => ({required Object days}) => '${days}-day journey',
+			'reports.growth.qualifiedDays' => 'Fasting goals hit',
+			'reports.growth.recordedDays' => 'Days logged',
+			'reports.growth.avgFasting' => 'Avg. fast',
+			'reports.growth.weightDelta' => 'Weight change',
+			'reports.growth.daysUnit' => 'd',
+			'reports.growth.hourUnit' => 'h',
+			'reports.growth.kgUnit' => 'kg',
+			'reports.growth.noValue' => '—',
+			'reports.growth.empty' => 'No footprints yet — log a meal or finish a fast to start.',
+			'reports.weekly.title' => 'This week',
+			'reports.weekly.range' => ({required Object start, required Object end}) => '${start} – ${end}',
+			'reports.weekly.qualified' => ({required Object days}) => '${days} days on target',
+			'reports.weekly.entries' => ({required Object count}) => '${count} entries logged',
+			'reports.weekly.greenRatio' => ({required Object percent}) => '${percent}% green lights',
+			'reports.weekly.cheer.great' => 'Rock-steady week — give yourself a big thumbs-up 🌱',
+			'reports.weekly.cheer.mixed' => 'Ups and downs are normal. Keep the rhythm next week~',
+			'reports.weekly.cheer.start' => 'Starting is what counts — your data will grow with you.',
+			'reports.weekly.empty' => 'Almost there — log a meal or finish a fast to unlock your weekly report.',
+			'reports.monthly.title' => 'This month',
+			'reports.monthly.placeholder' => 'The full monthly report arrives in V1.2 — weekly report first~',
 			'streak.home.streakDays' => ({required Object days}) => '${days}-day streak 🔥',
 			'streak.home.startHint' => 'Finish today\'s fast to start day 1',
 			'streak.milestone.title' => ({required Object days}) => '${days}-day streak! You\'ve outlasted 80% of the community 🎉',

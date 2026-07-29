@@ -47,6 +47,14 @@ class NutritionDataPage extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: colors.bgPrimary,
         title: Text(t.home.tab.data, style: textStyles.textXl),
+        actions: <Widget>[
+          // M6 入口：趋势与深度报告二级页（/data/reports）。
+          IconButton(
+            tooltip: t.reports.entry,
+            icon: const Icon(Icons.insights_outlined),
+            onPressed: () => context.push('/data/reports'),
+          ),
+        ],
       ),
       body: SafeArea(
         child: ListView(

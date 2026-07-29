@@ -48,6 +48,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$home$zh_CN home = Translations$home$zh_CN.internal(_root);
 	late final Translations$notification$zh_CN notification = Translations$notification$zh_CN.internal(_root);
 	late final Translations$nutrition$zh_CN nutrition = Translations$nutrition$zh_CN.internal(_root);
+	late final Translations$reports$zh_CN reports = Translations$reports$zh_CN.internal(_root);
 	late final Translations$streak$zh_CN streak = Translations$streak$zh_CN.internal(_root);
 	late final Translations$settings$zh_CN settings = Translations$settings$zh_CN.internal(_root);
 	late final Translations$social$zh_CN social = Translations$social$zh_CN.internal(_root);
@@ -161,6 +162,26 @@ class Translations$nutrition$zh_CN {
 	// Translations
 	late final Translations$nutrition$data$zh_CN data = Translations$nutrition$data$zh_CN.internal(_root);
 	late final Translations$nutrition$signalCard$zh_CN signalCard = Translations$nutrition$signalCard$zh_CN.internal(_root);
+}
+
+// Path: reports
+class Translations$reports$zh_CN {
+	Translations$reports$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '趋势与报告'
+	String get title => '趋势与报告';
+
+	/// zh-CN: '趋势与深度报告'
+	String get entry => '趋势与深度报告';
+
+	late final Translations$reports$trend$zh_CN trend = Translations$reports$trend$zh_CN.internal(_root);
+	late final Translations$reports$growth$zh_CN growth = Translations$reports$growth$zh_CN.internal(_root);
+	late final Translations$reports$weekly$zh_CN weekly = Translations$reports$weekly$zh_CN.internal(_root);
+	late final Translations$reports$monthly$zh_CN monthly = Translations$reports$monthly$zh_CN.internal(_root);
 }
 
 // Path: streak
@@ -800,6 +821,117 @@ class Translations$nutrition$signalCard$zh_CN {
 	late final Translations$nutrition$signalCard$advice$zh_CN advice = Translations$nutrition$signalCard$advice$zh_CN.internal(_root);
 }
 
+// Path: reports.trend
+class Translations$reports$trend$zh_CN {
+	Translations$reports$trend$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '成长趋势'
+	String get title => '成长趋势';
+
+	late final Translations$reports$trend$dim$zh_CN dim = Translations$reports$trend$dim$zh_CN.internal(_root);
+	late final Translations$reports$trend$range$zh_CN range = Translations$reports$trend$range$zh_CN.internal(_root);
+	late final Translations$reports$trend$unit$zh_CN unit = Translations$reports$trend$unit$zh_CN.internal(_root);
+
+	/// zh-CN: '数据曲线正在热身，多记几天它就跑起来啦'
+	String get empty => '数据曲线正在热身，多记几天它就跑起来啦';
+
+	/// zh-CN: '去记录'
+	String get ctaRecord => '去记录';
+
+	/// zh-CN: '去断食'
+	String get ctaFast => '去断食';
+
+	/// zh-CN: '记体重'
+	String get ctaWeight => '记体重';
+}
+
+// Path: reports.growth
+class Translations$reports$growth$zh_CN {
+	Translations$reports$growth$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '${days} 天成长轨迹'
+	String title({required Object days}) => '${days} 天成长轨迹';
+
+	/// zh-CN: '断食达标'
+	String get qualifiedDays => '断食达标';
+
+	/// zh-CN: '记录天数'
+	String get recordedDays => '记录天数';
+
+	/// zh-CN: '平均断食'
+	String get avgFasting => '平均断食';
+
+	/// zh-CN: '体重变化'
+	String get weightDelta => '体重变化';
+
+	/// zh-CN: '天'
+	String get daysUnit => '天';
+
+	/// zh-CN: '小时'
+	String get hourUnit => '小时';
+
+	/// zh-CN: '公斤'
+	String get kgUnit => '公斤';
+
+	/// zh-CN: '—'
+	String get noValue => '—';
+
+	/// zh-CN: '还没有足迹，先记一笔或完成一次断食吧'
+	String get empty => '还没有足迹，先记一笔或完成一次断食吧';
+}
+
+// Path: reports.weekly
+class Translations$reports$weekly$zh_CN {
+	Translations$reports$weekly$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '本周报告'
+	String get title => '本周报告';
+
+	/// zh-CN: '${start} – ${end}'
+	String range({required Object start, required Object end}) => '${start} – ${end}';
+
+	/// zh-CN: '达标 ${days} 天'
+	String qualified({required Object days}) => '达标 ${days} 天';
+
+	/// zh-CN: '记录 ${count} 条'
+	String entries({required Object count}) => '记录 ${count} 条';
+
+	/// zh-CN: '绿灯占比 ${percent}%'
+	String greenRatio({required Object percent}) => '绿灯占比 ${percent}%';
+
+	late final Translations$reports$weekly$cheer$zh_CN cheer = Translations$reports$weekly$cheer$zh_CN.internal(_root);
+
+	/// zh-CN: '周报还差一点点数据，记一笔或完成一次断食就生成啦'
+	String get empty => '周报还差一点点数据，记一笔或完成一次断食就生成啦';
+}
+
+// Path: reports.monthly
+class Translations$reports$monthly$zh_CN {
+	Translations$reports$monthly$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '本月报告'
+	String get title => '本月报告';
+
+	/// zh-CN: '月报完整版将于 V1.2 提供，先把周报跑起来～'
+	String get placeholder => '月报完整版将于 V1.2 提供，先把周报跑起来～';
+}
+
 // Path: streak.home
 class Translations$streak$home$zh_CN {
 	Translations$streak$home$zh_CN.internal(this._root);
@@ -1384,6 +1516,75 @@ class Translations$nutrition$signalCard$advice$zh_CN {
 	late final Translations$nutrition$signalCard$advice$meal$zh_CN meal = Translations$nutrition$signalCard$advice$meal$zh_CN.internal(_root);
 }
 
+// Path: reports.trend.dim
+class Translations$reports$trend$dim$zh_CN {
+	Translations$reports$trend$dim$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '体重'
+	String get weight => '体重';
+
+	/// zh-CN: '热量'
+	String get kcal => '热量';
+
+	/// zh-CN: '断食时长'
+	String get fasting => '断食时长';
+}
+
+// Path: reports.trend.range
+class Translations$reports$trend$range$zh_CN {
+	Translations$reports$trend$range$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '7 天'
+	String get d7 => '7 天';
+
+	/// zh-CN: '30 天'
+	String get d30 => '30 天';
+}
+
+// Path: reports.trend.unit
+class Translations$reports$trend$unit$zh_CN {
+	Translations$reports$trend$unit$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '公斤'
+	String get kg => '公斤';
+
+	/// zh-CN: '千卡'
+	String get kcal => '千卡';
+
+	/// zh-CN: '小时'
+	String get hour => '小时';
+}
+
+// Path: reports.weekly.cheer
+class Translations$reports$weekly$cheer$zh_CN {
+	Translations$reports$weekly$cheer$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '这一周节奏超稳，给自己点个大大的赞 🌱'
+	String get great => '这一周节奏超稳，给自己点个大大的赞 🌱';
+
+	/// zh-CN: '有起有落很正常，稳住节奏，下周继续～'
+	String get mixed => '有起有落很正常，稳住节奏，下周继续～';
+
+	/// zh-CN: '先动起来就很棒，数据会陪你一起进步。'
+	String get start => '先动起来就很棒，数据会陪你一起进步。';
+}
+
 // Path: onboarding.quiz.q1.options
 class Translations$onboarding$quiz$q1$options$zh_CN {
 	Translations$onboarding$quiz$q1$options$zh_CN.internal(this._root);
@@ -1770,6 +1971,42 @@ extension on Translations {
 			'nutrition.signalCard.advice.meal.lunch' => '午餐来份掌心大的瘦肉或豆腐',
 			'nutrition.signalCard.advice.meal.dinner' => '晚餐选清蒸/白灼，七分饱就好',
 			'nutrition.signalCard.advice.meal.snack' => '加餐来把坚果或一杯酸奶',
+			'reports.title' => '趋势与报告',
+			'reports.entry' => '趋势与深度报告',
+			'reports.trend.title' => '成长趋势',
+			'reports.trend.dim.weight' => '体重',
+			'reports.trend.dim.kcal' => '热量',
+			'reports.trend.dim.fasting' => '断食时长',
+			'reports.trend.range.d7' => '7 天',
+			'reports.trend.range.d30' => '30 天',
+			'reports.trend.unit.kg' => '公斤',
+			'reports.trend.unit.kcal' => '千卡',
+			'reports.trend.unit.hour' => '小时',
+			'reports.trend.empty' => '数据曲线正在热身，多记几天它就跑起来啦',
+			'reports.trend.ctaRecord' => '去记录',
+			'reports.trend.ctaFast' => '去断食',
+			'reports.trend.ctaWeight' => '记体重',
+			'reports.growth.title' => ({required Object days}) => '${days} 天成长轨迹',
+			'reports.growth.qualifiedDays' => '断食达标',
+			'reports.growth.recordedDays' => '记录天数',
+			'reports.growth.avgFasting' => '平均断食',
+			'reports.growth.weightDelta' => '体重变化',
+			'reports.growth.daysUnit' => '天',
+			'reports.growth.hourUnit' => '小时',
+			'reports.growth.kgUnit' => '公斤',
+			'reports.growth.noValue' => '—',
+			'reports.growth.empty' => '还没有足迹，先记一笔或完成一次断食吧',
+			'reports.weekly.title' => '本周报告',
+			'reports.weekly.range' => ({required Object start, required Object end}) => '${start} – ${end}',
+			'reports.weekly.qualified' => ({required Object days}) => '达标 ${days} 天',
+			'reports.weekly.entries' => ({required Object count}) => '记录 ${count} 条',
+			'reports.weekly.greenRatio' => ({required Object percent}) => '绿灯占比 ${percent}%',
+			'reports.weekly.cheer.great' => '这一周节奏超稳，给自己点个大大的赞 🌱',
+			'reports.weekly.cheer.mixed' => '有起有落很正常，稳住节奏，下周继续～',
+			'reports.weekly.cheer.start' => '先动起来就很棒，数据会陪你一起进步。',
+			'reports.weekly.empty' => '周报还差一点点数据，记一笔或完成一次断食就生成啦',
+			'reports.monthly.title' => '本月报告',
+			'reports.monthly.placeholder' => '月报完整版将于 V1.2 提供，先把周报跑起来～',
 			'streak.home.streakDays' => ({required Object days}) => '连续 ${days} 天 🔥',
 			'streak.home.startHint' => '完成今天断食，开启第 1 天',
 			'streak.milestone.title' => ({required Object days}) => '连续 ${days} 天！你已经超过了 80% 的伙伴 🎉',
