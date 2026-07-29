@@ -211,6 +211,10 @@
         "evening": "Good evening",
         "night": "Still up? A glass of water and an early night is self-care too"
       }
+    },
+    "widget": {
+      "dueEat": "Eat at ${time}",
+      "dueEatEnd": "Window ends ${time}"
     }
   },
   "home": {

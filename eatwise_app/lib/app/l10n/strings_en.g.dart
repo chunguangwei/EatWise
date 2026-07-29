@@ -123,6 +123,7 @@ class _Translations$fasting$en extends Translations$fasting$zh_CN {
 
 	// Translations
 	@override late final _Translations$fasting$home$en home = _Translations$fasting$home$en._(_root);
+	@override late final _Translations$fasting$widget$en widget = _Translations$fasting$widget$en._(_root);
 }
 
 // Path: home
@@ -546,6 +547,17 @@ class _Translations$fasting$home$en extends Translations$fasting$home$zh_CN {
 	@override String get celebrationBadge => 'Fast complete ✨';
 	@override String get signalEmpty => 'Nothing logged today — log a bite and your signal lights will show up';
 	@override late final _Translations$fasting$home$greeting$en greeting = _Translations$fasting$home$greeting$en._(_root);
+}
+
+// Path: fasting.widget
+class _Translations$fasting$widget$en extends Translations$fasting$widget$zh_CN {
+	_Translations$fasting$widget$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String dueEat({required Object time}) => 'Eat at ${time}';
+	@override String dueEatEnd({required Object time}) => 'Window ends ${time}';
 }
 
 // Path: home.tab
@@ -1481,6 +1493,8 @@ extension on TranslationsEn {
 			'fasting.home.greeting.afternoon' => 'Good afternoon',
 			'fasting.home.greeting.evening' => 'Good evening',
 			'fasting.home.greeting.night' => 'Still up? A glass of water and an early night is self-care too',
+			'fasting.widget.dueEat' => ({required Object time}) => 'Eat at ${time}',
+			'fasting.widget.dueEatEnd' => ({required Object time}) => 'Window ends ${time}',
 			'home.tab.home' => 'Home',
 			'home.tab.record' => 'Log',
 			'home.tab.data' => 'Stats',

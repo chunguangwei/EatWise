@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 小组件配色（亮态；暗态见 values-night/colors.xml） -->
+    <color name="widget_background">#FFFFFF</color>
+    <color name="widget_text_primary">#1F2937</color>
+    <color name="widget_text_secondary">#6B7280</color>
+</resources>

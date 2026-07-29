@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="eatwise_widget_name">Fasting Timer</string>
+    <string name="eatwise_widget_description">See your fasting/eating countdown and check-in day on the home screen</string>
+</resources>

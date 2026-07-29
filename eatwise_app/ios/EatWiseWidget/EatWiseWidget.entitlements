@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- App Group：与 Dart 侧 kWidgetAppGroupId 一致（group.com.eatwise.shared）。
+	     Runner（App target）的 entitlements 也需加同一 group，否则
+	     home_widget setAppGroupId 写入的 UserDefaults 小组件读不到。 -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.eatwise.shared</string>
+	</array>
+</dict>
+</plist>

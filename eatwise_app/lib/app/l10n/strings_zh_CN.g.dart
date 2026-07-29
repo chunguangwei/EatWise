@@ -131,6 +131,7 @@ class Translations$fasting$zh_CN {
 
 	// Translations
 	late final Translations$fasting$home$zh_CN home = Translations$fasting$home$zh_CN.internal(_root);
+	late final Translations$fasting$widget$zh_CN widget = Translations$fasting$widget$zh_CN.internal(_root);
 }
 
 // Path: home
@@ -770,6 +771,21 @@ class Translations$fasting$home$zh_CN {
 	String get signalEmpty => '今天还没记录，记一笔后信号灯会亮起来';
 
 	late final Translations$fasting$home$greeting$zh_CN greeting = Translations$fasting$home$greeting$zh_CN.internal(_root);
+}
+
+// Path: fasting.widget
+class Translations$fasting$widget$zh_CN {
+	Translations$fasting$widget$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '${time} 可进食'
+	String dueEat({required Object time}) => '${time} 可进食';
+
+	/// zh-CN: '${time} 进食截止'
+	String dueEatEnd({required Object time}) => '${time} 进食截止';
 }
 
 // Path: home.tab
@@ -2231,6 +2247,8 @@ extension on Translations {
 			'fasting.home.greeting.afternoon' => '下午好',
 			'fasting.home.greeting.evening' => '晚上好',
 			'fasting.home.greeting.night' => '这么晚还醒着？喝口水早点睡也是养生哦',
+			'fasting.widget.dueEat' => ({required Object time}) => '${time} 可进食',
+			'fasting.widget.dueEatEnd' => ({required Object time}) => '${time} 进食截止',
 			'home.tab.home' => '首页',
 			'home.tab.record' => '记录',
 			'home.tab.data' => '数据',

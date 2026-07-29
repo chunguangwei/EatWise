@@ -5,6 +5,7 @@ import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/analytics_service.dart';
 import 'package:eatwise/core/notification/local_notification_service.dart';
 import 'package:eatwise/core/notification/notification_service.dart';
+import 'package:eatwise/core/widget_bridge/widget_sync_service.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_scheduler.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_texts.dart';
 import 'package:eatwise/features/fasting/domain/fast_cycle.dart';
@@ -133,10 +134,35 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
 
   tz.Location get _location => ref.read(deviceLocationProvider);
 
+  /// 上次小组件同步的分钟序号（tick 跨分钟边界判定用，-1 = 未同步）。
+  int _lastWidgetSyncMinute = -1;
+
+  /// 小组件刷新（《规格-M2》§8：与通知 reschedule 挂同一触发链）。
+  ///
+  /// 数据由 WidgetDataProvider 从「周期快照 + anchorsFor」重算，
+  /// 与计时主控同源；WidgetSyncService 内部 diff 跳过 + 失败降级，
+  /// 不阻断计时主流程。
+  void _syncWidget(FastingPlan? plan) {
+    final data = ref
+        .read(widgetDataProviderProvider)
+        .compute(
+          plan: plan,
+          activeCycle: _store.loadActiveCycle(),
+          earlyEatEndUtc: _store.loadEarlyEatEndUtc(),
+          nowUtcSec: _now(),
+          location: _location,
+        );
+    _lastWidgetSyncMinute = _now() ~/ 60;
+    unawaited(ref.read(widgetSyncServiceProvider).sync(data));
+  }
+
   @override
   FastingTimerState build() {
     final plan = ref.watch(onboardingStoreProvider).loadActivePlan()?.plan;
-    if (plan == null) return const FastingTimerState.noPlan();
+    if (plan == null) {
+      _syncWidget(null);
+      return const FastingTimerState.noPlan();
+    }
     final now = _now();
 
     // 重启恢复对账（T16 APP_FOREGROUND，§6-B12/B13）：
@@ -158,6 +184,7 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
       for (final record in result.closedRecords) {
         _emitClosed(record, plan);
       }
+      _syncWidget(plan);
       return _resolve(
         plan,
         result.snapshot,
@@ -165,6 +192,7 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
         lastClosed: closed,
       );
     }
+    _syncWidget(plan);
     return _resolve(plan, resolveState(now, plan, _location));
   }
 
@@ -251,7 +279,14 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
         celebrating: record.qualified,
         lastClosed: record,
       );
+      _syncWidget(plan);
       return;
+    }
+    // tick 跨分钟边界：小组件数据为锚点制，正常 diff 会跳过平台调用；
+    // 此处兜底保证延长/时区变化等旁路改动 1 分钟内收敛（§8.3 误差 ≤1 分钟）。
+    final minute = now ~/ 60;
+    if (minute != _lastWidgetSyncMinute) {
+      _syncWidget(plan);
     }
     state = _resolve(plan, resolveState(now, plan, _location));
   }
@@ -295,6 +330,7 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
       celebrating: record.qualified,
       lastClosed: record,
     );
+    _syncWidget(plan);
   }
 
   /// 「延长」一步（T5/T6/T7：步进 30min、单周期累计上限 4h，D-10）。
@@ -321,6 +357,7 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
       RescheduleReason.extensionApplied,
     );
     state = _resolve(plan, resolveState(_now(), plan, _location));
+    _syncWidget(plan);
     return true;
   }
 

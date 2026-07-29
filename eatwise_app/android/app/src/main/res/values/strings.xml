@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 小组件选择器中的名称与描述（默认中文，英文见 values-en；D-15） -->
+    <string name="eatwise_widget_name">断食计时</string>
+    <string name="eatwise_widget_description">在桌面查看断食/进食倒计时与打卡归属日</string>
+</resources>

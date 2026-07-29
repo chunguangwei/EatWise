@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EatWise 断食计时小组件元数据（设计规范 §4.5：2×2 最小、可拉伸到 4×2；
+     updatePeriodMillis 受系统 ≥30 分钟限制，精确刷新由 Dart 侧触发链
+     updateWidget 广播驱动，见 WidgetSyncService） -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:maxResizeWidth="330dp"
+    android:maxResizeHeight="110dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/widget_fasting_4x2"
+    android:previewImage="@drawable/widget_preview"
+    android:description="@string/eatwise_widget_description"
+    android:widgetCategory="home_screen" />

@@ -44,6 +44,20 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- 断食计时桌面小组件（《规格-M2》§8.2 / 设计规范 §4.5）：
+             数据经 home_widget SharedPreferences 共享，Dart 侧 WidgetSyncService
+             触发 updateWidget 广播刷新；点击经 home_widget 深链进首页 -->
+        <receiver
+            android:name=".EatWiseWidgetProvider"
+            android:exported="false"
+            android:label="@string/eatwise_widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/eatwise_widget_info"/>
+        </receiver>
         <!-- flutter_local_notifications：重启/换装后恢复已排程的本地通知
              （《规格-M2》§6-B14；App 侧另有首开对账重排兜底） -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />

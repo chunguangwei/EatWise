@@ -10,6 +10,8 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/food_seed_loader.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
+import 'package:eatwise/core/widget_bridge/home_widget_gateway.dart';
+import 'package:eatwise/core/widget_bridge/widget_deep_link.dart';
 import 'package:eatwise/features/auth/application/auth_gate.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_texts.dart';
@@ -123,6 +125,9 @@ Future<void> main() async {
           gate: gate,
           authGate: authGate,
           privacyGate: privacyGate,
+          widgetDeepLink: WidgetDeepLinkService(
+            gateway: const HomeWidgetPluginGateway(),
+          ),
         ),
       ),
     ),
@@ -130,7 +135,13 @@ Future<void> main() async {
 }
 
 class EatWiseApp extends StatefulWidget {
-  const EatWiseApp({super.key, this.gate, this.authGate, this.privacyGate});
+  const EatWiseApp({
+    super.key,
+    this.gate,
+    this.authGate,
+    this.privacyGate,
+    this.widgetDeepLink,
+  });
 
   /// 新手引导门禁；缺省按「已完成」处理（保留 M0 演示冒烟路径）。
   final OnboardingGate? gate;
@@ -140,6 +151,9 @@ class EatWiseApp extends StatefulWidget {
 
   /// 首启隐私门禁（D-18）；缺省视为已同意（保留既有测试/演示路径）。
   final PrivacyGate? privacyGate;
+
+  /// 小组件点击深链服务（§4.5：点击进首页）；缺省不启用（测试路径）。
+  final WidgetDeepLinkService? widgetDeepLink;
 
   @override
   State<EatWiseApp> createState() => _EatWiseAppState();
@@ -151,6 +165,19 @@ class _EatWiseAppState extends State<EatWiseApp> {
     authGate: widget.authGate,
     privacyGate: widget.privacyGate,
   );
+
+  @override
+  void initState() {
+    super.initState();
+    // 小组件点击深链 → 首页（设计规范 §4.5，冷/热启动两路）。
+    widget.widgetDeepLink?.start(onOpenHome: () => _router.go('/'));
+  }
+
+  @override
+  void dispose() {
+    unawaited(widget.widgetDeepLink?.dispose() ?? Future<void>.value());
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
