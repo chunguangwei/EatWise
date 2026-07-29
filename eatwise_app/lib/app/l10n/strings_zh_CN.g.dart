@@ -51,6 +51,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$reports$zh_CN reports = Translations$reports$zh_CN.internal(_root);
 	late final Translations$streak$zh_CN streak = Translations$streak$zh_CN.internal(_root);
 	late final Translations$settings$zh_CN settings = Translations$settings$zh_CN.internal(_root);
+	late final Translations$legal$zh_CN legal = Translations$legal$zh_CN.internal(_root);
 	late final Translations$social$zh_CN social = Translations$social$zh_CN.internal(_root);
 	late final Translations$auth$zh_CN auth = Translations$auth$zh_CN.internal(_root);
 }
@@ -206,7 +207,34 @@ class Translations$settings$zh_CN {
 	final Translations _root; // ignore: unused_field
 
 	// Translations
+
+	/// zh-CN: '设置'
+	String get title => '设置';
+
 	late final Translations$settings$language$zh_CN language = Translations$settings$language$zh_CN.internal(_root);
+	late final Translations$settings$group$zh_CN group = Translations$settings$group$zh_CN.internal(_root);
+	late final Translations$settings$account$zh_CN account = Translations$settings$account$zh_CN.internal(_root);
+	late final Translations$settings$privacy$zh_CN privacy = Translations$settings$privacy$zh_CN.internal(_root);
+	late final Translations$settings$theme$zh_CN theme = Translations$settings$theme$zh_CN.internal(_root);
+	late final Translations$settings$reminders$zh_CN reminders = Translations$settings$reminders$zh_CN.internal(_root);
+	late final Translations$settings$about$zh_CN about = Translations$settings$about$zh_CN.internal(_root);
+}
+
+// Path: legal
+class Translations$legal$zh_CN {
+	Translations$legal$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '〔待外部确认：法务终稿〕'
+	String get draftNote => '〔待外部确认：法务终稿〕';
+
+	late final Translations$legal$consent$zh_CN consent = Translations$legal$consent$zh_CN.internal(_root);
+	late final Translations$legal$disclaimer$zh_CN disclaimer = Translations$legal$disclaimer$zh_CN.internal(_root);
+	late final Translations$legal$privacyPolicy$zh_CN privacyPolicy = Translations$legal$privacyPolicy$zh_CN.internal(_root);
+	late final Translations$legal$userAgreement$zh_CN userAgreement = Translations$legal$userAgreement$zh_CN.internal(_root);
 }
 
 // Path: social
@@ -1103,6 +1131,252 @@ class Translations$settings$language$zh_CN {
 
 	/// zh-CN: 'English'
 	String get en => 'English';
+}
+
+// Path: settings.group
+class Translations$settings$group$zh_CN {
+	Translations$settings$group$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '账号'
+	String get account => '账号';
+
+	/// zh-CN: '隐私'
+	String get privacy => '隐私';
+
+	/// zh-CN: '偏好'
+	String get preferences => '偏好';
+
+	/// zh-CN: '提醒'
+	String get reminders => '提醒';
+
+	/// zh-CN: '关于'
+	String get about => '关于';
+}
+
+// Path: settings.account
+class Translations$settings$account$zh_CN {
+	Translations$settings$account$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '手机号'
+	String get phone => '手机号';
+
+	/// zh-CN: '未登录'
+	String get notLoggedIn => '未登录';
+
+	/// zh-CN: '登出'
+	String get logout => '登出';
+
+	/// zh-CN: '删除账号'
+	String get deleteAccount => '删除账号';
+
+	/// zh-CN: '删除账号？'
+	String get deleteConfirmTitle => '删除账号？';
+
+	/// zh-CN: '删除后，你的手机号、基础资料、全部饮食/断食记录等个人数据将被物理删除，且不可恢复。申请后进入 7 天冷静期：冷静期内登录即视为撤销删除，第 7 天执行删除。'
+	String get deleteConfirmBody => '删除后，你的手机号、基础资料、全部饮食/断食记录等个人数据将被物理删除，且不可恢复。申请后进入 7 天冷静期：冷静期内登录即视为撤销删除，第 7 天执行删除。';
+
+	/// zh-CN: '确认删除'
+	String get deleteConfirmAction => '确认删除';
+
+	/// zh-CN: '删除申请已提交，账号进入 7 天冷静期'
+	String get deleteRequested => '删除申请已提交，账号进入 7 天冷静期';
+}
+
+// Path: settings.privacy
+class Translations$settings$privacy$zh_CN {
+	Translations$settings$privacy$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '隐私政策'
+	String get privacyPolicy => '隐私政策';
+
+	/// zh-CN: '用户协议'
+	String get userAgreement => '用户协议';
+
+	/// zh-CN: '导出我的数据'
+	String get exportData => '导出我的数据';
+
+	/// zh-CN: '数据已导出：${path}'
+	String exportSuccess({required Object path}) => '数据已导出：${path}';
+
+	/// zh-CN: '服务端导出（U3/U4）尚未实现，已生成包含授权状态的本地 JSON 占位文件'
+	String get exportStubNote => '服务端导出（U3/U4）尚未实现，已生成包含授权状态的本地 JSON 占位文件';
+
+	/// zh-CN: '健康数据授权'
+	String get healthData => '健康数据授权';
+
+	/// zh-CN: '身高体重、饮食/断食记录等敏感个人信息处理'
+	String get healthDataSubtitle => '身高体重、饮食/断食记录等敏感个人信息处理';
+
+	/// zh-CN: '已撤回健康数据授权，营养目标将使用默认值'
+	String get healthDataRevoked => '已撤回健康数据授权，营养目标将使用默认值';
+
+	/// zh-CN: '数据分析授权'
+	String get analytics => '数据分析授权';
+
+	/// zh-CN: '匿名行为统计，帮助我们改进产品，不含健康数据'
+	String get analyticsSubtitle => '匿名行为统计，帮助我们改进产品，不含健康数据';
+}
+
+// Path: settings.theme
+class Translations$settings$theme$zh_CN {
+	Translations$settings$theme$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '主题'
+	String get title => '主题';
+
+	/// zh-CN: '跟随系统'
+	String get system => '跟随系统';
+
+	/// zh-CN: '浅色'
+	String get light => '浅色';
+
+	/// zh-CN: '深色'
+	String get dark => '深色';
+}
+
+// Path: settings.reminders
+class Translations$settings$reminders$zh_CN {
+	Translations$settings$reminders$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '通知设置'
+	String get notifications => '通知设置';
+
+	/// zh-CN: '前往系统设置管理通知权限'
+	String get notificationsSubtitle => '前往系统设置管理通知权限';
+}
+
+// Path: settings.about
+class Translations$settings$about$zh_CN {
+	Translations$settings$about$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '版本'
+	String get version => '版本';
+
+	/// zh-CN: '免责声明与特殊人群提示'
+	String get disclaimer => '免责声明与特殊人群提示';
+}
+
+// Path: legal.consent
+class Translations$legal$consent$zh_CN {
+	Translations$legal$consent$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '欢迎使用 EatWise'
+	String get title => '欢迎使用 EatWise';
+
+	/// zh-CN: '我们会按照《隐私政策》收集和使用你的信息，用于提供断食计时、饮食记录与营养反馈等核心功能；数据存储于中国境内并加密保护。请阅读并确认以下授权：'
+	String get summary => '我们会按照《隐私政策》收集和使用你的信息，用于提供断食计时、饮食记录与营养反馈等核心功能；数据存储于中国境内并加密保护。请阅读并确认以下授权：';
+
+	/// zh-CN: '我已阅读并同意《用户协议》与《隐私政策》'
+	String get agreeMain => '我已阅读并同意《用户协议》与《隐私政策》';
+
+	/// zh-CN: '健康数据单独同意（可选）'
+	String get healthTitle => '健康数据单独同意（可选）';
+
+	/// zh-CN: '你的身高、体重、年龄、性别及饮食、断食记录属于敏感个人信息。单独同意后，我们将其用于计算个性化营养目标与反馈，境内加密存储。你可以拒绝（营养目标将使用默认值），或随时在「设置-隐私」中撤回。'
+	String get healthBody => '你的身高、体重、年龄、性别及饮食、断食记录属于敏感个人信息。单独同意后，我们将其用于计算个性化营养目标与反馈，境内加密存储。你可以拒绝（营养目标将使用默认值），或随时在「设置-隐私」中撤回。';
+
+	/// zh-CN: '免责提示：本应用内容仅为健康生活方式的一般性参考，不构成医疗建议、诊断或治疗。'
+	String get disclaimerSummary => '免责提示：本应用内容仅为健康生活方式的一般性参考，不构成医疗建议、诊断或治疗。';
+
+	/// zh-CN: '查看不适宜断食人群提示'
+	String get specialGroupsEntry => '查看不适宜断食人群提示';
+
+	/// zh-CN: '查看《隐私政策》全文'
+	String get viewPrivacyPolicy => '查看《隐私政策》全文';
+
+	/// zh-CN: '查看《用户协议》全文'
+	String get viewUserAgreement => '查看《用户协议》全文';
+
+	/// zh-CN: '同意并继续'
+	String get agreeAndContinue => '同意并继续';
+
+	/// zh-CN: '不同意并退出'
+	String get decline => '不同意并退出';
+}
+
+// Path: legal.disclaimer
+class Translations$legal$disclaimer$zh_CN {
+	Translations$legal$disclaimer$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '免责声明'
+	String get title => '免责声明';
+
+	/// zh-CN: '非医疗建议声明'
+	String get notMedicalTitle => '非医疗建议声明';
+
+	/// zh-CN: '明食 EatWise 提供的内容（包括断食方案、营养目标、信号灯反馈与建议）仅为健康生活方式的一般性信息参考，不构成医疗建议、诊断或治疗，不能替代医生、注册营养师等专业人士的意见。您的营养目标由通用公式估算，可能与您的个体情况存在差异。如有任何健康问题、正在服药或患有疾病，请在使用断食或调整饮食前咨询专业医疗人员。因使用本应用信息而产生的任何后果，本应用不承担医疗责任。'
+	String get notMedicalBody => '明食 EatWise 提供的内容（包括断食方案、营养目标、信号灯反馈与建议）仅为健康生活方式的一般性信息参考，不构成医疗建议、诊断或治疗，不能替代医生、注册营养师等专业人士的意见。您的营养目标由通用公式估算，可能与您的个体情况存在差异。如有任何健康问题、正在服药或患有疾病，请在使用断食或调整饮食前咨询专业医疗人员。因使用本应用信息而产生的任何后果，本应用不承担医疗责任。';
+
+	/// zh-CN: '特殊人群提示'
+	String get specialGroupsTitle => '特殊人群提示';
+
+	/// zh-CN: '⚠️ 以下人群不建议进行间歇性断食，或须在医生指导下进行：孕期及哺乳期女性；未成年人（18 岁以下）；有进食障碍（如厌食症、暴食症）病史或高风险人群；糖尿病患者（尤其使用胰岛素或降糖药者）；低血糖、低血压患者；体重过低（BMI < 18.5）者；痛风、肾病、肝病等慢性疾病患者；近期手术或处于疾病恢复期者；老年体弱者。如果您属于以上任何一类，请不要开始断食方案，并咨询医生。'
+	String get specialGroupsBody => '⚠️ 以下人群不建议进行间歇性断食，或须在医生指导下进行：孕期及哺乳期女性；未成年人（18 岁以下）；有进食障碍（如厌食症、暴食症）病史或高风险人群；糖尿病患者（尤其使用胰岛素或降糖药者）；低血糖、低血压患者；体重过低（BMI < 18.5）者；痛风、肾病、肝病等慢性疾病患者；近期手术或处于疾病恢复期者；老年体弱者。如果您属于以上任何一类，请不要开始断食方案，并咨询医生。';
+
+	/// zh-CN: '本应用内容不构成医疗建议'
+	String get short => '本应用内容不构成医疗建议';
+}
+
+// Path: legal.privacyPolicy
+class Translations$legal$privacyPolicy$zh_CN {
+	Translations$legal$privacyPolicy$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '隐私政策'
+	String get title => '隐私政策';
+
+	/// zh-CN: '生效日期：2026-07-27｜版本 1.0.0〔待外部确认：法务终稿〕 明食 · EatWise（下称「我们」）仅面向中国大陆地区提供服务。本政策说明我们如何收集、使用、存储和保护你的个人信息，以及你享有的权利。 一、我们收集的信息 1. 手机号：用于注册、登录与账号找回，境内加密存储。 2. 身高、体重、年龄、性别：用于计算每日营养目标，属敏感个人信息，需你单独同意。 3. 饮食记录与断食记录：核心功能所需，属敏感个人信息。 4. 目标、作息、断食经验（问卷 3 题）：用于方案推荐。 5. 昵称、头像：可选，用于个性化与社区展示。 6. 设备信息与推送 token：用于推送送达与崩溃分析；不收集 IMEI/IMSI/MAC。 7. 崩溃与性能日志：脱敏处理，留存 6 个月。 8. 埋点行为数据：仅事件级行为统计，可在「设置-隐私」中关闭。 我们不收集：位置信息、通讯录、蓝牙及 HealthKit/Health Connect 健康平台数据。 二、敏感个人信息单独同意 健康相关数据（身高体重、饮食/断食记录等）依据《个人信息保护法》第 29 条取得你的单独同意；拒绝不影响账号功能，营养目标将使用默认值；你可随时在「设置-隐私」中撤回。 三、存储与安全 全部数据存储于中国境内服务器；传输使用 TLS 1.2+ 加密；手机号与健康数据采用字段级加密存储；本地数据库全库加密。无任何数据出境。 四、第三方 SDK 我们使用微信登录、Sign in with Apple、聚合推送、内容安全、崩溃监控等境内 SDK；任何 SDK 均不接收你的健康数据原文。 五、你的权利 1. 查阅复制：「设置-隐私-导出我的数据」申请导出全量个人数据（JSON+CSV）。 2. 删除：「设置-账号-删除账号」，申请后进入 7 天冷静期，冷静期内登录即撤销。 3. 撤回同意：「设置-隐私」中可随时撤回健康数据授权与数据分析授权。 六、未成年人 本产品不面向 14 岁以下儿童。 七、政策更新 本政策发生重大变更时，我们将重新征得你的同意。 八、联系我们 如对本政策有任何疑问，可通过 App 内「设置-关于」与我们联系。'
+	String get body => '生效日期：2026-07-27｜版本 1.0.0〔待外部确认：法务终稿〕\n\n明食 · EatWise（下称「我们」）仅面向中国大陆地区提供服务。本政策说明我们如何收集、使用、存储和保护你的个人信息，以及你享有的权利。\n\n一、我们收集的信息\n1. 手机号：用于注册、登录与账号找回，境内加密存储。\n2. 身高、体重、年龄、性别：用于计算每日营养目标，属敏感个人信息，需你单独同意。\n3. 饮食记录与断食记录：核心功能所需，属敏感个人信息。\n4. 目标、作息、断食经验（问卷 3 题）：用于方案推荐。\n5. 昵称、头像：可选，用于个性化与社区展示。\n6. 设备信息与推送 token：用于推送送达与崩溃分析；不收集 IMEI/IMSI/MAC。\n7. 崩溃与性能日志：脱敏处理，留存 6 个月。\n8. 埋点行为数据：仅事件级行为统计，可在「设置-隐私」中关闭。\n我们不收集：位置信息、通讯录、蓝牙及 HealthKit/Health Connect 健康平台数据。\n\n二、敏感个人信息单独同意\n健康相关数据（身高体重、饮食/断食记录等）依据《个人信息保护法》第 29 条取得你的单独同意；拒绝不影响账号功能，营养目标将使用默认值；你可随时在「设置-隐私」中撤回。\n\n三、存储与安全\n全部数据存储于中国境内服务器；传输使用 TLS 1.2+ 加密；手机号与健康数据采用字段级加密存储；本地数据库全库加密。无任何数据出境。\n\n四、第三方 SDK\n我们使用微信登录、Sign in with Apple、聚合推送、内容安全、崩溃监控等境内 SDK；任何 SDK 均不接收你的健康数据原文。\n\n五、你的权利\n1. 查阅复制：「设置-隐私-导出我的数据」申请导出全量个人数据（JSON+CSV）。\n2. 删除：「设置-账号-删除账号」，申请后进入 7 天冷静期，冷静期内登录即撤销。\n3. 撤回同意：「设置-隐私」中可随时撤回健康数据授权与数据分析授权。\n\n六、未成年人\n本产品不面向 14 岁以下儿童。\n\n七、政策更新\n本政策发生重大变更时，我们将重新征得你的同意。\n\n八、联系我们\n如对本政策有任何疑问，可通过 App 内「设置-关于」与我们联系。';
+}
+
+// Path: legal.userAgreement
+class Translations$legal$userAgreement$zh_CN {
+	Translations$legal$userAgreement$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '用户协议'
+	String get title => '用户协议';
+
+	/// zh-CN: '生效日期：2026-07-27｜版本 1.0.0〔待外部确认：法务终稿〕 欢迎使用明食 · EatWise（下称「本应用」）。使用本应用前，请仔细阅读本协议。 一、服务内容 本应用提供间歇性断食计时、饮食记录、营养目标估算与信号灯反馈、趋势报告及社区打卡等健康生活方式工具服务。 二、账号 你可通过手机号验证码、微信或 Sign in with Apple 注册登录。你应妥善保管账号，并对账号下的行为负责。 三、非医疗建议 本应用提供的全部内容仅为一般性健康生活方式参考，不构成医疗建议、诊断或治疗，详见《免责声明》。 四、用户行为规范 你承诺发布的内容不违反法律法规、不侵犯他人权益；违规内容将被下架并可能限制账号功能。 五、知识产权 本应用的内容与程序知识产权归我们所有，你仅获得个人非商业性使用许可。 六、责任限制 因使用本应用信息产生的健康后果，我们不承担医疗责任；因不可抗力或第三方原因造成的服务中断，我们不承担责任。 七、协议变更与终止 本协议变更将以页面提示等方式通知；你可随时通过删除账号终止使用。 八、适用法律 本协议适用中华人民共和国法律。'
+	String get body => '生效日期：2026-07-27｜版本 1.0.0〔待外部确认：法务终稿〕\n\n欢迎使用明食 · EatWise（下称「本应用」）。使用本应用前，请仔细阅读本协议。\n\n一、服务内容\n本应用提供间歇性断食计时、饮食记录、营养目标估算与信号灯反馈、趋势报告及社区打卡等健康生活方式工具服务。\n\n二、账号\n你可通过手机号验证码、微信或 Sign in with Apple 注册登录。你应妥善保管账号，并对账号下的行为负责。\n\n三、非医疗建议\n本应用提供的全部内容仅为一般性健康生活方式参考，不构成医疗建议、诊断或治疗，详见《免责声明》。\n\n四、用户行为规范\n你承诺发布的内容不违反法律法规、不侵犯他人权益；违规内容将被下架并可能限制账号功能。\n\n五、知识产权\n本应用的内容与程序知识产权归我们所有，你仅获得个人非商业性使用许可。\n\n六、责任限制\n因使用本应用信息产生的健康后果，我们不承担医疗责任；因不可抗力或第三方原因造成的服务中断，我们不承担责任。\n\n七、协议变更与终止\n本协议变更将以页面提示等方式通知；你可随时通过删除账号终止使用。\n\n八、适用法律\n本协议适用中华人民共和国法律。';
 }
 
 // Path: social.feed
@@ -2086,10 +2360,64 @@ extension on Translations {
 			'streak.profile.mendCards' => '补签卡',
 			'streak.profile.mendCardsValue' => ({required Object n}) => '${n} 张',
 			'streak.profile.mendEntry' => '去补签',
+			'settings.title' => '设置',
 			'settings.language.title' => '语言',
 			'settings.language.system' => '跟随系统',
 			'settings.language.zhCN' => '简体中文',
 			'settings.language.en' => 'English',
+			'settings.group.account' => '账号',
+			'settings.group.privacy' => '隐私',
+			'settings.group.preferences' => '偏好',
+			'settings.group.reminders' => '提醒',
+			'settings.group.about' => '关于',
+			'settings.account.phone' => '手机号',
+			'settings.account.notLoggedIn' => '未登录',
+			'settings.account.logout' => '登出',
+			'settings.account.deleteAccount' => '删除账号',
+			'settings.account.deleteConfirmTitle' => '删除账号？',
+			'settings.account.deleteConfirmBody' => '删除后，你的手机号、基础资料、全部饮食/断食记录等个人数据将被物理删除，且不可恢复。申请后进入 7 天冷静期：冷静期内登录即视为撤销删除，第 7 天执行删除。',
+			'settings.account.deleteConfirmAction' => '确认删除',
+			'settings.account.deleteRequested' => '删除申请已提交，账号进入 7 天冷静期',
+			'settings.privacy.privacyPolicy' => '隐私政策',
+			'settings.privacy.userAgreement' => '用户协议',
+			'settings.privacy.exportData' => '导出我的数据',
+			'settings.privacy.exportSuccess' => ({required Object path}) => '数据已导出：${path}',
+			'settings.privacy.exportStubNote' => '服务端导出（U3/U4）尚未实现，已生成包含授权状态的本地 JSON 占位文件',
+			'settings.privacy.healthData' => '健康数据授权',
+			'settings.privacy.healthDataSubtitle' => '身高体重、饮食/断食记录等敏感个人信息处理',
+			'settings.privacy.healthDataRevoked' => '已撤回健康数据授权，营养目标将使用默认值',
+			'settings.privacy.analytics' => '数据分析授权',
+			'settings.privacy.analyticsSubtitle' => '匿名行为统计，帮助我们改进产品，不含健康数据',
+			'settings.theme.title' => '主题',
+			'settings.theme.system' => '跟随系统',
+			'settings.theme.light' => '浅色',
+			'settings.theme.dark' => '深色',
+			'settings.reminders.notifications' => '通知设置',
+			'settings.reminders.notificationsSubtitle' => '前往系统设置管理通知权限',
+			'settings.about.version' => '版本',
+			'settings.about.disclaimer' => '免责声明与特殊人群提示',
+			'legal.draftNote' => '〔待外部确认：法务终稿〕',
+			'legal.consent.title' => '欢迎使用 EatWise',
+			'legal.consent.summary' => '我们会按照《隐私政策》收集和使用你的信息，用于提供断食计时、饮食记录与营养反馈等核心功能；数据存储于中国境内并加密保护。请阅读并确认以下授权：',
+			'legal.consent.agreeMain' => '我已阅读并同意《用户协议》与《隐私政策》',
+			'legal.consent.healthTitle' => '健康数据单独同意（可选）',
+			'legal.consent.healthBody' => '你的身高、体重、年龄、性别及饮食、断食记录属于敏感个人信息。单独同意后，我们将其用于计算个性化营养目标与反馈，境内加密存储。你可以拒绝（营养目标将使用默认值），或随时在「设置-隐私」中撤回。',
+			'legal.consent.disclaimerSummary' => '免责提示：本应用内容仅为健康生活方式的一般性参考，不构成医疗建议、诊断或治疗。',
+			'legal.consent.specialGroupsEntry' => '查看不适宜断食人群提示',
+			'legal.consent.viewPrivacyPolicy' => '查看《隐私政策》全文',
+			'legal.consent.viewUserAgreement' => '查看《用户协议》全文',
+			'legal.consent.agreeAndContinue' => '同意并继续',
+			'legal.consent.decline' => '不同意并退出',
+			'legal.disclaimer.title' => '免责声明',
+			'legal.disclaimer.notMedicalTitle' => '非医疗建议声明',
+			'legal.disclaimer.notMedicalBody' => '明食 EatWise 提供的内容（包括断食方案、营养目标、信号灯反馈与建议）仅为健康生活方式的一般性信息参考，不构成医疗建议、诊断或治疗，不能替代医生、注册营养师等专业人士的意见。您的营养目标由通用公式估算，可能与您的个体情况存在差异。如有任何健康问题、正在服药或患有疾病，请在使用断食或调整饮食前咨询专业医疗人员。因使用本应用信息而产生的任何后果，本应用不承担医疗责任。',
+			'legal.disclaimer.specialGroupsTitle' => '特殊人群提示',
+			'legal.disclaimer.specialGroupsBody' => '⚠️ 以下人群不建议进行间歇性断食，或须在医生指导下进行：孕期及哺乳期女性；未成年人（18 岁以下）；有进食障碍（如厌食症、暴食症）病史或高风险人群；糖尿病患者（尤其使用胰岛素或降糖药者）；低血糖、低血压患者；体重过低（BMI < 18.5）者；痛风、肾病、肝病等慢性疾病患者；近期手术或处于疾病恢复期者；老年体弱者。如果您属于以上任何一类，请不要开始断食方案，并咨询医生。',
+			'legal.disclaimer.short' => '本应用内容不构成医疗建议',
+			'legal.privacyPolicy.title' => '隐私政策',
+			'legal.privacyPolicy.body' => '生效日期：2026-07-27｜版本 1.0.0〔待外部确认：法务终稿〕\n\n明食 · EatWise（下称「我们」）仅面向中国大陆地区提供服务。本政策说明我们如何收集、使用、存储和保护你的个人信息，以及你享有的权利。\n\n一、我们收集的信息\n1. 手机号：用于注册、登录与账号找回，境内加密存储。\n2. 身高、体重、年龄、性别：用于计算每日营养目标，属敏感个人信息，需你单独同意。\n3. 饮食记录与断食记录：核心功能所需，属敏感个人信息。\n4. 目标、作息、断食经验（问卷 3 题）：用于方案推荐。\n5. 昵称、头像：可选，用于个性化与社区展示。\n6. 设备信息与推送 token：用于推送送达与崩溃分析；不收集 IMEI/IMSI/MAC。\n7. 崩溃与性能日志：脱敏处理，留存 6 个月。\n8. 埋点行为数据：仅事件级行为统计，可在「设置-隐私」中关闭。\n我们不收集：位置信息、通讯录、蓝牙及 HealthKit/Health Connect 健康平台数据。\n\n二、敏感个人信息单独同意\n健康相关数据（身高体重、饮食/断食记录等）依据《个人信息保护法》第 29 条取得你的单独同意；拒绝不影响账号功能，营养目标将使用默认值；你可随时在「设置-隐私」中撤回。\n\n三、存储与安全\n全部数据存储于中国境内服务器；传输使用 TLS 1.2+ 加密；手机号与健康数据采用字段级加密存储；本地数据库全库加密。无任何数据出境。\n\n四、第三方 SDK\n我们使用微信登录、Sign in with Apple、聚合推送、内容安全、崩溃监控等境内 SDK；任何 SDK 均不接收你的健康数据原文。\n\n五、你的权利\n1. 查阅复制：「设置-隐私-导出我的数据」申请导出全量个人数据（JSON+CSV）。\n2. 删除：「设置-账号-删除账号」，申请后进入 7 天冷静期，冷静期内登录即撤销。\n3. 撤回同意：「设置-隐私」中可随时撤回健康数据授权与数据分析授权。\n\n六、未成年人\n本产品不面向 14 岁以下儿童。\n\n七、政策更新\n本政策发生重大变更时，我们将重新征得你的同意。\n\n八、联系我们\n如对本政策有任何疑问，可通过 App 内「设置-关于」与我们联系。',
+			'legal.userAgreement.title' => '用户协议',
+			'legal.userAgreement.body' => '生效日期：2026-07-27｜版本 1.0.0〔待外部确认：法务终稿〕\n\n欢迎使用明食 · EatWise（下称「本应用」）。使用本应用前，请仔细阅读本协议。\n\n一、服务内容\n本应用提供间歇性断食计时、饮食记录、营养目标估算与信号灯反馈、趋势报告及社区打卡等健康生活方式工具服务。\n\n二、账号\n你可通过手机号验证码、微信或 Sign in with Apple 注册登录。你应妥善保管账号，并对账号下的行为负责。\n\n三、非医疗建议\n本应用提供的全部内容仅为一般性健康生活方式参考，不构成医疗建议、诊断或治疗，详见《免责声明》。\n\n四、用户行为规范\n你承诺发布的内容不违反法律法规、不侵犯他人权益；违规内容将被下架并可能限制账号功能。\n\n五、知识产权\n本应用的内容与程序知识产权归我们所有，你仅获得个人非商业性使用许可。\n\n六、责任限制\n因使用本应用信息产生的健康后果，我们不承担医疗责任；因不可抗力或第三方原因造成的服务中断，我们不承担责任。\n\n七、协议变更与终止\n本协议变更将以页面提示等方式通知；你可随时通过删除账号终止使用。\n\n八、适用法律\n本协议适用中华人民共和国法律。',
 			'social.feed.title' => '社区',
 			'social.feed.emptyTitle' => '这里在等今天第一口美食登场。',
 			'social.feed.emptySubtitle' => '发布你的第一条打卡，给同样在坚持的人一点光。',

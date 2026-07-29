@@ -103,13 +103,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('0/500'), findsOneWidget); // 发布页字数计数
 
-    // 我的 Tab：空态 + 语言设置（D-15）
+    // 我的 Tab：M7 设置页（账号/隐私/偏好/提醒/关于分组，D-18）
     await tester.tap(find.text('我的'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('个人中心正在装修'), findsOneWidget);
-    expect(find.text('跟随系统'), findsOneWidget);
-    expect(find.text('简体中文'), findsOneWidget);
+    expect(find.text('设置'), findsOneWidget);
+    expect(find.text('账号'), findsOneWidget);
+    expect(find.text('隐私'), findsOneWidget);
+    expect(find.text('语言'), findsOneWidget);
+    expect(find.text('主题'), findsOneWidget);
 
     // 记录 Tab：挂现有 RecordPage
     await tester.tap(find.text('记录'));

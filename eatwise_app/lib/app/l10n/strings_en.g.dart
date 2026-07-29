@@ -50,6 +50,7 @@ class TranslationsEn extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$reports$en reports = _Translations$reports$en._(_root);
 	@override late final _Translations$streak$en streak = _Translations$streak$en._(_root);
 	@override late final _Translations$settings$en settings = _Translations$settings$en._(_root);
+	@override late final _Translations$legal$en legal = _Translations$legal$en._(_root);
 	@override late final _Translations$social$en social = _Translations$social$en._(_root);
 	@override late final _Translations$auth$en auth = _Translations$auth$en._(_root);
 }
@@ -193,7 +194,28 @@ class _Translations$settings$en extends Translations$settings$zh_CN {
 	final TranslationsEn _root; // ignore: unused_field
 
 	// Translations
+	@override String get title => 'Settings';
 	@override late final _Translations$settings$language$en language = _Translations$settings$language$en._(_root);
+	@override late final _Translations$settings$group$en group = _Translations$settings$group$en._(_root);
+	@override late final _Translations$settings$account$en account = _Translations$settings$account$en._(_root);
+	@override late final _Translations$settings$privacy$en privacy = _Translations$settings$privacy$en._(_root);
+	@override late final _Translations$settings$theme$en theme = _Translations$settings$theme$en._(_root);
+	@override late final _Translations$settings$reminders$en reminders = _Translations$settings$reminders$en._(_root);
+	@override late final _Translations$settings$about$en about = _Translations$settings$about$en._(_root);
+}
+
+// Path: legal
+class _Translations$legal$en extends Translations$legal$zh_CN {
+	_Translations$legal$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get draftNote => '[Pending external confirmation: final legal copy]';
+	@override late final _Translations$legal$consent$en consent = _Translations$legal$consent$en._(_root);
+	@override late final _Translations$legal$disclaimer$en disclaimer = _Translations$legal$disclaimer$en._(_root);
+	@override late final _Translations$legal$privacyPolicy$en privacyPolicy = _Translations$legal$privacyPolicy$en._(_root);
+	@override late final _Translations$legal$userAgreement$en userAgreement = _Translations$legal$userAgreement$en._(_root);
 }
 
 // Path: social
@@ -746,6 +768,148 @@ class _Translations$settings$language$en extends Translations$settings$language$
 	@override String get system => 'System';
 	@override String get zhCN => '简体中文';
 	@override String get en => 'English';
+}
+
+// Path: settings.group
+class _Translations$settings$group$en extends Translations$settings$group$zh_CN {
+	_Translations$settings$group$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get account => 'Account';
+	@override String get privacy => 'Privacy';
+	@override String get preferences => 'Preferences';
+	@override String get reminders => 'Reminders';
+	@override String get about => 'About';
+}
+
+// Path: settings.account
+class _Translations$settings$account$en extends Translations$settings$account$zh_CN {
+	_Translations$settings$account$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get phone => 'Phone number';
+	@override String get notLoggedIn => 'Not signed in';
+	@override String get logout => 'Sign out';
+	@override String get deleteAccount => 'Delete account';
+	@override String get deleteConfirmTitle => 'Delete your account?';
+	@override String get deleteConfirmBody => 'After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.';
+	@override String get deleteConfirmAction => 'Confirm deletion';
+	@override String get deleteRequested => 'Deletion requested — your account enters a 7-day cooling-off period';
+}
+
+// Path: settings.privacy
+class _Translations$settings$privacy$en extends Translations$settings$privacy$zh_CN {
+	_Translations$settings$privacy$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get privacyPolicy => 'Privacy Policy';
+	@override String get userAgreement => 'Terms of Service';
+	@override String get exportData => 'Export my data';
+	@override String exportSuccess({required Object path}) => 'Data exported: ${path}';
+	@override String get exportStubNote => 'Server-side export (U3/U4) isn\'t live yet — a local JSON placeholder with your consent status was generated instead';
+	@override String get healthData => 'Health data consent';
+	@override String get healthDataSubtitle => 'Processing of sensitive personal info such as height/weight and meal/fasting records';
+	@override String get healthDataRevoked => 'Health data consent withdrawn — nutrition targets will use defaults';
+	@override String get analytics => 'Analytics consent';
+	@override String get analyticsSubtitle => 'Anonymous usage stats that help us improve — no health data included';
+}
+
+// Path: settings.theme
+class _Translations$settings$theme$en extends Translations$settings$theme$zh_CN {
+	_Translations$settings$theme$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Theme';
+	@override String get system => 'System';
+	@override String get light => 'Light';
+	@override String get dark => 'Dark';
+}
+
+// Path: settings.reminders
+class _Translations$settings$reminders$en extends Translations$settings$reminders$zh_CN {
+	_Translations$settings$reminders$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get notifications => 'Notification settings';
+	@override String get notificationsSubtitle => 'Manage notification permission in system settings';
+}
+
+// Path: settings.about
+class _Translations$settings$about$en extends Translations$settings$about$zh_CN {
+	_Translations$settings$about$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get version => 'Version';
+	@override String get disclaimer => 'Disclaimer & special groups';
+}
+
+// Path: legal.consent
+class _Translations$legal$consent$en extends Translations$legal$consent$zh_CN {
+	_Translations$legal$consent$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Welcome to EatWise';
+	@override String get summary => 'We collect and use your information as described in the Privacy Policy to provide core features like fasting timers, meal logging, and nutrition feedback. Your data is stored securely in mainland China. Please review and confirm:';
+	@override String get agreeMain => 'I have read and agree to the Terms of Service and Privacy Policy';
+	@override String get healthTitle => 'Separate consent for health data (optional)';
+	@override String get healthBody => 'Your height, weight, age, gender, and meal/fasting records are sensitive personal information. With your separate consent, we use them to calculate personalized nutrition targets and feedback, stored encrypted in mainland China. You may decline (targets will use default values) or withdraw anytime in Settings > Privacy.';
+	@override String get disclaimerSummary => 'Note: EatWise content is general healthy-lifestyle reference only — not medical advice, diagnosis, or treatment.';
+	@override String get specialGroupsEntry => 'See who should not fast';
+	@override String get viewPrivacyPolicy => 'Read the full Privacy Policy';
+	@override String get viewUserAgreement => 'Read the full Terms of Service';
+	@override String get agreeAndContinue => 'Agree and continue';
+	@override String get decline => 'Decline and exit';
+}
+
+// Path: legal.disclaimer
+class _Translations$legal$disclaimer$en extends Translations$legal$disclaimer$zh_CN {
+	_Translations$legal$disclaimer$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Disclaimer';
+	@override String get notMedicalTitle => 'Not Medical Advice';
+	@override String get notMedicalBody => 'EatWise provides content (including fasting plans, nutrition targets, signal-light feedback and suggestions) for general healthy-lifestyle reference only. It is not medical advice, diagnosis, or treatment, and is no substitute for guidance from a physician, registered dietitian, or other qualified professional. Your nutrition targets are estimated from general formulas and may not fit your individual condition. If you have any health condition, take medication, or have a disease, consult a qualified healthcare professional before fasting or changing your diet. EatWise assumes no medical liability for consequences arising from use of this information.';
+	@override String get specialGroupsTitle => 'Special Groups Notice';
+	@override String get specialGroupsBody => '⚠️ Intermittent fasting is not recommended for the following groups, or should only be done under medical supervision: pregnant or breastfeeding women; minors (under 18); people with a history of or at risk for eating disorders (e.g., anorexia, bulimia); people with diabetes (especially those using insulin or glucose-lowering medication); people with hypoglycemia or hypotension; people who are underweight (BMI < 18.5); people with chronic conditions such as gout, kidney or liver disease; people recovering from recent surgery or illness; and frail older adults. If you fall into any of these categories, do not start a fasting plan and consult your doctor first.';
+	@override String get short => 'EatWise content is not medical advice';
+}
+
+// Path: legal.privacyPolicy
+class _Translations$legal$privacyPolicy$en extends Translations$legal$privacyPolicy$zh_CN {
+	_Translations$legal$privacyPolicy$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Privacy Policy';
+	@override String get body => 'Effective: 2026-07-27 | Version 1.0.0 [Pending external confirmation: final legal copy]\n\nEatWise ("we") provides services in mainland China only. This policy explains how we collect, use, store, and protect your personal information, and the rights you have.\n\n1. Information We Collect\n1) Phone number: for registration, sign-in, and account recovery; stored encrypted in mainland China.\n2) Height, weight, age, gender: used to compute daily nutrition targets; sensitive personal information requiring your separate consent.\n3) Meal and fasting records: required for core features; sensitive personal information.\n4) Goal, schedule, and fasting experience (3-question quiz): used for plan recommendation.\n5) Nickname and avatar: optional, for personalization and community display.\n6) Device info and push token: for notification delivery and crash analysis; we never collect IMEI/IMSI/MAC.\n7) Crash and performance logs: de-identified, retained for 6 months.\n8) Analytics events: event-level usage stats only; can be turned off in Settings > Privacy.\nWe do NOT collect: location, contacts, Bluetooth, or HealthKit/Health Connect data.\n\n2. Separate Consent for Sensitive Personal Information\nHealth-related data (height/weight, meal/fasting records) is processed only with your separate consent under PIPL Article 29. Declining does not affect account features — nutrition targets fall back to defaults — and you may withdraw anytime in Settings > Privacy.\n\n3. Storage and Security\nAll data is stored on servers in mainland China; transmission uses TLS 1.2+; phone numbers and health data use field-level encryption; the local database is fully encrypted. No data crosses borders.\n\n4. Third-Party SDKs\nWe use WeChat Login, Sign in with Apple, aggregated push, content safety, and crash monitoring SDKs, all operating within mainland China. No SDK ever receives your raw health data.\n\n5. Your Rights\n1) Access & copy: request a full export of your personal data (JSON+CSV) in Settings > Privacy > Export my data.\n2) Deletion: Settings > Account > Delete account starts a 7-day cooling-off period; signing in during this period cancels the deletion.\n3) Withdraw consent: you may withdraw health data consent and analytics consent anytime in Settings > Privacy.\n\n6. Minors\nThis product is not intended for children under 14.\n\n7. Policy Updates\nIf this policy changes materially, we will ask for your consent again.\n\n8. Contact Us\nFor questions about this policy, reach us via Settings > About in the app.';
+}
+
+// Path: legal.userAgreement
+class _Translations$legal$userAgreement$en extends Translations$legal$userAgreement$zh_CN {
+	_Translations$legal$userAgreement$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Terms of Service';
+	@override String get body => 'Effective: 2026-07-27 | Version 1.0.0 [Pending external confirmation: final legal copy]\n\nWelcome to EatWise (the "App"). Please read these terms carefully before using the App.\n\n1. Services\nThe App provides healthy-lifestyle tools including intermittent fasting timers, meal logging, nutrition target estimates with signal-light feedback, trend reports, and community check-ins.\n\n2. Account\nYou may register and sign in via phone verification code, WeChat, or Sign in with Apple. Keep your account secure; you are responsible for activity under it.\n\n3. Not Medical Advice\nAll content in the App is general healthy-lifestyle reference only and is not medical advice, diagnosis, or treatment. See the Disclaimer for details.\n\n4. User Conduct\nYou agree that content you post complies with applicable laws and does not infringe others\' rights. Violating content may be removed and account features restricted.\n\n5. Intellectual Property\nThe App\'s content and software are owned by us; you receive a personal, non-commercial license to use them.\n\n6. Limitation of Liability\nWe assume no medical liability for health consequences arising from use of the App\'s information, and no liability for service interruptions caused by force majeure or third parties.\n\n7. Changes and Termination\nWe will notify you of changes to these terms via in-app notices. You may stop using the App at any time by deleting your account.\n\n8. Governing Law\nThese terms are governed by the laws of the People\'s Republic of China.';
 }
 
 // Path: social.feed
@@ -1446,10 +1610,64 @@ extension on TranslationsEn {
 			'streak.profile.mendCards' => 'Mend Cards',
 			'streak.profile.mendCardsValue' => ({required Object n}) => '${n} left',
 			'streak.profile.mendEntry' => 'Mend now',
+			'settings.title' => 'Settings',
 			'settings.language.title' => 'Language',
 			'settings.language.system' => 'System',
 			'settings.language.zhCN' => '简体中文',
 			'settings.language.en' => 'English',
+			'settings.group.account' => 'Account',
+			'settings.group.privacy' => 'Privacy',
+			'settings.group.preferences' => 'Preferences',
+			'settings.group.reminders' => 'Reminders',
+			'settings.group.about' => 'About',
+			'settings.account.phone' => 'Phone number',
+			'settings.account.notLoggedIn' => 'Not signed in',
+			'settings.account.logout' => 'Sign out',
+			'settings.account.deleteAccount' => 'Delete account',
+			'settings.account.deleteConfirmTitle' => 'Delete your account?',
+			'settings.account.deleteConfirmBody' => 'After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.',
+			'settings.account.deleteConfirmAction' => 'Confirm deletion',
+			'settings.account.deleteRequested' => 'Deletion requested — your account enters a 7-day cooling-off period',
+			'settings.privacy.privacyPolicy' => 'Privacy Policy',
+			'settings.privacy.userAgreement' => 'Terms of Service',
+			'settings.privacy.exportData' => 'Export my data',
+			'settings.privacy.exportSuccess' => ({required Object path}) => 'Data exported: ${path}',
+			'settings.privacy.exportStubNote' => 'Server-side export (U3/U4) isn\'t live yet — a local JSON placeholder with your consent status was generated instead',
+			'settings.privacy.healthData' => 'Health data consent',
+			'settings.privacy.healthDataSubtitle' => 'Processing of sensitive personal info such as height/weight and meal/fasting records',
+			'settings.privacy.healthDataRevoked' => 'Health data consent withdrawn — nutrition targets will use defaults',
+			'settings.privacy.analytics' => 'Analytics consent',
+			'settings.privacy.analyticsSubtitle' => 'Anonymous usage stats that help us improve — no health data included',
+			'settings.theme.title' => 'Theme',
+			'settings.theme.system' => 'System',
+			'settings.theme.light' => 'Light',
+			'settings.theme.dark' => 'Dark',
+			'settings.reminders.notifications' => 'Notification settings',
+			'settings.reminders.notificationsSubtitle' => 'Manage notification permission in system settings',
+			'settings.about.version' => 'Version',
+			'settings.about.disclaimer' => 'Disclaimer & special groups',
+			'legal.draftNote' => '[Pending external confirmation: final legal copy]',
+			'legal.consent.title' => 'Welcome to EatWise',
+			'legal.consent.summary' => 'We collect and use your information as described in the Privacy Policy to provide core features like fasting timers, meal logging, and nutrition feedback. Your data is stored securely in mainland China. Please review and confirm:',
+			'legal.consent.agreeMain' => 'I have read and agree to the Terms of Service and Privacy Policy',
+			'legal.consent.healthTitle' => 'Separate consent for health data (optional)',
+			'legal.consent.healthBody' => 'Your height, weight, age, gender, and meal/fasting records are sensitive personal information. With your separate consent, we use them to calculate personalized nutrition targets and feedback, stored encrypted in mainland China. You may decline (targets will use default values) or withdraw anytime in Settings > Privacy.',
+			'legal.consent.disclaimerSummary' => 'Note: EatWise content is general healthy-lifestyle reference only — not medical advice, diagnosis, or treatment.',
+			'legal.consent.specialGroupsEntry' => 'See who should not fast',
+			'legal.consent.viewPrivacyPolicy' => 'Read the full Privacy Policy',
+			'legal.consent.viewUserAgreement' => 'Read the full Terms of Service',
+			'legal.consent.agreeAndContinue' => 'Agree and continue',
+			'legal.consent.decline' => 'Decline and exit',
+			'legal.disclaimer.title' => 'Disclaimer',
+			'legal.disclaimer.notMedicalTitle' => 'Not Medical Advice',
+			'legal.disclaimer.notMedicalBody' => 'EatWise provides content (including fasting plans, nutrition targets, signal-light feedback and suggestions) for general healthy-lifestyle reference only. It is not medical advice, diagnosis, or treatment, and is no substitute for guidance from a physician, registered dietitian, or other qualified professional. Your nutrition targets are estimated from general formulas and may not fit your individual condition. If you have any health condition, take medication, or have a disease, consult a qualified healthcare professional before fasting or changing your diet. EatWise assumes no medical liability for consequences arising from use of this information.',
+			'legal.disclaimer.specialGroupsTitle' => 'Special Groups Notice',
+			'legal.disclaimer.specialGroupsBody' => '⚠️ Intermittent fasting is not recommended for the following groups, or should only be done under medical supervision: pregnant or breastfeeding women; minors (under 18); people with a history of or at risk for eating disorders (e.g., anorexia, bulimia); people with diabetes (especially those using insulin or glucose-lowering medication); people with hypoglycemia or hypotension; people who are underweight (BMI < 18.5); people with chronic conditions such as gout, kidney or liver disease; people recovering from recent surgery or illness; and frail older adults. If you fall into any of these categories, do not start a fasting plan and consult your doctor first.',
+			'legal.disclaimer.short' => 'EatWise content is not medical advice',
+			'legal.privacyPolicy.title' => 'Privacy Policy',
+			'legal.privacyPolicy.body' => 'Effective: 2026-07-27 | Version 1.0.0 [Pending external confirmation: final legal copy]\n\nEatWise ("we") provides services in mainland China only. This policy explains how we collect, use, store, and protect your personal information, and the rights you have.\n\n1. Information We Collect\n1) Phone number: for registration, sign-in, and account recovery; stored encrypted in mainland China.\n2) Height, weight, age, gender: used to compute daily nutrition targets; sensitive personal information requiring your separate consent.\n3) Meal and fasting records: required for core features; sensitive personal information.\n4) Goal, schedule, and fasting experience (3-question quiz): used for plan recommendation.\n5) Nickname and avatar: optional, for personalization and community display.\n6) Device info and push token: for notification delivery and crash analysis; we never collect IMEI/IMSI/MAC.\n7) Crash and performance logs: de-identified, retained for 6 months.\n8) Analytics events: event-level usage stats only; can be turned off in Settings > Privacy.\nWe do NOT collect: location, contacts, Bluetooth, or HealthKit/Health Connect data.\n\n2. Separate Consent for Sensitive Personal Information\nHealth-related data (height/weight, meal/fasting records) is processed only with your separate consent under PIPL Article 29. Declining does not affect account features — nutrition targets fall back to defaults — and you may withdraw anytime in Settings > Privacy.\n\n3. Storage and Security\nAll data is stored on servers in mainland China; transmission uses TLS 1.2+; phone numbers and health data use field-level encryption; the local database is fully encrypted. No data crosses borders.\n\n4. Third-Party SDKs\nWe use WeChat Login, Sign in with Apple, aggregated push, content safety, and crash monitoring SDKs, all operating within mainland China. No SDK ever receives your raw health data.\n\n5. Your Rights\n1) Access & copy: request a full export of your personal data (JSON+CSV) in Settings > Privacy > Export my data.\n2) Deletion: Settings > Account > Delete account starts a 7-day cooling-off period; signing in during this period cancels the deletion.\n3) Withdraw consent: you may withdraw health data consent and analytics consent anytime in Settings > Privacy.\n\n6. Minors\nThis product is not intended for children under 14.\n\n7. Policy Updates\nIf this policy changes materially, we will ask for your consent again.\n\n8. Contact Us\nFor questions about this policy, reach us via Settings > About in the app.',
+			'legal.userAgreement.title' => 'Terms of Service',
+			'legal.userAgreement.body' => 'Effective: 2026-07-27 | Version 1.0.0 [Pending external confirmation: final legal copy]\n\nWelcome to EatWise (the "App"). Please read these terms carefully before using the App.\n\n1. Services\nThe App provides healthy-lifestyle tools including intermittent fasting timers, meal logging, nutrition target estimates with signal-light feedback, trend reports, and community check-ins.\n\n2. Account\nYou may register and sign in via phone verification code, WeChat, or Sign in with Apple. Keep your account secure; you are responsible for activity under it.\n\n3. Not Medical Advice\nAll content in the App is general healthy-lifestyle reference only and is not medical advice, diagnosis, or treatment. See the Disclaimer for details.\n\n4. User Conduct\nYou agree that content you post complies with applicable laws and does not infringe others\' rights. Violating content may be removed and account features restricted.\n\n5. Intellectual Property\nThe App\'s content and software are owned by us; you receive a personal, non-commercial license to use them.\n\n6. Limitation of Liability\nWe assume no medical liability for health consequences arising from use of the App\'s information, and no liability for service interruptions caused by force majeure or third parties.\n\n7. Changes and Termination\nWe will notify you of changes to these terms via in-app notices. You may stop using the App at any time by deleting your account.\n\n8. Governing Law\nThese terms are governed by the laws of the People\'s Republic of China.',
 			'social.feed.title' => 'Community',
 			'social.feed.emptyTitle' => 'Waiting for today\'s first check-in to show up.',
 			'social.feed.emptySubtitle' => 'Post your first check-in and light the way for others.',

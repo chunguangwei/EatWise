@@ -143,6 +143,13 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
             ],
             const SizedBox(height: AppSpacing.s8),
             const TrendChartSection(),
+            // 合规 §5.1：「非医疗建议」数据页底部常驻。
+            const SizedBox(height: AppSpacing.s6),
+            Text(
+              t.legal.disclaimer.short,
+              style: textStyles.textXs.copyWith(color: colors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
