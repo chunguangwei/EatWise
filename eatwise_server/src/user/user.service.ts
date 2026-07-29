@@ -1,7 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { err } from '../common/errors/business.exception';
 import { DataStore, UserEntity } from '../common/store/data-store';
+import { STORE_DRIVER, StoreDriver, UserDataExport } from '../common/store/store-driver';
+import { maskPhone } from '../common/utils/phone.util';
 import { computeTargets } from '../nutrition/nutrition.rules';
+
+const DELETION_COOLING_OFF_DAYS = 7; // 删除冷静期 7 天〔假设，待法务确认 D-18 / 合规 §4.3〕
 
 const PATCHABLE = [
   'nickname',
@@ -19,7 +23,12 @@ const PATCHABLE = [
 
 @Injectable()
 export class UserService {
-  constructor(private readonly store: DataStore) {}
+  private readonly logger = new Logger('UserService');
+
+  constructor(
+    private readonly store: DataStore,
+    @Inject(STORE_DRIVER) private readonly driver: StoreDriver,
+  ) {}
 
   getMe(userId: string) {
     const user = this.mustGet(userId);
@@ -37,6 +46,86 @@ export class UserService {
     return { user: this.userView(user), nutritionTargets: computeTargets(user) };
   }
 
+  /**
+   * U3 数据导出（合规 §4.2 查阅复制权，D-18）：聚合该用户全量个人数据
+   *（Profile/FoodEntry/FastingPlan/FastingRecord/Streak/Post）返回 JSON。
+   * 只读操作，天然幂等；导出包内含明文手机号（本人数据，PIPL §44/45）。
+   */
+  async exportMe(userId: string): Promise<UserDataExport> {
+    this.mustGet(userId);
+    const bundle = await this.driver.collectUserExport(userId);
+    if (!bundle) throw err.notFound();
+    return bundle;
+  }
+
+  /**
+   * U5 申请删除账号（合规 §4.3，D-18）：进入 deletionStatus=pending +
+   * scheduledDeletionAt=now+7天；立即吊销全部 refresh token（登出所有会话、
+   * 冻结数据上报）。幂等：重复申请返回当前删除任务状态（契约 §四）。
+   */
+  requestDeletion(userId: string) {
+    const user = this.mustGet(userId);
+    if (user.deletionStatus !== 'pending') {
+      const now = new Date();
+      user.deletionStatus = 'pending';
+      user.scheduledDeletionAt = new Date(
+        now.getTime() + DELETION_COOLING_OFF_DAYS * 24 * 3600 * 1000,
+      );
+      user.version += 1;
+      user.updatedAt = now;
+      this.revokeAllTokens(userId);
+    }
+    return this.deletionView(user);
+  }
+
+  /** U6 撤销删除申请（冷静期内）；幂等：非 pending 直接返回当前状态 */
+  cancelDeletion(userId: string) {
+    const user = this.mustGet(userId);
+    if (user.deletionStatus === 'pending') {
+      this.clearDeletion(user);
+    }
+    return this.deletionView(user);
+  }
+
+  /**
+   * 到期删除扫描（DeletionScheduler 定时调用）：冷静期满的用户执行
+   * 物理删除个人数据 + UGC 匿名化（合规 §4.3：结束后 ≤24h 完成）。
+   */
+  async executeDueDeletions(now = new Date()): Promise<string[]> {
+    const due = await this.driver.listDueDeletionUserIds(now);
+    const purged: string[] = [];
+    for (const userId of due) {
+      const report = await this.driver.purgeUserData(userId);
+      purged.push(userId);
+      this.logger.log(
+        `账号到期删除完成 user=${userId}：entries=${report.foodEntries} ` +
+          `fasting=${report.fastingRecords} postsAnonymized=${report.postsAnonymized}`,
+      );
+    }
+    return purged;
+  }
+
+  private clearDeletion(user: UserEntity) {
+    user.deletionStatus = null;
+    user.scheduledDeletionAt = null;
+    user.version += 1;
+    user.updatedAt = new Date();
+  }
+
+  private revokeAllTokens(userId: string) {
+    for (const t of this.store.refreshTokens.values()) {
+      if (t.userId === userId && !t.revokedAt) t.revokedAt = new Date();
+    }
+  }
+
+  private deletionView(user: UserEntity) {
+    return {
+      deletionStatus: user.deletionStatus,
+      scheduledDeletionAt: user.scheduledDeletionAt?.toISOString() ?? null,
+      coolingOffDays: DELETION_COOLING_OFF_DAYS,
+    };
+  }
+
   private mustGet(userId: string): UserEntity {
     const user = this.store.users.get(userId);
     if (!user || user.deletedAt) throw err.notFound();
@@ -46,6 +135,7 @@ export class UserService {
   private userView(u: UserEntity) {
     return {
       id: u.id,
+      phone: maskPhone(u.phone), // 对外响应脱敏（合规 §6），明文仅出现在 U3 本人导出包
       nickname: u.nickname,
       avatarUrl: null,
       gender: u.gender,
@@ -59,6 +149,8 @@ export class UserService {
       themePref: u.themePref,
       accessibilityPrefs: u.accessibilityPrefs,
       onboardingStatus: u.onboardingStatus,
+      deletionStatus: u.deletionStatus,
+      scheduledDeletionAt: u.scheduledDeletionAt?.toISOString() ?? null,
       version: u.version,
     };
   }

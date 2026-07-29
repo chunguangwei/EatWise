@@ -50,13 +50,21 @@ export class AuthService {
     this.store.smsCodes.delete(phone); // 同验证码仅可用一次
 
     let isNewUser = false;
+    let deletionCancelled = false;
     let user = this.store.findUserByPhone(phone);
     if (!user) {
       user = this.store.createUser({ phone });
       isNewUser = true;
+    } else if (user.deletionStatus === 'pending') {
+      // 合规 §4.3：7 天冷静期内登录即视为撤销注销，并明示告知（deletionCancelled）
+      user.deletionStatus = null;
+      user.scheduledDeletionAt = null;
+      user.version += 1;
+      user.updatedAt = new Date();
+      deletionCancelled = true;
     }
     const tokens = await this.issueTokens(user, device?.deviceId ?? null);
-    return { ...tokens, isNewUser, user: this.publicUser(user) };
+    return { ...tokens, isNewUser, deletionCancelled, user: this.publicUser(user) };
   }
 
   async refresh(refreshToken: string, deviceId?: string | null) {

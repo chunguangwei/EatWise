@@ -3,8 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
 
 /**
- * Prisma（PostgreSQL ORM）。当前各业务 Service 走内存数据层（见 DataStore 注释），
- * 接入真实库时在 DATABASE_URL 配置后将仓储读写替换为 PrismaClient。
+ * Prisma（PostgreSQL ORM）。STORE_DRIVER=prisma 时由 PrismaStore 消费
+ * （见 src/common/store/prisma-store.ts）；memory 模式下保持懒连接。
  */
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {

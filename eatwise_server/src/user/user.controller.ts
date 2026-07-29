@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Patch, Post } from '@nestjs/common';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { UserService } from './user.service';
 
@@ -6,7 +6,7 @@ import { UserService } from './user.service';
 export class UserController {
   constructor(private readonly users: UserService) {}
 
-  /** U1 读取当前用户（含营养目标计算结果快照） */
+  /** U1 读取当前用户（含营养目标计算结果快照；手机号脱敏返回） */
   @Get('me')
   getMe(@CurrentUser() user: AuthUser) {
     return this.users.getMe(user.userId);
@@ -16,5 +16,23 @@ export class UserController {
   @Patch('me')
   patchMe(@CurrentUser() user: AuthUser, @Body() body: Record<string, unknown>) {
     return this.users.patchMe(user.userId, body);
+  }
+
+  /** U3 申请数据导出（合规 §4.2）：聚合全量个人数据，JSON 直接返回（只读，天然幂等） */
+  @Post('me/export')
+  exportMe(@CurrentUser() user: AuthUser) {
+    return this.users.exportMe(user.userId);
+  }
+
+  /** U5 申请删除账号（合规 §4.3）：7 天冷静期〔假设〕，幂等 */
+  @Post('me/deletion')
+  requestDeletion(@CurrentUser() user: AuthUser) {
+    return this.users.requestDeletion(user.userId);
+  }
+
+  /** U6 冷静期内撤销删除申请（幂等；冷静期内重新登录亦视为撤销，见 AuthService） */
+  @Delete('me/deletion')
+  cancelDeletion(@CurrentUser() user: AuthUser) {
+    return this.users.cancelDeletion(user.userId);
   }
 }

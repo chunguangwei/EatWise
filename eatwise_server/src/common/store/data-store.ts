@@ -19,6 +19,8 @@ export interface UserEntity {
   accessibilityPrefs: Record<string, unknown> | null;
   onboardingStatus: string;
   deletionStatus: string | null;
+  /** U5 删除冷静期截止时刻（deletionStatus=pending 时非空，到期硬删/匿名化，合规 §4.3） */
+  scheduledDeletionAt: Date | null;
   version: number;
   createdAt: Date;
   updatedAt: Date;
@@ -163,9 +165,9 @@ export interface IdempotencyRecord {
 }
 
 /**
- * 内存数据层。〔假设〕M0 骨架阶段：接口行为按契约实现，持久化后置 —
- * Prisma schema 已就位（prisma/schema.prisma），接入真实 PostgreSQL 时
- * 将各 Service 的读写替换为 PrismaClient 仓储即可，Service 对外契约不变。
+ * 内存数据层（STORE_DRIVER=memory 默认模式）。接口行为按契约实现，重启丢数据。
+ * 真实 PostgreSQL 持久化走仓储驱动抽象：见 store-driver.ts（StoreDriver 接口 +
+ * MemoryStoreDriver 适配器）与 prisma-store.ts（PrismaStore，STORE_DRIVER=prisma）。
  */
 @Injectable()
 export class DataStore {
@@ -227,6 +229,7 @@ export class DataStore {
       accessibilityPrefs: null,
       onboardingStatus: 'none',
       deletionStatus: null,
+      scheduledDeletionAt: null,
       version: 1,
       createdAt: now,
       updatedAt: now,

@@ -31,6 +31,7 @@ model User {
   onboardingStatus   String   @default("none") // none / skipped / completed
   exportStatus       String?
   deletionStatus     String? // null / pending（D-18，7 天冷静期〔假设〕）
+  scheduledDeletionAt DateTime? // deletionStatus=pending 时的冷静期截止时刻，到期硬删/匿名化（合规 §4.3）
   version            Int      @default(1)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

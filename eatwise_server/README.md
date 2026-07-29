@@ -12,7 +12,8 @@ src/
 │                            # 时区/UTC 工具（D-07）、内存数据层 DataStore
 ├── infra/                   # PrismaService、RedisService（懒连接）
 ├── auth/                    # A1/A2/A5/A6：验证码登录（D-13）、JWT 签发/刷新/轮换
-├── user/                    # U1/U2：资料读写 + 营养目标重算（D-04）
+├── user/                    # U1/U2：资料读写 + 营养目标重算（D-04）；U3 导出 / U5 删除 /
+│                            # U6 撤销（合规 §4.2/§4.3，DeletionScheduler 到期扫描）
 ├── fasting/                 # P3/P4/F1/F2/F3：方案次日生效（D-06）、归属日（D-07）、
 │                            # 容差达标（D-08）、延长步进/上限（D-10）
 ├── food/                    # K1/K2：双语食物搜索（D-16）
@@ -21,6 +22,7 @@ src/
 └── sync/                    # E1/E4/E6：批量上行 ≤100/批、幂等去重、逐条 LWW 冲突、
                              # syncToken 增量下行（D-20 / 规格-数据同步）
 prisma/schema.prisma         # 8 实体 + 幂等表（clientRequestId 唯一约束、version/updatedAt、软删）
+prisma/migrations/           # PostgreSQL 迁移（migrate diff 生成，migrate deploy 应用）
 test/                        # jest 单测 + supertest e2e
 ```
 
@@ -28,11 +30,24 @@ test/                        # jest 单测 + supertest e2e
 
 ```bash
 npm install
-cp .env.example .env        # 按需修改；不配 DATABASE_URL/REDIS_URL 则以内存数据层运行
-docker compose up -d        # 可选：本地起 PostgreSQL + Redis
-npx prisma migrate dev      # 可选：建表（需要 DATABASE_URL）
+cp .env.example .env        # 按需修改；STORE_DRIVER=memory（默认）时无需数据库
 npm run start:dev           # http://localhost:3000/v1
 ```
+
+### 使用真实 PostgreSQL（STORE_DRIVER=prisma）
+
+```bash
+docker compose up -d postgres     # 起 PostgreSQL 16（redis 可选）
+cp .env.example .env              # 配置 DATABASE_URL，并把 STORE_DRIVER 改为 prisma
+npx prisma migrate deploy         # 应用 prisma/migrations/ 建表（开发期也可用 migrate dev）
+npm run prisma:seed               # D-16：foods.seed.json 7455 条 upsert 入库（幂等可重跑）
+npm run start:dev
+```
+
+- `STORE_DRIVER`：`memory`（默认，内存 DataStore，重启丢数据）/ `prisma`（PrismaStore + PostgreSQL，要求 `DATABASE_URL` 已配置且已 migrate，缺失时启动即报错）。
+- 仓储抽象：`src/common/store/store-driver.ts` 定义 `StoreDriver` 接口（导出聚合 / 删除清除 / 食物种子 / 到期扫描），`MemoryStoreDriver` 适配内存 DataStore，`PrismaStore`（`src/common/store/prisma-store.ts`）走真实库——批量上行单 `$transaction` 原子提交、`(userId, clientRequestId)` 唯一约束幂等查重、LWW 乐观并发（`updateMany where version`）。
+- 阶段性迁移说明：fasting/streak/social/sync 等业务 Service 当前仍直接读写同步内存 DataStore（接口契约不变）；prisma 模式已覆盖 U3 导出、U5 删除清除、食物库种子与批量上行四条持久化路径，其余模块的仓储迁移为后续工作。
+- PrismaStore 集成测试（需真实库）：`RUN_PG_TESTS=1 DATABASE_URL=... npm test`（未起库时自动 skip）。
 
 ## 常用脚本
 
@@ -40,14 +55,15 @@ npm run start:dev           # http://localhost:3000/v1
 |------|------|
 | `npm run build` | nest build → dist/ |
 | `npm run start:dev` | watch 模式启动 |
-| `npm test` | jest 单测（51 个用例） |
-| `npm run test:e2e` | supertest e2e（10 个用例） |
+| `npm test` | jest 单测（77 个用例 + 4 个 pg 集成用例 skip） |
+| `npm run test:e2e` | supertest e2e（19 个用例） |
 | `npm run lint` | eslint（零告警门禁） |
-| `npm run prisma:generate` / `prisma:migrate` | Prisma client / 迁移 |
+| `npm run prisma:generate` / `prisma:migrate` / `prisma:seed` | Prisma client / 迁移 / 食物库种子 |
 
 ## 当前实现说明
 
-- **数据层**：业务 Service 读写内存 `DataStore`（接口行为按契约实现，重启丢数据）；Prisma schema 已就位，接真实库时替换仓储层即可，Service 对外契约不变。〔假设〕
+- **数据层**：默认内存 `DataStore` + `MemoryStoreDriver`；`STORE_DRIVER=prisma` 切换 `PrismaStore`（PostgreSQL 真实持久化），见上节。
+- **用户权利（D-18 / 合规 §4）**：U3 `POST /users/me/export` 聚合全量个人数据 JSON 直返（本人数据含明文手机号）；U5 `POST /users/me/deletion` 进入 7 天冷静期〔假设〕（`deletionStatus=pending` + `scheduledDeletionAt`，立即吊销全部会话，幂等）；U6 `DELETE /users/me/deletion` 撤销；冷静期内重新登录视为撤销（响应 `deletionCancelled: true`）；`DeletionScheduler` 每 60s（`DELETION_SCAN_INTERVAL_MS` 可调）扫描到期账号执行物理删除 + 打卡帖匿名化。U1 响应手机号脱敏（`138****8000`）。U4 异步导出任务未实现（U3 同步直返替代）。
 - **短信验证码**：mock 固定 `123456`，不落 Redis、不接短信通道。〔假设〕
 - **JWT**：HS256 + 单密钥（`JWT_SECRET`）；契约建议 ES256 + kid 轮换，上线前替换。〔假设〕
 - **限流**：@nestjs/throttler 全局 300 req/min 占位；分接口阈值（短信/登录/搜索等）按压测校准。〔假设〕
