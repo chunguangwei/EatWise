@@ -1,5 +1,6 @@
 # EatWise CI 流水线
-# 门禁：Flutter 端 format / analyze / test，服务端 lint / build / test，食物库数据校验。
+# 门禁：Flutter 端 format / analyze / test + Android/iOS 双端构建，
+#       服务端 lint / build / test，食物库数据校验。
 # 触发：push 与 PR（main 分支）。
 name: ci
 
@@ -45,6 +46,63 @@ jobs:
 
       - name: 测试（全绿门禁）
         run: flutter test --reporter expanded
+
+  build-android:
+    name: Android 构建门禁（assembleDebug）
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: eatwise_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.8"
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: pub get + 代码生成
+        run: |
+          flutter pub get
+          dart run slang
+          dart run build_runner build --delete-conflicting-outputs
+
+      # 冒烟曾在此踩坑：jni/AGP 兼容、desugaring、依赖下载。此 job 防回归。
+      - name: 构建 debug APK
+        run: flutter build apk --debug
+
+  build-ios:
+    name: iOS 构建门禁（no-codesign）
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: eatwise_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.8"
+          channel: stable
+          cache: true
+
+      - name: pub get + 代码生成
+        run: |
+          flutter pub get
+          dart run slang
+          dart run build_runner build --delete-conflicting-outputs
+
+      # 冒烟曾在此踩坑：部署目标 13.0 → 15.0（home_widget 要求 ≥14）。此 job 防回归。
+      - name: 构建 iOS（不签名）
+        run: flutter build ios --no-codesign
 
   server:
     name: NestJS Server (lint / build / test)
