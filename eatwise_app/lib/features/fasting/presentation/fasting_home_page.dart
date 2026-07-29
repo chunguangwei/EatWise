@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
@@ -16,6 +17,7 @@ import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.d
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart';
+import 'package:eatwise/features/streak/domain/streak_types.dart';
 import 'package:eatwise/features/streak/presentation/milestone_badge.dart';
 import 'package:eatwise/features/streak/presentation/streak_banner.dart';
 import 'package:eatwise/features/streak/presentation/streak_break_dialog.dart';
@@ -165,6 +167,28 @@ class _TimerBody extends ConsumerWidget {
           _showBreakDialog(context, ref, popupDate);
         });
       }
+    });
+
+    // 首页状态环曝光（§3.2 fasting_ring_expose；页面级曝光，去重键含
+    // 状态与方案——内容变化重计 §4.1；组件级 ≥50%+500ms 可视判定留 TODO）。
+    final streakDays = streak.currentStreak;
+    final ringFasting =
+        timer.state == FastingState.fasting ||
+        timer.state == FastingState.fastingExtended;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!context.mounted) return;
+      ref
+          .read(analyticsServiceProvider)
+          .trackExpose(
+            'fasting_ring_expose',
+            dedupeKey: 'home:ring:${timer.state.name}:${plan.id}',
+            properties: <String, Object?>{
+              'fasting_state': ringFasting ? 'fasting' : 'eating',
+              'remain_ms': snapshot.countdownSec * 1000,
+              'plan_type': plan.id.replaceAll(':', '_'),
+              'streak_days': streakDays,
+            },
+          );
     });
 
     final isFasting =
@@ -348,6 +372,22 @@ class _TimerBody extends ConsumerWidget {
     final notifier = ref.read(streakControllerProvider.notifier);
     final streak = ref.read(streakControllerProvider);
     notifier.markBreakPopupShown(missedDate);
+    // 断签弹窗曝光（§3.5 streak_break_dialog_expose；use_card 点击后
+    // 在 StreakController.useMendCard 回填）。
+    ref
+        .read(analyticsServiceProvider)
+        .track(
+          'streak_break_dialog_expose',
+          properties: <String, Object?>{
+            // 〔假设〕lost_streak 以补签预览恢复值近似（断签后 currentStreak 已归零）。
+            'lost_streak': notifier.previewMendRestore(missedDate),
+            'card_state': switch (streak.mendVisualState) {
+              MendCardVisualState.mendable => 'available',
+              MendCardVisualState.exhausted => 'exhausted',
+              MendCardVisualState.unmendable => 'expired',
+            },
+          },
+        );
     showDialog<void>(
       context: context,
       builder: (dialogContext) => StreakBreakDialog(

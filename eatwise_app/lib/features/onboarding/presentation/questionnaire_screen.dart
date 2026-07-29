@@ -1,4 +1,5 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
@@ -12,11 +13,34 @@ import 'package:go_router/go_router.dart';
 /// 3 题问卷页（M1 功能点 1，D-02：目标/作息/经验，单选，可跳过）。
 ///
 /// 每答一题进度即本地保存，中途退出可续答（PRD M1 异常与边界）。
-class QuestionnaireScreen extends ConsumerWidget {
+class QuestionnaireScreen extends ConsumerStatefulWidget {
   const QuestionnaireScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<QuestionnaireScreen> createState() =>
+      _QuestionnaireScreenState();
+}
+
+class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // 引导页曝光（§3.1 onboard_guide_expose；页面级曝光，session 内去重 §4.1，
+    // 组件级 ≥50%+500ms 可视判定留 TODO）。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(analyticsServiceProvider)
+          .trackExpose(
+            'onboard_guide_expose',
+            dedupeKey: 'onboarding:guide',
+            properties: const <String, Object?>{'entry': 'first_launch'},
+          );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;

@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/analytics/analytics_context.dart';
+import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/analytics/analytics_service.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
@@ -35,11 +38,62 @@ class _RecordPageState extends ConsumerState<RecordPage> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
 
+  /// 埋点服务（dispose 阶段不可再用 ref，提前持有）。
+  late final AnalyticsService _analytics = ref.read(analyticsServiceProvider);
+
+  /// 当前记录流程 ID（§2.5 耗时事件对关联键；进入记录页即开启）。
+  String? _flowId;
+
+  /// 有效交互步数（≤3 步口径 §2.5：入口点击/选中食物/确认，不含曝光）。
+  int _stepCount = 0;
+
+  /// 上次确认入账时刻（`record_undo_click.after_ms`）。
+  int? _lastConfirmMs;
+
+  @override
+  void initState() {
+    super.initState();
+    // 记录流程起点（§3.3 record_flow_start：进入记录页即触发一次）。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _flowId ??= _analytics.startRecordFlow();
+    });
+  }
+
   @override
   void dispose() {
+    // 流程开始但未确认即退出 → record_flow_abandon（§3.3，reason=exit）。
+    final flowId = _flowId;
+    if (flowId != null) {
+      _analytics.track(
+        'record_flow_abandon',
+        properties: <String, Object?>{
+          'flow_id': flowId,
+          'reason': 'exit',
+          'elapsed_ms': _analytics.recordFlowElapsedMs(flowId) ?? 0,
+        },
+      );
+      _analytics.endRecordFlow(flowId);
+    }
     _searchController.dispose();
     _amountController.dispose();
     super.dispose();
+  }
+
+  /// 三入口点击（§3.3 record_entry_click；更新 flow 最终入口）。
+  void _onEntryTap(String entryType, VoidCallback start) {
+    _stepCount++;
+    final flowId = _flowId;
+    if (flowId != null) {
+      _analytics.updateRecordFlowEntry(flowId, entryType);
+      _analytics.track(
+        'record_entry_click',
+        properties: <String, Object?>{
+          'entry_type': entryType,
+          'flow_id': flowId,
+        },
+      );
+    }
+    start();
   }
 
   /// 一键确认：乐观更新入账（UI 立即经流展示）+「已记录·撤销」吐司（D-11）。
@@ -52,15 +106,42 @@ class _RecordPageState extends ConsumerState<RecordPage> {
       messenger.showSnackBar(SnackBar(content: Text(s.amountInvalid)));
       return;
     }
+    _stepCount++;
     final repo = ref.read(recordRepositoryProvider);
+    final entrySource = ref.read(recordEntrySourceProvider);
+    final isEdited = ref.read(recordAmountTextProvider) != '100';
     final entry = await repo.addEntry(
       RecordDraft(
         foodId: food.id,
         amountG: amount,
         mealUtc: DateTime.now().toUtc(),
-        source: ref.read(recordEntrySourceProvider),
+        source: entrySource,
       ),
     );
+    // 确认记录成功（§3.3 record_flow_success，核心事件 §1.5 立即上报；
+    // 健康明细不上报，仅枚举与计数 §1.6-3）。
+    final flowId = _flowId;
+    final flow = flowId == null ? null : _analytics.endRecordFlow(flowId);
+    _flowId = null;
+    _lastConfirmMs = DateTime.now().millisecondsSinceEpoch;
+    if (flowId != null) {
+      _analytics.track(
+        'record_flow_success',
+        properties: <String, Object?>{
+          'flow_id': flowId,
+          'duration_ms': flow?.durationMs ?? 0,
+          'step_count': _stepCount,
+          'entry_type': flow?.entryType ?? _entryEventType(entrySource),
+          'item_count': 1,
+          'record_kind': 'food',
+          'is_edited': isEdited,
+          'meal_period': _mealPeriod(),
+          // D-20 四态：乐观更新入账即 pending。
+          'sync_state': 'pending',
+        },
+        flushNow: true,
+      );
+    }
     if (!mounted) return;
     ref.read(recordSelectedFoodProvider.notifier).state = null;
     ref.read(recordSearchQueryProvider.notifier).state = '';
@@ -86,6 +167,18 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     RecordStrings s,
   ) async {
     final ok = await repo.undo(localId);
+    if (ok) {
+      // 撤销埋点（§3.3 record_undo_click；ID 哈希仅用于事件配对 §1.6-4）。
+      _analytics.track(
+        'record_undo_click',
+        properties: <String, Object?>{
+          'record_id_hash': anonymizedContentId(localId),
+          'after_ms': _lastConfirmMs == null
+              ? 0
+              : DateTime.now().millisecondsSinceEpoch - _lastConfirmMs!,
+        },
+      );
+    }
     if (ok && mounted) {
       ScaffoldMessenger.of(
         context,
@@ -176,19 +269,28 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                   _EntryCard(
                     icon: Icons.photo_camera_outlined,
                     label: s.entryPhoto,
-                    onTap: () => unawaited(startPhotoRecognition(context, ref)),
+                    onTap: () => _onEntryTap(
+                      'camera',
+                      () => unawaited(startPhotoRecognition(context, ref)),
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.s2),
                   _EntryCard(
                     icon: Icons.mic_none_outlined,
                     label: s.entryVoice,
-                    onTap: () => unawaited(startVoiceInput(context, ref)),
+                    onTap: () => _onEntryTap(
+                      'voice',
+                      () => unawaited(startVoiceInput(context, ref)),
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.s2),
                   _EntryCard(
                     icon: Icons.favorite_border_outlined,
                     label: s.entryFrequent,
-                    onTap: () => unawaited(startFrequentPick(context)),
+                    onTap: () => _onEntryTap(
+                      'frequent',
+                      () => unawaited(startFrequentPick(context)),
+                    ),
                   ),
                 ],
               ),
@@ -245,6 +347,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                           ),
                         ),
                         onTap: () {
+                          _stepCount++;
                           ref.read(recordSelectedFoodProvider.notifier).state =
                               food;
                           ref.read(recordAmountTextProvider.notifier).state =
@@ -306,6 +409,23 @@ class _RecordPageState extends ConsumerState<RecordPage> {
         ),
       ),
     );
+  }
+
+  /// EntrySource → 事件字典 entry_type 枚举（§3.3：photo → camera）。
+  static String _entryEventType(EntrySource source) => switch (source) {
+    EntrySource.photo => 'camera',
+    EntrySource.voice => 'voice',
+    EntrySource.frequent => 'frequent',
+    EntrySource.manual => 'manual',
+  };
+
+  /// 按本地时间推断餐段（§3.3 meal_period；〔假设〕时段划分）。
+  static String _mealPeriod() {
+    final hour = DateTime.now().toLocal().hour;
+    if (hour >= 5 && hour < 10) return 'breakfast';
+    if (hour >= 10 && hour < 15) return 'lunch';
+    if (hour >= 17 && hour < 21) return 'dinner';
+    return 'snack';
   }
 }
 

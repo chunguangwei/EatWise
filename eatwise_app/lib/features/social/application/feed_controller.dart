@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:eatwise/core/analytics/analytics_context.dart';
+import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/analytics/analytics_service.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/features/social/data/social_api.dart';
@@ -111,6 +114,8 @@ final class FeedController extends Notifier<FeedState> {
 
   SocialApi get _api => ref.read(socialApiProvider);
 
+  AnalyticsService get _analytics => ref.read(analyticsServiceProvider);
+
   @override
   FeedState build() {
     unawaited(refresh());
@@ -172,6 +177,15 @@ final class FeedController extends Notifier<FeedState> {
     final item = state.items[index];
     if (item.pendingSync) return; // 待确认卡不可互动
     final liked = item.post.likedByMe;
+    // 轻互动埋点（§3.5 community_interaction；post_id 哈希不含内容 §1.6-4）。
+    _analytics.track(
+      'community_interaction',
+      properties: <String, Object?>{
+        'action': liked ? 'unlike' : 'like',
+        'post_id_hash': anonymizedContentId(postId),
+        'is_own_post': item.post.isAuthor,
+      },
+    );
     final optimistic = item.post.copyWith(
       likedByMe: !liked,
       likeCount: item.post.likeCount + (liked ? -1 : 1),
@@ -232,6 +246,20 @@ final class FeedController extends Notifier<FeedState> {
       _replaceAt(
         state.items.indexWhere((i) => i.post.id == localId),
         FeedItem(post: created),
+      );
+      // 打卡发布埋点（§3.5 community_post_publish；2.6 活跃判定）。
+      _analytics.track(
+        'community_post_publish',
+        properties: <String, Object?>{
+          'has_image': imageUrls.isNotEmpty,
+          'streak_days': created.streakDaysAtPost ?? streakDays ?? 0,
+          // 〔假设〕服务端 auditStatus 'pending' → 字典枚举 'review'。
+          'audit_result': created.auditStatus == 'approved'
+              ? 'pass'
+              : created.auditStatus == 'rejected'
+              ? 'reject'
+              : 'review',
+        },
       );
       return PublishOk(created);
     } on BusinessApiException catch (e) {

@@ -1,4 +1,5 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
@@ -8,12 +9,13 @@ import 'package:eatwise/features/fasting/domain/daily_nutrition.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 专业数据折叠区（PRD M4 / 设计稿 §4.2-③：默认折叠，展开 affordance 明确
 /// ——箭头 + 「查看详情」，评审建议改进项 4）。
 ///
 /// 展开内容：目标值 / 已摄入 / 占比 / RDA 参考。
-class ProDetailsSection extends StatefulWidget {
+class ProDetailsSection extends ConsumerStatefulWidget {
   const ProDetailsSection({
     required this.intake,
     required this.goal,
@@ -24,11 +26,27 @@ class ProDetailsSection extends StatefulWidget {
   final NutritionGoal goal;
 
   @override
-  State<ProDetailsSection> createState() => _ProDetailsSectionState();
+  ConsumerState<ProDetailsSection> createState() => _ProDetailsSectionState();
 }
 
-class _ProDetailsSectionState extends State<ProDetailsSection> {
+class _ProDetailsSectionState extends ConsumerState<ProDetailsSection> {
   bool _expanded = false;
+
+  void _toggle() {
+    // 专业数据展开埋点（§3.4 pro_data_expand；仅展开方向上报）。
+    if (!_expanded) {
+      ref
+          .read(analyticsServiceProvider)
+          .track(
+            'pro_data_expand',
+            properties: const <String, Object?>{
+              'date_offset': 0,
+              'expand_source': 'arrow',
+            },
+          );
+    }
+    setState(() => _expanded = !_expanded);
+  }
 
   /// RDA 参考值〔假设〕：成人通用膳食参考（《中国居民膳食营养素参考
   /// 摄入量》口径取整），**待营养专业侧书面背书**；个人目标以用户方案为准。
@@ -59,7 +77,7 @@ class _ProDetailsSectionState extends State<ProDetailsSection> {
           // 展开 affordance：图标 + 标题 + 「查看详情/收起」+ 箭头，≥44px。
           InkWell(
             borderRadius: radii.rLg,
-            onTap: () => setState(() => _expanded = !_expanded),
+            onTap: _toggle,
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 48),
               child: Padding(

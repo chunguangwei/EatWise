@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/app/router/app_router.dart';
+import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/network/token_store.dart';
 import 'package:eatwise/core/notification/local_notification_service.dart';
@@ -93,6 +94,12 @@ Future<void> main() async {
   handleSessionCleared = () =>
       container.read(authControllerProvider.notifier).onSessionCleared();
   await container.read(authControllerProvider.notifier).restore();
+  // 埋点采集层（D-01 北极星口径 / D-18：默认未授权不采集，授权入口见
+  // ConsentStore，隐私弹窗 UI 留 TODO）：定时 flush + 启动重放离线队列 +
+  // 前后台会话切分；未授权时下列事件均为 suppressed no-op。
+  final analytics = container.read(analyticsServiceProvider)..start();
+  WidgetsBinding.instance.addObserver(analytics);
+  analytics.trackAppOpen(launchType: 'cold');
   if (authGate.loggedIn) {
     // §2.1：App 启动触发一轮同步（先上行 pending 再增量下行）。
     unawaited(container.read(recordSyncEngineProvider).syncNow());

@@ -1,3 +1,5 @@
+import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/analytics/analytics_service.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
@@ -100,10 +102,16 @@ final class OnboardingController extends Notifier<OnboardingState> {
 
   OnboardingStore get _store => ref.read(onboardingStoreProvider);
 
+  AnalyticsService get _analytics => ref.read(analyticsServiceProvider);
+
+  /// 当前题进入时刻（`onboard_question_answer.duration_ms`，§3.1）。
+  int _questionShownAtMs = DateTime.now().millisecondsSinceEpoch;
+
   @override
   OnboardingState build() {
     // 续答：恢复本地保存的进度（PRD M1 异常与边界）。
     final progress = _store.loadQuizProgress();
+    _questionShownAtMs = DateTime.now().millisecondsSinceEpoch;
     return OnboardingState(
       answers: _decodeAnswers(progress?.answers ?? const <String, String>{}),
       currentStep: (progress?.currentStep ?? 0).clamp(0, questionCount - 1),
@@ -130,27 +138,52 @@ final class OnboardingController extends Notifier<OnboardingState> {
   /// 下一题。
   void nextStep() {
     if (state.currentStep >= questionCount - 1) return;
+    _trackQuestionAnswer();
     final step = state.currentStep + 1;
     _store.saveQuizProgress(
       QuizProgress(answers: _encodeAnswers(state.answers), currentStep: step),
     );
+    _questionShownAtMs = DateTime.now().millisecondsSinceEpoch;
     state = state.copyWith(currentStep: step);
   }
 
   /// 上一题。
   void previousStep() {
     if (state.currentStep <= 0) return;
+    _questionShownAtMs = DateTime.now().millisecondsSinceEpoch;
     state = state.copyWith(currentStep: state.currentStep - 1);
   }
 
   /// 答完 3 题 → 生成推荐（D-03），清掉续答进度。
   void finishQuiz() {
+    _trackQuestionAnswer();
     _store.clearQuizProgress();
     state = state.copyWith(recommendation: recommendPlan(state.answers));
   }
 
+  /// 每题完成埋点（`onboard_question_answer`，§3.1：选中并切至下一题时）。
+  void _trackQuestionAnswer() {
+    final step = state.currentStep;
+    final optionName = _encodeAnswers(state.answers)[_questionKey(step)];
+    if (optionName == null) return;
+    _analytics.track(
+      'onboard_question_answer',
+      properties: <String, Object?>{
+        'question_index': step + 1,
+        'question_key': _questionEventKey(step),
+        'option_value': _optionEventValue(step, optionName),
+        'duration_ms':
+            DateTime.now().millisecondsSinceEpoch - _questionShownAtMs,
+      },
+    );
+  }
+
   /// 跳过问卷 → 默认 16:8 兜底（D-03），不阻断进首页。
   void skipQuiz() {
+    _analytics.track(
+      'onboard_skip_click',
+      properties: <String, Object?>{'at_step': state.currentStep + 1},
+    );
     _store.clearQuizProgress();
     state = state.copyWith(
       answers: OnboardingAnswers.empty,
@@ -211,6 +244,21 @@ final class OnboardingController extends Notifier<OnboardingState> {
     _store.markOnboardingCompleted();
     ref.read(onboardingGateProvider).completed = true;
 
+    // 一键启动（核心转化事件，§1.5 立即上报；2.2 引导完成率分子）。
+    final rec = state.recommendation;
+    _analytics.track(
+      'onboard_plan_start',
+      properties: <String, Object?>{
+        'plan_type': plan.id.replaceAll(':', '_'),
+        'eating_window_start': _hhmm(plan.eatStartMinutes),
+        'eating_window_end': _hhmm(plan.eatEndMinutes),
+        'is_fallback': rec?.usedFallback ?? true,
+        // 问卷不含身高体重等基础信息（D-04 走兜底）→ has_profile=false。
+        'has_profile': false,
+      },
+      flushNow: true,
+    );
+
     return StartPlanResult(
       planId: plan.id,
       targetKcal: goal.targetKcal,
@@ -223,6 +271,35 @@ final class OnboardingController extends Notifier<OnboardingState> {
     1 => 'q2',
     _ => 'q3',
   };
+
+  /// 事件字典 question_key 枚举（§3.1，D-02 三题）。
+  static String _questionEventKey(int step) => switch (step) {
+    0 => 'goal',
+    1 => 'schedule',
+    _ => 'experience',
+  };
+
+  /// 事件字典 option_value 枚举（附录 A，对齐 D-02 选项表）。
+  static String _optionEventValue(int step, String optionName) {
+    return switch ((step, optionName)) {
+      (0, 'loseWeight') => 'fat_loss',
+      (0, 'improveHealth') => 'health_metrics',
+      (0, 'adjustSchedule') => 'schedule',
+      (0, _) => 'just_try',
+      (1, 'shiftWork') => 'shift_work',
+      (1, 'flexible') => 'flexible',
+      (1, _) => 'regular',
+      (2, 'triedButStopped') => 'tried_failed',
+      (2, 'experienced') => 'experienced',
+      (_, _) => 'beginner',
+    };
+  }
+
+  static String _hhmm(int minutesOfDay) {
+    final h = (minutesOfDay ~/ 60).toString().padLeft(2, '0');
+    final m = (minutesOfDay % 60).toString().padLeft(2, '0');
+    return '$h:$m';
+  }
 
   static Map<String, String> _encodeAnswers(OnboardingAnswers answers) {
     return <String, String>{

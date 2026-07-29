@@ -1,4 +1,5 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
@@ -12,11 +13,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 /// 推荐结果页（M1 功能点 3/4：主方案卡 + ≥1 备选卡 + 一键启动）。
-class RecommendationScreen extends ConsumerWidget {
+class RecommendationScreen extends ConsumerStatefulWidget {
   const RecommendationScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RecommendationScreen> createState() =>
+      _RecommendationScreenState();
+}
+
+class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // 方案推荐曝光（§3.1 onboard_plan_recommend_expose；页面级，session 去重）。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final state = ref.read(onboardingControllerProvider);
+      final rec =
+          state.recommendation ?? recommendPlan(OnboardingAnswers.empty);
+      ref
+          .read(analyticsServiceProvider)
+          .trackExpose(
+            'onboard_plan_recommend_expose',
+            dedupeKey: 'onboarding:recommend:${rec.primary.id}',
+            properties: <String, Object?>{
+              'main_plan': rec.primary.id.replaceAll(':', '_'),
+              'alt_plan': rec.alternatives.first.id.replaceAll(':', '_'),
+              'is_fallback': rec.usedFallback,
+              // 〔假设〕rule_id 用推荐理由模板 key 占位（D-03 规则行 ID 未定）。
+              'rule_id': 'r_${rec.reason.name}',
+            },
+          );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;

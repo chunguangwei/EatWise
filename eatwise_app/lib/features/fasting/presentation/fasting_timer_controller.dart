@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/analytics/analytics_service.dart';
 import 'package:eatwise/core/notification/local_notification_service.dart';
 import 'package:eatwise/core/notification/notification_service.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_scheduler.dart';
@@ -125,6 +127,8 @@ final class FastingTimerState {
 final class FastingTimerController extends Notifier<FastingTimerState> {
   FastingCycleStore get _store => ref.read(fastingCycleStoreProvider);
 
+  AnalyticsService get _analytics => ref.read(analyticsServiceProvider);
+
   int _now() => ref.read(fastingClockProvider)();
 
   tz.Location get _location => ref.read(deviceLocationProvider);
@@ -152,7 +156,7 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
           : result.closedRecords.last;
       // 重启恢复补关闭的周期：逐条触发 streak 接线（落库/推演/上行）。
       for (final record in result.closedRecords) {
-        _emitClosed(record);
+        _emitClosed(record, plan);
       }
       return _resolve(
         plan,
@@ -229,7 +233,17 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     if (cycle != null && now >= cycle.plannedEndUtc) {
       final record = completeCycleOnTime(cycle, _location);
       _store.clearActiveCycle();
-      _emitClosed(record);
+      _emitClosed(record, plan);
+      // 状态机迁移埋点（§3.2：自动到点 fasting→eating）。
+      _analytics.track(
+        'fasting_state_change',
+        properties: <String, Object?>{
+          'from_state': 'fasting',
+          'to_state': 'eating',
+          'trigger': 'auto',
+          'attribute_date': record.date,
+        },
+      );
       _reschedule(plan, 0, RescheduleReason.stateTransition);
       state = _resolve(
         plan,
@@ -249,9 +263,29 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     final cycle = state.cycle;
     if (plan == null || cycle == null) return;
     final now = _now();
+    // 结束断食埋点（§3.2 fasting_end_click → fasting_end_confirm）：
+    // 〔假设〕确认弹窗未实现，当前一步确认，两事件同点上报（TODO 确认弹窗）。
+    final endProps = <String, Object?>{
+      'elapsed_ms': (now - cycle.startUtc) * 1000,
+      'planned_ms': cycle.plannedSec * 1000,
+      'early_minutes': now >= cycle.plannedEndUtc
+          ? 0
+          : ((cycle.plannedEndUtc - now) ~/ 60),
+    };
+    _analytics.track('fasting_end_click', properties: endProps);
+    _analytics.track('fasting_end_confirm', properties: endProps);
     final record = manualEndFast(cycle, now, _location);
+    _analytics.track(
+      'fasting_state_change',
+      properties: <String, Object?>{
+        'from_state': 'fasting',
+        'to_state': 'eating',
+        'trigger': 'manual_end',
+        'attribute_date': record.date,
+      },
+    );
     _store.clearActiveCycle();
-    _emitClosed(record);
+    _emitClosed(record, plan);
     // T3/T4/T9：进食窗口以实际破窗时刻开启，结束锚点不后移。
     _store.saveEarlyEatEndUtc(cycle.eatWindowEndUtc);
     _reschedule(plan, 0, RescheduleReason.manualEndFast);
@@ -273,6 +307,14 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     final extended = extendCycle(cycle);
     if (extended == null) return false;
     _store.saveActiveCycle(ActiveCycleSnapshot.fromCycle(extended));
+    // 延长埋点（§3.2 fasting_extend_click；D-10 步进 30 分钟）。
+    _analytics.track(
+      'fasting_extend_click',
+      properties: <String, Object?>{
+        'extend_minutes': extended.extendedMinutes - cycle.extendedMinutes,
+        'extend_count_today': extended.extendedMinutes ~/ kExtendStepMinutes,
+      },
+    );
     _reschedule(
       plan,
       extended.extendedMinutes,
@@ -289,8 +331,21 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     }
   }
 
-  /// 周期关闭统一出口：转发 streak 钩子（M5，失败不阻断计时主流程）。
-  void _emitClosed(FastingRecord record) {
+  /// 周期关闭统一出口：转发 streak 钩子（M5，失败不阻断计时主流程）；
+  /// 上报 `fasting_checkin_success`（§3.2 核心事件，§1.5 立即上报）。
+  void _emitClosed(FastingRecord record, FastingPlan plan) {
+    _analytics.track(
+      'fasting_checkin_success',
+      properties: <String, Object?>{
+        'attribute_date': record.date,
+        'is_qualified': record.qualified,
+        'actual_ms': record.actualSec * 1000,
+        'planned_ms': record.plannedSec * 1000,
+        'plan_type': plan.id.replaceAll(':', '_'),
+        'break_reason': record.qualified ? 'none' : 'early_end',
+      },
+      flushNow: true,
+    );
     unawaited(Future.sync(() => ref.read(fastingStreakHookProvider)(record)));
   }
 

@@ -1,7 +1,9 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart';
 import 'package:eatwise/features/nutrition/presentation/date_switcher.dart';
@@ -18,11 +20,40 @@ import 'package:go_router/go_router.dart';
 ///
 /// 当日无记录 → 空态引导去记录（CTA 跳 /record），不渲染误导性信号灯
 /// （D-05 / §3.2）；目标走 D-04 兜底时给出补全资料提示。
-class NutritionDataPage extends ConsumerWidget {
+class NutritionDataPage extends ConsumerStatefulWidget {
   const NutritionDataPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NutritionDataPage> createState() => _NutritionDataPageState();
+}
+
+class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
+  @override
+  void initState() {
+    super.initState();
+    // 数据页曝光（§3.4 analytics_page_expose；页面级，session 内去重 §4.1）。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final selected = ref.read(selectedDateProvider);
+      final now = DateTime.now();
+      final dateOffset = DateUtils.dateOnly(
+        selected,
+      ).difference(DateUtils.dateOnly(now)).inDays;
+      ref
+          .read(analyticsServiceProvider)
+          .trackExpose(
+            'analytics_page_expose',
+            dedupeKey: 'analytics:page:$dateOffset',
+            properties: <String, Object?>{
+              'date_offset': dateOffset,
+              'has_record': ref.read(daySignalsProvider).hasData,
+            },
+          );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
@@ -91,6 +122,18 @@ class NutritionDataPage extends ConsumerWidget {
                 signal: signal,
                 goal: goal,
                 mealSegment: mealSegment,
+                onCardTap: (nutrient, verdict) {
+                  // 信号灯卡点击（§3.4 signal_card_click）。
+                  ref
+                      .read(analyticsServiceProvider)
+                      .track(
+                        'signal_card_click',
+                        properties: <String, Object?>{
+                          'nutrient': _nutrientEventValue(nutrient),
+                          'signal_level': verdict.zone.name,
+                        },
+                      );
+                },
               )
             else
               const _EmptyDayState(),
@@ -104,6 +147,16 @@ class NutritionDataPage extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// NutrientType → 事件字典 nutrient 枚举（§3.4：kcal → calorie）。
+  static String _nutrientEventValue(NutrientType nutrient) {
+    return switch (nutrient) {
+      NutrientType.kcal => 'calorie',
+      NutrientType.protein => 'protein',
+      NutrientType.carb => 'carb',
+      NutrientType.fat => 'fat',
+    };
   }
 }
 

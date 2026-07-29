@@ -21,6 +21,7 @@ class SignalCardsGrid extends StatelessWidget {
     required this.signal,
     required this.goal,
     required this.mealSegment,
+    this.onCardTap,
     super.key,
   });
 
@@ -35,6 +36,9 @@ class SignalCardsGrid extends StatelessWidget {
 
   /// 当前餐段（建议模板 `{meal_action}` 插值）。
   final MealSegment mealSegment;
+
+  /// 卡片点击回调（M4 埋点 signal_card_click 接线；可空）。
+  final void Function(NutrientType nutrient, SignalVerdict verdict)? onCardTap;
 
   /// 栅格最小卡宽（设计稿 minmax(150px,1fr)）。
   static const double minCardWidth = 150;
@@ -65,12 +69,21 @@ class SignalCardsGrid extends StatelessWidget {
                   for (var j = 0; j < chunk.length; j++) ...<Widget>[
                     if (j > 0) const SizedBox(width: AppSpacing.s4),
                     Expanded(
-                      child: SignalCard(
-                        nutrient: chunk[j],
-                        actual: _actualOf(chunk[j]),
-                        target: _targetOf(chunk[j]),
-                        verdict: signal.verdicts[chunk[j]]!,
-                        mealSegment: mealSegment,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onCardTap == null
+                            ? null
+                            : () => onCardTap!(
+                                chunk[j],
+                                signal.verdicts[chunk[j]]!,
+                              ),
+                        child: SignalCard(
+                          nutrient: chunk[j],
+                          actual: _actualOf(chunk[j]),
+                          target: _targetOf(chunk[j]),
+                          verdict: signal.verdicts[chunk[j]]!,
+                          mealSegment: mealSegment,
+                        ),
                       ),
                     ),
                   ],

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:drift/drift.dart' hide Column;
+import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/analytics/analytics_service.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/storage/database.dart' hide FastingRecord;
@@ -111,6 +113,8 @@ final class StreakController extends Notifier<StreakUiState> {
   StreakEngine? _engineRef;
 
   StreakLocalStore get _store => ref.read(streakLocalStoreProvider);
+
+  AnalyticsService get _analytics => ref.read(analyticsServiceProvider);
 
   String _today() => ref.read(streakTodayProvider)();
 
@@ -280,6 +284,7 @@ final class StreakController extends Notifier<StreakUiState> {
       );
       _store.saveEngine(_engine);
       state = _uiState(fromServer: true, newMilestones: result.newMilestones);
+      _trackMendCardUsed();
       return result;
     } on BusinessApiException {
       rethrow; // 服务端业务拒绝（窗口外/已用/库存空）原样上抛给 UI 提示
@@ -288,8 +293,20 @@ final class StreakController extends Notifier<StreakUiState> {
       final result = _engine.useMendCard(date, today: today);
       _store.saveEngine(_engine);
       state = _uiState(fromServer: false, newMilestones: result.newMilestones);
+      _trackMendCardUsed();
       return result;
     }
+  }
+
+  /// 补签卡使用回填（§3.5 streak_break_dialog_expose.use_card 点击后回填）。
+  void _trackMendCardUsed() {
+    _analytics.track(
+      'streak_break_dialog_expose',
+      properties: const <String, Object?>{
+        'card_state': 'available',
+        'use_card': true,
+      },
+    );
   }
 
   /// 补签预览：假设 [date] 补签成功后的当前连胜（弹窗 CTA 文案用）。
@@ -324,6 +341,18 @@ final class StreakController extends Notifier<StreakUiState> {
     final shown = _store.loadShownBreakPopups();
     final unshown = newlyMissed.where((d) => !shown.contains(d));
     final popupDate = unshown.isEmpty ? null : unshown.first;
+    // 里程碑触达埋点（§3.5 badge_reach：3/7/30 天里程碑徽章展示触发）。
+    for (final milestone in newMilestones) {
+      _analytics.track(
+        'badge_reach',
+        properties: <String, Object?>{
+          'milestone': milestone,
+          'streak_days': fromServer
+              ? (_serverCurrentStreak ?? engine.currentStreak(today))
+              : engine.currentStreak(today),
+        },
+      );
+    }
     return StreakUiState(
       status: engine.status(today),
       currentStreak: fromServer
