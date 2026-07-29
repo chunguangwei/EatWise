@@ -142,6 +142,34 @@ final class RecordStrings {
   /// record.card.pleaseConfirm
   String get cardPleaseConfirm => _t.record.card.pleaseConfirm;
 
+  /// record.water.title
+  String get waterTitle => _t.record.water.title;
+
+  /// record.water.progress
+  String waterProgress(int total, int goal) =>
+      _t.record.water.progress(total: total, goal: goal);
+
+  /// record.water.quickAddLabel
+  String waterQuickAddLabel(int ml) => _t.record.water.quickAddLabel(ml: ml);
+
+  /// record.weight.title
+  String get weightTitle => _t.record.weight.title;
+
+  /// record.weight.notLogged
+  String get weightNotLogged => _t.record.weight.notLogged;
+
+  /// record.weight.current
+  String weightCurrent(String kg) => _t.record.weight.current(kg: kg);
+
+  /// record.weight.dialogTitle
+  String get weightDialogTitle => _t.record.weight.dialogTitle;
+
+  /// record.weight.inputLabel
+  String get weightInputLabel => _t.record.weight.inputLabel;
+
+  /// record.weight.invalid
+  String get weightInvalid => _t.record.weight.invalid;
+
   /// common.action.cancel
   String get cancelAction => _t.common.action.cancel;
 }

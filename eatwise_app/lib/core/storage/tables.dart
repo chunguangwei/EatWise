@@ -166,6 +166,34 @@ class FastingRecords extends Table {
   Set<Column<Object>> get primaryKey => {localId};
 }
 
+/// WaterLog 单条饮水记录（PRD M3 功能点 4：饮水轻量记录）。
+///
+/// 轻量记录：仅本地口径，**不上行同步**（〔假设〕MVP 不做饮水云端同步，
+/// 故无四态字段）；`localDate` 为按设备时区换算的归属日（yyyy-MM-dd），
+/// 供当日累计聚合。撤销走 D-11 语义（10 秒吐司内物理删除）。
+class WaterLogs extends Table {
+  /// 本地主键（UUIDv4），客户端生成。
+  TextColumn get localId => text()();
+
+  /// 归属用户；未登录为 `anonymous`。
+  TextColumn get userId => text()();
+
+  /// 本次饮水量（毫升）。
+  IntColumn get amountMl => integer()();
+
+  /// 饮水时间（UTC ISO8601）。
+  TextColumn get datetimeUtc => text()();
+
+  /// 归属日（本地时区 yyyy-MM-dd，当日累计聚合键）。
+  TextColumn get localDate => text()();
+
+  /// 本地创建时间（UTC ISO8601）。
+  TextColumn get createdAtUtc => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {localId};
+}
+
 /// DailyNutrition 聚合缓存（PRD 第五章：由 FoodEntry 聚合）。
 ///
 /// 正式口径由服务端派生（§2.6，D-12 一致性约束）；本表为客户端离线期间的

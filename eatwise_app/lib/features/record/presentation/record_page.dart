@@ -13,6 +13,7 @@ import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
+import 'package:eatwise/features/record/presentation/light_record_section.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:eatwise/features/record/recognition/presentation/frequent_flow.dart';
@@ -210,202 +211,227 @@ class _RecordPageState extends ConsumerState<RecordPage> {
         title: Text(s.pageTitle, style: textStyles.textXl),
       ),
       body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            // 「待同步 N 条」可见入口（§4.1：>0 时展示，点击进同步详情页
-            // ——详情页由主代理集成，当前占位提示）。
-            if (pendingCount > 0)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.s4,
-                  AppSpacing.s2,
-                  AppSpacing.s4,
-                  0,
-                ),
-                child: Semantics(
-                  button: true,
-                  label: s.pendingBanner(pendingCount),
-                  child: Material(
-                    color: colors.bgSecondary,
-                    borderRadius: radii.rMd,
-                    child: InkWell(
-                      borderRadius: radii.rMd,
-                      onTap: () => ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text(s.comingSoon))),
-                      child: Container(
-                        constraints: const BoxConstraints(minHeight: 48),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.s4,
-                          vertical: AppSpacing.s3,
-                        ),
-                        child: Row(
-                          children: <Widget>[
-                            Icon(
-                              Icons.cloud_upload_outlined,
-                              color: colors.brandAccent,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // 高度受限（小屏 / 键盘弹起 / 结果卡展开）时隐藏饮水·体重轻量区，
+            // 保证记录主流程（搜索 → 结果卡 → 确认）不溢出（〔假设〕阈值 560）。
+            final showLightSection = constraints.maxHeight >= 560;
+            return Column(
+              children: <Widget>[
+                // 「待同步 N 条」可见入口（§4.1：>0 时展示，点击进同步详情页
+                // ——详情页由主代理集成，当前占位提示）。
+                if (pendingCount > 0)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.s4,
+                      AppSpacing.s2,
+                      AppSpacing.s4,
+                      0,
+                    ),
+                    child: Semantics(
+                      button: true,
+                      label: s.pendingBanner(pendingCount),
+                      child: Material(
+                        color: colors.bgSecondary,
+                        borderRadius: radii.rMd,
+                        child: InkWell(
+                          borderRadius: radii.rMd,
+                          onTap: () => ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text(s.comingSoon))),
+                          child: Container(
+                            constraints: const BoxConstraints(minHeight: 48),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.s4,
+                              vertical: AppSpacing.s3,
                             ),
-                            const SizedBox(width: AppSpacing.s2),
-                            Expanded(
-                              child: Text(
-                                s.pendingBanner(pendingCount),
-                                style: textStyles.textSm.copyWith(
-                                  color: colors.textPrimary,
+                            child: Row(
+                              children: <Widget>[
+                                Icon(
+                                  Icons.cloud_upload_outlined,
+                                  color: colors.brandAccent,
                                 ),
-                              ),
+                                const SizedBox(width: AppSpacing.s2),
+                                Expanded(
+                                  child: Text(
+                                    s.pendingBanner(pendingCount),
+                                    style: textStyles.textSm.copyWith(
+                                      color: colors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ),
-            // 三入口（D-16）：拍照识别 / 语音录入 / 常吃复用。
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.s4),
-              child: Row(
-                children: <Widget>[
-                  _EntryCard(
-                    icon: Icons.photo_camera_outlined,
-                    label: s.entryPhoto,
-                    onTap: () => _onEntryTap(
-                      'camera',
-                      () => unawaited(startPhotoRecognition(context, ref)),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.s2),
-                  _EntryCard(
-                    icon: Icons.mic_none_outlined,
-                    label: s.entryVoice,
-                    onTap: () => _onEntryTap(
-                      'voice',
-                      () => unawaited(startVoiceInput(context, ref)),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.s2),
-                  _EntryCard(
-                    icon: Icons.favorite_border_outlined,
-                    label: s.entryFrequent,
-                    onTap: () => _onEntryTap(
-                      'frequent',
-                      () => unawaited(startFrequentPick(context)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // 食物搜索（双语匹配，D-15/D-16）。
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
-              child: TextField(
-                controller: _searchController,
-                style: textStyles.textBase,
-                decoration: InputDecoration(
-                  hintText: s.searchHint,
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: colors.bgSecondary,
-                  border: OutlineInputBorder(
-                    borderRadius: radii.rMd,
-                    borderSide: BorderSide.none,
+                // 三入口（D-16）：拍照识别 / 语音录入 / 常吃复用。
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.s4),
+                  child: Row(
+                    children: <Widget>[
+                      _EntryCard(
+                        icon: Icons.photo_camera_outlined,
+                        label: s.entryPhoto,
+                        onTap: () => _onEntryTap(
+                          'camera',
+                          () => unawaited(startPhotoRecognition(context, ref)),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.s2),
+                      _EntryCard(
+                        icon: Icons.mic_none_outlined,
+                        label: s.entryVoice,
+                        onTap: () => _onEntryTap(
+                          'voice',
+                          () => unawaited(startVoiceInput(context, ref)),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.s2),
+                      _EntryCard(
+                        icon: Icons.favorite_border_outlined,
+                        label: s.entryFrequent,
+                        onTap: () => _onEntryTap(
+                          'frequent',
+                          () => unawaited(startFrequentPick(context)),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                onChanged: (value) =>
-                    ref.read(recordSearchQueryProvider.notifier).state = value,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.s2),
-            // 搜索结果列表。
-            Expanded(
-              child: results.when(
-                data: (foods) {
-                  if (foods.isEmpty) {
-                    return Center(
+                // 饮水 / 体重轻量记录区（PRD M3 功能点 4；空间不足时让位主流程）。
+                if (showLightSection) const LightRecordSection(),
+                // 食物搜索（双语匹配，D-15/D-16）。
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s4,
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    style: textStyles.textBase,
+                    decoration: InputDecoration(
+                      hintText: s.searchHint,
+                      prefixIcon: const Icon(Icons.search),
+                      filled: true,
+                      fillColor: colors.bgSecondary,
+                      border: OutlineInputBorder(
+                        borderRadius: radii.rMd,
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    onChanged: (value) =>
+                        ref.read(recordSearchQueryProvider.notifier).state =
+                            value,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s2),
+                // 搜索结果列表。
+                Expanded(
+                  child: results.when(
+                    data: (foods) {
+                      if (foods.isEmpty) {
+                        return Center(
+                          child: Text(
+                            s.searchEmpty,
+                            style: textStyles.textSm.copyWith(
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                        );
+                      }
+                      return ListView.builder(
+                        itemCount: foods.length,
+                        itemBuilder: (context, index) {
+                          final food = foods[index];
+                          return ListTile(
+                            title: Text(
+                              isEn ? food.nameEn : food.nameZh,
+                              style: textStyles.textBase,
+                            ),
+                            subtitle: Text(
+                              '${food.kcalPer100g.round()} '
+                              '${s.kcalUnit}/100${s.gramUnit}',
+                              style: textStyles.textSm.copyWith(
+                                color: colors.textSecondary,
+                              ),
+                            ),
+                            onTap: () {
+                              _stepCount++;
+                              ref
+                                      .read(recordSelectedFoodProvider.notifier)
+                                      .state =
+                                  food;
+                              ref
+                                      .read(recordAmountTextProvider.notifier)
+                                      .state =
+                                  '100';
+                              ref
+                                      .read(recordEntrySourceProvider.notifier)
+                                      .state =
+                                  EntrySource.manual;
+                              ref
+                                      .read(
+                                        recordLowConfidenceProvider.notifier,
+                                      )
+                                      .state =
+                                  false;
+                            },
+                          );
+                        },
+                      );
+                    },
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (error, stackTrace) => Center(
                       child: Text(
                         s.searchEmpty,
                         style: textStyles.textSm.copyWith(
                           color: colors.textSecondary,
                         ),
                       ),
-                    );
-                  }
-                  return ListView.builder(
-                    itemCount: foods.length,
-                    itemBuilder: (context, index) {
-                      final food = foods[index];
-                      return ListTile(
-                        title: Text(
-                          isEn ? food.nameEn : food.nameZh,
-                          style: textStyles.textBase,
+                    ),
+                  ),
+                ),
+                // 今日聚合（本地预估，§2.6 注明待云端校准）。
+                if (today != null && today.entryCount > 0)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s4,
+                      vertical: AppSpacing.s1,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${s.loggedToday(today.entryCount)} · '
+                        '${s.todayKcal(today.kcal.round())}',
+                        style: textStyles.textSm.copyWith(
+                          color: colors.textSecondary,
                         ),
-                        subtitle: Text(
-                          '${food.kcalPer100g.round()} '
-                          '${s.kcalUnit}/100${s.gramUnit}',
-                          style: textStyles.textSm.copyWith(
-                            color: colors.textSecondary,
-                          ),
-                        ),
-                        onTap: () {
-                          _stepCount++;
-                          ref.read(recordSelectedFoodProvider.notifier).state =
-                              food;
-                          ref.read(recordAmountTextProvider.notifier).state =
-                              '100';
-                          ref.read(recordEntrySourceProvider.notifier).state =
-                              EntrySource.manual;
-                          ref.read(recordLowConfidenceProvider.notifier).state =
-                              false;
-                        },
-                      );
+                      ),
+                    ),
+                  ),
+                // 可编辑识别结果卡（食物名 + 份量 + 实时营养预览 + 确认）。
+                if (selected != null)
+                  _SelectedFoodCard(
+                    food: selected,
+                    isEn: isEn,
+                    amountController: _amountController,
+                    onConfirm: () => unawaited(_confirm(s)),
+                    onClose: () {
+                      ref.read(recordSelectedFoodProvider.notifier).state =
+                          null;
+                      ref.read(recordEntrySourceProvider.notifier).state =
+                          EntrySource.manual;
+                      ref.read(recordLowConfidenceProvider.notifier).state =
+                          false;
                     },
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, stackTrace) => Center(
-                  child: Text(
-                    s.searchEmpty,
-                    style: textStyles.textSm.copyWith(
-                      color: colors.textSecondary,
-                    ),
+                    shadows: shadows,
                   ),
-                ),
-              ),
-            ),
-            // 今日聚合（本地预估，§2.6 注明待云端校准）。
-            if (today != null && today.entryCount > 0)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.s4,
-                  vertical: AppSpacing.s1,
-                ),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    '${s.loggedToday(today.entryCount)} · '
-                    '${s.todayKcal(today.kcal.round())}',
-                    style: textStyles.textSm.copyWith(
-                      color: colors.textSecondary,
-                    ),
-                  ),
-                ),
-              ),
-            // 可编辑识别结果卡（食物名 + 份量 + 实时营养预览 + 确认）。
-            if (selected != null)
-              _SelectedFoodCard(
-                food: selected,
-                isEn: isEn,
-                amountController: _amountController,
-                onConfirm: () => unawaited(_confirm(s)),
-                onClose: () {
-                  ref.read(recordSelectedFoodProvider.notifier).state = null;
-                  ref.read(recordEntrySourceProvider.notifier).state =
-                      EntrySource.manual;
-                  ref.read(recordLowConfidenceProvider.notifier).state = false;
-                },
-                shadows: shadows,
-              ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );

@@ -3,6 +3,7 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
+import 'package:eatwise/features/record/data/water_log_repository.dart';
 import 'package:eatwise/features/record/presentation/record_page.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:flutter/material.dart';
@@ -71,6 +72,9 @@ void main() {
       ProviderScope(
         overrides: <Override>[
           recordRepositoryProvider.overrideWithValue(repository),
+          waterLogRepositoryProvider.overrideWithValue(
+            WaterLogRepository(db: db),
+          ),
         ],
         child: TranslationProvider(
           child: MaterialApp(theme: AppTheme.light(), home: const RecordPage()),

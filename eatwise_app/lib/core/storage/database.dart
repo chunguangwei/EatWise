@@ -7,19 +7,27 @@ import 'package:eatwise/core/storage/food_dao.dart';
 import 'package:eatwise/core/storage/food_entry_dao.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/core/storage/tables.dart';
+import 'package:eatwise/core/storage/water_log_dao.dart';
 
 part 'database.g.dart';
 
 /// 本地 SQLite 数据库（drift，D-17）。
 ///
 /// 覆盖 M3 实体：FoodEntry（四态持久化，D-20）、Food（双语食物库，D-16）、
-/// DailyNutrition 聚合缓存（本地预估，§2.6）。
+/// DailyNutrition 聚合缓存（本地预估，§2.6）、WaterLog（饮水轻量记录，
+/// 仅本地口径〔假设〕不上行）。
 ///
 /// 〔集成说明〕SQLCipher 加密（《规格-数据同步与四态持久化》§7.2）在 M0 另行
 /// 接入，本类预留 QueryExecutor 注入点，加密 executor 就绪后无需改表结构。
 @DriftDatabase(
-  tables: <Type>[FoodEntries, Foods, DailyNutritionCaches, FastingRecords],
-  daos: <Type>[FoodDao, FoodEntryDao, FastingRecordDao],
+  tables: <Type>[
+    FoodEntries,
+    Foods,
+    DailyNutritionCaches,
+    FastingRecords,
+    WaterLogs,
+  ],
+  daos: <Type>[FoodDao, FoodEntryDao, FastingRecordDao, WaterLogDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
@@ -38,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -46,6 +54,10 @@ class AppDatabase extends _$AppDatabase {
       // v2：新增 FastingRecords（M5 streak 结算 / M6 趋势数据源）。
       if (from < 2) {
         await m.createTable(fastingRecords);
+      }
+      // v3：新增 WaterLogs（M3 饮水轻量记录，PRD M3 功能点 4）。
+      if (from < 3) {
+        await m.createTable(waterLogs);
       }
     },
   );

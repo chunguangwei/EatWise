@@ -156,6 +156,19 @@
     "card": {
       "pleaseConfirm": "Please confirm"
     },
+    "water": {
+      "title": "Water today",
+      "progress": "${total} / ${goal} ml",
+      "quickAddLabel": "Add ${ml} ml of water"
+    },
+    "weight": {
+      "title": "Weight",
+      "notLogged": "Log it",
+      "current": "${kg} kg",
+      "dialogTitle": "Log today's weight",
+      "inputLabel": "Weight (kg)",
+      "invalid": "Enter a value between 20 and 300"
+    },
     "home": {
       "title": "Log",
       "logMeal": "Log a bite"

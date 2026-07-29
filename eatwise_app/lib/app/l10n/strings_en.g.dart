@@ -97,6 +97,8 @@ class _Translations$record$en extends Translations$record$zh_CN {
 	@override late final _Translations$record$voice$en voice = _Translations$record$voice$en._(_root);
 	@override late final _Translations$record$frequent$en frequent = _Translations$record$frequent$en._(_root);
 	@override late final _Translations$record$card$en card = _Translations$record$card$en._(_root);
+	@override late final _Translations$record$water$en water = _Translations$record$water$en._(_root);
+	@override late final _Translations$record$weight$en weight = _Translations$record$weight$en._(_root);
 	@override late final _Translations$record$home$en home = _Translations$record$home$en._(_root);
 	@override late final _Translations$record$empty$en empty = _Translations$record$empty$en._(_root);
 }
@@ -435,6 +437,33 @@ class _Translations$record$card$en extends Translations$record$card$zh_CN {
 
 	// Translations
 	@override String get pleaseConfirm => 'Please confirm';
+}
+
+// Path: record.water
+class _Translations$record$water$en extends Translations$record$water$zh_CN {
+	_Translations$record$water$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Water today';
+	@override String progress({required Object total, required Object goal}) => '${total} / ${goal} ml';
+	@override String quickAddLabel({required Object ml}) => 'Add ${ml} ml of water';
+}
+
+// Path: record.weight
+class _Translations$record$weight$en extends Translations$record$weight$zh_CN {
+	_Translations$record$weight$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Weight';
+	@override String get notLogged => 'Log it';
+	@override String current({required Object kg}) => '${kg} kg';
+	@override String get dialogTitle => 'Log today\'s weight';
+	@override String get inputLabel => 'Weight (kg)';
+	@override String get invalid => 'Enter a value between 20 and 300';
 }
 
 // Path: record.home
@@ -1250,6 +1279,15 @@ extension on TranslationsEn {
 			'record.frequent.title' => 'Frequently logged',
 			'record.frequent.empty' => 'Log a few more meals and your usuals will show up here',
 			'record.card.pleaseConfirm' => 'Please confirm',
+			'record.water.title' => 'Water today',
+			'record.water.progress' => ({required Object total, required Object goal}) => '${total} / ${goal} ml',
+			'record.water.quickAddLabel' => ({required Object ml}) => 'Add ${ml} ml of water',
+			'record.weight.title' => 'Weight',
+			'record.weight.notLogged' => 'Log it',
+			'record.weight.current' => ({required Object kg}) => '${kg} kg',
+			'record.weight.dialogTitle' => 'Log today\'s weight',
+			'record.weight.inputLabel' => 'Weight (kg)',
+			'record.weight.invalid' => 'Enter a value between 20 and 300',
 			'record.home.title' => 'Log',
 			'record.home.logMeal' => 'Log a bite',
 			'record.empty.title' => 'No food stories yet — tap the orange button to log your first bite?',

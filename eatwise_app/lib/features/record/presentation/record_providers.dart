@@ -10,12 +10,14 @@ import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/data/record_sync_engine.dart';
 import 'package:eatwise/features/record/data/remote_record_sync.dart';
+import 'package:eatwise/features/record/data/water_log_repository.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/recognition/data/food_recognition_service.dart';
 import 'package:eatwise/features/record/recognition/data/frequent_foods.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
 import 'package:eatwise/features/record/recognition/voice/speech_gateway.dart';
 import 'package:eatwise/features/record/recognition/voice/voice_text_parser.dart';
+import 'package:eatwise/features/reports/application/weight_log_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -156,3 +158,34 @@ final FutureProvider<List<Food>> recordFrequentFoodsProvider =
       final repo = ref.watch(recordRepositoryProvider);
       return ref.watch(frequentFoodsQueryProvider).topFrequent(repo.userId);
     });
+
+// ---- M3 轻量记录（饮水 / 体重，PRD M3 功能点 4） ----
+
+/// 饮水轻量记录仓库（仅本地 drift 口径，〔假设〕不上行同步）。
+final Provider<WaterLogRepository> waterLogRepositoryProvider =
+    Provider<WaterLogRepository>((ref) {
+      return WaterLogRepository(db: ref.watch(appDatabaseProvider));
+    });
+
+/// 当日累计饮水量流（毫升，记录页轻量区展示）。
+///
+/// 数据库未装配（测试/预览仅注入饮食仓储）时降级 0，与
+/// `analytics_providers` 的兜底口径一致。
+final StreamProvider<int> todayWaterTotalProvider = StreamProvider<int>((ref) {
+  try {
+    return ref
+        .watch(waterLogRepositoryProvider)
+        .watchTotalForDate(localDateKey(DateTime.now()));
+  } on Object {
+    return Stream<int>.value(0);
+  }
+});
+
+/// 当日体重（kg，来自 M6 WeightLogStore 端口；未记录为 null）。
+final FutureProvider<double?> todayWeightProvider = FutureProvider<double?>((
+  ref,
+) {
+  final store = ref.watch(weightLogStoreProvider);
+  final key = localDateKey(DateTime.now());
+  return store.loadRange(key, key)[key];
+});

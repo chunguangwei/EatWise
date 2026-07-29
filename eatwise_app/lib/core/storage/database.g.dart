@@ -3298,6 +3298,446 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
   }
 }
 
+class $WaterLogsTable extends WaterLogs
+    with TableInfo<$WaterLogsTable, WaterLog> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WaterLogsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _localIdMeta = const VerificationMeta(
+    'localId',
+  );
+  @override
+  late final GeneratedColumn<String> localId = GeneratedColumn<String>(
+    'local_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountMlMeta = const VerificationMeta(
+    'amountMl',
+  );
+  @override
+  late final GeneratedColumn<int> amountMl = GeneratedColumn<int>(
+    'amount_ml',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _datetimeUtcMeta = const VerificationMeta(
+    'datetimeUtc',
+  );
+  @override
+  late final GeneratedColumn<String> datetimeUtc = GeneratedColumn<String>(
+    'datetime_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _localDateMeta = const VerificationMeta(
+    'localDate',
+  );
+  @override
+  late final GeneratedColumn<String> localDate = GeneratedColumn<String>(
+    'local_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
+    'createdAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> createdAtUtc = GeneratedColumn<String>(
+    'created_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    localId,
+    userId,
+    amountMl,
+    datetimeUtc,
+    localDate,
+    createdAtUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'water_logs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WaterLog> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('local_id')) {
+      context.handle(
+        _localIdMeta,
+        localId.isAcceptableOrUnknown(data['local_id']!, _localIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_localIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('amount_ml')) {
+      context.handle(
+        _amountMlMeta,
+        amountMl.isAcceptableOrUnknown(data['amount_ml']!, _amountMlMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMlMeta);
+    }
+    if (data.containsKey('datetime_utc')) {
+      context.handle(
+        _datetimeUtcMeta,
+        datetimeUtc.isAcceptableOrUnknown(
+          data['datetime_utc']!,
+          _datetimeUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_datetimeUtcMeta);
+    }
+    if (data.containsKey('local_date')) {
+      context.handle(
+        _localDateMeta,
+        localDate.isAcceptableOrUnknown(data['local_date']!, _localDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_localDateMeta);
+    }
+    if (data.containsKey('created_at_utc')) {
+      context.handle(
+        _createdAtUtcMeta,
+        createdAtUtc.isAcceptableOrUnknown(
+          data['created_at_utc']!,
+          _createdAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtUtcMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {localId};
+  @override
+  WaterLog map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WaterLog(
+      localId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      amountMl: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_ml'],
+      )!,
+      datetimeUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}datetime_utc'],
+      )!,
+      localDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_date'],
+      )!,
+      createdAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at_utc'],
+      )!,
+    );
+  }
+
+  @override
+  $WaterLogsTable createAlias(String alias) {
+    return $WaterLogsTable(attachedDatabase, alias);
+  }
+}
+
+class WaterLog extends DataClass implements Insertable<WaterLog> {
+  /// 本地主键（UUIDv4），客户端生成。
+  final String localId;
+
+  /// 归属用户；未登录为 `anonymous`。
+  final String userId;
+
+  /// 本次饮水量（毫升）。
+  final int amountMl;
+
+  /// 饮水时间（UTC ISO8601）。
+  final String datetimeUtc;
+
+  /// 归属日（本地时区 yyyy-MM-dd，当日累计聚合键）。
+  final String localDate;
+
+  /// 本地创建时间（UTC ISO8601）。
+  final String createdAtUtc;
+  const WaterLog({
+    required this.localId,
+    required this.userId,
+    required this.amountMl,
+    required this.datetimeUtc,
+    required this.localDate,
+    required this.createdAtUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['local_id'] = Variable<String>(localId);
+    map['user_id'] = Variable<String>(userId);
+    map['amount_ml'] = Variable<int>(amountMl);
+    map['datetime_utc'] = Variable<String>(datetimeUtc);
+    map['local_date'] = Variable<String>(localDate);
+    map['created_at_utc'] = Variable<String>(createdAtUtc);
+    return map;
+  }
+
+  WaterLogsCompanion toCompanion(bool nullToAbsent) {
+    return WaterLogsCompanion(
+      localId: Value(localId),
+      userId: Value(userId),
+      amountMl: Value(amountMl),
+      datetimeUtc: Value(datetimeUtc),
+      localDate: Value(localDate),
+      createdAtUtc: Value(createdAtUtc),
+    );
+  }
+
+  factory WaterLog.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WaterLog(
+      localId: serializer.fromJson<String>(json['localId']),
+      userId: serializer.fromJson<String>(json['userId']),
+      amountMl: serializer.fromJson<int>(json['amountMl']),
+      datetimeUtc: serializer.fromJson<String>(json['datetimeUtc']),
+      localDate: serializer.fromJson<String>(json['localDate']),
+      createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'localId': serializer.toJson<String>(localId),
+      'userId': serializer.toJson<String>(userId),
+      'amountMl': serializer.toJson<int>(amountMl),
+      'datetimeUtc': serializer.toJson<String>(datetimeUtc),
+      'localDate': serializer.toJson<String>(localDate),
+      'createdAtUtc': serializer.toJson<String>(createdAtUtc),
+    };
+  }
+
+  WaterLog copyWith({
+    String? localId,
+    String? userId,
+    int? amountMl,
+    String? datetimeUtc,
+    String? localDate,
+    String? createdAtUtc,
+  }) => WaterLog(
+    localId: localId ?? this.localId,
+    userId: userId ?? this.userId,
+    amountMl: amountMl ?? this.amountMl,
+    datetimeUtc: datetimeUtc ?? this.datetimeUtc,
+    localDate: localDate ?? this.localDate,
+    createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+  );
+  WaterLog copyWithCompanion(WaterLogsCompanion data) {
+    return WaterLog(
+      localId: data.localId.present ? data.localId.value : this.localId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      amountMl: data.amountMl.present ? data.amountMl.value : this.amountMl,
+      datetimeUtc: data.datetimeUtc.present
+          ? data.datetimeUtc.value
+          : this.datetimeUtc,
+      localDate: data.localDate.present ? data.localDate.value : this.localDate,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WaterLog(')
+          ..write('localId: $localId, ')
+          ..write('userId: $userId, ')
+          ..write('amountMl: $amountMl, ')
+          ..write('datetimeUtc: $datetimeUtc, ')
+          ..write('localDate: $localDate, ')
+          ..write('createdAtUtc: $createdAtUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    localId,
+    userId,
+    amountMl,
+    datetimeUtc,
+    localDate,
+    createdAtUtc,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WaterLog &&
+          other.localId == this.localId &&
+          other.userId == this.userId &&
+          other.amountMl == this.amountMl &&
+          other.datetimeUtc == this.datetimeUtc &&
+          other.localDate == this.localDate &&
+          other.createdAtUtc == this.createdAtUtc);
+}
+
+class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
+  final Value<String> localId;
+  final Value<String> userId;
+  final Value<int> amountMl;
+  final Value<String> datetimeUtc;
+  final Value<String> localDate;
+  final Value<String> createdAtUtc;
+  final Value<int> rowid;
+  const WaterLogsCompanion({
+    this.localId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.amountMl = const Value.absent(),
+    this.datetimeUtc = const Value.absent(),
+    this.localDate = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  WaterLogsCompanion.insert({
+    required String localId,
+    required String userId,
+    required int amountMl,
+    required String datetimeUtc,
+    required String localDate,
+    required String createdAtUtc,
+    this.rowid = const Value.absent(),
+  }) : localId = Value(localId),
+       userId = Value(userId),
+       amountMl = Value(amountMl),
+       datetimeUtc = Value(datetimeUtc),
+       localDate = Value(localDate),
+       createdAtUtc = Value(createdAtUtc);
+  static Insertable<WaterLog> custom({
+    Expression<String>? localId,
+    Expression<String>? userId,
+    Expression<int>? amountMl,
+    Expression<String>? datetimeUtc,
+    Expression<String>? localDate,
+    Expression<String>? createdAtUtc,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (localId != null) 'local_id': localId,
+      if (userId != null) 'user_id': userId,
+      if (amountMl != null) 'amount_ml': amountMl,
+      if (datetimeUtc != null) 'datetime_utc': datetimeUtc,
+      if (localDate != null) 'local_date': localDate,
+      if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  WaterLogsCompanion copyWith({
+    Value<String>? localId,
+    Value<String>? userId,
+    Value<int>? amountMl,
+    Value<String>? datetimeUtc,
+    Value<String>? localDate,
+    Value<String>? createdAtUtc,
+    Value<int>? rowid,
+  }) {
+    return WaterLogsCompanion(
+      localId: localId ?? this.localId,
+      userId: userId ?? this.userId,
+      amountMl: amountMl ?? this.amountMl,
+      datetimeUtc: datetimeUtc ?? this.datetimeUtc,
+      localDate: localDate ?? this.localDate,
+      createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (localId.present) {
+      map['local_id'] = Variable<String>(localId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (amountMl.present) {
+      map['amount_ml'] = Variable<int>(amountMl.value);
+    }
+    if (datetimeUtc.present) {
+      map['datetime_utc'] = Variable<String>(datetimeUtc.value);
+    }
+    if (localDate.present) {
+      map['local_date'] = Variable<String>(localDate.value);
+    }
+    if (createdAtUtc.present) {
+      map['created_at_utc'] = Variable<String>(createdAtUtc.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WaterLogsCompanion(')
+          ..write('localId: $localId, ')
+          ..write('userId: $userId, ')
+          ..write('amountMl: $amountMl, ')
+          ..write('datetimeUtc: $datetimeUtc, ')
+          ..write('localDate: $localDate, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3306,11 +3746,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DailyNutritionCachesTable dailyNutritionCaches =
       $DailyNutritionCachesTable(this);
   late final $FastingRecordsTable fastingRecords = $FastingRecordsTable(this);
+  late final $WaterLogsTable waterLogs = $WaterLogsTable(this);
   late final FoodDao foodDao = FoodDao(this as AppDatabase);
   late final FoodEntryDao foodEntryDao = FoodEntryDao(this as AppDatabase);
   late final FastingRecordDao fastingRecordDao = FastingRecordDao(
     this as AppDatabase,
   );
+  late final WaterLogDao waterLogDao = WaterLogDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3320,6 +3762,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     foodEntries,
     dailyNutritionCaches,
     fastingRecords,
+    waterLogs,
   ];
 }
 
@@ -5043,6 +5486,223 @@ typedef $$FastingRecordsTableProcessedTableManager =
       FastingRecord,
       PrefetchHooks Function()
     >;
+typedef $$WaterLogsTableCreateCompanionBuilder =
+    WaterLogsCompanion Function({
+      required String localId,
+      required String userId,
+      required int amountMl,
+      required String datetimeUtc,
+      required String localDate,
+      required String createdAtUtc,
+      Value<int> rowid,
+    });
+typedef $$WaterLogsTableUpdateCompanionBuilder =
+    WaterLogsCompanion Function({
+      Value<String> localId,
+      Value<String> userId,
+      Value<int> amountMl,
+      Value<String> datetimeUtc,
+      Value<String> localDate,
+      Value<String> createdAtUtc,
+      Value<int> rowid,
+    });
+
+class $$WaterLogsTableFilterComposer
+    extends Composer<_$AppDatabase, $WaterLogsTable> {
+  $$WaterLogsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get localId => $composableBuilder(
+    column: $table.localId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get amountMl => $composableBuilder(
+    column: $table.amountMl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get datetimeUtc => $composableBuilder(
+    column: $table.datetimeUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localDate => $composableBuilder(
+    column: $table.localDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WaterLogsTableOrderingComposer
+    extends Composer<_$AppDatabase, $WaterLogsTable> {
+  $$WaterLogsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get localId => $composableBuilder(
+    column: $table.localId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amountMl => $composableBuilder(
+    column: $table.amountMl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get datetimeUtc => $composableBuilder(
+    column: $table.datetimeUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get localDate => $composableBuilder(
+    column: $table.localDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WaterLogsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WaterLogsTable> {
+  $$WaterLogsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get localId =>
+      $composableBuilder(column: $table.localId, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get amountMl =>
+      $composableBuilder(column: $table.amountMl, builder: (column) => column);
+
+  GeneratedColumn<String> get datetimeUtc => $composableBuilder(
+    column: $table.datetimeUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get localDate =>
+      $composableBuilder(column: $table.localDate, builder: (column) => column);
+
+  GeneratedColumn<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => column,
+  );
+}
+
+class $$WaterLogsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WaterLogsTable,
+          WaterLog,
+          $$WaterLogsTableFilterComposer,
+          $$WaterLogsTableOrderingComposer,
+          $$WaterLogsTableAnnotationComposer,
+          $$WaterLogsTableCreateCompanionBuilder,
+          $$WaterLogsTableUpdateCompanionBuilder,
+          (WaterLog, BaseReferences<_$AppDatabase, $WaterLogsTable, WaterLog>),
+          WaterLog,
+          PrefetchHooks Function()
+        > {
+  $$WaterLogsTableTableManager(_$AppDatabase db, $WaterLogsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WaterLogsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WaterLogsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WaterLogsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> localId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> amountMl = const Value.absent(),
+                Value<String> datetimeUtc = const Value.absent(),
+                Value<String> localDate = const Value.absent(),
+                Value<String> createdAtUtc = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => WaterLogsCompanion(
+                localId: localId,
+                userId: userId,
+                amountMl: amountMl,
+                datetimeUtc: datetimeUtc,
+                localDate: localDate,
+                createdAtUtc: createdAtUtc,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String localId,
+                required String userId,
+                required int amountMl,
+                required String datetimeUtc,
+                required String localDate,
+                required String createdAtUtc,
+                Value<int> rowid = const Value.absent(),
+              }) => WaterLogsCompanion.insert(
+                localId: localId,
+                userId: userId,
+                amountMl: amountMl,
+                datetimeUtc: datetimeUtc,
+                localDate: localDate,
+                createdAtUtc: createdAtUtc,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WaterLogsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WaterLogsTable,
+      WaterLog,
+      $$WaterLogsTableFilterComposer,
+      $$WaterLogsTableOrderingComposer,
+      $$WaterLogsTableAnnotationComposer,
+      $$WaterLogsTableCreateCompanionBuilder,
+      $$WaterLogsTableUpdateCompanionBuilder,
+      (WaterLog, BaseReferences<_$AppDatabase, $WaterLogsTable, WaterLog>),
+      WaterLog,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5055,4 +5715,6 @@ class $AppDatabaseManager {
       $$DailyNutritionCachesTableTableManager(_db, _db.dailyNutritionCaches);
   $$FastingRecordsTableTableManager get fastingRecords =>
       $$FastingRecordsTableTableManager(_db, _db.fastingRecords);
+  $$WaterLogsTableTableManager get waterLogs =>
+      $$WaterLogsTableTableManager(_db, _db.waterLogs);
 }

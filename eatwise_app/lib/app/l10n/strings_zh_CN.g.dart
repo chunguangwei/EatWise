@@ -102,6 +102,8 @@ class Translations$record$zh_CN {
 	late final Translations$record$voice$zh_CN voice = Translations$record$voice$zh_CN.internal(_root);
 	late final Translations$record$frequent$zh_CN frequent = Translations$record$frequent$zh_CN.internal(_root);
 	late final Translations$record$card$zh_CN card = Translations$record$card$zh_CN.internal(_root);
+	late final Translations$record$water$zh_CN water = Translations$record$water$zh_CN.internal(_root);
+	late final Translations$record$weight$zh_CN weight = Translations$record$weight$zh_CN.internal(_root);
 	late final Translations$record$home$zh_CN home = Translations$record$home$zh_CN.internal(_root);
 	late final Translations$record$empty$zh_CN empty = Translations$record$empty$zh_CN.internal(_root);
 }
@@ -588,6 +590,51 @@ class Translations$record$card$zh_CN {
 
 	/// zh-CN: '请确认'
 	String get pleaseConfirm => '请确认';
+}
+
+// Path: record.water
+class Translations$record$water$zh_CN {
+	Translations$record$water$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '今日饮水'
+	String get title => '今日饮水';
+
+	/// zh-CN: '${total} / ${goal} 毫升'
+	String progress({required Object total, required Object goal}) => '${total} / ${goal} 毫升';
+
+	/// zh-CN: '加 ${ml} 毫升水'
+	String quickAddLabel({required Object ml}) => '加 ${ml} 毫升水';
+}
+
+// Path: record.weight
+class Translations$record$weight$zh_CN {
+	Translations$record$weight$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '体重'
+	String get title => '体重';
+
+	/// zh-CN: '记一下'
+	String get notLogged => '记一下';
+
+	/// zh-CN: '${kg} 千克'
+	String current({required Object kg}) => '${kg} 千克';
+
+	/// zh-CN: '记录今日体重'
+	String get dialogTitle => '记录今日体重';
+
+	/// zh-CN: '体重（千克）'
+	String get inputLabel => '体重（千克）';
+
+	/// zh-CN: '请输入 20 到 300 之间的数'
+	String get invalid => '请输入 20 到 300 之间的数';
 }
 
 // Path: record.home
@@ -1872,6 +1919,15 @@ extension on Translations {
 			'record.frequent.title' => '常吃的食物',
 			'record.frequent.empty' => '多记几笔，常吃榜就出来啦',
 			'record.card.pleaseConfirm' => '请确认',
+			'record.water.title' => '今日饮水',
+			'record.water.progress' => ({required Object total, required Object goal}) => '${total} / ${goal} 毫升',
+			'record.water.quickAddLabel' => ({required Object ml}) => '加 ${ml} 毫升水',
+			'record.weight.title' => '体重',
+			'record.weight.notLogged' => '记一下',
+			'record.weight.current' => ({required Object kg}) => '${kg} 千克',
+			'record.weight.dialogTitle' => '记录今日体重',
+			'record.weight.inputLabel' => '体重（千克）',
+			'record.weight.invalid' => '请输入 20 到 300 之间的数',
 			'record.home.title' => '记录',
 			'record.home.logMeal' => '记一笔',
 			'record.empty.title' => '肚子的故事还没写呢，点橙色按钮记一笔？',

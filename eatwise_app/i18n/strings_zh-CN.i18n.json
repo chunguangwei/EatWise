@@ -156,6 +156,19 @@
     "card": {
       "pleaseConfirm": "请确认"
     },
+    "water": {
+      "title": "今日饮水",
+      "progress": "${total} / ${goal} 毫升",
+      "quickAddLabel": "加 ${ml} 毫升水"
+    },
+    "weight": {
+      "title": "体重",
+      "notLogged": "记一下",
+      "current": "${kg} 千克",
+      "dialogTitle": "记录今日体重",
+      "inputLabel": "体重（千克）",
+      "invalid": "请输入 20 到 300 之间的数"
+    },
     "home": {
       "title": "记录",
       "logMeal": "记一笔"
