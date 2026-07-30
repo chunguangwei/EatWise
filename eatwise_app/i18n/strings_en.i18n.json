@@ -394,7 +394,17 @@
       "badgeLabel": "${days}-day streak",
       "share": "Share",
       "accept": "Keep it",
-      "shareComingSoon": "Share cards are coming soon — savor the win for now"
+      "shareCard": {
+        "sheetTitle": "Milestone unlocked · Share card",
+        "daysUnit": "days",
+        "appName": "EatWise",
+        "tagline": "Gentle fasting, mindful living",
+        "saveToAlbum": "Save to Photos",
+        "shareSystem": "Share",
+        "saveSuccess": "Saved to Photos",
+        "saveFailed": "Couldn't save. Check the photo permission and try again.",
+        "shareFailed": "Couldn't share right now. Please try again later."
+      }
     },
     "break": {
       "title": "Your streak was interrupted",

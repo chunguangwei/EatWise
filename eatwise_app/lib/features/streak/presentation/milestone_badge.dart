@@ -1,12 +1,21 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/analytics/analytics_context.dart';
+import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/analytics/analytics_service.dart';
+import 'package:eatwise/core/analytics/consent_store.dart';
+import 'package:eatwise/core/analytics/device_identity_store.dart';
+import 'package:eatwise/core/analytics/event_queue_store.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/streak/presentation/milestone_share_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 里程碑徽章滑入（《规格-M5》§5.1/§5.2：3/7/30 天首次解锁，
-/// 「N 天连胜 🔥」徽章自底部滑入；可点按出分享图卡占位——分享本身留 TODO）。
+/// 「N 天连胜 🔥」徽章自底部滑入；点按「分享」弹出分享图卡预览页
+/// （US-5.1：保存到相册 + 系统分享，埋点 share_card_expose/share_click））。
 ///
 /// reduced-motion 降级（M8 硬性）：系统「减弱动态效果」开启时
 /// （`MediaQuery.disableAnimations`）取消滑入位移，改为静态徽章淡入
@@ -63,14 +72,34 @@ class _MilestoneBadgeState extends State<MilestoneBadge> {
   }
 }
 
-class _MilestoneBadgeCard extends StatelessWidget {
+class _MilestoneBadgeCard extends ConsumerWidget {
   const _MilestoneBadgeCard({required this.days, required this.onDismiss});
 
   final int days;
   final VoidCallback onDismiss;
 
+  /// US-5.1：点按分享 → 底部弹分享图卡预览页（保存到相册 + 系统分享）。
+  void _openShareCard(BuildContext context, WidgetRef ref) {
+    AnalyticsService analytics;
+    try {
+      analytics = ref.read(analyticsServiceProvider);
+    } on Object {
+      // 未注入埋点服务（测试/预览场景）：降级内存服务，事件按未授权丢弃。
+      analytics = AnalyticsService(
+        consentStore: InMemoryConsentStore(),
+        queueStore: InMemoryEventQueueStore(),
+        context: AnalyticsContext(
+          deviceIdentityStore: InMemoryDeviceIdentityStore(),
+          userIdResolver: () => null,
+          localeTag: () => LocaleSettings.currentLocale.languageTag,
+        ),
+      );
+    }
+    showMilestoneShareSheet(context, days: days, analytics: analytics);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
@@ -98,15 +127,7 @@ class _MilestoneBadgeCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 OutlinedButton(
-                  onPressed: () {
-                    // TODO(M5 分享)：生成分享图卡（里程碑图卡 + 渠道分享），
-                    // 埋点 milestone_shared；当前为占位提示。
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(t.streak.milestone.shareComingSoon),
-                      ),
-                    );
-                  },
+                  onPressed: () => _openShareCard(context, ref),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: colors.border),
                     foregroundColor: colors.textPrimary,

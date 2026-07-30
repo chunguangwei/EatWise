@@ -394,7 +394,17 @@
       "badgeLabel": "${days} 天连胜",
       "share": "分享",
       "accept": "收下啦",
-      "shareComingSoon": "分享图卡即将上线，先把这份坚持记在心里"
+      "shareCard": {
+        "sheetTitle": "点亮成就 · 分享图卡",
+        "daysUnit": "天",
+        "appName": "明食 EatWise",
+        "tagline": "轻盈断食，自在生活",
+        "saveToAlbum": "保存到相册",
+        "shareSystem": "系统分享",
+        "saveSuccess": "已保存到相册",
+        "saveFailed": "保存失败，请检查相册权限后重试",
+        "shareFailed": "分享失败，请稍后重试"
+      }
     },
     "break": {
       "title": "哎呀，连胜中断了",

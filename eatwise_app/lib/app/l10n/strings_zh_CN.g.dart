@@ -1061,8 +1061,7 @@ class Translations$streak$milestone$zh_CN {
 	/// zh-CN: '收下啦'
 	String get accept => '收下啦';
 
-	/// zh-CN: '分享图卡即将上线，先把这份坚持记在心里'
-	String get shareComingSoon => '分享图卡即将上线，先把这份坚持记在心里';
+	late final Translations$streak$milestone$shareCard$zh_CN shareCard = Translations$streak$milestone$shareCard$zh_CN.internal(_root);
 }
 
 // Path: streak.kBreak
@@ -1937,6 +1936,42 @@ class Translations$reports$weekly$cheer$zh_CN {
 	String get start => '先动起来就很棒，数据会陪你一起进步。';
 }
 
+// Path: streak.milestone.shareCard
+class Translations$streak$milestone$shareCard$zh_CN {
+	Translations$streak$milestone$shareCard$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '点亮成就 · 分享图卡'
+	String get sheetTitle => '点亮成就 · 分享图卡';
+
+	/// zh-CN: '天'
+	String get daysUnit => '天';
+
+	/// zh-CN: '明食 EatWise'
+	String get appName => '明食 EatWise';
+
+	/// zh-CN: '轻盈断食，自在生活'
+	String get tagline => '轻盈断食，自在生活';
+
+	/// zh-CN: '保存到相册'
+	String get saveToAlbum => '保存到相册';
+
+	/// zh-CN: '系统分享'
+	String get shareSystem => '系统分享';
+
+	/// zh-CN: '已保存到相册'
+	String get saveSuccess => '已保存到相册';
+
+	/// zh-CN: '保存失败，请检查相册权限后重试'
+	String get saveFailed => '保存失败，请检查相册权限后重试';
+
+	/// zh-CN: '分享失败，请稍后重试'
+	String get shareFailed => '分享失败，请稍后重试';
+}
+
 // Path: onboarding.quiz.q1.options
 class Translations$onboarding$quiz$q1$options$zh_CN {
 	Translations$onboarding$quiz$q1$options$zh_CN.internal(this._root);
@@ -2377,7 +2412,15 @@ extension on Translations {
 			'streak.milestone.badgeLabel' => ({required Object days}) => '${days} 天连胜',
 			'streak.milestone.share' => '分享',
 			'streak.milestone.accept' => '收下啦',
-			'streak.milestone.shareComingSoon' => '分享图卡即将上线，先把这份坚持记在心里',
+			'streak.milestone.shareCard.sheetTitle' => '点亮成就 · 分享图卡',
+			'streak.milestone.shareCard.daysUnit' => '天',
+			'streak.milestone.shareCard.appName' => '明食 EatWise',
+			'streak.milestone.shareCard.tagline' => '轻盈断食，自在生活',
+			'streak.milestone.shareCard.saveToAlbum' => '保存到相册',
+			'streak.milestone.shareCard.shareSystem' => '系统分享',
+			'streak.milestone.shareCard.saveSuccess' => '已保存到相册',
+			'streak.milestone.shareCard.saveFailed' => '保存失败，请检查相册权限后重试',
+			'streak.milestone.shareCard.shareFailed' => '分享失败，请稍后重试',
 			'streak.kBreak.title' => '哎呀，连胜中断了',
 			'streak.kBreak.howItWorks' => '连胜只按「断食打卡达标」累计：每天按计划完成断食窗口（提前不超过 15 分钟也算达标）即连胜 +1；饮食记录天数单独统计，不影响连胜。中断后连胜归零，7 天内可用补签卡恢复。',
 			'streak.kBreak.cardsLeft' => ({required Object n}) => '本月剩余补签卡：${n} 张',

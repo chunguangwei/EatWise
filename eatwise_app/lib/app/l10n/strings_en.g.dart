@@ -733,7 +733,7 @@ class _Translations$streak$milestone$en extends Translations$streak$milestone$zh
 	@override String badgeLabel({required Object days}) => '${days}-day streak';
 	@override String get share => 'Share';
 	@override String get accept => 'Keep it';
-	@override String get shareComingSoon => 'Share cards are coming soon — savor the win for now';
+	@override late final _Translations$streak$milestone$shareCard$en shareCard = _Translations$streak$milestone$shareCard$en._(_root);
 }
 
 // Path: streak.kBreak
@@ -1247,6 +1247,24 @@ class _Translations$reports$weekly$cheer$en extends Translations$reports$weekly$
 	@override String get start => 'Starting is what counts — your data will grow with you.';
 }
 
+// Path: streak.milestone.shareCard
+class _Translations$streak$milestone$shareCard$en extends Translations$streak$milestone$shareCard$zh_CN {
+	_Translations$streak$milestone$shareCard$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get sheetTitle => 'Milestone unlocked · Share card';
+	@override String get daysUnit => 'days';
+	@override String get appName => 'EatWise';
+	@override String get tagline => 'Gentle fasting, mindful living';
+	@override String get saveToAlbum => 'Save to Photos';
+	@override String get shareSystem => 'Share';
+	@override String get saveSuccess => 'Saved to Photos';
+	@override String get saveFailed => 'Couldn\'t save. Check the photo permission and try again.';
+	@override String get shareFailed => 'Couldn\'t share right now. Please try again later.';
+}
+
 // Path: onboarding.quiz.q1.options
 class _Translations$onboarding$quiz$q1$options$en extends Translations$onboarding$quiz$q1$options$zh_CN {
 	_Translations$onboarding$quiz$q1$options$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -1613,7 +1631,15 @@ extension on TranslationsEn {
 			'streak.milestone.badgeLabel' => ({required Object days}) => '${days}-day streak',
 			'streak.milestone.share' => 'Share',
 			'streak.milestone.accept' => 'Keep it',
-			'streak.milestone.shareComingSoon' => 'Share cards are coming soon — savor the win for now',
+			'streak.milestone.shareCard.sheetTitle' => 'Milestone unlocked · Share card',
+			'streak.milestone.shareCard.daysUnit' => 'days',
+			'streak.milestone.shareCard.appName' => 'EatWise',
+			'streak.milestone.shareCard.tagline' => 'Gentle fasting, mindful living',
+			'streak.milestone.shareCard.saveToAlbum' => 'Save to Photos',
+			'streak.milestone.shareCard.shareSystem' => 'Share',
+			'streak.milestone.shareCard.saveSuccess' => 'Saved to Photos',
+			'streak.milestone.shareCard.saveFailed' => 'Couldn\'t save. Check the photo permission and try again.',
+			'streak.milestone.shareCard.shareFailed' => 'Couldn\'t share right now. Please try again later.',
 			'streak.kBreak.title' => 'Your streak was interrupted',
 			'streak.kBreak.howItWorks' => 'Your streak counts only days you complete your fasting plan (ending up to 15 min early still counts). Meal-log days are tracked separately and don\'t affect your streak. A missed day resets it to 0 — use a Mend Card within 7 days to restore it.',
 			'streak.kBreak.cardsLeft' => ({required Object n}) => 'Mend Cards left this month: ${n}',
