@@ -43,8 +43,12 @@ jobs:
 
       # TODO(发布): 配置 release keystore（CI secrets: KEYSTORE_BASE64 /
       # KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD）后改为 --release 构建。
+      # API_BASE_URL 取仓库 Actions 变量（Settings → Secrets and variables →
+      # Actions → Variables），未配置时回退为 localhost（仅模拟器可用）。
       - name: 构建 APK（debug 签名，内部测试用）
-        run: flutter build apk --debug
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL || 'http://localhost:3000/v1' }}
+        run: flutter build apk --debug --dart-define=API_BASE_URL="$API_BASE_URL"
 
       - name: 读取版本号
         id: ver
