@@ -16,7 +16,10 @@
     <application
         android:label="eatwise"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
+        <!-- usesCleartextTraffic：本地/灰度联调后端为 http（LAN），
+             正式上线切 https 后应移除该属性。 -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
