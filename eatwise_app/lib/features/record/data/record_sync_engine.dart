@@ -1,20 +1,29 @@
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/data/remote_record_sync.dart';
+import 'package:eatwise/features/record/data/remote_water_log_sync.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 记录同步引擎（规格 §2.1：App 启动 / 前台恢复 / 登录成功触发）。
 ///
-/// 先批量上行本地 pending（T8），再 syncToken 增量下行入库（§2.4）。
-/// 远程端为 Fake（测试/演示注入）时仅做上行重试，下行跳过。
+/// 先批量上行本地 pending（饮食 T8 + 饮水两态队列），再 syncToken 增量
+/// 下行入库（§2.4，含 waterLogChanges）。远程端为 Fake（测试/演示注入）
+/// 时仅做上行重试，下行跳过。
 final class RecordSyncEngine {
-  RecordSyncEngine({required this.repository, required this.prefs});
+  RecordSyncEngine({
+    required this.repository,
+    required this.prefs,
+    this.waterSync,
+  });
 
   /// 记录仓储。
   final RecordRepository repository;
 
   /// syncToken 持久化。
   final SharedPreferences prefs;
+
+  /// 饮水上行同步（可选：测试/未装配场景为 null 跳过）。
+  final RemoteWaterLogSync? waterSync;
 
   static const String _tokenKeyPrefix = 'record_sync_token_';
 
@@ -28,6 +37,7 @@ final class RecordSyncEngine {
     _syncing = true;
     try {
       await repository.retryPending();
+      await waterSync?.pushPending(repository.db, repository.userId);
       final remote = repository.remote;
       if (remote is RemoteRecordSync) {
         final token = await remote.pullDown(

@@ -11,6 +11,7 @@ final class AuthSession {
     required this.isNewUser,
     this.nickname,
     this.onboardingStatus,
+    this.deletionCancelled = false,
   });
 
   final String accessToken;
@@ -27,6 +28,9 @@ final class AuthSession {
   /// 服务端引导完成态（none/skipped/completed），与本地引导标志独立。
   final String? onboardingStatus;
 
+  /// 冷静期内登录自动撤销删除申请（合规 §4.3，登录响应携带）。
+  final bool deletionCancelled;
+
   factory AuthSession.fromJson(Map<String, dynamic> json) {
     final user = json['user'];
     return AuthSession(
@@ -34,6 +38,7 @@ final class AuthSession {
       refreshToken: json['refreshToken']! as String,
       expiresIn: (json['expiresIn']! as num).toInt(),
       isNewUser: json['isNewUser'] == true,
+      deletionCancelled: json['deletionCancelled'] == true,
       userId: user is Map<String, dynamic> ? user['id']! as String : '',
       nickname: user is Map<String, dynamic>
           ? user['nickname'] as String?

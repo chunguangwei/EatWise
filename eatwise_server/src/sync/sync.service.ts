@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { err } from '../common/errors/business.exception';
-import { DataStore, FoodEntryEntity, NutritionSnapshot } from '../common/store/data-store';
+import {
+  DataStore,
+  FoodEntryEntity,
+  NutritionSnapshot,
+  WaterLogEntity,
+} from '../common/store/data-store';
 import { newId, payloadHash } from '../common/utils/id.util';
 import { NutritionService, round1 } from '../nutrition/nutrition.service';
 import { localDateOf } from '../common/utils/time.util';
@@ -59,6 +64,14 @@ export class SyncService {
 
   private applyOp(userId: string, op: SyncOpDto): OpResult {
     try {
+      if (op.entity === 'waterLog') return this.applyWaterOp(userId, op);
+      if (op.entity !== 'foodEntry') {
+        return {
+          clientRequestId: op.clientRequestId,
+          status: 'error',
+          error: { code: 'VALIDATION_ERROR' },
+        };
+      }
       switch (op.op) {
         case 'create':
           return this.applyCreate(userId, op);
@@ -192,6 +205,114 @@ export class SyncService {
     return { clientRequestId: op.clientRequestId, status: 'applied' };
   }
 
+  // ===== waterLog 轻量同步（两态：仅 create/delete，无 update——
+  // 饮水无编辑/冲突场景〔假设〕；幂等 clientRequestId 同 foodEntry 口径）=====
+
+  private applyWaterOp(userId: string, op: SyncOpDto): OpResult {
+    switch (op.op) {
+      case 'create':
+        return this.applyWaterCreate(userId, op);
+      case 'delete':
+        return this.applyWaterDelete(userId, op);
+      default:
+        return {
+          clientRequestId: op.clientRequestId,
+          status: 'error',
+          error: { code: 'VALIDATION_ERROR' },
+        };
+    }
+  }
+
+  private applyWaterCreate(userId: string, op: SyncOpDto): OpResult {
+    const amountMl = op.payload?.amountMl;
+    const loggedAt = op.payload?.loggedAt;
+    if (amountMl == null || amountMl <= 0 || !loggedAt) {
+      return {
+        clientRequestId: op.clientRequestId,
+        status: 'error',
+        error: { code: 'VALIDATION_ERROR' },
+      };
+    }
+    const dup = this.findWaterByClientRequestId(userId, op.clientRequestId);
+    if (dup) {
+      // 幂等重放：同键同体返回首次结果；同键不同体 = 客户端 bug
+      const same =
+        dup.amountMl === amountMl &&
+        dup.loggedAt.toISOString() === new Date(loggedAt).toISOString();
+      if (!same) {
+        return {
+          clientRequestId: op.clientRequestId,
+          status: 'error',
+          error: { code: 'IDEMPOTENCY_PAYLOAD_MISMATCH' },
+        };
+      }
+      return {
+        clientRequestId: op.clientRequestId,
+        status: 'applied',
+        serverEntry: this.waterLogView(dup),
+      };
+    }
+    const now = new Date();
+    const log: WaterLogEntity = {
+      id: newId(),
+      userId,
+      clientRequestId: op.clientRequestId,
+      amountMl,
+      loggedAt: new Date(loggedAt),
+      localDate: op.payload?.localDate ?? '',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    };
+    this.store.waterLogs.set(log.id, log);
+    return {
+      clientRequestId: op.clientRequestId,
+      status: 'applied',
+      serverEntry: this.waterLogView(log),
+    };
+  }
+
+  private applyWaterDelete(userId: string, op: SyncOpDto): OpResult {
+    const id = op.serverId ?? op.payload?.id;
+    let log = id ? this.store.waterLogs.get(id) : undefined;
+    // 兜底：create 已上行但客户端未拿到 serverId（响应丢失）→ 按行幂等键定位
+    if (!log && op.payload?.clientRequestId) {
+      log = this.findWaterByClientRequestId(userId, op.payload.clientRequestId);
+    }
+    if (!log || log.userId !== userId) {
+      return { clientRequestId: op.clientRequestId, status: 'error', error: { code: 'NOT_FOUND' } };
+    }
+    if (!log.deletedAt) {
+      log.deletedAt = new Date();
+      log.version += 1;
+      log.updatedAt = new Date();
+    }
+    // 软删幂等：重复删除返回 applied
+    return { clientRequestId: op.clientRequestId, status: 'applied' };
+  }
+
+  private findWaterByClientRequestId(
+    userId: string,
+    clientRequestId: string,
+  ): WaterLogEntity | undefined {
+    return [...this.store.waterLogs.values()].find(
+      (e) => e.userId === userId && e.clientRequestId === clientRequestId,
+    );
+  }
+
+  private waterLogView(e: WaterLogEntity) {
+    return {
+      entity: 'waterLog',
+      id: e.id,
+      clientRequestId: e.clientRequestId,
+      amountMl: e.amountMl,
+      loggedAt: e.loggedAt.toISOString(),
+      localDate: e.localDate,
+      version: e.version,
+      updatedAt: e.updatedAt.toISOString(),
+    };
+  }
   // ===== E6 / sync/pull 增量下行（syncToken 游标）=====
   pull(userId: string, syncToken: string | undefined, limit = 200) {
     let after: { ts: number; id: string } | null = null;
@@ -207,6 +328,19 @@ export class SyncService {
       )
       .sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime() || a.id.localeCompare(b.id));
 
+    // 饮水记录随行下行（轻量两态，不分页〔假设：单用户饮水量小〕；
+    // 复用同一 syncToken 游标语义：updatedAt 晚于游标的全部返回）
+    const waterAfter = after ? after.ts : null;
+    const waterChanges = [...this.store.waterLogs.values()]
+      .filter((e) => e.userId === userId)
+      .filter((e) => waterAfter == null || e.updatedAt.getTime() > waterAfter)
+      .sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime())
+      .map((e) =>
+        e.deletedAt
+          ? { tombstone: { entity: 'waterLog', id: e.id, deletedAt: e.deletedAt.toISOString() } }
+          : this.waterLogView(e),
+      );
+
     const page = all.slice(0, limit);
     const last = page[page.length - 1];
     return {
@@ -215,6 +349,7 @@ export class SyncService {
           ? { tombstone: { id: e.id, deletedAt: e.deletedAt.toISOString() } }
           : this.entryView(e),
       ),
+      waterLogChanges: waterChanges,
       syncToken: last
         ? this.encodeToken(last.updatedAt, last.id)
         : (syncToken ?? this.encodeToken(new Date(), '')),

@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
-import 'package:eatwise/features/legal/application/legal_providers.dart';
-import 'package:eatwise/features/legal/data/privacy_consent_store.dart';
+import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/settings/data/user_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -91,64 +91,80 @@ void restoreLocalePreference(SharedPreferences prefs) {
   if (mode != null) LanguageModeController.applyLocaleMode(mode);
 }
 
-/// 数据导出服务（合规 §4.2：查阅复制权，JSON+CSV 服务端异步生成）。
+/// 数据导出服务（合规 §4.2：查阅复制权，U3 服务端聚合 JSON 直返）。
 abstract interface class DataExportService {
-  /// 申请导出全量个人数据；返回交付描述（stub 为本地占位文件路径）。
+  /// 申请导出全量个人数据；返回保存到设备文档目录的文件路径。
   Future<String> requestExport();
 }
 
-/// 〔stub〕服务端 U3/U4（POST /users/me/export / 查询任务）尚未实现：
-/// 客户端生成含授权状态的本地 JSON 占位文件并标注；端点上线后切换为
-/// 服务端异步任务流（生成完成 App 内通知 + 72h 下载链接）。
-final class LocalStubDataExportService implements DataExportService {
-  factory LocalStubDataExportService({
-    required PrivacyConsentStore consentStore,
-  }) => LocalStubDataExportService._(consentStore);
+/// U3 真实导出：POST /users/me/export 聚合 JSON → 写设备文档目录
+/// （path_provider 既有依赖，不引入分享插件〔最简可靠方案〕）。
+final class RemoteDataExportService implements DataExportService {
+  RemoteDataExportService(this._api, {Future<Directory> Function()? docsDir})
+    : _docsDir = docsDir ?? getApplicationDocumentsDirectory;
 
-  LocalStubDataExportService._(this._consentStore);
-
-  final PrivacyConsentStore _consentStore;
+  final UserApi _api;
+  final Future<Directory> Function() _docsDir;
 
   @override
   Future<String> requestExport() async {
-    final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/eatwise_data_export_stub.json');
+    final bundle = await _api.exportMe();
+    final dir = await _docsDir();
+    final stamp = DateTime.now()
+        .toUtc()
+        .toIso8601String()
+        .replaceAll(':', '')
+        .split('.')
+        .first;
+    final file = File('${dir.path}/eatwise_data_export_$stamp.json');
     await file.writeAsString(
-      jsonEncode(<String, Object?>{
-        'stub': true,
-        'note': '服务端导出端点 U3/U4 未实现，本文件为客户端占位（合规 §4.2）',
-        'generatedAtUtc': DateTime.now().toUtc().toIso8601String(),
-        'policyVersion': PrivacyConsentStore.currentPolicyVersion,
-        'healthDataGranted': _consentStore.healthDataGranted,
-        'consentAgreedAtEpochSec': _consentStore.agreedAtEpochSec,
-      }),
+      const JsonEncoder.withIndent('  ').convert(bundle),
     );
     return file.path;
   }
 }
 
 final dataExportServiceProvider = Provider<DataExportService>((ref) {
-  return LocalStubDataExportService(
-    consentStore: ref.watch(privacyConsentStoreProvider),
-  );
+  return RemoteDataExportService(ref.watch(userApiProvider));
 });
 
-/// 账号删除服务（合规 §4.3：7 天冷静期〔假设〕，冷静期内登录即撤销）。
+/// 账号删除服务（合规 §4.3：冷静期〔假设〕7 天，期内登录自动撤销）。
 abstract interface class AccountDeletionService {
-  /// 申请删除账号（成功即进入冷静期，随后本地登出冻结）。
-  Future<void> requestDeletion();
+  /// 申请删除账号（成功即进入冷静期，服务端吊销全部会话，随后本地登出）。
+  Future<AccountDeletionView> requestDeletion();
+
+  /// 冷静期内撤销删除申请（U6，幂等）。
+  Future<AccountDeletionView> cancelDeletion();
 }
 
-/// 〔stub〕服务端 U5（POST /users/me/deletion）尚未实现：空实现直接返回
-/// 成功并标注；冷静期冻结、第 7 天物理删除与本地库清除由服务端/同步层
-/// 实现后接管。
-final class StubAccountDeletionService implements AccountDeletionService {
-  const StubAccountDeletionService();
+/// U5/U6 真实实现（走 UserApi，错误信封经 ApiException 上抛）。
+final class RemoteAccountDeletionService implements AccountDeletionService {
+  const RemoteAccountDeletionService(this._api);
+
+  final UserApi _api;
 
   @override
-  Future<void> requestDeletion() async {}
+  Future<AccountDeletionView> requestDeletion() => _api.requestDeletion();
+
+  @override
+  Future<AccountDeletionView> cancelDeletion() => _api.cancelDeletion();
 }
 
 final accountDeletionServiceProvider = Provider<AccountDeletionService>((ref) {
-  return const StubAccountDeletionService();
+  return RemoteAccountDeletionService(ref.watch(userApiProvider));
+});
+
+/// 用户端点（U1/U3/U5/U6）。
+final userApiProvider = Provider<UserApi>((ref) {
+  return UserApi(ref.watch(apiDioProvider));
+});
+
+/// 当前用户视图（设置页账号区：脱敏手机号 + 删除预约状态）；
+/// 未登录/离线/接口失败回落 null（UI 降级显示）。
+final userMeProvider = FutureProvider<UserMeView?>((ref) async {
+  try {
+    return await ref.watch(userApiProvider).getMe();
+  } on Object {
+    return null;
+  }
 });

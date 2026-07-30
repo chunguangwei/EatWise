@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/storage/tables.dart';
 
 /// 本地归属日键（yyyy-MM-dd，D-07 口径：按设备时区换算）。
 String localDateKey(DateTime date) {
@@ -13,9 +14,11 @@ String localDateKey(DateTime date) {
 
 /// M3 饮水轻量记录仓库（PRD M3 功能点 4）。
 ///
-/// 轻量口径：仅本地落 drift（不上行同步〔假设〕），乐观更新经
-/// [watchTotalForDate] 流即时可见；撤销复用 D-11 语义（10 秒吐司内
-/// 物理删除，无四态流转）。
+/// 两态同步（pending/synced，无冲突场景〔假设〕）：入账落本地 pending
+/// 队列，由同步引擎（RemoteWaterLogSync，挂 RecordSyncEngine.syncNow 链）
+/// 批量上行 /sync/push；乐观更新经 [watchTotalForDate] 流即时可见。
+/// 撤销复用 D-11 语义：从未上行 → 物理删除；已上行 → 置 tombstone
+/// 待上行 delete op（〔假设〕服务端按 op=delete 软删）。
 final class WaterLogRepository {
   WaterLogRepository({
     required this.db,
@@ -42,7 +45,7 @@ final class WaterLogRepository {
   /// 快捷水量档位（毫升，〔假设〕200/300/500 常见杯量，一键入账）。
   static const List<int> quickAmountsMl = <int>[200, 300, 500];
 
-  /// 一键入账：立即落库（UI 经累计流即时刷新），返回新记录。
+  /// 一键入账：立即落库 pending（UI 经累计流即时刷新），返回新记录。
   Future<WaterLog> add(int amountMl) async {
     if (amountMl <= 0) {
       throw ArgumentError.value(amountMl, 'amountMl', '饮水量必须大于 0');
@@ -57,15 +60,25 @@ final class WaterLogRepository {
         amountMl: Value(amountMl),
         datetimeUtc: Value(nowIso),
         localDate: Value(localDateKey(nowUtc)),
+        clientRequestId: Value(_uuid()),
+        syncState: const Value(WaterSyncState.pending),
         createdAtUtc: Value(nowIso),
       ),
     );
     return (await db.waterLogDao.getByLocalId(localId))!;
   }
 
-  /// D-11 撤销：撤回该条（物理删除），返回是否撤销成功。
+  /// D-11 撤销：撤回该条。从未上行 → 物理删除；已上行 → tombstone
+  /// （聚合即时排除，待上行 delete op 后物理清除）。返回是否撤销成功。
   Future<bool> undo(String localId) async {
-    return await db.waterLogDao.deleteLog(localId) > 0;
+    final log = await db.waterLogDao.getByLocalId(localId);
+    if (log == null || log.deleted) return false;
+    if (log.serverId == null && log.syncState == WaterSyncState.pending) {
+      // 从未上行：直接物理删除，无需 tombstone。
+      return await db.waterLogDao.deleteLog(localId) > 0;
+    }
+    await db.waterLogDao.markTombstone(localId);
+    return true;
   }
 
   /// 当日累计饮水量流（毫升）。
@@ -83,7 +96,7 @@ final class WaterLogRepository {
     return db.waterLogDao.logsForDate(userId, localDate);
   }
 
-  /// UUIDv4（本地主键用，与 RecordRepository 同法）。
+  /// UUIDv4（本地主键/幂等键用，与 RecordRepository 同法）。
   String _uuid() {
     final bytes = List<int>.generate(16, (_) => _random.nextInt(256));
     bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4

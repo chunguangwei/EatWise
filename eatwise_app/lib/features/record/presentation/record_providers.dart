@@ -10,6 +10,7 @@ import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/data/record_sync_engine.dart';
 import 'package:eatwise/features/record/data/remote_record_sync.dart';
+import 'package:eatwise/features/record/data/remote_water_log_sync.dart';
 import 'package:eatwise/features/record/data/water_log_repository.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/recognition/data/food_recognition_service.dart';
@@ -76,6 +77,7 @@ final Provider<RecordSyncEngine> recordSyncEngineProvider =
       return RecordSyncEngine(
         repository: ref.watch(recordRepositoryProvider),
         prefs: ref.watch(sharedPreferencesProvider),
+        waterSync: ref.watch(waterLogSyncProvider),
       );
     });
 
@@ -161,7 +163,13 @@ final FutureProvider<List<Food>> recordFrequentFoodsProvider =
 
 // ---- M3 轻量记录（饮水 / 体重，PRD M3 功能点 4） ----
 
-/// 饮水轻量记录仓库（仅本地 drift 口径，〔假设〕不上行同步）。
+/// 饮水上行同步端（两态 pending/synced，挂 recordSyncEngineProvider 触发链）。
+final Provider<RemoteWaterLogSync> waterLogSyncProvider =
+    Provider<RemoteWaterLogSync>((ref) {
+      return RemoteWaterLogSync(dio: ref.watch(apiDioProvider));
+    });
+
+/// 饮水轻量记录仓库（本地落库 pending，经同步引擎上行云端）。
 final Provider<WaterLogRepository> waterLogRepositoryProvider =
     Provider<WaterLogRepository>((ref) {
       return WaterLogRepository(db: ref.watch(appDatabaseProvider));

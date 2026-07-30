@@ -107,6 +107,21 @@ export interface FoodEntryEntity {
   deletedAt: Date | null;
 }
 
+/** 饮水记录（PRD M3 功能点 4）：轻量两态同步（pending/synced），无 update op——
+ * 逐条 create + delete tombstone 即覆盖全部场景〔假设：饮水无编辑/冲突场景〕 */
+export interface WaterLogEntity {
+  id: string;
+  userId: string;
+  clientRequestId: string;
+  amountMl: number;
+  loggedAt: Date; // 饮水时间（UTC）
+  localDate: string; // 客户端归属日（yyyy-MM-dd，D-07 口径透传）
+  version: number;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+}
+
 export interface MakeupCards {
   stock: number;
   month: string; // YYYY-MM（用户 timezone）
@@ -180,6 +195,7 @@ export class DataStore {
   /** 已加载的 foods.seed.json 版本号（D-16 全量库幂等加载标记，见 food-seed-loader.ts）。 */
   foodSeedVersion: string | null = null;
   readonly foodEntries = new Map<string, FoodEntryEntity>();
+  readonly waterLogs = new Map<string, WaterLogEntity>();
   readonly streaks = new Map<string, StreakEntity>(); // key: userId
   readonly idempotency = new Map<string, IdempotencyRecord>(); // key: userId|endpoint|clientRequestId
 

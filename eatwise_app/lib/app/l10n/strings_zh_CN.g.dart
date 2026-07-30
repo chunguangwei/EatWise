@@ -712,6 +712,9 @@ class Translations$common$action$zh_CN {
 
 	/// zh-CN: '重试'
 	String get retry => '重试';
+
+	/// zh-CN: '确定'
+	String get confirm => '确定';
 }
 
 // Path: fasting.home
@@ -1204,6 +1207,18 @@ class Translations$settings$account$zh_CN {
 
 	/// zh-CN: '删除申请已提交，账号进入 7 天冷静期'
 	String get deleteRequested => '删除申请已提交，账号进入 7 天冷静期';
+
+	/// zh-CN: '删除已预约，${days} 日后执行，到期前可撤销'
+	String deletionScheduled({required Object days}) => '删除已预约，${days} 日后执行，到期前可撤销';
+
+	/// zh-CN: '撤销删除'
+	String get cancelDeletion => '撤销删除';
+
+	/// zh-CN: '已撤销删除申请，账号恢复正常'
+	String get deletionCancelled => '已撤销删除申请，账号恢复正常';
+
+	/// zh-CN: '删除申请已提交。账号将于 ${date} 删除，此日期前重新登录即可撤销。'
+	String deleteScheduledBody({required Object date}) => '删除申请已提交。账号将于 ${date} 删除，此日期前重新登录即可撤销。';
 }
 
 // Path: settings.privacy
@@ -1226,9 +1241,6 @@ class Translations$settings$privacy$zh_CN {
 	/// zh-CN: '数据已导出：${path}'
 	String exportSuccess({required Object path}) => '数据已导出：${path}';
 
-	/// zh-CN: '服务端导出（U3/U4）尚未实现，已生成包含授权状态的本地 JSON 占位文件'
-	String get exportStubNote => '服务端导出（U3/U4）尚未实现，已生成包含授权状态的本地 JSON 占位文件';
-
 	/// zh-CN: '健康数据授权'
 	String get healthData => '健康数据授权';
 
@@ -1243,6 +1255,9 @@ class Translations$settings$privacy$zh_CN {
 
 	/// zh-CN: '匿名行为统计，帮助我们改进产品，不含健康数据'
 	String get analyticsSubtitle => '匿名行为统计，帮助我们改进产品，不含健康数据';
+
+	/// zh-CN: '导出失败，请检查网络后重试'
+	String get exportFailed => '导出失败，请检查网络后重试';
 }
 
 // Path: settings.theme
@@ -2226,6 +2241,7 @@ extension on Translations {
 			'common.action.cancel' => '取消',
 			'common.action.undo' => '撤销',
 			'common.action.retry' => '重试',
+			'common.action.confirm' => '确定',
 			'fasting.home.title' => '断食计时',
 			'fasting.home.endFast' => '结束断食',
 			'fasting.home.extend' => '延长',
@@ -2396,16 +2412,20 @@ extension on Translations {
 			'settings.account.deleteConfirmBody' => '删除后，你的手机号、基础资料、全部饮食/断食记录等个人数据将被物理删除，且不可恢复。申请后进入 7 天冷静期：冷静期内登录即视为撤销删除，第 7 天执行删除。',
 			'settings.account.deleteConfirmAction' => '确认删除',
 			'settings.account.deleteRequested' => '删除申请已提交，账号进入 7 天冷静期',
+			'settings.account.deletionScheduled' => ({required Object days}) => '删除已预约，${days} 日后执行，到期前可撤销',
+			'settings.account.cancelDeletion' => '撤销删除',
+			'settings.account.deletionCancelled' => '已撤销删除申请，账号恢复正常',
+			'settings.account.deleteScheduledBody' => ({required Object date}) => '删除申请已提交。账号将于 ${date} 删除，此日期前重新登录即可撤销。',
 			'settings.privacy.privacyPolicy' => '隐私政策',
 			'settings.privacy.userAgreement' => '用户协议',
 			'settings.privacy.exportData' => '导出我的数据',
 			'settings.privacy.exportSuccess' => ({required Object path}) => '数据已导出：${path}',
-			'settings.privacy.exportStubNote' => '服务端导出（U3/U4）尚未实现，已生成包含授权状态的本地 JSON 占位文件',
 			'settings.privacy.healthData' => '健康数据授权',
 			'settings.privacy.healthDataSubtitle' => '身高体重、饮食/断食记录等敏感个人信息处理',
 			'settings.privacy.healthDataRevoked' => '已撤回健康数据授权，营养目标将使用默认值',
 			'settings.privacy.analytics' => '数据分析授权',
 			'settings.privacy.analyticsSubtitle' => '匿名行为统计，帮助我们改进产品，不含健康数据',
+			'settings.privacy.exportFailed' => '导出失败，请检查网络后重试',
 			'settings.theme.title' => '主题',
 			'settings.theme.system' => '跟随系统',
 			'settings.theme.light' => '浅色',

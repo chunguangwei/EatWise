@@ -166,11 +166,15 @@ class FastingRecords extends Table {
   Set<Column<Object>> get primaryKey => {localId};
 }
 
+/// 饮水记录两态同步状态（轻量口径：无冲突场景〔假设〕，仅 pending/synced）。
+enum WaterSyncState { pending, synced }
+
 /// WaterLog 单条饮水记录（PRD M3 功能点 4：饮水轻量记录）。
 ///
-/// 轻量记录：仅本地口径，**不上行同步**（〔假设〕MVP 不做饮水云端同步，
-/// 故无四态字段）；`localDate` 为按设备时区换算的归属日（yyyy-MM-dd），
-/// 供当日累计聚合。撤销走 D-11 语义（10 秒吐司内物理删除）。
+/// 轻量两态同步：入账落 pending 待上行，上行成功回填 serverId 转 synced；
+/// 撤销（D-11）未上行直接物理删除、已上行置 tombstone 待上行 delete op。
+/// 无 update op〔假设：饮水无编辑/冲突场景〕；`localDate` 为按设备时区
+/// 换算的归属日（yyyy-MM-dd），供当日累计聚合。
 class WaterLogs extends Table {
   /// 本地主键（UUIDv4），客户端生成。
   TextColumn get localId => text()();
@@ -186,6 +190,20 @@ class WaterLogs extends Table {
 
   /// 归属日（本地时区 yyyy-MM-dd，当日累计聚合键）。
   TextColumn get localDate => text()();
+
+  /// 上行幂等键（UUIDv4，入账生成，重试/删除 op 复用，§2.2）。
+  TextColumn get clientRequestId => text().withDefault(const Constant(''))();
+
+  /// 服务端主键，首次上行成功回填。
+  TextColumn get serverId => text().nullable()();
+
+  /// 两态同步状态（pending/synced）。
+  TextColumn get syncState => textEnum<WaterSyncState>().withDefault(
+    Constant(WaterSyncState.pending.name),
+  )();
+
+  /// 本地 tombstone：已上行记录的撤销标记（上行 delete op 后物理清除）。
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   /// 本地创建时间（UTC ISO8601）。
   TextColumn get createdAtUtc => text()();

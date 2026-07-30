@@ -61,10 +61,16 @@ class _WaterCard extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     final flowId = analytics.startRecordFlow();
     final log = await repo.add(amountMl);
+    // 记录后触发一轮同步（饮水 pending 队列上行，§2.1）。
+    try {
+      unawaited(ref.read(recordSyncEngineProvider).syncNow());
+    } on Object {
+      // 防御：同步引擎未装配（如测试环境仅注入仓储）时跳过。
+    }
     final flow = analytics.endRecordFlow(flowId);
     final confirmedAtMs = DateTime.now().millisecondsSinceEpoch;
     // 饮水记录成功（§3.3 record_flow_success，record_kind=water；
-    // 饮水量数值属健康明细不上报 §1.6-3；sync_state：本地口径无上行〔假设〕记 synced）。
+    // 饮水量数值属健康明细不上报 §1.6-3；sync_state=pending：本地落库待上行）。
     analytics.track(
       'record_flow_success',
       properties: <String, Object?>{
@@ -76,7 +82,7 @@ class _WaterCard extends ConsumerWidget {
         'record_kind': 'water',
         'is_edited': false,
         'meal_period': _mealPeriod(),
-        'sync_state': 'synced',
+        'sync_state': 'pending',
       },
       flushNow: true,
     );
@@ -89,7 +95,7 @@ class _WaterCard extends ConsumerWidget {
         action: SnackBarAction(
           label: s.toastUndo,
           onPressed: () => unawaited(
-            _undo(context, analytics, repo, s, log.localId, confirmedAtMs),
+            _undo(context, ref, analytics, repo, s, log.localId, confirmedAtMs),
           ),
         ),
       ),
@@ -99,6 +105,7 @@ class _WaterCard extends ConsumerWidget {
   /// D-11 撤销：撤回该条（乐观更新回滚）。
   Future<void> _undo(
     BuildContext context,
+    WidgetRef ref,
     AnalyticsService analytics,
     WaterLogRepository repo,
     RecordStrings s,
@@ -107,6 +114,12 @@ class _WaterCard extends ConsumerWidget {
   ) async {
     final ok = await repo.undo(localId);
     if (ok) {
+      // 撤销 tombstone 上行（已上行记录）。
+      try {
+        unawaited(ref.read(recordSyncEngineProvider).syncNow());
+      } on Object {
+        // 防御：同步引擎未装配（如测试环境仅注入仓储）时跳过。
+      }
       analytics.track(
         'record_undo_click',
         properties: <String, Object?>{

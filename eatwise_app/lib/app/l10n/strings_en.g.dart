@@ -521,6 +521,7 @@ class _Translations$common$action$en extends Translations$common$action$zh_CN {
 	@override String get cancel => 'Cancel';
 	@override String get undo => 'Undo';
 	@override String get retry => 'Retry';
+	@override String get confirm => 'OK';
 }
 
 // Path: fasting.home
@@ -811,6 +812,10 @@ class _Translations$settings$account$en extends Translations$settings$account$zh
 	@override String get deleteConfirmBody => 'After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.';
 	@override String get deleteConfirmAction => 'Confirm deletion';
 	@override String get deleteRequested => 'Deletion requested — your account enters a 7-day cooling-off period';
+	@override String deletionScheduled({required Object days}) => 'Deletion scheduled in ${days} day(s) — you can cancel before then';
+	@override String get cancelDeletion => 'Cancel deletion';
+	@override String get deletionCancelled => 'Deletion cancelled — your account is back to normal';
+	@override String deleteScheduledBody({required Object date}) => 'Deletion requested. Your account will be erased on ${date}; sign in before then to cancel.';
 }
 
 // Path: settings.privacy
@@ -824,12 +829,12 @@ class _Translations$settings$privacy$en extends Translations$settings$privacy$zh
 	@override String get userAgreement => 'Terms of Service';
 	@override String get exportData => 'Export my data';
 	@override String exportSuccess({required Object path}) => 'Data exported: ${path}';
-	@override String get exportStubNote => 'Server-side export (U3/U4) isn\'t live yet — a local JSON placeholder with your consent status was generated instead';
 	@override String get healthData => 'Health data consent';
 	@override String get healthDataSubtitle => 'Processing of sensitive personal info such as height/weight and meal/fasting records';
 	@override String get healthDataRevoked => 'Health data consent withdrawn — nutrition targets will use defaults';
 	@override String get analytics => 'Analytics consent';
 	@override String get analyticsSubtitle => 'Anonymous usage stats that help us improve — no health data included';
+	@override String get exportFailed => 'Export failed. Check your connection and try again.';
 }
 
 // Path: settings.theme
@@ -1472,6 +1477,7 @@ extension on TranslationsEn {
 			'common.action.cancel' => 'Cancel',
 			'common.action.undo' => 'Undo',
 			'common.action.retry' => 'Retry',
+			'common.action.confirm' => 'OK',
 			'fasting.home.title' => 'Fasting Timer',
 			'fasting.home.endFast' => 'End fast',
 			'fasting.home.extend' => 'Extend',
@@ -1642,16 +1648,20 @@ extension on TranslationsEn {
 			'settings.account.deleteConfirmBody' => 'After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.',
 			'settings.account.deleteConfirmAction' => 'Confirm deletion',
 			'settings.account.deleteRequested' => 'Deletion requested — your account enters a 7-day cooling-off period',
+			'settings.account.deletionScheduled' => ({required Object days}) => 'Deletion scheduled in ${days} day(s) — you can cancel before then',
+			'settings.account.cancelDeletion' => 'Cancel deletion',
+			'settings.account.deletionCancelled' => 'Deletion cancelled — your account is back to normal',
+			'settings.account.deleteScheduledBody' => ({required Object date}) => 'Deletion requested. Your account will be erased on ${date}; sign in before then to cancel.',
 			'settings.privacy.privacyPolicy' => 'Privacy Policy',
 			'settings.privacy.userAgreement' => 'Terms of Service',
 			'settings.privacy.exportData' => 'Export my data',
 			'settings.privacy.exportSuccess' => ({required Object path}) => 'Data exported: ${path}',
-			'settings.privacy.exportStubNote' => 'Server-side export (U3/U4) isn\'t live yet — a local JSON placeholder with your consent status was generated instead',
 			'settings.privacy.healthData' => 'Health data consent',
 			'settings.privacy.healthDataSubtitle' => 'Processing of sensitive personal info such as height/weight and meal/fasting records',
 			'settings.privacy.healthDataRevoked' => 'Health data consent withdrawn — nutrition targets will use defaults',
 			'settings.privacy.analytics' => 'Analytics consent',
 			'settings.privacy.analyticsSubtitle' => 'Anonymous usage stats that help us improve — no health data included',
+			'settings.privacy.exportFailed' => 'Export failed. Check your connection and try again.',
 			'settings.theme.title' => 'Theme',
 			'settings.theme.system' => 'System',
 			'settings.theme.light' => 'Light',

@@ -183,7 +183,8 @@
       "save": "保存",
       "cancel": "取消",
       "undo": "撤销",
-      "retry": "重试"
+      "retry": "重试",
+      "confirm": "确定"
     }
   },
   "fasting": {
@@ -439,19 +440,23 @@
       "deleteConfirmTitle": "删除账号？",
       "deleteConfirmBody": "删除后，你的手机号、基础资料、全部饮食/断食记录等个人数据将被物理删除，且不可恢复。申请后进入 7 天冷静期：冷静期内登录即视为撤销删除，第 7 天执行删除。",
       "deleteConfirmAction": "确认删除",
-      "deleteRequested": "删除申请已提交，账号进入 7 天冷静期"
+      "deleteRequested": "删除申请已提交，账号进入 7 天冷静期",
+      "deletionScheduled": "删除已预约，${days} 日后执行，到期前可撤销",
+      "cancelDeletion": "撤销删除",
+      "deletionCancelled": "已撤销删除申请，账号恢复正常",
+      "deleteScheduledBody": "删除申请已提交。账号将于 ${date} 删除，此日期前重新登录即可撤销。"
     },
     "privacy": {
       "privacyPolicy": "隐私政策",
       "userAgreement": "用户协议",
       "exportData": "导出我的数据",
       "exportSuccess": "数据已导出：${path}",
-      "exportStubNote": "服务端导出（U3/U4）尚未实现，已生成包含授权状态的本地 JSON 占位文件",
       "healthData": "健康数据授权",
       "healthDataSubtitle": "身高体重、饮食/断食记录等敏感个人信息处理",
       "healthDataRevoked": "已撤回健康数据授权，营养目标将使用默认值",
       "analytics": "数据分析授权",
-      "analyticsSubtitle": "匿名行为统计，帮助我们改进产品，不含健康数据"
+      "analyticsSubtitle": "匿名行为统计，帮助我们改进产品，不含健康数据",
+      "exportFailed": "导出失败，请检查网络后重试"
     },
     "theme": {
       "title": "主题",

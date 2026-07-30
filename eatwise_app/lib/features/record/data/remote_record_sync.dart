@@ -21,10 +21,14 @@ final class SyncPullPage {
     required this.changes,
     required this.nextSyncToken,
     required this.hasMore,
+    this.waterLogChanges = const <Map<String, dynamic>>[],
   });
 
   /// 原始 change 项（entry 全量视图或 {tombstone:{id,deletedAt}}）。
   final List<Map<String, dynamic>> changes;
+
+  /// 饮水记录 change 项（waterLog 全量视图或 {tombstone:{entity,id,deletedAt}}）。
+  final List<Map<String, dynamic>> waterLogChanges;
   final String? nextSyncToken;
   final bool hasMore;
 }
@@ -195,6 +199,9 @@ final class RemoteRecordSync implements RecordRemote {
       return SyncPullPage(
         changes: (body['changes'] as List<dynamic>? ?? const <dynamic>[])
             .cast<Map<String, dynamic>>(),
+        waterLogChanges:
+            (body['waterLogChanges'] as List<dynamic>? ?? const <dynamic>[])
+                .cast<Map<String, dynamic>>(),
         nextSyncToken: body['syncToken'] as String?,
         hasMore: body['hasMore'] == true,
       );
@@ -242,10 +249,70 @@ final class RemoteRecordSync implements RecordRemote {
       for (final change in page.changes) {
         await _applyChange(db, userId, change);
       }
+      for (final change in page.waterLogChanges) {
+        await _applyWaterChange(db, userId, change);
+      }
       token = page.nextSyncToken;
       hasMore = page.hasMore;
     }
     return token;
+  }
+
+  /// 饮水记录下行入库（两态轻量口径）：本地 pending 不被下行覆盖；
+  /// tombstone 仅清除已同步行。
+  Future<void> _applyWaterChange(
+    AppDatabase db,
+    String userId,
+    Map<String, dynamic> change,
+  ) async {
+    final tombstone = change['tombstone'];
+    if (tombstone is Map<String, dynamic>) {
+      final local = await db.waterLogDao.getByServerId(
+        tombstone['id']! as String,
+      );
+      if (local != null && local.syncState == WaterSyncState.synced) {
+        await db.waterLogDao.deleteLog(local.localId);
+      }
+      return;
+    }
+    final serverId = change['id'] as String?;
+    if (serverId == null) return;
+    final clientRequestId = change['clientRequestId'] as String?;
+    WaterLog? local;
+    if (clientRequestId != null) {
+      local = await db.waterLogDao.getByClientRequestId(clientRequestId);
+    }
+    local ??= await db.waterLogDao.getByServerId(serverId);
+    if (local != null && local.syncState == WaterSyncState.pending) {
+      // 本地未上行：不被下行覆盖（上行 create 幂等键对账后回填）。
+      return;
+    }
+    final loggedAt =
+        change['loggedAt'] as String? ??
+        DateTime.now().toUtc().toIso8601String();
+    final companion = WaterLogsCompanion(
+      userId: Value(userId),
+      serverId: Value(serverId),
+      clientRequestId: Value(clientRequestId ?? ''),
+      syncState: const Value(WaterSyncState.synced),
+      deleted: const Value(false),
+      amountMl: Value((change['amountMl'] as num?)?.toInt() ?? 0),
+      datetimeUtc: Value(loggedAt),
+      localDate: Value(
+        change['localDate'] as String? ??
+            _localDateOf(DateTime.parse(loggedAt)),
+      ),
+    );
+    if (local != null) {
+      await db.waterLogDao.applyServerRow(local.localId, companion);
+    } else {
+      await db.waterLogDao.insertLog(
+        companion.copyWith(
+          localId: Value(_uuid()),
+          createdAtUtc: Value(loggedAt),
+        ),
+      );
+    }
   }
 
   Future<void> _applyChange(

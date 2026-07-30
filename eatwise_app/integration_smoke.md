@@ -46,6 +46,48 @@ curl -s -X POST $BASE/auth/refresh -H 'Content-Type: application/json' \
   -d '{"refreshToken":"<refreshToken>"}'
 ```
 
+## 2.1 waterLog 饮水同步（两态 pending/synced，PRD M3 功能点 4）
+
+已于 2026-07-30 实跑通过：create 幂等（同键重放返回首次 serverEntry）、
+delete tombstone、/sync/pull 随行 `waterLogChanges` 下行、U3 导出包含 waterLogs。
+
+```bash
+# waterLog create（幂等 clientRequestId，重放同键同体返回首次结果）
+curl -s -X POST $BASE/sync/push -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"ops":[{"clientRequestId":"aaaaaaaa-2222-4333-8444-555555555555","entity":"waterLog","op":"create","payload":{"amountMl":300,"loggedAt":"2026-07-30T01:00:00.000Z","localDate":"2026-07-30"}}]}'
+# → results[0].status=applied，serverEntry.id 为服务端主键（客户端回填 serverId）
+
+# /sync/pull → waterLogChanges 含该行（entity=waterLog 全量视图）
+curl -s "$BASE/sync/pull" -H "Authorization: Bearer $TOKEN"
+
+# waterLog delete（tombstone 上行：serverId + payload.clientRequestId 兜底定位）
+curl -s -X POST $BASE/sync/push -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"ops":[{"clientRequestId":"bbbbbbbb-2222-4333-8444-555555555555","entity":"waterLog","op":"delete","serverId":"<serverEntry.id>","payload":{"clientRequestId":"aaaaaaaa-2222-4333-8444-555555555555"}}]}'
+# → applied（幂等）；再次 /sync/pull → waterLogChanges 返回 {tombstone:{entity:"waterLog",id,deletedAt}}
+```
+
+## 2.2 导出 / 删除账号（合规 §4.2/§4.3，U3/U5/U6）
+
+```bash
+# U1 当前用户（手机号脱敏返回）
+curl -s $BASE/users/me -H "Authorization: Bearer $TOKEN"
+# → user.phone = "139****9000"，user.deletionStatus / scheduledDeletionAt
+
+# U3 数据导出（聚合 JSON 直返，含 profile/foodEntries/fasting*/streak/posts/waterLogs）
+curl -s -X POST $BASE/users/me/export -H "Authorization: Bearer $TOKEN"
+
+# U5 申请删除（7 天冷静期〔假设〕；吊销全部 refresh token；幂等）
+curl -s -X POST $BASE/users/me/deletion -H "Authorization: Bearer $TOKEN"
+# → {"deletionStatus":"pending","scheduledDeletionAt":"...","coolingOffDays":7}
+
+# 冷静期内重新登录 → 自动撤销，登录响应 deletionCancelled=true
+# U6 主动撤销（幂等）
+curl -s -X DELETE $BASE/users/me/deletion -H "Authorization: Bearer $TOKEN"
+# → {"deletionStatus":null,"scheduledDeletionAt":null,"coolingOffDays":7}
+```
+
 ## 3. 实跑结果（2026-07-28）
 
 | 步骤 | 结果 |
@@ -64,5 +106,9 @@ curl -s -X POST $BASE/auth/refresh -H 'Content-Type: application/json' \
 - 认证：`lib/features/auth/`（登录页 /login，AuthGate 路由门禁，令牌存
   flutter_secure_storage）。
 - 同步：`RemoteRecordSync`（/sync/push ≤100/批上行、/sync/pull syncToken 增量下行
-  入 drift），`RecordSyncEngine.syncNow()` 在启动与登录成功后触发。
+  入 drift，含 waterLogChanges 饮水下行），`RemoteWaterLogSync`（饮水两态
+  pending/synced 上行：create 幂等 + delete tombstone），
+  `RecordSyncEngine.syncNow()` 在启动 / 登录成功 / 饮水入账与撤销后触发。
+- 设置页：U3 导出（服务端聚合 JSON 存文档目录）、U5/U6 删除申请/撤销
+  （冷静期弹窗 + 冷静期内状态行）、U1 脱敏手机号、登录 deletionCancelled 提示。
 - 食物搜索：本地 drift 优先 + 远端 K1 补充（远端结果合入本地缓存，离线降级纯本地）。

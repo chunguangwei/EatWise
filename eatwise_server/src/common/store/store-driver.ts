@@ -7,6 +7,7 @@ import {
   PostEntity,
   StreakEntity,
   UserEntity,
+  WaterLogEntity,
 } from './data-store';
 
 /**
@@ -30,6 +31,8 @@ export interface UserDataExport {
   fastingRecords: FastingRecordEntity[];
   streak: StreakEntity | null;
   posts: PostEntity[];
+  /** 饮水记录（M3 功能点 4；prisma 模式暂无该表，可选字段） */
+  waterLogs?: WaterLogEntity[];
 }
 
 /** U5 到期删除执行报告（合规 §4.3：个人数据物理删除 + UGC 匿名化） */
@@ -104,6 +107,9 @@ export class MemoryStoreDriver extends StoreDriver {
     );
     const streak = this.store.streaks.get(userId) ?? null;
     const posts = [...this.store.posts.values()].filter((p) => p.userId === userId && !p.deletedAt);
+    const waterLogs = [...this.store.waterLogs.values()].filter(
+      (e) => e.userId === userId && !e.deletedAt,
+    );
     return Promise.resolve({
       generatedAt: new Date().toISOString(),
       profile: user,
@@ -112,6 +118,7 @@ export class MemoryStoreDriver extends StoreDriver {
       fastingRecords,
       streak,
       posts,
+      waterLogs,
     });
   }
 
@@ -122,6 +129,9 @@ export class MemoryStoreDriver extends StoreDriver {
         this.store.foodEntries.delete(id);
         foodEntries += 1;
       }
+    }
+    for (const [id, e] of this.store.waterLogs) {
+      if (e.userId === userId) this.store.waterLogs.delete(id);
     }
     let fastingRecords = 0;
     for (const [id, r] of this.store.fastingRecords) {

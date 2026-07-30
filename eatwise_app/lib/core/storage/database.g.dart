@@ -3357,6 +3357,54 @@ class $WaterLogsTable extends WaterLogs
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _clientRequestIdMeta = const VerificationMeta(
+    'clientRequestId',
+  );
+  @override
+  late final GeneratedColumn<String> clientRequestId = GeneratedColumn<String>(
+    'client_request_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _serverIdMeta = const VerificationMeta(
+    'serverId',
+  );
+  @override
+  late final GeneratedColumn<String> serverId = GeneratedColumn<String>(
+    'server_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<WaterSyncState, String>
+  syncState = GeneratedColumn<String>(
+    'sync_state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: Constant(WaterSyncState.pending.name),
+  ).withConverter<WaterSyncState>($WaterLogsTable.$convertersyncState);
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
     'createdAtUtc',
   );
@@ -3375,6 +3423,10 @@ class $WaterLogsTable extends WaterLogs
     amountMl,
     datetimeUtc,
     localDate,
+    clientRequestId,
+    serverId,
+    syncState,
+    deleted,
     createdAtUtc,
   ];
   @override
@@ -3432,6 +3484,27 @@ class $WaterLogsTable extends WaterLogs
     } else if (isInserting) {
       context.missing(_localDateMeta);
     }
+    if (data.containsKey('client_request_id')) {
+      context.handle(
+        _clientRequestIdMeta,
+        clientRequestId.isAcceptableOrUnknown(
+          data['client_request_id']!,
+          _clientRequestIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('server_id')) {
+      context.handle(
+        _serverIdMeta,
+        serverId.isAcceptableOrUnknown(data['server_id']!, _serverIdMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
     if (data.containsKey('created_at_utc')) {
       context.handle(
         _createdAtUtcMeta,
@@ -3472,6 +3545,24 @@ class $WaterLogsTable extends WaterLogs
         DriftSqlType.string,
         data['${effectivePrefix}local_date'],
       )!,
+      clientRequestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_request_id'],
+      )!,
+      serverId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}server_id'],
+      ),
+      syncState: $WaterLogsTable.$convertersyncState.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}sync_state'],
+        )!,
+      ),
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
       createdAtUtc: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at_utc'],
@@ -3483,6 +3574,11 @@ class $WaterLogsTable extends WaterLogs
   $WaterLogsTable createAlias(String alias) {
     return $WaterLogsTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<WaterSyncState, String, String>
+  $convertersyncState = const EnumNameConverter<WaterSyncState>(
+    WaterSyncState.values,
+  );
 }
 
 class WaterLog extends DataClass implements Insertable<WaterLog> {
@@ -3501,6 +3597,18 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
   /// 归属日（本地时区 yyyy-MM-dd，当日累计聚合键）。
   final String localDate;
 
+  /// 上行幂等键（UUIDv4，入账生成，重试/删除 op 复用，§2.2）。
+  final String clientRequestId;
+
+  /// 服务端主键，首次上行成功回填。
+  final String? serverId;
+
+  /// 两态同步状态（pending/synced）。
+  final WaterSyncState syncState;
+
+  /// 本地 tombstone：已上行记录的撤销标记（上行 delete op 后物理清除）。
+  final bool deleted;
+
   /// 本地创建时间（UTC ISO8601）。
   final String createdAtUtc;
   const WaterLog({
@@ -3509,6 +3617,10 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
     required this.amountMl,
     required this.datetimeUtc,
     required this.localDate,
+    required this.clientRequestId,
+    this.serverId,
+    required this.syncState,
+    required this.deleted,
     required this.createdAtUtc,
   });
   @override
@@ -3519,6 +3631,16 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
     map['amount_ml'] = Variable<int>(amountMl);
     map['datetime_utc'] = Variable<String>(datetimeUtc);
     map['local_date'] = Variable<String>(localDate);
+    map['client_request_id'] = Variable<String>(clientRequestId);
+    if (!nullToAbsent || serverId != null) {
+      map['server_id'] = Variable<String>(serverId);
+    }
+    {
+      map['sync_state'] = Variable<String>(
+        $WaterLogsTable.$convertersyncState.toSql(syncState),
+      );
+    }
+    map['deleted'] = Variable<bool>(deleted);
     map['created_at_utc'] = Variable<String>(createdAtUtc);
     return map;
   }
@@ -3530,6 +3652,12 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
       amountMl: Value(amountMl),
       datetimeUtc: Value(datetimeUtc),
       localDate: Value(localDate),
+      clientRequestId: Value(clientRequestId),
+      serverId: serverId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(serverId),
+      syncState: Value(syncState),
+      deleted: Value(deleted),
       createdAtUtc: Value(createdAtUtc),
     );
   }
@@ -3545,6 +3673,12 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
       amountMl: serializer.fromJson<int>(json['amountMl']),
       datetimeUtc: serializer.fromJson<String>(json['datetimeUtc']),
       localDate: serializer.fromJson<String>(json['localDate']),
+      clientRequestId: serializer.fromJson<String>(json['clientRequestId']),
+      serverId: serializer.fromJson<String?>(json['serverId']),
+      syncState: $WaterLogsTable.$convertersyncState.fromJson(
+        serializer.fromJson<String>(json['syncState']),
+      ),
+      deleted: serializer.fromJson<bool>(json['deleted']),
       createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
     );
   }
@@ -3557,6 +3691,12 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
       'amountMl': serializer.toJson<int>(amountMl),
       'datetimeUtc': serializer.toJson<String>(datetimeUtc),
       'localDate': serializer.toJson<String>(localDate),
+      'clientRequestId': serializer.toJson<String>(clientRequestId),
+      'serverId': serializer.toJson<String?>(serverId),
+      'syncState': serializer.toJson<String>(
+        $WaterLogsTable.$convertersyncState.toJson(syncState),
+      ),
+      'deleted': serializer.toJson<bool>(deleted),
       'createdAtUtc': serializer.toJson<String>(createdAtUtc),
     };
   }
@@ -3567,6 +3707,10 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
     int? amountMl,
     String? datetimeUtc,
     String? localDate,
+    String? clientRequestId,
+    Value<String?> serverId = const Value.absent(),
+    WaterSyncState? syncState,
+    bool? deleted,
     String? createdAtUtc,
   }) => WaterLog(
     localId: localId ?? this.localId,
@@ -3574,6 +3718,10 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
     amountMl: amountMl ?? this.amountMl,
     datetimeUtc: datetimeUtc ?? this.datetimeUtc,
     localDate: localDate ?? this.localDate,
+    clientRequestId: clientRequestId ?? this.clientRequestId,
+    serverId: serverId.present ? serverId.value : this.serverId,
+    syncState: syncState ?? this.syncState,
+    deleted: deleted ?? this.deleted,
     createdAtUtc: createdAtUtc ?? this.createdAtUtc,
   );
   WaterLog copyWithCompanion(WaterLogsCompanion data) {
@@ -3585,6 +3733,12 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
           ? data.datetimeUtc.value
           : this.datetimeUtc,
       localDate: data.localDate.present ? data.localDate.value : this.localDate,
+      clientRequestId: data.clientRequestId.present
+          ? data.clientRequestId.value
+          : this.clientRequestId,
+      serverId: data.serverId.present ? data.serverId.value : this.serverId,
+      syncState: data.syncState.present ? data.syncState.value : this.syncState,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
       createdAtUtc: data.createdAtUtc.present
           ? data.createdAtUtc.value
           : this.createdAtUtc,
@@ -3599,6 +3753,10 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
           ..write('amountMl: $amountMl, ')
           ..write('datetimeUtc: $datetimeUtc, ')
           ..write('localDate: $localDate, ')
+          ..write('clientRequestId: $clientRequestId, ')
+          ..write('serverId: $serverId, ')
+          ..write('syncState: $syncState, ')
+          ..write('deleted: $deleted, ')
           ..write('createdAtUtc: $createdAtUtc')
           ..write(')'))
         .toString();
@@ -3611,6 +3769,10 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
     amountMl,
     datetimeUtc,
     localDate,
+    clientRequestId,
+    serverId,
+    syncState,
+    deleted,
     createdAtUtc,
   );
   @override
@@ -3622,6 +3784,10 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
           other.amountMl == this.amountMl &&
           other.datetimeUtc == this.datetimeUtc &&
           other.localDate == this.localDate &&
+          other.clientRequestId == this.clientRequestId &&
+          other.serverId == this.serverId &&
+          other.syncState == this.syncState &&
+          other.deleted == this.deleted &&
           other.createdAtUtc == this.createdAtUtc);
 }
 
@@ -3631,6 +3797,10 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
   final Value<int> amountMl;
   final Value<String> datetimeUtc;
   final Value<String> localDate;
+  final Value<String> clientRequestId;
+  final Value<String?> serverId;
+  final Value<WaterSyncState> syncState;
+  final Value<bool> deleted;
   final Value<String> createdAtUtc;
   final Value<int> rowid;
   const WaterLogsCompanion({
@@ -3639,6 +3809,10 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
     this.amountMl = const Value.absent(),
     this.datetimeUtc = const Value.absent(),
     this.localDate = const Value.absent(),
+    this.clientRequestId = const Value.absent(),
+    this.serverId = const Value.absent(),
+    this.syncState = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -3648,6 +3822,10 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
     required int amountMl,
     required String datetimeUtc,
     required String localDate,
+    this.clientRequestId = const Value.absent(),
+    this.serverId = const Value.absent(),
+    this.syncState = const Value.absent(),
+    this.deleted = const Value.absent(),
     required String createdAtUtc,
     this.rowid = const Value.absent(),
   }) : localId = Value(localId),
@@ -3662,6 +3840,10 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
     Expression<int>? amountMl,
     Expression<String>? datetimeUtc,
     Expression<String>? localDate,
+    Expression<String>? clientRequestId,
+    Expression<String>? serverId,
+    Expression<String>? syncState,
+    Expression<bool>? deleted,
     Expression<String>? createdAtUtc,
     Expression<int>? rowid,
   }) {
@@ -3671,6 +3853,10 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
       if (amountMl != null) 'amount_ml': amountMl,
       if (datetimeUtc != null) 'datetime_utc': datetimeUtc,
       if (localDate != null) 'local_date': localDate,
+      if (clientRequestId != null) 'client_request_id': clientRequestId,
+      if (serverId != null) 'server_id': serverId,
+      if (syncState != null) 'sync_state': syncState,
+      if (deleted != null) 'deleted': deleted,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
       if (rowid != null) 'rowid': rowid,
     });
@@ -3682,6 +3868,10 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
     Value<int>? amountMl,
     Value<String>? datetimeUtc,
     Value<String>? localDate,
+    Value<String>? clientRequestId,
+    Value<String?>? serverId,
+    Value<WaterSyncState>? syncState,
+    Value<bool>? deleted,
     Value<String>? createdAtUtc,
     Value<int>? rowid,
   }) {
@@ -3691,6 +3881,10 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
       amountMl: amountMl ?? this.amountMl,
       datetimeUtc: datetimeUtc ?? this.datetimeUtc,
       localDate: localDate ?? this.localDate,
+      clientRequestId: clientRequestId ?? this.clientRequestId,
+      serverId: serverId ?? this.serverId,
+      syncState: syncState ?? this.syncState,
+      deleted: deleted ?? this.deleted,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
       rowid: rowid ?? this.rowid,
     );
@@ -3714,6 +3908,20 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
     if (localDate.present) {
       map['local_date'] = Variable<String>(localDate.value);
     }
+    if (clientRequestId.present) {
+      map['client_request_id'] = Variable<String>(clientRequestId.value);
+    }
+    if (serverId.present) {
+      map['server_id'] = Variable<String>(serverId.value);
+    }
+    if (syncState.present) {
+      map['sync_state'] = Variable<String>(
+        $WaterLogsTable.$convertersyncState.toSql(syncState.value),
+      );
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     if (createdAtUtc.present) {
       map['created_at_utc'] = Variable<String>(createdAtUtc.value);
     }
@@ -3731,6 +3939,10 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
           ..write('amountMl: $amountMl, ')
           ..write('datetimeUtc: $datetimeUtc, ')
           ..write('localDate: $localDate, ')
+          ..write('clientRequestId: $clientRequestId, ')
+          ..write('serverId: $serverId, ')
+          ..write('syncState: $syncState, ')
+          ..write('deleted: $deleted, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -5493,6 +5705,10 @@ typedef $$WaterLogsTableCreateCompanionBuilder =
       required int amountMl,
       required String datetimeUtc,
       required String localDate,
+      Value<String> clientRequestId,
+      Value<String?> serverId,
+      Value<WaterSyncState> syncState,
+      Value<bool> deleted,
       required String createdAtUtc,
       Value<int> rowid,
     });
@@ -5503,6 +5719,10 @@ typedef $$WaterLogsTableUpdateCompanionBuilder =
       Value<int> amountMl,
       Value<String> datetimeUtc,
       Value<String> localDate,
+      Value<String> clientRequestId,
+      Value<String?> serverId,
+      Value<WaterSyncState> syncState,
+      Value<bool> deleted,
       Value<String> createdAtUtc,
       Value<int> rowid,
     });
@@ -5538,6 +5758,27 @@ class $$WaterLogsTableFilterComposer
 
   ColumnFilters<String> get localDate => $composableBuilder(
     column: $table.localDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get clientRequestId => $composableBuilder(
+    column: $table.clientRequestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get serverId => $composableBuilder(
+    column: $table.serverId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<WaterSyncState, WaterSyncState, String>
+  get syncState => $composableBuilder(
+    column: $table.syncState,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5581,6 +5822,26 @@ class $$WaterLogsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get clientRequestId => $composableBuilder(
+    column: $table.clientRequestId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get serverId => $composableBuilder(
+    column: $table.serverId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncState => $composableBuilder(
+    column: $table.syncState,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
     builder: (column) => ColumnOrderings(column),
@@ -5612,6 +5873,20 @@ class $$WaterLogsTableAnnotationComposer
 
   GeneratedColumn<String> get localDate =>
       $composableBuilder(column: $table.localDate, builder: (column) => column);
+
+  GeneratedColumn<String> get clientRequestId => $composableBuilder(
+    column: $table.clientRequestId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get serverId =>
+      $composableBuilder(column: $table.serverId, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<WaterSyncState, String> get syncState =>
+      $composableBuilder(column: $table.syncState, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 
   GeneratedColumn<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
@@ -5652,6 +5927,10 @@ class $$WaterLogsTableTableManager
                 Value<int> amountMl = const Value.absent(),
                 Value<String> datetimeUtc = const Value.absent(),
                 Value<String> localDate = const Value.absent(),
+                Value<String> clientRequestId = const Value.absent(),
+                Value<String?> serverId = const Value.absent(),
+                Value<WaterSyncState> syncState = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<String> createdAtUtc = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => WaterLogsCompanion(
@@ -5660,6 +5939,10 @@ class $$WaterLogsTableTableManager
                 amountMl: amountMl,
                 datetimeUtc: datetimeUtc,
                 localDate: localDate,
+                clientRequestId: clientRequestId,
+                serverId: serverId,
+                syncState: syncState,
+                deleted: deleted,
                 createdAtUtc: createdAtUtc,
                 rowid: rowid,
               ),
@@ -5670,6 +5953,10 @@ class $$WaterLogsTableTableManager
                 required int amountMl,
                 required String datetimeUtc,
                 required String localDate,
+                Value<String> clientRequestId = const Value.absent(),
+                Value<String?> serverId = const Value.absent(),
+                Value<WaterSyncState> syncState = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 required String createdAtUtc,
                 Value<int> rowid = const Value.absent(),
               }) => WaterLogsCompanion.insert(
@@ -5678,6 +5965,10 @@ class $$WaterLogsTableTableManager
                 amountMl: amountMl,
                 datetimeUtc: datetimeUtc,
                 localDate: localDate,
+                clientRequestId: clientRequestId,
+                serverId: serverId,
+                syncState: syncState,
+                deleted: deleted,
                 createdAtUtc: createdAtUtc,
                 rowid: rowid,
               ),

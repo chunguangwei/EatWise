@@ -1,6 +1,7 @@
 import 'package:app_settings/app_settings.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
@@ -8,6 +9,7 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/legal/application/legal_providers.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
+import 'package:eatwise/features/settings/data/user_api.dart';
 import 'package:eatwise/features/streak/presentation/streak_profile_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,9 +18,9 @@ import 'package:go_router/go_router.dart';
 /// 设置页（替换 我的 Tab 占位，M7 + 合规 D-18 落地）。
 ///
 /// 分组卡片列表（设计稿卡片规范，行触控区 ≥44px）：
-/// 账号（手机号/登出/删除账号 7 天冷静期）、隐私（协议/导出/健康数据授权/
-/// 数据分析授权）、偏好（语言/主题即时生效）、提醒（跳系统通知设置）、
-/// 关于（版本/免责声明常驻入口，§5.1）。
+/// 账号（脱敏手机号/登出/删除账号冷静期 + 冷静期内状态与撤销）、隐私
+/// （协议/导出/健康数据授权/数据分析授权）、偏好（语言/主题即时生效）、
+/// 提醒（跳系统通知设置）、关于（版本/免责声明常驻入口，§5.1）。
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
 
@@ -28,6 +30,7 @@ class SettingsPage extends ConsumerWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final authState = ref.watch(authControllerProvider);
+    final userMe = ref.watch(userMeProvider).value;
     final healthGranted = ref.watch(
       privacyConsentControllerProvider.select((s) => s.healthDataGranted),
     );
@@ -51,12 +54,27 @@ class SettingsPage extends ConsumerWidget {
             _SettingsGroup(
               title: t.settings.group.account,
               children: <Widget>[
-                // 手机号脱敏展示：服务端 U1 userView 不含 phone 字段
-                // （§7.2 字段级加密），暂展示内部 UID〔待外部确认：脱敏口径〕。
+                // 手机号脱敏展示（U1 userView 服务端掩码，合规 §6）；
+                // 离线/未登录降级为本地 userId 或未登录占位。
                 _SettingsTile(
                   title: t.settings.account.phone,
-                  trailing: authState.userId ?? t.settings.account.notLoggedIn,
+                  trailing:
+                      userMe?.maskedPhone ??
+                      authState.userId ??
+                      t.settings.account.notLoggedIn,
                 ),
+                // 冷静期内账号：状态行 + 撤销按钮（U6）。
+                if (userMe?.deletionStatus == 'pending')
+                  _SettingsTile(
+                    title: t.settings.account.deletionScheduled(
+                      days: _coolingOffDaysLeft(userMe!),
+                    ),
+                    titleColor: colors.signalRed,
+                    trailingWidget: TextButton(
+                      onPressed: () => _cancelDeletion(context, ref),
+                      child: Text(t.settings.account.cancelDeletion),
+                    ),
+                  ),
                 _SettingsTile(
                   title: t.settings.account.logout,
                   onTap: () => _confirmLogout(context, ref),
@@ -181,8 +199,8 @@ class SettingsPage extends ConsumerWidget {
     }
   }
 
-  /// 删除账号（§4.3）：确认弹窗明示后果 → 申请（进入 7 天冷静期〔假设〕）
-  /// → 本地登出冻结。服务端 U5 未实现，当前走 stub 并标注。
+  /// 删除账号（§4.3）：确认弹窗明示后果 → U5 申请（进入冷静期，服务端
+  /// 吊销全部会话）→ 冷静期弹窗（显示截止日期）→ 本地登出冻结。
   Future<void> _confirmDeleteAccount(
     BuildContext context,
     WidgetRef ref,
@@ -208,7 +226,37 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
     if (confirmed != true || !context.mounted) return;
-    await ref.read(accountDeletionServiceProvider).requestDeletion();
+    final AccountDeletionView view;
+    try {
+      view = await ref.read(accountDeletionServiceProvider).requestDeletion();
+    } on ApiException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+      return;
+    }
+    if (!context.mounted) return;
+    // 冷静期确认弹窗：显示截止日期（本地时区日期）。
+    final deadline = view.scheduledDeletionAt?.toLocal();
+    final dateText = deadline == null
+        ? ''
+        : '${deadline.year}-${deadline.month.toString().padLeft(2, '0')}-'
+              '${deadline.day.toString().padLeft(2, '0')}';
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(t.settings.account.deleteConfirmTitle),
+        content: Text(t.settings.account.deleteScheduledBody(date: dateText)),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(t.common.action.confirm),
+          ),
+        ],
+      ),
+    );
     if (!context.mounted) return;
     await ref.read(authControllerProvider.notifier).logout();
     if (context.mounted) {
@@ -218,18 +266,53 @@ class SettingsPage extends ConsumerWidget {
     }
   }
 
-  Future<void> _exportData(BuildContext context, WidgetRef ref) async {
+  /// 冷静期内撤销删除（U6）：成功后刷新账号状态并提示。
+  Future<void> _cancelDeletion(BuildContext context, WidgetRef ref) async {
     final t = Translations.of(context);
-    final path = await ref.read(dataExportServiceProvider).requestExport();
+    try {
+      await ref.read(accountDeletionServiceProvider).cancelDeletion();
+    } on ApiException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+      return;
+    }
+    ref.invalidate(userMeProvider);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${t.settings.privacy.exportStubNote}\n'
-            '${t.settings.privacy.exportSuccess(path: path)}',
-          ),
-        ),
+        SnackBar(content: Text(t.settings.account.deletionCancelled)),
       );
+    }
+  }
+
+  /// 冷静期剩余天数（向上取整，状态行展示用）。
+  static int _coolingOffDaysLeft(UserMeView userMe) {
+    final deadline = userMe.scheduledDeletionAt;
+    if (deadline == null) return 0;
+    final left = deadline.difference(DateTime.now()).inHours;
+    return left <= 0 ? 0 : (left / 24).ceil();
+  }
+
+  Future<void> _exportData(BuildContext context, WidgetRef ref) async {
+    final t = Translations.of(context);
+    try {
+      final path = await ref.read(dataExportServiceProvider).requestExport();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t.settings.privacy.exportSuccess(path: path))),
+        );
+      }
+    } on ApiException catch (e) {
+      if (!context.mounted) return;
+      // 业务错误用服务端本地化文案；网络/超时走本地双语兜底。
+      final message = e is BusinessApiException
+          ? e.message
+          : t.settings.privacy.exportFailed;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 

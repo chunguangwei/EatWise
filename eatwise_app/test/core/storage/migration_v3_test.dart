@@ -4,10 +4,11 @@ import 'package:drift/drift.dart'
     show GeneratedDatabase, Table, TableInfo, Value;
 import 'package:drift/native.dart';
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/storage/tables.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// schema v2 → v3 迁移测试：v2 库（无 water_logs）打开后 onUpgrade 新增
-/// WaterLogs（M3 饮水轻量记录），且 v2 旧数据完整保留。
+/// schema v2 → v4 迁移测试：v2 库（无 water_logs）打开后 onUpgrade 新增
+/// WaterLogs（v3）并补两态同步字段（v4），且 v2 旧数据完整保留。
 void main() {
   late Directory dir;
   late File dbFile;
@@ -105,15 +106,15 @@ void main() {
     await seed.close();
   }
 
-  test('v2 → v3：onUpgrade 新增 water_logs，v2 数据完整保留', () async {
+  test('v2 → v4：onUpgrade 新增 water_logs + v4 同步字段，v2 数据完整保留', () async {
     await seedV2Database();
 
     final db = AppDatabase(NativeDatabase(dbFile));
     addTearDown(() async => db.close());
 
-    expect(db.schemaVersion, 3);
+    expect(db.schemaVersion, 4);
 
-    // 迁移后 water_logs 可写可读。
+    // 迁移后 water_logs 可写可读（v4 同步字段走默认值）。
     await db.waterLogDao.insertLog(
       const WaterLogsCompanion(
         localId: Value('w-1'),
@@ -125,6 +126,9 @@ void main() {
       ),
     );
     expect(await db.waterLogDao.totalForDate('anonymous', '2026-07-29'), 300);
+    final log = (await db.waterLogDao.getByLocalId('w-1'))!;
+    expect(log.syncState, WaterSyncState.pending);
+    expect(log.clientRequestId, '');
 
     // v2 旧数据完整保留（foods 可经生成 DAO 正常读取）。
     final food = await db.foodDao.getById('f-rice');
@@ -132,9 +136,9 @@ void main() {
     expect(food!.nameZh, '白米饭');
     expect(food.kcalPer100g, 116);
 
-    // 升级后的 user_version 落为 3（重开不再重复迁移）。
+    // 升级后的 user_version 落为 4（重开不再重复迁移）。
     final versionRow = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(versionRow.data['user_version'], 3);
+    expect(versionRow.data['user_version'], 4);
   });
 }
 

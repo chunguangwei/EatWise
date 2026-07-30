@@ -15,7 +15,7 @@ part 'database.g.dart';
 ///
 /// 覆盖 M3 实体：FoodEntry（四态持久化，D-20）、Food（双语食物库，D-16）、
 /// DailyNutrition 聚合缓存（本地预估，§2.6）、WaterLog（饮水轻量记录，
-/// 仅本地口径〔假设〕不上行）。
+/// 两态同步 pending/synced，无冲突场景〔假设〕）。
 ///
 /// 〔集成说明〕SQLCipher 加密（《规格-数据同步与四态持久化》§7.2）在 M0 另行
 /// 接入，本类预留 QueryExecutor 注入点，加密 executor 就绪后无需改表结构。
@@ -46,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -58,6 +58,14 @@ class AppDatabase extends _$AppDatabase {
       // v3：新增 WaterLogs（M3 饮水轻量记录，PRD M3 功能点 4）。
       if (from < 3) {
         await m.createTable(waterLogs);
+      }
+      // v4：WaterLogs 补两态同步字段（clientRequestId/serverId/syncState/deleted）。
+      // from<3 时 createTable 已按最新口径建表（含同步列），仅 v3 老库需补列。
+      if (from >= 3 && from < 4) {
+        await m.addColumn(waterLogs, waterLogs.clientRequestId);
+        await m.addColumn(waterLogs, waterLogs.serverId);
+        await m.addColumn(waterLogs, waterLogs.syncState);
+        await m.addColumn(waterLogs, waterLogs.deleted);
       }
     },
   );

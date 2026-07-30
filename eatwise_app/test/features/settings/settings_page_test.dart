@@ -15,6 +15,7 @@ import 'package:eatwise/features/legal/data/privacy_consent_store.dart';
 import 'package:eatwise/features/legal/presentation/legal_pages.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
+import 'package:eatwise/features/settings/data/user_api.dart';
 import 'package:eatwise/features/settings/presentation/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,7 +26,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/network/fake_http_adapter.dart';
 
 /// 设置页（M7 + 合规 D-18）：分组渲染、语言/主题切换即时生效、
-/// 健康数据授权撤回、数据分析授权接 ConsentStore、导出/删除 stub 流程、双语。
+/// 健康数据授权撤回、数据分析授权接 ConsentStore、U3 导出 / U5 删除 /
+/// U6 撤销 / U1 脱敏手机号、双语。
 void main() {
   late SharedPreferences prefs;
   late FakeHttpAdapter adapter;
@@ -239,19 +241,23 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('导出数据走 stub：生成 JSON 占位并提示标注', (tester) async {
+  testWidgets('导出数据走 U3：返回服务端聚合 JSON 保存路径并提示', (tester) async {
     await pumpSettings(tester);
 
     await tester.tap(find.text('导出我的数据'));
     await tester.pump();
     await tester.pump();
     expect(exportService.calls, 1);
-    expect(find.textContaining('服务端导出（U3/U4）尚未实现'), findsOneWidget);
+    expect(find.textContaining('数据已导出'), findsOneWidget);
+    expect(
+      find.textContaining('/tmp/eatwise_data_export_20260729.json'),
+      findsOneWidget,
+    );
 
     await unmount(tester);
   });
 
-  testWidgets('删除账号：7 天冷静期确认 → stub 申请 → 登出', (tester) async {
+  testWidgets('删除账号：确认 → U5 申请 → 冷静期弹窗显示截止日期 → 登出', (tester) async {
     adapter.stub('/auth/logout', StubResponse.json(200, <String, Object?>{}));
     await pumpSettings(tester);
 
@@ -262,10 +268,83 @@ void main() {
     expect(find.textContaining('7 天冷静期'), findsOneWidget);
 
     await tester.tap(find.text('确认删除'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     expect(deletionService.calls, 1);
+    // 冷静期弹窗：显示截止日期与「重新登录即可撤销」。
+    expect(find.textContaining('重新登录即可撤销'), findsOneWidget);
+
+    await tester.tap(find.text('确定'));
+    await tester.pumpAndSettle();
     expect(authGate.loggedIn, isFalse);
     expect(find.textContaining('删除申请已提交'), findsOneWidget);
+
+    await unmount(tester);
+  });
+
+  testWidgets('账号区显示 U1 脱敏手机号', (tester) async {
+    adapter.stub(
+      '/users/me',
+      StubResponse.json(
+        200,
+        StubResponse.envelope(<String, Object?>{
+          'user': <String, Object?>{
+            'id': 'u-1',
+            'phone': '+8613****8000',
+            'deletionStatus': null,
+            'scheduledDeletionAt': null,
+          },
+        }),
+      ),
+    );
+    await pumpSettings(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('+8613****8000'), findsOneWidget);
+
+    await unmount(tester);
+  });
+
+  testWidgets('冷静期内账号：显示删除预约状态，撤销（U6）后提示并刷新', (tester) async {
+    Map<String, Object?> meEnvelope(String? status) {
+      return StubResponse.envelope(<String, Object?>{
+        'user': <String, Object?>{
+          'id': 'u-1',
+          'phone': '+8613****8000',
+          'deletionStatus': status,
+          'scheduledDeletionAt': status == 'pending'
+              ? DateTime.now()
+                    .add(const Duration(days: 7))
+                    .toUtc()
+                    .toIso8601String()
+              : null,
+        },
+      });
+    }
+
+    adapter.stub('/users/me', StubResponse.json(200, meEnvelope('pending')));
+    adapter.stub(
+      '/users/me/deletion',
+      StubResponse.json(
+        200,
+        StubResponse.envelope(<String, Object?>{
+          'deletionStatus': null,
+          'scheduledDeletionAt': null,
+          'coolingOffDays': 7,
+        }),
+      ),
+    );
+    // 撤销后 invalidate 重新拉取：状态已清除。
+    adapter.stub('/users/me', StubResponse.json(200, meEnvelope(null)));
+    await pumpSettings(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('删除已预约'), findsOneWidget);
+
+    await tester.tap(find.text('撤销删除'));
+    await tester.pumpAndSettle();
+    expect(deletionService.cancelCalls, 1);
+    expect(find.textContaining('已撤销删除申请'), findsOneWidget);
 
     await unmount(tester);
   });
@@ -300,15 +379,26 @@ class _FakeExportService implements DataExportService {
   @override
   Future<String> requestExport() async {
     calls++;
-    return '/tmp/eatwise_data_export_stub.json';
+    return '/tmp/eatwise_data_export_20260729.json';
   }
 }
 
 class _FakeDeletionService implements AccountDeletionService {
   int calls = 0;
+  int cancelCalls = 0;
 
   @override
-  Future<void> requestDeletion() async {
+  Future<AccountDeletionView> requestDeletion() async {
     calls++;
+    return AccountDeletionView(
+      deletionStatus: 'pending',
+      scheduledDeletionAt: DateTime.now().add(const Duration(days: 7)),
+    );
+  }
+
+  @override
+  Future<AccountDeletionView> cancelDeletion() async {
+    cancelCalls++;
+    return const AccountDeletionView();
   }
 }

@@ -17,6 +17,7 @@ final class AuthState {
     this.loggingIn = false,
     this.errorCode,
     this.errorMessage,
+    this.deletionCancelled = false,
   });
 
   final AuthStatus status;
@@ -24,6 +25,9 @@ final class AuthState {
 
   /// 本次登录是否新注册（A2 isNewUser）。
   final bool isNewUser;
+
+  /// 冷静期内登录已自动撤销删除申请（合规 §4.3，登录后提示）。
+  final bool deletionCancelled;
 
   /// 「发送验证码」请求在途。
   final bool sendingCode;
@@ -43,6 +47,7 @@ final class AuthState {
     bool? isNewUser,
     bool? sendingCode,
     bool? loggingIn,
+    bool? deletionCancelled,
     String? Function()? errorCode,
     String? Function()? errorMessage,
   }) {
@@ -52,6 +57,7 @@ final class AuthState {
       isNewUser: isNewUser ?? this.isNewUser,
       sendingCode: sendingCode ?? this.sendingCode,
       loggingIn: loggingIn ?? this.loggingIn,
+      deletionCancelled: deletionCancelled ?? this.deletionCancelled,
       errorCode: errorCode != null ? errorCode() : this.errorCode,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
     );
@@ -127,6 +133,7 @@ final class AuthController extends StateNotifier<AuthState> {
         status: AuthStatus.loggedIn,
         userId: session.userId,
         isNewUser: session.isNewUser,
+        deletionCancelled: session.deletionCancelled,
         loggingIn: false,
       );
     } on ApiException catch (e) {

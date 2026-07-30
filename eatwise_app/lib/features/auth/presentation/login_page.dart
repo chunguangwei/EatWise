@@ -96,6 +96,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       await ref
           .read(authControllerProvider.notifier)
           .login(phone: phone, code: code);
+      // 冷静期内登录自动撤销删除（合规 §4.3）：明示告知。
+      if (ref.read(authControllerProvider).deletionCancelled && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t.settings.account.deletionCancelled)),
+        );
+      }
       // 成功：AuthGate 通知 GoRouter redirect，无需手动跳转；
       // §2.1 登录成功触发一轮同步（先上行 pending 再增量下行）。
       try {

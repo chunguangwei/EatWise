@@ -183,7 +183,8 @@
       "save": "Save",
       "cancel": "Cancel",
       "undo": "Undo",
-      "retry": "Retry"
+      "retry": "Retry",
+      "confirm": "OK"
     }
   },
   "fasting": {
@@ -439,19 +440,23 @@
       "deleteConfirmTitle": "Delete your account?",
       "deleteConfirmBody": "After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.",
       "deleteConfirmAction": "Confirm deletion",
-      "deleteRequested": "Deletion requested — your account enters a 7-day cooling-off period"
+      "deleteRequested": "Deletion requested — your account enters a 7-day cooling-off period",
+      "deletionScheduled": "Deletion scheduled in ${days} day(s) — you can cancel before then",
+      "cancelDeletion": "Cancel deletion",
+      "deletionCancelled": "Deletion cancelled — your account is back to normal",
+      "deleteScheduledBody": "Deletion requested. Your account will be erased on ${date}; sign in before then to cancel."
     },
     "privacy": {
       "privacyPolicy": "Privacy Policy",
       "userAgreement": "Terms of Service",
       "exportData": "Export my data",
       "exportSuccess": "Data exported: ${path}",
-      "exportStubNote": "Server-side export (U3/U4) isn't live yet — a local JSON placeholder with your consent status was generated instead",
       "healthData": "Health data consent",
       "healthDataSubtitle": "Processing of sensitive personal info such as height/weight and meal/fasting records",
       "healthDataRevoked": "Health data consent withdrawn — nutrition targets will use defaults",
       "analytics": "Analytics consent",
-      "analyticsSubtitle": "Anonymous usage stats that help us improve — no health data included"
+      "analyticsSubtitle": "Anonymous usage stats that help us improve — no health data included",
+      "exportFailed": "Export failed. Check your connection and try again."
     },
     "theme": {
       "title": "Theme",

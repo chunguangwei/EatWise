@@ -40,13 +40,33 @@ export class EntryPayloadDto {
   @IsOptional()
   @IsString()
   photoUrl?: string;
+
+  // ---- waterLog 载荷（entity=waterLog 时使用，与 EntryPayload 二选一）----
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5000) // 单次饮水量上限〔假设〕，与快捷档位 200/300/500 兼容
+  amountMl?: number;
+
+  @IsOptional()
+  @IsISO8601()
+  loggedAt?: string; // 饮水时间（UTC）
+
+  @IsOptional()
+  @IsString()
+  localDate?: string; // 客户端归属日（yyyy-MM-dd，透传）
+
+  @IsOptional()
+  @IsString()
+  clientRequestId?: string; // waterLog delete 兜底定位（create 已上行但 serverId 丢失场景）
 }
 
 export class SyncOpDto {
   @IsUUID('4')
   clientRequestId: string;
 
-  @IsIn(['foodEntry']) // 骨架阶段同步防腐层覆盖 FoodEntry；fastingRecord/userProfile/fastingPlan 后续接入
+  @IsIn(['foodEntry', 'waterLog']) // 防腐层覆盖 FoodEntry + WaterLog（轻量两态）；fastingRecord/userProfile/fastingPlan 后续接入
   entity: string;
 
   @IsIn(['create', 'update', 'delete'])
