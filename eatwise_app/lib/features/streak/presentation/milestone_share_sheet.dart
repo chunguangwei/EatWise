@@ -9,12 +9,12 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/streak/presentation/milestone_share_card.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:saver_gallery/saver_gallery.dart';
 import 'package:share_plus/share_plus.dart';
 
 /// 分享执行通道（插件依赖收口于此接口，测试注入内存假实现，
-/// 避免 share_plus / image_gallery_saver 在 widget 测试中
+/// 避免 share_plus / saver_gallery 在 widget 测试中
 /// 抛 MissingPluginException）。
 abstract interface class ShareCardActions {
   /// 系统分享 sheet（PNG 文件）。
@@ -24,7 +24,7 @@ abstract interface class ShareCardActions {
   Future<bool> saveToAlbum(Uint8List png, String fileName);
 }
 
-/// 生产实现：share_plus（系统分享 sheet）+ image_gallery_saver（保存相册）。
+/// 生产实现：share_plus（系统分享 sheet）+ saver_gallery（保存相册）。
 final class PluginShareCardActions implements ShareCardActions {
   const PluginShareCardActions();
 
@@ -41,9 +41,12 @@ final class PluginShareCardActions implements ShareCardActions {
 
   @override
   Future<bool> saveToAlbum(Uint8List png, String fileName) async {
-    final result = await ImageGallerySaver.saveImage(png, name: fileName);
-    // image_gallery_saver 返回 {isSuccess: bool, ...}（平台插件约定）。
-    return result is Map && result['isSuccess'] == true;
+    final result = await SaverGallery.saveImage(
+      png,
+      fileName: fileName,
+      skipIfExists: false,
+    );
+    return result.isSuccess;
   }
 }
 

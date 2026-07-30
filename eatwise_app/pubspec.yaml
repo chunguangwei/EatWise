@@ -58,9 +58,9 @@ dependencies:
   crypto: ^3.0.6
   visibility_detector: ^0.4.0+2
   share_plus: ^13.3.0
-  image_gallery_saver: ^2.0.3
   package_info_plus: ^10.2.1
   url_launcher: ^6.3.2
+  saver_gallery: ^5.1.0
 
 dev_dependencies:
   flutter_test:
