@@ -689,3 +689,36 @@
 | 4 | 正式域名与各环境 Base URL | 〔假设〕占位 | 运维，M0 |
 | 5 | 限流阈值、验证码长度/有效期、导出链接时效等标注〔假设〕的数值 | 压测与安全评审后校准 | 技术，灰度前 |
 | 6 | FastingRecord 补签留痕（`result: makeup`）、窗口调整次日生效（P5）为本文档补充语义 | 〔假设〕，待产品与《规格-M2/M5》对齐确认 | 产品+技术 |
+
+
+---
+
+## 附录 B·实现新增端点（2026-07-30 补充，v1.1）
+
+> 以下端点在初版契约之后实现，已在服务端上线（内存 DataStore + Prisma 通道）。
+
+### B.1 应用版本（App 内更新检查）
+
+| 端点 | 说明 |
+|------|------|
+| `GET /v1/app/version/latest?platform=android\|ios` | 返回 `{latestVersion, minSupportedVersion, releaseNotes{zh,en}, apkUrl, publishedAt, source}`。数据源：GitHub Releases（env `GITHUB_RELEASE_TOKEN`，私有仓库必需）→ 失败降级 env 静态配置（`APP_LATEST_VERSION`/`APP_APK_URL`）；按平台缓存 5 分钟；`minSupportedVersion` 取 `APP_MIN_SUPPORTED_VERSION`（默认 1.0.0，低于此版本客户端强制更新）。公开端点（@Public）。 |
+
+### B.2 用户权利（合规落地）
+
+| 端点 | 说明 |
+|------|------|
+| `POST /v1/users/me/export`（U3） | 同步聚合该用户 Profile/FoodEntry/FastingPlan/FastingRecord/Streak/Post 返回 JSON（排除 tombstone）。 |
+| `POST /v1/users/me/deletion`（U5） | 申请删除账号：置 pending + 7 天冷静期（`scheduledDeletionAt`）并吊销全部 refresh token；幂等不后移。到期由调度器物理删除个人数据 + 打卡帖匿名化（posts.userId 置空，该字段已改可空）。 |
+| `DELETE /v1/users/me/deletion`（U6） | 冷静期内撤销删除；冷静期内登录亦自动撤销（登录响应含 `deletionCancelled`）。 |
+
+### B.3 同步协议扩展
+
+- `/sync/push` 新增 `waterLog` 实体 op：`create`（幂等 clientRequestId）与 `delete`（tombstone）；无 update（饮水无编辑场景〔假设〕）。
+- `/sync/pull` 随行返回 `waterLogChanges`。
+- 已知缺口：Prisma schema 尚未包含 WaterLog 表，饮水同步仅内存驱动可用。
+
+### B.4 社区与激励实现备注
+
+- Posts：发布先审后发三态（approved 上流 / rejected 拒发双语 `POST_CONTENT_REJECTED` / pending 转人工不可见）；举报即下架；点赞幂等；已删帖操作返回 410 `RESOURCE_GONE`。
+- `GET /posts/feed` 响应补 `author` 与 `likedByMe` 字段（初版契约未列）。
+- 应用商店合规注意：删除冷静期与 Apple 5.1.1（账号删除即时性）的兼容性〔待法务确认〕。

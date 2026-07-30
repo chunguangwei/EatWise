@@ -1,0 +1,51 @@
+# AGENTS.md — 开发协作速查
+
+> 给后续开发者与 AI 代理的实操指南。决策一律以 `docs/00-决策记录-开放问题拍板-v1.0.md`（D-01~D-20）为锚点；本文只讲「怎么跑起来、哪些坑不能踩」。
+
+## 环境
+
+- **Flutter SDK 内置**：`.tooling/flutter/bin`（3.44.8 / Dart 3.12.2），不要依赖系统 Flutter。所有命令先 `export PATH="$PWD/.tooling/flutter/bin:$PATH"`。
+- **Android**：需 JDK 17+。系统 Java 版本不够时用 Android Studio 自带 JBR：
+  `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`。
+- **国内网络**：Android 依赖下载慢/卡死时 `export USE_CN_MIRRORS=1`（阿里云镜像）。CI（海外 runner）严禁开启。
+- **iOS 真机**：Xcode → Settings → Accounts 需登录 Apple ID；项目签名团队 `L35RLT89XN`；部署目标 iOS 15.0。
+
+## 客户端（eatwise_app/）
+
+```bash
+flutter pub get
+dart run slang                  # i18n 生成（唯一正确方式）
+dart run build_runner build     # drift 生成
+dart analyze                    # 门禁：零 issue（含 info）
+flutter test                    # 门禁：全绿
+```
+
+硬性规则：
+
+- **禁止 `flutter analyze`**：中文路径下 SDK bug 会崩，用 `dart analyze`。
+- **不要装回 `slang_build_runner`**：它不读 `slang.yaml`，会让 build_runner 整体失败。i18n 只有 `i18n/strings_zh-CN.i18n.json` / `strings_en.i18n.json` 两个文件（namespaces:false，多文件互相覆盖）。
+- **代码一致性**：提交前 `dart format .` + `dart analyze` 零 issue + `flutter test` 全绿。CI 有 Android/iOS 双端构建门禁，本地改原生配置后至少跑 `flutter build apk --debug`。
+- **分层**：feature-first（presentation/application/domain/infrastructure），Token 走 `lib/core/theme/` ThemeExtension，文案一律 i18n key 禁止硬编码。
+- **领域逻辑纯函数化**：计时/营养/streak 等纯 Dart 可测，UI 只做接线。
+
+## 后端（eatwise_server/）
+
+```bash
+npm run start:dev    # 默认内存 DataStore（STORE_DRIVER=memory）
+npm test             # 单测；RUN_PG_TESTS=1 + DATABASE_URL 时含 pg 集成
+npm run test:e2e
+```
+
+- 真实库：`docker compose up -d postgres && npx prisma migrate deploy`，`STORE_DRIVER=prisma` 启动。
+- 已知缺口：Prisma schema 缺 WaterLog 表（饮水仅内存驱动支持），业务 Service 多数仍读写内存 DataStore，属阶段性迁移。
+
+## Git 与 CI
+
+- **不要提交**：`eatwise_data/raw/`（213MB 原始数据，gitignored）、`.tooling/`、`node_modules/`、`dist/`。
+- CI 6 job：app（format/analyze/test）、build-android、build-ios、server、server-pg（真实 pg）、data。全绿才可合入。
+- 发版：`git tag v*` 推送 → 自动构建 APK + GitHub Release。
+
+## 已知外部依赖（不要在代码里硬编）
+
+- 推送/识别/内容审核均为 stub 或抽象层，凭据与选型见 README「待外部确认」。
+- 营养公式与阈值代码里有，但属「待营养背书」状态，数值改动必须同步 `docs/specs/规格-营养规则-TDEE公式与信号灯阈值-v1.0.md`。

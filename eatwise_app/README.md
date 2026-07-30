@@ -1,17 +1,16 @@
-# eatwise
+# eatwise_app
 
-A new Flutter project.
+明食 · EatWise 客户端（Flutter，iOS / Android 双端，中英双语）。
 
-## Getting Started
+开发指南、环境要求、踩坑记录见仓库根目录：
 
-This project is a starting point for a Flutter application.
+- [README.md](../README.md)——快速开始、发版与更新、当前状态
+- [AGENTS.md](../AGENTS.md)——开发命令与硬性规则速查
 
-A few resources to get you started if this is your first Flutter project:
+常用命令（SDK 在 `../.tooling/flutter/bin`）：
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+export PATH="$PWD/../.tooling/flutter/bin:$PATH"
+flutter pub get && dart run slang && dart run build_runner build
+dart analyze && flutter test
+```
