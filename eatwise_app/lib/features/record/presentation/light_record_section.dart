@@ -92,6 +92,9 @@ class _WaterCard extends ConsumerWidget {
       SnackBar(
         content: Text(s.toastRecorded),
         duration: repo.undoWindow,
+        // D-11 撤销窗 10 秒：Flutter ≥3.44 带 action 的 SnackBar 默认
+        // persist=true（不自动消失），必须显式置 false。
+        persist: false,
         action: SnackBarAction(
           label: s.toastUndo,
           onPressed: () => unawaited(
