@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/app/router/app_router.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/analytics/page_stay_tracker.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/network/token_store.dart';
 import 'package:eatwise/core/notification/local_notification_service.dart';
@@ -160,21 +161,33 @@ class EatWiseApp extends StatefulWidget {
 }
 
 class _EatWiseAppState extends State<EatWiseApp> {
-  late final GoRouter _router = createAppRouter(
-    gate: widget.gate ?? OnboardingGate(completed: true),
-    authGate: widget.authGate,
-    privacyGate: widget.privacyGate,
-  );
+  late final GoRouter _router;
+  PageStayTracker? _pageStayTracker;
 
   @override
   void initState() {
     super.initState();
+    // 页面停留采集（§4.2）：PageStayTracker 挂 GoRouter observer 层，
+    // 退后台/回前台分段计时（WidgetsBindingObserver）。
+    final container = ProviderScope.containerOf(context, listen: false);
+    final tracker = container.read(pageStayTrackerProvider);
+    _pageStayTracker = tracker;
+    _router = createAppRouter(
+      gate: widget.gate ?? OnboardingGate(completed: true),
+      authGate: widget.authGate,
+      privacyGate: widget.privacyGate,
+      observers: <NavigatorObserver>[tracker],
+    );
+    tracker.locationResolver = () => _router.state.matchedLocation;
+    WidgetsBinding.instance.addObserver(tracker);
     // 小组件点击深链 → 首页（设计规范 §4.5，冷/热启动两路）。
     widget.widgetDeepLink?.start(onOpenHome: () => _router.go('/'));
   }
 
   @override
   void dispose() {
+    final tracker = _pageStayTracker;
+    if (tracker != null) WidgetsBinding.instance.removeObserver(tracker);
     unawaited(widget.widgetDeepLink?.dispose() ?? Future<void>.value());
     super.dispose();
   }

@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../tz_test_helper.dart';
 import 'fasting_presentation_test_helper.dart';
@@ -36,6 +37,9 @@ void main() {
 
   setUp(() async {
     await LocaleSettings.setLocale(AppLocale.zhCn);
+    // 组件级曝光埋点（ExposureTracker）：即时分发可视回调，避免插件默认
+    // 500ms 聚合 Timer 在卸载时未决。
+    VisibilityDetectorController.instance.updateInterval = Duration.zero;
     prefs = await seedActivePlanPrefs(startedAtUtc: bjtUtc(27, 12));
     clock = FakeClock(bjtUtc(28, 0)); // 本地 08:00，断食中，剩 4h
     cycleStore = InMemoryFastingCycleStore();

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/analytics/exposure_tracker.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
@@ -22,6 +23,7 @@ class SignalCardsGrid extends StatelessWidget {
     required this.goal,
     required this.mealSegment,
     this.onCardTap,
+    this.exposureDateKey = '',
     super.key,
   });
 
@@ -39,6 +41,9 @@ class SignalCardsGrid extends StatelessWidget {
 
   /// 卡片点击回调（M4 埋点 signal_card_click 接线；可空）。
   final void Function(NutrientType nutrient, SignalVerdict verdict)? onCardTap;
+
+  /// 曝光去重日期键（§4.1：attribute_date 变化重计；空串表示不区分日期）。
+  final String exposureDateKey;
 
   /// 栅格最小卡宽（设计稿 minmax(150px,1fr)）。
   static const double minCardWidth = 150;
@@ -69,20 +74,37 @@ class SignalCardsGrid extends StatelessWidget {
                   for (var j = 0; j < chunk.length; j++) ...<Widget>[
                     if (j > 0) const SizedBox(width: AppSpacing.s4),
                     Expanded(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: onCardTap == null
-                            ? null
-                            : () => onCardTap!(
-                                chunk[j],
-                                signal.verdicts[chunk[j]]!,
-                              ),
-                        child: SignalCard(
-                          nutrient: chunk[j],
-                          actual: _actualOf(chunk[j]),
-                          target: _targetOf(chunk[j]),
-                          verdict: signal.verdicts[chunk[j]]!,
-                          mealSegment: mealSegment,
+                      // 信号灯卡曝光（§3.4 signal_card_expose；组件级
+                      // ≥50%+500ms，§4.1；一句话建议并入本事件不单设）。
+                      // 去重键含 nutrient+signal_level+日期——内容变化重计。
+                      child: ExposureTracker(
+                        eventName: 'signal_card_expose',
+                        dedupeKey:
+                            'analytics:signal:${chunk[j].name}:${signal.verdicts[chunk[j]]!.zone.name}:$exposureDateKey',
+                        properties: <String, Object?>{
+                          'nutrient': _nutrientEventValue(chunk[j]),
+                          'signal_level': signal.verdicts[chunk[j]]!.zone.name,
+                          'advice_template_id': adviceKeyFor(
+                            chunk[j],
+                            signal.verdicts[chunk[j]]!.subZone,
+                            zeroIntake: _actualOf(chunk[j]) == 0,
+                          ),
+                        },
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: onCardTap == null
+                              ? null
+                              : () => onCardTap!(
+                                  chunk[j],
+                                  signal.verdicts[chunk[j]]!,
+                                ),
+                          child: SignalCard(
+                            nutrient: chunk[j],
+                            actual: _actualOf(chunk[j]),
+                            target: _targetOf(chunk[j]),
+                            verdict: signal.verdicts[chunk[j]]!,
+                            mealSegment: mealSegment,
+                          ),
                         ),
                       ),
                     ),
@@ -118,6 +140,16 @@ class SignalCardsGrid extends StatelessWidget {
     NutrientType.carb => goal.carbG,
     NutrientType.fat => goal.fatG,
   };
+
+  /// NutrientType → 事件字典 nutrient 枚举（§3.4：kcal → calorie）。
+  static String _nutrientEventValue(NutrientType nutrient) {
+    return switch (nutrient) {
+      NutrientType.kcal => 'calorie',
+      NutrientType.protein => 'protein',
+      NutrientType.carb => 'carb',
+      NutrientType.fat => 'fat',
+    };
+  }
 }
 
 /// 单张信号卡：营养名 + 大数值（已摄入/目标）+ 三重编码落区 + 一句话建议。

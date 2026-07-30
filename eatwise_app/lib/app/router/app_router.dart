@@ -17,7 +17,7 @@ import 'package:eatwise/features/reports/presentation/reports_page.dart';
 import 'package:eatwise/features/settings/presentation/settings_page.dart';
 import 'package:eatwise/features/social/presentation/community_feed_page.dart';
 import 'package:eatwise/features/social/presentation/compose_page.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 /// 应用路由表（go_router，D-17）。
@@ -36,9 +36,11 @@ GoRouter createAppRouter({
   required OnboardingGate gate,
   AuthGate? authGate,
   PrivacyGate? privacyGate,
+  List<NavigatorObserver> observers = const <NavigatorObserver>[],
 }) {
   return GoRouter(
     initialLocation: '/',
+    observers: observers,
     refreshListenable: Listenable.merge(<Listenable?>[authGate, privacyGate]),
     redirect: (context, state) {
       final privacyAgreed = privacyGate?.agreed ?? true;

@@ -341,18 +341,8 @@ final class StreakController extends Notifier<StreakUiState> {
     final shown = _store.loadShownBreakPopups();
     final unshown = newlyMissed.where((d) => !shown.contains(d));
     final popupDate = unshown.isEmpty ? null : unshown.first;
-    // 里程碑触达埋点（§3.5 badge_reach：3/7/30 天里程碑徽章展示触发）。
-    for (final milestone in newMilestones) {
-      _analytics.track(
-        'badge_reach',
-        properties: <String, Object?>{
-          'milestone': milestone,
-          'streak_days': fromServer
-              ? (_serverCurrentStreak ?? engine.currentStreak(today))
-              : engine.currentStreak(today),
-        },
-      );
-    }
+    // badge_reach（§3.5）不在此处上报：字典触发时机为「徽章展示」，
+    // 由首页 MilestoneBadge 的 ExposureTracker 组件级曝光收口（≥50%+500ms）。
     return StreakUiState(
       status: engine.status(today),
       currentStreak: fromServer

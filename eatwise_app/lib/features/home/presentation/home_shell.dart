@@ -1,7 +1,9 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 /// 5 Tab 骨架（设计稿 §3.1 信息架构 / §4.1 导航：固定底栏 + 安全区，
@@ -9,13 +11,22 @@ import 'package:go_router/go_router.dart';
 ///
 /// go_router StatefulShellRoute：首页（断食计时）/记录/数据/社区/我的
 /// 五个分支，切换保留各分支状态（IndexedStack）。
-class HomeShell extends StatelessWidget {
+class HomeShell extends ConsumerWidget {
   const HomeShell({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 
+  /// Tab 序 → 字典 page_id（§4.2 一级页）。
+  static const List<String> _tabPageIds = <String>[
+    'home',
+    'record',
+    'analytics',
+    'community',
+    'profile',
+  ];
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
@@ -43,11 +54,15 @@ class HomeShell extends StatelessWidget {
         ),
         child: NavigationBar(
           selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: (index) => navigationShell.goBranch(
-            index,
-            // 再次点按当前 Tab：回分支根路由（go_router 惯例）。
-            initialLocation: index == navigationShell.currentIndex,
-          ),
+          onDestinationSelected: (index) {
+            navigationShell.goBranch(
+              index,
+              // 再次点按当前 Tab：回分支根路由（go_router 惯例）。
+              initialLocation: index == navigationShell.currentIndex,
+            );
+            // 页面停留分段（§4.2：end_reason=tab_switch；同页重按 no-op）。
+            ref.read(pageStayTrackerProvider).onTabSwitch(_tabPageIds[index]);
+          },
           destinations: <NavigationDestination>[
             NavigationDestination(
               icon: const Icon(Icons.timer_outlined),

@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../fasting/tz_test_helper.dart';
 
@@ -28,6 +29,9 @@ void main() {
 
   setUp(() {
     LocaleSettings.setLocaleSync(AppLocale.zhCn);
+    // 组件级曝光埋点（ExposureTracker）：即时分发可视回调，避免插件默认
+    // 500ms 聚合 Timer 在卸载时未决。
+    VisibilityDetectorController.instance.updateInterval = Duration.zero;
   });
 
   /// 以 [completed] 门禁状态启动 App；返回门禁与存储便于断言。

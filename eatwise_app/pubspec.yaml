@@ -56,6 +56,7 @@ dependencies:
   app_settings: ^8.0.3
   # 埋点 user_id HMAC-SHA256 匿名化（埋点规范 1.2）。
   crypto: ^3.0.6
+  visibility_detector: ^0.4.0+2
 
 dev_dependencies:
   flutter_test:

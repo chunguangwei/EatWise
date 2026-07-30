@@ -1,4 +1,6 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/analytics/analytics_context.dart';
+import 'package:eatwise/core/analytics/exposure_tracker.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
@@ -47,152 +49,167 @@ class _PostCardState extends ConsumerState<PostCard> {
         ? post.authorNickname!
         : t.social.feed.anonymous;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.s3),
-      decoration: BoxDecoration(
-        color: colors.bgSecondary,
-        borderRadius: radii.rLg,
-      ),
-      padding: const EdgeInsets.all(AppSpacing.s4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          // 头部：头像占位 + 昵称（1 行截断，4.1）+ 相对时间 + 举报入口。
-          Row(
-            children: <Widget>[
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: colors.brandPrimary.withValues(alpha: 0.16),
-                child: Icon(Icons.person_outline, color: colors.brandPrimary),
-              ),
-              const SizedBox(width: AppSpacing.s2),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      nickname,
-                      style: textStyles.textBase,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+    // 打卡流卡片曝光（community_post_expose〔新增事件〕；§4.1 列表类曝光：
+    // 逐条按 post_id 去重，重进重计，单卡可视 <500ms 不计）。
+    final postIdHash = anonymizedContentId(post.id);
+    return ExposureTracker(
+      eventName: 'community_post_expose',
+      dedupeKey: 'community:post:$postIdHash',
+      properties: <String, Object?>{
+        'post_id_hash': postIdHash,
+        'is_own_post': post.isAuthor,
+        'has_image': post.imageUrls.isNotEmpty,
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.s3),
+        decoration: BoxDecoration(
+          color: colors.bgSecondary,
+          borderRadius: radii.rLg,
+        ),
+        padding: const EdgeInsets.all(AppSpacing.s4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            // 头部：头像占位 + 昵称（1 行截断，4.1）+ 相对时间 + 举报入口。
+            Row(
+              children: <Widget>[
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: colors.brandPrimary.withValues(alpha: 0.16),
+                  child: Icon(Icons.person_outline, color: colors.brandPrimary),
+                ),
+                const SizedBox(width: AppSpacing.s2),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        nickname,
+                        style: textStyles.textBase,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        relativeTime(t.social.feed, post.createdAtUtc, now),
+                        style: textStyles.textXs.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (!post.isAuthor)
+                  IconButton(
+                    icon: Icon(
+                      Icons.flag_outlined,
+                      color: colors.textSecondary,
                     ),
-                    Text(
-                      relativeTime(t.social.feed, post.createdAtUtc, now),
-                      style: textStyles.textXs.copyWith(
+                    tooltip: t.social.feed.report,
+                    onPressed: () => _confirmReport(context),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.s2),
+            // 徽章行：连续天数徽章（0/空不显示，四态规范 4.2）+ 审核中标记（D-17）。
+            Wrap(
+              spacing: AppSpacing.s2,
+              runSpacing: AppSpacing.s1,
+              children: <Widget>[
+                if ((post.streakDaysAtPost ?? 0) > 0)
+                  _Badge(
+                    icon: Icons.local_fire_department,
+                    label: t.social.feed.streakBadge(
+                      days: post.streakDaysAtPost!,
+                    ),
+                    color: colors.brandAccent,
+                  ),
+                if (item.pendingSync || post.auditStatus == 'pending')
+                  _Badge(
+                    icon: Icons.hourglass_top,
+                    label: t.social.feed.pendingBadge,
+                    color: colors.textSecondary,
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.s2),
+            // 正文：3 行截断 + 展开（4.1 打卡正文行数上限）。
+            _CollapsibleText(
+              text: post.text,
+              style: textStyles.textBase,
+              maxLines: 3,
+              expanded: _expanded,
+              expandLabel: t.social.feed.expand,
+              collapseLabel: t.social.feed.collapse,
+              linkColor: colors.brandPrimary,
+              onToggle: () => setState(() => _expanded = !_expanded),
+            ),
+            // 图片（MVP URL 占位；加载失败 → 占位图，§3.2.4）。
+            if (post.imageUrls.isNotEmpty) ...<Widget>[
+              const SizedBox(height: AppSpacing.s2),
+              ClipRRect(
+                borderRadius: radii.rLg,
+                child: AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: Image.network(
+                    post.imageUrls.first,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: colors.bgPrimary,
+                      child: Icon(
+                        Icons.broken_image_outlined,
                         color: colors.textSecondary,
+                        size: 48,
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
-              if (!post.isAuthor)
-                IconButton(
-                  icon: Icon(Icons.flag_outlined, color: colors.textSecondary),
-                  tooltip: t.social.feed.report,
-                  onPressed: () => _confirmReport(context),
-                ),
             ],
-          ),
-          const SizedBox(height: AppSpacing.s2),
-          // 徽章行：连续天数徽章（0/空不显示，四态规范 4.2）+ 审核中标记（D-17）。
-          Wrap(
-            spacing: AppSpacing.s2,
-            runSpacing: AppSpacing.s1,
-            children: <Widget>[
-              if ((post.streakDaysAtPost ?? 0) > 0)
-                _Badge(
-                  icon: Icons.local_fire_department,
-                  label: t.social.feed.streakBadge(
-                    days: post.streakDaysAtPost!,
-                  ),
-                  color: colors.brandAccent,
-                ),
-              if (item.pendingSync || post.auditStatus == 'pending')
-                _Badge(
-                  icon: Icons.hourglass_top,
-                  label: t.social.feed.pendingBadge,
-                  color: colors.textSecondary,
-                ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.s2),
-          // 正文：3 行截断 + 展开（4.1 打卡正文行数上限）。
-          _CollapsibleText(
-            text: post.text,
-            style: textStyles.textBase,
-            maxLines: 3,
-            expanded: _expanded,
-            expandLabel: t.social.feed.expand,
-            collapseLabel: t.social.feed.collapse,
-            linkColor: colors.brandPrimary,
-            onToggle: () => setState(() => _expanded = !_expanded),
-          ),
-          // 图片（MVP URL 占位；加载失败 → 占位图，§3.2.4）。
-          if (post.imageUrls.isNotEmpty) ...<Widget>[
             const SizedBox(height: AppSpacing.s2),
-            ClipRRect(
-              borderRadius: radii.rLg,
-              child: AspectRatio(
-                aspectRatio: 4 / 3,
-                child: Image.network(
-                  post.imageUrls.first,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: colors.bgPrimary,
-                    child: Icon(
-                      Icons.broken_image_outlined,
-                      color: colors.textSecondary,
-                      size: 48,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.s2),
-          // 轻互动：点赞 + 计数（乐观更新；触控区 ≥44px，M8）。
-          Row(
-            children: <Widget>[
-              Semantics(
-                button: true,
-                label: t.social.feed.like,
-                child: InkWell(
-                  onTap: item.pendingSync
-                      ? null
-                      : () => ref
-                            .read(feedControllerProvider.notifier)
-                            .toggleLike(post.id),
-                  borderRadius: radii.rLg,
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.s2),
-                    child: Row(
-                      children: <Widget>[
-                        Icon(
-                          post.likedByMe
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          size: 22,
-                          color: post.likedByMe
-                              ? colors.signalRed
-                              : colors.textSecondary,
-                        ),
-                        const SizedBox(width: AppSpacing.s1),
-                        Text(
-                          '${post.likeCount}',
-                          style: textStyles.textSm.copyWith(
+            // 轻互动：点赞 + 计数（乐观更新；触控区 ≥44px，M8）。
+            Row(
+              children: <Widget>[
+                Semantics(
+                  button: true,
+                  label: t.social.feed.like,
+                  child: InkWell(
+                    onTap: item.pendingSync
+                        ? null
+                        : () => ref
+                              .read(feedControllerProvider.notifier)
+                              .toggleLike(post.id),
+                    borderRadius: radii.rLg,
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.s2),
+                      child: Row(
+                        children: <Widget>[
+                          Icon(
+                            post.likedByMe
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            size: 22,
                             color: post.likedByMe
                                 ? colors.signalRed
                                 : colors.textSecondary,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: AppSpacing.s1),
+                          Text(
+                            '${post.likeCount}',
+                            style: textStyles.textSm.copyWith(
+                              color: post.likedByMe
+                                  ? colors.signalRed
+                                  : colors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

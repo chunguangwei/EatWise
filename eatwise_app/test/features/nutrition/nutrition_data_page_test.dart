@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 /// 数据页 widget 测试：四卡三重编码、折叠展开、趋势图空态、日期切换、
 /// 双语切换、英文长文截断（PRD M4 / 四态规范 4.1 / M8 无障碍硬性）。
@@ -23,6 +24,9 @@ void main() {
 
   setUp(() async {
     await LocaleSettings.setLocale(AppLocale.zhCn);
+    // 组件级曝光埋点（ExposureTracker）：即时分发可视回调，避免插件默认
+    // 500ms 聚合 Timer 在卸载时未决。
+    VisibilityDetectorController.instance.updateInterval = Duration.zero;
     SharedPreferences.setMockInitialValues(<String, Object>{});
     prefs = await SharedPreferences.getInstance();
     SharedPreferencesOnboardingStore(prefs).saveNutritionGoal(

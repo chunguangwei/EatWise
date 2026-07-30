@@ -6,6 +6,7 @@ import 'package:eatwise/core/analytics/analytics_service.dart';
 import 'package:eatwise/core/analytics/consent_store.dart';
 import 'package:eatwise/core/analytics/device_identity_store.dart';
 import 'package:eatwise/core/analytics/event_queue_store.dart';
+import 'package:eatwise/core/analytics/page_stay_tracker.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
@@ -99,4 +100,10 @@ final analyticsServiceProvider = Provider<AnalyticsService>((ref) {
 /// 写入走 [AnalyticsService.setAnalyticsConsent]）。
 final analyticsEnabledProvider = Provider<bool>((ref) {
   return ref.watch(consentStoreProvider).analyticsGranted;
+});
+
+/// 页面停留采集（§4.2）：NavigatorObserver 挂 GoRouter（main 接线），
+/// Tab 切换由 HomeShell 调 [PageStayTracker.onTabSwitch]。
+final pageStayTrackerProvider = Provider<PageStayTracker>((ref) {
+  return PageStayTracker(analytics: ref.watch(analyticsServiceProvider));
 });

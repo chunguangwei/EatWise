@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/analytics/exposure_tracker.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
@@ -238,14 +239,24 @@ class _TimerBody extends ConsumerWidget {
           child: StreakBanner(currentStreak: streak.currentStreak),
         ),
         // M5 里程碑徽章滑入（3/7/30 首次解锁；reduced-motion 降级静态淡入）。
+        // 徽章触达埋点（§3.5 badge_reach：徽章展示触发；组件级
+        // ≥50%+500ms，§4.1；去重键含里程碑档位——新档位重计）。
         if (streak.justUnlockedMilestone != null)
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.s3),
-            child: MilestoneBadge(
-              days: streak.justUnlockedMilestone!,
-              onDismiss: () => ref
-                  .read(streakControllerProvider.notifier)
-                  .consumeMilestone(),
+            child: ExposureTracker(
+              eventName: 'badge_reach',
+              dedupeKey: 'home:badge:${streak.justUnlockedMilestone}',
+              properties: <String, Object?>{
+                'milestone': streak.justUnlockedMilestone,
+                'streak_days': streak.currentStreak,
+              },
+              child: MilestoneBadge(
+                days: streak.justUnlockedMilestone!,
+                onDismiss: () => ref
+                    .read(streakControllerProvider.notifier)
+                    .consumeMilestone(),
+              ),
             ),
           ),
         const SizedBox(height: AppSpacing.s6),

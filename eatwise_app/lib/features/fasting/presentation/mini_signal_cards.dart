@@ -1,4 +1,5 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/analytics/exposure_tracker.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
@@ -100,29 +101,56 @@ class MiniSignalCards extends ConsumerWidget {
     }
     return Row(
       children: <Widget>[
-        _MiniSignalCard(
-          nutrient: NutrientType.protein,
-          label: t.record.nutrition.protein,
-          verdict: signal.verdicts[NutrientType.protein]!,
-          onTap: onTap,
-        ),
-        const SizedBox(width: AppSpacing.s2),
-        _MiniSignalCard(
-          nutrient: NutrientType.carb,
-          label: t.record.nutrition.carb,
-          verdict: signal.verdicts[NutrientType.carb]!,
-          onTap: onTap,
-        ),
-        const SizedBox(width: AppSpacing.s2),
-        _MiniSignalCard(
-          nutrient: NutrientType.kcal,
-          label: t.record.nutrition.kcal,
-          verdict: signal.verdicts[NutrientType.kcal]!,
-          onTap: onTap,
-        ),
+        for (final nutrient in <NutrientType>[
+          NutrientType.protein,
+          NutrientType.carb,
+          NutrientType.kcal,
+        ]) ...<Widget>[
+          if (nutrient != NutrientType.protein)
+            const SizedBox(width: AppSpacing.s2),
+          // mini signal-card 曝光（§4.1 组件级 ≥50%+500ms；去重键含
+          // nutrient+signal_level——落区变化重计）。
+          Expanded(
+            child: ExposureTracker(
+              eventName: 'mini_signal_card_expose',
+              dedupeKey:
+                  'home:mini_signal:${nutrient.name}:${signal.verdicts[nutrient]!.zone.name}',
+              properties: <String, Object?>{
+                'nutrient': _nutrientEventValue(nutrient),
+                'signal_level': signal.verdicts[nutrient]!.zone.name,
+              },
+              child: _MiniSignalCard(
+                nutrient: nutrient,
+                label: _nutrientLabel(t, nutrient),
+                verdict: signal.verdicts[nutrient]!,
+                onTap: onTap,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
+}
+
+/// 营养素展示名（蛋白/碳水/热量）。
+String _nutrientLabel(Translations t, NutrientType nutrient) {
+  return switch (nutrient) {
+    NutrientType.protein => t.record.nutrition.protein,
+    NutrientType.carb => t.record.nutrition.carb,
+    NutrientType.kcal => t.record.nutrition.kcal,
+    NutrientType.fat => t.record.nutrition.fat,
+  };
+}
+
+/// NutrientType → 事件字典 nutrient 枚举（§3.4：kcal → calorie）。
+String _nutrientEventValue(NutrientType nutrient) {
+  return switch (nutrient) {
+    NutrientType.kcal => 'calorie',
+    NutrientType.protein => 'protein',
+    NutrientType.carb => 'carb',
+    NutrientType.fat => 'fat',
+  };
 }
 
 /// 空态卡（四态规范 3.4：当日无记录 → 引导去记录，不出现信号灯）。
@@ -213,49 +241,45 @@ class _MiniSignalCard extends StatelessWidget {
         t.nutrition.signalCard.zone.red,
       ),
     };
-    return Expanded(
-      child: Semantics(
-        button: true,
-        label: '$label $zoneLabel',
-        child: Material(
-          color: colors.bgSecondary,
+    return Semantics(
+      button: true,
+      label: '$label $zoneLabel',
+      child: Material(
+        color: colors.bgSecondary,
+        borderRadius: radii.rLg,
+        child: InkWell(
           borderRadius: radii.rLg,
-          child: InkWell(
-            borderRadius: radii.rLg,
-            onTap: onTap,
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 64),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.s2,
-                vertical: AppSpacing.s2,
-              ),
-              decoration: BoxDecoration(
-                borderRadius: radii.rLg,
-                boxShadow: shadows.shadowSm,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Icon(icon, color: color, size: 20),
-                  const SizedBox(height: AppSpacing.s1),
-                  Text(
-                    label,
-                    style: textStyles.textSm.copyWith(
-                      color: colors.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 64),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s2,
+              vertical: AppSpacing.s2,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: radii.rLg,
+              boxShadow: shadows.shadowSm,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(icon, color: color, size: 20),
+                const SizedBox(height: AppSpacing.s1),
+                Text(
+                  label,
+                  style: textStyles.textSm.copyWith(color: colors.textPrimary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  zoneLabel,
+                  style: textStyles.textXs.copyWith(
+                    color: colors.textSecondary,
                   ),
-                  Text(
-                    zoneLabel,
-                    style: textStyles.textXs.copyWith(
-                      color: colors.textSecondary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ),

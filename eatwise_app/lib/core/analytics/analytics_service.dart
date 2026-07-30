@@ -19,7 +19,7 @@ import 'package:flutter/widgets.dart';
 ///   `flushNow` 立即上报；失败保留重试，4xx 丢弃并记 `app_track_error`；
 ///   App 启动 [start] 时重放离线队列。
 /// - **曝光去重（§4.1）**：session 内按去重键只上报一次（组件级
-///   ≥50%+500ms 可视判定留 TODO，当前落地页面级曝光）。
+///   ≥50%+500ms 可视判定由 `ExposureTracker` 落地，去重在本层收口）。
 /// - **会话（§1.2）**：退后台 >30 秒回前台轮换 session_id 并记 `app_open`。
 final class AnalyticsService with WidgetsBindingObserver {
   AnalyticsService({

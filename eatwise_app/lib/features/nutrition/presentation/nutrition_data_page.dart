@@ -65,6 +65,10 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
     final mealSegment = ref.watch(mealSegmentProvider);
     final isLocalEstimate =
         ref.watch(dayCacheProvider).valueOrNull?.isLocalEstimate ?? false;
+    // 信号卡曝光去重日期键（§4.1：attribute_date 变化重计）。
+    final dateOffset = DateUtils.dateOnly(
+      ref.watch(selectedDateProvider),
+    ).difference(DateUtils.dateOnly(DateTime.now())).inDays;
 
     final summaryText = switch (tone) {
       DaySummaryTone.empty => t.nutrition.data.summary.empty,
@@ -122,6 +126,7 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
                 signal: signal,
                 goal: goal,
                 mealSegment: mealSegment,
+                exposureDateKey: '$dateOffset',
                 onCardTap: (nutrient, verdict) {
                   // 信号灯卡点击（§3.4 signal_card_click）。
                   ref

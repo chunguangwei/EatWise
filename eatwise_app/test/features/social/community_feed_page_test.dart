@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import 'social_test_fakes.dart';
 
@@ -20,6 +21,9 @@ void main() {
 
   setUp(() async {
     await LocaleSettings.setLocale(AppLocale.zhCn);
+    // 组件级曝光埋点（ExposureTracker）：即时分发可视回调，避免插件默认
+    // 500ms 聚合 Timer 在卸载时未决。
+    VisibilityDetectorController.instance.updateInterval = Duration.zero;
     api = FakeSocialApi();
   });
 
