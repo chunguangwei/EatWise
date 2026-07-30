@@ -321,8 +321,15 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     );
     _store.clearActiveCycle();
     _emitClosed(record, plan);
-    // T3/T4/T9：进食窗口以实际破窗时刻开启，结束锚点不后移。
-    _store.saveEarlyEatEndUtc(cycle.eatWindowEndUtc);
+    // T3/T4/T9：进食窗口以实际破窗时刻开启，终点 = 破窗时刻 + 计划进食
+    // 窗口时长（封顶本周期计划进食结束锚点）。修复：此前直接取
+    // cycle.eatWindowEndUtc，在「进食窗已关闭后的断食段」破窗时会把进食
+    // 终点算到次日计划窗末（倒计时 ~24h，冒烟 C3 复现）。
+    final eatWindowLenSec = cycle.eatWindowEndUtc - cycle.plannedEndUtc;
+    final earlyEatEndUtc = now + eatWindowLenSec < cycle.eatWindowEndUtc
+        ? now + eatWindowLenSec
+        : cycle.eatWindowEndUtc;
+    _store.saveEarlyEatEndUtc(earlyEatEndUtc);
     _reschedule(plan, 0, RescheduleReason.manualEndFast);
     state = _resolve(
       plan,

@@ -196,6 +196,23 @@ void main() {
       );
       expect(scheduler.rescheduleCalls, isEmpty);
     });
+
+    test('进食窗已关闭后的断食段破窗：进食终点 = 破窗时刻 + 计划进食窗长（C3 回归）', () async {
+      prefs = await seedActivePlanPrefs(startedAtUtc: bjtUtc(27, 12));
+      // 本地 07-28 20:30（UTC 12:30）：当日进食窗（12:00–20:00）已关闭，
+      // 处于 20:00→次日 12:00 断食段。提前 >15min → BROKEN_EARLY。
+      clock = FakeClock(bjtUtc(28, 12, 30));
+      final container = await buildContainer();
+      container.read(fastingTimerControllerProvider.notifier).endFast();
+
+      final state = container.read(fastingTimerControllerProvider);
+      expect(state.state, FastingState.eating);
+      expect(state.lastClosedRecord!.result, CycleResult.brokenEarly);
+      // 进食终点 = 20:30 + 8h = 次日 04:30（倒计时 8h），
+      // 而非旧逻辑的次日计划窗末 20:00（倒计时 ~23.5h，冒烟 C3）。
+      expect(cycleStore.loadEarlyEatEndUtc(), bjtUtc(28, 20, 30));
+      expect(state.snapshot!.countdownSec, 8 * 3600);
+    });
   });
 
   group('tick（归零自动关闭 + 重启对账）', () {

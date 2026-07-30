@@ -102,9 +102,11 @@ void main() {
     await flush();
 
     expect(gateway.saved[WidgetDataKeys.state], 'eating');
+    // 进食终点 = 破窗时刻(08:00 本地) + 计划进食窗长 8h = 16:00 本地
+    // （封顶本周期窗末 20:00；C3 修复后规则）。
     expect(
       gateway.saved[WidgetDataKeys.targetAnchorUtcMs],
-      bjtUtc(28, 12) * 1000,
+      bjtUtc(28, 8) * 1000,
     );
     expect(gateway.updateCalls, 2);
   });
