@@ -137,6 +137,56 @@ jobs:
       - name: e2e
         run: npm run test:e2e
 
+  server-pg:
+    name: Server Prisma 集成测试（真实 PostgreSQL）
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: eatwise_server
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: eatwise
+          POSTGRES_PASSWORD: eatwise_ci
+          POSTGRES_DB: eatwise_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U eatwise -d eatwise_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://eatwise:eatwise_ci@localhost:5432/eatwise_test
+      RUN_PG_TESTS: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: eatwise_server/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: Prisma Client 生成
+        run: npx prisma generate
+
+      - name: 应用迁移（prisma/migrations）
+        run: npx prisma migrate deploy
+
+      # 门控：RUN_PG_TESTS=1 且 DATABASE_URL 存在时，
+      # test/prisma-store.integration.spec.ts 才会真正执行（否则 skip）。
+      - name: PrismaStore 集成测试（真实库）
+        run: npx jest test/prisma-store.integration.spec.ts --forceExit
+
+      # 全量单测（含 pg 集成，双保险）
+      - name: 单测（全量，含 pg）
+        run: npm test
+
   data:
     name: Food Data (seed 管线校验)
     runs-on: ubuntu-latest
