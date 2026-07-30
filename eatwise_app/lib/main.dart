@@ -11,6 +11,8 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/food_seed_loader.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
+import 'package:eatwise/core/update/update_dialog.dart';
+import 'package:eatwise/core/update/update_providers.dart';
 import 'package:eatwise/core/widget_bridge/home_widget_gateway.dart';
 import 'package:eatwise/core/widget_bridge/widget_deep_link.dart';
 import 'package:eatwise/features/auth/application/auth_gate.dart';
@@ -129,6 +131,8 @@ Future<void> main() async {
           widgetDeepLink: WidgetDeepLinkService(
             gateway: const HomeWidgetPluginGateway(),
           ),
+          // 应用内更新：启动静默检查一次（节流 ≥24h，有更新才弹窗）。
+          updateCheckEnabled: true,
         ),
       ),
     ),
@@ -142,6 +146,7 @@ class EatWiseApp extends StatefulWidget {
     this.authGate,
     this.privacyGate,
     this.widgetDeepLink,
+    this.updateCheckEnabled = false,
   });
 
   /// 新手引导门禁；缺省按「已完成」处理（保留 M0 演示冒烟路径）。
@@ -155,6 +160,9 @@ class EatWiseApp extends StatefulWidget {
 
   /// 小组件点击深链服务（§4.5：点击进首页）；缺省不启用（测试路径）。
   final WidgetDeepLinkService? widgetDeepLink;
+
+  /// 启动静默更新检查开关（默认关，避免既有测试触发网络；main() 显式开启）。
+  final bool updateCheckEnabled;
 
   @override
   State<EatWiseApp> createState() => _EatWiseAppState();
@@ -182,6 +190,31 @@ class _EatWiseAppState extends State<EatWiseApp> {
     WidgetsBinding.instance.addObserver(tracker);
     // 小组件点击深链 → 首页（设计规范 §4.5，冷/热启动两路）。
     widget.widgetDeepLink?.start(onOpenHome: () => _router.go('/'));
+    // 应用内更新：首帧后静默检查一次（节流 ≥24h，有更新才弹窗，异常静默）。
+    if (widget.updateCheckEnabled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdate());
+    }
+  }
+
+  Future<void> _checkForUpdate() async {
+    try {
+      final container = ProviderScope.containerOf(context, listen: false);
+      final result = await container
+          .read(updateCoordinatorProvider)
+          .checkOnStartup();
+      if (!mounted || result == null) return;
+      final dialogContext = _router.routerDelegate.navigatorKey.currentContext;
+      if (dialogContext == null || !dialogContext.mounted) return;
+      unawaited(
+        showUpdateDialog(
+          dialogContext,
+          result,
+          launcher: container.read(updateLauncherProvider),
+        ),
+      );
+    } on Object {
+      // 静默：更新检查失败不影响启动主流程。
+    }
   }
 
   @override

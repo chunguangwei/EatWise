@@ -480,7 +480,8 @@
     },
     "about": {
       "version": "Version",
-      "disclaimer": "Disclaimer & special groups"
+      "disclaimer": "Disclaimer & special groups",
+      "checkUpdate": "Check for updates"
     }
   },
   "legal": {
@@ -571,5 +572,14 @@
     "logout": "Sign out",
     "logoutConfirm": "Sign out now? Unsynced records stay on this device.",
     "loggedOut": "Signed out"
+  },
+  "update": {
+    "title": "Update available",
+    "newVersion": "Latest version: ${version}",
+    "updateNow": "Update now",
+    "later": "Later",
+    "upToDate": "You're on the latest version",
+    "checkFailed": "Couldn't check for updates. Try again later.",
+    "downloadFailed": "Couldn't open the download link. Try again later."
   }
 }

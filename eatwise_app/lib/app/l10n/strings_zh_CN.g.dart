@@ -54,6 +54,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$legal$zh_CN legal = Translations$legal$zh_CN.internal(_root);
 	late final Translations$social$zh_CN social = Translations$social$zh_CN.internal(_root);
 	late final Translations$auth$zh_CN auth = Translations$auth$zh_CN.internal(_root);
+	late final Translations$update$zh_CN update = Translations$update$zh_CN.internal(_root);
 }
 
 // Path: notify
@@ -266,6 +267,36 @@ class Translations$auth$zh_CN {
 
 	/// zh-CN: '已退出登录'
 	String get loggedOut => '已退出登录';
+}
+
+// Path: update
+class Translations$update$zh_CN {
+	Translations$update$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '发现新版本'
+	String get title => '发现新版本';
+
+	/// zh-CN: '最新版本：${version}'
+	String newVersion({required Object version}) => '最新版本：${version}';
+
+	/// zh-CN: '立即更新'
+	String get updateNow => '立即更新';
+
+	/// zh-CN: '以后再说'
+	String get later => '以后再说';
+
+	/// zh-CN: '当前已是最新版本'
+	String get upToDate => '当前已是最新版本';
+
+	/// zh-CN: '检查更新失败，请稍后重试'
+	String get checkFailed => '检查更新失败，请稍后重试';
+
+	/// zh-CN: '无法打开下载地址，请稍后重试'
+	String get downloadFailed => '无法打开下载地址，请稍后重试';
 }
 
 // Path: notify.channel
@@ -1308,6 +1339,9 @@ class Translations$settings$about$zh_CN {
 
 	/// zh-CN: '免责声明与特殊人群提示'
 	String get disclaimer => '免责声明与特殊人群提示';
+
+	/// zh-CN: '检查更新'
+	String get checkUpdate => '检查更新';
 }
 
 // Path: legal.consent
@@ -2477,6 +2511,7 @@ extension on Translations {
 			'settings.reminders.notificationsSubtitle' => '前往系统设置管理通知权限',
 			'settings.about.version' => '版本',
 			'settings.about.disclaimer' => '免责声明与特殊人群提示',
+			'settings.about.checkUpdate' => '检查更新',
 			'legal.draftNote' => '〔待外部确认：法务终稿〕',
 			'legal.consent.title' => '欢迎使用 EatWise',
 			'legal.consent.summary' => '我们会按照《隐私政策》收集和使用你的信息，用于提供断食计时、饮食记录与营养反馈等核心功能；数据存储于中国境内并加密保护。请阅读并确认以下授权：',
@@ -2546,6 +2581,13 @@ extension on Translations {
 			'auth.logout' => '退出登录',
 			'auth.logoutConfirm' => '确定退出登录吗？未同步的记录会保留在本机。',
 			'auth.loggedOut' => '已退出登录',
+			'update.title' => '发现新版本',
+			'update.newVersion' => ({required Object version}) => '最新版本：${version}',
+			'update.updateNow' => '立即更新',
+			'update.later' => '以后再说',
+			'update.upToDate' => '当前已是最新版本',
+			'update.checkFailed' => '检查更新失败，请稍后重试',
+			'update.downloadFailed' => '无法打开下载地址，请稍后重试',
 			_ => null,
 		};
 	}

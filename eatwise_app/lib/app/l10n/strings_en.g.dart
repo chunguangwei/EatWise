@@ -53,6 +53,7 @@ class TranslationsEn extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$legal$en legal = _Translations$legal$en._(_root);
 	@override late final _Translations$social$en social = _Translations$social$en._(_root);
 	@override late final _Translations$auth$en auth = _Translations$auth$en._(_root);
+	@override late final _Translations$update$en update = _Translations$update$en._(_root);
 }
 
 // Path: notify
@@ -241,6 +242,22 @@ class _Translations$auth$en extends Translations$auth$zh_CN {
 	@override String get logout => 'Sign out';
 	@override String get logoutConfirm => 'Sign out now? Unsynced records stay on this device.';
 	@override String get loggedOut => 'Signed out';
+}
+
+// Path: update
+class _Translations$update$en extends Translations$update$zh_CN {
+	_Translations$update$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Update available';
+	@override String newVersion({required Object version}) => 'Latest version: ${version}';
+	@override String get updateNow => 'Update now';
+	@override String get later => 'Later';
+	@override String get upToDate => 'You\'re on the latest version';
+	@override String get checkFailed => 'Couldn\'t check for updates. Try again later.';
+	@override String get downloadFailed => 'Couldn\'t open the download link. Try again later.';
 }
 
 // Path: notify.channel
@@ -870,6 +887,7 @@ class _Translations$settings$about$en extends Translations$settings$about$zh_CN 
 	// Translations
 	@override String get version => 'Version';
 	@override String get disclaimer => 'Disclaimer & special groups';
+	@override String get checkUpdate => 'Check for updates';
 }
 
 // Path: legal.consent
@@ -1696,6 +1714,7 @@ extension on TranslationsEn {
 			'settings.reminders.notificationsSubtitle' => 'Manage notification permission in system settings',
 			'settings.about.version' => 'Version',
 			'settings.about.disclaimer' => 'Disclaimer & special groups',
+			'settings.about.checkUpdate' => 'Check for updates',
 			'legal.draftNote' => '[Pending external confirmation: final legal copy]',
 			'legal.consent.title' => 'Welcome to EatWise',
 			'legal.consent.summary' => 'We collect and use your information as described in the Privacy Policy to provide core features like fasting timers, meal logging, and nutrition feedback. Your data is stored securely in mainland China. Please review and confirm:',
@@ -1765,6 +1784,13 @@ extension on TranslationsEn {
 			'auth.logout' => 'Sign out',
 			'auth.logoutConfirm' => 'Sign out now? Unsynced records stay on this device.',
 			'auth.loggedOut' => 'Signed out',
+			'update.title' => 'Update available',
+			'update.newVersion' => ({required Object version}) => 'Latest version: ${version}',
+			'update.updateNow' => 'Update now',
+			'update.later' => 'Later',
+			'update.upToDate' => 'You\'re on the latest version',
+			'update.checkFailed' => 'Couldn\'t check for updates. Try again later.',
+			'update.downloadFailed' => 'Couldn\'t open the download link. Try again later.',
 			_ => null,
 		};
 	}

@@ -84,5 +84,10 @@
         <intent>
             <action android:name="android.speech.RecognitionService"/>
         </intent>
+        <!-- 应用内更新：url_launcher 外部浏览器打开 APK 下载页（API 30+ 包可见性） -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
     </queries>
 </manifest>

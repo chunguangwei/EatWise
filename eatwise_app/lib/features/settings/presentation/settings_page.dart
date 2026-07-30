@@ -6,6 +6,9 @@ import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/update/update_dialog.dart';
+import 'package:eatwise/core/update/update_models.dart';
+import 'package:eatwise/core/update/update_providers.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/legal/application/legal_providers.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
@@ -159,6 +162,11 @@ class SettingsPage extends ConsumerWidget {
                 _SettingsTile(
                   title: t.settings.about.version,
                   trailing: '1.0.0 (1)',
+                ),
+                // 应用内更新检查（手动触发，不节流；已是最新弹提示）。
+                _SettingsTile(
+                  title: t.settings.about.checkUpdate,
+                  onTap: () => _checkUpdate(context, ref),
                 ),
                 _SettingsTile(
                   title: t.settings.about.disclaimer,
@@ -314,6 +322,34 @@ class SettingsPage extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text(message)));
     }
+  }
+
+  /// 「检查更新」（手动触发，不节流）：有更新弹窗；已是最新 SnackBar 提示。
+  Future<void> _checkUpdate(BuildContext context, WidgetRef ref) async {
+    final t = Translations.of(context);
+    final UpdateCheckResult result;
+    try {
+      result = await ref.read(updateCoordinatorProvider).checkManually();
+    } on Object {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(t.update.checkFailed)));
+      }
+      return;
+    }
+    if (!context.mounted) return;
+    if (result.status == UpdateStatus.upToDate) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.update.upToDate)));
+      return;
+    }
+    await showUpdateDialog(
+      context,
+      result,
+      launcher: ref.read(updateLauncherProvider),
+    );
   }
 
   Future<void> _setHealthData(

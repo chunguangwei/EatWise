@@ -68,10 +68,17 @@ export class PrismaStore extends StoreDriver {
   // ===== U5 到期执行（合规 §4.3：物理删除个人数据 + UGC 匿名化，单事务）=====
   async purgeUserData(userId: string): Promise<PurgeReport> {
     return this.prisma.$transaction(async (tx) => {
-      // UGC 匿名化（内容留存口径〔待法务确认〕，〔假设〕清空正文/图片并打 tombstone）
+      // UGC 匿名化（内容留存口径〔待法务确认〕：清空正文/图片 + 解除用户关联 + tombstone；
+      // posts.userId 可空，物理删用户行不再违反 FK）
       const posts = await tx.post.updateMany({
         where: { userId, deletedAt: null },
-        data: { text: '', imageUrls: [], deletedAt: new Date(), version: { increment: 1 } },
+        data: {
+          text: '',
+          imageUrls: [],
+          userId: null,
+          deletedAt: new Date(),
+          version: { increment: 1 },
+        },
       });
       const foodEntries = await tx.foodEntry.deleteMany({ where: { userId } });
       const fastingRecords = await tx.fastingRecord.deleteMany({ where: { userId } });
@@ -428,7 +435,8 @@ function toStreakEntity(s: Prisma.StreakGetPayload<object>): StreakEntity {
 function toPostEntity(p: Prisma.PostGetPayload<object>): PostEntity {
   return {
     id: p.id,
-    userId: p.userId,
+    // U5 匿名化留存的帖子 userId 为 null，实体层以 '' 表示已匿名作者。
+    userId: p.userId ?? '',
     clientRequestId: p.clientRequestId,
     text: p.text,
     imageUrls: p.imageUrls,

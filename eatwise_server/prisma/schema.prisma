@@ -192,7 +192,8 @@ model Streak {
 
 model Post {
   id              String   @id @default(uuid())
-  userId          String
+  // 可空：U5 账号删除物理删用户行时，帖子按合规口径匿名化留存（userId 置空）。
+  userId          String?
   clientRequestId String?
   text            String
   imageUrls       String[]
@@ -206,7 +207,7 @@ model Post {
   updatedAt       DateTime @updatedAt
   deletedAt       DateTime?
 
-  user User @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 
   @@unique([userId, clientRequestId])
   @@index([auditStatus, createdAt])

@@ -1,0 +1,64 @@
+# EatWise 发版流水线
+# 触发：打 v* 标签（如 git tag v1.0.0 && git push origin v1.0.0）。
+# 产物：Android APK（debug 签名，内部测试/灰度用）附到 GitHub Release。
+# 注意：正式发布需配置 release keystore（见文末 TODO）；iOS 分发需 Apple
+# Developer 证书与 App Store Connect，本流水线暂不产出 iOS 包。
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release-apk:
+    name: 构建 APK 并发布 GitHub Release
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: eatwise_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.8"
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: pub get + 代码生成
+        run: |
+          flutter pub get
+          dart run slang
+          dart run build_runner build --delete-conflicting-outputs
+
+      # TODO(发布): 配置 release keystore（CI secrets: KEYSTORE_BASE64 /
+      # KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD）后改为 --release 构建。
+      - name: 构建 APK（debug 签名，内部测试用）
+        run: flutter build apk --debug
+
+      - name: 读取版本号
+        id: ver
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: 发布 GitHub Release 并上传 APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          cp build/app/outputs/flutter-apk/app-debug.apk "eatwise-${TAG}.apk"
+          gh release create "$TAG" "eatwise-${TAG}.apk" \
+            --title "EatWise $TAG" \
+            --generate-notes \
+            --latest
