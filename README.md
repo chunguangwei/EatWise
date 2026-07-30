@@ -42,10 +42,10 @@ flutter run                                      # 模拟器/真机运行
 本地联调后端时：
 
 ```bash
-# iOS 模拟器 / 真机（同 Wi-Fi，IP 换成你的局域网地址）
-flutter run --dart-define=API_BASE_URL=http://<你的局域网IP>:3000
+# iOS 模拟器 / 真机（同 Wi-Fi，IP 换成你的局域网地址；注意必须带 /v1 前缀）
+flutter run --dart-define=API_BASE_URL=http://<你的局域网IP>:3000/v1
 # Android 模拟器访问宿主机
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/v1
 ```
 
 ### 后端（eatwise_server）
