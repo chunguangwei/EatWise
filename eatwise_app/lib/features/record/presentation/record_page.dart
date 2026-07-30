@@ -99,6 +99,18 @@ class _RecordPageState extends ConsumerState<RecordPage> {
 
   /// 一键确认：乐观更新入账（UI 立即经流展示）+「已记录·撤销」吐司（D-11）。
   Future<void> _confirm(RecordStrings s) async {
+    if (_confirming) return; // 防连点重复入账
+    _confirming = true;
+    try {
+      await _doConfirm(s);
+    } finally {
+      _confirming = false;
+    }
+  }
+
+  bool _confirming = false;
+
+  Future<void> _doConfirm(RecordStrings s) async {
     final food = ref.read(recordSelectedFoodProvider);
     if (food == null) return;
     final messenger = ScaffoldMessenger.of(context);
@@ -149,6 +161,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     ref.read(recordEntrySourceProvider.notifier).state = EntrySource.manual;
     ref.read(recordLowConfidenceProvider.notifier).state = false;
     _searchController.clear();
+    // 连续入账：新吐司顶替旧的（不排队），与饮水流一致（D-11）。
+    messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
         content: Text(s.toastRecorded),
