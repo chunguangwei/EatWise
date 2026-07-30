@@ -18,11 +18,16 @@ pluginManagement {
 
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
 
+    // 国内本地构建加速：USE_CN_MIRRORS=1 时优先走阿里云镜像。
+    // CI（海外 runner）不要开启——Aliyun 对海外 egress 不稳定会导致仓库被禁用。
+    val useCnMirrors = System.getenv("USE_CN_MIRRORS") == "1"
+
     repositories {
-        // 国内构建加速：优先走阿里云镜像，源站兜底。
-        maven("https://maven.aliyun.com/repository/google")
-        maven("https://maven.aliyun.com/repository/central")
-        maven("https://maven.aliyun.com/repository/gradle-plugin")
+        if (useCnMirrors) {
+            maven("https://maven.aliyun.com/repository/google")
+            maven("https://maven.aliyun.com/repository/central")
+            maven("https://maven.aliyun.com/repository/gradle-plugin")
+        }
         google()
         mavenCentral()
         gradlePluginPortal()
@@ -30,10 +35,13 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
+    val useCnMirrors = System.getenv("USE_CN_MIRRORS") == "1"
     repositories {
-        maven("https://maven.aliyun.com/repository/google")
-        maven("https://maven.aliyun.com/repository/central")
-        maven("https://maven.aliyun.com/repository/public")
+        if (useCnMirrors) {
+            maven("https://maven.aliyun.com/repository/google")
+            maven("https://maven.aliyun.com/repository/central")
+            maven("https://maven.aliyun.com/repository/public")
+        }
         google()
         mavenCentral()
     }
