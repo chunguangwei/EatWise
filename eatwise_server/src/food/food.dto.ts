@@ -83,3 +83,20 @@ export class CreateCustomFoodDto {
   @IsIn(['manual', 'llm-estimate'])
   source: 'manual' | 'llm-estimate';
 }
+
+/** 贡献自定义食物到共享库（幂等 clientRequestId） */
+export class ContributeFoodDto {
+  @IsUUID('4')
+  clientRequestId: string;
+}
+
+/** 管理端审核共享食物候选 */
+export class ReviewFoodCandidateDto {
+  @IsIn(['approve', 'reject'])
+  action: 'approve' | 'reject';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  reason?: string;
+}

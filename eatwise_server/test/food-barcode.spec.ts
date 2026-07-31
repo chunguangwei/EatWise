@@ -109,8 +109,7 @@ describe('BarcodeService（OFF 条码查询）', () => {
   });
 
   it('OFF 超时/网络异常 → 404（降级口径一致）', async () => {
-    const failing = (() =>
-      Promise.reject(new Error('aborted'))) as unknown as typeof fetch;
+    const failing = (() => Promise.reject(new Error('aborted'))) as unknown as typeof fetch;
     const svc = new BarcodeService({ fetchFn: failing });
     await expect(svc.lookup('7622210449283')).rejects.toMatchObject({
       code: 'FOOD_BARCODE_NOT_FOUND',

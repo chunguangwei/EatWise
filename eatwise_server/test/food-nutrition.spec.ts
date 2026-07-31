@@ -1,12 +1,13 @@
 import { DataStore } from '../src/common/store/data-store';
 import { FoodService } from '../src/food/food.service';
 import { computeSignals, computeTargets } from '../src/nutrition/nutrition.rules';
+import { StubModerationService } from '../src/social/moderation/content-moderation.service';
 
 describe('K1 食物双语搜索（D-16）', () => {
   let food: FoodService;
 
   beforeEach(() => {
-    food = new FoodService(new DataStore());
+    food = new FoodService(new DataStore(), new StubModerationService());
   });
 
   it('拼音/别名匹配：q=ji 命中鸡蛋与鸡胸肉别名（matchedOn=alias）', () => {

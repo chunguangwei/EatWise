@@ -2,6 +2,7 @@ import * as path from 'path';
 import { DataStore } from '../src/common/store/data-store';
 import { loadFoodSeedFromFile } from '../src/common/store/food-seed-loader';
 import { FoodService } from '../src/food/food.service';
+import { StubModerationService } from '../src/social/moderation/content-moderation.service';
 
 /**
  * D-16 全量食物库（eatwise_data/foods.seed.json）灌入内存 DataStore 后的
@@ -14,7 +15,7 @@ describe('D-16 全量食物库 seed 加载与双语搜索', () => {
 
   beforeAll(() => {
     store = new DataStore();
-    food = new FoodService(store);
+    food = new FoodService(store, new StubModerationService());
   });
 
   it('加载 seed：>=7000 条，含 USDA 与策展来源', () => {

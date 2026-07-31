@@ -54,9 +54,7 @@ export class BarcodeService {
   private readonly fetchFn: typeof fetch;
   private readonly cache = new Map<string, CacheEntry>();
 
-  constructor(
-    @Optional() @Inject('BARCODE_OPTIONS') opts?: BarcodeServiceOptions,
-  ) {
+  constructor(@Optional() @Inject('BARCODE_OPTIONS') opts?: BarcodeServiceOptions) {
     this.timeoutMs = opts?.timeoutMs ?? 8_000;
     this.cacheTtlMs = opts?.cacheTtlMs ?? 30 * 24 * 3600 * 1000;
     this.fetchFn = opts?.fetchFn ?? fetch;
@@ -105,13 +103,9 @@ export class BarcodeService {
    * `energy-kj_100g`（或 `energy_100g` + energy_unit=kJ），按 4.184 kJ/kcal
    * 换算〔假设〕。名称/四营养任一缺失或越界 → 拒绝（NOT_FOUND）。
    */
-  private mapProduct(
-    code: string,
-    product: Record<string, unknown>,
-  ): BarcodeFoodView {
+  private mapProduct(code: string, product: Record<string, unknown>): BarcodeFoodView {
     const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
-    const num = (v: unknown) =>
-      typeof v === 'number' && Number.isFinite(v) ? v : NaN;
+    const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : NaN);
 
     const generic = str(product.product_name);
     const nameZh = str(product.product_name_zh) || generic;

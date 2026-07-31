@@ -82,6 +82,26 @@ export interface FoodEntity {
   fatPer100g: number;
   category: string;
   source: string;
+  /** 社区共享食物溯源：审核晋升的自定义食物保留创建者（内置库条目为 null/缺省） */
+  createdByUserId?: string | null;
+}
+
+export type FoodCandidateStatus = 'pending' | 'approved' | 'rejected';
+
+/** 共享食物候选（食物库扩充第三层：用户自定义食物经审核晋升为共享库，先审后发 D-17） */
+export interface FoodCandidateEntity {
+  id: string;
+  /** 被贡献的自定义食物 id（approve 后该食物转为共享，id 不变） */
+  foodId: string;
+  /** 贡献者（= 自定义食物创建者） */
+  userId: string;
+  status: FoodCandidateStatus;
+  /** 审核拒绝原因（rejected 时记录） */
+  reason: string | null;
+  clientRequestId: string;
+  version: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /** 用户自定义食物（个人库，仅创建者可见，参与 K1 搜索排内置结果之后） */
@@ -210,6 +230,8 @@ export class DataStore {
   readonly foods = new Map<string, FoodEntity>();
   /** 用户自定义食物（个人库，仅创建者可见；prisma 模式对应 foods.isCustom + createdByUserId） */
   readonly customFoods = new Map<string, CustomFoodEntity>();
+  /** 共享食物候选审核池（pending → approved/rejected；approved 时食物迁入 foods 共享库） */
+  readonly foodCandidates = new Map<string, FoodCandidateEntity>();
 
   /** 已加载的 foods.seed.json 版本号（D-16 全量库幂等加载标记，见 food-seed-loader.ts）。 */
   foodSeedVersion: string | null = null;

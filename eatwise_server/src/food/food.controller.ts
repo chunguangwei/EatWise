@@ -5,7 +5,7 @@ import { err } from '../common/errors/business.exception';
 import { EstimateService } from '../llm/estimate.service';
 import { UserThrottlerGuard } from '../llm/user-throttler.guard';
 import { BarcodeService } from './barcode/barcode.service';
-import { CreateCustomFoodDto, EstimateFoodDto } from './food.dto';
+import { ContributeFoodDto, CreateCustomFoodDto, EstimateFoodDto } from './food.dto';
 import { FoodService } from './food.service';
 
 @Controller('foods')
@@ -61,5 +61,19 @@ export class FoodController {
   @HttpCode(200)
   createCustom(@CurrentUser() user: AuthUser, @Body() dto: CreateCustomFoodDto) {
     return this.food.createCustomFood(user.userId, dto);
+  }
+
+  /**
+   * 贡献自定义食物到共享库（食物库扩充第三层）：仅创建者可贡献，幂等 clientRequestId；
+   * 食物名过机审（D-17 先审后发）：rejected 拒收，manual/approved 入 pending 审核池。
+   */
+  @Post('custom/:id/contribute')
+  @HttpCode(200)
+  contribute(
+    @CurrentUser() user: AuthUser,
+    @Param('id') foodId: string,
+    @Body() dto: ContributeFoodDto,
+  ) {
+    return this.food.contributeCustomFood(user.userId, foodId, dto);
   }
 }

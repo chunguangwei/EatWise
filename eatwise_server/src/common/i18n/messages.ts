@@ -32,6 +32,7 @@ const zh: Record<string, string> = {
   RESOURCE_GONE: '该内容已删除',
   ESTIMATE_UNAVAILABLE: '营养估算暂不可用，请手动填写',
   FOOD_BARCODE_NOT_FOUND: '未收录该商品，可手动搜索或添加自定义食物',
+  FOOD_CONTRIBUTE_REJECTED: '食物名称未通过审核，无法贡献到共享食物库',
 };
 
 const en: Record<string, string> = {
@@ -56,8 +57,9 @@ const en: Record<string, string> = {
   POST_CONTENT_REJECTED: 'Content did not pass review and cannot be published',
   RESOURCE_GONE: 'This content has been deleted',
   ESTIMATE_UNAVAILABLE: 'Nutrition estimate unavailable, please enter values manually',
-  FOOD_BARCODE_NOT_FOUND:
-    'Product not found; try searching manually or adding a custom food',
+  FOOD_BARCODE_NOT_FOUND: 'Product not found; try searching manually or adding a custom food',
+  FOOD_CONTRIBUTE_REJECTED:
+    'Food name did not pass review and cannot be contributed to the shared food library',
 };
 
 export function translate(code: string, locale: Locale): string {

@@ -17,6 +17,6 @@ import { SocialService } from './social.service';
     // 后替换本 provider 即可。
     { provide: ContentModerationService, useClass: StubModerationService },
   ],
-  exports: [SocialService],
+  exports: [SocialService, ContentModerationService],
 })
 export class SocialModule {}

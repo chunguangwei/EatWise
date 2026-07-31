@@ -57,8 +57,11 @@ export const err = {
     new BusinessException('ESTIMATE_UNAVAILABLE', HttpStatus.SERVICE_UNAVAILABLE),
 
   // 条码查询（OFF 无该商品/超时/数据缺字段，客户端降级手动搜索/自定义食物）
-  barcodeNotFound: () =>
-    new BusinessException('FOOD_BARCODE_NOT_FOUND', HttpStatus.NOT_FOUND),
+  barcodeNotFound: () => new BusinessException('FOOD_BARCODE_NOT_FOUND', HttpStatus.NOT_FOUND),
+
+  // 众包食物贡献（食物名机审 rejected → 贡献直接拒收，D-17 先审后发）
+  foodContributeRejected: (reason?: { zh: string; en: string }) =>
+    new BusinessException('FOOD_CONTRIBUTE_REJECTED', HttpStatus.BAD_REQUEST, { reason }),
 
   // 社区打卡（M5 / D-17 先审后发）
   postContentRejected: (reason?: { zh: string; en: string }) =>

@@ -12,30 +12,30 @@ datasource db {
 }
 
 model User {
-  id                 String   @id @default(uuid())
-  phone              String?  @unique // E.164
-  wechatOpenId       String?  @unique
-  appleSub           String?  @unique
-  nickname           String?
-  avatarUrl          String?
-  gender             String? // male / female
-  birthYear          Int?
-  heightCm           Float?
-  weightKg           Float?
-  activityLevel      String? // sedentary / light / moderate / high
-  goal               String? // fat_loss / health_metric / routine / trial
-  locale             String   @default("zh-CN") // D-15
-  timezone           String   @default("Asia/Shanghai") // IANA，D-07
-  themePref          String   @default("system")
-  accessibilityPrefs Json?
-  onboardingStatus   String   @default("none") // none / skipped / completed
-  exportStatus       String?
-  deletionStatus     String? // null / pending（D-18，7 天冷静期〔假设〕）
+  id                  String    @id @default(uuid())
+  phone               String?   @unique // E.164
+  wechatOpenId        String?   @unique
+  appleSub            String?   @unique
+  nickname            String?
+  avatarUrl           String?
+  gender              String? // male / female
+  birthYear           Int?
+  heightCm            Float?
+  weightKg            Float?
+  activityLevel       String? // sedentary / light / moderate / high
+  goal                String? // fat_loss / health_metric / routine / trial
+  locale              String    @default("zh-CN") // D-15
+  timezone            String    @default("Asia/Shanghai") // IANA，D-07
+  themePref           String    @default("system")
+  accessibilityPrefs  Json?
+  onboardingStatus    String    @default("none") // none / skipped / completed
+  exportStatus        String?
+  deletionStatus      String? // null / pending（D-18，7 天冷静期〔假设〕）
   scheduledDeletionAt DateTime? // deletionStatus=pending 时的冷静期截止时刻，到期硬删/匿名化（合规 §4.3）
-  version            Int      @default(1)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  deletedAt          DateTime?
+  version             Int       @default(1)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
 
   fastingPlans    FastingPlan[]
   fastingRecords  FastingRecord[]
@@ -66,7 +66,7 @@ model RefreshToken {
 }
 
 model FastingPlan {
-  id                String   @id @default(uuid())
+  id                String    @id @default(uuid())
   userId            String
   planType          String // 14:10 / 16:8 / 18:6（5:2 仅展示不入库，D-03）
   eatingWindowStart String // 本地时刻 HH:mm，配合 User.timezone 解释
@@ -74,9 +74,9 @@ model FastingPlan {
   effectiveDate     String // 生效本地日 YYYY-MM-DD，次日 0 点生效（D-06）
   status            String // current / pending / expired；同 userId 仅一条 current
   clientRequestId   String?
-  version           Int      @default(1)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  version           Int       @default(1)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
 
   user User @relation(fields: [userId], references: [id])
@@ -87,22 +87,22 @@ model FastingPlan {
 }
 
 model FastingRecord {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   userId          String
   attributionDate String // 归属本地日 = 进食窗口所属自然日，服务端算（D-07）
   plannedStartAt  DateTime
   plannedEndAt    DateTime // 含延长后移（D-10）
   actualStartAt   DateTime?
   actualEndAt     DateTime?
-  extendedMinutes Int      @default(0) // 累计 ≤240（D-10）
+  extendedMinutes Int       @default(0) // 累计 ≤240（D-10）
   fastedMinutes   Int?
-  result          String   @default("on_track") // on_track / completed / ended_early / broken / makeup
-  isQualified     Boolean  @default(false) // 达标判定服务端执行（D-08，容差热调）
+  result          String    @default("on_track") // on_track / completed / ended_early / broken / makeup
+  isQualified     Boolean   @default(false) // 达标判定服务端执行（D-08，容差热调）
   eventLog        Json? // 状态变更日志 append-only
   clientRequestId String?
-  version         Int      @default(1)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  version         Int       @default(1)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   deletedAt       DateTime?
 
   user User @relation(fields: [userId], references: [id])
@@ -113,7 +113,7 @@ model FastingRecord {
 }
 
 model FoodEntry {
-  id                String   @id @default(uuid())
+  id                String    @id @default(uuid())
   userId            String
   clientRequestId   String // 幂等键 = userId + clientRequestId（D-20）
   eatenAt           DateTime
@@ -122,9 +122,9 @@ model FoodEntry {
   inputMethod       String // photo / voice / frequent / manual
   photoUrl          String?
   nutritionSnapshot Json // {kcal, proteinG, carbsG, fatG} 服务端按份量换算快照
-  version           Int      @default(1) // etag / LWW 版本号
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt // LWW 仲裁基准，数据库时钟赋值
+  version           Int       @default(1) // etag / LWW 版本号
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt // LWW 仲裁基准，数据库时钟赋值
   deletedAt         DateTime? // 软删 tombstone，保留 90 天〔假设〕
 
   user User @relation(fields: [userId], references: [id])
@@ -136,24 +136,40 @@ model FoodEntry {
 }
 
 model Food {
-  id             String   @id @default(uuid())
-  nameZh         String // 双语食物字段（D-15/D-16）
-  nameEn         String
-  aliases        String[] // 中英混合别名
-  kcalPer100g    Float
-  proteinPer100g Float
-  carbsPer100g   Float
-  fatPer100g     Float
-  category       String?
-  source         String? // cn_fct / usda / manual / llm-estimate
-  isCustom       Boolean @default(false) // 用户自定义食物（个人库，参与 K1 搜索排内置之后）
-  createdByUserId String? // 自定义食物创建者，搜索/详情按此过滤可见性（仅创建者可见）
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              String   @id @default(uuid())
+  nameZh          String // 双语食物字段（D-15/D-16）
+  nameEn          String
+  aliases         String[] // 中英混合别名
+  kcalPer100g     Float
+  proteinPer100g  Float
+  carbsPer100g    Float
+  fatPer100g      Float
+  category        String?
+  source          String? // cn_fct / usda / manual / llm-estimate / community（审核晋升的共享食物）
+  isCustom        Boolean  @default(false) // 用户自定义食物（个人库，参与 K1 搜索排内置之后）
+  createdByUserId String? // 自定义/社区共享食物创建者（共享食物保留溯源；可见性按 isCustom 过滤）
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   entries FoodEntry[]
 
   @@map("foods")
+}
+
+// 共享食物候选审核池（食物库扩充第三层：用户自定义食物经审核晋升为共享库，先审后发 D-17）
+model FoodCandidate {
+  id              String   @id @default(uuid())
+  foodId          String // 被贡献的自定义食物 id（approve 后该食物 isCustom=false 转共享，id 不变）
+  userId          String // 贡献者（= 自定义食物创建者）
+  status          String   @default("pending") // pending / approved / rejected
+  reason          String? // 审核拒绝原因
+  clientRequestId String // 贡献幂等键
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status, createdAt]) // 审核队列按状态过滤 + 先入先审
+  @@map("food_candidates")
 }
 
 model DailyNutrition {
@@ -176,16 +192,16 @@ model DailyNutrition {
 }
 
 model Streak {
-  id               String   @id @default(uuid())
-  userId           String   @unique
-  currentStreak    Int      @default(0)
-  longestStreak    Int      @default(0)
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  currentStreak     Int      @default(0)
+  longestStreak     Int      @default(0)
   lastQualifiedDate String?
-  milestones       Json? // {3: achievedAt, 7: ..., 30: ...}
-  makeupCards      Json? // {stock, month, usedDates[]}（D-12：月初 2 张/上限 2/仅 7 天内/月底清零）
-  version          Int      @default(1)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  milestones        Json? // {3: achievedAt, 7: ..., 30: ...}
+  makeupCards       Json? // {stock, month, usedDates[]}（D-12：月初 2 张/上限 2/仅 7 天内/月底清零）
+  version           Int      @default(1)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 
@@ -193,21 +209,21 @@ model Streak {
 }
 
 model Post {
-  id              String   @id @default(uuid())
+  id               String    @id @default(uuid())
   // 可空：U5 账号删除物理删用户行时，帖子按合规口径匿名化留存（userId 置空）。
-  userId          String?
-  clientRequestId String?
-  text            String
-  imageUrls       String[]
+  userId           String?
+  clientRequestId  String?
+  text             String
+  imageUrls        String[]
   streakDaysAtPost Int?
-  likeCount       Int      @default(0)
-  auditStatus     String   @default("pending") // pending / approved / rejected（先审后发 D-17）
-  auditReason     Json? // 双语 {zh, en}
-  visibility      String   @default("public") // self / followers / public 预留
-  version         Int      @default(1)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  deletedAt       DateTime?
+  likeCount        Int       @default(0)
+  auditStatus      String    @default("pending") // pending / approved / rejected（先审后发 D-17）
+  auditReason      Json? // 双语 {zh, en}
+  visibility       String    @default("public") // self / followers / public 预留
+  version          Int       @default(1)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
 
   user User? @relation(fields: [userId], references: [id])
 
