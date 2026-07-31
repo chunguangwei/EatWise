@@ -20,6 +20,9 @@ void main() {
     proteinPer100g: 2.6,
     carbPer100g: 25.9,
     fatPer100g: 0.3,
+    isCustom: false,
+    customSyncPending: false,
+    customClientRequestId: '',
   );
   const egg = Food(
     id: 'f-egg',
@@ -31,6 +34,9 @@ void main() {
     proteinPer100g: 13.3,
     carbPer100g: 2.8,
     fatPer100g: 8.8,
+    isCustom: false,
+    customSyncPending: false,
+    customClientRequestId: '',
   );
   const milk = Food(
     id: 'f-milk',
@@ -42,6 +48,9 @@ void main() {
     proteinPer100g: 3,
     carbPer100g: 3.4,
     fatPer100g: 3.2,
+    isCustom: false,
+    customSyncPending: false,
+    customClientRequestId: '',
   );
   final foods = <Food>[rice, egg, milk];
 

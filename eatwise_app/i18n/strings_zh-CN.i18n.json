@@ -156,6 +156,27 @@
     "card": {
       "pleaseConfirm": "请确认"
     },
+    "customFood": {
+      "cta": "找不到？添加自定义食物",
+      "badge": "自定义",
+      "title": "添加自定义食物",
+      "nameLabel": "菜名",
+      "nameRequired": "请输入菜名",
+      "aliasLabel": "别名（可选，逗号分隔）",
+      "estimate": "AI 估算",
+      "estimating": "估算中…",
+      "estimateBadge": "AI 估算，请确认",
+      "estimateLow": "置信度较低，请仔细核对数值",
+      "estimateUnavailable": "估算暂不可用，请手动填写",
+      "kcalLabel": "热量（千卡 / 100 克）",
+      "proteinLabel": "蛋白质（克 / 100 克）",
+      "carbLabel": "碳水（克 / 100 克）",
+      "fatLabel": "脂肪（克 / 100 克）",
+      "nutritionRequired": "请填写大于 0 的数值",
+      "kcalRange": "热量需在 0–900 千卡之间",
+      "macroRange": "需在 0–100 克之间",
+      "savedOffline": "已保存到本机，联网后自动同步"
+    },
     "water": {
       "title": "今日饮水",
       "progress": "${total} / ${goal} 毫升",

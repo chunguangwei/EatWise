@@ -7,8 +7,9 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// schema v2 → v4 迁移测试：v2 库（无 water_logs）打开后 onUpgrade 新增
-/// WaterLogs（v3）并补两态同步字段（v4），且 v2 旧数据完整保留。
+/// schema v2 → v5 迁移测试：v2 库（无 water_logs）打开后 onUpgrade 新增
+/// WaterLogs（v3）并补两态同步字段（v4）+ Foods 自定义食物字段（v5），
+/// 且 v2 旧数据完整保留。
 void main() {
   late Directory dir;
   late File dbFile;
@@ -106,13 +107,14 @@ void main() {
     await seed.close();
   }
 
-  test('v2 → v4：onUpgrade 新增 water_logs + v4 同步字段，v2 数据完整保留', () async {
+  test('v2 → v5：onUpgrade 新增 water_logs + v4 同步字段 + v5 自定义食物字段，'
+      'v2 数据完整保留', () async {
     await seedV2Database();
 
     final db = AppDatabase(NativeDatabase(dbFile));
     addTearDown(() async => db.close());
 
-    expect(db.schemaVersion, 4);
+    expect(db.schemaVersion, 5);
 
     // 迁移后 water_logs 可写可读（v4 同步字段走默认值）。
     await db.waterLogDao.insertLog(
@@ -136,9 +138,14 @@ void main() {
     expect(food!.nameZh, '白米饭');
     expect(food.kcalPer100g, 116);
 
-    // 升级后的 user_version 落为 4（重开不再重复迁移）。
+    // v5 自定义食物字段走默认值（内置食物非自定义、无 pending/幂等键）。
+    expect(food.isCustom, isFalse);
+    expect(food.customSyncPending, isFalse);
+    expect(food.customClientRequestId, '');
+
+    // 升级后的 user_version 落为 5（重开不再重复迁移）。
     final versionRow = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(versionRow.data['user_version'], 4);
+    expect(versionRow.data['user_version'], 5);
   });
 }
 

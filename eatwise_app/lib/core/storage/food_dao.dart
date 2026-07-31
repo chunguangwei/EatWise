@@ -38,4 +38,18 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
       b.insertAllOnConflictUpdate(foods, entries);
     });
   }
+
+  /// 待上行的自定义食物（离线保存 pending，联网后重试 /foods/custom）。
+  Future<List<Food>> pendingCustomFoods() {
+    return (select(
+      foods,
+    )..where((f) => f.isCustom & f.customSyncPending)).get();
+  }
+
+  /// 自定义食物上行成功：清除 pending 标记。
+  Future<void> markCustomSynced(String id) {
+    return (update(foods)..where((f) => f.id.equals(id))).write(
+      const FoodsCompanion(customSyncPending: Value(false)),
+    );
+  }
 }

@@ -99,6 +99,7 @@ class _Translations$record$en extends Translations$record$zh_CN {
 	@override late final _Translations$record$voice$en voice = _Translations$record$voice$en._(_root);
 	@override late final _Translations$record$frequent$en frequent = _Translations$record$frequent$en._(_root);
 	@override late final _Translations$record$card$en card = _Translations$record$card$en._(_root);
+	@override late final _Translations$record$customFood$en customFood = _Translations$record$customFood$en._(_root);
 	@override late final _Translations$record$water$en water = _Translations$record$water$en._(_root);
 	@override late final _Translations$record$weight$en weight = _Translations$record$weight$en._(_root);
 	@override late final _Translations$record$home$en home = _Translations$record$home$en._(_root);
@@ -477,6 +478,34 @@ class _Translations$record$card$en extends Translations$record$card$zh_CN {
 
 	// Translations
 	@override String get pleaseConfirm => 'Please confirm';
+}
+
+// Path: record.customFood
+class _Translations$record$customFood$en extends Translations$record$customFood$zh_CN {
+	_Translations$record$customFood$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get cta => 'Can\'t find it? Add a custom food';
+	@override String get badge => 'Custom';
+	@override String get title => 'Add custom food';
+	@override String get nameLabel => 'Food name';
+	@override String get nameRequired => 'Please enter a name';
+	@override String get aliasLabel => 'Aliases (optional, comma-separated)';
+	@override String get estimate => 'AI estimate';
+	@override String get estimating => 'Estimating…';
+	@override String get estimateBadge => 'AI estimate — please confirm';
+	@override String get estimateLow => 'Low confidence — please double-check the values';
+	@override String get estimateUnavailable => 'Estimate unavailable — please enter values manually';
+	@override String get kcalLabel => 'Calories (kcal / 100 g)';
+	@override String get proteinLabel => 'Protein (g / 100 g)';
+	@override String get carbLabel => 'Carbs (g / 100 g)';
+	@override String get fatLabel => 'Fat (g / 100 g)';
+	@override String get nutritionRequired => 'Enter a number greater than 0';
+	@override String get kcalRange => 'Calories must be between 0 and 900 kcal';
+	@override String get macroRange => 'Must be between 0 and 100 g';
+	@override String get savedOffline => 'Saved on this device — will sync when online';
 }
 
 // Path: record.water
@@ -1496,6 +1525,25 @@ extension on TranslationsEn {
 			'record.frequent.title' => 'Frequently logged',
 			'record.frequent.empty' => 'Log a few more meals and your usuals will show up here',
 			'record.card.pleaseConfirm' => 'Please confirm',
+			'record.customFood.cta' => 'Can\'t find it? Add a custom food',
+			'record.customFood.badge' => 'Custom',
+			'record.customFood.title' => 'Add custom food',
+			'record.customFood.nameLabel' => 'Food name',
+			'record.customFood.nameRequired' => 'Please enter a name',
+			'record.customFood.aliasLabel' => 'Aliases (optional, comma-separated)',
+			'record.customFood.estimate' => 'AI estimate',
+			'record.customFood.estimating' => 'Estimating…',
+			'record.customFood.estimateBadge' => 'AI estimate — please confirm',
+			'record.customFood.estimateLow' => 'Low confidence — please double-check the values',
+			'record.customFood.estimateUnavailable' => 'Estimate unavailable — please enter values manually',
+			'record.customFood.kcalLabel' => 'Calories (kcal / 100 g)',
+			'record.customFood.proteinLabel' => 'Protein (g / 100 g)',
+			'record.customFood.carbLabel' => 'Carbs (g / 100 g)',
+			'record.customFood.fatLabel' => 'Fat (g / 100 g)',
+			'record.customFood.nutritionRequired' => 'Enter a number greater than 0',
+			'record.customFood.kcalRange' => 'Calories must be between 0 and 900 kcal',
+			'record.customFood.macroRange' => 'Must be between 0 and 100 g',
+			'record.customFood.savedOffline' => 'Saved on this device — will sync when online',
 			'record.water.title' => 'Water today',
 			'record.water.progress' => ({required Object total, required Object goal}) => '${total} / ${goal} ml',
 			'record.water.quickAddLabel' => ({required Object ml}) => 'Add ${ml} ml of water',

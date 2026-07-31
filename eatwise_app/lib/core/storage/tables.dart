@@ -113,6 +113,17 @@ class Foods extends Table {
   /// 每 100g 脂肪（g）。
   RealColumn get fatPer100g => real()();
 
+  /// 是否用户自定义食物（K2 个人库；搜索结果带「自定义」标签）。
+  BoolColumn get isCustom => boolean().withDefault(const Constant(false))();
+
+  /// 自定义食物待上行标记（离线保存为 true，上行 /foods/custom 成功转 false）。
+  BoolColumn get customSyncPending =>
+      boolean().withDefault(const Constant(false))();
+
+  /// 自定义食物上行幂等键（UUIDv4，/foods/custom 重试复用，§2.2）。
+  TextColumn get customClientRequestId =>
+      text().withDefault(const Constant(''))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

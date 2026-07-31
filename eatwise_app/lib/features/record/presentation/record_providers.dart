@@ -5,6 +5,7 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/data/food_search_remote.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
@@ -78,6 +79,7 @@ final Provider<RecordSyncEngine> recordSyncEngineProvider =
         repository: ref.watch(recordRepositoryProvider),
         prefs: ref.watch(sharedPreferencesProvider),
         waterSync: ref.watch(waterLogSyncProvider),
+        customFoodSync: ref.watch(customFoodRepositoryProvider),
       );
     });
 

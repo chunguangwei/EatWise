@@ -103,6 +103,48 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _isCustomMeta = const VerificationMeta(
+    'isCustom',
+  );
+  @override
+  late final GeneratedColumn<bool> isCustom = GeneratedColumn<bool>(
+    'is_custom',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_custom" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _customSyncPendingMeta = const VerificationMeta(
+    'customSyncPending',
+  );
+  @override
+  late final GeneratedColumn<bool> customSyncPending = GeneratedColumn<bool>(
+    'custom_sync_pending',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("custom_sync_pending" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _customClientRequestIdMeta =
+      const VerificationMeta('customClientRequestId');
+  @override
+  late final GeneratedColumn<String> customClientRequestId =
+      GeneratedColumn<String>(
+        'custom_client_request_id',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -114,6 +156,9 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     proteinPer100g,
     carbPer100g,
     fatPer100g,
+    isCustom,
+    customSyncPending,
+    customClientRequestId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -201,6 +246,30 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     } else if (isInserting) {
       context.missing(_fatPer100gMeta);
     }
+    if (data.containsKey('is_custom')) {
+      context.handle(
+        _isCustomMeta,
+        isCustom.isAcceptableOrUnknown(data['is_custom']!, _isCustomMeta),
+      );
+    }
+    if (data.containsKey('custom_sync_pending')) {
+      context.handle(
+        _customSyncPendingMeta,
+        customSyncPending.isAcceptableOrUnknown(
+          data['custom_sync_pending']!,
+          _customSyncPendingMeta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_client_request_id')) {
+      context.handle(
+        _customClientRequestIdMeta,
+        customClientRequestId.isAcceptableOrUnknown(
+          data['custom_client_request_id']!,
+          _customClientRequestIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -246,6 +315,18 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         DriftSqlType.double,
         data['${effectivePrefix}fat_per100g'],
       )!,
+      isCustom: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_custom'],
+      )!,
+      customSyncPending: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}custom_sync_pending'],
+      )!,
+      customClientRequestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_client_request_id'],
+      )!,
     );
   }
 
@@ -282,6 +363,15 @@ class Food extends DataClass implements Insertable<Food> {
 
   /// 每 100g 脂肪（g）。
   final double fatPer100g;
+
+  /// 是否用户自定义食物（K2 个人库；搜索结果带「自定义」标签）。
+  final bool isCustom;
+
+  /// 自定义食物待上行标记（离线保存为 true，上行 /foods/custom 成功转 false）。
+  final bool customSyncPending;
+
+  /// 自定义食物上行幂等键（UUIDv4，/foods/custom 重试复用，§2.2）。
+  final String customClientRequestId;
   const Food({
     required this.id,
     required this.nameZh,
@@ -292,6 +382,9 @@ class Food extends DataClass implements Insertable<Food> {
     required this.proteinPer100g,
     required this.carbPer100g,
     required this.fatPer100g,
+    required this.isCustom,
+    required this.customSyncPending,
+    required this.customClientRequestId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -305,6 +398,9 @@ class Food extends DataClass implements Insertable<Food> {
     map['protein_per100g'] = Variable<double>(proteinPer100g);
     map['carb_per100g'] = Variable<double>(carbPer100g);
     map['fat_per100g'] = Variable<double>(fatPer100g);
+    map['is_custom'] = Variable<bool>(isCustom);
+    map['custom_sync_pending'] = Variable<bool>(customSyncPending);
+    map['custom_client_request_id'] = Variable<String>(customClientRequestId);
     return map;
   }
 
@@ -319,6 +415,9 @@ class Food extends DataClass implements Insertable<Food> {
       proteinPer100g: Value(proteinPer100g),
       carbPer100g: Value(carbPer100g),
       fatPer100g: Value(fatPer100g),
+      isCustom: Value(isCustom),
+      customSyncPending: Value(customSyncPending),
+      customClientRequestId: Value(customClientRequestId),
     );
   }
 
@@ -337,6 +436,11 @@ class Food extends DataClass implements Insertable<Food> {
       proteinPer100g: serializer.fromJson<double>(json['proteinPer100g']),
       carbPer100g: serializer.fromJson<double>(json['carbPer100g']),
       fatPer100g: serializer.fromJson<double>(json['fatPer100g']),
+      isCustom: serializer.fromJson<bool>(json['isCustom']),
+      customSyncPending: serializer.fromJson<bool>(json['customSyncPending']),
+      customClientRequestId: serializer.fromJson<String>(
+        json['customClientRequestId'],
+      ),
     );
   }
   @override
@@ -352,6 +456,9 @@ class Food extends DataClass implements Insertable<Food> {
       'proteinPer100g': serializer.toJson<double>(proteinPer100g),
       'carbPer100g': serializer.toJson<double>(carbPer100g),
       'fatPer100g': serializer.toJson<double>(fatPer100g),
+      'isCustom': serializer.toJson<bool>(isCustom),
+      'customSyncPending': serializer.toJson<bool>(customSyncPending),
+      'customClientRequestId': serializer.toJson<String>(customClientRequestId),
     };
   }
 
@@ -365,6 +472,9 @@ class Food extends DataClass implements Insertable<Food> {
     double? proteinPer100g,
     double? carbPer100g,
     double? fatPer100g,
+    bool? isCustom,
+    bool? customSyncPending,
+    String? customClientRequestId,
   }) => Food(
     id: id ?? this.id,
     nameZh: nameZh ?? this.nameZh,
@@ -375,6 +485,9 @@ class Food extends DataClass implements Insertable<Food> {
     proteinPer100g: proteinPer100g ?? this.proteinPer100g,
     carbPer100g: carbPer100g ?? this.carbPer100g,
     fatPer100g: fatPer100g ?? this.fatPer100g,
+    isCustom: isCustom ?? this.isCustom,
+    customSyncPending: customSyncPending ?? this.customSyncPending,
+    customClientRequestId: customClientRequestId ?? this.customClientRequestId,
   );
   Food copyWithCompanion(FoodsCompanion data) {
     return Food(
@@ -395,6 +508,13 @@ class Food extends DataClass implements Insertable<Food> {
       fatPer100g: data.fatPer100g.present
           ? data.fatPer100g.value
           : this.fatPer100g,
+      isCustom: data.isCustom.present ? data.isCustom.value : this.isCustom,
+      customSyncPending: data.customSyncPending.present
+          ? data.customSyncPending.value
+          : this.customSyncPending,
+      customClientRequestId: data.customClientRequestId.present
+          ? data.customClientRequestId.value
+          : this.customClientRequestId,
     );
   }
 
@@ -409,7 +529,10 @@ class Food extends DataClass implements Insertable<Food> {
           ..write('kcalPer100g: $kcalPer100g, ')
           ..write('proteinPer100g: $proteinPer100g, ')
           ..write('carbPer100g: $carbPer100g, ')
-          ..write('fatPer100g: $fatPer100g')
+          ..write('fatPer100g: $fatPer100g, ')
+          ..write('isCustom: $isCustom, ')
+          ..write('customSyncPending: $customSyncPending, ')
+          ..write('customClientRequestId: $customClientRequestId')
           ..write(')'))
         .toString();
   }
@@ -425,6 +548,9 @@ class Food extends DataClass implements Insertable<Food> {
     proteinPer100g,
     carbPer100g,
     fatPer100g,
+    isCustom,
+    customSyncPending,
+    customClientRequestId,
   );
   @override
   bool operator ==(Object other) =>
@@ -438,7 +564,10 @@ class Food extends DataClass implements Insertable<Food> {
           other.kcalPer100g == this.kcalPer100g &&
           other.proteinPer100g == this.proteinPer100g &&
           other.carbPer100g == this.carbPer100g &&
-          other.fatPer100g == this.fatPer100g);
+          other.fatPer100g == this.fatPer100g &&
+          other.isCustom == this.isCustom &&
+          other.customSyncPending == this.customSyncPending &&
+          other.customClientRequestId == this.customClientRequestId);
 }
 
 class FoodsCompanion extends UpdateCompanion<Food> {
@@ -451,6 +580,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
   final Value<double> proteinPer100g;
   final Value<double> carbPer100g;
   final Value<double> fatPer100g;
+  final Value<bool> isCustom;
+  final Value<bool> customSyncPending;
+  final Value<String> customClientRequestId;
   final Value<int> rowid;
   const FoodsCompanion({
     this.id = const Value.absent(),
@@ -462,6 +594,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     this.proteinPer100g = const Value.absent(),
     this.carbPer100g = const Value.absent(),
     this.fatPer100g = const Value.absent(),
+    this.isCustom = const Value.absent(),
+    this.customSyncPending = const Value.absent(),
+    this.customClientRequestId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FoodsCompanion.insert({
@@ -474,6 +609,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     required double proteinPer100g,
     required double carbPer100g,
     required double fatPer100g,
+    this.isCustom = const Value.absent(),
+    this.customSyncPending = const Value.absent(),
+    this.customClientRequestId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        nameZh = Value(nameZh),
@@ -492,6 +630,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Expression<double>? proteinPer100g,
     Expression<double>? carbPer100g,
     Expression<double>? fatPer100g,
+    Expression<bool>? isCustom,
+    Expression<bool>? customSyncPending,
+    Expression<String>? customClientRequestId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -504,6 +645,10 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       if (proteinPer100g != null) 'protein_per100g': proteinPer100g,
       if (carbPer100g != null) 'carb_per100g': carbPer100g,
       if (fatPer100g != null) 'fat_per100g': fatPer100g,
+      if (isCustom != null) 'is_custom': isCustom,
+      if (customSyncPending != null) 'custom_sync_pending': customSyncPending,
+      if (customClientRequestId != null)
+        'custom_client_request_id': customClientRequestId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -518,6 +663,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Value<double>? proteinPer100g,
     Value<double>? carbPer100g,
     Value<double>? fatPer100g,
+    Value<bool>? isCustom,
+    Value<bool>? customSyncPending,
+    Value<String>? customClientRequestId,
     Value<int>? rowid,
   }) {
     return FoodsCompanion(
@@ -530,6 +678,10 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       proteinPer100g: proteinPer100g ?? this.proteinPer100g,
       carbPer100g: carbPer100g ?? this.carbPer100g,
       fatPer100g: fatPer100g ?? this.fatPer100g,
+      isCustom: isCustom ?? this.isCustom,
+      customSyncPending: customSyncPending ?? this.customSyncPending,
+      customClientRequestId:
+          customClientRequestId ?? this.customClientRequestId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -564,6 +716,17 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     if (fatPer100g.present) {
       map['fat_per100g'] = Variable<double>(fatPer100g.value);
     }
+    if (isCustom.present) {
+      map['is_custom'] = Variable<bool>(isCustom.value);
+    }
+    if (customSyncPending.present) {
+      map['custom_sync_pending'] = Variable<bool>(customSyncPending.value);
+    }
+    if (customClientRequestId.present) {
+      map['custom_client_request_id'] = Variable<String>(
+        customClientRequestId.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -582,6 +745,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
           ..write('proteinPer100g: $proteinPer100g, ')
           ..write('carbPer100g: $carbPer100g, ')
           ..write('fatPer100g: $fatPer100g, ')
+          ..write('isCustom: $isCustom, ')
+          ..write('customSyncPending: $customSyncPending, ')
+          ..write('customClientRequestId: $customClientRequestId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3989,6 +4155,9 @@ typedef $$FoodsTableCreateCompanionBuilder =
       required double proteinPer100g,
       required double carbPer100g,
       required double fatPer100g,
+      Value<bool> isCustom,
+      Value<bool> customSyncPending,
+      Value<String> customClientRequestId,
       Value<int> rowid,
     });
 typedef $$FoodsTableUpdateCompanionBuilder =
@@ -4002,6 +4171,9 @@ typedef $$FoodsTableUpdateCompanionBuilder =
       Value<double> proteinPer100g,
       Value<double> carbPer100g,
       Value<double> fatPer100g,
+      Value<bool> isCustom,
+      Value<bool> customSyncPending,
+      Value<String> customClientRequestId,
       Value<int> rowid,
     });
 
@@ -4078,6 +4250,21 @@ class $$FoodsTableFilterComposer extends Composer<_$AppDatabase, $FoodsTable> {
 
   ColumnFilters<double> get fatPer100g => $composableBuilder(
     column: $table.fatPer100g,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isCustom => $composableBuilder(
+    column: $table.isCustom,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get customSyncPending => $composableBuilder(
+    column: $table.customSyncPending,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customClientRequestId => $composableBuilder(
+    column: $table.customClientRequestId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4160,6 +4347,21 @@ class $$FoodsTableOrderingComposer
     column: $table.fatPer100g,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get isCustom => $composableBuilder(
+    column: $table.isCustom,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get customSyncPending => $composableBuilder(
+    column: $table.customSyncPending,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customClientRequestId => $composableBuilder(
+    column: $table.customClientRequestId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$FoodsTableAnnotationComposer
@@ -4203,6 +4405,19 @@ class $$FoodsTableAnnotationComposer
 
   GeneratedColumn<double> get fatPer100g => $composableBuilder(
     column: $table.fatPer100g,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isCustom =>
+      $composableBuilder(column: $table.isCustom, builder: (column) => column);
+
+  GeneratedColumn<bool> get customSyncPending => $composableBuilder(
+    column: $table.customSyncPending,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customClientRequestId => $composableBuilder(
+    column: $table.customClientRequestId,
     builder: (column) => column,
   );
 
@@ -4269,6 +4484,9 @@ class $$FoodsTableTableManager
                 Value<double> proteinPer100g = const Value.absent(),
                 Value<double> carbPer100g = const Value.absent(),
                 Value<double> fatPer100g = const Value.absent(),
+                Value<bool> isCustom = const Value.absent(),
+                Value<bool> customSyncPending = const Value.absent(),
+                Value<String> customClientRequestId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FoodsCompanion(
                 id: id,
@@ -4280,6 +4498,9 @@ class $$FoodsTableTableManager
                 proteinPer100g: proteinPer100g,
                 carbPer100g: carbPer100g,
                 fatPer100g: fatPer100g,
+                isCustom: isCustom,
+                customSyncPending: customSyncPending,
+                customClientRequestId: customClientRequestId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4293,6 +4514,9 @@ class $$FoodsTableTableManager
                 required double proteinPer100g,
                 required double carbPer100g,
                 required double fatPer100g,
+                Value<bool> isCustom = const Value.absent(),
+                Value<bool> customSyncPending = const Value.absent(),
+                Value<String> customClientRequestId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FoodsCompanion.insert(
                 id: id,
@@ -4304,6 +4528,9 @@ class $$FoodsTableTableManager
                 proteinPer100g: proteinPer100g,
                 carbPer100g: carbPer100g,
                 fatPer100g: fatPer100g,
+                isCustom: isCustom,
+                customSyncPending: customSyncPending,
+                customClientRequestId: customClientRequestId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

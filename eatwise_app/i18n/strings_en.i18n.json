@@ -156,6 +156,27 @@
     "card": {
       "pleaseConfirm": "Please confirm"
     },
+    "customFood": {
+      "cta": "Can't find it? Add a custom food",
+      "badge": "Custom",
+      "title": "Add custom food",
+      "nameLabel": "Food name",
+      "nameRequired": "Please enter a name",
+      "aliasLabel": "Aliases (optional, comma-separated)",
+      "estimate": "AI estimate",
+      "estimating": "Estimating…",
+      "estimateBadge": "AI estimate — please confirm",
+      "estimateLow": "Low confidence — please double-check the values",
+      "estimateUnavailable": "Estimate unavailable — please enter values manually",
+      "kcalLabel": "Calories (kcal / 100 g)",
+      "proteinLabel": "Protein (g / 100 g)",
+      "carbLabel": "Carbs (g / 100 g)",
+      "fatLabel": "Fat (g / 100 g)",
+      "nutritionRequired": "Enter a number greater than 0",
+      "kcalRange": "Calories must be between 0 and 900 kcal",
+      "macroRange": "Must be between 0 and 100 g",
+      "savedOffline": "Saved on this device — will sync when online"
+    },
     "water": {
       "title": "Water today",
       "progress": "${total} / ${goal} ml",

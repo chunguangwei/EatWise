@@ -60,6 +60,8 @@ final class RemoteFoodSearch {
       proteinPer100g: Value((item['proteinPer100g'] as num?)?.toDouble() ?? 0),
       carbPer100g: Value((item['carbsPer100g'] as num?)?.toDouble() ?? 0),
       fatPer100g: Value((item['fatPer100g'] as num?)?.toDouble() ?? 0),
+      // K1 搜索结果标注 isCustom（个人库排内置后）；缓存保留标记供「自定义」标签。
+      isCustom: Value(item['isCustom'] == true),
     );
   }
 }

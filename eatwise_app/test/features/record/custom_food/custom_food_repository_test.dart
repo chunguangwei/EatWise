@@ -1,0 +1,117 @@
+import 'package:eatwise/core/network/api_exception.dart';
+import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
+import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
+import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
+import 'package:eatwise/features/record/domain/record_models.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+/// 自定义食物仓储单测（K2：远端直调 + 本地落库 + 离线 pending 重试）。
+///
+/// 覆盖：在线保存落库可搜、离线仅落本地 pending、联网 retryPending
+/// 幂等重试、业务错误上抛不落库。
+void main() {
+  late AppDatabase db;
+  late FakeCustomFoodRemote remote;
+  late CustomFoodRepository repository;
+
+  const draft = CustomFoodDraft(
+    nameZh: '燕窝羹',
+    aliasesZh: <String>['燕窝'],
+    per100g: NutritionSnapshot(kcal: 60, proteinG: 5, carbG: 8, fatG: 1),
+    source: CustomFoodSource.manual,
+  );
+
+  setUp(() {
+    db = AppDatabase.memory();
+    remote = FakeCustomFoodRemote();
+    repository = CustomFoodRepository(db: db, remote: remote);
+  });
+
+  tearDown(() async {
+    await db.close();
+  });
+
+  test('在线保存：远端成功 + 本地落库 isCustom，立即可搜可记', () async {
+    final result = await repository.save(draft);
+
+    expect(result.uploaded, isTrue);
+    expect(result.food.id, 'srv-food-1'); // 以服务端 ID 为本地主键
+    expect(result.food.isCustom, isTrue);
+    expect(result.food.customSyncPending, isFalse);
+    expect(remote.receivedRequestIds, hasLength(1));
+
+    // 保存后立即可搜（名称 + 别名 LIKE 命中）。
+    final byName = await db.foodDao.searchFoods('燕窝羹');
+    expect(byName.map((f) => f.id), contains('srv-food-1'));
+    final byAlias = await db.foodDao.searchFoods('燕窝');
+    expect(byAlias.map((f) => f.id), contains('srv-food-1'));
+  });
+
+  test('离线保存：仅落本地 pending，记录幂等键待重试', () async {
+    remote.mode = FakeCustomFoodMode.offline;
+
+    final result = await repository.save(draft);
+
+    expect(result.uploaded, isFalse);
+    expect(result.food.isCustom, isTrue);
+    expect(result.food.customSyncPending, isTrue);
+    expect(result.food.customClientRequestId, isNotEmpty);
+    expect(remote.receivedRequestIds, isEmpty); // 未到达远端
+
+    // 本地仍可搜（离线期间照常可记）。
+    final hits = await db.foodDao.searchFoods('燕窝羹');
+    expect(hits, hasLength(1));
+  });
+
+  test('联网后 retryPending：原幂等键上行成功并清除 pending', () async {
+    remote.mode = FakeCustomFoodMode.offline;
+    final saved = await repository.save(draft);
+    final pendingId = saved.food.customClientRequestId;
+
+    // 恢复在线 → 重试上行。
+    remote.mode = FakeCustomFoodMode.success;
+    final synced = await repository.retryPending();
+
+    expect(synced, 1);
+    expect(remote.receivedRequestIds, <String>[pendingId]); // 幂等键复用
+    final row = await db.foodDao.getById(saved.food.id);
+    expect(row!.customSyncPending, isFalse);
+
+    // 重复 retryPending 不再上行（已无 pending）。
+    expect(await repository.retryPending(), 0);
+    expect(remote.receivedRequestIds, hasLength(1));
+  });
+
+  test('业务错误（4xx 校验拒绝）：上抛且不落库', () async {
+    remote.mode = FakeCustomFoodMode.success;
+    final rejecting = _RejectingRemote();
+    final rejectingRepo = CustomFoodRepository(db: db, remote: rejecting);
+
+    await expectLater(
+      rejectingRepo.save(draft),
+      throwsA(isA<BusinessApiException>()),
+    );
+    expect(await db.foodDao.searchFoods('燕窝羹'), isEmpty);
+  });
+}
+
+/// 模拟 422 校验拒绝的远程端（T7 口径：不可重试错误上抛）。
+final class _RejectingRemote implements CustomFoodRemote {
+  @override
+  Future<FoodEstimate> estimate(String name, {String? description}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<String> createCustom(
+    CustomFoodDraft draft, {
+    required String clientRequestId,
+  }) {
+    throw const BusinessApiException(
+      httpStatus: 422,
+      code: 'VALIDATION_FAILED',
+      message: '字段校验失败',
+    );
+  }
+}

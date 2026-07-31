@@ -7,9 +7,9 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// schema v3 → v4 迁移测试：v3 库（water_logs 无同步字段，含历史数据）
-/// 打开后 onUpgrade 补 clientRequestId/serverId/syncState/deleted 四列，
-/// 历史饮水数据完整保留且默认 pending。
+/// schema v3 → v5 迁移测试：v3 库（water_logs 无同步字段，含历史数据）
+/// 打开后 onUpgrade 补 clientRequestId/serverId/syncState/deleted 四列（v4）
+/// + Foods 自定义食物三列（v5），历史饮水数据完整保留且默认 pending。
 void main() {
   late Directory dir;
   late File dbFile;
@@ -60,13 +60,13 @@ void main() {
     await seed.close();
   }
 
-  test('v3 → v4：water_logs 补同步字段，历史数据保留且默认 pending', () async {
+  test('v3 → v5：water_logs 补同步字段 + foods 补自定义字段，历史数据保留且默认 pending', () async {
     await seedV3Database();
 
     final db = AppDatabase(NativeDatabase(dbFile));
     addTearDown(() async => db.close());
 
-    expect(db.schemaVersion, 4);
+    expect(db.schemaVersion, 5);
 
     // 历史行完整保留，新列走默认值（pending/无 serverId/无幂等键/非 tombstone）。
     final old = (await db.waterLogDao.getByLocalId('w-old'))!;
@@ -94,9 +94,9 @@ void main() {
     expect(newLog.clientRequestId, 'c-new');
     expect(newLog.syncState, WaterSyncState.pending);
 
-    // 升级后的 user_version 落为 4（重开不再重复迁移）。
+    // 升级后的 user_version 落为 5（重开不再重复迁移）。
     final versionRow = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(versionRow.data['user_version'], 4);
+    expect(versionRow.data['user_version'], 5);
   });
 }
 

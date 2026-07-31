@@ -11,6 +11,8 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/record/custom_food/presentation/custom_food_sheet.dart';
+import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/presentation/light_record_section.dart';
@@ -211,6 +213,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
       if (_amountController.text != next) _amountController.text = next;
     });
     final s = RecordStrings.of(context);
+    final cs = CustomFoodStrings.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final radii = Theme.of(context).extension<AppRadii>()!;
@@ -350,11 +353,33 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                     data: (foods) {
                       if (foods.isEmpty) {
                         return Center(
-                          child: Text(
-                            s.searchEmpty,
-                            style: textStyles.textSm.copyWith(
-                              color: colors.textSecondary,
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Text(
+                                s.searchEmpty,
+                                style: textStyles.textSm.copyWith(
+                                  color: colors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.s2),
+                              // K2 自定义食物入口（搜索无结果 CTA，≥44px 触控区）。
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  minimumSize: const Size(44, 48),
+                                  foregroundColor: colors.brandPrimary,
+                                ),
+                                onPressed: () => unawaited(
+                                  startCustomFoodFlow(context, ref),
+                                ),
+                                child: Text(
+                                  cs.cta,
+                                  style: textStyles.textBase.copyWith(
+                                    color: colors.brandPrimary,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       }
@@ -363,9 +388,36 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                         itemBuilder: (context, index) {
                           final food = foods[index];
                           return ListTile(
-                            title: Text(
-                              isEn ? food.nameEn : food.nameZh,
-                              style: textStyles.textBase,
+                            title: Row(
+                              children: <Widget>[
+                                Flexible(
+                                  child: Text(
+                                    isEn ? food.nameEn : food.nameZh,
+                                    style: textStyles.textBase,
+                                  ),
+                                ),
+                                // 自定义食物小标签（K2：个人库条目）。
+                                if (food.isCustom)
+                                  Container(
+                                    margin: const EdgeInsets.only(
+                                      left: AppSpacing.s2,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.s2,
+                                      vertical: AppSpacing.s1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colors.brandAccent,
+                                      borderRadius: radii.rSm,
+                                    ),
+                                    child: Text(
+                                      cs.badge,
+                                      style: textStyles.textXs.copyWith(
+                                        color: colors.bgPrimary,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                             subtitle: Text(
                               '${food.kcalPer100g.round()} '

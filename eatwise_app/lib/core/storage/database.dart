@@ -46,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -66,6 +66,13 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(waterLogs, waterLogs.serverId);
         await m.addColumn(waterLogs, waterLogs.syncState);
         await m.addColumn(waterLogs, waterLogs.deleted);
+      }
+      // v5：Foods 补自定义食物字段（isCustom/customSyncPending/
+      // customClientRequestId，K2 个人库 + 离线 pending 上行幂等键）。
+      if (from < 5) {
+        await m.addColumn(foods, foods.isCustom);
+        await m.addColumn(foods, foods.customSyncPending);
+        await m.addColumn(foods, foods.customClientRequestId);
       }
     },
   );

@@ -104,6 +104,7 @@ class Translations$record$zh_CN {
 	late final Translations$record$voice$zh_CN voice = Translations$record$voice$zh_CN.internal(_root);
 	late final Translations$record$frequent$zh_CN frequent = Translations$record$frequent$zh_CN.internal(_root);
 	late final Translations$record$card$zh_CN card = Translations$record$card$zh_CN.internal(_root);
+	late final Translations$record$customFood$zh_CN customFood = Translations$record$customFood$zh_CN.internal(_root);
 	late final Translations$record$water$zh_CN water = Translations$record$water$zh_CN.internal(_root);
 	late final Translations$record$weight$zh_CN weight = Translations$record$weight$zh_CN.internal(_root);
 	late final Translations$record$home$zh_CN home = Translations$record$home$zh_CN.internal(_root);
@@ -650,6 +651,72 @@ class Translations$record$card$zh_CN {
 
 	/// zh-CN: '请确认'
 	String get pleaseConfirm => '请确认';
+}
+
+// Path: record.customFood
+class Translations$record$customFood$zh_CN {
+	Translations$record$customFood$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '找不到？添加自定义食物'
+	String get cta => '找不到？添加自定义食物';
+
+	/// zh-CN: '自定义'
+	String get badge => '自定义';
+
+	/// zh-CN: '添加自定义食物'
+	String get title => '添加自定义食物';
+
+	/// zh-CN: '菜名'
+	String get nameLabel => '菜名';
+
+	/// zh-CN: '请输入菜名'
+	String get nameRequired => '请输入菜名';
+
+	/// zh-CN: '别名（可选，逗号分隔）'
+	String get aliasLabel => '别名（可选，逗号分隔）';
+
+	/// zh-CN: 'AI 估算'
+	String get estimate => 'AI 估算';
+
+	/// zh-CN: '估算中…'
+	String get estimating => '估算中…';
+
+	/// zh-CN: 'AI 估算，请确认'
+	String get estimateBadge => 'AI 估算，请确认';
+
+	/// zh-CN: '置信度较低，请仔细核对数值'
+	String get estimateLow => '置信度较低，请仔细核对数值';
+
+	/// zh-CN: '估算暂不可用，请手动填写'
+	String get estimateUnavailable => '估算暂不可用，请手动填写';
+
+	/// zh-CN: '热量（千卡 / 100 克）'
+	String get kcalLabel => '热量（千卡 / 100 克）';
+
+	/// zh-CN: '蛋白质（克 / 100 克）'
+	String get proteinLabel => '蛋白质（克 / 100 克）';
+
+	/// zh-CN: '碳水（克 / 100 克）'
+	String get carbLabel => '碳水（克 / 100 克）';
+
+	/// zh-CN: '脂肪（克 / 100 克）'
+	String get fatLabel => '脂肪（克 / 100 克）';
+
+	/// zh-CN: '请填写大于 0 的数值'
+	String get nutritionRequired => '请填写大于 0 的数值';
+
+	/// zh-CN: '热量需在 0–900 千卡之间'
+	String get kcalRange => '热量需在 0–900 千卡之间';
+
+	/// zh-CN: '需在 0–100 克之间'
+	String get macroRange => '需在 0–100 克之间';
+
+	/// zh-CN: '已保存到本机，联网后自动同步'
+	String get savedOffline => '已保存到本机，联网后自动同步';
 }
 
 // Path: record.water
@@ -2293,6 +2360,25 @@ extension on Translations {
 			'record.frequent.title' => '常吃的食物',
 			'record.frequent.empty' => '多记几笔，常吃榜就出来啦',
 			'record.card.pleaseConfirm' => '请确认',
+			'record.customFood.cta' => '找不到？添加自定义食物',
+			'record.customFood.badge' => '自定义',
+			'record.customFood.title' => '添加自定义食物',
+			'record.customFood.nameLabel' => '菜名',
+			'record.customFood.nameRequired' => '请输入菜名',
+			'record.customFood.aliasLabel' => '别名（可选，逗号分隔）',
+			'record.customFood.estimate' => 'AI 估算',
+			'record.customFood.estimating' => '估算中…',
+			'record.customFood.estimateBadge' => 'AI 估算，请确认',
+			'record.customFood.estimateLow' => '置信度较低，请仔细核对数值',
+			'record.customFood.estimateUnavailable' => '估算暂不可用，请手动填写',
+			'record.customFood.kcalLabel' => '热量（千卡 / 100 克）',
+			'record.customFood.proteinLabel' => '蛋白质（克 / 100 克）',
+			'record.customFood.carbLabel' => '碳水（克 / 100 克）',
+			'record.customFood.fatLabel' => '脂肪（克 / 100 克）',
+			'record.customFood.nutritionRequired' => '请填写大于 0 的数值',
+			'record.customFood.kcalRange' => '热量需在 0–900 千卡之间',
+			'record.customFood.macroRange' => '需在 0–100 克之间',
+			'record.customFood.savedOffline' => '已保存到本机，联网后自动同步',
 			'record.water.title' => '今日饮水',
 			'record.water.progress' => ({required Object total, required Object goal}) => '${total} / ${goal} 毫升',
 			'record.water.quickAddLabel' => ({required Object ml}) => '加 ${ml} 毫升水',
