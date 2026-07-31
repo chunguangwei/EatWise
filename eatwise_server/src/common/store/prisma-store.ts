@@ -444,6 +444,10 @@ function toPostEntity(p: Prisma.PostGetPayload<object>): PostEntity {
     likeCount: p.likeCount,
     auditStatus: p.auditStatus as PostEntity['auditStatus'],
     auditReason: (p.auditReason as PostEntity['auditReason']) ?? null,
+    // 〔假设〕prisma schema 暂无 reportCount/reportedAt 列（阶段性迁移缺口，
+    // 同 WaterLog）；pg 模式下举报计数缺省 0，管理端 reported 队列以内存驱动为准。
+    reportCount: 0,
+    reportedAt: null,
     visibility: p.visibility,
     version: p.version,
     createdAt: p.createdAt,

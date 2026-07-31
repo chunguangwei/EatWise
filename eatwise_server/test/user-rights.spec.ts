@@ -75,6 +75,8 @@ describe('用户权利（U1/U3/U5/U6，合规 §4.2/§4.3）', () => {
       likeCount: 0,
       auditStatus: 'approved',
       auditReason: null,
+      reportCount: 0,
+      reportedAt: null,
       visibility: 'public',
       version: 1,
       createdAt: now,

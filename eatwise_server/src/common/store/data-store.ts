@@ -192,6 +192,10 @@ export interface PostEntity {
   auditStatus: AuditStatus;
   /** 双语审核原因（rejected 时展示给作者） */
   auditReason: { zh: string; en: string } | null;
+  /** 累计被举报次数（去重按 postId+userId）；举报即下架后管理端 reported 队列依据 */
+  reportCount: number;
+  /** 最近一次被举报时间（未举报为 null） */
+  reportedAt: Date | null;
   visibility: string; // self / followers / public 预留
   version: number;
   createdAt: Date;

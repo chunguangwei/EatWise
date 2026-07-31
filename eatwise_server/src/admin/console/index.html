@@ -34,6 +34,7 @@
   .badge.pending { background: #fff4e0; color: #a86a12; }
   .badge.approved { background: #e6f7ef; color: #1f8f63; }
   .badge.rejected { background: #fdeae5; color: #c24a2a; }
+  .badge.reported { background: #f3e8fd; color: #7a3fc2; }
   .badge.runtime { background: #e6f7ef; color: #1f8f63; }
   .badge.env { background: #e8f0fd; color: #2c62b8; }
   .badge.stub { background: #f0f1f1; color: #6d7c76; }
@@ -59,6 +60,7 @@
 <main>
   <div class="tabs">
     <button id="tabReview" class="active" onclick="switchTab('review')">食物审核</button>
+    <button id="tabPosts" onclick="switchTab('posts')">打卡审核</button>
     <button id="tabConfig" onclick="switchTab('config')">API 配置</button>
   </div>
 
@@ -79,6 +81,27 @@
     <div id="candidateEmpty" class="empty" style="display:none">暂无数据</div>
     <div style="margin-top:12px; text-align:center">
       <button id="moreBtn" class="btn ghost" style="display:none" onclick="loadCandidates(true)">加载更多</button>
+    </div>
+  </section>
+
+  <!-- 打卡审核 -->
+  <section id="panelPosts" class="panel" style="display:none">
+    <div class="filters" id="postStatusFilters">
+      <button data-status="pending" class="active" onclick="setPostStatus('pending')">待审核</button>
+      <button data-status="approved" onclick="setPostStatus('approved')">已上架</button>
+      <button data-status="rejected" onclick="setPostStatus('rejected')">已拒绝</button>
+      <button data-status="reported" onclick="setPostStatus('reported')">被举报</button>
+    </div>
+    <div id="postsMsg" class="msg"></div>
+    <table>
+      <thead><tr>
+        <th>作者</th><th>时间</th><th>内容摘要</th><th>状态</th><th>举报数</th><th>操作</th>
+      </tr></thead>
+      <tbody id="postRows"></tbody>
+    </table>
+    <div id="postEmpty" class="empty" style="display:none">暂无数据</div>
+    <div style="margin-top:12px; text-align:center">
+      <button id="postMoreBtn" class="btn ghost" style="display:none" onclick="loadPosts(true)">加载更多</button>
     </div>
   </section>
 
@@ -113,6 +136,7 @@
 <script>
 var TOKEN_KEY = 'eatwise-admin-token';
 var state = { status: 'pending', cursor: null, hasMore: false };
+var postState = { status: 'pending', cursor: null, hasMore: false };
 
 function token() { return document.getElementById('tokenInput').value.trim(); }
 function saveToken() { localStorage.setItem(TOKEN_KEY, token()); flash('reviewMsg', 'Token 已保存（localStorage）', true); }
@@ -144,10 +168,13 @@ async function api(path, opts) {
 
 function switchTab(name) {
   document.getElementById('tabReview').className = name === 'review' ? 'active' : '';
+  document.getElementById('tabPosts').className = name === 'posts' ? 'active' : '';
   document.getElementById('tabConfig').className = name === 'config' ? 'active' : '';
   document.getElementById('panelReview').style.display = name === 'review' ? '' : 'none';
+  document.getElementById('panelPosts').style.display = name === 'posts' ? '' : 'none';
   document.getElementById('panelConfig').style.display = name === 'config' ? '' : 'none';
   if (name === 'review') loadCandidates(false);
+  if (name === 'posts') loadPosts(false);
   if (name === 'config') loadConfig();
 }
 
@@ -224,6 +251,85 @@ async function review(id, action) {
   } catch (e) {
     flash('reviewMsg', e.message, false);
     loadCandidates(false);
+  }
+}
+
+/* ===== 打卡审核 ===== */
+
+var POST_STATUS_LABEL = { pending: '待审核', approved: '已上架', rejected: '已拒绝' };
+
+function setPostStatus(s) {
+  postState.status = s;
+  var btns = document.querySelectorAll('#postStatusFilters button');
+  for (var i = 0; i < btns.length; i++) btns[i].className = btns[i].dataset.status === s ? 'active' : '';
+  loadPosts(false);
+}
+
+async function loadPosts(append) {
+  if (!append) { postState.cursor = null; document.getElementById('postRows').innerHTML = ''; }
+  try {
+    var url = '/admin/posts?status=' + postState.status + '&limit=20';
+    if (append && postState.cursor) url += '&cursor=' + encodeURIComponent(postState.cursor);
+    var data = await api(url);
+    postState.cursor = data.pageInfo.nextCursor;
+    postState.hasMore = data.pageInfo.hasMore;
+    renderPostRows(data.items, append);
+    document.getElementById('postMoreBtn').style.display = postState.hasMore ? '' : 'none';
+    var rows = document.getElementById('postRows').children.length;
+    document.getElementById('postEmpty').style.display = rows === 0 ? '' : 'none';
+  } catch (e) {
+    flash('postsMsg', e.message, false);
+  }
+}
+
+function renderPostRows(items, append) {
+  var tbody = document.getElementById('postRows');
+  if (!append) tbody.innerHTML = '';
+  items.forEach(function (p) {
+    var tr = document.createElement('tr');
+    // 被举报待处理（rejected + reportCount>0）单独标记，便于区分机审拒绝
+    var badge = (p.auditStatus === 'rejected' && p.reportCount > 0)
+      ? '<span class="badge reported">被举报</span>'
+      : '<span class="badge ' + p.auditStatus + '">' + POST_STATUS_LABEL[p.auditStatus] + '</span>';
+    var actions;
+    if (p.auditStatus === 'pending') {
+      actions = '<button class="btn" onclick="reviewPost(\'' + p.id + '\',\'approve\')">上架</button> ' +
+        '<button class="btn danger" onclick="reviewPost(\'' + p.id + '\',\'reject\')">下架</button>';
+    } else if (p.auditStatus === 'approved') {
+      actions = '<button class="btn danger" onclick="reviewPost(\'' + p.id + '\',\'reject\')">下架</button>';
+    } else {
+      actions = '<button class="btn" onclick="reviewPost(\'' + p.id + '\',\'approve\')">上架</button>';
+    }
+    if (p.auditReason && p.auditReason.zh) {
+      actions += '<br><span class="muted">原因：' + esc(p.auditReason.zh) + '</span>';
+    }
+    var text = p.text.length > 60 ? p.text.slice(0, 60) + '…' : p.text;
+    tr.innerHTML =
+      '<td><span class="muted">' + esc(p.author.nickname || p.author.id) + '</span></td>' +
+      '<td><span class="muted">' + fmtTime(p.createdAt) + '</span></td>' +
+      '<td>' + esc(text) +
+        (p.imageUrls && p.imageUrls.length ? '<br><span class="muted">图片 ' + p.imageUrls.length + ' 张</span>' : '') + '</td>' +
+      '<td>' + badge + '</td>' +
+      '<td>' + (p.reportCount > 0 ? '<strong>' + p.reportCount + '</strong><br><span class="muted">' + fmtTime(p.reportedAt) + '</span>' : '<span class="muted">0</span>') + '</td>' +
+      '<td style="white-space:nowrap">' + actions + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+async function reviewPost(id, action) {
+  var body = { action: action };
+  if (action === 'reject') {
+    var reason = window.prompt('请输入下架原因（会展示给作者）：');
+    if (reason === null) return;
+    body.reason = reason;
+  }
+  try {
+    await api('/admin/posts/' + encodeURIComponent(id) + '/review', { method: 'POST', body: body });
+    flash('postsMsg', action === 'approve' ? '已上架' : '已下架', true);
+    loadPosts(false);
+  } catch (e) {
+    flash('postsMsg', e.message, false);
+    loadPosts(false);
   }
 }
 

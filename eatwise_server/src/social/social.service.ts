@@ -4,9 +4,12 @@ import { DataStore, PostEntity } from '../common/store/data-store';
 import { newId, payloadHash } from '../common/utils/id.util';
 import { StreakService } from '../streak/streak.service';
 import { ContentModerationService } from './moderation/content-moderation.service';
-import { CreatePostDto } from './social.dto';
+import { CreatePostDto, ReviewPostDto } from './social.dto';
 
 const FEED_PAGE_MAX = 50;
+
+/** 管理端队列筛选口径（reported=被举报待处理：reportCount>0 且当前 rejected） */
+export type AdminPostFilter = 'pending' | 'approved' | 'rejected' | 'reported';
 
 /**
  * 社区打卡（M5 P1 / 契约 §3.9）：
@@ -54,6 +57,8 @@ export class SocialService {
       likeCount: 0,
       auditStatus: verdict.verdict === 'manual' ? 'pending' : 'approved',
       auditReason: verdict.reason ?? null,
+      reportCount: 0,
+      reportedAt: null,
       visibility: 'public',
       version: 1,
       createdAt: now,
@@ -187,6 +192,8 @@ export class SocialService {
     }
     this.store.postReports.set(key, { reason: reason ?? null, createdAt: new Date() });
     // 〔假设〕MVP 举报成立判定后置人工：先下架止血，复核后可恢复（人工队列处理）。
+    post.reportCount += 1;
+    post.reportedAt = new Date();
     post.auditStatus = 'rejected';
     post.auditReason = {
       zh: '该内容被举报，已暂时下架等待复核',
@@ -201,6 +208,126 @@ export class SocialService {
       createdAt: new Date(),
     });
     return { reported: true };
+  }
+
+  /**
+   * 管理端：审核队列查询（x-admin-token 端点 /v1/admin/posts）。
+   * 状态口径：pending=机审转人工待审；approved=已上架；rejected=已拒绝（不含举报）；
+   * reported=被举报待处理（reportCount>0 且当前 rejected，举报即下架后的复核队列）。
+   */
+  adminList(status: AdminPostFilter | undefined, limit = 20, cursor?: string) {
+    if (limit > FEED_PAGE_MAX) limit = FEED_PAGE_MAX;
+    let after: { t: string; id: string } | null = null;
+    if (cursor) {
+      try {
+        after = JSON.parse(Buffer.from(cursor, 'base64').toString('utf8'));
+        if (typeof after?.t !== 'string' || typeof after?.id !== 'string') {
+          throw new Error('bad cursor');
+        }
+      } catch {
+        throw err.invalidCursor();
+      }
+    }
+
+    const match = (p: PostEntity): boolean => {
+      switch (status) {
+        case 'pending':
+          return p.auditStatus === 'pending';
+        case 'approved':
+          return p.auditStatus === 'approved';
+        case 'rejected':
+          return p.auditStatus === 'rejected' && p.reportCount === 0;
+        case 'reported':
+          return p.auditStatus === 'rejected' && p.reportCount > 0;
+        default:
+          return true;
+      }
+    };
+    const visible = [...this.store.posts.values()]
+      .filter((p) => !p.deletedAt)
+      .filter(match)
+      .sort((a, b) => this.compareDesc(a, b));
+
+    let start = 0;
+    if (after) {
+      start = visible.findIndex(
+        (p) =>
+          p.createdAt.toISOString() < after.t ||
+          (p.createdAt.toISOString() === after.t && p.id < after.id),
+      );
+      if (start === -1) start = visible.length;
+    }
+    const page = visible.slice(start, start + limit);
+    const hasMore = start + limit < visible.length;
+    const last = page[page.length - 1];
+    return {
+      items: page.map((p) => this.adminPostView(p)),
+      pageInfo: {
+        nextCursor:
+          hasMore && last
+            ? Buffer.from(
+                JSON.stringify({ t: last.createdAt.toISOString(), id: last.id }),
+              ).toString('base64')
+            : null,
+        hasMore,
+      },
+    };
+  }
+
+  /**
+   * 管理端：审核决定（version+1，auditReason 记录操作原因）。
+   * approve：pending/rejected（含 reported）→ approved 上架恢复；
+   * reject：pending/approved → rejected 下架（reason 透传给作者，〔假设〕双语同文案）。
+   * 同状态重复审核 → 409 CONFLICT；已删除帖 → 410。
+   */
+  adminReview(id: string, dto: ReviewPostDto) {
+    const post = this.store.posts.get(id);
+    if (!post) throw err.notFound();
+    if (post.deletedAt) throw err.resourceGone();
+    if (dto.action === 'approve' && post.auditStatus === 'approved') {
+      throw err.conflict({ auditStatus: post.auditStatus });
+    }
+    if (dto.action === 'reject' && post.auditStatus === 'rejected') {
+      throw err.conflict({ auditStatus: post.auditStatus });
+    }
+
+    post.auditStatus = dto.action === 'approve' ? 'approved' : 'rejected';
+    post.auditReason = dto.reason
+      ? { zh: dto.reason, en: dto.reason }
+      : dto.action === 'reject'
+        ? { zh: '内容未通过人工审核，已下架', en: 'Content did not pass manual review' }
+        : null;
+    post.updatedAt = new Date();
+    post.version += 1;
+    // 审核决定落地后清出人工队列（机审转人工与举报复核共用该队列）
+    for (let i = this.store.moderationQueue.length - 1; i >= 0; i--) {
+      if (this.store.moderationQueue[i].postId === post.id) {
+        this.store.moderationQueue.splice(i, 1);
+      }
+    }
+    return this.adminPostView(post);
+  }
+
+  /** 管理端视图：含举报计数与审核原因（管理端可见，不受作者可见性约束）。 */
+  private adminPostView(post: PostEntity) {
+    const author = this.store.users.get(post.userId);
+    return {
+      id: post.id,
+      text: post.text,
+      imageUrls: post.imageUrls,
+      author: {
+        id: post.userId,
+        nickname: author?.nickname ?? null,
+      },
+      likeCount: post.likeCount,
+      auditStatus: post.auditStatus,
+      auditReason: post.auditReason,
+      reportCount: post.reportCount,
+      reportedAt: post.reportedAt ? post.reportedAt.toISOString() : null,
+      version: post.version,
+      createdAt: post.createdAt.toISOString(),
+      updatedAt: post.updatedAt.toISOString(),
+    };
   }
 
   /** 互动前置：存在、未删除（410）、对当前用户可见。 */

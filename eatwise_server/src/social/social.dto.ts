@@ -1,6 +1,7 @@
 import {
   ArrayMaxSize,
   IsArray,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
@@ -37,6 +38,18 @@ export class CreatePostDto {
 
 /** C7 举报（同用户同帖幂等一次） */
 export class ReportPostDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  reason?: string;
+}
+
+/** 管理端审核决定（/v1/admin/posts/:id/review） */
+export class ReviewPostDto {
+  @IsIn(['approve', 'reject'])
+  action: 'approve' | 'reject';
+
+  /** 操作原因（reject 建议填写，透传给作者；approve 可选备注） */
   @IsOptional()
   @IsString()
   @MaxLength(200)
