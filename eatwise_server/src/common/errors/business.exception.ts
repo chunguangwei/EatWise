@@ -28,6 +28,8 @@ export const err = {
   tokenExpired: () => new BusinessException('AUTH_TOKEN_EXPIRED', HttpStatus.UNAUTHORIZED),
   tokenInvalid: () => new BusinessException('AUTH_TOKEN_INVALID', HttpStatus.UNAUTHORIZED),
   refreshReused: () => new BusinessException('AUTH_REFRESH_REUSED', HttpStatus.UNAUTHORIZED),
+  /** 已认证但角色权限不足（如 reviewer 调 admin-only 端点） */
+  forbidden: () => new BusinessException('FORBIDDEN', HttpStatus.FORBIDDEN),
   notFound: () => new BusinessException('NOT_FOUND', HttpStatus.NOT_FOUND),
   conflict: (details?: Record<string, unknown>) =>
     new BusinessException('CONFLICT', HttpStatus.CONFLICT, details),

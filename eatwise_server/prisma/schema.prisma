@@ -247,3 +247,15 @@ model IdempotencyKey {
   @@unique([userId, clientRequestId, endpoint])
   @@map("idempotency_keys")
 }
+
+// 管理员账号（管理控制台登录体系，与用户体系完全独立；role: admin / reviewer）
+model AdminUser {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String // bcrypt（bcryptjs），永不明文存储
+  role         String   @default("reviewer") // admin / reviewer
+  disabled     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@map("admin_users")
+}

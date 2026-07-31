@@ -38,7 +38,7 @@ npm run test:e2e
 
 - 真实库：`docker compose up -d postgres && npx prisma migrate deploy`，`STORE_DRIVER=prisma` 启动。
 - 已知缺口：Prisma schema 缺 WaterLog 表（饮水仅内存驱动支持），业务 Service 多数仍读写内存 DataStore，属阶段性迁移。
-- 管理控制台：`/admin` 静态页（`src/admin/console/index.html`，原生 JS 单文件，nest-cli assets 拷到 dist），数据走 `/v1/admin/*`（x-admin-token）。LLM 配置运行时覆盖存 `data/admin-config.json`（gitignored，含 apiKey），读优先级 = 覆盖 > env。
+- 管理控制台：`/admin` 静态页（`src/admin/console/index.html`，原生 JS 单文件，nest-cli assets 拷到 dist），数据走 `/v1/admin/*`。鉴权为管理员账号体系（`POST /v1/admin/auth/login` 发 12h JWT，角色 admin/reviewer，见 `src/admin/admin-auth.*`）；env `ADMIN_USERNAME`/`ADMIN_PASSWORD` 齐备时启动自动种 admin 账号，`x-admin-token` 为过渡兜底（视为 admin）。LLM 配置运行时覆盖存 `data/admin-config.json`（gitignored，含 apiKey），读优先级 = 覆盖 > env。
 
 ## Git 与 CI
 

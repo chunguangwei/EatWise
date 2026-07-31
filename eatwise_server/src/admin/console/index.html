@@ -53,8 +53,18 @@
 <header>
   <h1>明食 <span class="dot">·</span> EatWise 管理控制台</h1>
   <div class="token-box">
-    <input id="tokenInput" type="password" placeholder="x-admin-token（本机记忆）" autocomplete="off">
-    <button class="btn" onclick="saveToken()">保存</button>
+    <span id="whoami" class="muted" style="display:none"></span>
+    <button id="logoutBtn" class="btn ghost" style="display:none" onclick="logout()">退出登录</button>
+    <span id="loginForm">
+      <input id="userInput" type="text" placeholder="用户名" autocomplete="username" style="width:110px">
+      <input id="passInput" type="password" placeholder="密码" autocomplete="current-password" style="width:110px">
+      <button class="btn" onclick="login()">登录</button>
+    </span>
+    <a href="javascript:void(0)" onclick="toggleTokenForm()" style="font-size:12px;color:#5a6b63">使用访问令牌</a>
+    <span id="tokenForm" style="display:none">
+      <input id="tokenInput" type="password" placeholder="x-admin-token（本机记忆）" autocomplete="off">
+      <button class="btn" onclick="saveToken()">保存</button>
+    </span>
   </div>
 </header>
 <main>
@@ -107,6 +117,7 @@
 
   <!-- API 配置 -->
   <section id="panelConfig" class="panel" style="display:none">
+    <div id="cfgRoleNote" class="msg fail" style="display:none">当前角色为审核员（reviewer）：API 配置为管理员（admin）专属，仅可查看提示，无法读写。</div>
     <div class="cfg-summary" id="cfgSummary">加载中…</div>
     <div class="form-row">
       <label>供应商</label>
@@ -124,8 +135,8 @@
     <div class="form-row">
       <label></label>
       <div style="display:flex; gap:8px">
-        <button class="btn" onclick="saveConfig()">保存</button>
-        <button class="btn ghost" onclick="testConfig()">测试估算（白米饭）</button>
+        <button class="btn" id="saveBtn" onclick="saveConfig()">保存</button>
+        <button class="btn ghost" id="testBtn" onclick="testConfig()">测试估算（白米饭）</button>
       </div>
     </div>
     <div id="configMsg" class="msg"></div>
@@ -135,12 +146,72 @@
 
 <script>
 var TOKEN_KEY = 'eatwise-admin-token';
+var JWT_KEY = 'eatwise-admin-jwt';
 var state = { status: 'pending', cursor: null, hasMore: false };
 var postState = { status: 'pending', cursor: null, hasMore: false };
+var me = null; // 当前管理员 {id, username, role}；null = 未登录（仅 token 兜底或匿名）
 
+function jwt() { return localStorage.getItem(JWT_KEY) || ''; }
 function token() { return document.getElementById('tokenInput').value.trim(); }
 function saveToken() { localStorage.setItem(TOKEN_KEY, token()); flash('reviewMsg', 'Token 已保存（localStorage）', true); }
 document.getElementById('tokenInput').value = localStorage.getItem(TOKEN_KEY) || '';
+
+function toggleTokenForm() {
+  var el = document.getElementById('tokenForm');
+  el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+var ROLE_LABEL = { admin: '管理员', reviewer: '审核员' };
+
+function renderAuthBox() {
+  var loggedIn = !!me;
+  document.getElementById('loginForm').style.display = loggedIn ? 'none' : '';
+  document.getElementById('whoami').style.display = loggedIn ? '' : 'none';
+  document.getElementById('logoutBtn').style.display = loggedIn ? '' : 'none';
+  if (loggedIn) {
+    document.getElementById('whoami').textContent =
+      '当前：' + me.username + '（' + (ROLE_LABEL[me.role] || me.role) + '）';
+  }
+}
+
+function clearAuth() {
+  localStorage.removeItem(JWT_KEY);
+  me = null;
+  renderAuthBox();
+}
+
+async function login() {
+  var username = document.getElementById('userInput').value.trim();
+  var password = document.getElementById('passInput').value;
+  if (!username || !password) { flash('reviewMsg', '请输入用户名和密码', false); return; }
+  try {
+    var data = await api('/admin/auth/login', { method: 'POST', body: { username: username, password: password } });
+    localStorage.setItem(JWT_KEY, data.accessToken);
+    me = data.admin;
+    document.getElementById('passInput').value = '';
+    renderAuthBox();
+    flash('reviewMsg', '登录成功：' + me.username + '（' + (ROLE_LABEL[me.role] || me.role) + '）', true);
+    loadCandidates(false);
+  } catch (e) {
+    flash('reviewMsg', '登录失败：' + e.message, false);
+  }
+}
+
+function logout() {
+  clearAuth();
+  flash('reviewMsg', '已退出登录', true);
+}
+
+/** 启动时校验已存 JWT 并拉取当前管理员信息；失效则清理回登录态 */
+async function refreshMe() {
+  if (!jwt()) { renderAuthBox(); return; }
+  try {
+    me = await api('/admin/auth/me');
+  } catch (e) {
+    clearAuth();
+  }
+  renderAuthBox();
+}
 
 function flash(id, text, ok) {
   var el = document.getElementById(id);
@@ -150,17 +221,26 @@ function flash(id, text, ok) {
 
 async function api(path, opts) {
   opts = opts || {};
+  var headers = { 'content-type': 'application/json' };
+  if (jwt()) headers['authorization'] = 'Bearer ' + jwt(); // 管理员 JWT 优先
+  var t = token();
+  if (t) headers['x-admin-token'] = t; // 兼容过渡：访问令牌兜底
   var res = await fetch('/v1' + path, {
     method: opts.method || 'GET',
-    headers: { 'content-type': 'application/json', 'x-admin-token': token() },
+    headers: headers,
     body: opts.body ? JSON.stringify(opts.body) : undefined
   });
   var body = await res.json().catch(function () { return {}; });
   if (!res.ok) {
     var e = (body && body.error) || {};
     var msg = e.message || ('HTTP ' + res.status);
-    if (res.status === 401) msg = 'Token 无效或未配置（401）';
+    if (res.status === 401) {
+      msg = '登录态无效或已过期（401）';
+      if (jwt() && path !== '/admin/auth/login') clearAuth(); // JWT 失效回登录态
+    }
+    if (res.status === 403) msg = '当前角色无权限（403）';
     if (res.status === 404) msg = '管理端未开启或资源不存在（404）';
+    if (res.status === 429) msg = '尝试过于频繁，请稍后再试（429）';
     throw new Error(msg);
   }
   return body.data;
@@ -338,6 +418,15 @@ async function reviewPost(id, action) {
 var SOURCE_LABEL = { runtime: '运行时覆盖', env: '环境变量', stub: '未配置（stub 降级）' };
 
 async function loadConfig() {
+  // reviewer 角色：config 端点仅 admin 可用（服务端 403），前端直接只读提示不再请求
+  var reviewerOnly = me && me.role !== 'admin';
+  document.getElementById('cfgRoleNote').style.display = reviewerOnly ? 'block' : 'none';
+  var ids = ['fProvider', 'fBaseUrl', 'fModel', 'fApiKey', 'saveBtn', 'testBtn'];
+  for (var i = 0; i < ids.length; i++) document.getElementById(ids[i]).disabled = reviewerOnly;
+  if (reviewerOnly) {
+    document.getElementById('cfgSummary').textContent = '当前角色无权限查看 API 配置。';
+    return;
+  }
   try {
     var data = await api('/admin/config');
     var llm = data.llm;
@@ -398,7 +487,7 @@ async function testConfig() {
   }
 }
 
-loadCandidates(false);
+refreshMe().then(function () { loadCandidates(false); });
 </script>
 </body>
 </html>

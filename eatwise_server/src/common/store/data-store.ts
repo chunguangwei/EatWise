@@ -86,6 +86,21 @@ export interface FoodEntity {
   createdByUserId?: string | null;
 }
 
+export type AdminRoleName = 'admin' | 'reviewer';
+
+/** 管理员账号（管理控制台登录体系；与用户体系完全独立，仅管理端使用） */
+export interface AdminUserEntity {
+  id: string;
+  username: string;
+  /** bcrypt 哈希（bcryptjs），永不明文存储/返回 */
+  passwordHash: string;
+  /** admin = 全量（含 API 配置）；reviewer = 仅食物候选/打卡审核 */
+  role: AdminRoleName;
+  /** 禁用后拒登且已签发 JWT 即刻失效（守卫每次查库校验） */
+  disabled: boolean;
+  createdAt: Date;
+}
+
 export type FoodCandidateStatus = 'pending' | 'approved' | 'rejected';
 
 /** 共享食物候选（食物库扩充第三层：用户自定义食物经审核晋升为共享库，先审后发 D-17） */
@@ -252,6 +267,20 @@ export class DataStore {
   readonly postReports = new Map<string, { reason: string | null; createdAt: Date }>(); // key: postId|userId
   /** 人工审核队列（机审疑似 + 举报复核，D-17） */
   readonly moderationQueue: ModerationQueueItem[] = [];
+
+  /** 管理员账号（控制台登录体系；key: id，按 username 查找走 findAdminByUsername） */
+  readonly adminUsers = new Map<string, AdminUserEntity>();
+
+  findAdminByUsername(username: string): AdminUserEntity | undefined {
+    const name = username.trim().toLowerCase();
+    return [...this.adminUsers.values()].find((a) => a.username.toLowerCase() === name);
+  }
+
+  createAdminUser(partial: Omit<AdminUserEntity, 'id' | 'createdAt'>): AdminUserEntity {
+    const admin: AdminUserEntity = { id: newId(), createdAt: new Date(), ...partial };
+    this.adminUsers.set(admin.id, admin);
+    return admin;
+  }
 
   postLikeKey(postId: string, userId: string): string {
     return `${postId}|${userId}`;

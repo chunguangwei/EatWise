@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Headers, HttpCode, Inject, Post, Put } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Body, Controller, Get, HttpCode, Inject, Post, Put, UseGuards } from '@nestjs/common';
 import { IsIn, IsOptional, IsString } from 'class-validator';
 import { Public } from '../auth/public.decorator';
 import { err } from '../common/errors/business.exception';
 import { LLM_ESTIMATE_PROVIDER, LlmEstimateProvider } from '../llm/llm-estimate.types';
+import { AdminAuthGuard } from './admin-auth.guard';
+import { AdminRole } from './admin-role.decorator';
 import {
   LLM_PROVIDERS,
   LlmProviderName,
@@ -31,29 +32,28 @@ export class UpdateLlmConfigDto {
 
 /**
  * 管理端：服务端 API 配置（LLM 运行时修改免重启）。
- * 保护方式同 admin-food：header `x-admin-token` 须匹配 env `ADMIN_TOKEN`；
- * env 未配置时一律 404（不暴露端点存在性），token 不匹配 401。
+ * 鉴权：AdminAuthGuard（管理员 JWT 或 x-admin-token 兜底）+ @AdminRole('admin')
+ * —— 仅 admin 角色可读写配置；reviewer 访问一律 403 FORBIDDEN。
  */
 @Public()
+@UseGuards(AdminAuthGuard)
+@AdminRole('admin')
 @Controller('admin/config')
 export class AdminConfigController {
   constructor(
     private readonly runtime: RuntimeConfigService,
-    private readonly config: ConfigService,
     @Inject(LLM_ESTIMATE_PROVIDER) private readonly llm: LlmEstimateProvider,
   ) {}
 
   /** 当前生效 LLM 配置（来源 runtime/env/stub）+ 已存覆盖项；apiKey 一律脱敏返回 */
   @Get()
-  getConfig(@Headers('x-admin-token') token: string | undefined) {
-    this.checkToken(token);
+  getConfig() {
     return this.configView();
   }
 
   /** 更新 LLM 覆盖项（持久化 data/admin-config.json）；custom 时 baseUrl/model 必填 */
   @Put('llm')
-  updateLlm(@Headers('x-admin-token') token: string | undefined, @Body() dto: UpdateLlmConfigDto) {
-    this.checkToken(token);
+  updateLlm(@Body() dto: UpdateLlmConfigDto) {
     if (dto.provider === 'custom' && (!dto.baseUrl?.trim() || !dto.model?.trim())) {
       throw err.validation({
         baseUrl: 'provider=custom 时必填',
@@ -77,8 +77,7 @@ export class AdminConfigController {
    */
   @Post('llm/test')
   @HttpCode(200)
-  async testLlm(@Headers('x-admin-token') token: string | undefined) {
-    this.checkToken(token);
+  async testLlm() {
     const eff = this.runtime.resolveLlm();
     try {
       const result = await this.llm.estimate('白米饭');
@@ -115,11 +114,5 @@ export class AdminConfigController {
         : null,
       persisted: this.runtime.isPersisted(),
     };
-  }
-
-  private checkToken(token: string | undefined) {
-    const expected = this.config.get<string>('ADMIN_TOKEN');
-    if (!expected) throw err.notFound(); // 〔假设〕未配置 ADMIN_TOKEN 时管理端整体关闭
-    if (token !== expected) throw err.tokenInvalid();
   }
 }
