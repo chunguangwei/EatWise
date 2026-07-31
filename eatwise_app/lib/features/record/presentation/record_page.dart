@@ -380,10 +380,12 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                                       .read(recordSelectedFoodProvider.notifier)
                                       .state =
                                   food;
+                              // 份量必填：不再默认填 100g，留空由用户输入
+                              // （避免「没写克数也能提交」的误导性默认值）。
                               ref
                                       .read(recordAmountTextProvider.notifier)
                                       .state =
-                                  '100';
+                                  '';
                               ref
                                       .read(recordEntrySourceProvider.notifier)
                                       .state =

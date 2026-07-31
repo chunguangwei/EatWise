@@ -70,11 +70,11 @@ class _FrequentFoodsSheet extends ConsumerWidget {
                           ),
                         ),
                         onTap: () {
-                          // 点选即填充结果卡（默认 100g，与手动选择一致）。
+                          // 点选即填充结果卡（份量留空必填，与手动选择一致）。
                           ref.read(recordSelectedFoodProvider.notifier).state =
                               food;
                           ref.read(recordAmountTextProvider.notifier).state =
-                              '100';
+                              '';
                           ref.read(recordLowConfidenceProvider.notifier).state =
                               false;
                           ref.read(recordEntrySourceProvider.notifier).state =

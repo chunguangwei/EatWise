@@ -237,7 +237,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('常吃的食物'), findsOneWidget);
 
-    // 高频第一 = 白米饭；点选即填充结果卡（默认 100g）。
+    // 高频第一 = 白米饭；点选即填充结果卡（份量留空必填）。
     // 注意底部搜索列表也展示「白米饭」，须在 sheet 内消歧。
     await tester.tap(
       find.descendant(of: find.byType(BottomSheet), matching: find.text('白米饭')),
@@ -245,8 +245,19 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('确认记录'), findsOneWidget);
-    expect(find.text('热量 116 千卡'), findsOneWidget);
+    expect(find.text('热量 116 千卡'), findsNothing); // 份量必填：不再默认预览 100g
 
+    // 空份量点确认 → 拦截提示，不入账。
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('请输入大于 0 的份量'), findsOneWidget);
+    expect((await repository.entriesForDate(DateTime.now().toUtc())).length, 3);
+
+    // 输入份量后确认入账（frequent 来源）。
+    await tester.enterText(find.byType(TextField).last, '200');
+    await tester.pump();
+    expect(find.text('热量 232 千卡'), findsOneWidget);
     await tester.tap(find.text('确认记录'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));

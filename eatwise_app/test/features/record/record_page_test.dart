@@ -101,11 +101,18 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('白米饭'), findsOneWidget);
 
-    // 选中食物 → 结果卡出现，默认 100g 预览。
+    // 选中食物 → 结果卡出现；份量留空必填（不再默认 100g 预览）。
     await tester.tap(find.text('白米饭'));
     await tester.pump();
     expect(find.text('确认记录'), findsOneWidget);
-    expect(find.text('热量 116 千卡'), findsOneWidget);
+    expect(find.text('热量 116 千卡'), findsNothing);
+
+    // 空份量点确认 → 拦截提示，不入账。
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('请输入大于 0 的份量'), findsOneWidget);
+    expect(await repository.entriesForDate(DateTime.now().toUtc()), isEmpty);
 
     // 份量修改 → 营养实时重算（US-3.1）。
     await tester.enterText(find.byType(TextField).last, '200');
@@ -121,10 +128,11 @@ void main() {
     expect(find.text('还有 1 条记录在路上，联网后自动同步'), findsOneWidget);
     expect(find.text('今日已记 1 笔 · 今日约 232 千卡（待云端校准）'), findsOneWidget);
 
-    // 撤销 → 记录撤回，角标消失。
+    // 撤销 → 记录撤回，角标消失（等吐司入场动画结束再点，否则命中失败）。
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.tap(find.text('撤销'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('已撤销'), findsOneWidget);
     expect(find.text('还有 1 条记录在路上，联网后自动同步'), findsNothing);
     expect(await repository.entriesForDate(DateTime.now().toUtc()), isEmpty);
