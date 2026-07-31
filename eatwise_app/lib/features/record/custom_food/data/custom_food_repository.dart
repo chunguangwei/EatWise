@@ -10,13 +10,24 @@ import 'package:eatwise/features/record/domain/record_models.dart';
 
 /// 自定义食物保存结果（保存后立即可搜可记：直接回填记录结果卡）。
 final class CustomFoodSaveResult {
-  const CustomFoodSaveResult({required this.food, required this.uploaded});
+  const CustomFoodSaveResult({
+    required this.food,
+    required this.uploaded,
+    this.contributeSubmitted = false,
+    this.contributionFailed = false,
+  });
 
   /// 落库后的食物行（isCustom=true）。
   final Food food;
 
   /// 是否已上行 /foods/custom；false = 离线仅落本地 pending。
   final bool uploaded;
+
+  /// 保存时勾选共享且贡献提交成功（UI 显示「已提交审核」）。
+  final bool contributeSubmitted;
+
+  /// 保存时勾选共享但贡献失败/拒收（原因已在弹层内展示，不再弹二次动作）。
+  final bool contributionFailed;
 }
 
 /// 自定义食物仓储（K2：远端直调 + 本地 drift 落库）。
@@ -75,6 +86,27 @@ final class CustomFoodRepository {
     ]);
     final food = await db.foodDao.getById(localId);
     return CustomFoodSaveResult(food: food!, uploaded: !pending);
+  }
+
+  /// 贡献自定义食物为共享候选（幂等 clientRequestId）。
+  ///
+  /// 成功：返回候选状态（pending/approved/rejected）并落本地
+  /// contributionStatus（搜索行状态标签数据源）；机审拒收（400
+  /// FOOD_CONTRIBUTE_REJECTED）落 rejected 后原样上抛（message 为服务端
+  /// 双语原因）；网络/超时错误不改本地状态直接上抛。
+  /// 〔假设〕服务端无按 foodId 批量查候选状态的端点，状态以本方法写入的
+  /// 本地值为准 + approved 社区食物下行时标记（见 food_search_remote）。
+  Future<String> contribute(String foodId) async {
+    try {
+      final status = await remote.contribute(foodId, clientRequestId: _uuid());
+      await db.foodDao.setContributionStatus(foodId, status);
+      return status;
+    } on BusinessApiException catch (e) {
+      if (e.code == 'FOOD_CONTRIBUTE_REJECTED') {
+        await db.foodDao.setContributionStatus(foodId, 'rejected');
+      }
+      rethrow;
+    }
   }
 
   /// 联网后重试 pending 自定义食物（幂等键复用，重复上行不产生重复条目）。

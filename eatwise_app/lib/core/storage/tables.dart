@@ -125,6 +125,11 @@ class Foods extends Table {
   TextColumn get customClientRequestId =>
       text().withDefault(const Constant(''))();
 
+  /// 共享贡献审核状态（K2 众包）：null=未贡献（标签「自定义」），
+  /// pending=审核中 / approved=已共享 / rejected=未通过；
+  /// 非自定义行下行标记 approved 时表示社区共享食物（标签「社区」）。
+  TextColumn get contributionStatus => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

@@ -47,10 +47,45 @@ Future<void> startCustomFoodFlow(
   ref.read(recordAmountTextProvider.notifier).state = '';
   ref.read(recordEntrySourceProvider.notifier).state = EntrySource.manual;
   ref.read(recordLowConfidenceProvider.notifier).state = false;
+  final messenger = ScaffoldMessenger.of(context);
   if (!result.uploaded) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(cs.savedOffline)));
+    messenger.showSnackBar(SnackBar(content: Text(cs.savedOffline)));
+  } else if (result.contributeSubmitted) {
+    // 保存时勾选共享且贡献成功。
+    messenger.showSnackBar(SnackBar(content: Text(cs.submittedReview)));
+  } else if (!result.contributionFailed) {
+    // 保存时未勾选共享：Toast 提供「分享给所有用户」二次动作（事后贡献）。
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(cs.savedOnline),
+        action: SnackBarAction(
+          label: cs.shareAction,
+          onPressed: () =>
+              unawaited(contributeCustomFood(context, ref, result.food.id)),
+        ),
+      ),
+    );
+  }
+  // 拒收/失败原因已在弹层内展示（服务端双语 message），不再弹 Toast。
+}
+
+/// 事后贡献入口（保存成功 Toast 的「分享给所有用户」动作）：
+/// 成功显示「已提交审核」并刷新搜索结果状态标签；拒收显示服务端双语原因。
+Future<void> contributeCustomFood(
+  BuildContext context,
+  WidgetRef ref,
+  String foodId,
+) async {
+  final cs = CustomFoodStrings.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    await ref.read(customFoodRepositoryProvider).contribute(foodId);
+    // 状态标签数据源已落本地，刷新搜索结果让「审核中」立即可见。
+    ref.invalidate(recordFoodSearchProvider);
+    messenger.showSnackBar(SnackBar(content: Text(cs.submittedReview)));
+  } on ApiException catch (e) {
+    ref.invalidate(recordFoodSearchProvider); // 拒收落 rejected 同样需刷新
+    messenger.showSnackBar(SnackBar(content: Text(e.message)));
   }
 }
 
@@ -95,6 +130,9 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
 
   /// 保存在途（防连点重复提交）。
   bool _saving = false;
+
+  /// 勾选「分享给所有用户」（默认不勾；保存成功后调 /contribute 提交审核）。
+  bool _shareToAll = false;
 
   @override
   void dispose() {
@@ -169,7 +207,35 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
             ? CustomFoodSource.llmEstimate
             : CustomFoodSource.manual,
       );
-      final result = await ref.read(customFoodRepositoryProvider).save(draft);
+      var result = await ref.read(customFoodRepositoryProvider).save(draft);
+      // 勾选共享且已上行：立即贡献（幂等）；拒收展示服务端双语原因，
+      // 保存本身不受影响（食物仍落本地可搜可记）。
+      if (_shareToAll && result.uploaded) {
+        try {
+          await ref
+              .read(customFoodRepositoryProvider)
+              .contribute(result.food.id);
+          result = CustomFoodSaveResult(
+            food: result.food,
+            uploaded: result.uploaded,
+            contributeSubmitted: true,
+          );
+          // 状态落库后刷新搜索结果，「审核中」标签立即可见。
+          ref.invalidate(recordFoodSearchProvider);
+        } on ApiException catch (e) {
+          result = CustomFoodSaveResult(
+            food: result.food,
+            uploaded: result.uploaded,
+            contributionFailed: true,
+          );
+          ref.invalidate(recordFoodSearchProvider);
+          if (mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(e.message)));
+          }
+        }
+      }
       if (mounted) Navigator.of(context).pop(result);
     } on ApiException catch (e) {
       if (mounted) {
@@ -395,6 +461,16 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                 decoration: _fieldDecoration(colors, radii, cs.fatLabel),
                 validator: _nutritionValidator(cs, 100, cs.macroRange),
                 onChanged: _onNutritionEdited,
+              ),
+              const SizedBox(height: AppSpacing.s3),
+              // 贡献开关（默认不勾）：保存成功后提交共享候选审核。
+              CheckboxListTile(
+                value: _shareToAll,
+                onChanged: (value) =>
+                    setState(() => _shareToAll = value ?? false),
+                title: Text(cs.shareOptIn, style: textStyles.textSm),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
               ),
               const SizedBox(height: AppSpacing.s4),
               FilledButton(

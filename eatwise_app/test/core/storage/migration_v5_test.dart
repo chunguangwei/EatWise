@@ -48,13 +48,13 @@ void main() {
     await seed.close();
   }
 
-  test('v4 → v5：foods 补自定义食物字段，历史数据保留且默认非自定义', () async {
+  test('v4 → v6：foods 补自定义食物字段 + 贡献状态字段，历史数据保留且默认非自定义', () async {
     await seedV4Database();
 
     final db = AppDatabase(NativeDatabase(dbFile));
     addTearDown(() async => db.close());
 
-    expect(db.schemaVersion, 5);
+    expect(db.schemaVersion, 6);
 
     // 历史行完整保留，新列走默认值（非自定义/无 pending/无幂等键）。
     final food = (await db.foodDao.getById('f-rice'))!;
@@ -84,9 +84,9 @@ void main() {
     expect(custom.customSyncPending, isTrue);
     expect(custom.customClientRequestId, 'req-1');
 
-    // 升级后的 user_version 落为 5（重开不再重复迁移）。
+    // 升级后的 user_version 落为 6（重开不再重复迁移）。
     final versionRow = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(versionRow.data['user_version'], 5);
+    expect(versionRow.data['user_version'], 6);
   });
 }
 

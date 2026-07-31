@@ -94,6 +94,75 @@ void main() {
     );
     expect(await db.foodDao.searchFoods('燕窝羹'), isEmpty);
   });
+
+  test('贡献成功：返回候选状态并落本地 contributionStatus', () async {
+    final saved = await repository.save(draft);
+
+    final status = await repository.contribute(saved.food.id);
+
+    expect(status, 'pending');
+    expect(remote.receivedContributeIds, hasLength(1));
+    expect(
+      remote.receivedContributeIds.single,
+      startsWith('${saved.food.id}:'),
+    );
+    final row = (await db.foodDao.getById(saved.food.id))!;
+    expect(row.contributionStatus, 'pending');
+
+    // 审核通过（下行 approved）同样落库。
+    remote.contributeStatus = 'approved';
+    expect(await repository.contribute(saved.food.id), 'approved');
+    expect(
+      (await db.foodDao.getById(saved.food.id))!.contributionStatus,
+      'approved',
+    );
+  });
+
+  test('贡献幂等：同一 clientRequestId 重放返回首次状态，不重复入池', () async {
+    // 仓储每次生成新幂等键；幂等语义在远程端（服务端幂等表替身）验证。
+    await remote.contribute('srv-food-1', clientRequestId: 'req-c1');
+    remote.contributeStatus = 'approved';
+    final replay = await remote.contribute(
+      'srv-food-1',
+      clientRequestId: 'req-c1',
+    );
+
+    expect(replay, 'pending'); // 首次结果
+    expect(remote.receivedContributeIds, hasLength(1));
+  });
+
+  test('贡献拒收（400 FOOD_CONTRIBUTE_REJECTED）：落 rejected 并上抛双语原因', () async {
+    final saved = await repository.save(draft);
+    remote.contributeRejected = true;
+
+    await expectLater(
+      repository.contribute(saved.food.id),
+      throwsA(
+        isA<BusinessApiException>()
+            .having((e) => e.code, 'code', 'FOOD_CONTRIBUTE_REJECTED')
+            .having((e) => e.httpStatus, 'httpStatus', 400)
+            .having((e) => e.message, 'message', contains('未通过审核')),
+      ),
+    );
+    expect(
+      (await db.foodDao.getById(saved.food.id))!.contributionStatus,
+      'rejected',
+    );
+  });
+
+  test('离线贡献：网络错误上抛，本地状态保持不变', () async {
+    final saved = await repository.save(draft);
+    remote.mode = FakeCustomFoodMode.offline;
+
+    await expectLater(
+      repository.contribute(saved.food.id),
+      throwsA(isA<NetworkApiException>()),
+    );
+    expect(
+      (await db.foodDao.getById(saved.food.id))!.contributionStatus,
+      isNull,
+    );
+  });
 }
 
 /// 模拟 422 校验拒绝的远程端（T7 口径：不可重试错误上抛）。
@@ -113,5 +182,10 @@ final class _RejectingRemote implements CustomFoodRemote {
       code: 'VALIDATION_FAILED',
       message: '字段校验失败',
     );
+  }
+
+  @override
+  Future<String> contribute(String foodId, {required String clientRequestId}) {
+    throw UnimplementedError();
   }
 }

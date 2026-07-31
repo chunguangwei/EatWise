@@ -410,8 +410,9 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                                     style: textStyles.textBase,
                                   ),
                                 ),
-                                // 自定义食物小标签（K2：个人库条目）。
-                                if (food.isCustom)
+                                // 自定义/社区食物状态标签（K2 众包：自定义 /
+                                // 审核中 / 已共享 / 未通过 / 社区，null 不显示）。
+                                if (cs.badgeFor(food) case final badgeText?)
                                   Container(
                                     margin: const EdgeInsets.only(
                                       left: AppSpacing.s2,
@@ -425,7 +426,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                                       borderRadius: radii.rSm,
                                     ),
                                     child: Text(
-                                      cs.badge,
+                                      badgeText,
                                       style: textStyles.textXs.copyWith(
                                         color: colors.bgPrimary,
                                       ),

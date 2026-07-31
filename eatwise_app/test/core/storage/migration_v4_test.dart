@@ -60,44 +60,49 @@ void main() {
     await seed.close();
   }
 
-  test('v3 → v5：water_logs 补同步字段 + foods 补自定义字段，历史数据保留且默认 pending', () async {
-    await seedV3Database();
+  test(
+    'v3 → v6：water_logs 补同步字段 + foods 补自定义/贡献状态字段，历史数据保留且默认 pending',
+    () async {
+      await seedV3Database();
 
-    final db = AppDatabase(NativeDatabase(dbFile));
-    addTearDown(() async => db.close());
+      final db = AppDatabase(NativeDatabase(dbFile));
+      addTearDown(() async => db.close());
 
-    expect(db.schemaVersion, 5);
+      expect(db.schemaVersion, 6);
 
-    // 历史行完整保留，新列走默认值（pending/无 serverId/无幂等键/非 tombstone）。
-    final old = (await db.waterLogDao.getByLocalId('w-old'))!;
-    expect(old.amountMl, 300);
-    expect(old.localDate, '2026-07-28');
-    expect(old.syncState, WaterSyncState.pending);
-    expect(old.serverId, isNull);
-    expect(old.clientRequestId, '');
-    expect(old.deleted, isFalse);
-    expect(await db.waterLogDao.totalForDate('anonymous', '2026-07-28'), 300);
+      // 历史行完整保留，新列走默认值（pending/无 serverId/无幂等键/非 tombstone）。
+      final old = (await db.waterLogDao.getByLocalId('w-old'))!;
+      expect(old.amountMl, 300);
+      expect(old.localDate, '2026-07-28');
+      expect(old.syncState, WaterSyncState.pending);
+      expect(old.serverId, isNull);
+      expect(old.clientRequestId, '');
+      expect(old.deleted, isFalse);
+      expect(await db.waterLogDao.totalForDate('anonymous', '2026-07-28'), 300);
 
-    // 新口径入账正常（带幂等键）。
-    await db.waterLogDao.insertLog(
-      const WaterLogsCompanion(
-        localId: Value('w-new'),
-        userId: Value('anonymous'),
-        amountMl: Value(200),
-        datetimeUtc: Value('2026-07-29T01:00:00.000Z'),
-        localDate: Value('2026-07-29'),
-        clientRequestId: Value('c-new'),
-        createdAtUtc: Value('2026-07-29T01:00:00.000Z'),
-      ),
-    );
-    final newLog = (await db.waterLogDao.getByLocalId('w-new'))!;
-    expect(newLog.clientRequestId, 'c-new');
-    expect(newLog.syncState, WaterSyncState.pending);
+      // 新口径入账正常（带幂等键）。
+      await db.waterLogDao.insertLog(
+        const WaterLogsCompanion(
+          localId: Value('w-new'),
+          userId: Value('anonymous'),
+          amountMl: Value(200),
+          datetimeUtc: Value('2026-07-29T01:00:00.000Z'),
+          localDate: Value('2026-07-29'),
+          clientRequestId: Value('c-new'),
+          createdAtUtc: Value('2026-07-29T01:00:00.000Z'),
+        ),
+      );
+      final newLog = (await db.waterLogDao.getByLocalId('w-new'))!;
+      expect(newLog.clientRequestId, 'c-new');
+      expect(newLog.syncState, WaterSyncState.pending);
 
-    // 升级后的 user_version 落为 5（重开不再重复迁移）。
-    final versionRow = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(versionRow.data['user_version'], 5);
-  });
+      // 升级后的 user_version 落为 6（重开不再重复迁移）。
+      final versionRow = await db
+          .customSelect('PRAGMA user_version')
+          .getSingle();
+      expect(versionRow.data['user_version'], 6);
+    },
+  );
 }
 
 /// 裸 executor 的 ensureOpen 宿主（无表，仅用于手工落 v3 schema；

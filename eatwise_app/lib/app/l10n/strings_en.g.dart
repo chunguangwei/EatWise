@@ -534,6 +534,14 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get kcalRange => 'Calories must be between 0 and 900 kcal';
 	@override String get macroRange => 'Must be between 0 and 100 g';
 	@override String get savedOffline => 'Saved on this device — will sync when online';
+	@override String get savedOnline => 'Saved';
+	@override String get shareOptIn => 'Share with all users (everyone can find it once approved)';
+	@override String get shareAction => 'Share with all users';
+	@override String get submittedReview => 'Submitted for review';
+	@override String get badgePending => 'In review';
+	@override String get badgeApproved => 'Shared';
+	@override String get badgeRejected => 'Not approved';
+	@override String get badgeCommunity => 'Community';
 }
 
 // Path: record.water
@@ -1590,6 +1598,14 @@ extension on TranslationsEn {
 			'record.customFood.kcalRange' => 'Calories must be between 0 and 900 kcal',
 			'record.customFood.macroRange' => 'Must be between 0 and 100 g',
 			'record.customFood.savedOffline' => 'Saved on this device — will sync when online',
+			'record.customFood.savedOnline' => 'Saved',
+			'record.customFood.shareOptIn' => 'Share with all users (everyone can find it once approved)',
+			'record.customFood.shareAction' => 'Share with all users',
+			'record.customFood.submittedReview' => 'Submitted for review',
+			'record.customFood.badgePending' => 'In review',
+			'record.customFood.badgeApproved' => 'Shared',
+			'record.customFood.badgeRejected' => 'Not approved',
+			'record.customFood.badgeCommunity' => 'Community',
 			'record.water.title' => 'Water today',
 			'record.water.progress' => ({required Object total, required Object goal}) => '${total} / ${goal} ml',
 			'record.water.quickAddLabel' => ({required Object ml}) => 'Add ${ml} ml of water',

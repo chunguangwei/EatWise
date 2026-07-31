@@ -145,6 +145,17 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         requiredDuringInsert: false,
         defaultValue: const Constant(''),
       );
+  static const VerificationMeta _contributionStatusMeta =
+      const VerificationMeta('contributionStatus');
+  @override
+  late final GeneratedColumn<String> contributionStatus =
+      GeneratedColumn<String>(
+        'contribution_status',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -159,6 +170,7 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     isCustom,
     customSyncPending,
     customClientRequestId,
+    contributionStatus,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -270,6 +282,15 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         ),
       );
     }
+    if (data.containsKey('contribution_status')) {
+      context.handle(
+        _contributionStatusMeta,
+        contributionStatus.isAcceptableOrUnknown(
+          data['contribution_status']!,
+          _contributionStatusMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -327,6 +348,10 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         DriftSqlType.string,
         data['${effectivePrefix}custom_client_request_id'],
       )!,
+      contributionStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contribution_status'],
+      ),
     );
   }
 
@@ -372,6 +397,11 @@ class Food extends DataClass implements Insertable<Food> {
 
   /// 自定义食物上行幂等键（UUIDv4，/foods/custom 重试复用，§2.2）。
   final String customClientRequestId;
+
+  /// 共享贡献审核状态（K2 众包）：null=未贡献（标签「自定义」），
+  /// pending=审核中 / approved=已共享 / rejected=未通过；
+  /// 非自定义行下行标记 approved 时表示社区共享食物（标签「社区」）。
+  final String? contributionStatus;
   const Food({
     required this.id,
     required this.nameZh,
@@ -385,6 +415,7 @@ class Food extends DataClass implements Insertable<Food> {
     required this.isCustom,
     required this.customSyncPending,
     required this.customClientRequestId,
+    this.contributionStatus,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -401,6 +432,9 @@ class Food extends DataClass implements Insertable<Food> {
     map['is_custom'] = Variable<bool>(isCustom);
     map['custom_sync_pending'] = Variable<bool>(customSyncPending);
     map['custom_client_request_id'] = Variable<String>(customClientRequestId);
+    if (!nullToAbsent || contributionStatus != null) {
+      map['contribution_status'] = Variable<String>(contributionStatus);
+    }
     return map;
   }
 
@@ -418,6 +452,9 @@ class Food extends DataClass implements Insertable<Food> {
       isCustom: Value(isCustom),
       customSyncPending: Value(customSyncPending),
       customClientRequestId: Value(customClientRequestId),
+      contributionStatus: contributionStatus == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contributionStatus),
     );
   }
 
@@ -441,6 +478,9 @@ class Food extends DataClass implements Insertable<Food> {
       customClientRequestId: serializer.fromJson<String>(
         json['customClientRequestId'],
       ),
+      contributionStatus: serializer.fromJson<String?>(
+        json['contributionStatus'],
+      ),
     );
   }
   @override
@@ -459,6 +499,7 @@ class Food extends DataClass implements Insertable<Food> {
       'isCustom': serializer.toJson<bool>(isCustom),
       'customSyncPending': serializer.toJson<bool>(customSyncPending),
       'customClientRequestId': serializer.toJson<String>(customClientRequestId),
+      'contributionStatus': serializer.toJson<String?>(contributionStatus),
     };
   }
 
@@ -475,6 +516,7 @@ class Food extends DataClass implements Insertable<Food> {
     bool? isCustom,
     bool? customSyncPending,
     String? customClientRequestId,
+    Value<String?> contributionStatus = const Value.absent(),
   }) => Food(
     id: id ?? this.id,
     nameZh: nameZh ?? this.nameZh,
@@ -488,6 +530,9 @@ class Food extends DataClass implements Insertable<Food> {
     isCustom: isCustom ?? this.isCustom,
     customSyncPending: customSyncPending ?? this.customSyncPending,
     customClientRequestId: customClientRequestId ?? this.customClientRequestId,
+    contributionStatus: contributionStatus.present
+        ? contributionStatus.value
+        : this.contributionStatus,
   );
   Food copyWithCompanion(FoodsCompanion data) {
     return Food(
@@ -515,6 +560,9 @@ class Food extends DataClass implements Insertable<Food> {
       customClientRequestId: data.customClientRequestId.present
           ? data.customClientRequestId.value
           : this.customClientRequestId,
+      contributionStatus: data.contributionStatus.present
+          ? data.contributionStatus.value
+          : this.contributionStatus,
     );
   }
 
@@ -532,7 +580,8 @@ class Food extends DataClass implements Insertable<Food> {
           ..write('fatPer100g: $fatPer100g, ')
           ..write('isCustom: $isCustom, ')
           ..write('customSyncPending: $customSyncPending, ')
-          ..write('customClientRequestId: $customClientRequestId')
+          ..write('customClientRequestId: $customClientRequestId, ')
+          ..write('contributionStatus: $contributionStatus')
           ..write(')'))
         .toString();
   }
@@ -551,6 +600,7 @@ class Food extends DataClass implements Insertable<Food> {
     isCustom,
     customSyncPending,
     customClientRequestId,
+    contributionStatus,
   );
   @override
   bool operator ==(Object other) =>
@@ -567,7 +617,8 @@ class Food extends DataClass implements Insertable<Food> {
           other.fatPer100g == this.fatPer100g &&
           other.isCustom == this.isCustom &&
           other.customSyncPending == this.customSyncPending &&
-          other.customClientRequestId == this.customClientRequestId);
+          other.customClientRequestId == this.customClientRequestId &&
+          other.contributionStatus == this.contributionStatus);
 }
 
 class FoodsCompanion extends UpdateCompanion<Food> {
@@ -583,6 +634,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
   final Value<bool> isCustom;
   final Value<bool> customSyncPending;
   final Value<String> customClientRequestId;
+  final Value<String?> contributionStatus;
   final Value<int> rowid;
   const FoodsCompanion({
     this.id = const Value.absent(),
@@ -597,6 +649,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     this.isCustom = const Value.absent(),
     this.customSyncPending = const Value.absent(),
     this.customClientRequestId = const Value.absent(),
+    this.contributionStatus = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FoodsCompanion.insert({
@@ -612,6 +665,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     this.isCustom = const Value.absent(),
     this.customSyncPending = const Value.absent(),
     this.customClientRequestId = const Value.absent(),
+    this.contributionStatus = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        nameZh = Value(nameZh),
@@ -633,6 +687,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Expression<bool>? isCustom,
     Expression<bool>? customSyncPending,
     Expression<String>? customClientRequestId,
+    Expression<String>? contributionStatus,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -649,6 +704,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       if (customSyncPending != null) 'custom_sync_pending': customSyncPending,
       if (customClientRequestId != null)
         'custom_client_request_id': customClientRequestId,
+      if (contributionStatus != null) 'contribution_status': contributionStatus,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -666,6 +722,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Value<bool>? isCustom,
     Value<bool>? customSyncPending,
     Value<String>? customClientRequestId,
+    Value<String?>? contributionStatus,
     Value<int>? rowid,
   }) {
     return FoodsCompanion(
@@ -682,6 +739,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       customSyncPending: customSyncPending ?? this.customSyncPending,
       customClientRequestId:
           customClientRequestId ?? this.customClientRequestId,
+      contributionStatus: contributionStatus ?? this.contributionStatus,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -727,6 +785,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
         customClientRequestId.value,
       );
     }
+    if (contributionStatus.present) {
+      map['contribution_status'] = Variable<String>(contributionStatus.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -748,6 +809,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
           ..write('isCustom: $isCustom, ')
           ..write('customSyncPending: $customSyncPending, ')
           ..write('customClientRequestId: $customClientRequestId, ')
+          ..write('contributionStatus: $contributionStatus, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4158,6 +4220,7 @@ typedef $$FoodsTableCreateCompanionBuilder =
       Value<bool> isCustom,
       Value<bool> customSyncPending,
       Value<String> customClientRequestId,
+      Value<String?> contributionStatus,
       Value<int> rowid,
     });
 typedef $$FoodsTableUpdateCompanionBuilder =
@@ -4174,6 +4237,7 @@ typedef $$FoodsTableUpdateCompanionBuilder =
       Value<bool> isCustom,
       Value<bool> customSyncPending,
       Value<String> customClientRequestId,
+      Value<String?> contributionStatus,
       Value<int> rowid,
     });
 
@@ -4265,6 +4329,11 @@ class $$FoodsTableFilterComposer extends Composer<_$AppDatabase, $FoodsTable> {
 
   ColumnFilters<String> get customClientRequestId => $composableBuilder(
     column: $table.customClientRequestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contributionStatus => $composableBuilder(
+    column: $table.contributionStatus,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4362,6 +4431,11 @@ class $$FoodsTableOrderingComposer
     column: $table.customClientRequestId,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get contributionStatus => $composableBuilder(
+    column: $table.contributionStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$FoodsTableAnnotationComposer
@@ -4418,6 +4492,11 @@ class $$FoodsTableAnnotationComposer
 
   GeneratedColumn<String> get customClientRequestId => $composableBuilder(
     column: $table.customClientRequestId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get contributionStatus => $composableBuilder(
+    column: $table.contributionStatus,
     builder: (column) => column,
   );
 
@@ -4487,6 +4566,7 @@ class $$FoodsTableTableManager
                 Value<bool> isCustom = const Value.absent(),
                 Value<bool> customSyncPending = const Value.absent(),
                 Value<String> customClientRequestId = const Value.absent(),
+                Value<String?> contributionStatus = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FoodsCompanion(
                 id: id,
@@ -4501,6 +4581,7 @@ class $$FoodsTableTableManager
                 isCustom: isCustom,
                 customSyncPending: customSyncPending,
                 customClientRequestId: customClientRequestId,
+                contributionStatus: contributionStatus,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4517,6 +4598,7 @@ class $$FoodsTableTableManager
                 Value<bool> isCustom = const Value.absent(),
                 Value<bool> customSyncPending = const Value.absent(),
                 Value<String> customClientRequestId = const Value.absent(),
+                Value<String?> contributionStatus = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FoodsCompanion.insert(
                 id: id,
@@ -4531,6 +4613,7 @@ class $$FoodsTableTableManager
                 isCustom: isCustom,
                 customSyncPending: customSyncPending,
                 customClientRequestId: customClientRequestId,
+                contributionStatus: contributionStatus,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

@@ -195,7 +195,15 @@
       "nutritionRequired": "请填写大于 0 的数值",
       "kcalRange": "热量需在 0–900 千卡之间",
       "macroRange": "需在 0–100 克之间",
-      "savedOffline": "已保存到本机，联网后自动同步"
+      "savedOffline": "已保存到本机，联网后自动同步",
+      "savedOnline": "已保存",
+      "shareOptIn": "分享给所有用户（审核通过后大家都能搜到）",
+      "shareAction": "分享给所有用户",
+      "submittedReview": "已提交审核",
+      "badgePending": "审核中",
+      "badgeApproved": "已共享",
+      "badgeRejected": "未通过",
+      "badgeCommunity": "社区"
     },
     "water": {
       "title": "今日饮水",

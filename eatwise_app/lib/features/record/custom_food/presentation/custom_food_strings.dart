@@ -1,4 +1,5 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/storage/database.dart';
 import 'package:flutter/widgets.dart';
 
 /// K2 自定义食物文案（i18n key：`record.customFood.*`，slang 生成产物薄封装，
@@ -69,6 +70,46 @@ final class CustomFoodStrings {
 
   /// record.customFood.savedOffline
   String get savedOffline => _t.record.customFood.savedOffline;
+
+  /// record.customFood.savedOnline
+  String get savedOnline => _t.record.customFood.savedOnline;
+
+  /// record.customFood.shareOptIn
+  String get shareOptIn => _t.record.customFood.shareOptIn;
+
+  /// record.customFood.shareAction
+  String get shareAction => _t.record.customFood.shareAction;
+
+  /// record.customFood.submittedReview
+  String get submittedReview => _t.record.customFood.submittedReview;
+
+  /// record.customFood.badgePending
+  String get badgePending => _t.record.customFood.badgePending;
+
+  /// record.customFood.badgeApproved
+  String get badgeApproved => _t.record.customFood.badgeApproved;
+
+  /// record.customFood.badgeRejected
+  String get badgeRejected => _t.record.customFood.badgeRejected;
+
+  /// record.customFood.badgeCommunity
+  String get badgeCommunity => _t.record.customFood.badgeCommunity;
+
+  /// 搜索结果行状态标签（K2 众包；null = 不显示标签）：
+  /// 自定义食物按贡献状态分「自定义/审核中/已共享/未通过」；
+  /// 非自定义但下行标记 approved 的为他人贡献的社区食物（「社区」）。
+  String? badgeFor(Food food) {
+    if (food.isCustom) {
+      return switch (food.contributionStatus) {
+        'pending' => badgePending,
+        'approved' => badgeApproved,
+        'rejected' => badgeRejected,
+        _ => badge,
+      };
+    }
+    if (food.contributionStatus == 'approved') return badgeCommunity;
+    return null;
+  }
 
   /// common.action.save
   String get saveAction => _t.common.action.save;

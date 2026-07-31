@@ -195,7 +195,15 @@
       "nutritionRequired": "Enter a number greater than 0",
       "kcalRange": "Calories must be between 0 and 900 kcal",
       "macroRange": "Must be between 0 and 100 g",
-      "savedOffline": "Saved on this device — will sync when online"
+      "savedOffline": "Saved on this device — will sync when online",
+      "savedOnline": "Saved",
+      "shareOptIn": "Share with all users (everyone can find it once approved)",
+      "shareAction": "Share with all users",
+      "submittedReview": "Submitted for review",
+      "badgePending": "In review",
+      "badgeApproved": "Shared",
+      "badgeRejected": "Not approved",
+      "badgeCommunity": "Community"
     },
     "water": {
       "title": "Water today",

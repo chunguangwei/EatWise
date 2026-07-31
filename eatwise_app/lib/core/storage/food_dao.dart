@@ -52,4 +52,11 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
       const FoodsCompanion(customSyncPending: Value(false)),
     );
   }
+
+  /// 写入共享贡献审核状态（贡献成功/拒收时落本地，搜索行状态标签数据源）。
+  Future<void> setContributionStatus(String id, String status) {
+    return (update(foods)..where((f) => f.id.equals(id))).write(
+      FoodsCompanion(contributionStatus: Value(status)),
+    );
+  }
 }

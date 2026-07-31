@@ -781,6 +781,30 @@ class Translations$record$customFood$zh_CN {
 
 	/// zh-CN: '已保存到本机，联网后自动同步'
 	String get savedOffline => '已保存到本机，联网后自动同步';
+
+	/// zh-CN: '已保存'
+	String get savedOnline => '已保存';
+
+	/// zh-CN: '分享给所有用户（审核通过后大家都能搜到）'
+	String get shareOptIn => '分享给所有用户（审核通过后大家都能搜到）';
+
+	/// zh-CN: '分享给所有用户'
+	String get shareAction => '分享给所有用户';
+
+	/// zh-CN: '已提交审核'
+	String get submittedReview => '已提交审核';
+
+	/// zh-CN: '审核中'
+	String get badgePending => '审核中';
+
+	/// zh-CN: '已共享'
+	String get badgeApproved => '已共享';
+
+	/// zh-CN: '未通过'
+	String get badgeRejected => '未通过';
+
+	/// zh-CN: '社区'
+	String get badgeCommunity => '社区';
 }
 
 // Path: record.water
@@ -2461,6 +2485,14 @@ extension on Translations {
 			'record.customFood.kcalRange' => '热量需在 0–900 千卡之间',
 			'record.customFood.macroRange' => '需在 0–100 克之间',
 			'record.customFood.savedOffline' => '已保存到本机，联网后自动同步',
+			'record.customFood.savedOnline' => '已保存',
+			'record.customFood.shareOptIn' => '分享给所有用户（审核通过后大家都能搜到）',
+			'record.customFood.shareAction' => '分享给所有用户',
+			'record.customFood.submittedReview' => '已提交审核',
+			'record.customFood.badgePending' => '审核中',
+			'record.customFood.badgeApproved' => '已共享',
+			'record.customFood.badgeRejected' => '未通过',
+			'record.customFood.badgeCommunity' => '社区',
 			'record.water.title' => '今日饮水',
 			'record.water.progress' => ({required Object total, required Object goal}) => '${total} / ${goal} 毫升',
 			'record.water.quickAddLabel' => ({required Object ml}) => '加 ${ml} 毫升水',

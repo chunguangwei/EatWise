@@ -222,6 +222,11 @@ void main() {
     expect(find.text('确认记录'), findsOneWidget);
 
     // 份量必填联动：空份量确认 → 拦截提示，不入账。
+    // （保存成功 Toast「已保存 + 分享给所有用户」会遮住底部按钮，先关闭。）
+    ScaffoldMessenger.of(
+      tester.element(find.byType(Scaffold).first),
+    ).hideCurrentSnackBar();
+    await tester.pump();
     await tester.tap(find.text('确认记录'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));

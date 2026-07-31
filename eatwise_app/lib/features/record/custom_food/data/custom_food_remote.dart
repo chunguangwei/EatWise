@@ -14,6 +14,11 @@ abstract interface class CustomFoodRemote {
     CustomFoodDraft draft, {
     required String clientRequestId,
   });
+
+  /// 贡献自定义食物为共享候选（POST /foods/custom/:id/contribute，幂等
+  /// clientRequestId；返回候选状态 pending/approved/rejected；
+  /// 机审拒收抛 400 FOOD_CONTRIBUTE_REJECTED，message 为服务端双语原因）。
+  Future<String> contribute(String foodId, {required String clientRequestId});
 }
 
 /// 估算不可用（503 ESTIMATE_UNAVAILABLE / 超时 / 网络错误）的统一判定：
@@ -89,6 +94,22 @@ final class RemoteCustomFoodApi implements CustomFoodRemote {
       throw toApiException(e);
     }
   }
+
+  @override
+  Future<String> contribute(
+    String foodId, {
+    required String clientRequestId,
+  }) async {
+    try {
+      final response = await dio.post<Map<String, dynamic>>(
+        '/foods/custom/$foodId/contribute',
+        data: <String, dynamic>{'clientRequestId': clientRequestId},
+      );
+      return response.data?['status'] as String? ?? 'pending';
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
 }
 
 /// Fake 远程端可注入模式：成功 / 估算不可用（503）/ 离线。
@@ -114,6 +135,18 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
 
   /// 已收到的 clientRequestId 列表（服务端幂等表替身，§2.2）。
   final List<String> receivedRequestIds = <String>[];
+
+  /// 可注入的贡献结果状态（默认 pending）。
+  String contributeStatus = 'pending';
+
+  /// 注入贡献拒收（400 FOOD_CONTRIBUTE_REJECTED，双语 message 同服务端口径）。
+  bool contributeRejected = false;
+
+  /// 已收到的贡献幂等键列表（`foodId:clientRequestId`）。
+  final List<String> receivedContributeIds = <String>[];
+
+  /// 贡献幂等表（clientRequestId → 首次返回的状态）。
+  final Map<String, String> _contributeIdem = <String, String>{};
 
   int _serverSeq = 0;
 
@@ -158,5 +191,28 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
     receivedRequestIds.add(clientRequestId);
     _serverSeq++;
     return 'srv-food-$_serverSeq';
+  }
+
+  @override
+  Future<String> contribute(
+    String foodId, {
+    required String clientRequestId,
+  }) async {
+    if (mode == FakeCustomFoodMode.offline) {
+      throw const NetworkApiException();
+    }
+    // 幂等：同一 clientRequestId 重放返回首次结果（与服务端口径一致）。
+    final cached = _contributeIdem[clientRequestId];
+    if (cached != null) return cached;
+    if (contributeRejected) {
+      throw const BusinessApiException(
+        httpStatus: 400,
+        code: 'FOOD_CONTRIBUTE_REJECTED',
+        message: '食物名称未通过审核，无法贡献到共享食物库',
+      );
+    }
+    receivedContributeIds.add('$foodId:$clientRequestId');
+    _contributeIdem[clientRequestId] = contributeStatus;
+    return contributeStatus;
   }
 }
