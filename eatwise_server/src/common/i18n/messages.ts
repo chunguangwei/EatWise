@@ -30,6 +30,7 @@ const zh: Record<string, string> = {
   MAKEUP_ALREADY_USED: '该日期已经补签过了',
   POST_CONTENT_REJECTED: '内容未通过审核，无法发布',
   RESOURCE_GONE: '该内容已删除',
+  ESTIMATE_UNAVAILABLE: '营养估算暂不可用，请手动填写',
 };
 
 const en: Record<string, string> = {
@@ -53,6 +54,7 @@ const en: Record<string, string> = {
   MAKEUP_ALREADY_USED: 'This date has already been made up',
   POST_CONTENT_REJECTED: 'Content did not pass review and cannot be published',
   RESOURCE_GONE: 'This content has been deleted',
+  ESTIMATE_UNAVAILABLE: 'Nutrition estimate unavailable, please enter values manually',
 };
 
 export function translate(code: string, locale: Locale): string {

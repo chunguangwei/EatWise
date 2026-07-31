@@ -84,6 +84,23 @@ export interface FoodEntity {
   source: string;
 }
 
+/** 用户自定义食物（个人库，仅创建者可见，参与 K1 搜索排内置结果之后） */
+export interface CustomFoodEntity {
+  id: string;
+  /** 创建者（= prisma Food.createdByUserId），搜索/详情按此过滤可见性 */
+  userId: string;
+  clientRequestId: string;
+  nameZh: string;
+  nameEn: string;
+  aliases: string[];
+  kcalPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  fatPer100g: number;
+  source: 'manual' | 'llm-estimate';
+  createdAt: Date;
+}
+
 export interface NutritionSnapshot {
   kcal: number;
   proteinG: number;
@@ -191,6 +208,8 @@ export class DataStore {
   readonly fastingPlans = new Map<string, FastingPlanEntity>();
   readonly fastingRecords = new Map<string, FastingRecordEntity>();
   readonly foods = new Map<string, FoodEntity>();
+  /** 用户自定义食物（个人库，仅创建者可见；prisma 模式对应 foods.isCustom + createdByUserId） */
+  readonly customFoods = new Map<string, CustomFoodEntity>();
 
   /** 已加载的 foods.seed.json 版本号（D-16 全量库幂等加载标记，见 food-seed-loader.ts）。 */
   foodSeedVersion: string | null = null;

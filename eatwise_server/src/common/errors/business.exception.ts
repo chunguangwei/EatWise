@@ -52,6 +52,10 @@ export const err = {
   makeupOutOfWindow: () => new BusinessException('MAKEUP_OUT_OF_WINDOW', HttpStatus.BAD_REQUEST),
   makeupAlreadyUsed: () => new BusinessException('MAKEUP_ALREADY_USED', HttpStatus.CONFLICT),
 
+  // LLM 营养估算（供应商未配置/超时/输出非法时，客户端降级手动填写）
+  estimateUnavailable: () =>
+    new BusinessException('ESTIMATE_UNAVAILABLE', HttpStatus.SERVICE_UNAVAILABLE),
+
   // 社区打卡（M5 / D-17 先审后发）
   postContentRejected: (reason?: { zh: string; en: string }) =>
     new BusinessException('POST_CONTENT_REJECTED', HttpStatus.BAD_REQUEST, { reason }),
