@@ -266,6 +266,15 @@ export class FoodService {
       reason: c.reason,
       nameZh: food?.nameZh ?? null,
       nameEn: food?.nameEn ?? null,
+      // 管理端审核台展示用（每 100g 营养）；食物已被删除等异常态为 null
+      per100g: food
+        ? {
+            kcal: food.kcalPer100g,
+            proteinG: food.proteinPer100g,
+            carbG: food.carbsPer100g,
+            fatG: food.fatPer100g,
+          }
+        : null,
       createdAt: c.createdAt.toISOString(),
       updatedAt: c.updatedAt.toISOString(),
     };

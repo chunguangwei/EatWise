@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>明食 · EatWise 管理控制台</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f4f6f5; color: #24302b; }
+  header { background: #fff; border-bottom: 1px solid #e3e8e6; padding: 14px 24px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  header h1 { font-size: 17px; font-weight: 600; }
+  header h1 .dot { color: #3DBE8B; }
+  .token-box { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .token-box input { width: 260px; padding: 7px 10px; border: 1px solid #cfd8d4; border-radius: 6px; font-size: 13px; }
+  main { max-width: 980px; margin: 24px auto; padding: 0 16px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+  .tabs button { padding: 8px 18px; border: none; background: #e7ecea; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 14px; color: #5a6b63; }
+  .tabs button.active { background: #fff; color: #24302b; font-weight: 600; box-shadow: 0 -1px 0 #3DBE8B inset; }
+  .panel { background: #fff; border-radius: 0 8px 8px 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+  .btn { padding: 7px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; background: #3DBE8B; color: #fff; }
+  .btn:hover { background: #34a97b; }
+  .btn.ghost { background: #eef2f0; color: #3c4a44; }
+  .btn.danger { background: #e2603f; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .filters { display: flex; gap: 6px; margin-bottom: 14px; }
+  .filters button { padding: 5px 12px; border: 1px solid #d5ddd9; background: #fff; border-radius: 999px; cursor: pointer; font-size: 13px; color: #5a6b63; }
+  .filters button.active { border-color: #3DBE8B; color: #1f8f63; background: #eafaf3; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid #eef1ef; vertical-align: top; }
+  th { color: #7a8a83; font-weight: 500; white-space: nowrap; }
+  .muted { color: #8b9a94; font-size: 12px; }
+  .empty { text-align: center; color: #8b9a94; padding: 32px 0; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+  .badge.pending { background: #fff4e0; color: #a86a12; }
+  .badge.approved { background: #e6f7ef; color: #1f8f63; }
+  .badge.rejected { background: #fdeae5; color: #c24a2a; }
+  .badge.runtime { background: #e6f7ef; color: #1f8f63; }
+  .badge.env { background: #e8f0fd; color: #2c62b8; }
+  .badge.stub { background: #f0f1f1; color: #6d7c76; }
+  .form-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .form-row label { width: 90px; font-size: 13px; color: #5a6b63; flex-shrink: 0; }
+  .form-row input, .form-row select { flex: 1; max-width: 380px; padding: 7px 10px; border: 1px solid #cfd8d4; border-radius: 6px; font-size: 13px; }
+  .msg { margin-top: 12px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; white-space: pre-wrap; word-break: break-all; }
+  .msg.ok { display: block; background: #e6f7ef; color: #176b4b; }
+  .msg.fail { display: block; background: #fdeae5; color: #a03c1f; }
+  .result { margin-top: 12px; background: #f7f9f8; border: 1px solid #e3e8e6; border-radius: 6px; padding: 10px 12px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; display: none; }
+  .cfg-summary { font-size: 13px; color: #3c4a44; margin-bottom: 16px; line-height: 1.9; }
+  .cfg-summary code { background: #f0f3f2; padding: 1px 6px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>明食 <span class="dot">·</span> EatWise 管理控制台</h1>
+  <div class="token-box">
+    <input id="tokenInput" type="password" placeholder="x-admin-token（本机记忆）" autocomplete="off">
+    <button class="btn" onclick="saveToken()">保存</button>
+  </div>
+</header>
+<main>
+  <div class="tabs">
+    <button id="tabReview" class="active" onclick="switchTab('review')">食物审核</button>
+    <button id="tabConfig" onclick="switchTab('config')">API 配置</button>
+  </div>
+
+  <!-- 食物审核 -->
+  <section id="panelReview" class="panel">
+    <div class="filters" id="statusFilters">
+      <button data-status="pending" class="active" onclick="setStatus('pending')">待审核</button>
+      <button data-status="approved" onclick="setStatus('approved')">已通过</button>
+      <button data-status="rejected" onclick="setStatus('rejected')">已拒绝</button>
+    </div>
+    <div id="reviewMsg" class="msg"></div>
+    <table>
+      <thead><tr>
+        <th>菜名</th><th>营养 /100g</th><th>贡献者</th><th>提交时间</th><th>状态</th><th>操作</th>
+      </tr></thead>
+      <tbody id="candidateRows"></tbody>
+    </table>
+    <div id="candidateEmpty" class="empty" style="display:none">暂无数据</div>
+    <div style="margin-top:12px; text-align:center">
+      <button id="moreBtn" class="btn ghost" style="display:none" onclick="loadCandidates(true)">加载更多</button>
+    </div>
+  </section>
+
+  <!-- API 配置 -->
+  <section id="panelConfig" class="panel" style="display:none">
+    <div class="cfg-summary" id="cfgSummary">加载中…</div>
+    <div class="form-row">
+      <label>供应商</label>
+      <select id="fProvider">
+        <option value="stub">stub（关闭估算）</option>
+        <option value="deepseek">deepseek</option>
+        <option value="qwen">qwen</option>
+        <option value="kimi">kimi</option>
+        <option value="custom">custom（OpenAI 兼容）</option>
+      </select>
+    </div>
+    <div class="form-row"><label>Base URL</label><input id="fBaseUrl" placeholder="custom 必填，如 http://localhost:11434/v1"></div>
+    <div class="form-row"><label>模型</label><input id="fModel" placeholder="custom 必填，如 qwen3:4b"></div>
+    <div class="form-row"><label>API Key</label><input id="fApiKey" type="password" placeholder="留空 = 保持不变" autocomplete="new-password"></div>
+    <div class="form-row">
+      <label></label>
+      <div style="display:flex; gap:8px">
+        <button class="btn" onclick="saveConfig()">保存</button>
+        <button class="btn ghost" onclick="testConfig()">测试估算（白米饭）</button>
+      </div>
+    </div>
+    <div id="configMsg" class="msg"></div>
+    <div id="testResult" class="result"></div>
+  </section>
+</main>
+
+<script>
+var TOKEN_KEY = 'eatwise-admin-token';
+var state = { status: 'pending', cursor: null, hasMore: false };
+
+function token() { return document.getElementById('tokenInput').value.trim(); }
+function saveToken() { localStorage.setItem(TOKEN_KEY, token()); flash('reviewMsg', 'Token 已保存（localStorage）', true); }
+document.getElementById('tokenInput').value = localStorage.getItem(TOKEN_KEY) || '';
+
+function flash(id, text, ok) {
+  var el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'msg ' + (ok ? 'ok' : 'fail');
+}
+
+async function api(path, opts) {
+  opts = opts || {};
+  var res = await fetch('/v1' + path, {
+    method: opts.method || 'GET',
+    headers: { 'content-type': 'application/json', 'x-admin-token': token() },
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  var body = await res.json().catch(function () { return {}; });
+  if (!res.ok) {
+    var e = (body && body.error) || {};
+    var msg = e.message || ('HTTP ' + res.status);
+    if (res.status === 401) msg = 'Token 无效或未配置（401）';
+    if (res.status === 404) msg = '管理端未开启或资源不存在（404）';
+    throw new Error(msg);
+  }
+  return body.data;
+}
+
+function switchTab(name) {
+  document.getElementById('tabReview').className = name === 'review' ? 'active' : '';
+  document.getElementById('tabConfig').className = name === 'config' ? 'active' : '';
+  document.getElementById('panelReview').style.display = name === 'review' ? '' : 'none';
+  document.getElementById('panelConfig').style.display = name === 'config' ? '' : 'none';
+  if (name === 'review') loadCandidates(false);
+  if (name === 'config') loadConfig();
+}
+
+function setStatus(s) {
+  state.status = s;
+  var btns = document.querySelectorAll('#statusFilters button');
+  for (var i = 0; i < btns.length; i++) btns[i].className = btns[i].dataset.status === s ? 'active' : '';
+  loadCandidates(false);
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+function fmtTime(iso) { return iso ? new Date(iso).toLocaleString('zh-CN', { hour12: false }) : '-'; }
+function fmtNutrition(p) {
+  if (!p) return '<span class="muted">-</span>';
+  return '热量 ' + p.kcal + ' kcal<br><span class="muted">蛋白 ' + p.proteinG + 'g · 碳水 ' + p.carbG + 'g · 脂肪 ' + p.fatG + 'g</span>';
+}
+
+var STATUS_LABEL = { pending: '待审核', approved: '已通过', rejected: '已拒绝' };
+
+async function loadCandidates(append) {
+  if (!append) { state.cursor = null; document.getElementById('candidateRows').innerHTML = ''; }
+  try {
+    var url = '/admin/food-candidates?status=' + state.status + '&limit=20';
+    if (append && state.cursor) url += '&cursor=' + encodeURIComponent(state.cursor);
+    var data = await api(url);
+    state.cursor = data.pageInfo.nextCursor;
+    state.hasMore = data.pageInfo.hasMore;
+    renderRows(data.items, append);
+    document.getElementById('moreBtn').style.display = state.hasMore ? '' : 'none';
+    var rows = document.getElementById('candidateRows').children.length;
+    document.getElementById('candidateEmpty').style.display = rows === 0 ? '' : 'none';
+  } catch (e) {
+    flash('reviewMsg', e.message, false);
+  }
+}
+
+function renderRows(items, append) {
+  var tbody = document.getElementById('candidateRows');
+  if (!append) tbody.innerHTML = '';
+  items.forEach(function (c) {
+    var tr = document.createElement('tr');
+    var actions = c.status === 'pending'
+      ? '<button class="btn" onclick="review(\'' + c.id + '\',\'approve\')">通过</button> ' +
+        '<button class="btn danger" onclick="review(\'' + c.id + '\',\'reject\')">拒绝</button>'
+      : '<span class="muted">' + (c.reason ? '原因：' + esc(c.reason) : '—') + '</span>';
+    tr.innerHTML =
+      '<td><strong>' + esc(c.nameZh || '(未知名称)') + '</strong>' +
+        (c.nameEn ? '<br><span class="muted">' + esc(c.nameEn) + '</span>' : '') + '</td>' +
+      '<td>' + fmtNutrition(c.per100g) + '</td>' +
+      '<td><span class="muted">' + esc(c.userId) + '</span></td>' +
+      '<td><span class="muted">' + fmtTime(c.createdAt) + '</span></td>' +
+      '<td><span class="badge ' + c.status + '">' + STATUS_LABEL[c.status] + '</span></td>' +
+      '<td style="white-space:nowrap">' + actions + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+async function review(id, action) {
+  var body = { action: action };
+  if (action === 'reject') {
+    var reason = window.prompt('请输入拒绝原因（会展示给贡献者）：');
+    if (reason === null) return;
+    body.reason = reason;
+  }
+  try {
+    await api('/admin/food-candidates/' + encodeURIComponent(id) + '/review', { method: 'POST', body: body });
+    flash('reviewMsg', action === 'approve' ? '已通过，晋升共享食物库' : '已拒绝', true);
+    loadCandidates(false);
+  } catch (e) {
+    flash('reviewMsg', e.message, false);
+    loadCandidates(false);
+  }
+}
+
+/* ===== API 配置 ===== */
+
+var SOURCE_LABEL = { runtime: '运行时覆盖', env: '环境变量', stub: '未配置（stub 降级）' };
+
+async function loadConfig() {
+  try {
+    var data = await api('/admin/config');
+    var llm = data.llm;
+    document.getElementById('cfgSummary').innerHTML =
+      '当前生效：<span class="badge ' + llm.source + '">' + SOURCE_LABEL[llm.source] + '</span> ' +
+      'provider <code>' + esc(llm.provider) + '</code>' +
+      (llm.baseUrl ? ' · baseUrl <code>' + esc(llm.baseUrl) + '</code>' : '') +
+      (llm.model ? ' · model <code>' + esc(llm.model) + '</code>' : '') +
+      ' · apiKey <code>' + esc(llm.apiKey || '(未配置)') + '</code>' +
+      (data.persisted ? '' : '<br><span class="badge rejected">配置文件写入失败，改动仅本次进程内生效</span>');
+    if (data.override) {
+      document.getElementById('fProvider').value = data.override.provider;
+      document.getElementById('fBaseUrl').value = data.override.baseUrl || '';
+      document.getElementById('fModel').value = data.override.model || '';
+    } else {
+      document.getElementById('fProvider').value = llm.provider;
+      document.getElementById('fBaseUrl').value = '';
+      document.getElementById('fModel').value = '';
+    }
+    document.getElementById('fApiKey').value = '';
+  } catch (e) {
+    flash('configMsg', e.message, false);
+  }
+}
+
+async function saveConfig() {
+  try {
+    var body = {
+      provider: document.getElementById('fProvider').value,
+      baseUrl: document.getElementById('fBaseUrl').value.trim(),
+      model: document.getElementById('fModel').value.trim()
+    };
+    var key = document.getElementById('fApiKey').value.trim();
+    if (key) body.apiKey = key;
+    await api('/admin/config/llm', { method: 'PUT', body: body });
+    flash('configMsg', '已保存并即时生效（免重启）', true);
+    loadConfig();
+  } catch (e) {
+    flash('configMsg', e.message, false);
+  }
+}
+
+async function testConfig() {
+  var el = document.getElementById('testResult');
+  el.style.display = 'block';
+  el.textContent = '测试中…';
+  try {
+    var data = await api('/admin/config/llm/test', { method: 'POST' });
+    if (data.ok) {
+      el.textContent = '✓ 估算成功（provider=' + data.provider + (data.model ? ', model=' + data.model : '') + '）\n' +
+        JSON.stringify(data.result, null, 2);
+    } else {
+      el.textContent = '✗ 估算失败（provider=' + data.provider + '）\n' +
+        (data.error ? data.error.code + '：' + data.error.message : '未知错误');
+    }
+  } catch (e) {
+    el.textContent = '✗ 请求失败：' + e.message;
+  }
+}
+
+loadCandidates(false);
+</script>
+</body>
+</html>

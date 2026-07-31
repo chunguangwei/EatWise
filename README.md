@@ -60,6 +60,8 @@ npm run test:e2e
 #   → npx prisma migrate deploy → STORE_DRIVER=prisma npm run start:dev
 ```
 
+**管理控制台**：`http://localhost:3000/admin`（需 `ADMIN_TOKEN`，见 `.env.example`）——食物众包审核（通过/拒绝）+ API 配置页（LLM provider 运行时修改免重启，配置存 `data/admin-config.json` 不入库）。
+
 ### 食物库（eatwise_data）
 
 ```bash

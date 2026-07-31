@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@nestjs/common';
+import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -18,8 +18,8 @@ async function bootstrap() {
     }
   }
   app.use(helmet());
-  // 所有路径以 /v1 为版本前缀（契约 §1.1）
-  app.setGlobalPrefix('v1');
+  // 所有路径以 /v1 为版本前缀（契约 §1.1）；/admin 管理控制台静态页除外
+  app.setGlobalPrefix('v1', { exclude: [{ path: 'admin', method: RequestMethod.GET }] });
   // 防腐层：class-validator 全量校验（规格 §5）
   app.useGlobalPipes(
     new ValidationPipe({
