@@ -56,6 +56,10 @@ export const err = {
   estimateUnavailable: () =>
     new BusinessException('ESTIMATE_UNAVAILABLE', HttpStatus.SERVICE_UNAVAILABLE),
 
+  // 条码查询（OFF 无该商品/超时/数据缺字段，客户端降级手动搜索/自定义食物）
+  barcodeNotFound: () =>
+    new BusinessException('FOOD_BARCODE_NOT_FOUND', HttpStatus.NOT_FOUND),
+
   // 社区打卡（M5 / D-17 先审后发）
   postContentRejected: (reason?: { zh: string; en: string }) =>
     new BusinessException('POST_CONTENT_REJECTED', HttpStatus.BAD_REQUEST, { reason }),

@@ -1,9 +1,10 @@
-import { Body, Controller, Get, HttpCode, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { err } from '../common/errors/business.exception';
 import { EstimateService } from '../llm/estimate.service';
 import { UserThrottlerGuard } from '../llm/user-throttler.guard';
+import { BarcodeService } from './barcode/barcode.service';
 import { CreateCustomFoodDto, EstimateFoodDto } from './food.dto';
 import { FoodService } from './food.service';
 
@@ -12,6 +13,7 @@ export class FoodController {
   constructor(
     private readonly food: FoodService,
     private readonly estimate: EstimateService,
+    private readonly barcode: BarcodeService,
   ) {}
 
   /** K1 双语搜索（D-16）：内置库优先，个人自定义食物排后并标注 isCustom */
@@ -46,6 +48,12 @@ export class FoodController {
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   estimateFood(@Body() dto: EstimateFoodDto) {
     return this.estimate.estimate(dto.name, dto.description);
+  }
+
+  /** 包装食品条码查询（OFF 代理；未命中 404 FOOD_BARCODE_NOT_FOUND，客户端降级） */
+  @Get('barcode/:code')
+  lookupBarcode(@Param('code') code: string) {
+    return this.barcode.lookup(code);
   }
 
   /** 创建用户自定义食物（个人库，仅创建者可见，参与 K1 搜索；幂等 clientRequestId） */

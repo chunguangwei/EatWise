@@ -205,4 +205,16 @@ describe('Foods estimate & custom (e2e)', () => {
       expect(res.body.error.code).toBe('RATE_LIMITED');
     });
   });
+
+  describe('GET /v1/foods/barcode/:code', () => {
+    it('非法条码（非 8–14 位数字）→ 400 VALIDATION_ERROR；未认证 → 401', async () => {
+      const token = await login(nextPhone());
+      const res = await request(server)
+        .get('/v1/foods/barcode/123')
+        .set(auth(token))
+        .expect(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+      await request(server).get('/v1/foods/barcode/7622210449283').expect(401);
+    });
+  });
 });

@@ -1,8 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
 
-/// M3 录入方式（PRD M3：拍照识别 / 语音录入 / 常吃复用 / 手动搜索）。
-enum EntrySource { photo, voice, frequent, manual }
+/// M3 录入方式（PRD M3：拍照识别 / 语音录入 / 常吃复用 / 手动搜索；
+/// barcode 为包装食品扫码扩充入口）。
+enum EntrySource { photo, voice, frequent, manual, barcode }
 
 /// FoodEntry 单条饮食记录（PRD 第五章 + 《规格-数据同步与四态持久化》§1.2）。
 ///

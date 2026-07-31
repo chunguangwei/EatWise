@@ -140,6 +140,26 @@
       "openSettings": "Open Settings",
       "useManual": "Search manually"
     },
+    "barcode": {
+      "entry": "Scan",
+      "title": "Scan product barcode",
+      "torch": "Torch",
+      "manualInput": "Enter manually",
+      "manualTitle": "Enter barcode",
+      "manualHint": "Enter the 8–14 digit code on the package",
+      "manualConfirm": "Look up",
+      "invalid": "Invalid barcode — should be 8–14 digits",
+      "looking": "Looking up…",
+      "notFoundTitle": "Product not found",
+      "notFoundBody": "This product isn't in the food library yet. Search manually, or add a custom food (the barcode is prefilled as an alias).",
+      "notFoundSearch": "Search manually",
+      "notFoundCustom": "Add custom food",
+      "unavailable": "Lookup failed. Check your connection and try again",
+      "deniedTitle": "Camera not authorized",
+      "deniedBody": "You can still log by searching or entering the code manually",
+      "openSettings": "Open settings",
+      "useManual": "Search manually"
+    },
     "voice": {
       "listening": "Listening… say what you ate, e.g. \"a bowl of rice\"",
       "tapToStart": "Tap to start speaking",

@@ -26,9 +26,9 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<!-- M3 拍照识别（合规 §3.1：首次点击「拍照」入口时申请） -->
+	<!-- M3 拍照识别 + 扫码记（合规 §3.1：首次点击「拍照」/「扫码记」入口时申请） -->
 	<key>NSCameraUsageDescription</key>
-	<string>拍照识别食物，帮你更快记一笔</string>
+	<string>拍照识别或扫描商品条码，帮你更快记一笔</string>
 	<!-- M3 语音录入（合规 §3.1：语音识别 + 麦克风双权限，首次点击「语音」入口时申请） -->
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>把你说出的食物转成文字，语音也能记一笔</string>

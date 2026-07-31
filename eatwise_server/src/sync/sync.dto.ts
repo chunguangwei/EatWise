@@ -34,7 +34,7 @@ export class EntryPayloadDto {
   grams?: number;
 
   @IsOptional()
-  @IsIn(['photo', 'voice', 'frequent', 'manual'])
+  @IsIn(['photo', 'voice', 'frequent', 'manual', 'barcode'])
   inputMethod?: string;
 
   @IsOptional()
@@ -110,7 +110,7 @@ export class CreateEntryDto {
   @Max(5000)
   grams: number;
 
-  @IsIn(['photo', 'voice', 'frequent', 'manual'])
+  @IsIn(['photo', 'voice', 'frequent', 'manual', 'barcode'])
   inputMethod: string;
 
   @IsOptional()

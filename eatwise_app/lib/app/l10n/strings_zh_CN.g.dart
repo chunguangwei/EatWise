@@ -101,6 +101,7 @@ class Translations$record$zh_CN {
 	late final Translations$record$nutrition$zh_CN nutrition = Translations$record$nutrition$zh_CN.internal(_root);
 	late final Translations$record$toast$zh_CN toast = Translations$record$toast$zh_CN.internal(_root);
 	late final Translations$record$photo$zh_CN photo = Translations$record$photo$zh_CN.internal(_root);
+	late final Translations$record$barcode$zh_CN barcode = Translations$record$barcode$zh_CN.internal(_root);
 	late final Translations$record$voice$zh_CN voice = Translations$record$voice$zh_CN.internal(_root);
 	late final Translations$record$frequent$zh_CN frequent = Translations$record$frequent$zh_CN.internal(_root);
 	late final Translations$record$card$zh_CN card = Translations$record$card$zh_CN.internal(_root);
@@ -588,6 +589,69 @@ class Translations$record$photo$zh_CN {
 
 	/// zh-CN: '拍不了照也能记，手动搜一样快'
 	String get deniedBody => '拍不了照也能记，手动搜一样快';
+
+	/// zh-CN: '去开启'
+	String get openSettings => '去开启';
+
+	/// zh-CN: '手动搜索'
+	String get useManual => '手动搜索';
+}
+
+// Path: record.barcode
+class Translations$record$barcode$zh_CN {
+	Translations$record$barcode$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '扫码记'
+	String get entry => '扫码记';
+
+	/// zh-CN: '扫描商品条码'
+	String get title => '扫描商品条码';
+
+	/// zh-CN: '照明灯'
+	String get torch => '照明灯';
+
+	/// zh-CN: '手动输码'
+	String get manualInput => '手动输码';
+
+	/// zh-CN: '输入条码'
+	String get manualTitle => '输入条码';
+
+	/// zh-CN: '请输入包装上的 8–14 位数字条码'
+	String get manualHint => '请输入包装上的 8–14 位数字条码';
+
+	/// zh-CN: '查询'
+	String get manualConfirm => '查询';
+
+	/// zh-CN: '条码格式不正确，应为 8–14 位数字'
+	String get invalid => '条码格式不正确，应为 8–14 位数字';
+
+	/// zh-CN: '查询中…'
+	String get looking => '查询中…';
+
+	/// zh-CN: '未收录该商品'
+	String get notFoundTitle => '未收录该商品';
+
+	/// zh-CN: '食物库里还没有这个商品，你可以手动搜索，或添加自定义食物（条码已填入别名）。'
+	String get notFoundBody => '食物库里还没有这个商品，你可以手动搜索，或添加自定义食物（条码已填入别名）。';
+
+	/// zh-CN: '手动搜索'
+	String get notFoundSearch => '手动搜索';
+
+	/// zh-CN: '添加自定义食物'
+	String get notFoundCustom => '添加自定义食物';
+
+	/// zh-CN: '查询失败，请检查网络后重试'
+	String get unavailable => '查询失败，请检查网络后重试';
+
+	/// zh-CN: '相机未授权'
+	String get deniedTitle => '相机未授权';
+
+	/// zh-CN: '扫不了码也能记，手动搜索或输码一样快'
+	String get deniedBody => '扫不了码也能记，手动搜索或输码一样快';
 
 	/// zh-CN: '去开启'
 	String get openSettings => '去开启';
@@ -2350,6 +2414,24 @@ extension on Translations {
 			'record.photo.deniedBody' => '拍不了照也能记，手动搜一样快',
 			'record.photo.openSettings' => '去开启',
 			'record.photo.useManual' => '手动搜索',
+			'record.barcode.entry' => '扫码记',
+			'record.barcode.title' => '扫描商品条码',
+			'record.barcode.torch' => '照明灯',
+			'record.barcode.manualInput' => '手动输码',
+			'record.barcode.manualTitle' => '输入条码',
+			'record.barcode.manualHint' => '请输入包装上的 8–14 位数字条码',
+			'record.barcode.manualConfirm' => '查询',
+			'record.barcode.invalid' => '条码格式不正确，应为 8–14 位数字',
+			'record.barcode.looking' => '查询中…',
+			'record.barcode.notFoundTitle' => '未收录该商品',
+			'record.barcode.notFoundBody' => '食物库里还没有这个商品，你可以手动搜索，或添加自定义食物（条码已填入别名）。',
+			'record.barcode.notFoundSearch' => '手动搜索',
+			'record.barcode.notFoundCustom' => '添加自定义食物',
+			'record.barcode.unavailable' => '查询失败，请检查网络后重试',
+			'record.barcode.deniedTitle' => '相机未授权',
+			'record.barcode.deniedBody' => '扫不了码也能记，手动搜索或输码一样快',
+			'record.barcode.openSettings' => '去开启',
+			'record.barcode.useManual' => '手动搜索',
 			'record.voice.listening' => '正在听… 说说吃了什么，如「一碗米饭」',
 			'record.voice.tapToStart' => '点一下开始说话',
 			'record.voice.finish' => '完成',

@@ -11,6 +11,8 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/record/barcode/presentation/barcode_flow.dart';
+import 'package:eatwise/features/record/barcode/presentation/barcode_strings.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_sheet.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
@@ -24,11 +26,12 @@ import 'package:eatwise/features/record/recognition/presentation/voice_flow.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// M3 记录页（PRD M3：三入口 + 双语搜索 + 份量编辑 + 乐观更新 +
+/// M3 记录页（PRD M3：四入口 + 双语搜索 + 份量编辑 + 乐观更新 +
 /// D-11 撤销吐司 + D-20「待同步 N 条」入口）。
 ///
-/// 三入口已接通：拍照识别（D-16 远端 stub + 手动搜索兜底）、
-/// 语音录入（系统 ASR + 自研解析）、常吃复用（本地高频聚合）。
+/// 入口已接通：拍照识别（D-16 远端 stub + 手动搜索兜底）、
+/// 语音录入（系统 ASR + 自研解析）、常吃复用（本地高频聚合）、
+/// 扫码记（OFF 条码代理，未收录降级手动搜索/自定义食物）。
 /// 不注册路由，由主代理统一集成到 Tab 结构。
 class RecordPage extends ConsumerStatefulWidget {
   const RecordPage({super.key});
@@ -287,7 +290,9 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                       ),
                     ),
                   ),
-                // 三入口（D-16）：拍照识别 / 语音录入 / 常吃复用。
+                // 四入口（D-16 + 扫码扩充）：拍照识别 / 语音录入 / 常吃复用 / 扫码记。
+                // 入口标签 2–3 字，同排四卡（Expanded 均分）在 ≥320px 宽屏不拥挤，
+                // 故不放搜索框右侧图标（与三入口同排样式，层级一致）。
                 Padding(
                   padding: const EdgeInsets.all(AppSpacing.s4),
                   child: Row(
@@ -316,6 +321,15 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                         onTap: () => _onEntryTap(
                           'frequent',
                           () => unawaited(startFrequentPick(context)),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.s2),
+                      _EntryCard(
+                        icon: Icons.qr_code_scanner_outlined,
+                        label: BarcodeStrings.of(context).entry,
+                        onTap: () => _onEntryTap(
+                          'barcode',
+                          () => unawaited(startBarcodeScan(context, ref)),
                         ),
                       ),
                     ],
@@ -514,6 +528,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     EntrySource.voice => 'voice',
     EntrySource.frequent => 'frequent',
     EntrySource.manual => 'manual',
+    EntrySource.barcode => 'barcode',
   };
 
   /// 按本地时间推断餐段（§3.3 meal_period；〔假设〕时段划分）。

@@ -140,6 +140,26 @@
       "openSettings": "去开启",
       "useManual": "手动搜索"
     },
+    "barcode": {
+      "entry": "扫码记",
+      "title": "扫描商品条码",
+      "torch": "照明灯",
+      "manualInput": "手动输码",
+      "manualTitle": "输入条码",
+      "manualHint": "请输入包装上的 8–14 位数字条码",
+      "manualConfirm": "查询",
+      "invalid": "条码格式不正确，应为 8–14 位数字",
+      "looking": "查询中…",
+      "notFoundTitle": "未收录该商品",
+      "notFoundBody": "食物库里还没有这个商品，你可以手动搜索，或添加自定义食物（条码已填入别名）。",
+      "notFoundSearch": "手动搜索",
+      "notFoundCustom": "添加自定义食物",
+      "unavailable": "查询失败，请检查网络后重试",
+      "deniedTitle": "相机未授权",
+      "deniedBody": "扫不了码也能记，手动搜索或输码一样快",
+      "openSettings": "去开启",
+      "useManual": "手动搜索"
+    },
     "voice": {
       "listening": "正在听… 说说吃了什么，如「一碗米饭」",
       "tapToStart": "点一下开始说话",

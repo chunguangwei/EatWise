@@ -96,6 +96,7 @@ class _Translations$record$en extends Translations$record$zh_CN {
 	@override late final _Translations$record$nutrition$en nutrition = _Translations$record$nutrition$en._(_root);
 	@override late final _Translations$record$toast$en toast = _Translations$record$toast$en._(_root);
 	@override late final _Translations$record$photo$en photo = _Translations$record$photo$en._(_root);
+	@override late final _Translations$record$barcode$en barcode = _Translations$record$barcode$en._(_root);
 	@override late final _Translations$record$voice$en voice = _Translations$record$voice$en._(_root);
 	@override late final _Translations$record$frequent$en frequent = _Translations$record$frequent$en._(_root);
 	@override late final _Translations$record$card$en card = _Translations$record$card$en._(_root);
@@ -440,6 +441,33 @@ class _Translations$record$photo$en extends Translations$record$photo$zh_CN {
 	@override String get deniedTitle => 'Camera not allowed';
 	@override String get deniedBody => 'No camera? No problem — searching manually is just as fast';
 	@override String get openSettings => 'Open Settings';
+	@override String get useManual => 'Search manually';
+}
+
+// Path: record.barcode
+class _Translations$record$barcode$en extends Translations$record$barcode$zh_CN {
+	_Translations$record$barcode$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get entry => 'Scan';
+	@override String get title => 'Scan product barcode';
+	@override String get torch => 'Torch';
+	@override String get manualInput => 'Enter manually';
+	@override String get manualTitle => 'Enter barcode';
+	@override String get manualHint => 'Enter the 8–14 digit code on the package';
+	@override String get manualConfirm => 'Look up';
+	@override String get invalid => 'Invalid barcode — should be 8–14 digits';
+	@override String get looking => 'Looking up…';
+	@override String get notFoundTitle => 'Product not found';
+	@override String get notFoundBody => 'This product isn\'t in the food library yet. Search manually, or add a custom food (the barcode is prefilled as an alias).';
+	@override String get notFoundSearch => 'Search manually';
+	@override String get notFoundCustom => 'Add custom food';
+	@override String get unavailable => 'Lookup failed. Check your connection and try again';
+	@override String get deniedTitle => 'Camera not authorized';
+	@override String get deniedBody => 'You can still log by searching or entering the code manually';
+	@override String get openSettings => 'Open settings';
 	@override String get useManual => 'Search manually';
 }
 
@@ -1515,6 +1543,24 @@ extension on TranslationsEn {
 			'record.photo.deniedBody' => 'No camera? No problem — searching manually is just as fast',
 			'record.photo.openSettings' => 'Open Settings',
 			'record.photo.useManual' => 'Search manually',
+			'record.barcode.entry' => 'Scan',
+			'record.barcode.title' => 'Scan product barcode',
+			'record.barcode.torch' => 'Torch',
+			'record.barcode.manualInput' => 'Enter manually',
+			'record.barcode.manualTitle' => 'Enter barcode',
+			'record.barcode.manualHint' => 'Enter the 8–14 digit code on the package',
+			'record.barcode.manualConfirm' => 'Look up',
+			'record.barcode.invalid' => 'Invalid barcode — should be 8–14 digits',
+			'record.barcode.looking' => 'Looking up…',
+			'record.barcode.notFoundTitle' => 'Product not found',
+			'record.barcode.notFoundBody' => 'This product isn\'t in the food library yet. Search manually, or add a custom food (the barcode is prefilled as an alias).',
+			'record.barcode.notFoundSearch' => 'Search manually',
+			'record.barcode.notFoundCustom' => 'Add custom food',
+			'record.barcode.unavailable' => 'Lookup failed. Check your connection and try again',
+			'record.barcode.deniedTitle' => 'Camera not authorized',
+			'record.barcode.deniedBody' => 'You can still log by searching or entering the code manually',
+			'record.barcode.openSettings' => 'Open settings',
+			'record.barcode.useManual' => 'Search manually',
 			'record.voice.listening' => 'Listening… say what you ate, e.g. "a bowl of rice"',
 			'record.voice.tapToStart' => 'Tap to start speaking',
 			'record.voice.finish' => 'Done',

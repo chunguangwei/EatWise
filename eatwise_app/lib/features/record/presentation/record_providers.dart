@@ -120,7 +120,8 @@ final StreamProvider<DailyNutritionCache?> recordTodayNutritionProvider =
 
 // ---- M3 三入口（拍照识别 / 语音录入 / 常吃复用，PRD M3 / D-16） ----
 
-/// 本次入账的录入方式（三入口各自写入；手动搜索为默认）。
+/// 本次入账的录入方式（四入口各自写入；手动搜索为默认；扫码记见
+/// features/record/barcode/）。
 final StateProvider<EntrySource> recordEntrySourceProvider =
     StateProvider<EntrySource>((ref) => EntrySource.manual);
 

@@ -21,7 +21,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///
 /// 保存成功后自动把该食物填入记录结果卡（份量留空必填，与现行规则一致）；
 /// 离线保存提示「已保存到本机，联网后自动同步」。
-Future<void> startCustomFoodFlow(BuildContext context, WidgetRef ref) async {
+/// [barcodeAlias]：扫码未收录场景传入条码号，预填进别名输入框〔假设〕。
+Future<void> startCustomFoodFlow(
+  BuildContext context,
+  WidgetRef ref, {
+  String? barcodeAlias,
+}) async {
   final cs = CustomFoodStrings.of(context);
   // 联网机会窗口：opportunistic 重试离线期间落本地的 pending 自定义食物
   //（〔假设〕sync/push 未支持 foodCustom op，待主代理决定是否挂 syncNow）。
@@ -33,7 +38,7 @@ Future<void> startCustomFoodFlow(BuildContext context, WidgetRef ref) async {
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
       ),
-      child: const CustomFoodSheet(),
+      child: CustomFoodSheet(initialAlias: barcodeAlias),
     ),
   );
   if (result == null || !context.mounted) return;
@@ -53,8 +58,12 @@ Future<void> startCustomFoodFlow(BuildContext context, WidgetRef ref) async {
 ///
 /// AI 估算成功预填四营养并显示「AI 估算，请确认」徽标（low 置信度额外
 /// 提示核对）；估算不可用（503/超时/网络）降级手动填写，不阻断。
+/// [initialAlias]：扫码未收录承接场景预填的别名（条码号〔假设〕）。
 class CustomFoodSheet extends ConsumerStatefulWidget {
-  const CustomFoodSheet({super.key});
+  const CustomFoodSheet({super.key, this.initialAlias});
+
+  /// 预填别名（可选，扫码未收录时传入条码号）。
+  final String? initialAlias;
 
   @override
   ConsumerState<CustomFoodSheet> createState() => _CustomFoodSheetState();
@@ -63,7 +72,9 @@ class CustomFoodSheet extends ConsumerStatefulWidget {
 class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _aliasController = TextEditingController();
+  late final TextEditingController _aliasController = TextEditingController(
+    text: widget.initialAlias,
+  );
   final TextEditingController _kcalController = TextEditingController();
   final TextEditingController _proteinController = TextEditingController();
   final TextEditingController _carbController = TextEditingController();
