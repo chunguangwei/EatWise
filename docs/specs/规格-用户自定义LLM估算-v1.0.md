@@ -37,7 +37,7 @@ custom_food_sheet ──estimate──▶ FoodEstimateOrchestrator（新）
 | 文件 | 职责 | 依赖 |
 |------|------|------|
 | `llm_config.dart` | `LlmConfig` 实体（provider / baseUrl / model / apiKey?）；presets 与服务端 `PROVIDER_PRESETS` 对齐（deepseek / qwen / kimi / custom）；baseUrl/model 必填校验（custom 全手填，内置供应商留空补 preset） | 无 |
-| `llm_config_store.dart` | 本机持久化读写/清除；apiKey → `flutter_secure_storage`（模式同 `SecureTokenStore`），其余字段 → 项目已有本地设置存储 | core/secure 模式 |
+| `llm_config_store.dart` | 本机持久化读写/清除；apiKey → `flutter_secure_storage`（模式同 `SecureTokenStore`），其余字段 → `SharedPreferences`（模式同 `FoodSeedLoader`） | core/secure 模式 |
 | `user_llm_client.dart` | `UserLlmClient.estimate(name, {description})`：dio 直连 `POST {baseUrl}/chat/completions`，15s 超时；SYSTEM_PROMPT 与解析逻辑移植自服务端 `openai-compatible.provider.ts`（容忍 ```json 包裹、字段缺失/非数值拒绝、营养值越界拒绝） | dio |
 
 复用现有 `FoodEstimate` / `NutritionSnapshot` 模型，不新增 DTO。
