@@ -1,4 +1,5 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/llm/llm_config_store.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
@@ -81,6 +82,8 @@ void main() {
             WaterLogRepository(db: db),
           ),
           customFoodRemoteProvider.overrideWithValue(customRemote),
+          // 估算编排器依赖：未配置 → 直走服务端 fake（既有断言语义不变）。
+          llmConfigStoreProvider.overrideWithValue(InMemoryLlmConfigStore()),
         ],
         child: TranslationProvider(
           child: MaterialApp(theme: AppTheme.light(), home: const RecordPage()),

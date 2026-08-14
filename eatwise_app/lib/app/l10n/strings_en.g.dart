@@ -526,6 +526,7 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get estimateBadge => 'AI estimate — please confirm';
 	@override String get estimateLow => 'Low confidence — please double-check the values';
 	@override String get estimateUnavailable => 'Estimate unavailable — please enter values manually';
+	@override String get estimateFallbackNotice => 'Your model couldn\'t be reached — used the cloud estimate instead';
 	@override String get kcalLabel => 'Calories (kcal / 100 g)';
 	@override String get proteinLabel => 'Protein (g / 100 g)';
 	@override String get carbLabel => 'Carbs (g / 100 g)';
@@ -1590,6 +1591,7 @@ extension on TranslationsEn {
 			'record.customFood.estimateBadge' => 'AI estimate — please confirm',
 			'record.customFood.estimateLow' => 'Low confidence — please double-check the values',
 			'record.customFood.estimateUnavailable' => 'Estimate unavailable — please enter values manually',
+			'record.customFood.estimateFallbackNotice' => 'Your model couldn\'t be reached — used the cloud estimate instead',
 			'record.customFood.kcalLabel' => 'Calories (kcal / 100 g)',
 			'record.customFood.proteinLabel' => 'Protein (g / 100 g)',
 			'record.customFood.carbLabel' => 'Carbs (g / 100 g)',

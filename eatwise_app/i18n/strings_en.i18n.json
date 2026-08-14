@@ -188,6 +188,7 @@
       "estimateBadge": "AI estimate — please confirm",
       "estimateLow": "Low confidence — please double-check the values",
       "estimateUnavailable": "Estimate unavailable — please enter values manually",
+      "estimateFallbackNotice": "Your model couldn't be reached — used the cloud estimate instead",
       "kcalLabel": "Calories (kcal / 100 g)",
       "proteinLabel": "Protein (g / 100 g)",
       "carbLabel": "Carbs (g / 100 g)",

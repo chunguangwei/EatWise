@@ -47,6 +47,10 @@ final class CustomFoodStrings {
   /// record.customFood.estimateUnavailable
   String get estimateUnavailable => _t.record.customFood.estimateUnavailable;
 
+  /// record.customFood.estimateFallbackNotice
+  String get estimateFallbackNotice =>
+      _t.record.customFood.estimateFallbackNotice;
+
   /// record.customFood.kcalLabel
   String get kcalLabel => _t.record.customFood.kcalLabel;
 

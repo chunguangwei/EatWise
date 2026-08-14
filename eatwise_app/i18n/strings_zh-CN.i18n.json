@@ -188,6 +188,7 @@
       "estimateBadge": "AI 估算，请确认",
       "estimateLow": "置信度较低，请仔细核对数值",
       "estimateUnavailable": "估算暂不可用，请手动填写",
+      "estimateFallbackNotice": "你的模型连接失败，已改用云端估算",
       "kcalLabel": "热量（千卡 / 100 克）",
       "proteinLabel": "蛋白质（克 / 100 克）",
       "carbLabel": "碳水（克 / 100 克）",

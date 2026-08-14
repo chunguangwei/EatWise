@@ -4,6 +4,7 @@ import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/app/router/app_router.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/page_stay_tracker.dart';
+import 'package:eatwise/core/llm/llm_config_store.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/network/token_store.dart';
 import 'package:eatwise/core/notification/local_notification_service.dart';
@@ -26,6 +27,7 @@ import 'package:eatwise/features/legal/data/privacy_consent_store.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
+import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:flutter/material.dart';
@@ -89,6 +91,10 @@ Future<void> main() async {
   final container = ProviderContainer(
     overrides: <Override>[
       sharedPreferencesProvider.overrideWithValue(prefs),
+      // 用户自定义 LLM 配置存储：apiKey 走 Keychain/Keystore，其余走 prefs。
+      llmConfigStoreProvider.overrideWithValue(
+        LocalLlmConfigStore(prefs: prefs),
+      ),
       onboardingGateProvider.overrideWithValue(gate),
       privacyGateProvider.overrideWithValue(privacyGate),
       appDatabaseProvider.overrideWithValue(db),

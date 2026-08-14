@@ -145,7 +145,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
     super.dispose();
   }
 
-  /// 点「AI 估算」：调 /foods/estimate，成功预填四营养。
+  /// 点「AI 估算」：经编排器两级回落（用户模型直连 → 服务端），成功预填四营养。
   Future<void> _onEstimate() async {
     final cs = CustomFoodStrings.of(context);
     final name = _nameController.text.trim();
@@ -158,8 +158,17 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
       _estimateUnavailable = false;
     });
     try {
-      final estimate = await ref.read(customFoodRemoteProvider).estimate(name);
+      // 两级回落编排：已配置用户模型先直连，直连失败回落服务端并提示一次。
+      final outcome = await ref
+          .read(foodEstimateOrchestratorProvider)
+          .estimate(name);
       if (!mounted) return;
+      final estimate = outcome.estimate;
+      if (outcome.usedFallback) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(cs.estimateFallbackNotice)));
+      }
       setState(() {
         _kcalController.text = _formatNumber(estimate.per100g.kcal);
         _proteinController.text = _formatNumber(estimate.per100g.proteinG);

@@ -758,6 +758,9 @@ class Translations$record$customFood$zh_CN {
 	/// zh-CN: '估算暂不可用，请手动填写'
 	String get estimateUnavailable => '估算暂不可用，请手动填写';
 
+	/// zh-CN: '你的模型连接失败，已改用云端估算'
+	String get estimateFallbackNotice => '你的模型连接失败，已改用云端估算';
+
 	/// zh-CN: '热量（千卡 / 100 克）'
 	String get kcalLabel => '热量（千卡 / 100 克）';
 
@@ -2477,6 +2480,7 @@ extension on Translations {
 			'record.customFood.estimateBadge' => 'AI 估算，请确认',
 			'record.customFood.estimateLow' => '置信度较低，请仔细核对数值',
 			'record.customFood.estimateUnavailable' => '估算暂不可用，请手动填写',
+			'record.customFood.estimateFallbackNotice' => '你的模型连接失败，已改用云端估算',
 			'record.customFood.kcalLabel' => '热量（千卡 / 100 克）',
 			'record.customFood.proteinLabel' => '蛋白质（克 / 100 克）',
 			'record.customFood.carbLabel' => '碳水（克 / 100 克）',
