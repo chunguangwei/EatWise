@@ -34,7 +34,7 @@ cd eatwise_app
 flutter pub get
 dart run slang                                   # i18n 代码生成（不要用 build_runner 跑 slang）
 dart run build_runner build                      # drift 代码生成
-flutter test                                     # 452 条测试
+flutter test                                     # 508 条测试
 dart analyze                                     # 零 issue 门禁
 flutter run                                      # 模拟器/真机运行
 ```
@@ -85,9 +85,9 @@ python3 eatwise_data/scripts/build_seed.py       # 生成 foods.seed.json + 校�
 
 ## 当前状态
 
-- **功能**：M1–M6 全部落地（新手引导/断食计时/快捷记录/营养信号灯/streak 与社区/趋势报告），账号同步、无障碍贯穿、隐私合规基础、双端构建与 CI 门禁齐备。
-- **测试**：App 452 条全绿；服务端 105 单测 + 19 e2e 全绿（Prisma 集成测试 CI 真跑）。
-- **首发**：v1.0.0 已发布（GitHub Releases）。
+- **功能**：M1–M6 全部落地（新手引导/断食计时/快捷记录/营养信号灯/streak 与社区/趋势报告），账号同步、无障碍贯穿、隐私合规基础、双端构建与 CI 门禁齐备；AI 估算支持用户自配模型（设置 → AI 模型，OpenAI 兼容端点如局域网 Ollama，未配置回落服务端，规格见 `docs/specs/规格-用户自定义LLM估算-v1.0.md`）。
+- **测试**：App 508 条全绿；服务端 137 单测 + 70 e2e 全绿（Prisma 集成测试 CI 真跑）。
+- **发版**：最新 v1.0.9（GitHub Releases）。
 
 ### 待外部确认（不阻塞开发，阻塞上线）
 
