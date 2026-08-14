@@ -135,6 +135,11 @@ class SettingsPage extends ConsumerWidget {
                   trailing: _themeLabel(t, themeMode),
                   onTap: () => _pickTheme(context, ref),
                 ),
+                // 用户自定义 LLM 配置（规格 §3）：/settings/ai-model。
+                _SettingsTile(
+                  title: t.settings.aiModel.title,
+                  onTap: () => context.push('/settings/ai-model'),
+                ),
               ],
             ),
             _SettingsGroup(

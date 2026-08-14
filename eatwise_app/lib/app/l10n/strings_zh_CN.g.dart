@@ -222,6 +222,7 @@ class Translations$settings$zh_CN {
 	late final Translations$settings$theme$zh_CN theme = Translations$settings$theme$zh_CN.internal(_root);
 	late final Translations$settings$reminders$zh_CN reminders = Translations$settings$reminders$zh_CN.internal(_root);
 	late final Translations$settings$about$zh_CN about = Translations$settings$about$zh_CN.internal(_root);
+	late final Translations$settings$aiModel$zh_CN aiModel = Translations$settings$aiModel$zh_CN.internal(_root);
 }
 
 // Path: legal
@@ -1502,6 +1503,74 @@ class Translations$settings$about$zh_CN {
 	String get checkUpdate => '检查更新';
 }
 
+// Path: settings.aiModel
+class Translations$settings$aiModel$zh_CN {
+	Translations$settings$aiModel$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: 'AI 模型'
+	String get title => 'AI 模型';
+
+	/// zh-CN: '供应商'
+	String get provider => '供应商';
+
+	late final Translations$settings$aiModel$providers$zh_CN providers = Translations$settings$aiModel$providers$zh_CN.internal(_root);
+
+	/// zh-CN: 'Base URL'
+	String get baseUrl => 'Base URL';
+
+	/// zh-CN: '模型'
+	String get model => '模型';
+
+	/// zh-CN: 'API Key'
+	String get apiKey => 'API Key';
+
+	/// zh-CN: '留空保持不变'
+	String get apiKeyHint => '留空保持不变';
+
+	/// zh-CN: '自定义供应商需填写 Base URL'
+	String get baseUrlRequired => '自定义供应商需填写 Base URL';
+
+	/// zh-CN: '自定义供应商需填写模型名称'
+	String get modelRequired => '自定义供应商需填写模型名称';
+
+	/// zh-CN: '保存'
+	String get save => '保存';
+
+	/// zh-CN: 'AI 模型配置已保存'
+	String get saved => 'AI 模型配置已保存';
+
+	/// zh-CN: '测试连接'
+	String get test => '测试连接';
+
+	/// zh-CN: '测试中…'
+	String get testing => '测试中…';
+
+	/// zh-CN: '连接成功，模型服务可用'
+	String get testOk => '连接成功，模型服务可用';
+
+	/// zh-CN: '连接失败：${reason}'
+	String testFail({required Object reason}) => '连接失败：${reason}';
+
+	/// zh-CN: '清除配置'
+	String get clear => '清除配置';
+
+	/// zh-CN: '清除 AI 模型配置？'
+	String get clearConfirmTitle => '清除 AI 模型配置？';
+
+	/// zh-CN: '清除后，自定义食物估算将回退为服务端模型。'
+	String get clearConfirmBody => '清除后，自定义食物估算将回退为服务端模型。';
+
+	/// zh-CN: '确认清除'
+	String get clearConfirmAction => '确认清除';
+
+	/// zh-CN: 'AI 模型配置已清除'
+	String get cleared => 'AI 模型配置已清除';
+}
+
 // Path: legal.consent
 class Translations$legal$consent$zh_CN {
 	Translations$legal$consent$zh_CN.internal(this._root);
@@ -2164,6 +2233,27 @@ class Translations$streak$milestone$shareCard$zh_CN {
 	String get shareFailed => '分享失败，请稍后重试';
 }
 
+// Path: settings.aiModel.providers
+class Translations$settings$aiModel$providers$zh_CN {
+	Translations$settings$aiModel$providers$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '自定义'
+	String get custom => '自定义';
+
+	/// zh-CN: 'DeepSeek'
+	String get deepseek => 'DeepSeek';
+
+	/// zh-CN: '通义千问（Qwen）'
+	String get qwen => '通义千问（Qwen）';
+
+	/// zh-CN: 'Kimi'
+	String get kimi => 'Kimi';
+}
+
 // Path: onboarding.quiz.q1.options
 class Translations$onboarding$quiz$q1$options$zh_CN {
 	Translations$onboarding$quiz$q1$options$zh_CN.internal(this._root);
@@ -2716,6 +2806,29 @@ extension on Translations {
 			'settings.about.version' => '版本',
 			'settings.about.disclaimer' => '免责声明与特殊人群提示',
 			'settings.about.checkUpdate' => '检查更新',
+			'settings.aiModel.title' => 'AI 模型',
+			'settings.aiModel.provider' => '供应商',
+			'settings.aiModel.providers.custom' => '自定义',
+			'settings.aiModel.providers.deepseek' => 'DeepSeek',
+			'settings.aiModel.providers.qwen' => '通义千问（Qwen）',
+			'settings.aiModel.providers.kimi' => 'Kimi',
+			'settings.aiModel.baseUrl' => 'Base URL',
+			'settings.aiModel.model' => '模型',
+			'settings.aiModel.apiKey' => 'API Key',
+			'settings.aiModel.apiKeyHint' => '留空保持不变',
+			'settings.aiModel.baseUrlRequired' => '自定义供应商需填写 Base URL',
+			'settings.aiModel.modelRequired' => '自定义供应商需填写模型名称',
+			'settings.aiModel.save' => '保存',
+			'settings.aiModel.saved' => 'AI 模型配置已保存',
+			'settings.aiModel.test' => '测试连接',
+			'settings.aiModel.testing' => '测试中…',
+			'settings.aiModel.testOk' => '连接成功，模型服务可用',
+			'settings.aiModel.testFail' => ({required Object reason}) => '连接失败：${reason}',
+			'settings.aiModel.clear' => '清除配置',
+			'settings.aiModel.clearConfirmTitle' => '清除 AI 模型配置？',
+			'settings.aiModel.clearConfirmBody' => '清除后，自定义食物估算将回退为服务端模型。',
+			'settings.aiModel.clearConfirmAction' => '确认清除',
+			'settings.aiModel.cleared' => 'AI 模型配置已清除',
 			'legal.draftNote' => '〔待外部确认：法务终稿〕',
 			'legal.consent.title' => '欢迎使用 EatWise',
 			'legal.consent.summary' => '我们会按照《隐私政策》收集和使用你的信息，用于提供断食计时、饮食记录与营养反馈等核心功能；数据存储于中国境内并加密保护。请阅读并确认以下授权：',

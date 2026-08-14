@@ -14,6 +14,7 @@ import 'package:eatwise/features/onboarding/presentation/recommendation_screen.d
 import 'package:eatwise/features/onboarding/presentation/science_card_screen.dart';
 import 'package:eatwise/features/record/presentation/record_page.dart';
 import 'package:eatwise/features/reports/presentation/reports_page.dart';
+import 'package:eatwise/features/settings/presentation/ai_model_settings_page.dart';
 import 'package:eatwise/features/settings/presentation/settings_page.dart';
 import 'package:eatwise/features/social/presentation/community_feed_page.dart';
 import 'package:eatwise/features/social/presentation/compose_page.dart';
@@ -154,6 +155,11 @@ GoRouter createAppRouter({
               GoRoute(
                 path: '/profile',
                 builder: (context, state) => const SettingsPage(),
+              ),
+              // 用户自定义 LLM 配置（偏好组入口，与 /profile 同层）。
+              GoRoute(
+                path: '/settings/ai-model',
+                builder: (context, state) => const AiModelSettingsPage(),
               ),
             ],
           ),

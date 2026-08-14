@@ -532,6 +532,33 @@
       "version": "Version",
       "disclaimer": "Disclaimer & special groups",
       "checkUpdate": "Check for updates"
+    },
+    "aiModel": {
+      "title": "AI Model",
+      "provider": "Provider",
+      "providers": {
+        "custom": "Custom",
+        "deepseek": "DeepSeek",
+        "qwen": "Qwen",
+        "kimi": "Kimi"
+      },
+      "baseUrl": "Base URL",
+      "model": "Model",
+      "apiKey": "API Key",
+      "apiKeyHint": "Leave blank to keep unchanged",
+      "baseUrlRequired": "Custom provider requires a Base URL",
+      "modelRequired": "Custom provider requires a model name",
+      "save": "Save",
+      "saved": "AI model configuration saved",
+      "test": "Test connection",
+      "testing": "Testing…",
+      "testOk": "Connection successful — model service is reachable",
+      "testFail": "Connection failed: ${reason}",
+      "clear": "Clear configuration",
+      "clearConfirmTitle": "Clear AI model configuration?",
+      "clearConfirmBody": "After clearing, custom food estimates will fall back to the server-side model.",
+      "clearConfirmAction": "Clear",
+      "cleared": "AI model configuration cleared"
     }
   },
   "legal": {

@@ -532,6 +532,33 @@
       "version": "版本",
       "disclaimer": "免责声明与特殊人群提示",
       "checkUpdate": "检查更新"
+    },
+    "aiModel": {
+      "title": "AI 模型",
+      "provider": "供应商",
+      "providers": {
+        "custom": "自定义",
+        "deepseek": "DeepSeek",
+        "qwen": "通义千问（Qwen）",
+        "kimi": "Kimi"
+      },
+      "baseUrl": "Base URL",
+      "model": "模型",
+      "apiKey": "API Key",
+      "apiKeyHint": "留空保持不变",
+      "baseUrlRequired": "自定义供应商需填写 Base URL",
+      "modelRequired": "自定义供应商需填写模型名称",
+      "save": "保存",
+      "saved": "AI 模型配置已保存",
+      "test": "测试连接",
+      "testing": "测试中…",
+      "testOk": "连接成功，模型服务可用",
+      "testFail": "连接失败：${reason}",
+      "clear": "清除配置",
+      "clearConfirmTitle": "清除 AI 模型配置？",
+      "clearConfirmBody": "清除后，自定义食物估算将回退为服务端模型。",
+      "clearConfirmAction": "确认清除",
+      "cleared": "AI 模型配置已清除"
     }
   },
   "legal": {

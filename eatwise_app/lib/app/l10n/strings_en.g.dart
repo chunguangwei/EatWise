@@ -206,6 +206,7 @@ class _Translations$settings$en extends Translations$settings$zh_CN {
 	@override late final _Translations$settings$theme$en theme = _Translations$settings$theme$en._(_root);
 	@override late final _Translations$settings$reminders$en reminders = _Translations$settings$reminders$en._(_root);
 	@override late final _Translations$settings$about$en about = _Translations$settings$about$en._(_root);
+	@override late final _Translations$settings$aiModel$en aiModel = _Translations$settings$aiModel$en._(_root);
 }
 
 // Path: legal
@@ -956,6 +957,35 @@ class _Translations$settings$about$en extends Translations$settings$about$zh_CN 
 	@override String get checkUpdate => 'Check for updates';
 }
 
+// Path: settings.aiModel
+class _Translations$settings$aiModel$en extends Translations$settings$aiModel$zh_CN {
+	_Translations$settings$aiModel$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'AI Model';
+	@override String get provider => 'Provider';
+	@override late final _Translations$settings$aiModel$providers$en providers = _Translations$settings$aiModel$providers$en._(_root);
+	@override String get baseUrl => 'Base URL';
+	@override String get model => 'Model';
+	@override String get apiKey => 'API Key';
+	@override String get apiKeyHint => 'Leave blank to keep unchanged';
+	@override String get baseUrlRequired => 'Custom provider requires a Base URL';
+	@override String get modelRequired => 'Custom provider requires a model name';
+	@override String get save => 'Save';
+	@override String get saved => 'AI model configuration saved';
+	@override String get test => 'Test connection';
+	@override String get testing => 'Testing…';
+	@override String get testOk => 'Connection successful — model service is reachable';
+	@override String testFail({required Object reason}) => 'Connection failed: ${reason}';
+	@override String get clear => 'Clear configuration';
+	@override String get clearConfirmTitle => 'Clear AI model configuration?';
+	@override String get clearConfirmBody => 'After clearing, custom food estimates will fall back to the server-side model.';
+	@override String get clearConfirmAction => 'Clear';
+	@override String get cleared => 'AI model configuration cleared';
+}
+
 // Path: legal.consent
 class _Translations$legal$consent$en extends Translations$legal$consent$zh_CN {
 	_Translations$legal$consent$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -1347,6 +1377,19 @@ class _Translations$streak$milestone$shareCard$en extends Translations$streak$mi
 	@override String get saveSuccess => 'Saved to Photos';
 	@override String get saveFailed => 'Couldn\'t save. Check the photo permission and try again.';
 	@override String get shareFailed => 'Couldn\'t share right now. Please try again later.';
+}
+
+// Path: settings.aiModel.providers
+class _Translations$settings$aiModel$providers$en extends Translations$settings$aiModel$providers$zh_CN {
+	_Translations$settings$aiModel$providers$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get custom => 'Custom';
+	@override String get deepseek => 'DeepSeek';
+	@override String get qwen => 'Qwen';
+	@override String get kimi => 'Kimi';
 }
 
 // Path: onboarding.quiz.q1.options
@@ -1827,6 +1870,29 @@ extension on TranslationsEn {
 			'settings.about.version' => 'Version',
 			'settings.about.disclaimer' => 'Disclaimer & special groups',
 			'settings.about.checkUpdate' => 'Check for updates',
+			'settings.aiModel.title' => 'AI Model',
+			'settings.aiModel.provider' => 'Provider',
+			'settings.aiModel.providers.custom' => 'Custom',
+			'settings.aiModel.providers.deepseek' => 'DeepSeek',
+			'settings.aiModel.providers.qwen' => 'Qwen',
+			'settings.aiModel.providers.kimi' => 'Kimi',
+			'settings.aiModel.baseUrl' => 'Base URL',
+			'settings.aiModel.model' => 'Model',
+			'settings.aiModel.apiKey' => 'API Key',
+			'settings.aiModel.apiKeyHint' => 'Leave blank to keep unchanged',
+			'settings.aiModel.baseUrlRequired' => 'Custom provider requires a Base URL',
+			'settings.aiModel.modelRequired' => 'Custom provider requires a model name',
+			'settings.aiModel.save' => 'Save',
+			'settings.aiModel.saved' => 'AI model configuration saved',
+			'settings.aiModel.test' => 'Test connection',
+			'settings.aiModel.testing' => 'Testing…',
+			'settings.aiModel.testOk' => 'Connection successful — model service is reachable',
+			'settings.aiModel.testFail' => ({required Object reason}) => 'Connection failed: ${reason}',
+			'settings.aiModel.clear' => 'Clear configuration',
+			'settings.aiModel.clearConfirmTitle' => 'Clear AI model configuration?',
+			'settings.aiModel.clearConfirmBody' => 'After clearing, custom food estimates will fall back to the server-side model.',
+			'settings.aiModel.clearConfirmAction' => 'Clear',
+			'settings.aiModel.cleared' => 'AI model configuration cleared',
 			'legal.draftNote' => '[Pending external confirmation: final legal copy]',
 			'legal.consent.title' => 'Welcome to EatWise',
 			'legal.consent.summary' => 'We collect and use your information as described in the Privacy Policy to provide core features like fasting timers, meal logging, and nutrition feedback. Your data is stored securely in mainland China. Please review and confirm:',
