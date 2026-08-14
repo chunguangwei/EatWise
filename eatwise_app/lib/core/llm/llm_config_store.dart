@@ -19,9 +19,8 @@ abstract interface class LlmConfigStore {
 final class LocalLlmConfigStore implements LlmConfigStore {
   LocalLlmConfigStore({
     FlutterSecureStorage? secure,
-    required SharedPreferences prefs,
-  }) : _secure = secure ?? const FlutterSecureStorage(),
-       _prefs = prefs;
+    required this._prefs,
+  }) : _secure = secure ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _secure;
   final SharedPreferences _prefs;
