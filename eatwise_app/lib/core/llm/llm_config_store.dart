@@ -17,10 +17,8 @@ abstract interface class LlmConfigStore {
 /// 本机实现：apiKey → flutter_secure_storage（Keychain/Keystore），
 /// 其余 → SharedPreferences（模式同 FoodSeedLoader）。apiKey 禁止写日志。
 final class LocalLlmConfigStore implements LlmConfigStore {
-  LocalLlmConfigStore({
-    FlutterSecureStorage? secure,
-    required this._prefs,
-  }) : _secure = secure ?? const FlutterSecureStorage();
+  LocalLlmConfigStore({FlutterSecureStorage? secure, required this._prefs})
+    : _secure = secure ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _secure;
   final SharedPreferences _prefs;
