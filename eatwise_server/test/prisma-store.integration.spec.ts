@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
+import { FoodCandidateEntity, WaterLogEntity } from '../src/common/store/data-store';
 import { PrismaStore } from '../src/common/store/prisma-store';
 import { PrismaService } from '../src/infra/prisma.service';
 
@@ -15,6 +16,23 @@ describePg('PrismaStore（集成，真实 PostgreSQL）', () => {
   let prisma: PrismaService;
   let store: PrismaStore;
   let userId: string;
+
+  /** 导出/清除用例用最小饮水行（真实列由 createWaterLog 落库） */
+  const waterLog = (): WaterLogEntity => {
+    const now = new Date();
+    return {
+      id: randomUUID(),
+      userId,
+      clientRequestId: randomUUID(),
+      amountMl: 250,
+      loggedAt: new Date('2026-09-07T08:00:00Z'),
+      localDate: '2026-09-07',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    };
+  };
   const foodA = 'it-food-a';
   const foodB = 'it-food-b';
 
@@ -163,17 +181,172 @@ describePg('PrismaStore（集成，真实 PostgreSQL）', () => {
       },
     ]);
     await prisma.post.create({ data: { userId, text: '打卡', imageUrls: [] } });
+    await store.createWaterLog(waterLog());
 
     const bundle = await store.collectUserExport(userId);
     expect(bundle).not.toBeNull();
     expect(bundle!.profile.id).toBe(userId);
     expect(bundle!.foodEntries.length).toBeGreaterThanOrEqual(1);
     expect(bundle!.posts).toHaveLength(1);
+    expect(bundle!.waterLogs).toHaveLength(1);
 
     const report = await store.purgeUserData(userId);
     expect(report.foodEntries).toBeGreaterThanOrEqual(1);
     expect(report.postsAnonymized).toBe(1);
     expect(await prisma.user.findUnique({ where: { id: userId } })).toBeNull();
+    // 饮水记录随账号物理清除（water_logs.userId 外键必填，未清则删用户行违反 FK）
+    expect(await prisma.waterLog.count({ where: { userId } })).toBe(0);
     expect(await store.collectUserExport(userId)).toBeNull();
+  });
+});
+
+/** 真实库缺口收口：饮水记录 / 食物候选审核 / 帖子举报计数（独立用户，逐条清表） */
+describePg('PrismaStore 饮水 / 候选 / 举报（集成，真实 PostgreSQL）', () => {
+  let prisma: PrismaService;
+  let store: PrismaStore;
+  let userId: string;
+
+  const waterLog = (over: Partial<WaterLogEntity> = {}): WaterLogEntity => {
+    const now = new Date();
+    return {
+      id: randomUUID(),
+      userId,
+      clientRequestId: randomUUID(),
+      amountMl: 250,
+      loggedAt: new Date('2026-09-07T08:00:00Z'),
+      localDate: '2026-09-07',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      ...over,
+    };
+  };
+  const candidate = (over: Partial<FoodCandidateEntity> = {}): FoodCandidateEntity => {
+    const now = new Date();
+    return {
+      id: `fc_${randomUUID().slice(0, 8)}`,
+      foodId: `custom_${randomUUID().slice(0, 8)}`,
+      userId,
+      status: 'pending',
+      reason: null,
+      clientRequestId: randomUUID(),
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      ...over,
+    };
+  };
+
+  beforeAll(async () => {
+    prisma = new PrismaService(new ConfigService());
+    await prisma.$connect();
+    store = new PrismaStore(prisma);
+    const user = await prisma.user.create({ data: { phone: '+86137TEST0002' } });
+    userId = user.id;
+  });
+
+  beforeEach(async () => {
+    await prisma.waterLog.deleteMany({ where: { userId } });
+    await prisma.foodCandidate.deleteMany({ where: { userId } });
+    await prisma.post.deleteMany({ where: { userId } });
+  });
+
+  afterAll(async () => {
+    if (prisma) {
+      await prisma.waterLog.deleteMany({ where: { userId } });
+      await prisma.foodCandidate.deleteMany({ where: { userId } });
+      await prisma.user.deleteMany({ where: { id: userId } }).catch(() => undefined);
+      await prisma.$disconnect();
+    }
+  });
+
+  it('饮水：创建落库 + 按归属日查询（升序，排除 tombstone）', async () => {
+    await store.createWaterLog(waterLog({ amountMl: 200, loggedAt: new Date('2026-09-07T09:00:00Z') }));
+    await store.createWaterLog(waterLog({ amountMl: 300, loggedAt: new Date('2026-09-07T07:30:00Z') }));
+    await store.createWaterLog(waterLog({ localDate: '2026-09-06' }));
+
+    const rows = await store.findWaterLogsByUserAndDate(userId, '2026-09-07');
+    expect(rows.map((r) => r.amountMl)).toEqual([300, 200]);
+    expect(rows.every((r) => r.localDate === '2026-09-07')).toBe(true);
+  });
+
+  it('饮水：clientRequestId 幂等重放静默；软删留 tombstone；增量按 updatedAt', async () => {
+    const first = waterLog({ clientRequestId: 'cr-water-1' });
+    await store.createWaterLog(first);
+    // 同键重放（不同 id）→ 静默成功，不产生第二行
+    await store.createWaterLog(waterLog({ clientRequestId: 'cr-water-1', amountMl: 999 }));
+    expect(await prisma.waterLog.count({ where: { userId } })).toBe(1);
+
+    const since = new Date(Date.now() - 60_000);
+    await store.deleteWaterLog(userId, 'cr-water-1');
+    // 当日视图排除 tombstone
+    expect(await store.findWaterLogsByUserAndDate(userId, '2026-09-07')).toHaveLength(0);
+    // syncToken 增量：tombstone 仍下发（客户端据此删本地行）
+    const changed = await store.findWaterLogsSince(userId, since);
+    expect(changed).toHaveLength(1);
+    expect(changed[0].id).toBe(first.id);
+    expect(changed[0].deletedAt).not.toBeNull();
+    expect(changed[0].version).toBe(2);
+    // 未来游标 → 无增量
+    expect(await store.findWaterLogsSince(userId, new Date(Date.now() + 60_000))).toHaveLength(0);
+    // 重复删除幂等静默
+    await expect(store.deleteWaterLog(userId, 'cr-water-1')).resolves.toBeUndefined();
+    await expect(store.deleteWaterLog(userId, 'cr-missing')).resolves.toBeUndefined();
+  });
+
+  it('候选：提交落库 + 幂等键查重 + 审核状态/原因落库', async () => {
+    const c = candidate({ clientRequestId: 'cr-cand-1' });
+    await store.createFoodCandidate(c);
+
+    const found = await store.findFoodCandidateByUserAndRequestId(userId, 'cr-cand-1');
+    expect(found).not.toBeNull();
+    expect(found!.id).toBe(c.id);
+    expect(found!.foodId).toBe(c.foodId);
+    expect(found!.status).toBe('pending');
+    expect(await store.findFoodCandidateByUserAndRequestId(userId, 'cr-none')).toBeNull();
+
+    // 同幂等键重放 → 静默，不产生第二条候选
+    await store.createFoodCandidate(candidate({ clientRequestId: 'cr-cand-1' }));
+    expect(await prisma.foodCandidate.count({ where: { userId } })).toBe(1);
+
+    await store.updateFoodCandidateStatus(c.id, 'rejected', '  名称不规范  ');
+    const row = await prisma.foodCandidate.findUnique({ where: { id: c.id } });
+    expect(row!.status).toBe('rejected');
+    expect(row!.reason).toBe('名称不规范'); // trim 后入库
+    expect(row!.version).toBe(2);
+
+    await store.updateFoodCandidateStatus(c.id, 'approved');
+    expect((await prisma.foodCandidate.findUnique({ where: { id: c.id } }))!.status).toBe(
+      'approved',
+    );
+    await expect(store.updateFoodCandidateStatus('fc_missing', 'approved')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('举报：reportCount 累加 + reportedAt 刷新；未知帖子 NOT_FOUND', async () => {
+    const post = await prisma.post.create({ data: { userId, text: '打卡', imageUrls: [] } });
+    expect(post.reportCount).toBe(0);
+    expect(post.reportedAt).toBeNull();
+
+    await store.incrementPostReportCount(post.id);
+    const once = await prisma.post.findUnique({ where: { id: post.id } });
+    expect(once!.reportCount).toBe(1);
+    expect(once!.reportedAt).toBeInstanceOf(Date);
+
+    await store.incrementPostReportCount(post.id);
+    const twice = await prisma.post.findUnique({ where: { id: post.id } });
+    expect(twice!.reportCount).toBe(2);
+    expect(twice!.reportedAt!.getTime()).toBeGreaterThanOrEqual(once!.reportedAt!.getTime());
+
+    // 实体映射读取真实列（不再是缺省 0/null）
+    const bundle = await store.collectUserExport(userId);
+    expect(bundle!.posts[0].reportCount).toBe(2);
+    expect(bundle!.posts[0].reportedAt).toBeInstanceOf(Date);
+
+    await expect(store.incrementPostReportCount('post_missing')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
   });
 });

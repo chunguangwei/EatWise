@@ -1,16 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma.service';
-import { err } from '../errors/business.exception';
+import { BusinessException, err } from '../errors/business.exception';
 import { newId } from '../utils/id.util';
 import {
   FastingPlanEntity,
   FastingRecordEntity,
+  FoodCandidateEntity,
+  FoodCandidateStatus,
   FoodEntryEntity,
   NutritionSnapshot,
   PostEntity,
   StreakEntity,
   UserEntity,
+  WaterLogEntity,
 } from './data-store';
 import {
   FoodSeedRow,
@@ -32,7 +35,8 @@ type Tx = Prisma.TransactionClient;
  *   重放返回首次结果、同键不同体报 IDEMPOTENCY_PAYLOAD_MISMATCH（D-20 语义与内存模式一致）；
  * - LWW：update/delete 以 baseVersion 乐观并发（updateMany where version），
  *   updatedAt 由数据库时钟赋值（@updatedAt），客户端时间戳不采信；
- * - U3 导出 / U5 清除：聚合查询与单事务物理删除 + UGC 匿名化。
+ * - U3 导出 / U5 清除：聚合查询（含饮水记录）与单事务物理删除 + UGC 匿名化；
+ * - 饮水记录 / 食物候选审核 / 帖子举报计数：真实表读写，唯一约束冲突按幂等重放处理。
  */
 @Injectable()
 export class PrismaStore extends StoreDriver {
@@ -47,13 +51,15 @@ export class PrismaStore extends StoreDriver {
   async collectUserExport(userId: string): Promise<UserDataExport | null> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user || user.deletedAt) return null;
-    const [foodEntries, fastingPlans, fastingRecords, streak, posts] = await Promise.all([
-      this.prisma.foodEntry.findMany({ where: { userId, deletedAt: null } }),
-      this.prisma.fastingPlan.findMany({ where: { userId } }),
-      this.prisma.fastingRecord.findMany({ where: { userId } }),
-      this.prisma.streak.findUnique({ where: { userId } }),
-      this.prisma.post.findMany({ where: { userId, deletedAt: null } }),
-    ]);
+    const [foodEntries, fastingPlans, fastingRecords, streak, posts, waterLogs] =
+      await Promise.all([
+        this.prisma.foodEntry.findMany({ where: { userId, deletedAt: null } }),
+        this.prisma.fastingPlan.findMany({ where: { userId } }),
+        this.prisma.fastingRecord.findMany({ where: { userId } }),
+        this.prisma.streak.findUnique({ where: { userId } }),
+        this.prisma.post.findMany({ where: { userId, deletedAt: null } }),
+        this.prisma.waterLog.findMany({ where: { userId, deletedAt: null } }),
+      ]);
     return {
       generatedAt: new Date().toISOString(),
       profile: toUserEntity(user),
@@ -62,6 +68,7 @@ export class PrismaStore extends StoreDriver {
       fastingRecords: fastingRecords.map(toFastingRecordEntity),
       streak: streak ? toStreakEntity(streak) : null,
       posts: posts.map(toPostEntity),
+      waterLogs: waterLogs.map(toWaterLogEntity),
     };
   }
 
@@ -84,6 +91,7 @@ export class PrismaStore extends StoreDriver {
       const fastingRecords = await tx.fastingRecord.deleteMany({ where: { userId } });
       const fastingPlans = await tx.fastingPlan.deleteMany({ where: { userId } });
       await tx.dailyNutrition.deleteMany({ where: { userId } });
+      await tx.waterLog.deleteMany({ where: { userId } }); // users 外键必填，须先于用户行删除
       await tx.streak.deleteMany({ where: { userId } });
       await tx.idempotencyKey.deleteMany({ where: { userId } });
       const tokens = await tx.refreshToken.deleteMany({ where: { userId } });
@@ -330,6 +338,152 @@ export class PrismaStore extends StoreDriver {
       fatG: r(food.fatPer100g * f),
     };
   }
+
+  // ===== 饮水记录（water_logs：create 幂等 + delete tombstone，无 update）=====
+
+  /** 逐条落库；(userId, clientRequestId) 唯一约束冲突视为幂等重放 → 静默成功（D-20） */
+  async createWaterLog(log: WaterLogEntity): Promise<void> {
+    try {
+      await this.prisma.waterLog.create({
+        data: {
+          id: log.id,
+          userId: log.userId,
+          clientRequestId: log.clientRequestId,
+          amountMl: log.amountMl,
+          loggedAt: log.loggedAt,
+          localDate: log.localDate,
+          version: log.version,
+          deletedAt: log.deletedAt,
+        },
+      });
+    } catch (e) {
+      if (isUniqueConflict(e)) return; // 重放：首次结果已落库，不覆盖
+      throw this.fail('createWaterLog', e);
+    }
+  }
+
+  /** 软删 tombstone；未命中/重复删除幂等静默（与内存模式同口径） */
+  async deleteWaterLog(userId: string, clientRequestId: string): Promise<void> {
+    try {
+      await this.prisma.waterLog.updateMany({
+        where: { userId, clientRequestId, deletedAt: null },
+        data: { deletedAt: new Date(), version: { increment: 1 } },
+      });
+    } catch (e) {
+      throw this.fail('deleteWaterLog', e);
+    }
+  }
+
+  async findWaterLogsByUserAndDate(userId: string, localDate: string): Promise<WaterLogEntity[]> {
+    try {
+      const rows = await this.prisma.waterLog.findMany({
+        where: { userId, localDate, deletedAt: null },
+        orderBy: [{ loggedAt: 'asc' }, { id: 'asc' }],
+      });
+      return rows.map(toWaterLogEntity);
+    } catch (e) {
+      throw this.fail('findWaterLogsByUserAndDate', e);
+    }
+  }
+
+  /** syncToken 增量下游标：updatedAt > since（含 tombstone），按 (updatedAt, id) 稳定升序 */
+  async findWaterLogsSince(userId: string, since: Date): Promise<WaterLogEntity[]> {
+    try {
+      const rows = await this.prisma.waterLog.findMany({
+        where: { userId, updatedAt: { gt: since } },
+        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      });
+      return rows.map(toWaterLogEntity);
+    } catch (e) {
+      throw this.fail('findWaterLogsSince', e);
+    }
+  }
+
+  // ===== 共享食物候选（food_candidates，D-17 先审后发）=====
+
+  /** 提交候选；(userId, clientRequestId) 已存在 → 静默（幂等重放由调用方取回首次候选）。
+   * 表暂无该唯一索引，故查重后插入（同请求内并发窗口极小）；P2002 兜底同 waterLog。 */
+  async createFoodCandidate(candidate: FoodCandidateEntity): Promise<void> {
+    try {
+      const dup = await this.prisma.foodCandidate.findFirst({
+        where: { userId: candidate.userId, clientRequestId: candidate.clientRequestId },
+        select: { id: true },
+      });
+      if (dup) return;
+      await this.prisma.foodCandidate.create({
+        data: {
+          id: candidate.id,
+          foodId: candidate.foodId,
+          userId: candidate.userId,
+          status: candidate.status,
+          reason: candidate.reason,
+          clientRequestId: candidate.clientRequestId,
+          version: candidate.version,
+        },
+      });
+    } catch (e) {
+      if (isUniqueConflict(e)) return;
+      throw this.fail('createFoodCandidate', e);
+    }
+  }
+
+  async findFoodCandidateByUserAndRequestId(
+    userId: string,
+    clientRequestId: string,
+  ): Promise<FoodCandidateEntity | null> {
+    try {
+      const row = await this.prisma.foodCandidate.findFirst({
+        where: { userId, clientRequestId },
+        orderBy: { createdAt: 'asc' }, // 先入为准
+      });
+      return row ? toFoodCandidateEntity(row) : null;
+    } catch (e) {
+      throw this.fail('findFoodCandidateByUserAndRequestId', e);
+    }
+  }
+
+  /** 审核落库（pending → approved/rejected，version+1）；候选不存在抛 NOT_FOUND */
+  async updateFoodCandidateStatus(
+    id: string,
+    status: FoodCandidateStatus,
+    reason?: string,
+  ): Promise<void> {
+    const trimmed = reason === undefined ? undefined : (reason.trim() || null);
+    try {
+      const updated = await this.prisma.foodCandidate.updateMany({
+        where: { id },
+        data: {
+          status,
+          ...(trimmed === undefined ? {} : { reason: trimmed }),
+          version: { increment: 1 },
+        },
+      });
+      if (updated.count === 0) throw err.notFound();
+    } catch (e) {
+      throw this.fail('updateFoodCandidateStatus', e);
+    }
+  }
+
+  // ===== 社区举报计数（M5：reported 队列按 reportCount / reportedAt 排序）=====
+
+  async incrementPostReportCount(postId: string): Promise<void> {
+    try {
+      const updated = await this.prisma.post.updateMany({
+        where: { id: postId },
+        data: { reportCount: { increment: 1 }, reportedAt: new Date() },
+      });
+      if (updated.count === 0) throw err.notFound();
+    } catch (e) {
+      throw this.fail('incrementPostReportCount', e);
+    }
+  }
+
+  /** 驱动层异常 → 业务异常（Prisma 错误类型不外泄给 Service；已是业务异常则原样抛） */
+  private fail(op: string, e: unknown): never {
+    if (e instanceof BusinessException) throw e;
+    this.logger.error(`${op} failed: ${(e as Error).message}`);
+    throw err.internal();
+  }
 }
 
 // ===== Prisma row → 实体映射（Json 字段按内存实体类型收窄）=====
@@ -338,6 +492,8 @@ function toUserEntity(u: Prisma.UserGetPayload<object>): UserEntity {
   return {
     id: u.id,
     phone: u.phone,
+    username: u.username,
+    passwordHash: u.passwordHash,
     nickname: u.nickname,
     gender: u.gender,
     birthYear: u.birthYear,
@@ -444,14 +600,46 @@ function toPostEntity(p: Prisma.PostGetPayload<object>): PostEntity {
     likeCount: p.likeCount,
     auditStatus: p.auditStatus as PostEntity['auditStatus'],
     auditReason: (p.auditReason as PostEntity['auditReason']) ?? null,
-    // 〔假设〕prisma schema 暂无 reportCount/reportedAt 列（阶段性迁移缺口，
-    // 同 WaterLog）；pg 模式下举报计数缺省 0，管理端 reported 队列以内存驱动为准。
-    reportCount: 0,
-    reportedAt: null,
+    reportCount: p.reportCount,
+    reportedAt: p.reportedAt,
     visibility: p.visibility,
     version: p.version,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
     deletedAt: p.deletedAt,
   };
+}
+
+function toWaterLogEntity(w: Prisma.WaterLogGetPayload<object>): WaterLogEntity {
+  return {
+    id: w.id,
+    userId: w.userId,
+    clientRequestId: w.clientRequestId,
+    amountMl: w.amountMl,
+    loggedAt: w.loggedAt,
+    localDate: w.localDate,
+    version: w.version,
+    createdAt: w.createdAt,
+    updatedAt: w.updatedAt,
+    deletedAt: w.deletedAt,
+  };
+}
+
+function toFoodCandidateEntity(c: Prisma.FoodCandidateGetPayload<object>): FoodCandidateEntity {
+  return {
+    id: c.id,
+    foodId: c.foodId,
+    userId: c.userId,
+    status: c.status as FoodCandidateStatus,
+    reason: c.reason,
+    clientRequestId: c.clientRequestId,
+    version: c.version,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
+  };
+}
+
+/** P2002 唯一约束冲突：幂等重放的正常结果，不是错误（D-20） */
+function isUniqueConflict(e: unknown): boolean {
+  return e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
 }

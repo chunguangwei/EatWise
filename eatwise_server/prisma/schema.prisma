@@ -14,6 +14,8 @@ datasource db {
 model User {
   id                  String    @id @default(uuid())
   phone               String?   @unique // E.164
+  username            String?   @unique // 账号密码登录用户名（D-13 修订：账号密码为主路径）；小写归一化存储
+  passwordHash        String?   // bcrypt（bcryptjs），永不明文存储
   wechatOpenId        String?   @unique
   appleSub            String?   @unique
   nickname            String?
@@ -46,6 +48,7 @@ model User {
   idempotencyKeys IdempotencyKey[]
   refreshTokens   RefreshToken[]
 
+  waterLogs      WaterLog[]
   @@map("users")
 }
 
@@ -219,6 +222,8 @@ model Post {
   likeCount        Int       @default(0)
   auditStatus      String    @default("pending") // pending / approved / rejected（先审后发 D-17）
   auditReason      Json? // 双语 {zh, en}
+  reportCount      Int       @default(0) // 累计被举报次数（去重按 postId+userId）
+  reportedAt       DateTime? // 最近一次被举报时间
   visibility       String    @default("public") // self / followers / public 预留
   version          Int       @default(1)
   createdAt        DateTime  @default(now())
@@ -230,6 +235,27 @@ model Post {
   @@unique([userId, clientRequestId])
   @@index([auditStatus, createdAt])
   @@map("posts")
+}
+
+// 饮水记录（PRD M3 功能点 4）：轻量两态同步（pending/synced），无 update op——
+// 逐条 create + delete tombstone 即覆盖全部场景（D-20 幂等：userId + clientRequestId）
+model WaterLog {
+  id              String    @id @default(uuid())
+  userId          String
+  clientRequestId String
+  amountMl        Int
+  loggedAt        DateTime // 饮水时间（UTC）
+  localDate       String // 客户端归属日 YYYY-MM-DD（D-07 口径透传）
+  version         Int       @default(1)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime? // 软删 tombstone
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, clientRequestId])
+  @@index([userId, updatedAt, id]) // syncToken 增量下游标
+  @@map("water_logs")
 }
 
 // 幂等表（D-20）：相同 (userId, clientRequestId) 重放返回首次结果，保留 90 天〔假设〕

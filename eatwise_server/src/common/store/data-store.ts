@@ -6,6 +6,10 @@ import { newId } from '../utils/id.util';
 export interface UserEntity {
   id: string;
   phone: string | null;
+  /** 账号密码登录用户名（D-13 修订：账号密码为主路径）；小写归一化存储，唯一（对齐 prisma User.username） */
+  username: string | null;
+  /** bcrypt 哈希（bcryptjs），永不明文存储/返回 */
+  passwordHash: string | null;
   nickname: string | null;
   gender: string | null;
   birthYear: number | null;
@@ -301,11 +305,19 @@ export class DataStore {
     return [...this.users.values()].find((u) => u.phone === phone && !u.deletedAt);
   }
 
+  /** 用户名唯一索引语义（对齐 prisma username @unique）：软删用户仍占位，小写归一化匹配 */
+  findUserByUsername(username: string): UserEntity | undefined {
+    const name = username.trim().toLowerCase();
+    return [...this.users.values()].find((u) => u.username?.toLowerCase() === name);
+  }
+
   createUser(partial: Partial<UserEntity>): UserEntity {
     const now = new Date();
     const user: UserEntity = {
       id: newId(),
       phone: null,
+      username: null,
+      passwordHash: null,
       nickname: null,
       gender: null,
       birthYear: null,

@@ -47,8 +47,8 @@ npm run start:dev
 ```
 
 - `STORE_DRIVER`：`memory`（默认，内存 DataStore，重启丢数据）/ `prisma`（PrismaStore + PostgreSQL，要求 `DATABASE_URL` 已配置且已 migrate，缺失时启动即报错）。
-- 仓储抽象：`src/common/store/store-driver.ts` 定义 `StoreDriver` 接口（导出聚合 / 删除清除 / 食物种子 / 到期扫描），`MemoryStoreDriver` 适配内存 DataStore，`PrismaStore`（`src/common/store/prisma-store.ts`）走真实库——批量上行单 `$transaction` 原子提交、`(userId, clientRequestId)` 唯一约束幂等查重、LWW 乐观并发（`updateMany where version`）。
-- 阶段性迁移说明：fasting/streak/social/sync 等业务 Service 当前仍直接读写同步内存 DataStore（接口契约不变）；prisma 模式已覆盖 U3 导出、U5 删除清除、食物库种子与批量上行四条持久化路径，其余模块的仓储迁移为后续工作。
+- 仓储抽象：`src/common/store/store-driver.ts` 定义 `StoreDriver` 接口（导出聚合 / 删除清除 / 食物种子 / 到期扫描 / 饮水记录 / 食物候选审核 / 帖子举报计数），`MemoryStoreDriver` 适配内存 DataStore，`PrismaStore`（`src/common/store/prisma-store.ts`）走真实库——批量上行单 `$transaction` 原子提交、`(userId, clientRequestId)` 唯一约束幂等查重、LWW 乐观并发（`updateMany where version`）、软删 `deletedAt` tombstone。
+- 阶段性迁移说明：fasting/streak/social/sync 等业务 Service 当前仍直接读写同步内存 DataStore（接口契约不变）；prisma 模式已覆盖 U3 导出（含饮水记录）、U5 删除清除、食物库种子、批量上行，以及饮水记录 CRUD、食物候选审核池、帖子举报计数（`reportCount`/`reportedAt` 真实列）七条持久化路径，其余模块的仓储迁移为后续工作。
 - PrismaStore 集成测试（需真实库）：`RUN_PG_TESTS=1 DATABASE_URL=... npm test`（未起库时自动 skip）。
 
 ## LLM 营养估算（/v1/foods/estimate）
