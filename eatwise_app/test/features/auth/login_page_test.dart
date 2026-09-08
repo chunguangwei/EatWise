@@ -81,12 +81,6 @@ void main() {
     await tester.pump();
   }
 
-  /// 展开「其他登录方式」（手机验证码备用区）并滚到手机输入框。
-  Future<void> expandAltMethods(WidgetTester tester) async {
-    await tester.tap(find.text('其他登录方式'));
-    await tester.pumpAndSettle();
-  }
-
   setUp(() async {
     await LocaleSettings.setLocale(AppLocale.zhCn);
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -105,9 +99,8 @@ void main() {
       expect(find.text('密码'), findsOneWidget);
       expect(find.text('没有账号？'), findsOneWidget);
       expect(find.text('注册'), findsOneWidget);
-      expect(find.text('其他登录方式'), findsOneWidget);
-      // 手机验证码输入区默认折叠。
-      expect(find.text('请输入 11 位手机号'), findsNothing);
+      // 手机验证码 UI 已隐藏（短信通道未接入，能力保留在 API/Controller 层）。
+      expect(find.text('其他登录方式'), findsNothing);
       // 48px 输入框（设计稿表单规范）。
       final fieldSize = tester.getSize(find.byType(TextField).first);
       expect(fieldSize.height, 48);
@@ -177,51 +170,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('注册页占位'), findsOneWidget);
     });
-
-    testWidgets('展开其他登录方式 → 手机验证码流程可用（发送/倒计时）', (tester) async {
-      adapter.stub(
-        '/auth/sms/send',
-        StubResponse.json(
-          200,
-          StubResponse.envelope(<String, dynamic>{
-            'ttlSec': 300,
-            'resendAfterSec': 60,
-          }),
-        ),
-      );
-      await pumpLoginPage(tester);
-      await expandAltMethods(tester);
-      // 展开后依次：用户名(0)/密码(1)/手机号(2)/验证码(3)。
-      await tester.enterText(find.byType(TextField).at(2), '13800138000');
-      await tester.tap(find.text('获取验证码'));
-      await tester.pump(const Duration(milliseconds: 100));
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(find.text('验证码已发送，请查收'), findsOneWidget);
-      final body = adapter.requestBodies.single as Map<dynamic, dynamic>;
-      expect(body['phone'], '+8613800138000');
-      expect(find.text('60s 后重新发送'), findsOneWidget);
-      await tester.pump(const Duration(seconds: 1));
-      expect(find.text('59s 后重新发送'), findsOneWidget);
-      // 清理倒计时 Timer。
-      await tester.pumpWidget(const SizedBox());
-      await tester.pump();
-    });
-
-    testWidgets('手机验证码登录成功 → 令牌持久化、门禁打开', (tester) async {
-      adapter.stub(
-        '/auth/login/phone',
-        StubResponse.json(200, sessionPayload(refreshToken: 'rt-sms')),
-      );
-      await pumpLoginPage(tester);
-      await expandAltMethods(tester);
-      await tester.enterText(find.byType(TextField).at(2), '13800138000');
-      await tester.enterText(find.byType(TextField).at(3), '123456');
-      await tester.tap(find.widgetWithText(OutlinedButton, '登录'));
-      await tester.pump(const Duration(milliseconds: 100));
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(authGate.loggedIn, isTrue);
-      expect(await tokenStore.refreshToken, 'rt-sms');
-    });
   });
 
   group('登录页（en，D-15 双语）', () {
@@ -232,7 +180,7 @@ void main() {
       expect(find.text('Username'), findsOneWidget);
       expect(find.text('No account?'), findsOneWidget);
       expect(find.text('Sign up'), findsOneWidget);
-      expect(find.text('Other sign-in methods'), findsOneWidget);
+      expect(find.text('Other sign-in methods'), findsNothing);
     });
 
     testWidgets('凭据错误 → 英文映射文案上屏', (tester) async {
