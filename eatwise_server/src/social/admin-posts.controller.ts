@@ -22,7 +22,7 @@ export class AdminPostsController {
 
   /** 审核队列：?status=pending|approved|rejected|reported（缺省全部），游标分页 */
   @Get()
-  list(
+  async list(
     @Query('status') status?: string,
     @Query('limit') limit?: string,
     @Query('cursor') cursor?: string,
@@ -34,13 +34,13 @@ export class AdminPostsController {
       }
       filter = status as AdminPostFilter;
     }
-    return this.social.adminList(filter, limit ? Number(limit) : 20, cursor);
+    return await this.social.adminList(filter, limit ? Number(limit) : 20, cursor);
   }
 
   /** 审核：approve 上架/恢复（pending/rejected/reported）/ reject 下架（pending/approved，附原因） */
   @Post(':id/review')
   @HttpCode(200)
-  review(@Param('id') postId: string, @Body() dto: ReviewPostDto) {
-    return this.social.adminReview(postId, dto);
+  async review(@Param('id') postId: string, @Body() dto: ReviewPostDto) {
+    return await this.social.adminReview(postId, dto);
   }
 }

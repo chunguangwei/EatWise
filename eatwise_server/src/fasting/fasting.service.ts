@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { err } from '../common/errors/business.exception';
-import { DataStore, FastingPlanEntity, FastingRecordEntity } from '../common/store/data-store';
+import { FastingPlanEntity, FastingRecordEntity } from '../common/store/data-store';
+import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { newId, payloadHash } from '../common/utils/id.util';
 import { addDays, localDateOf, zonedTimeToUtc } from '../common/utils/time.util';
 import { StreakService } from '../streak/streak.service';
@@ -45,7 +46,7 @@ export function computeWindow(
 @Injectable()
 export class FastingService {
   constructor(
-    private readonly store: DataStore,
+    @Inject(STORE_DRIVER) private readonly driver: StoreDriver,
     private readonly config: ConfigService,
     private readonly streak: StreakService,
   ) {}
@@ -56,13 +57,17 @@ export class FastingService {
   }
 
   /** 当前方案（无则 16:8 12:00–20:00 兜底，D-03）；到达 effectiveDate 的 pending 翻转为 current（D-06） */
-  getCurrentPlan(userId: string, tz: string): FastingPlanEntity {
-    const plans = [...this.store.fastingPlans.values()].filter((p) => p.userId === userId);
+  async getCurrentPlan(userId: string, tz: string): Promise<FastingPlanEntity> {
+    const plans = await this.driver.listFastingPlansByUser(userId);
     const today = localDateOf(new Date(), tz);
     for (const p of plans.filter((p) => p.status === 'pending' && p.effectiveDate <= today)) {
       const current = plans.find((c) => c.status === 'current');
-      if (current) current.status = 'expired';
+      if (current) {
+        current.status = 'expired';
+        await this.driver.saveFastingPlan(current);
+      }
       p.status = 'current';
+      await this.driver.saveFastingPlan(p);
     }
     const current = plans.find((p) => p.status === 'current');
     if (current) return current;
@@ -82,8 +87,8 @@ export class FastingService {
   }
 
   /** P4 一键启动/更换方案：次日 0 点本地生效（D-06），已有 pending 整体替换（LWW） */
-  putCurrentPlan(userId: string, tz: string, planType: string, start: string, end: string) {
-    const plans = [...this.store.fastingPlans.values()].filter((p) => p.userId === userId);
+  async putCurrentPlan(userId: string, tz: string, planType: string, start: string, end: string) {
+    const plans = await this.driver.listFastingPlansByUser(userId);
     const effectiveDate = addDays(localDateOf(new Date(), tz), 1);
     let pending = plans.find((p) => p.status === 'pending');
     if (pending) {
@@ -107,26 +112,24 @@ export class FastingService {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      this.store.fastingPlans.set(pending.id, pending);
     }
-    const current = this.getCurrentPlan(userId, tz);
+    await this.driver.saveFastingPlan(pending);
+    const current = await this.getCurrentPlan(userId, tz);
     return { current: this.planView(current), pending: this.planView(pending) };
   }
 
   /** F1 当前断食状态（首页计时环数据源） */
-  getStatus(userId: string, tz: string) {
+  async getStatus(userId: string, tz: string) {
     const now = new Date();
-    const plan = this.getCurrentPlan(userId, tz);
+    const plan = await this.getCurrentPlan(userId, tz);
     const win = computeWindow(plan, tz, now);
-    let activeRecord: FastingRecordEntity | undefined;
+    let activeRecord: FastingRecordEntity | null;
     if (win.state === 'fasting') {
-      activeRecord = this.findOrCreateActiveRecord(userId, plan, win, tz, now);
+      activeRecord = await this.findOrCreateActiveRecord(userId, plan, win, tz, now);
     } else {
-      activeRecord = [...this.store.fastingRecords.values()].find(
-        (r) => r.userId === userId && r.plannedEndAt.getTime() === win.eatingStartAt.getTime(),
-      );
+      activeRecord = await this.driver.findFastingRecordByPlannedEnd(userId, win.eatingStartAt);
     }
-    const streak = this.streak.getOrCreate(userId, tz);
+    const streak = await this.streak.getOrCreate(userId, tz);
     return {
       state: win.state,
       plan: {
@@ -147,17 +150,15 @@ export class FastingService {
   }
 
   /** 进行中的断食记录 find-or-create（〔假设〕随首次状态查询物化，归属日服务端算，D-07） */
-  private findOrCreateActiveRecord(
+  private async findOrCreateActiveRecord(
     userId: string,
     plan: FastingPlanEntity,
     win: FastingWindow,
     tz: string,
     now: Date,
-  ): FastingRecordEntity {
+  ): Promise<FastingRecordEntity> {
     const plannedEndAt = win.eatingStartAt;
-    const existing = [...this.store.fastingRecords.values()].find(
-      (r) => r.userId === userId && r.plannedEndAt.getTime() === plannedEndAt.getTime(),
-    );
+    const existing = await this.driver.findFastingRecordByPlannedEnd(userId, plannedEndAt);
     if (existing) return existing;
     // 断食开始 = 上一进食窗口结束
     const startDate = addDays(localDateOf(plannedEndAt, tz), -1);
@@ -180,21 +181,21 @@ export class FastingService {
       createdAt: now,
       updatedAt: now,
     };
-    this.store.fastingRecords.set(record.id, record);
+    await this.driver.saveFastingRecord(record);
     return record;
   }
 
   /** F2 手动结束断食：幂等 + 状态机 + D-08 达标判定 */
-  endFast(userId: string, clientRequestId: string, recordId: string, endedAt: Date) {
+  async endFast(userId: string, clientRequestId: string, recordId: string, endedAt: Date) {
     const endpoint = 'fasting/end';
     const hash = payloadHash({ recordId, endedAt });
-    const hit = this.store.idempotency.get(this.store.idemKey(userId, endpoint, clientRequestId));
+    const hit = await this.driver.findIdempotencyRecord(userId, endpoint, clientRequestId);
     if (hit) {
       if (hit.payloadHash !== hash) throw err.payloadMismatch();
       return hit.responseBody;
     }
 
-    const record = this.store.fastingRecords.get(recordId);
+    const record = await this.driver.findFastingRecordById(recordId);
     if (!record || record.userId !== userId) throw err.notFound();
     if (record.result !== 'on_track') throw err.fastingAlreadyEnded();
 
@@ -227,10 +228,11 @@ export class FastingService {
       event: 'ended',
       detail: { result: record.result, isQualified: record.isQualified },
     });
+    await this.driver.saveFastingRecord(record);
 
-    this.streak.recompute(userId);
+    await this.streak.recompute(userId);
     const response = this.recordView(record);
-    this.store.idempotency.set(this.store.idemKey(userId, endpoint, clientRequestId), {
+    await this.driver.saveIdempotencyRecord({
       userId,
       clientRequestId,
       endpoint,
@@ -242,16 +244,16 @@ export class FastingService {
   }
 
   /** F3 延长：步进 30min、累计 ≤240min（D-10），进食窗口后移不压缩 */
-  extend(userId: string, clientRequestId: string, recordId: string, extendMinutes: number) {
+  async extend(userId: string, clientRequestId: string, recordId: string, extendMinutes: number) {
     const endpoint = 'fasting/extend';
     const hash = payloadHash({ recordId, extendMinutes });
-    const hit = this.store.idempotency.get(this.store.idemKey(userId, endpoint, clientRequestId));
+    const hit = await this.driver.findIdempotencyRecord(userId, endpoint, clientRequestId);
     if (hit) {
       if (hit.payloadHash !== hash) throw err.payloadMismatch();
       return hit.responseBody;
     }
 
-    const record = this.store.fastingRecords.get(recordId);
+    const record = await this.driver.findFastingRecordById(recordId);
     if (!record || record.userId !== userId) throw err.notFound();
     if (record.result !== 'on_track') throw err.fastingAlreadyEnded();
     if (extendMinutes % EXTEND_STEP_MINUTES !== 0) {
@@ -269,12 +271,13 @@ export class FastingService {
       event: 'extended',
       detail: { extendMinutes, extendedMinutes: record.extendedMinutes },
     });
+    await this.driver.saveFastingRecord(record);
 
     const response = {
       ...this.recordView(record),
       extendRemainingMinutes: MAX_EXTEND_MINUTES - record.extendedMinutes,
     };
-    this.store.idempotency.set(this.store.idemKey(userId, endpoint, clientRequestId), {
+    await this.driver.saveIdempotencyRecord({
       userId,
       clientRequestId,
       endpoint,

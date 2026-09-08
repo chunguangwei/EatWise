@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { err } from '../common/errors/business.exception';
 import {
-  DataStore,
   FoodEntryEntity,
   NutritionSnapshot,
   WaterLogEntity,
 } from '../common/store/data-store';
+import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { newId, payloadHash } from '../common/utils/id.util';
 import { NutritionService, round1 } from '../nutrition/nutrition.service';
 import { localDateOf } from '../common/utils/time.util';
@@ -24,28 +24,26 @@ export interface OpResult {
 @Injectable()
 export class SyncService {
   constructor(
-    private readonly store: DataStore,
+    @Inject(STORE_DRIVER) private readonly driver: StoreDriver,
     private readonly nutrition: NutritionService,
   ) {}
 
   // ===== E1 单条创建（幂等，D-20）=====
-  createEntry(userId: string, dto: CreateEntryDto) {
+  async createEntry(userId: string, dto: CreateEntryDto) {
     const endpoint = 'food-entries/create';
     const hash = payloadHash(dto);
-    const existing = this.findByClientRequestId(userId, dto.clientRequestId);
+    const existing = await this.driver.findFoodEntryByClientRequestId(userId, dto.clientRequestId);
     if (existing) {
-      const hit = this.store.idempotency.get(
-        this.store.idemKey(userId, endpoint, dto.clientRequestId),
-      );
+      const hit = await this.driver.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
       if (hit && hit.payloadHash !== hash) throw err.payloadMismatch(); // 同键不同体 = 客户端 bug
       return hit?.responseBody;
     }
-    const entry = this.buildEntry(userId, dto.clientRequestId, dto);
+    const entry = await this.buildEntry(userId, dto.clientRequestId, dto);
     const response = {
       entry: this.entryView(entry),
-      dailyNutrition: this.dailyNutritionOf(entry),
+      dailyNutrition: await this.dailyNutritionOf(entry),
     };
-    this.store.idempotency.set(this.store.idemKey(userId, endpoint, dto.clientRequestId), {
+    await this.driver.saveIdempotencyRecord({
       userId,
       clientRequestId: dto.clientRequestId,
       endpoint,
@@ -57,14 +55,16 @@ export class SyncService {
   }
 
   // ===== E4 / sync/push 批量上行（逐条幂等、逐条 LWW 冲突返回，整体永不整体失败）=====
-  push(userId: string, ops: SyncOpDto[]) {
-    const results = ops.map((op) => this.applyOp(userId, op));
+  async push(userId: string, ops: SyncOpDto[]) {
+    // 批内顺序处理（保持历史语义：同批同 clientRequestId 的后续 op 能看到前序写入）
+    const results: OpResult[] = [];
+    for (const op of ops) results.push(await this.applyOp(userId, op));
     return { results, syncToken: this.encodeToken(new Date(), newId()) };
   }
 
-  private applyOp(userId: string, op: SyncOpDto): OpResult {
+  private async applyOp(userId: string, op: SyncOpDto): Promise<OpResult> {
     try {
-      if (op.entity === 'waterLog') return this.applyWaterOp(userId, op);
+      if (op.entity === 'waterLog') return await this.applyWaterOp(userId, op);
       if (op.entity !== 'foodEntry') {
         return {
           clientRequestId: op.clientRequestId,
@@ -74,11 +74,11 @@ export class SyncService {
       }
       switch (op.op) {
         case 'create':
-          return this.applyCreate(userId, op);
+          return await this.applyCreate(userId, op);
         case 'update':
-          return this.applyUpdate(userId, op);
+          return await this.applyUpdate(userId, op);
         case 'delete':
-          return this.applyDelete(userId, op);
+          return await this.applyDelete(userId, op);
         default:
           return {
             clientRequestId: op.clientRequestId,
@@ -95,7 +95,7 @@ export class SyncService {
     }
   }
 
-  private applyCreate(userId: string, op: SyncOpDto): OpResult {
+  private async applyCreate(userId: string, op: SyncOpDto): Promise<OpResult> {
     if (!op.payload?.foodId || op.payload.grams == null || !op.payload.eatenAt) {
       return {
         clientRequestId: op.clientRequestId,
@@ -103,7 +103,7 @@ export class SyncService {
         error: { code: 'VALIDATION_ERROR' },
       };
     }
-    const dup = this.findByClientRequestId(userId, op.clientRequestId);
+    const dup = await this.driver.findFoodEntryByClientRequestId(userId, op.clientRequestId);
     if (dup) {
       // 幂等重放：返回首次结果；同键不同体报 mismatch
       const same =
@@ -123,7 +123,7 @@ export class SyncService {
         serverEntry: this.entryView(dup),
       };
     }
-    const entry = this.buildEntry(userId, op.clientRequestId, {
+    const entry = await this.buildEntry(userId, op.clientRequestId, {
       clientRequestId: op.clientRequestId,
       eatenAt: op.payload.eatenAt,
       foodId: op.payload.foodId,
@@ -138,9 +138,9 @@ export class SyncService {
     };
   }
 
-  private applyUpdate(userId: string, op: SyncOpDto): OpResult {
+  private async applyUpdate(userId: string, op: SyncOpDto): Promise<OpResult> {
     const id = op.serverId ?? op.payload?.id;
-    const entry = id ? this.store.foodEntries.get(id) : undefined;
+    const entry = id ? await this.driver.findFoodEntryById(id) : null;
     if (!entry || entry.userId !== userId) {
       return { clientRequestId: op.clientRequestId, status: 'error', error: { code: 'NOT_FOUND' } };
     }
@@ -172,9 +172,10 @@ export class SyncService {
     if (p.grams != null) entry.grams = p.grams;
     if (p.inputMethod) entry.inputMethod = p.inputMethod;
     if (p.foodId || p.grams != null)
-      entry.nutritionSnapshot = this.snapshotOf(entry.foodId, entry.grams);
+      entry.nutritionSnapshot = await this.snapshotOf(entry.foodId, entry.grams);
     entry.version += 1;
     entry.updatedAt = new Date(); // LWW 仲裁基准 = 服务端时钟（客户端时间戳不采信，防腐层）
+    await this.driver.saveFoodEntry(entry);
     return {
       clientRequestId: op.clientRequestId,
       status: 'applied',
@@ -182,9 +183,9 @@ export class SyncService {
     };
   }
 
-  private applyDelete(userId: string, op: SyncOpDto): OpResult {
+  private async applyDelete(userId: string, op: SyncOpDto): Promise<OpResult> {
     const id = op.serverId ?? op.payload?.id;
-    const entry = id ? this.store.foodEntries.get(id) : undefined;
+    const entry = id ? await this.driver.findFoodEntryById(id) : null;
     if (!entry || entry.userId !== userId) {
       return { clientRequestId: op.clientRequestId, status: 'error', error: { code: 'NOT_FOUND' } };
     }
@@ -200,6 +201,7 @@ export class SyncService {
       entry.deletedAt = new Date();
       entry.version += 1;
       entry.updatedAt = new Date();
+      await this.driver.saveFoodEntry(entry);
     }
     // 软删幂等：重复删除返回 applied
     return { clientRequestId: op.clientRequestId, status: 'applied' };
@@ -208,12 +210,12 @@ export class SyncService {
   // ===== waterLog 轻量同步（两态：仅 create/delete，无 update——
   // 饮水无编辑/冲突场景〔假设〕；幂等 clientRequestId 同 foodEntry 口径）=====
 
-  private applyWaterOp(userId: string, op: SyncOpDto): OpResult {
+  private async applyWaterOp(userId: string, op: SyncOpDto): Promise<OpResult> {
     switch (op.op) {
       case 'create':
-        return this.applyWaterCreate(userId, op);
+        return await this.applyWaterCreate(userId, op);
       case 'delete':
-        return this.applyWaterDelete(userId, op);
+        return await this.applyWaterDelete(userId, op);
       default:
         return {
           clientRequestId: op.clientRequestId,
@@ -223,7 +225,7 @@ export class SyncService {
     }
   }
 
-  private applyWaterCreate(userId: string, op: SyncOpDto): OpResult {
+  private async applyWaterCreate(userId: string, op: SyncOpDto): Promise<OpResult> {
     const amountMl = op.payload?.amountMl;
     const loggedAt = op.payload?.loggedAt;
     if (amountMl == null || amountMl <= 0 || !loggedAt) {
@@ -233,7 +235,7 @@ export class SyncService {
         error: { code: 'VALIDATION_ERROR' },
       };
     }
-    const dup = this.findWaterByClientRequestId(userId, op.clientRequestId);
+    const dup = await this.findWaterByClientRequestId(userId, op.clientRequestId);
     if (dup) {
       // 幂等重放：同键同体返回首次结果；同键不同体 = 客户端 bug
       const same =
@@ -265,7 +267,7 @@ export class SyncService {
       updatedAt: now,
       deletedAt: null,
     };
-    this.store.waterLogs.set(log.id, log);
+    await this.driver.createWaterLog(log);
     return {
       clientRequestId: op.clientRequestId,
       status: 'applied',
@@ -273,32 +275,31 @@ export class SyncService {
     };
   }
 
-  private applyWaterDelete(userId: string, op: SyncOpDto): OpResult {
+  private async applyWaterDelete(userId: string, op: SyncOpDto): Promise<OpResult> {
     const id = op.serverId ?? op.payload?.id;
-    let log = id ? this.store.waterLogs.get(id) : undefined;
-    // 兜底：create 已上行但客户端未拿到 serverId（响应丢失）→ 按行幂等键定位
-    if (!log && op.payload?.clientRequestId) {
-      log = this.findWaterByClientRequestId(userId, op.payload.clientRequestId);
-    }
+    // 驱动无按 waterLog id 单查方法：本用户增量扫描（含 tombstone）覆盖 id 与幂等键两种定位
+    const logs = await this.driver.findWaterLogsSince(userId, new Date(0));
+    const log =
+      (id ? logs.find((e) => e.id === id) : undefined) ??
+      // 兜底：create 已上行但客户端未拿到 serverId（响应丢失）→ 按行幂等键定位
+      (op.payload?.clientRequestId
+        ? logs.find((e) => e.clientRequestId === op.payload?.clientRequestId)
+        : undefined);
     if (!log || log.userId !== userId) {
       return { clientRequestId: op.clientRequestId, status: 'error', error: { code: 'NOT_FOUND' } };
     }
-    if (!log.deletedAt) {
-      log.deletedAt = new Date();
-      log.version += 1;
-      log.updatedAt = new Date();
-    }
+    if (!log.deletedAt) await this.driver.deleteWaterLog(userId, log.clientRequestId);
     // 软删幂等：重复删除返回 applied
     return { clientRequestId: op.clientRequestId, status: 'applied' };
   }
 
-  private findWaterByClientRequestId(
+  /** 幂等键定位（含 tombstone）：驱动按 userId 增量扫描，since=epoch 即全量 */
+  private async findWaterByClientRequestId(
     userId: string,
     clientRequestId: string,
-  ): WaterLogEntity | undefined {
-    return [...this.store.waterLogs.values()].find(
-      (e) => e.userId === userId && e.clientRequestId === clientRequestId,
-    );
+  ): Promise<WaterLogEntity | null> {
+    const logs = await this.driver.findWaterLogsSince(userId, new Date(0));
+    return logs.find((e) => e.clientRequestId === clientRequestId) ?? null;
   }
 
   private waterLogView(e: WaterLogEntity) {
@@ -314,32 +315,27 @@ export class SyncService {
     };
   }
   // ===== E6 / sync/pull 增量下行（syncToken 游标）=====
-  pull(userId: string, syncToken: string | undefined, limit = 200) {
+  async pull(userId: string, syncToken: string | undefined, limit = 200) {
     let after: { ts: number; id: string } | null = null;
     if (syncToken) after = this.decodeToken(syncToken);
 
-    const all = [...this.store.foodEntries.values()]
-      .filter((e) => e.userId === userId)
-      .filter(
-        (e) =>
-          !after ||
-          e.updatedAt.getTime() > after.ts ||
-          (e.updatedAt.getTime() === after.ts && e.id > after.id),
-      )
-      .sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime() || a.id.localeCompare(b.id));
+    // 驱动已按 (updatedAt asc, id asc) 排序 —— 与 syncToken 游标语义同口径（含 tombstone）
+    const rows = await this.driver.listFoodEntriesByUser(userId);
+    const all = rows.filter(
+      (e) =>
+        !after ||
+        e.updatedAt.getTime() > after.ts ||
+        (e.updatedAt.getTime() === after.ts && e.id > after.id),
+    );
 
     // 饮水记录随行下行（轻量两态，不分页〔假设：单用户饮水量小〕；
     // 复用同一 syncToken 游标语义：updatedAt 晚于游标的全部返回）
-    const waterAfter = after ? after.ts : null;
-    const waterChanges = [...this.store.waterLogs.values()]
-      .filter((e) => e.userId === userId)
-      .filter((e) => waterAfter == null || e.updatedAt.getTime() > waterAfter)
-      .sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime())
-      .map((e) =>
-        e.deletedAt
-          ? { tombstone: { entity: 'waterLog', id: e.id, deletedAt: e.deletedAt.toISOString() } }
-          : this.waterLogView(e),
-      );
+    const waterLogs = await this.driver.findWaterLogsSince(userId, new Date(after?.ts ?? 0));
+    const waterChanges = waterLogs.map((e) =>
+      e.deletedAt
+        ? { tombstone: { entity: 'waterLog', id: e.id, deletedAt: e.deletedAt.toISOString() } }
+        : this.waterLogView(e),
+    );
 
     const page = all.slice(0, limit);
     const last = page[page.length - 1];
@@ -375,20 +371,11 @@ export class SyncService {
 
   // ===== 内部工具 =====
 
-  private findByClientRequestId(
-    userId: string,
-    clientRequestId: string,
-  ): FoodEntryEntity | undefined {
-    return [...this.store.foodEntries.values()].find(
-      (e) => e.userId === userId && e.clientRequestId === clientRequestId,
-    );
-  }
-
-  private buildEntry(
+  private async buildEntry(
     userId: string,
     clientRequestId: string,
     dto: CreateEntryDto,
-  ): FoodEntryEntity {
+  ): Promise<FoodEntryEntity> {
     const now = new Date();
     const entry: FoodEntryEntity = {
       id: newId(),
@@ -399,19 +386,19 @@ export class SyncService {
       grams: dto.grams,
       inputMethod: dto.inputMethod,
       photoUrl: dto.photoUrl ?? null,
-      nutritionSnapshot: this.snapshotOf(dto.foodId, dto.grams),
+      nutritionSnapshot: await this.snapshotOf(dto.foodId, dto.grams),
       version: 1,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
     };
-    this.store.foodEntries.set(entry.id, entry);
+    await this.driver.saveFoodEntry(entry);
     return entry;
   }
 
   /** 营养快照：服务端按食物库每 100g 值 × grams/100 换算（快照防食物库更新回溯改历史） */
-  private snapshotOf(foodId: string, grams: number): NutritionSnapshot {
-    const food = this.store.foods.get(foodId);
+  private async snapshotOf(foodId: string, grams: number): Promise<NutritionSnapshot> {
+    const food = await this.driver.findFoodById(foodId);
     if (!food) throw err.validation({ foodId: 'unknown food' });
     const f = grams / 100;
     return {
@@ -422,10 +409,11 @@ export class SyncService {
     };
   }
 
-  private dailyNutritionOf(entry: FoodEntryEntity) {
-    const tz = this.store.users.get(entry.userId)?.timezone ?? 'Asia/Shanghai';
+  private async dailyNutritionOf(entry: FoodEntryEntity) {
+    const user = await this.driver.findUserById(entry.userId);
+    const tz = user?.timezone ?? 'Asia/Shanghai';
     const date = localDateOf(entry.eatenAt, tz);
-    const totals = this.nutrition.aggregate(entry.userId, date, tz);
+    const totals = await this.nutrition.aggregate(entry.userId, date, tz);
     return {
       date,
       kcal: totals.kcal,

@@ -33,12 +33,10 @@ export class FoodController {
   /** K2 按 id 批量取（离线缓存校验/详情），≤200 个〔假设〕；自定义食物仅创建者可见 */
   @Post('batch-get')
   @HttpCode(200)
-  batchGet(@CurrentUser() user: AuthUser, @Body('ids') ids: string[] = []) {
+  async batchGet(@CurrentUser() user: AuthUser, @Body('ids') ids: string[] = []) {
     if (ids.length > 200) throw err.validation({ ids: 'at most 200 ids' });
-    const items = ids
-      .map((id) => this.food.getById(id, user.userId))
-      .filter((f): f is NonNullable<typeof f> => Boolean(f));
-    return { items };
+    const found = await Promise.all(ids.map((id) => this.food.getById(id, user.userId)));
+    return { items: found.filter((f): f is NonNullable<typeof f> => Boolean(f)) };
   }
 
   /**

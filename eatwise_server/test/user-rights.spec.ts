@@ -13,7 +13,7 @@ describe('用户权利（U1/U3/U5/U6，合规 §4.2/§4.3）', () => {
   beforeEach(() => {
     store = new DataStore();
     driver = new MemoryStoreDriver(store);
-    users = new UserService(store, driver);
+    users = new UserService(driver);
     userId = store.createUser({ phone: '+8613800138000', nickname: '林悦' }).id;
   });
 
@@ -98,8 +98,8 @@ describe('用户权利（U1/U3/U5/U6，合规 §4.2/§4.3）', () => {
       expect(maskPhone(null)).toBeNull();
     });
 
-    it('GET users/me 视图含脱敏手机号，不含明文', () => {
-      const { user } = users.getMe(userId);
+    it('GET users/me 视图含脱敏手机号，不含明文', async () => {
+      const { user } = await users.getMe(userId);
       expect(user.phone).toBe('138****8000');
       expect(JSON.stringify(user)).not.toContain('13800138000');
     });
@@ -128,7 +128,7 @@ describe('用户权利（U1/U3/U5/U6，合规 §4.2/§4.3）', () => {
   });
 
   describe('U5 删除冷静期', () => {
-    it('申请 → deletionStatus=pending + scheduledDeletionAt=7 天后 + 吊销全部会话', () => {
+    it('申请 → deletionStatus=pending + scheduledDeletionAt=7 天后 + 吊销全部会话', async () => {
       store.refreshTokens.set('hash1', {
         id: 't1',
         userId,
@@ -140,7 +140,7 @@ describe('用户权利（U1/U3/U5/U6，合规 §4.2/§4.3）', () => {
         createdAt: new Date(),
       });
       const before = Date.now();
-      const res = users.requestDeletion(userId);
+      const res = await users.requestDeletion(userId);
       expect(res.deletionStatus).toBe('pending');
       expect(res.coolingOffDays).toBe(7);
       const at = new Date(res.scheduledDeletionAt!).getTime();
@@ -149,25 +149,25 @@ describe('用户权利（U1/U3/U5/U6，合规 §4.2/§4.3）', () => {
       expect(store.refreshTokens.get('hash1')!.revokedAt).not.toBeNull(); // 立即登出所有会话
     });
 
-    it('重复申请幂等：返回在途任务，scheduledDeletionAt 不后移', () => {
-      const first = users.requestDeletion(userId);
-      const second = users.requestDeletion(userId);
+    it('重复申请幂等：返回在途任务，scheduledDeletionAt 不后移', async () => {
+      const first = await users.requestDeletion(userId);
+      const second = await users.requestDeletion(userId);
       expect(second.deletionStatus).toBe('pending');
       expect(second.scheduledDeletionAt).toBe(first.scheduledDeletionAt);
     });
 
-    it('U6 冷静期内撤销；重复撤销幂等', () => {
-      users.requestDeletion(userId);
-      const cancelled = users.cancelDeletion(userId);
+    it('U6 冷静期内撤销；重复撤销幂等', async () => {
+      await users.requestDeletion(userId);
+      const cancelled = await users.cancelDeletion(userId);
       expect(cancelled.deletionStatus).toBeNull();
       expect(cancelled.scheduledDeletionAt).toBeNull();
-      const again = users.cancelDeletion(userId);
+      const again = await users.cancelDeletion(userId);
       expect(again.deletionStatus).toBeNull();
     });
 
     it('到期执行：个人数据物理删除 + 打卡帖匿名化；未到期不执行', async () => {
       seedUserData();
-      users.requestDeletion(userId);
+      await users.requestDeletion(userId);
 
       // 未到期：扫描不清除
       expect(await users.executeDueDeletions(new Date())).toEqual([]);

@@ -1,37 +1,34 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { err } from '../common/errors/business.exception';
 import {
   CustomFoodEntity,
-  DataStore,
   FoodCandidateEntity,
   FoodCandidateStatus,
   FoodEntity,
 } from '../common/store/data-store';
+import { FoodSearchHit, STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { newId, payloadHash } from '../common/utils/id.util';
 import { ContentModerationService } from '../social/moderation/content-moderation.service';
 import { ContributeFoodDto, CreateCustomFoodDto, ReviewFoodCandidateDto } from './food.dto';
 import { isPer100gInRange } from './food.rules';
 
-export interface FoodSearchHit {
-  food: FoodEntity | CustomFoodEntity;
-  isCustom: boolean;
-  score: number;
-  matchedOn: 'nameZh' | 'nameEn' | 'alias';
-  highlight: { field: string; text: string };
-}
-
+/**
+ * 食物库（D-16 内置库 + 个人自定义库 + D-17 众包候选审核池）。
+ * 读写全部收口到 StoreDriver（prisma 模式真实落库）：搜索匹配、候选读路径、
+ * 审核晋升（自定义行原子转共享）由驱动提供与内存同口径的实现。
+ */
 @Injectable()
 export class FoodService {
   constructor(
-    private readonly store: DataStore,
+    @Inject(STORE_DRIVER) private readonly driver: StoreDriver,
     private readonly moderation: ContentModerationService,
   ) {}
 
   /** 内置库 + 个人自定义库（自定义仅创建者可见） */
-  getById(id: string, userId?: string): FoodEntity | CustomFoodEntity | undefined {
-    const builtIn = this.store.foods.get(id);
+  async getById(id: string, userId?: string): Promise<FoodEntity | CustomFoodEntity | undefined> {
+    const builtIn = await this.driver.findFoodById(id);
     if (builtIn) return builtIn;
-    const custom = this.store.customFoods.get(id);
+    const custom = await this.driver.findCustomFoodById(id);
     if (!custom) return undefined;
     return userId && custom.userId === userId ? custom : undefined;
   }
@@ -41,7 +38,7 @@ export class FoodService {
    * 排序优先级 前缀 > 子串 > 别名（契约 §3.6）。中英文混合输入原样匹配（不翻译）。
    * 自定义食物（仅创建者可见）排在内置结果之后，标注 isCustom。
    */
-  search(q: string, limit = 20, cursor?: string, userId?: string) {
+  async search(q: string, limit = 20, cursor?: string, userId?: string) {
     if (limit > 50) limit = 50;
     let offset = 0;
     if (cursor) {
@@ -51,7 +48,7 @@ export class FoodService {
         throw err.invalidCursor();
       }
     }
-    const hits = this.matchAll(q, userId);
+    const hits = await this.driver.searchFoods(q, userId);
     const page = hits.slice(offset, offset + limit);
     const nextOffset = offset + limit;
     return {
@@ -67,7 +64,7 @@ export class FoodService {
   }
 
   /** 创建自定义食物（幂等：clientRequestId 重放返回首次结果，不同体 409） */
-  createCustomFood(userId: string, dto: CreateCustomFoodDto) {
+  async createCustomFood(userId: string, dto: CreateCustomFoodDto) {
     const endpoint = 'foods/custom';
     const hash = payloadHash({
       nameZh: dto.nameZh,
@@ -75,8 +72,7 @@ export class FoodService {
       per100g: dto.per100g,
       source: dto.source,
     });
-    const idemKey = this.store.idemKey(userId, endpoint, dto.clientRequestId);
-    const hit = this.store.idempotency.get(idemKey);
+    const hit = await this.driver.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
     if (hit) {
       if (hit.payloadHash !== hash) throw err.payloadMismatch();
       return hit.responseBody;
@@ -106,17 +102,10 @@ export class FoodService {
       source: dto.source,
       createdAt: new Date(),
     };
-    this.store.customFoods.set(food.id, food);
+    await this.driver.createCustomFood(food);
 
     const response = this.customView(food);
-    this.store.idempotency.set(idemKey, {
-      userId,
-      clientRequestId: dto.clientRequestId,
-      endpoint,
-      payloadHash: hash,
-      responseBody: response,
-      createdAt: new Date(),
-    });
+    await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response);
     return response;
   }
 
@@ -129,28 +118,20 @@ export class FoodService {
   async contributeCustomFood(userId: string, foodId: string, dto: ContributeFoodDto) {
     const endpoint = 'foods/custom/contribute';
     const hash = payloadHash({ foodId });
-    const idemKey = this.store.idemKey(userId, endpoint, dto.clientRequestId);
-    const hit = this.store.idempotency.get(idemKey);
+    const hit = await this.driver.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
     if (hit) {
       if (hit.payloadHash !== hash) throw err.payloadMismatch();
       return hit.responseBody;
     }
 
-    const food = this.store.customFoods.get(foodId);
+    const food = await this.driver.findCustomFoodById(foodId);
     if (!food || food.userId !== userId) throw err.notFound();
 
     // 同一食物只允许一个候选：重复贡献幂等返回原状态（pending/approved/rejected）
-    const existing = [...this.store.foodCandidates.values()].find((c) => c.foodId === foodId);
+    const existing = await this.driver.findFoodCandidateByFoodId(foodId);
     if (existing) {
-      const response = this.candidateView(existing);
-      this.store.idempotency.set(idemKey, {
-        userId,
-        clientRequestId: dto.clientRequestId,
-        endpoint,
-        payloadHash: hash,
-        responseBody: response,
-        createdAt: new Date(),
-      });
+      const response = await this.candidateView(existing);
+      await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response);
       return response;
     }
 
@@ -171,22 +152,15 @@ export class FoodService {
       createdAt: now,
       updatedAt: now,
     };
-    this.store.foodCandidates.set(candidate.id, candidate);
+    await this.driver.createFoodCandidate(candidate);
 
-    const response = this.candidateView(candidate);
-    this.store.idempotency.set(idemKey, {
-      userId,
-      clientRequestId: dto.clientRequestId,
-      endpoint,
-      payloadHash: hash,
-      responseBody: response,
-      createdAt: new Date(),
-    });
+    const response = await this.candidateView(candidate);
+    await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response);
     return response;
   }
 
   /** 管理端：审核队列（游标分页，createdAt 升序先入先审；status 过滤） */
-  listFoodCandidates(status: FoodCandidateStatus | undefined, limit = 20, cursor?: string) {
+  async listFoodCandidates(status: FoodCandidateStatus | undefined, limit = 20, cursor?: string) {
     if (limit > 50) limit = 50;
     let offset = 0;
     if (cursor) {
@@ -196,13 +170,11 @@ export class FoodService {
         throw err.invalidCursor();
       }
     }
-    const all = [...this.store.foodCandidates.values()]
-      .filter((c) => !status || c.status === status)
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id));
+    const all = await this.driver.listFoodCandidates(status);
     const page = all.slice(offset, offset + limit);
     const nextOffset = offset + limit;
     return {
-      items: page.map((c) => this.candidateView(c)),
+      items: await Promise.all(page.map((c) => this.candidateView(c))),
       pageInfo: {
         nextCursor:
           nextOffset < all.length
@@ -218,15 +190,14 @@ export class FoodService {
    * status 缺省返回全部状态；createdAt 降序（最新在前），页码分页（page 从 1 起）。
    * 返回精简视图（不含营养/名称——食物名由客户端按 foodId 本地解析）。
    */
-  findContributionsByUser(
+  async findContributionsByUser(
     userId: string,
     status: FoodCandidateStatus | undefined,
     page = 1,
     pageSize = 20,
   ) {
-    const all = [...this.store.foodCandidates.values()]
-      .filter((c) => c.userId === userId && (!status || c.status === status))
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id));
+    // 驱动侧按 (createdAt, id) 降序返回本人候选（最新在前）
+    const all = await this.driver.findFoodCandidatesByUser(userId, status);
     const offset = (page - 1) * pageSize;
     return {
       items: all.slice(offset, offset + pageSize).map((c) => ({
@@ -249,45 +220,38 @@ export class FoodService {
    * source='community'，createdByUserId 保留溯源）；reject → 状态 rejected + reason，
    * 创建者仍可见自己的自定义食物。
    */
-  reviewFoodCandidate(candidateId: string, dto: ReviewFoodCandidateDto) {
-    const candidate = this.store.foodCandidates.get(candidateId);
+  async reviewFoodCandidate(candidateId: string, dto: ReviewFoodCandidateDto) {
+    const candidate = await this.driver.findFoodCandidateById(candidateId);
     if (!candidate) throw err.notFound();
     if (candidate.status !== 'pending') {
       throw err.conflict({ status: candidate.status });
     }
-    candidate.updatedAt = new Date();
-    candidate.version += 1;
 
     if (dto.action === 'reject') {
-      candidate.status = 'rejected';
-      candidate.reason = dto.reason?.trim() || null;
-      return this.candidateView(candidate);
+      await this.driver.updateFoodCandidateStatus(candidateId, 'rejected', dto.reason);
+      return this.candidateView(await this.mustGetCandidate(candidateId));
     }
 
-    const custom = this.store.customFoods.get(candidate.foodId);
-    if (!custom) throw err.notFound(); // 食物已被删除等异常态
-    const shared: FoodEntity = {
-      id: custom.id, // 保留原 id：既有 FoodEntry 引用不断链
-      nameZh: custom.nameZh,
-      nameEn: custom.nameEn,
-      aliases: custom.aliases,
-      kcalPer100g: custom.kcalPer100g,
-      proteinPer100g: custom.proteinPer100g,
-      carbsPer100g: custom.carbsPer100g,
-      fatPer100g: custom.fatPer100g,
-      category: '社区共享',
-      source: 'community',
-      createdByUserId: custom.userId,
-    };
-    this.store.customFoods.delete(custom.id);
-    this.store.foods.set(shared.id, shared);
-    candidate.status = 'approved';
-    candidate.reason = null;
-    return this.candidateView(candidate);
+    // 食物已被删除等异常态 → 404（此时不动候选状态，审核可重试）
+    if (!(await this.driver.findCustomFoodById(candidate.foodId))) throw err.notFound();
+    // 原子晋升：id 不变转共享（既有 FoodEntry 引用不断链），再落候选终态
+    await this.driver.promoteCustomFoodToShared(candidate.foodId);
+    await this.driver.updateFoodCandidateStatus(candidateId, 'approved');
+    return this.candidateView(await this.mustGetCandidate(candidateId));
   }
 
-  private candidateView(c: FoodCandidateEntity) {
-    const food = this.store.customFoods.get(c.foodId) ?? this.store.foods.get(c.foodId);
+  /** 状态落库后回读（驱动侧 version+1 / updatedAt 已生效），不存在视为内部异常 */
+  private async mustGetCandidate(id: string): Promise<FoodCandidateEntity> {
+    const candidate = await this.driver.findFoodCandidateById(id);
+    if (!candidate) throw err.notFound();
+    return candidate;
+  }
+
+  /** 审核前候选食物在个人库，晋升后在共享库（id 不变）；两处都查不到 = 食物已删 */
+  private async candidateView(c: FoodCandidateEntity) {
+    const food =
+      (await this.driver.findCustomFoodById(c.foodId)) ??
+      (await this.driver.findFoodById(c.foodId));
     return {
       id: c.id,
       foodId: c.foodId,
@@ -308,67 +272,6 @@ export class FoodService {
       createdAt: c.createdAt.toISOString(),
       updatedAt: c.updatedAt.toISOString(),
     };
-  }
-
-  private matchAll(q: string, userId?: string): FoodSearchHit[] {
-    const ql = q.trim().toLowerCase();
-    if (!ql) return [];
-    const builtIn: FoodSearchHit[] = [];
-    for (const food of this.store.foods.values()) {
-      const hit = this.matchFood(food, q.trim(), ql, false);
-      if (hit) builtIn.push(hit);
-    }
-    builtIn.sort((a, b) => b.score - a.score || a.food.nameZh.localeCompare(b.food.nameZh));
-    // 自定义食物：仅创建者可见，整体排在内置结果之后（内部仍按匹配分排序）
-    const custom: FoodSearchHit[] = [];
-    if (userId) {
-      for (const food of this.store.customFoods.values()) {
-        if (food.userId !== userId) continue;
-        const hit = this.matchFood(food, q.trim(), ql, true);
-        if (hit) custom.push(hit);
-      }
-      custom.sort((a, b) => b.score - a.score || a.food.nameZh.localeCompare(b.food.nameZh));
-    }
-    return [...builtIn, ...custom];
-  }
-
-  private matchFood(
-    food: FoodEntity | CustomFoodEntity,
-    q: string,
-    ql: string,
-    isCustom: boolean,
-  ): FoodSearchHit | null {
-    // 前缀匹配优先（score 3），子串次之（score 2），别名最后（score 1）
-    if (food.nameZh.includes(q)) {
-      return {
-        food,
-        isCustom,
-        score: food.nameZh.startsWith(q) ? 3 : 2,
-        matchedOn: 'nameZh',
-        highlight: { field: 'nameZh', text: food.nameZh },
-      };
-    }
-    const en = food.nameEn.toLowerCase();
-    if (en.includes(ql)) {
-      return {
-        food,
-        isCustom,
-        score: en.startsWith(ql) ? 3 : 2,
-        matchedOn: 'nameEn',
-        highlight: { field: 'nameEn', text: food.nameEn },
-      };
-    }
-    const alias = food.aliases.find((a) => a.toLowerCase().includes(ql));
-    if (alias) {
-      return {
-        food,
-        isCustom,
-        score: 1,
-        matchedOn: 'alias',
-        highlight: { field: 'aliases', text: alias },
-      };
-    }
-    return null;
   }
 
   private hitView(h: FoodSearchHit) {
@@ -406,5 +309,22 @@ export class FoodService {
       isCustom: true,
       createdAt: f.createdAt.toISOString(),
     };
+  }
+
+  private async saveIdempotency(
+    userId: string,
+    endpoint: string,
+    clientRequestId: string,
+    payloadHashValue: string,
+    responseBody: unknown,
+  ) {
+    await this.driver.saveIdempotencyRecord({
+      userId,
+      clientRequestId,
+      endpoint,
+      payloadHash: payloadHashValue,
+      responseBody,
+      createdAt: new Date(),
+    });
   }
 }

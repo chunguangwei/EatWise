@@ -1,9 +1,10 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { err } from '../common/errors/business.exception';
-import { AdminUserEntity, DataStore } from '../common/store/data-store';
+import { AdminUserEntity } from '../common/store/data-store';
+import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 
 export const ADMIN_JWT_TTL_SEC = 12 * 3600; // 12h〔假设〕
 
@@ -29,7 +30,7 @@ export class AdminAuthService implements OnApplicationBootstrap {
   private readonly loginAttempts = new Map<string, number[]>();
 
   constructor(
-    private readonly store: DataStore,
+    @Inject(STORE_DRIVER) private readonly driver: StoreDriver,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
   ) {}
@@ -47,11 +48,11 @@ export class AdminAuthService implements OnApplicationBootstrap {
   }
 
   private async seedInitialAdmin() {
-    if (this.store.adminUsers.size > 0) return;
+    if ((await this.driver.countAdminUsers()) > 0) return;
     const username = this.config.get<string>('ADMIN_USERNAME')?.trim();
     const password = this.config.get<string>('ADMIN_PASSWORD');
     if (!username || !password) return;
-    this.store.createAdminUser({
+    await this.driver.createAdminUser({
       username,
       passwordHash: await bcrypt.hash(password, 10),
       role: 'admin',
@@ -74,7 +75,7 @@ export class AdminAuthService implements OnApplicationBootstrap {
 
   async login(username: string, password: string) {
     this.checkRateLimit(username);
-    const admin = this.store.findAdminByUsername(username);
+    const admin = await this.driver.findAdminByUsername(username);
     // 用户不存在 / 密码错误 / 已禁用 一律报同一错误码，不泄露账号是否存在
     if (!admin || admin.disabled || !(await bcrypt.compare(password, admin.passwordHash))) {
       throw err.tokenInvalid();
@@ -100,7 +101,7 @@ export class AdminAuthService implements OnApplicationBootstrap {
       if ((e as Error).name === 'TokenExpiredError') throw err.tokenExpired();
       throw err.tokenInvalid();
     }
-    const admin = this.store.adminUsers.get(payload.sub);
+    const admin = await this.driver.findAdminById(payload.sub);
     if (!admin || admin.disabled || admin.username !== payload.username) throw err.tokenInvalid();
     return admin;
   }

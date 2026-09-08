@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { err } from '../common/errors/business.exception';
-import { DataStore, FastingRecordEntity, StreakEntity } from '../common/store/data-store';
+import { FastingRecordEntity, StreakEntity } from '../common/store/data-store';
+import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { newId, payloadHash } from '../common/utils/id.util';
 import { addDays, localDateOf, localMonthOf } from '../common/utils/time.util';
 
@@ -14,16 +15,17 @@ const MILESTONES = [3, 7, 30];
  */
 @Injectable()
 export class StreakService {
-  constructor(private readonly store: DataStore) {}
+  constructor(@Inject(STORE_DRIVER) private readonly driver: StoreDriver) {}
 
-  private tzOf(userId: string): string {
-    return this.store.users.get(userId)?.timezone ?? 'Asia/Shanghai';
+  private async tzOf(userId: string): Promise<string> {
+    return (await this.driver.findUserById(userId))?.timezone ?? 'Asia/Shanghai';
   }
 
   /** 读取（不存在则初始化），并执行月度 rollover：当月有效、月底清零、月初发 2 张（上限 2） */
-  getOrCreate(userId: string, tz?: string): StreakEntity {
-    const zone = tz ?? this.tzOf(userId);
-    let streak = this.store.streaks.get(userId);
+  async getOrCreate(userId: string, tz?: string): Promise<StreakEntity> {
+    const zone = tz ?? (await this.tzOf(userId));
+    let streak = await this.driver.findStreakByUser(userId);
+    let changed = false;
     if (!streak) {
       streak = {
         id: newId(),
@@ -36,7 +38,7 @@ export class StreakService {
         version: 1,
         updatedAt: new Date(),
       };
-      this.store.streaks.set(userId, streak);
+      changed = true;
     }
     // 月度 rollover：进入新月 → 清零重发 2 张（发放时已有则不超上限）
     const currentMonth = localMonthOf(new Date(), zone);
@@ -47,25 +49,26 @@ export class StreakService {
         usedDates: [],
       };
       streak.updatedAt = new Date();
+      changed = true;
     }
+    if (changed) await this.driver.saveStreak(streak);
     return streak;
   }
 
   /** 达标日期集合：断食达标（D-08）或补签日 */
-  qualifiedDates(userId: string): Set<string> {
+  async qualifiedDates(userId: string): Promise<Set<string>> {
     const dates = new Set<string>();
-    for (const r of this.store.fastingRecords.values()) {
-      if (r.userId !== userId) continue;
+    for (const r of await this.driver.listFastingRecordsByUser(userId)) {
       if (r.isQualified || r.result === 'makeup') dates.add(r.attributionDate);
     }
     return dates;
   }
 
   /** 由达标日重算 streak（中断 → 当前 streak 归零，D-12） */
-  recompute(userId: string): StreakEntity {
-    const streak = this.getOrCreate(userId);
-    const tz = this.tzOf(userId);
-    const dates = [...this.qualifiedDates(userId)].sort();
+  async recompute(userId: string): Promise<StreakEntity> {
+    const streak = await this.getOrCreate(userId);
+    const tz = await this.tzOf(userId);
+    const dates = [...(await this.qualifiedDates(userId))].sort();
     const today = localDateOf(new Date(), tz);
     const yesterday = addDays(today, -1);
 
@@ -98,21 +101,22 @@ export class StreakService {
     }
     streak.version += 1;
     streak.updatedAt = new Date();
+    await this.driver.saveStreak(streak);
     return streak;
   }
 
   /** S2 使用补签卡（D-12 规则表，服务端强制执行） */
-  makeUp(userId: string, clientRequestId: string, date: string) {
+  async makeUp(userId: string, clientRequestId: string, date: string) {
     const endpoint = 'streak/makeup';
     const hash = payloadHash({ date });
-    const hit = this.store.idempotency.get(this.store.idemKey(userId, endpoint, clientRequestId));
+    const hit = await this.driver.findIdempotencyRecord(userId, endpoint, clientRequestId);
     if (hit) {
       if (hit.payloadHash !== hash) throw err.payloadMismatch();
       return hit.responseBody;
     }
 
-    const streak = this.getOrCreate(userId);
-    const tz = this.tzOf(userId);
+    const streak = await this.getOrCreate(userId);
+    const tz = await this.tzOf(userId);
     const today = localDateOf(new Date(), tz);
 
     // 可补范围：最近 7 个自然日内的断签日（不含今天，今天的断食可能还在进行）
@@ -120,7 +124,7 @@ export class StreakService {
       throw err.makeupOutOfWindow();
     }
     if (streak.makeupCards.usedDates.includes(date)) throw err.makeupAlreadyUsed();
-    if (this.qualifiedDates(userId).has(date)) throw err.makeupAlreadyUsed(); // 〔假设〕已达标日无需补签
+    if ((await this.qualifiedDates(userId)).has(date)) throw err.makeupAlreadyUsed(); // 〔假设〕已达标日无需补签
     if (streak.makeupCards.stock <= 0) throw err.makeupCardEmpty();
 
     streak.makeupCards.stock -= 1;
@@ -145,11 +149,11 @@ export class StreakService {
       createdAt: now,
       updatedAt: now,
     };
-    this.store.fastingRecords.set(marker.id, marker);
+    await this.driver.saveFastingRecord(marker);
 
-    const updated = this.recompute(userId);
+    const updated = await this.recompute(userId);
     const response = this.streakView(updated, tz);
-    this.store.idempotency.set(this.store.idemKey(userId, endpoint, clientRequestId), {
+    await this.driver.saveIdempotencyRecord({
       userId,
       clientRequestId,
       endpoint,

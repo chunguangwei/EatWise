@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsDefined,
   IsIn,
   IsInt,
   IsISO8601,
@@ -27,6 +28,7 @@ export class PutPlanDto {
   @IsIn(['14:10', '16:8', '18:6']) // 5:2 仅展示不入库（D-03）
   planType: string;
 
+  @IsDefined() // 缺失时 ValidateNested 会跳过 → controller 解引用 500；显式必填保证 400
   @ValidateNested()
   @Type(() => EatingWindowDto)
   eatingWindow: EatingWindowDto;

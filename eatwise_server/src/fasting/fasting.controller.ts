@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Headers, HttpCode, Post, Put } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Inject, Post, Put } from '@nestjs/common';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
-import { DataStore } from '../common/store/data-store';
+import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { EndFastingDto, ExtendFastingDto, PutPlanDto } from './fasting.dto';
 import { FastingService } from './fasting.service';
 
@@ -8,17 +8,22 @@ import { FastingService } from './fasting.service';
 export class FastingController {
   constructor(
     private readonly fasting: FastingService,
-    private readonly store: DataStore,
+    @Inject(STORE_DRIVER) private readonly driver: StoreDriver,
   ) {}
 
-  private tz(user: AuthUser, headerTz?: string): string {
-    return headerTz || this.store.users.get(user.userId)?.timezone || 'Asia/Shanghai';
+  private async tz(user: AuthUser, headerTz?: string): Promise<string> {
+    if (headerTz) return headerTz;
+    return (await this.driver.findUserById(user.userId))?.timezone ?? 'Asia/Shanghai';
   }
 
   /** P3 当前方案（含 pending 更换） */
   @Get('fasting-plans/current')
-  getCurrentPlan(@CurrentUser() user: AuthUser, @Headers('x-timezone') tz?: string) {
-    const plan = this.fasting.getCurrentPlan(user.userId, this.tz(user, tz));
+  async getCurrentPlan(@CurrentUser() user: AuthUser, @Headers('x-timezone') tz?: string) {
+    const plan = await this.fasting.getCurrentPlan(user.userId, await this.tz(user, tz));
+    const pending =
+      (await this.driver.listFastingPlansByUser(user.userId)).find(
+        (p) => p.status === 'pending',
+      ) ?? null;
     return {
       current: {
         id: plan.id,
@@ -27,23 +32,20 @@ export class FastingController {
         effectiveDate: plan.effectiveDate,
         status: plan.status,
       },
-      pending:
-        [...this.store.fastingPlans.values()].find(
-          (p) => p.userId === user.userId && p.status === 'pending',
-        ) ?? null,
+      pending,
     };
   }
 
   /** P4 一键启动/更换方案，次日 0 点本地生效（D-06） */
   @Put('fasting-plans/current')
-  putCurrentPlan(
+  async putCurrentPlan(
     @CurrentUser() user: AuthUser,
     @Body() dto: PutPlanDto,
     @Headers('x-timezone') tz?: string,
   ) {
     return this.fasting.putCurrentPlan(
       user.userId,
-      this.tz(user, tz),
+      await this.tz(user, tz),
       dto.planType,
       dto.eatingWindow.start,
       dto.eatingWindow.end,
@@ -52,8 +54,8 @@ export class FastingController {
 
   /** F1 当前断食状态 */
   @Get('fasting/status')
-  getStatus(@CurrentUser() user: AuthUser, @Headers('x-timezone') tz?: string) {
-    return this.fasting.getStatus(user.userId, this.tz(user, tz));
+  async getStatus(@CurrentUser() user: AuthUser, @Headers('x-timezone') tz?: string) {
+    return this.fasting.getStatus(user.userId, await this.tz(user, tz));
   }
 
   /** F2 手动结束断食上报 */

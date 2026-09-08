@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { DataStore } from '../src/common/store/data-store';
+import { MemoryStoreDriver } from '../src/common/store/store-driver';
 import { NutritionService } from '../src/nutrition/nutrition.service';
 import { SyncService } from '../src/sync/sync.service';
 
@@ -12,13 +13,14 @@ describe('sync：LWW 版本冲突 + syncToken 增量下行', () => {
 
   beforeEach(() => {
     store = new DataStore();
-    sync = new SyncService(store, new NutritionService(store));
+    const driver = new MemoryStoreDriver(store);
+    sync = new SyncService(driver, new NutritionService(driver));
     userId = store.createUser({ phone: '+8613800138000' }).id;
     foodId = [...store.foods.values()][0].id;
   });
 
-  function createEntry(): { id: string; version: number } {
-    const res = sync.push(userId, [
+  async function createEntry(): Promise<{ id: string; version: number }> {
+    const res = await sync.push(userId, [
       {
         clientRequestId: randomUUID(),
         entity: 'foodEntry',
@@ -29,9 +31,9 @@ describe('sync：LWW 版本冲突 + syncToken 增量下行', () => {
     return res.results[0].serverEntry as { id: string; version: number };
   }
 
-  it('baseVersion 不符 → conflict version_mismatch 并返回服务端现值', () => {
-    const entry = createEntry(); // version 1
-    const res = sync.push(userId, [
+  it('baseVersion 不符 → conflict version_mismatch 并返回服务端现值', async () => {
+    const entry = await createEntry(); // version 1
+    const res = await sync.push(userId, [
       {
         clientRequestId: randomUUID(),
         entity: 'foodEntry',
@@ -48,10 +50,10 @@ describe('sync：LWW 版本冲突 + syncToken 增量下行', () => {
     expect((r.serverEntry as { grams: number }).grams).toBe(200); // 服务端现值未被覆盖
   });
 
-  it('baseVersion 匹配 → applied，version +1，updatedAt 由服务端时钟赋值', () => {
-    const entry = createEntry();
+  it('baseVersion 匹配 → applied，version +1，updatedAt 由服务端时钟赋值', async () => {
+    const entry = await createEntry();
     const before = store.foodEntries.get(entry.id)!.updatedAt.getTime();
-    const res = sync.push(userId, [
+    const res = await sync.push(userId, [
       {
         clientRequestId: randomUUID(),
         entity: 'foodEntry',
@@ -75,9 +77,9 @@ describe('sync：LWW 版本冲突 + syncToken 增量下行', () => {
     expect(updated.nutritionSnapshot.kcal).toBe(216);
   });
 
-  it('一端删除另一端修改 → conflict deleted_vs_modified（不可合并，双份保留）', () => {
-    const entry = createEntry();
-    sync.push(userId, [
+  it('一端删除另一端修改 → conflict deleted_vs_modified（不可合并，双份保留）', async () => {
+    const entry = await createEntry();
+    await sync.push(userId, [
       {
         clientRequestId: randomUUID(),
         entity: 'foodEntry',
@@ -86,7 +88,7 @@ describe('sync：LWW 版本冲突 + syncToken 增量下行', () => {
         baseVersion: 1,
       },
     ]);
-    const res = sync.push(userId, [
+    const res = await sync.push(userId, [
       {
         clientRequestId: randomUUID(),
         entity: 'foodEntry',
@@ -100,8 +102,8 @@ describe('sync：LWW 版本冲突 + syncToken 增量下行', () => {
     expect(res.results[0].conflictType).toBe('deleted_vs_modified');
   });
 
-  it('删除幂等：重复删除返回 applied', () => {
-    const entry = createEntry();
+  it('删除幂等：重复删除返回 applied', async () => {
+    const entry = await createEntry();
     const op = {
       clientRequestId: randomUUID(),
       entity: 'foodEntry',
@@ -109,21 +111,21 @@ describe('sync：LWW 版本冲突 + syncToken 增量下行', () => {
       serverId: entry.id,
       baseVersion: 1,
     };
-    expect(sync.push(userId, [op]).results[0].status).toBe('applied');
-    expect(sync.push(userId, [{ ...op, clientRequestId: randomUUID() }]).results[0].status).toBe(
-      'applied',
-    );
+    expect((await sync.push(userId, [op])).results[0].status).toBe('applied');
+    expect(
+      (await sync.push(userId, [{ ...op, clientRequestId: randomUUID() }])).results[0].status,
+    ).toBe('applied');
   });
 
   it('增量下行：syncToken 之后只返回新变更，删除返回 tombstone', async () => {
-    const e1 = createEntry();
-    const pull1 = sync.pull(userId, undefined);
+    const e1 = await createEntry();
+    const pull1 = await sync.pull(userId, undefined);
     expect(pull1.changes.length).toBe(1);
     expect(pull1.hasMore).toBe(false);
 
     await new Promise((r) => setTimeout(r, 5)); // 保证 updatedAt 递增
-    const e2 = createEntry();
-    sync.push(userId, [
+    const e2 = await createEntry();
+    await sync.push(userId, [
       {
         clientRequestId: randomUUID(),
         entity: 'foodEntry',
@@ -134,24 +136,24 @@ describe('sync：LWW 版本冲突 + syncToken 增量下行', () => {
     ]);
     void e2;
 
-    const pull2 = sync.pull(userId, pull1.syncToken);
+    const pull2 = await sync.pull(userId, pull1.syncToken);
     expect(pull2.changes.length).toBe(2); // 1 条新建 + 1 条 tombstone
     const tombstones = pull2.changes.filter((c) => 'tombstone' in c);
     expect(tombstones.length).toBe(1);
     expect((tombstones[0] as { tombstone: { id: string } }).tombstone.id).toBe(e1.id);
   });
 
-  it('非法 / 过期 syncToken → 400 INVALID_SYNC_TOKEN', () => {
-    expect(() => sync.pull(userId, 'st_!!!bad')).toThrow(
+  it('非法 / 过期 syncToken → 400 INVALID_SYNC_TOKEN', async () => {
+    await expect(sync.pull(userId, 'st_!!!bad')).rejects.toThrow(
       expect.objectContaining({ code: 'INVALID_SYNC_TOKEN' }) as unknown as Error,
     );
     const expired = `st_${Buffer.from(JSON.stringify({ ts: Date.now() - 31 * 24 * 3600 * 1000, id: '' })).toString('base64url')}`;
-    expect(() => sync.pull(userId, expired)).toThrow(
+    await expect(sync.pull(userId, expired)).rejects.toThrow(
       expect.objectContaining({ code: 'INVALID_SYNC_TOKEN' }) as unknown as Error,
     );
   });
 
-  it('单批 >100 条由 DTO 层拒绝（ArrayMaxSize(100)）——服务层按批处理逐条返回', () => {
+  it('单批 >100 条由 DTO 层拒绝（ArrayMaxSize(100)）——服务层按批处理逐条返回', async () => {
     // 服务层契约：逐条结果、整体不失败；>100 的 400 由 class-validator 在 Controller 入口保证
     const ops = Array.from({ length: 3 }, () => ({
       clientRequestId: randomUUID(),
@@ -159,7 +161,7 @@ describe('sync：LWW 版本冲突 + syncToken 增量下行', () => {
       op: 'create',
       payload: { eatenAt: '2026-07-27T04:10:00.000Z', foodId, grams: 100 },
     }));
-    const res = sync.push(userId, ops);
+    const res = await sync.push(userId, ops);
     expect(res.results.length).toBe(3);
     expect(res.results.every((r) => r.status === 'applied')).toBe(true);
   });

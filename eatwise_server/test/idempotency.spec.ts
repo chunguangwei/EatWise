@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { DataStore } from '../src/common/store/data-store';
+import { MemoryStoreDriver } from '../src/common/store/store-driver';
 import { NutritionService } from '../src/nutrition/nutrition.service';
 import { SyncService } from '../src/sync/sync.service';
 import { CreateEntryDto } from '../src/sync/sync.dto';
@@ -13,7 +14,8 @@ describe('幂等：clientRequestId 去重', () => {
 
   beforeEach(() => {
     store = new DataStore();
-    sync = new SyncService(store, new NutritionService(store));
+    const driver = new MemoryStoreDriver(store);
+    sync = new SyncService(driver, new NutritionService(driver));
     userId = store.createUser({ phone: '+8613800138000' }).id;
     foodId = [...store.foods.values()][0].id;
   });
@@ -26,11 +28,11 @@ describe('幂等：clientRequestId 去重', () => {
     inputMethod: 'manual',
   });
 
-  it('同一 clientRequestId 重放返回首次结果，不重复落库', () => {
+  it('同一 clientRequestId 重放返回首次结果，不重复落库', async () => {
     const req = dto();
-    const first = sync.createEntry(userId, req) as { entry: { id: string } };
-    const second = sync.createEntry(userId, req) as { entry: { id: string } };
-    const third = sync.createEntry(userId, req) as { entry: { id: string } };
+    const first = (await sync.createEntry(userId, req)) as { entry: { id: string } };
+    const second = (await sync.createEntry(userId, req)) as { entry: { id: string } };
+    const third = (await sync.createEntry(userId, req)) as { entry: { id: string } };
 
     expect(second.entry.id).toBe(first.entry.id);
     expect(third.entry.id).toBe(first.entry.id);
@@ -38,15 +40,15 @@ describe('幂等：clientRequestId 去重', () => {
     expect(count).toBe(1);
   });
 
-  it('同 clientRequestId 但请求体不同 → 409 IDEMPOTENCY_PAYLOAD_MISMATCH', () => {
+  it('同 clientRequestId 但请求体不同 → 409 IDEMPOTENCY_PAYLOAD_MISMATCH', async () => {
     const req = dto();
-    sync.createEntry(userId, req);
-    expect(() => sync.createEntry(userId, { ...req, grams: 300 })).toThrow(
+    await sync.createEntry(userId, req);
+    await expect(sync.createEntry(userId, { ...req, grams: 300 })).rejects.toThrow(
       expect.objectContaining({ code: 'IDEMPOTENCY_PAYLOAD_MISMATCH' }) as unknown as Error,
     );
   });
 
-  it('批量上行内 create 重放：status=applied 且不产生新记录', () => {
+  it('批量上行内 create 重放：status=applied 且不产生新记录', async () => {
     const clientRequestId = randomUUID();
     const op = {
       clientRequestId,
@@ -54,23 +56,23 @@ describe('幂等：clientRequestId 去重', () => {
       op: 'create',
       payload: { eatenAt: '2026-07-27T04:10:00.000Z', foodId, grams: 200, inputMethod: 'manual' },
     };
-    const r1 = sync.push(userId, [op]).results[0];
-    const r2 = sync.push(userId, [op]).results[0];
+    const r1 = (await sync.push(userId, [op])).results[0];
+    const r2 = (await sync.push(userId, [op])).results[0];
     expect(r1.status).toBe('applied');
     expect(r2.status).toBe('applied');
     expect((r2.serverEntry as { id: string }).id).toBe((r1.serverEntry as { id: string }).id);
     expect([...store.foodEntries.values()].length).toBe(1);
   });
 
-  it('批量上行 create 同键不同体 → 该条 error IDEMPOTENCY_PAYLOAD_MISMATCH，不中断整批', () => {
+  it('批量上行 create 同键不同体 → 该条 error IDEMPOTENCY_PAYLOAD_MISMATCH，不中断整批', async () => {
     const clientRequestId = randomUUID();
     const base = {
       entity: 'foodEntry',
       op: 'create',
       payload: { eatenAt: '2026-07-27T04:10:00.000Z', foodId, grams: 200 },
     };
-    sync.push(userId, [{ ...base, clientRequestId }]);
-    const res = sync.push(userId, [
+    await sync.push(userId, [{ ...base, clientRequestId }]);
+    const res = await sync.push(userId, [
       { ...base, clientRequestId, payload: { ...base.payload, grams: 999 } },
       { ...base, clientRequestId: randomUUID() },
     ]);

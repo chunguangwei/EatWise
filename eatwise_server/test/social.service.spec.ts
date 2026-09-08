@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { DataStore, PostEntity } from '../src/common/store/data-store';
+import { MemoryStoreDriver } from '../src/common/store/store-driver';
 import { newId } from '../src/common/utils/id.util';
 import { addDays, localDateOf } from '../src/common/utils/time.util';
 import { StubModerationService } from '../src/social/moderation/content-moderation.service';
@@ -17,7 +18,8 @@ describe('社区打卡（M5 P1 / D-17 先审后发）', () => {
 
   beforeEach(() => {
     store = new DataStore();
-    social = new SocialService(store, new StreakService(store), new StubModerationService());
+    const driver = new MemoryStoreDriver(store);
+    social = new SocialService(driver, new StreakService(driver), new StubModerationService());
     userId = store.createUser({ phone: '+8613800138000', timezone: TZ, nickname: '小林' }).id;
     otherId = store.createUser({ phone: '+8613800138001', timezone: TZ }).id;
   });
@@ -75,13 +77,13 @@ describe('社区打卡（M5 P1 / D-17 先审后发）', () => {
       true,
     );
     // 他人的流里不可见
-    const otherFeed = social.feed(otherId);
+    const otherFeed = await social.feed(otherId);
     expect(otherFeed.items.find((i: { id: string }) => i.id === post.id)).toBeUndefined();
     // 本人的流里可见（带审核中标记）
-    const ownFeed = social.feed(userId);
+    const ownFeed = await social.feed(userId);
     expect(ownFeed.items.find((i: { id: string }) => i.id === post.id)).toBeTruthy();
     // 他人详情 404
-    expect(() => social.getById(otherId, post.id)).toThrow(
+    await expect(social.getById(otherId, post.id)).rejects.toThrow(
       expect.objectContaining({ code: 'NOT_FOUND' }) as unknown as Error,
     );
   });
@@ -116,7 +118,7 @@ describe('社区打卡（M5 P1 / D-17 先审后发）', () => {
     store.posts.get(a.id)!.createdAt = new Date(2026, 6, 28, 10, 0, 0);
     store.posts.get(b.id)!.createdAt = new Date(2026, 6, 28, 11, 0, 0);
 
-    const feed = social.feed(userId);
+    const feed = await social.feed(userId);
     const ids = feed.items.map((i: { id: string }) => i.id);
     expect(ids).toContain(a.id);
     expect(ids).toContain(b.id);
@@ -136,32 +138,32 @@ describe('社区打卡（M5 P1 / D-17 先审后发）', () => {
       const page: {
         items: Array<{ id: string }>;
         pageInfo: { nextCursor: string | null; hasMore: boolean };
-      } = social.feed(userId, 10, cursor);
+      } = await social.feed(userId, 10, cursor);
       seen.push(...page.items.map((i) => i.id));
       cursor = page.pageInfo.nextCursor ?? undefined;
       if (!page.pageInfo.hasMore) break;
     } while (cursor);
     expect(seen.length).toBe(25);
     expect(new Set(seen).size).toBe(25);
-    expect(() => social.feed(userId, 10, 'not-a-cursor')).toThrow(
+    await expect(social.feed(userId, 10, 'not-a-cursor')).rejects.toThrow(
       expect.objectContaining({ code: 'INVALID_CURSOR' }) as unknown as Error,
     );
   });
 
   it('点赞幂等：重复点赞不重复计数；取消点赞幂等', async () => {
     const post = (await createPost(userId, '求点赞')) as { id: string };
-    const l1 = social.like(otherId, post.id);
-    const l2 = social.like(otherId, post.id);
-    const l3 = social.like(userId, post.id);
+    const l1 = await social.like(otherId, post.id);
+    const l2 = await social.like(otherId, post.id);
+    const l3 = await social.like(userId, post.id);
     expect(l1.likeCount).toBe(1);
     expect(l2.likeCount).toBe(1);
     expect(l3.likeCount).toBe(2);
     // 视图侧 likedByMe 跟随用户
-    const viewForOther = social.getById(otherId, post.id) as { likedByMe: boolean };
+    const viewForOther = (await social.getById(otherId, post.id)) as { likedByMe: boolean };
     expect(viewForOther.likedByMe).toBe(true);
 
-    const u1 = social.unlike(otherId, post.id);
-    const u2 = social.unlike(otherId, post.id);
+    const u1 = await social.unlike(otherId, post.id);
+    const u2 = await social.unlike(otherId, post.id);
     expect(u1.likeCount).toBe(1);
     expect(u2.likeCount).toBe(1);
     expect(u2.likedByMe).toBe(false);
@@ -169,23 +171,23 @@ describe('社区打卡（M5 P1 / D-17 先审后发）', () => {
 
   it('已删除帖子点赞 → 410 RESOURCE_GONE；删除幂等', async () => {
     const post = (await createPost(userId, '马上删掉')) as { id: string };
-    social.remove(userId, post.id);
-    expect(() => social.like(otherId, post.id)).toThrow(
+    await social.remove(userId, post.id);
+    await expect(social.like(otherId, post.id)).rejects.toThrow(
       expect.objectContaining({ code: 'RESOURCE_GONE' }) as unknown as Error,
     );
     // 已删除 → 打卡流不出现；他人点赞 410；重复删除 200
-    expect(social.feed(otherId).items.length).toBe(0);
-    expect(social.remove(userId, post.id)).toEqual({ deleted: true });
+    expect((await social.feed(otherId)).items.length).toBe(0);
+    await expect(social.remove(userId, post.id)).resolves.toEqual({ deleted: true });
     // 他人删除 → 404
     const post2 = (await createPost(userId, '别人的')) as { id: string };
-    expect(() => social.remove(otherId, post2.id)).toThrow(
+    await expect(social.remove(otherId, post2.id)).rejects.toThrow(
       expect.objectContaining({ code: 'NOT_FOUND' }) as unknown as Error,
     );
   });
 
   it('举报：记录并下架（他人即刻不可见）→ 转人工队列；同用户同帖幂等', async () => {
     const post = (await createPost(userId, '被举报的帖子')) as { id: string };
-    social.report(otherId, post.id, '广告');
+    await social.report(otherId, post.id, '广告');
     const entity = store.posts.get(post.id) as PostEntity;
     expect(entity.auditStatus).toBe('rejected');
     expect(entity.auditReason?.zh).toContain('下架');
@@ -193,25 +195,49 @@ describe('社区打卡（M5 P1 / D-17 先审后发）', () => {
       true,
     );
     // 下架后他人 feed 不可见
-    expect(social.feed(otherId).items.length).toBe(0);
+    expect((await social.feed(otherId)).items.length).toBe(0);
     // 重复举报不重复入队
     const queueLen = store.moderationQueue.length;
-    social.report(otherId, post.id, '广告');
+    await social.report(otherId, post.id, '广告');
     expect(store.moderationQueue.length).toBe(queueLen);
   });
 
   it('rejected 帖详情仅作者可见且带双语 auditReason', async () => {
     const post = (await createPost(userId, '正常内容')) as { id: string };
-    social.report(otherId, post.id);
-    const own = social.getById(userId, post.id) as {
+    await social.report(otherId, post.id);
+    const own = (await social.getById(userId, post.id)) as {
       auditStatus: string;
       auditReason: { zh: string; en: string } | null;
     };
     expect(own.auditStatus).toBe('rejected');
     expect(own.auditReason?.zh).toBeTruthy();
     expect(own.auditReason?.en).toBeTruthy();
-    expect(() => social.getById(otherId, post.id)).toThrow(
+    await expect(social.getById(otherId, post.id)).rejects.toThrow(
       expect.objectContaining({ code: 'NOT_FOUND' }) as unknown as Error,
     );
+  });
+
+  it('管理端队列：reported 口径（reportCount>0 且 rejected）→ approve 恢复上架并清队列', async () => {
+    const post = (await createPost(userId, '待复核')) as { id: string };
+    const pending = (await createPost(userId, '兼职推广引流')) as { id: string };
+    await social.report(otherId, post.id, '广告');
+
+    expect((await social.adminList('reported')).items.map((i) => i.id)).toContain(post.id);
+    expect((await social.adminList('rejected')).items.map((i) => i.id)).not.toContain(post.id);
+    expect((await social.adminList('pending')).items.map((i) => i.id)).toContain(pending.id);
+
+    const reviewed = (await social.adminReview(post.id, { action: 'approve' })) as {
+      auditStatus: string;
+      reportCount: number;
+    };
+    expect(reviewed.auditStatus).toBe('approved');
+    expect(reviewed.reportCount).toBe(1);
+    expect(store.moderationQueue.some((q) => q.postId === post.id)).toBe(false);
+    // 同状态重复审核 → 409
+    await expect(
+      social.adminReview(post.id, { action: 'approve' }),
+    ).rejects.toThrow(expect.objectContaining({ code: 'CONFLICT' }) as unknown as Error);
+    // 恢复后他人可见
+    expect((await social.feed(otherId)).items.map((i) => i.id)).toContain(post.id);
   });
 });

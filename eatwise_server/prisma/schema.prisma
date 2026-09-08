@@ -151,6 +151,7 @@ model Food {
   source          String? // cn_fct / usda / manual / llm-estimate / community（审核晋升的共享食物）
   isCustom        Boolean  @default(false) // 用户自定义食物（个人库，参与 K1 搜索排内置之后）
   createdByUserId String? // 自定义/社区共享食物创建者（共享食物保留溯源；可见性按 isCustom 过滤）
+  clientRequestId String? // 自定义食物创建幂等键（K2，D-20）
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -232,9 +233,54 @@ model Post {
 
   user User? @relation(fields: [userId], references: [id])
 
+  likes             PostLike[]
+  reports           PostReport[]
+  moderationEntries ModerationQueue[]
+
   @@unique([userId, clientRequestId])
   @@index([auditStatus, createdAt])
   @@map("posts")
+}
+
+// 点赞幂等记录（契约 §四：postId+userId 唯一约束；C5/C6 点赞计数与 likedByMe 依据）
+model PostLike {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_likes")
+}
+
+// 举报幂等记录（同用户同帖一次：reason + createdAt；举报即下架复核依据）
+model PostReport {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  reason    String?
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_reports")
+}
+
+// 人工审核队列（机审异常/疑似 与 举报复核共用，D-17 转人工；seq 保入队顺序）
+model ModerationQueue {
+  seq       Int      @id @default(autoincrement())
+  postId    String
+  source    String // auto / report
+  reason    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("moderation_queue")
 }
 
 // 饮水记录（PRD M3 功能点 4）：轻量两态同步（pending/synced），无 update op——

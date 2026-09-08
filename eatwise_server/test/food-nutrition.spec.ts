@@ -1,4 +1,5 @@
 import { DataStore } from '../src/common/store/data-store';
+import { MemoryStoreDriver } from '../src/common/store/store-driver';
 import { FoodService } from '../src/food/food.service';
 import { computeSignals, computeTargets } from '../src/nutrition/nutrition.rules';
 import { StubModerationService } from '../src/social/moderation/content-moderation.service';
@@ -7,11 +8,11 @@ describe('K1 食物双语搜索（D-16）', () => {
   let food: FoodService;
 
   beforeEach(() => {
-    food = new FoodService(new DataStore(), new StubModerationService());
+    food = new FoodService(new MemoryStoreDriver(new DataStore()), new StubModerationService());
   });
 
-  it('拼音/别名匹配：q=ji 命中鸡蛋与鸡胸肉别名（matchedOn=alias）', () => {
-    const res = food.search('ji');
+  it('拼音/别名匹配：q=ji 命中鸡蛋与鸡胸肉别名（matchedOn=alias）', async () => {
+    const res = await food.search('ji');
     const names = res.items.map((i) => i.nameZh);
     expect(names).toContain('鸡蛋');
     expect(names).toContain('鸡胸肉');
@@ -20,27 +21,27 @@ describe('K1 食物双语搜索（D-16）', () => {
     expect(egg.highlight).toEqual({ field: 'aliases', text: 'ji dan' });
   });
 
-  it('中文前缀匹配优先于别名（q=鸡：鸡胸肉/鸡蛋 nameZh 前缀，score 高于别名命中）', () => {
-    const res = food.search('鸡');
+  it('中文前缀匹配优先于别名（q=鸡：鸡胸肉/鸡蛋 nameZh 前缀，score 高于别名命中）', async () => {
+    const res = await food.search('鸡');
     expect(res.items.length).toBeGreaterThanOrEqual(2);
     expect(res.items[0].matchedOn).toBe('nameZh');
     expect(res.items[0].highlight.field).toBe('nameZh');
   });
 
-  it('英文大小写不敏感：q=EGG 命中 nameEn', () => {
-    const res = food.search('EGG');
+  it('英文大小写不敏感：q=EGG 命中 nameEn', async () => {
+    const res = await food.search('EGG');
     const egg = res.items.find((i) => i.nameZh === '鸡蛋')!;
     expect(egg.matchedOn).toBe('nameEn');
   });
 
-  it('前缀 > 子串 > 别名 排序', () => {
-    const res = food.search('egg');
+  it('前缀 > 子串 > 别名 排序', async () => {
+    const res = await food.search('egg');
     // nameEn 前缀 'Egg'（score 3）应排在 'boiled egg' 别名子串（score 1）之前
     expect(res.items[0].nameEn).toBe('Egg');
   });
 
-  it('无命中返回空数组', () => {
-    const res = food.search('zzzz');
+  it('无命中返回空数组', async () => {
+    const res = await food.search('zzzz');
     expect(res.items).toEqual([]);
     expect(res.pageInfo.hasMore).toBe(false);
   });

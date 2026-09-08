@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { err } from '../common/errors/business.exception';
-import { DataStore, UserEntity } from '../common/store/data-store';
+import { UserEntity } from '../common/store/data-store';
 import { STORE_DRIVER, StoreDriver, UserDataExport } from '../common/store/store-driver';
 import { maskPhone } from '../common/utils/phone.util';
 import { computeTargets } from '../nutrition/nutrition.rules';
@@ -25,24 +25,22 @@ const PATCHABLE = [
 export class UserService {
   private readonly logger = new Logger('UserService');
 
-  constructor(
-    private readonly store: DataStore,
-    @Inject(STORE_DRIVER) private readonly driver: StoreDriver,
-  ) {}
+  constructor(@Inject(STORE_DRIVER) private readonly driver: StoreDriver) {}
 
-  getMe(userId: string) {
-    const user = this.mustGet(userId);
+  async getMe(userId: string) {
+    const user = await this.mustGet(userId);
     return { user: this.userView(user), nutritionTargets: computeTargets(user) };
   }
 
   /** U2 修改资料：字段级 LWW（服务端 updatedAt 仲裁，无 409），触发营养目标重算（D-04） */
-  patchMe(userId: string, body: Record<string, unknown>) {
-    const user = this.mustGet(userId);
+  async patchMe(userId: string, body: Record<string, unknown>) {
+    await this.mustGet(userId);
+    const patch: Record<string, unknown> = {};
     for (const key of PATCHABLE) {
-      if (body[key] !== undefined) (user as unknown as Record<string, unknown>)[key] = body[key];
+      if (body[key] !== undefined) patch[key] = body[key];
     }
-    user.version += 1;
-    user.updatedAt = new Date(); // 服务端时钟赋值，客户端传入的 updatedAt 忽略（防腐层）
+    // version+1 / updatedAt=服务端时钟 由驱动赋值（客户端传入的 updatedAt 忽略，防腐层）
+    const user = await this.driver.updateUserProfile(userId, patch);
     return { user: this.userView(user), nutritionTargets: computeTargets(user) };
   }
 
@@ -52,7 +50,7 @@ export class UserService {
    * 只读操作，天然幂等；导出包内含明文手机号（本人数据，PIPL §44/45）。
    */
   async exportMe(userId: string): Promise<UserDataExport> {
-    this.mustGet(userId);
+    await this.mustGet(userId);
     const bundle = await this.driver.collectUserExport(userId);
     if (!bundle) throw err.notFound();
     return bundle;
@@ -63,28 +61,22 @@ export class UserService {
    * scheduledDeletionAt=now+7天；立即吊销全部 refresh token（登出所有会话、
    * 冻结数据上报）。幂等：重复申请返回当前删除任务状态（契约 §四）。
    */
-  requestDeletion(userId: string) {
-    const user = this.mustGet(userId);
-    if (user.deletionStatus !== 'pending') {
-      const now = new Date();
-      user.deletionStatus = 'pending';
-      user.scheduledDeletionAt = new Date(
-        now.getTime() + DELETION_COOLING_OFF_DAYS * 24 * 3600 * 1000,
-      );
-      user.version += 1;
-      user.updatedAt = now;
-      this.revokeAllTokens(userId);
-    }
-    return this.deletionView(user);
+  async requestDeletion(userId: string) {
+    const user = await this.mustGet(userId);
+    if (user.deletionStatus === 'pending') return this.deletionView(user);
+    const scheduled = new Date(
+      new Date().getTime() + DELETION_COOLING_OFF_DAYS * 24 * 3600 * 1000,
+    );
+    const updated = await this.driver.updateUserDeletion(userId, 'pending', scheduled);
+    await this.revokeAllTokens(userId);
+    return this.deletionView(updated);
   }
 
   /** U6 撤销删除申请（冷静期内）；幂等：非 pending 直接返回当前状态 */
-  cancelDeletion(userId: string) {
-    const user = this.mustGet(userId);
-    if (user.deletionStatus === 'pending') {
-      this.clearDeletion(user);
-    }
-    return this.deletionView(user);
+  async cancelDeletion(userId: string) {
+    const user = await this.mustGet(userId);
+    if (user.deletionStatus !== 'pending') return this.deletionView(user);
+    return this.deletionView(await this.driver.updateUserDeletion(userId, null, null));
   }
 
   /**
@@ -105,17 +97,8 @@ export class UserService {
     return purged;
   }
 
-  private clearDeletion(user: UserEntity) {
-    user.deletionStatus = null;
-    user.scheduledDeletionAt = null;
-    user.version += 1;
-    user.updatedAt = new Date();
-  }
-
-  private revokeAllTokens(userId: string) {
-    for (const t of this.store.refreshTokens.values()) {
-      if (t.userId === userId && !t.revokedAt) t.revokedAt = new Date();
-    }
+  private async revokeAllTokens(userId: string) {
+    await this.driver.revokeUserRefreshTokens(userId);
   }
 
   private deletionView(user: UserEntity) {
@@ -126,8 +109,8 @@ export class UserService {
     };
   }
 
-  private mustGet(userId: string): UserEntity {
-    const user = this.store.users.get(userId);
+  private async mustGet(userId: string): Promise<UserEntity> {
+    const user = await this.driver.findUserById(userId);
     if (!user || user.deletedAt) throw err.notFound();
     return user;
   }

@@ -46,9 +46,9 @@ npm run prisma:seed               # D-16：foods.seed.json 7455 条 upsert 入�
 npm run start:dev
 ```
 
-- `STORE_DRIVER`：`memory`（默认，内存 DataStore，重启丢数据）/ `prisma`（PrismaStore + PostgreSQL，要求 `DATABASE_URL` 已配置且已 migrate，缺失时启动即报错）。
-- 仓储抽象：`src/common/store/store-driver.ts` 定义 `StoreDriver` 接口（导出聚合 / 删除清除 / 食物种子 / 到期扫描 / 饮水记录 / 食物候选审核 / 帖子举报计数），`MemoryStoreDriver` 适配内存 DataStore，`PrismaStore`（`src/common/store/prisma-store.ts`）走真实库——批量上行单 `$transaction` 原子提交、`(userId, clientRequestId)` 唯一约束幂等查重、LWW 乐观并发（`updateMany where version`）、软删 `deletedAt` tombstone。
-- 阶段性迁移说明：fasting/streak/social/sync 等业务 Service 当前仍直接读写同步内存 DataStore（接口契约不变）；prisma 模式已覆盖 U3 导出（含饮水记录）、U5 删除清除、食物库种子、批量上行，以及饮水记录 CRUD、食物候选审核池、帖子举报计数（`reportCount`/`reportedAt` 真实列）七条持久化路径，其余模块的仓储迁移为后续工作。
+- `STORE_DRIVER`：`memory`（默认，内存 DataStore，重启丢数据）/ `prisma`（PrismaStore + PostgreSQL，要求 `DATABASE_URL` 已配置且已 migrate + seed，缺失时启动即报错）。
+- 仓储抽象：`src/common/store/store-driver.ts` 定义 `StoreDriver` 接口（60+ 方法，覆盖用户/会话令牌/断食方案与记录/食物与自定义食物/候选审核/饮食记录/饮水/Streak/幂等键/帖子与点赞举报/人工审核队列/管理员 + 导出聚合/删除清除/食物种子/到期扫描），`MemoryStoreDriver` 适配内存 DataStore，`PrismaStore`（`src/common/store/prisma-store.ts`）走真实库——批量上行单 `$transaction` 原子提交、`(userId, clientRequestId)` 唯一约束幂等查重、LWW 乐观并发（`updateMany where version`）、软删 `deletedAt` tombstone。
+- 持久化收口（2026-09-08 完成）：**全部业务 Service 已迁 StoreDriver**（fasting/streak/social/sync/nutrition/user/food/auth/admin-auth），prisma 模式全链路真实落库，重启不丢（已冒烟验证：注册/登录/方案/同步/营养/重启数据存活）。仅两处保留内存：auth 的 smsCodes（mock 短信）、admin-auth 的登录限流滑动窗口。
 - PrismaStore 集成测试（需真实库）：`RUN_PG_TESTS=1 DATABASE_URL=... npm test`（未起库时自动 skip）。
 
 ## LLM 营养估算（/v1/foods/estimate）
@@ -72,8 +72,8 @@ npm run start:dev
 |------|------|
 | `npm run build` | nest build → dist/ |
 | `npm run start:dev` | watch 模式启动 |
-| `npm test` | jest 单测（114 个用例 + 4 个 pg 集成用例 skip） |
-| `npm run test:e2e` | supertest e2e（26 个用例） |
+| `npm test` | jest 单测（149 个用例 + 26 个 pg 集成用例，无 RUN_PG_TESTS 时 skip） |
+| `npm run test:e2e` | supertest e2e（90 个用例） |
 | `npm run lint` | eslint（零告警门禁） |
 | `npm run prisma:generate` / `prisma:migrate` / `prisma:seed` | Prisma client / 迁移 / 食物库种子 |
 

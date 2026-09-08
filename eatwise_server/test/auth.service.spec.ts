@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from '../src/auth/auth.service';
 import { DataStore } from '../src/common/store/data-store';
+import { MemoryStoreDriver } from '../src/common/store/store-driver';
 import { hashToken } from '../src/common/utils/id.util';
 
 describe('AuthService（D-13：验证码/账号密码登录 + JWT 签发/刷新）', () => {
@@ -12,6 +13,7 @@ describe('AuthService（D-13：验证码/账号密码登录 + JWT 签发/刷新�
     store = new DataStore();
     auth = new AuthService(
       store,
+      new MemoryStoreDriver(store),
       new JwtService({ secret: 'test-secret', signOptions: { expiresIn: 7200 } }),
       new ConfigService(),
     );
@@ -89,8 +91,8 @@ describe('AuthService（D-13：验证码/账号密码登录 + JWT 签发/刷新�
     auth.sendSms(phone, 'login');
     const login = await auth.loginPhone(phone, '123456', { deviceId: 'd-1', platform: 'ios' });
     const userId = store.findUserByPhone(phone)!.id;
-    expect(auth.logout(userId, 'd-1')).toEqual({ loggedOut: true });
-    expect(auth.logout(userId, 'd-1')).toEqual({ loggedOut: true });
+    expect(await auth.logout(userId, 'd-1')).toEqual({ loggedOut: true });
+    expect(await auth.logout(userId, 'd-1')).toEqual({ loggedOut: true });
     await expect(auth.refresh(login.refreshToken)).rejects.toMatchObject({
       code: 'AUTH_REFRESH_REUSED',
     });
@@ -105,6 +107,7 @@ describe('AuthService 账号密码认证（D-13 修订主路径：注册/登录/
     store = new DataStore();
     auth = new AuthService(
       store,
+      new MemoryStoreDriver(store),
       new JwtService({ secret: 'test-secret', signOptions: { expiresIn: 7200 } }),
       new ConfigService(),
     );

@@ -1,6 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { DataStore, FastingRecordEntity } from '../src/common/store/data-store';
+import { MemoryStoreDriver } from '../src/common/store/store-driver';
 import { newId } from '../src/common/utils/id.util';
 import { computeWindow, FastingService, MAX_EXTEND_MINUTES } from '../src/fasting/fasting.service';
 import { StreakService } from '../src/streak/streak.service';
@@ -15,7 +16,8 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
 
   beforeEach(() => {
     store = new DataStore();
-    fasting = new FastingService(store, new ConfigService(), new StreakService(store));
+    const driver = new MemoryStoreDriver(store);
+    fasting = new FastingService(driver, new ConfigService(), new StreakService(driver));
     userId = store.createUser({ phone: '+8613800138000', timezone: TZ }).id;
   });
 
@@ -63,10 +65,10 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
       expect(win.eatingStartAt.toISOString()).toBe('2026-07-28T04:00:00.000Z');
     });
 
-    it('getStatus 物化的 activeRecord 归属日由服务端计算', () => {
+    it('getStatus 物化的 activeRecord 归属日由服务端计算', async () => {
       jest.useFakeTimers().setSystemTime(new Date('2026-07-27T01:00:00.000Z'));
       try {
-        const status = fasting.getStatus(userId, TZ);
+        const status = await fasting.getStatus(userId, TZ);
         expect(status.state).toBe('fasting');
         expect(status.activeRecord?.attributionDate).toBe('2026-07-27');
         expect(status.toleranceMinutes).toBe(15);
@@ -78,14 +80,14 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
   });
 
   describe('达标判定与破窗容差（D-08，容差 15min）', () => {
-    it('进食窗口按时开启 → completed，达标', () => {
+    it('进食窗口按时开启 → completed，达标', async () => {
       const r = makeRecord();
-      const res = fasting.endFast(
+      const res = (await fasting.endFast(
         userId,
         randomUUID(),
         r.id,
         new Date('2026-07-27T04:00:00.000Z'),
-      ) as {
+      )) as {
         result: string;
         isQualified: boolean;
         fastedMinutes: number;
@@ -95,14 +97,14 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
       expect(res.fastedMinutes).toBe(16 * 60);
     });
 
-    it('提前恰好 =15min → ended_early，仍达标（边界）', () => {
+    it('提前恰好 =15min → ended_early，仍达标（边界）', async () => {
       const r = makeRecord();
-      const res = fasting.endFast(
+      const res = (await fasting.endFast(
         userId,
         randomUUID(),
         r.id,
         new Date('2026-07-27T03:45:00.000Z'),
-      ) as {
+      )) as {
         result: string;
         isQualified: boolean;
       };
@@ -110,14 +112,14 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
       expect(res.isQualified).toBe(true);
     });
 
-    it('提前 >15min → broken，不达标（边界）', () => {
+    it('提前 >15min → broken，不达标（边界）', async () => {
       const r = makeRecord();
-      const res = fasting.endFast(
+      const res = (await fasting.endFast(
         userId,
         randomUUID(),
         r.id,
         new Date('2026-07-27T03:44:00.000Z'),
-      ) as {
+      )) as {
         result: string;
         isQualified: boolean;
       };
@@ -125,17 +127,17 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
       expect(res.isQualified).toBe(false);
     });
 
-    it('延长后最终时长 ≥ 计划 → completed', () => {
+    it('延长后最终时长 ≥ 计划 → completed', async () => {
       const r = makeRecord({
         extendedMinutes: 30,
         plannedEndAt: new Date('2026-07-27T04:30:00.000Z'),
       });
-      const res = fasting.endFast(
+      const res = (await fasting.endFast(
         userId,
         randomUUID(),
         r.id,
         new Date('2026-07-27T04:30:00.000Z'),
-      ) as {
+      )) as {
         result: string;
         isQualified: boolean;
       };
@@ -143,39 +145,41 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
       expect(res.isQualified).toBe(true);
     });
 
-    it('重复结束（同 clientRequestId）返回首次结果；新请求 → 409 FASTING_ALREADY_ENDED', () => {
+    it('重复结束（同 clientRequestId）返回首次结果；新请求 → 409 FASTING_ALREADY_ENDED', async () => {
       const r = makeRecord();
       const clientRequestId = randomUUID();
-      const first = fasting.endFast(
+      const first = await fasting.endFast(
         userId,
         clientRequestId,
         r.id,
         new Date('2026-07-27T04:00:00.000Z'),
       );
-      const replay = fasting.endFast(
+      const replay = await fasting.endFast(
         userId,
         clientRequestId,
         r.id,
         new Date('2026-07-27T04:00:00.000Z'),
       );
       expect(replay).toEqual(first);
-      expect(() =>
+      await expect(
         fasting.endFast(userId, randomUUID(), r.id, new Date('2026-07-27T04:00:00.000Z')),
-      ).toThrow(expect.objectContaining({ code: 'FASTING_ALREADY_ENDED' }) as unknown as Error);
+      ).rejects.toThrow(
+        expect.objectContaining({ code: 'FASTING_ALREADY_ENDED' }) as unknown as Error,
+      );
     });
   });
 
   describe('延长（D-10：步进 30min，累计 ≤240min）', () => {
-    it('步进非 30 的倍数 → VALIDATION_ERROR', () => {
+    it('步进非 30 的倍数 → VALIDATION_ERROR', async () => {
       const r = makeRecord();
-      expect(() => fasting.extend(userId, randomUUID(), r.id, 45)).toThrow(
+      await expect(fasting.extend(userId, randomUUID(), r.id, 45)).rejects.toThrow(
         expect.objectContaining({ code: 'VALIDATION_ERROR' }) as unknown as Error,
       );
     });
 
-    it('延长 30min：plannedEndAt 后移，剩余额度 210', () => {
+    it('延长 30min：plannedEndAt 后移，剩余额度 210', async () => {
       const r = makeRecord();
-      const res = fasting.extend(userId, randomUUID(), r.id, 30) as {
+      const res = (await fasting.extend(userId, randomUUID(), r.id, 30)) as {
         plannedEndAt: string;
         extendedMinutes: number;
         extendRemainingMinutes: number;
@@ -185,13 +189,13 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
       expect(res.extendRemainingMinutes).toBe(210);
     });
 
-    it('累计达 240 后再延长 → 400 FASTING_EXTEND_LIMIT（上限 4h）', () => {
+    it('累计达 240 后再延长 → 400 FASTING_EXTEND_LIMIT（上限 4h）', async () => {
       const r = makeRecord();
       for (let i = 0; i < MAX_EXTEND_MINUTES / 30; i++) {
-        fasting.extend(userId, randomUUID(), r.id, 30);
+        await fasting.extend(userId, randomUUID(), r.id, 30);
       }
       expect(store.fastingRecords.get(r.id)!.extendedMinutes).toBe(240);
-      expect(() => fasting.extend(userId, randomUUID(), r.id, 30)).toThrow(
+      await expect(fasting.extend(userId, randomUUID(), r.id, 30)).rejects.toThrow(
         expect.objectContaining({
           code: 'FASTING_EXTEND_LIMIT',
           details: { extendRemainingMinutes: 0 },
@@ -199,9 +203,9 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
       );
     });
 
-    it('单次延长超过剩余额度 → FASTING_EXTEND_LIMIT，剩余额度见 details', () => {
+    it('单次延长超过剩余额度 → FASTING_EXTEND_LIMIT，剩余额度见 details', async () => {
       const r = makeRecord({ extendedMinutes: 210 });
-      expect(() => fasting.extend(userId, randomUUID(), r.id, 60)).toThrow(
+      await expect(fasting.extend(userId, randomUUID(), r.id, 60)).rejects.toThrow(
         expect.objectContaining({
           code: 'FASTING_EXTEND_LIMIT',
           details: { extendRemainingMinutes: 30 },

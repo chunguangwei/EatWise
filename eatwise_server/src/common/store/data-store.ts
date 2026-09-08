@@ -222,6 +222,21 @@ export interface PostEntity {
   deletedAt: Date | null;
 }
 
+/** 点赞幂等记录（契约 §四：postId+userId 唯一约束；prisma 模式对应 post_likes 表） */
+export interface PostLikeEntity {
+  postId: string;
+  userId: string;
+  createdAt: Date;
+}
+
+/** 举报幂等记录（同用户同帖一次；prisma 模式对应 post_reports 表） */
+export interface PostReportEntity {
+  postId: string;
+  userId: string;
+  reason: string | null;
+  createdAt: Date;
+}
+
 /** 审核队列条目（机审异常/疑似 与 举报复核共用，D-17 转人工） */
 export interface ModerationQueueItem {
   postId: string;
