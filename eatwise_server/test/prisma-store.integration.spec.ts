@@ -907,12 +907,12 @@ describePg('PrismaStore auth / 食物搜索 / 候选 / 晋升（集成，真实 
   let userId: string;
   let otherId: string;
 
-  // 命中层级 + 可见性矩阵（'sea' 为本用例独占词，避开种子食物）
+  // 命中层级 + 可见性矩阵（'itsea' 为本用例独占词，避开 foods.seed.json 真实食物）
   const seeds = [
-    { id: 'it-search-a', nameZh: '海鲜A前缀', nameEn: 'Sea A', aliases: [] as string[] },
-    { id: 'it-search-b', nameZh: '海鲜B前缀', nameEn: 'Sea B', aliases: [] as string[] },
-    { id: 'it-search-c', nameZh: '香海鲜串', nameEn: 'X Sea', aliases: [] as string[] },
-    { id: 'it-search-d', nameZh: '别名海鲜', nameEn: 'Uni D', aliases: ['seashell'] },
+    { id: 'it-search-a', nameZh: '海鲜A前缀', nameEn: 'Itsea A', aliases: [] as string[] },
+    { id: 'it-search-b', nameZh: '海鲜B前缀', nameEn: 'Itsea B', aliases: [] as string[] },
+    { id: 'it-search-c', nameZh: '香海鲜串', nameEn: 'X Itsea', aliases: [] as string[] },
+    { id: 'it-search-d', nameZh: '别名海鲜', nameEn: 'Uni D', aliases: ['itseashell'] },
   ];
 
   const candidate = (over: Partial<FoodCandidateEntity> = {}): FoodCandidateEntity => {
@@ -959,7 +959,7 @@ describePg('PrismaStore auth / 食物搜索 / 候选 / 晋升（集成，真实 
         {
           id: 'it-search-mine',
           nameZh: '自海鲜前缀',
-          nameEn: 'Sea Mine',
+          nameEn: 'Itsea Mine',
           aliases: [],
           kcalPer100g: 10,
           proteinPer100g: 1,
@@ -973,7 +973,7 @@ describePg('PrismaStore auth / 食物搜索 / 候选 / 晋升（集成，真实 
         {
           id: 'it-search-other',
           nameZh: '他海鲜前缀',
-          nameEn: 'Sea Other',
+          nameEn: 'Itsea Other',
           aliases: [],
           kcalPer100g: 10,
           proteinPer100g: 1,
@@ -1055,7 +1055,7 @@ describePg('PrismaStore auth / 食物搜索 / 候选 / 晋升（集成，真实 
   });
 
   it('searchFoods：内置前缀(同分 nameZh 升序) > 子串 > 别名，本人自定义置后；他人自定义不可见 + limit', async () => {
-    const hits = await store.searchFoods('sea', userId);
+    const hits = await store.searchFoods('itsea', userId);
     expect(hits.map((h) => h.food.id)).toEqual([
       'it-search-a', // score 3 同分 → nameZh 升序
       'it-search-b',
@@ -1067,19 +1067,19 @@ describePg('PrismaStore auth / 食物搜索 / 候选 / 晋升（集成，真实 
     expect(hits[3]).toMatchObject({
       score: 1,
       matchedOn: 'alias',
-      highlight: { text: 'seashell' },
+      highlight: { text: 'itseashell' },
     });
     expect(hits[4]).toMatchObject({ isCustom: true, score: 3 });
 
     // 无 userId → 仅内置/共享（含他人/本人自定义均不可见）
-    expect((await store.searchFoods('sea')).map((h) => h.food.id)).toEqual([
+    expect((await store.searchFoods('itsea')).map((h) => h.food.id)).toEqual([
       'it-search-a',
       'it-search-b',
       'it-search-c',
       'it-search-d',
     ]);
     // limit 截断 + 空/无命中查询
-    expect((await store.searchFoods('sea', userId, 'zh-CN', 2)).map((h) => h.food.id)).toEqual([
+    expect((await store.searchFoods('itsea', userId, 'zh-CN', 2)).map((h) => h.food.id)).toEqual([
       'it-search-a',
       'it-search-b',
     ]);
@@ -1141,7 +1141,7 @@ describePg('PrismaStore auth / 食物搜索 / 候选 / 晋升（集成，真实 
       createdByUserId: userId, // 溯源保留；id 不变 → FoodEntry 引用不断链
     });
     // 晋升后立即进入内置/共享结果集（对任意用户可见）
-    expect((await store.searchFoods('sea')).map((h) => h.food.id)).toContain('it-search-mine');
+    expect((await store.searchFoods('itsea')).map((h) => h.food.id)).toContain('it-search-mine');
 
     await expect(store.promoteCustomFoodToShared('food_missing')).rejects.toMatchObject({
       code: 'NOT_FOUND',
