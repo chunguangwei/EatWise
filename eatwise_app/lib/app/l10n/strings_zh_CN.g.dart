@@ -270,6 +270,10 @@ class Translations$auth$zh_CN {
 
 	/// zh-CN: '已退出登录'
 	String get loggedOut => '已退出登录';
+
+	late final Translations$auth$register$zh_CN register = Translations$auth$register$zh_CN.internal(_root);
+	late final Translations$auth$changePassword$zh_CN changePassword = Translations$auth$changePassword$zh_CN.internal(_root);
+	late final Translations$auth$error$zh_CN error = Translations$auth$error$zh_CN.internal(_root);
 }
 
 // Path: update
@@ -809,6 +813,8 @@ class Translations$record$customFood$zh_CN {
 
 	/// zh-CN: '社区'
 	String get badgeCommunity => '社区';
+
+	late final Translations$record$customFood$contributions$zh_CN contributions = Translations$record$customFood$contributions$zh_CN.internal(_root);
 }
 
 // Path: record.water
@@ -964,6 +970,7 @@ class Translations$fasting$home$zh_CN {
 	String get signalEmpty => '今天还没记录，记一笔后信号灯会亮起来';
 
 	late final Translations$fasting$home$greeting$zh_CN greeting = Translations$fasting$home$greeting$zh_CN.internal(_root);
+	late final Translations$fasting$home$endFastDialog$zh_CN endFastDialog = Translations$fasting$home$endFastDialog$zh_CN.internal(_root);
 }
 
 // Path: fasting.widget
@@ -1209,11 +1216,38 @@ class Translations$reports$monthly$zh_CN {
 
 	// Translations
 
-	/// zh-CN: '本月报告'
-	String get title => '本月报告';
+	/// zh-CN: '上一月'
+	String get prevMonth => '上一月';
 
-	/// zh-CN: '月报完整版将于 V1.2 提供，先把周报跑起来～'
-	String get placeholder => '月报完整版将于 V1.2 提供，先把周报跑起来～';
+	/// zh-CN: '下一月'
+	String get nextMonth => '下一月';
+
+	/// zh-CN: '断食达标 ${days} 天'
+	String qualified({required Object days}) => '断食达标 ${days} 天';
+
+	/// zh-CN: '记录 ${days} 天'
+	String recordedDays({required Object days}) => '记录 ${days} 天';
+
+	/// zh-CN: '平均断食 ${hours} 小时'
+	String avgFastingHours({required Object hours}) => '平均断食 ${hours} 小时';
+
+	/// zh-CN: '平均断食 ${hours} 小时 ${minutes} 分钟'
+	String avgFastingHoursMinutes({required Object hours, required Object minutes}) => '平均断食 ${hours} 小时 ${minutes} 分钟';
+
+	/// zh-CN: '月均热量 ${kcal} 千卡 · 目标 ${target} 千卡'
+	String kcalAvg({required Object kcal, required Object target}) => '月均热量 ${kcal} 千卡 · 目标 ${target} 千卡';
+
+	/// zh-CN: '蛋白质 ${protein}g · 碳水 ${carbs}g · 脂肪 ${fat}g'
+	String macros({required Object protein, required Object carbs, required Object fat}) => '蛋白质 ${protein}g · 碳水 ${carbs}g · 脂肪 ${fat}g';
+
+	/// zh-CN: '体重变化 ${value}'
+	String weightChange({required Object value}) => '体重变化 ${value}';
+
+	/// zh-CN: '本月暂无记录'
+	String get empty => '本月暂无记录';
+
+	/// zh-CN: '记一笔饮食或完成一次断食，月报就会长出来～'
+	String get emptyHint => '记一笔饮食或完成一次断食，月报就会长出来～';
 }
 
 // Path: streak.home
@@ -1373,41 +1407,47 @@ class Translations$settings$account$zh_CN {
 
 	// Translations
 
-	/// zh-CN: '手机号'
-	String get phone => '手机号';
+	/// zh-CN: '撤销删除'
+	String get cancelDeletion => '撤销删除';
 
-	/// zh-CN: '未登录'
-	String get notLoggedIn => '未登录';
+	/// zh-CN: '修改密码'
+	String get changePassword => '修改密码';
 
-	/// zh-CN: '登出'
-	String get logout => '登出';
+	/// zh-CN: '我的贡献'
+	String get contributions => '我的贡献';
 
 	/// zh-CN: '删除账号'
 	String get deleteAccount => '删除账号';
 
-	/// zh-CN: '删除账号？'
-	String get deleteConfirmTitle => '删除账号？';
+	/// zh-CN: '确认删除'
+	String get deleteConfirmAction => '确认删除';
 
 	/// zh-CN: '删除后，你的手机号、基础资料、全部饮食/断食记录等个人数据将被物理删除，且不可恢复。申请后进入 7 天冷静期：冷静期内登录即视为撤销删除，第 7 天执行删除。'
 	String get deleteConfirmBody => '删除后，你的手机号、基础资料、全部饮食/断食记录等个人数据将被物理删除，且不可恢复。申请后进入 7 天冷静期：冷静期内登录即视为撤销删除，第 7 天执行删除。';
 
-	/// zh-CN: '确认删除'
-	String get deleteConfirmAction => '确认删除';
+	/// zh-CN: '删除账号？'
+	String get deleteConfirmTitle => '删除账号？';
 
 	/// zh-CN: '删除申请已提交，账号进入 7 天冷静期'
 	String get deleteRequested => '删除申请已提交，账号进入 7 天冷静期';
 
-	/// zh-CN: '删除已预约，${days} 日后执行，到期前可撤销'
-	String deletionScheduled({required Object days}) => '删除已预约，${days} 日后执行，到期前可撤销';
-
-	/// zh-CN: '撤销删除'
-	String get cancelDeletion => '撤销删除';
+	/// zh-CN: '删除申请已提交。账号将于 ${date} 删除，此日期前重新登录即可撤销。'
+	String deleteScheduledBody({required Object date}) => '删除申请已提交。账号将于 ${date} 删除，此日期前重新登录即可撤销。';
 
 	/// zh-CN: '已撤销删除申请，账号恢复正常'
 	String get deletionCancelled => '已撤销删除申请，账号恢复正常';
 
-	/// zh-CN: '删除申请已提交。账号将于 ${date} 删除，此日期前重新登录即可撤销。'
-	String deleteScheduledBody({required Object date}) => '删除申请已提交。账号将于 ${date} 删除，此日期前重新登录即可撤销。';
+	/// zh-CN: '删除已预约，${days} 日后执行，到期前可撤销'
+	String deletionScheduled({required Object days}) => '删除已预约，${days} 日后执行，到期前可撤销';
+
+	/// zh-CN: '登出'
+	String get logout => '登出';
+
+	/// zh-CN: '未登录'
+	String get notLoggedIn => '未登录';
+
+	/// zh-CN: '手机号'
+	String get phone => '手机号';
 }
 
 // Path: settings.privacy
@@ -1759,8 +1799,14 @@ class Translations$social$compose$zh_CN {
 	/// zh-CN: '移除图片'
 	String get removePhoto => '移除图片';
 
-	/// zh-CN: '图片上传即将支持，本次先发布文字'
-	String get photoUploadTodo => '图片上传即将支持，本次先发布文字';
+	/// zh-CN: '图片上传中…'
+	String get photoUploading => '图片上传中…';
+
+	/// zh-CN: '图片上传失败'
+	String get photoUploadFailed => '图片上传失败';
+
+	/// zh-CN: '重新上传'
+	String get retryUpload => '重新上传';
 
 	/// zh-CN: '当前连续 ${days} 天 🔥'
 	String streakBadge({required Object days}) => '当前连续 ${days} 天 🔥';
@@ -1786,11 +1832,11 @@ class Translations$auth$login$zh_CN {
 
 	// Translations
 
-	/// zh-CN: '手机号登录'
-	String get title => '手机号登录';
+	/// zh-CN: '登录'
+	String get title => '登录';
 
-	/// zh-CN: '未注册的手机号验证后将自动注册'
-	String get subtitle => '未注册的手机号验证后将自动注册';
+	/// zh-CN: '使用账号密码登录'
+	String get subtitle => '使用账号密码登录';
 
 	/// zh-CN: '手机号'
 	String get phoneLabel => '手机号';
@@ -1827,6 +1873,141 @@ class Translations$auth$login$zh_CN {
 
 	/// zh-CN: '本地联调环境验证码固定为 123456'
 	String get mockHint => '本地联调环境验证码固定为 123456';
+
+	/// zh-CN: '用户名'
+	String get usernameLabel => '用户名';
+
+	/// zh-CN: '3-20 位字母、数字或下划线'
+	String get usernameHint => '3-20 位字母、数字或下划线';
+
+	/// zh-CN: '密码'
+	String get passwordLabel => '密码';
+
+	/// zh-CN: '请输入密码'
+	String get passwordHint => '请输入密码';
+
+	/// zh-CN: '用户名需为 3-20 位字母、数字或下划线'
+	String get invalidUsername => '用户名需为 3-20 位字母、数字或下划线';
+
+	/// zh-CN: '密码需为 8-64 位'
+	String get invalidPassword => '密码需为 8-64 位';
+
+	/// zh-CN: '没有账号？'
+	String get noAccount => '没有账号？';
+
+	/// zh-CN: '注册'
+	String get toRegister => '注册';
+
+	/// zh-CN: '其他登录方式'
+	String get otherLoginMethods => '其他登录方式';
+}
+
+// Path: auth.register
+class Translations$auth$register$zh_CN {
+	Translations$auth$register$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '注册'
+	String get title => '注册';
+
+	/// zh-CN: '创建账号后即可开始使用'
+	String get subtitle => '创建账号后即可开始使用';
+
+	/// zh-CN: '用户名'
+	String get usernameLabel => '用户名';
+
+	/// zh-CN: '3-20 位字母、数字或下划线'
+	String get usernameHint => '3-20 位字母、数字或下划线';
+
+	/// zh-CN: '密码'
+	String get passwordLabel => '密码';
+
+	/// zh-CN: '8-64 位，需包含字母和数字'
+	String get passwordHint => '8-64 位，需包含字母和数字';
+
+	/// zh-CN: '确认密码'
+	String get confirmPasswordLabel => '确认密码';
+
+	/// zh-CN: '再次输入密码'
+	String get confirmPasswordHint => '再次输入密码';
+
+	/// zh-CN: '注册'
+	String get register => '注册';
+
+	/// zh-CN: '注册中…'
+	String get registering => '注册中…';
+
+	/// zh-CN: '两次输入的密码不一致'
+	String get passwordMismatch => '两次输入的密码不一致';
+
+	/// zh-CN: '用户名需为 3-20 位字母、数字或下划线'
+	String get invalidUsername => '用户名需为 3-20 位字母、数字或下划线';
+}
+
+// Path: auth.changePassword
+class Translations$auth$changePassword$zh_CN {
+	Translations$auth$changePassword$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '修改密码'
+	String get title => '修改密码';
+
+	/// zh-CN: '当前密码'
+	String get oldLabel => '当前密码';
+
+	/// zh-CN: '请输入当前密码'
+	String get oldHint => '请输入当前密码';
+
+	/// zh-CN: '请输入当前密码'
+	String get oldRequired => '请输入当前密码';
+
+	/// zh-CN: '新密码'
+	String get newLabel => '新密码';
+
+	/// zh-CN: '8-64 位，需包含字母和数字'
+	String get newHint => '8-64 位，需包含字母和数字';
+
+	/// zh-CN: '确认新密码'
+	String get confirmLabel => '确认新密码';
+
+	/// zh-CN: '再次输入新密码'
+	String get confirmHint => '再次输入新密码';
+
+	/// zh-CN: '确认修改'
+	String get submit => '确认修改';
+
+	/// zh-CN: '提交中…'
+	String get submitting => '提交中…';
+
+	/// zh-CN: '密码已修改，请重新登录'
+	String get success => '密码已修改，请重新登录';
+
+	/// zh-CN: '两次输入的新密码不一致'
+	String get passwordMismatch => '两次输入的新密码不一致';
+}
+
+// Path: auth.error
+class Translations$auth$error$zh_CN {
+	Translations$auth$error$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '用户名已被使用'
+	String get usernameTaken => '用户名已被使用';
+
+	/// zh-CN: '用户名或密码错误'
+	String get invalidCredentials => '用户名或密码错误';
+
+	/// zh-CN: '密码需 8-64 位且包含字母和数字'
+	String get passwordTooWeak => '密码需 8-64 位且包含字母和数字';
 }
 
 // Path: notify.channel.fastingReminders
@@ -1970,6 +2151,42 @@ class Translations$onboarding$recommendation$reason$zh_CN {
 	String get fallback => '先按人气最高的 16:8 开始，随时可以在「我的」里调整。';
 }
 
+// Path: record.customFood.contributions
+class Translations$record$customFood$contributions$zh_CN {
+	Translations$record$customFood$contributions$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '我的贡献'
+	String get title => '我的贡献';
+
+	/// zh-CN: '全部'
+	String get filterAll => '全部';
+
+	/// zh-CN: '暂无贡献记录'
+	String get empty => '暂无贡献记录';
+
+	/// zh-CN: '审核中'
+	String get statusPending => '审核中';
+
+	/// zh-CN: '已通过'
+	String get statusApproved => '已通过';
+
+	/// zh-CN: '已拒绝'
+	String get statusRejected => '已拒绝';
+
+	/// zh-CN: '拒绝原因：${reason}'
+	String reasonLabel({required Object reason}) => '拒绝原因：${reason}';
+
+	/// zh-CN: '提交于 ${date}'
+	String submittedAt({required Object date}) => '提交于 ${date}';
+
+	/// zh-CN: '加载失败，请稍后重试'
+	String get loadFailed => '加载失败，请稍后重试';
+}
+
 // Path: fasting.home.greeting
 class Translations$fasting$home$greeting$zh_CN {
 	Translations$fasting$home$greeting$zh_CN.internal(this._root);
@@ -1992,6 +2209,36 @@ class Translations$fasting$home$greeting$zh_CN {
 
 	/// zh-CN: '这么晚还醒着？喝口水早点睡也是养生哦'
 	String get night => '这么晚还醒着？喝口水早点睡也是养生哦';
+}
+
+// Path: fasting.home.endFastDialog
+class Translations$fasting$home$endFastDialog$zh_CN {
+	Translations$fasting$home$endFastDialog$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '结束断食'
+	String get title => '结束断食';
+
+	/// zh-CN: '已断食 ${hours} 小时 ${minutes} 分钟'
+	String elapsed({required Object hours, required Object minutes}) => '已断食 ${hours} 小时 ${minutes} 分钟';
+
+	/// zh-CN: '计划 ${hours} 小时'
+	String plannedHours({required Object hours}) => '计划 ${hours} 小时';
+
+	/// zh-CN: '计划 ${hours} 小时 ${minutes} 分钟'
+	String plannedHoursMinutes({required Object hours, required Object minutes}) => '计划 ${hours} 小时 ${minutes} 分钟';
+
+	/// zh-CN: '距计划结束还有 15 分钟以上，本次将记为不达标'
+	String get earlyWarning => '距计划结束还有 15 分钟以上，本次将记为不达标';
+
+	/// zh-CN: '继续断食'
+	String get cancel => '继续断食';
+
+	/// zh-CN: '确认结束'
+	String get confirm => '确认结束';
 }
 
 // Path: nutrition.data.dateSwitcher
@@ -2587,6 +2834,15 @@ extension on Translations {
 			'record.customFood.badgeApproved' => '已共享',
 			'record.customFood.badgeRejected' => '未通过',
 			'record.customFood.badgeCommunity' => '社区',
+			'record.customFood.contributions.title' => '我的贡献',
+			'record.customFood.contributions.filterAll' => '全部',
+			'record.customFood.contributions.empty' => '暂无贡献记录',
+			'record.customFood.contributions.statusPending' => '审核中',
+			'record.customFood.contributions.statusApproved' => '已通过',
+			'record.customFood.contributions.statusRejected' => '已拒绝',
+			'record.customFood.contributions.reasonLabel' => ({required Object reason}) => '拒绝原因：${reason}',
+			'record.customFood.contributions.submittedAt' => ({required Object date}) => '提交于 ${date}',
+			'record.customFood.contributions.loadFailed' => '加载失败，请稍后重试',
 			'record.water.title' => '今日饮水',
 			'record.water.progress' => ({required Object total, required Object goal}) => '${total} / ${goal} 毫升',
 			'record.water.quickAddLabel' => ({required Object ml}) => '加 ${ml} 毫升水',
@@ -2626,6 +2882,13 @@ extension on Translations {
 			'fasting.home.greeting.afternoon' => '下午好',
 			'fasting.home.greeting.evening' => '晚上好',
 			'fasting.home.greeting.night' => '这么晚还醒着？喝口水早点睡也是养生哦',
+			'fasting.home.endFastDialog.title' => '结束断食',
+			'fasting.home.endFastDialog.elapsed' => ({required Object hours, required Object minutes}) => '已断食 ${hours} 小时 ${minutes} 分钟',
+			'fasting.home.endFastDialog.plannedHours' => ({required Object hours}) => '计划 ${hours} 小时',
+			'fasting.home.endFastDialog.plannedHoursMinutes' => ({required Object hours, required Object minutes}) => '计划 ${hours} 小时 ${minutes} 分钟',
+			'fasting.home.endFastDialog.earlyWarning' => '距计划结束还有 15 分钟以上，本次将记为不达标',
+			'fasting.home.endFastDialog.cancel' => '继续断食',
+			'fasting.home.endFastDialog.confirm' => '确认结束',
 			'fasting.widget.dueEat' => ({required Object time}) => '${time} 可进食',
 			'fasting.widget.dueEatEnd' => ({required Object time}) => '${time} 进食截止',
 			'home.tab.home' => '首页',
@@ -2732,8 +2995,17 @@ extension on Translations {
 			'reports.weekly.cheer.mixed' => '有起有落很正常，稳住节奏，下周继续～',
 			'reports.weekly.cheer.start' => '先动起来就很棒，数据会陪你一起进步。',
 			'reports.weekly.empty' => '周报还差一点点数据，记一笔或完成一次断食就生成啦',
-			'reports.monthly.title' => '本月报告',
-			'reports.monthly.placeholder' => '月报完整版将于 V1.2 提供，先把周报跑起来～',
+			'reports.monthly.prevMonth' => '上一月',
+			'reports.monthly.nextMonth' => '下一月',
+			'reports.monthly.qualified' => ({required Object days}) => '断食达标 ${days} 天',
+			'reports.monthly.recordedDays' => ({required Object days}) => '记录 ${days} 天',
+			'reports.monthly.avgFastingHours' => ({required Object hours}) => '平均断食 ${hours} 小时',
+			'reports.monthly.avgFastingHoursMinutes' => ({required Object hours, required Object minutes}) => '平均断食 ${hours} 小时 ${minutes} 分钟',
+			'reports.monthly.kcalAvg' => ({required Object kcal, required Object target}) => '月均热量 ${kcal} 千卡 · 目标 ${target} 千卡',
+			'reports.monthly.macros' => ({required Object protein, required Object carbs, required Object fat}) => '蛋白质 ${protein}g · 碳水 ${carbs}g · 脂肪 ${fat}g',
+			'reports.monthly.weightChange' => ({required Object value}) => '体重变化 ${value}',
+			'reports.monthly.empty' => '本月暂无记录',
+			'reports.monthly.emptyHint' => '记一笔饮食或完成一次断食，月报就会长出来～',
 			'streak.home.streakDays' => ({required Object days}) => '连续 ${days} 天 🔥',
 			'streak.home.startHint' => '完成今天断食，开启第 1 天',
 			'streak.milestone.title' => ({required Object days}) => '连续 ${days} 天！你已经超过了 80% 的伙伴 🎉',
@@ -2775,18 +3047,20 @@ extension on Translations {
 			'settings.group.preferences' => '偏好',
 			'settings.group.reminders' => '提醒',
 			'settings.group.about' => '关于',
-			'settings.account.phone' => '手机号',
-			'settings.account.notLoggedIn' => '未登录',
-			'settings.account.logout' => '登出',
-			'settings.account.deleteAccount' => '删除账号',
-			'settings.account.deleteConfirmTitle' => '删除账号？',
-			'settings.account.deleteConfirmBody' => '删除后，你的手机号、基础资料、全部饮食/断食记录等个人数据将被物理删除，且不可恢复。申请后进入 7 天冷静期：冷静期内登录即视为撤销删除，第 7 天执行删除。',
-			'settings.account.deleteConfirmAction' => '确认删除',
-			'settings.account.deleteRequested' => '删除申请已提交，账号进入 7 天冷静期',
-			'settings.account.deletionScheduled' => ({required Object days}) => '删除已预约，${days} 日后执行，到期前可撤销',
 			'settings.account.cancelDeletion' => '撤销删除',
-			'settings.account.deletionCancelled' => '已撤销删除申请，账号恢复正常',
+			'settings.account.changePassword' => '修改密码',
+			'settings.account.contributions' => '我的贡献',
+			'settings.account.deleteAccount' => '删除账号',
+			'settings.account.deleteConfirmAction' => '确认删除',
+			'settings.account.deleteConfirmBody' => '删除后，你的手机号、基础资料、全部饮食/断食记录等个人数据将被物理删除，且不可恢复。申请后进入 7 天冷静期：冷静期内登录即视为撤销删除，第 7 天执行删除。',
+			'settings.account.deleteConfirmTitle' => '删除账号？',
+			'settings.account.deleteRequested' => '删除申请已提交，账号进入 7 天冷静期',
 			'settings.account.deleteScheduledBody' => ({required Object date}) => '删除申请已提交。账号将于 ${date} 删除，此日期前重新登录即可撤销。',
+			'settings.account.deletionCancelled' => '已撤销删除申请，账号恢复正常',
+			'settings.account.deletionScheduled' => ({required Object days}) => '删除已预约，${days} 日后执行，到期前可撤销',
+			'settings.account.logout' => '登出',
+			'settings.account.notLoggedIn' => '未登录',
+			'settings.account.phone' => '手机号',
 			'settings.privacy.privacyPolicy' => '隐私政策',
 			'settings.privacy.userAgreement' => '用户协议',
 			'settings.privacy.exportData' => '导出我的数据',
@@ -2875,14 +3149,16 @@ extension on Translations {
 			'social.compose.charCount' => ({required Object n}) => '${n}/500',
 			'social.compose.addPhoto' => '添加图片',
 			'social.compose.removePhoto' => '移除图片',
-			'social.compose.photoUploadTodo' => '图片上传即将支持，本次先发布文字',
+			'social.compose.photoUploading' => '图片上传中…',
+			'social.compose.photoUploadFailed' => '图片上传失败',
+			'social.compose.retryUpload' => '重新上传',
 			'social.compose.streakBadge' => ({required Object days}) => '当前连续 ${days} 天 🔥',
 			'social.compose.noStreak' => '完成今天的断食，打卡就会带上连胜徽章哦',
 			'social.compose.publish' => '发布',
 			'social.compose.publishFailed' => '发布失败，请稍后重试',
 			'social.compose.emptyText' => '先写点什么吧',
-			'auth.login.title' => '手机号登录',
-			'auth.login.subtitle' => '未注册的手机号验证后将自动注册',
+			'auth.login.title' => '登录',
+			'auth.login.subtitle' => '使用账号密码登录',
 			'auth.login.phoneLabel' => '手机号',
 			'auth.login.phoneHint' => '请输入 11 位手机号',
 			'auth.login.codeLabel' => '验证码',
@@ -2895,9 +3171,47 @@ extension on Translations {
 			'auth.login.invalidPhone' => '请输入正确的手机号',
 			'auth.login.invalidCode' => '请输入 6 位数字验证码',
 			'auth.login.mockHint' => '本地联调环境验证码固定为 123456',
+			'auth.login.usernameLabel' => '用户名',
+			'auth.login.usernameHint' => '3-20 位字母、数字或下划线',
+			'auth.login.passwordLabel' => '密码',
+			'auth.login.passwordHint' => '请输入密码',
+			'auth.login.invalidUsername' => '用户名需为 3-20 位字母、数字或下划线',
+			'auth.login.invalidPassword' => '密码需为 8-64 位',
+			'auth.login.noAccount' => '没有账号？',
+			'auth.login.toRegister' => '注册',
+			'auth.login.otherLoginMethods' => '其他登录方式',
 			'auth.logout' => '退出登录',
 			'auth.logoutConfirm' => '确定退出登录吗？未同步的记录会保留在本机。',
 			'auth.loggedOut' => '已退出登录',
+			'auth.register.title' => '注册',
+			'auth.register.subtitle' => '创建账号后即可开始使用',
+			'auth.register.usernameLabel' => '用户名',
+			'auth.register.usernameHint' => '3-20 位字母、数字或下划线',
+			'auth.register.passwordLabel' => '密码',
+			'auth.register.passwordHint' => '8-64 位，需包含字母和数字',
+			'auth.register.confirmPasswordLabel' => '确认密码',
+			'auth.register.confirmPasswordHint' => '再次输入密码',
+			'auth.register.register' => '注册',
+			'auth.register.registering' => '注册中…',
+			'auth.register.passwordMismatch' => '两次输入的密码不一致',
+			'auth.register.invalidUsername' => '用户名需为 3-20 位字母、数字或下划线',
+			'auth.changePassword.title' => '修改密码',
+			'auth.changePassword.oldLabel' => '当前密码',
+			'auth.changePassword.oldHint' => '请输入当前密码',
+			'auth.changePassword.oldRequired' => '请输入当前密码',
+			'auth.changePassword.newLabel' => '新密码',
+			'auth.changePassword.newHint' => '8-64 位，需包含字母和数字',
+			'auth.changePassword.confirmLabel' => '确认新密码',
+			'auth.changePassword.confirmHint' => '再次输入新密码',
+			'auth.changePassword.submit' => '确认修改',
+			_ => null,
+		} ?? switch (path) {
+			'auth.changePassword.submitting' => '提交中…',
+			'auth.changePassword.success' => '密码已修改，请重新登录',
+			'auth.changePassword.passwordMismatch' => '两次输入的新密码不一致',
+			'auth.error.usernameTaken' => '用户名已被使用',
+			'auth.error.invalidCredentials' => '用户名或密码错误',
+			'auth.error.passwordTooWeak' => '密码需 8-64 位且包含字母和数字',
 			'update.title' => '发现新版本',
 			'update.newVersion' => ({required Object version}) => '最新版本：${version}',
 			'update.updateNow' => '立即更新',

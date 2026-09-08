@@ -107,13 +107,13 @@ void main() {
     });
   });
 
-  group('login', () {
+  group('loginWithPhone（手机验证码备用）', () {
     test('成功：令牌持久化、门禁打开、状态 loggedIn', () async {
       adapter.stub(
         '/auth/login/phone',
         StubResponse.json(200, loginPayload(refreshToken: 'rt-9')),
       );
-      await controller.login(phone: '+8613800138000', code: '123456');
+      await controller.loginWithPhone(phone: '+8613800138000', code: '123456');
       expect(controller.state.status, AuthStatus.loggedIn);
       expect(controller.state.userId, 'u-1');
       expect(controller.state.isNewUser, isTrue);
@@ -135,7 +135,7 @@ void main() {
         ),
       );
       await expectLater(
-        controller.login(phone: '+8613800138000', code: '000000'),
+        controller.loginWithPhone(phone: '+8613800138000', code: '000000'),
         throwsA(isA<BusinessApiException>()),
       );
       expect(controller.state.errorCode, 'AUTH_CODE_INVALID');
@@ -146,10 +146,148 @@ void main() {
     });
   });
 
+  group('loginWithPassword（R2 账号密码登录）', () {
+    test('成功：令牌持久化、门禁打开、状态 loggedIn', () async {
+      adapter.stub(
+        '/auth/login',
+        StubResponse.json(200, loginPayload(refreshToken: 'rt-pw')),
+      );
+      await controller.loginWithPassword(
+        username: 'user_01',
+        password: 'passw0rd',
+      );
+      expect(controller.state.status, AuthStatus.loggedIn);
+      expect(gate.loggedIn, isTrue);
+      expect(await tokenStore.refreshToken, 'rt-pw');
+      expect(controller.state.loggingIn, isFalse);
+      final body = adapter.requestBodies.single as Map<dynamic, dynamic>;
+      expect(body['username'], 'user_01');
+      expect(body['password'], 'passw0rd');
+    });
+
+    test('凭据错误 → errorCode=AUTH_INVALID_CREDENTIALS，门禁保持关闭', () async {
+      adapter.stub(
+        '/auth/login',
+        StubResponse.json(
+          401,
+          StubResponse.errorEnvelope('AUTH_INVALID_CREDENTIALS', '用户名或密码错误'),
+        ),
+      );
+      await expectLater(
+        controller.loginWithPassword(username: 'user_01', password: 'wrong123'),
+        throwsA(isA<BusinessApiException>()),
+      );
+      expect(controller.state.errorCode, 'AUTH_INVALID_CREDENTIALS');
+      expect(controller.state.loggingIn, isFalse);
+      expect(gate.loggedIn, isFalse);
+      expect(await tokenStore.refreshToken, isNull);
+    });
+  });
+
+  group('register（R1 注册即登录）', () {
+    test('成功：令牌持久化、门禁打开、isNewUser', () async {
+      adapter.stub(
+        '/auth/register',
+        StubResponse.json(201, loginPayload(refreshToken: 'rt-new')),
+      );
+      await controller.register(username: 'new_user', password: 'passw0rd');
+      expect(controller.state.status, AuthStatus.loggedIn);
+      expect(controller.state.isNewUser, isTrue);
+      expect(controller.state.registering, isFalse);
+      expect(gate.loggedIn, isTrue);
+      expect(await tokenStore.refreshToken, 'rt-new');
+    });
+
+    test('用户名占用 → errorCode=AUTH_USERNAME_TAKEN，门禁保持关闭', () async {
+      adapter.stub(
+        '/auth/register',
+        StubResponse.json(
+          409,
+          StubResponse.errorEnvelope('AUTH_USERNAME_TAKEN', '用户名已被使用'),
+        ),
+      );
+      await expectLater(
+        controller.register(username: 'taken', password: 'passw0rd'),
+        throwsA(isA<BusinessApiException>()),
+      );
+      expect(controller.state.errorCode, 'AUTH_USERNAME_TAKEN');
+      expect(controller.state.registering, isFalse);
+      expect(gate.loggedIn, isFalse);
+    });
+
+    test('弱密码 → errorCode=AUTH_PASSWORD_TOO_WEAK', () async {
+      adapter.stub(
+        '/auth/register',
+        StubResponse.json(
+          400,
+          StubResponse.errorEnvelope('AUTH_PASSWORD_TOO_WEAK', '密码强度不足'),
+        ),
+      );
+      await expectLater(
+        controller.register(username: 'new_user', password: '12345678'),
+        throwsA(isA<BusinessApiException>()),
+      );
+      expect(controller.state.errorCode, 'AUTH_PASSWORD_TOO_WEAK');
+    });
+  });
+
+  group('changePassword（R3 改密后全端下线）', () {
+    test('成功：清本地令牌、门禁关闭、状态 loggedOut', () async {
+      adapter.stub('/auth/login', StubResponse.json(200, loginPayload()));
+      await controller.loginWithPassword(
+        username: 'user_01',
+        password: 'passw0rd',
+      );
+      adapter.stub(
+        '/auth/password/change',
+        StubResponse.json(
+          200,
+          StubResponse.envelope(<String, dynamic>{'changed': true}),
+        ),
+      );
+      await controller.changePassword(
+        oldPassword: 'passw0rd',
+        newPassword: 'newpass1',
+      );
+      expect(controller.state.status, AuthStatus.loggedOut);
+      expect(controller.state.changingPassword, isFalse);
+      expect(gate.loggedIn, isFalse);
+      expect(await tokenStore.accessToken, isNull);
+      expect(await tokenStore.refreshToken, isNull);
+    });
+
+    test('旧密码错误 → 会话保持，errorCode=AUTH_INVALID_CREDENTIALS', () async {
+      adapter.stub('/auth/login', StubResponse.json(200, loginPayload()));
+      await controller.loginWithPassword(
+        username: 'user_01',
+        password: 'passw0rd',
+      );
+      adapter.stub(
+        '/auth/password/change',
+        StubResponse.json(
+          401,
+          StubResponse.errorEnvelope('AUTH_INVALID_CREDENTIALS', '原密码不正确'),
+        ),
+      );
+      await expectLater(
+        controller.changePassword(
+          oldPassword: 'badpass1',
+          newPassword: 'newpass1',
+        ),
+        throwsA(isA<BusinessApiException>()),
+      );
+      expect(controller.state.errorCode, 'AUTH_INVALID_CREDENTIALS');
+      expect(controller.state.status, AuthStatus.loggedIn);
+      expect(gate.loggedIn, isTrue);
+      expect(await tokenStore.refreshToken, isNotNull);
+      expect(controller.state.changingPassword, isFalse);
+    });
+  });
+
   group('logout / onSessionCleared', () {
     test('登出：尽力通知服务端，清令牌、门禁关闭', () async {
       adapter.stub('/auth/login/phone', StubResponse.json(200, loginPayload()));
-      await controller.login(phone: '+8613800138000', code: '123456');
+      await controller.loginWithPhone(phone: '+8613800138000', code: '123456');
       adapter.stub(
         '/auth/logout',
         StubResponse.json(

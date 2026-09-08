@@ -110,6 +110,85 @@ final class AuthApi {
     }
   }
 
+  /// R1 用户名+密码注册（201；失败码 AUTH_USERNAME_TAKEN /
+  /// AUTH_PASSWORD_TOO_WEAK，用户名规则 3-20 位字母/数字/下划线）。
+  Future<AuthSession> register({
+    required String username,
+    required String password,
+    String? deviceId,
+    String? platform,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/auth/register',
+        data: <String, dynamic>{
+          'username': username,
+          'password': password,
+          ..._device(deviceId: deviceId, platform: platform),
+        },
+        options: Options(extra: const <String, dynamic>{'skipAuth': true}),
+      );
+      return AuthSession.fromJson(response.data ?? const <String, dynamic>{});
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
+  /// R2 用户名+密码登录（200；失败码 AUTH_INVALID_CREDENTIALS）。
+  Future<AuthSession> login({
+    required String username,
+    required String password,
+    String? deviceId,
+    String? platform,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/auth/login',
+        data: <String, dynamic>{
+          'username': username,
+          'password': password,
+          ..._device(deviceId: deviceId, platform: platform),
+        },
+        options: Options(extra: const <String, dynamic>{'skipAuth': true}),
+      );
+      return AuthSession.fromJson(response.data ?? const <String, dynamic>{});
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
+  /// R3 修改密码（需 Bearer；成功后服务端吊销全部 refresh token，
+  /// 客户端须清本地会话回登录页）。失败码 AUTH_INVALID_CREDENTIALS /
+  /// AUTH_PASSWORD_TOO_WEAK。
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        '/auth/password/change',
+        data: <String, dynamic>{
+          'oldPassword': oldPassword,
+          'newPassword': newPassword,
+        },
+      );
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
+  /// 设备字段（契约 DeviceDto：deviceId 必填、platform ∈ ios/android；
+  /// deviceId 缺省时整体不下发）。
+  Map<String, dynamic> _device({String? deviceId, String? platform}) {
+    if (deviceId == null || deviceId.isEmpty) return const <String, dynamic>{};
+    return <String, dynamic>{
+      'device': <String, dynamic>{
+        'deviceId': deviceId,
+        'platform': platform ?? 'android',
+      },
+    };
+  }
+
   /// A6 注销当前设备会话（幂等；失败由调用方按「尽力而为」处理）。
   Future<void> logout() async {
     try {

@@ -17,6 +17,9 @@ const zh: Record<string, string> = {
   AUTH_TOKEN_INVALID: '登录状态无效，请重新登录',
   AUTH_REFRESH_REUSED: '检测到令牌异常使用，已全部登出',
   AUTH_CODE_INVALID: '验证码错误或已过期',
+  AUTH_USERNAME_TAKEN: '该用户名已被占用',
+  AUTH_INVALID_CREDENTIALS: '用户名或密码错误',
+  AUTH_PASSWORD_TOO_WEAK: '密码需 8-64 位且同时包含字母和数字',
   ACCOUNT_DELETED: '账号已注销',
   NOT_FOUND: '资源不存在',
   CONFLICT: '该记录在别处已被修改，请刷新后重试',
@@ -33,6 +36,8 @@ const zh: Record<string, string> = {
   ESTIMATE_UNAVAILABLE: '营养估算暂不可用，请手动填写',
   FOOD_BARCODE_NOT_FOUND: '未收录该商品，可手动搜索或添加自定义食物',
   FOOD_CONTRIBUTE_REJECTED: '食物名称未通过审核，无法贡献到共享食物库',
+  UPLOAD_TYPE_UNSUPPORTED: '只支持 jpg / png / webp 图片',
+  UPLOAD_FILE_TOO_LARGE: '图片超过 5MB，请换一张或压缩后再传',
 };
 
 const en: Record<string, string> = {
@@ -43,6 +48,9 @@ const en: Record<string, string> = {
   AUTH_TOKEN_INVALID: 'Invalid session, please sign in again',
   AUTH_REFRESH_REUSED: 'Token reuse detected, all sessions signed out',
   AUTH_CODE_INVALID: 'Incorrect or expired verification code',
+  AUTH_USERNAME_TAKEN: 'This username is already taken',
+  AUTH_INVALID_CREDENTIALS: 'Incorrect username or password',
+  AUTH_PASSWORD_TOO_WEAK: 'Password must be 8-64 characters and contain both letters and digits',
   ACCOUNT_DELETED: 'Account deleted',
   NOT_FOUND: 'Resource not found',
   CONFLICT: 'This record was modified elsewhere, please refresh and retry',
@@ -60,6 +68,8 @@ const en: Record<string, string> = {
   FOOD_BARCODE_NOT_FOUND: 'Product not found; try searching manually or adding a custom food',
   FOOD_CONTRIBUTE_REJECTED:
     'Food name did not pass review and cannot be contributed to the shared food library',
+  UPLOAD_TYPE_UNSUPPORTED: 'Only jpg / png / webp images are supported',
+  UPLOAD_FILE_TOO_LARGE: 'Image is larger than 5MB, please pick another or compress first',
 };
 
 export function translate(code: string, locale: Locale): string {

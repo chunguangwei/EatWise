@@ -140,4 +140,107 @@ describe('App (e2e)', () => {
       .expect(400);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
   });
+
+  let unameSeq = 0;
+  function nextUsername(): string {
+    unameSeq += 1;
+    return `e2e_user_${String(unameSeq).padStart(4, '0')}`;
+  }
+
+  it('账号密码注册全链路：register → users/me；重复用户名 → 409', async () => {
+    const username = nextUsername();
+    const res = await request(server)
+      .post('/v1/auth/register')
+      .send({ username: username.toUpperCase(), password: 'Passw0rd123' })
+      .expect(201);
+    expect(res.body.data.isNewUser).toBe(true);
+    expect(res.body.data.deletionCancelled).toBe(false);
+    expect(res.body.data.user.id).toBeTruthy();
+    expect(res.body.data.accessToken).toBeTruthy();
+    const me = await request(server)
+      .get('/v1/users/me')
+      .set('Authorization', `Bearer ${res.body.data.accessToken}`)
+      .expect(200);
+    expect(me.body.data.user.id).toBe(res.body.data.user.id);
+    // 大小写不敏感的唯一性：同一用户名再注册 → 409
+    const dup = await request(server)
+      .post('/v1/auth/register')
+      .send({ username, password: 'Passw0rd123' })
+      .expect(409);
+    expect(dup.body.error.code).toBe('AUTH_USERNAME_TAKEN');
+  });
+
+  it('注册弱密码 → 400 AUTH_PASSWORD_TOO_WEAK', async () => {
+    const res = await request(server)
+      .post('/v1/auth/register')
+      .send({ username: nextUsername(), password: 'onlyletters' })
+      .expect(400);
+    expect(res.body.error.code).toBe('AUTH_PASSWORD_TOO_WEAK');
+  });
+
+  it('账号密码登录：成功 200 isNewUser=false；密码错误 401 AUTH_INVALID_CREDENTIALS', async () => {
+    const username = nextUsername();
+    await request(server)
+      .post('/v1/auth/register')
+      .send({ username, password: 'Passw0rd123' })
+      .expect(201);
+    const ok = await request(server)
+      .post('/v1/auth/login')
+      .send({ username, password: 'Passw0rd123', device: { deviceId: 'e2e-2', platform: 'ios' } })
+      .expect(200);
+    expect(ok.body.data.isNewUser).toBe(false);
+    const bad = await request(server)
+      .post('/v1/auth/login')
+      .send({ username, password: 'Wrong0Pass' })
+      .expect(401);
+    expect(bad.body.error.code).toBe('AUTH_INVALID_CREDENTIALS');
+    const ghost = await request(server)
+      .post('/v1/auth/login')
+      .send({ username: 'no_such_user', password: 'Passw0rd123' })
+      .expect(401);
+    expect(ghost.body.error.code).toBe('AUTH_INVALID_CREDENTIALS');
+  });
+
+  it('修改密码：旧密码错误 401；成功后旧 refresh token 失效（全端重新登录）', async () => {
+    const username = nextUsername();
+    const reg = await request(server)
+      .post('/v1/auth/register')
+      .send({ username, password: 'Passw0rd123' })
+      .expect(201);
+    const auth = `Bearer ${reg.body.data.accessToken}`;
+    const wrong = await request(server)
+      .post('/v1/auth/password/change')
+      .set('Authorization', auth)
+      .send({ oldPassword: 'Wrong0Pass', newPassword: 'N3wPassword' })
+      .expect(401);
+    expect(wrong.body.error.code).toBe('AUTH_INVALID_CREDENTIALS');
+    const weak = await request(server)
+      .post('/v1/auth/password/change')
+      .set('Authorization', auth)
+      .send({ oldPassword: 'Passw0rd123', newPassword: '12345678' })
+      .expect(400);
+    expect(weak.body.error.code).toBe('AUTH_PASSWORD_TOO_WEAK');
+    await request(server)
+      .post('/v1/auth/password/change')
+      .set('Authorization', auth)
+      .send({ oldPassword: 'Passw0rd123', newPassword: 'N3wPassword' })
+      .expect(200);
+    const reuse = await request(server)
+      .post('/v1/auth/refresh')
+      .send({ refreshToken: reg.body.data.refreshToken })
+      .expect(401);
+    expect(['AUTH_REFRESH_REUSED', 'AUTH_TOKEN_INVALID']).toContain(reuse.body.error.code);
+    await request(server)
+      .post('/v1/auth/login')
+      .send({ username, password: 'N3wPassword' })
+      .expect(200);
+  });
+
+  it('修改密码未带 token → 401 AUTH_TOKEN_INVALID', async () => {
+    const res = await request(server)
+      .post('/v1/auth/password/change')
+      .send({ oldPassword: 'Passw0rd123', newPassword: 'N3wPassword' })
+      .expect(401);
+    expect(res.body.error.code).toBe('AUTH_TOKEN_INVALID');
+  });
 });

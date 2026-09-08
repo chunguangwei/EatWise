@@ -204,7 +204,18 @@
       "badgePending": "In review",
       "badgeApproved": "Shared",
       "badgeRejected": "Not approved",
-      "badgeCommunity": "Community"
+      "badgeCommunity": "Community",
+      "contributions": {
+        "title": "My contributions",
+        "filterAll": "All",
+        "empty": "No contributions yet",
+        "statusPending": "In review",
+        "statusApproved": "Approved",
+        "statusRejected": "Rejected",
+        "reasonLabel": "Reason: ${reason}",
+        "submittedAt": "Submitted on ${date}",
+        "loadFailed": "Failed to load — please try again later"
+      }
     },
     "water": {
       "title": "Water today",
@@ -261,6 +272,15 @@
         "afternoon": "Good afternoon",
         "evening": "Good evening",
         "night": "Still up? A glass of water and an early night is self-care too"
+      },
+      "endFastDialog": {
+        "title": "End fast",
+        "elapsed": "Fasted for ${hours} h ${minutes} min",
+        "plannedHours": "Planned ${hours} h",
+        "plannedHoursMinutes": "Planned ${hours} h ${minutes} min",
+        "earlyWarning": "Ending more than 15 minutes early counts as not qualified",
+        "cancel": "Keep fasting",
+        "confirm": "End fast"
       }
     },
     "widget": {
@@ -430,8 +450,17 @@
       "empty": "Almost there — log a meal or finish a fast to unlock your weekly report."
     },
     "monthly": {
-      "title": "This month",
-      "placeholder": "The full monthly report arrives in V1.2 — weekly report first~"
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "qualified": "${days} fasting days on target",
+      "recordedDays": "${days} days logged",
+      "avgFastingHours": "Avg. fast ${hours} h",
+      "avgFastingHoursMinutes": "Avg. fast ${hours} h ${minutes} m",
+      "kcalAvg": "Avg ${kcal} kcal · goal ${target} kcal",
+      "macros": "Protein ${protein}g · Carbs ${carbs}g · Fat ${fat}g",
+      "weightChange": "Weight change ${value}",
+      "empty": "No records this month yet",
+      "emptyHint": "Log a meal or finish a fast and your monthly report will bloom."
     }
   },
   "streak": {
@@ -493,18 +522,20 @@
       "about": "About"
     },
     "account": {
-      "phone": "Phone number",
-      "notLoggedIn": "Not signed in",
-      "logout": "Sign out",
-      "deleteAccount": "Delete account",
-      "deleteConfirmTitle": "Delete your account?",
-      "deleteConfirmBody": "After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.",
-      "deleteConfirmAction": "Confirm deletion",
-      "deleteRequested": "Deletion requested — your account enters a 7-day cooling-off period",
-      "deletionScheduled": "Deletion scheduled in ${days} day(s) — you can cancel before then",
       "cancelDeletion": "Cancel deletion",
+      "changePassword": "Change password",
+      "contributions": "My contributions",
+      "deleteAccount": "Delete account",
+      "deleteConfirmAction": "Confirm deletion",
+      "deleteConfirmBody": "After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.",
+      "deleteConfirmTitle": "Delete your account?",
+      "deleteRequested": "Deletion requested — your account enters a 7-day cooling-off period",
+      "deleteScheduledBody": "Deletion requested. Your account will be erased on ${date}; sign in before then to cancel.",
       "deletionCancelled": "Deletion cancelled — your account is back to normal",
-      "deleteScheduledBody": "Deletion requested. Your account will be erased on ${date}; sign in before then to cancel."
+      "deletionScheduled": "Deletion scheduled in ${days} day(s) — you can cancel before then",
+      "logout": "Sign out",
+      "notLoggedIn": "Not signed in",
+      "phone": "Phone number"
     },
     "privacy": {
       "privacyPolicy": "Privacy Policy",
@@ -621,7 +652,9 @@
       "charCount": "${n}/500",
       "addPhoto": "Add photo",
       "removePhoto": "Remove photo",
-      "photoUploadTodo": "Photo upload is coming soon — posting text only this time",
+      "photoUploading": "Uploading photo…",
+      "photoUploadFailed": "Photo upload failed",
+      "retryUpload": "Try uploading again",
       "streakBadge": "Current streak: ${days} days 🔥",
       "noStreak": "Finish today's fast and your check-in will carry the streak badge",
       "publish": "Post",
@@ -631,8 +664,8 @@
   },
   "auth": {
     "login": {
-      "title": "Sign in with phone",
-      "subtitle": "New numbers are registered automatically after verification",
+      "title": "Sign in",
+      "subtitle": "Sign in with your username and password",
       "phoneLabel": "Phone number",
       "phoneHint": "Enter your 11-digit phone number",
       "codeLabel": "Verification code",
@@ -644,11 +677,53 @@
       "codeSent": "Verification code sent",
       "invalidPhone": "Please enter a valid phone number",
       "invalidCode": "Please enter the 6-digit code",
-      "mockHint": "In local dev the code is always 123456"
+      "mockHint": "In local dev the code is always 123456",
+      "usernameLabel": "Username",
+      "usernameHint": "3-20 letters, digits or underscores",
+      "passwordLabel": "Password",
+      "passwordHint": "Enter your password",
+      "invalidUsername": "Username must be 3-20 letters, digits or underscores",
+      "invalidPassword": "Password must be 8-64 characters",
+      "noAccount": "No account?",
+      "toRegister": "Sign up",
+      "otherLoginMethods": "Other sign-in methods"
     },
     "logout": "Sign out",
     "logoutConfirm": "Sign out now? Unsynced records stay on this device.",
-    "loggedOut": "Signed out"
+    "loggedOut": "Signed out",
+    "register": {
+      "title": "Sign up",
+      "subtitle": "Create an account to get started",
+      "usernameLabel": "Username",
+      "usernameHint": "3-20 letters, digits or underscores",
+      "passwordLabel": "Password",
+      "passwordHint": "8-64 characters with letters and digits",
+      "confirmPasswordLabel": "Confirm password",
+      "confirmPasswordHint": "Re-enter your password",
+      "register": "Sign up",
+      "registering": "Signing up…",
+      "passwordMismatch": "Passwords do not match",
+      "invalidUsername": "Username must be 3-20 letters, digits or underscores"
+    },
+    "changePassword": {
+      "title": "Change password",
+      "oldLabel": "Current password",
+      "oldHint": "Enter your current password",
+      "oldRequired": "Enter your current password",
+      "newLabel": "New password",
+      "newHint": "8-64 characters with letters and digits",
+      "confirmLabel": "Confirm new password",
+      "confirmHint": "Re-enter your new password",
+      "submit": "Confirm change",
+      "submitting": "Submitting…",
+      "success": "Password changed — please sign in again",
+      "passwordMismatch": "New passwords do not match"
+    },
+    "error": {
+      "usernameTaken": "Username already taken",
+      "invalidCredentials": "Incorrect username or password",
+      "passwordTooWeak": "Password must be 8-64 characters with letters and digits"
+    }
   },
   "update": {
     "title": "Update available",

@@ -1,6 +1,8 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/features/auth/application/auth_gate.dart';
+import 'package:eatwise/features/auth/presentation/change_password_page.dart';
 import 'package:eatwise/features/auth/presentation/login_page.dart';
+import 'package:eatwise/features/auth/presentation/register_page.dart';
 import 'package:eatwise/features/demo/presentation/demo_home_screen.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_home_page.dart';
 import 'package:eatwise/features/home/presentation/home_shell.dart';
@@ -12,6 +14,7 @@ import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
 import 'package:eatwise/features/onboarding/presentation/questionnaire_screen.dart';
 import 'package:eatwise/features/onboarding/presentation/recommendation_screen.dart';
 import 'package:eatwise/features/onboarding/presentation/science_card_screen.dart';
+import 'package:eatwise/features/record/custom_food/presentation/my_contributions_page.dart';
 import 'package:eatwise/features/record/presentation/record_page.dart';
 import 'package:eatwise/features/reports/presentation/reports_page.dart';
 import 'package:eatwise/features/settings/presentation/ai_model_settings_page.dart';
@@ -53,9 +56,11 @@ GoRouter createAppRouter({
       }
       final loggedIn = authGate?.loggedIn ?? true;
       final onLogin = location == '/login';
+      final onRegister = location == '/register';
       final onOnboarding = location.startsWith('/onboarding');
-      if (!loggedIn) return onLogin ? null : '/login';
-      if (onLogin) return gate.completed ? '/' : '/onboarding';
+      // 未登录时 /register 与 /login 同级放行（注册即自动登录，无门禁意义）。
+      if (!loggedIn) return (onLogin || onRegister) ? null : '/login';
+      if (onLogin || onRegister) return gate.completed ? '/' : '/onboarding';
       if (!gate.completed && !onOnboarding) return '/onboarding';
       // 同意后停留在弹窗页 → 按登录/引导门禁送到应去页面。
       if (gate.completed && (onOnboarding || location == '/legal/consent')) {
@@ -93,8 +98,12 @@ GoRouter createAppRouter({
         path: '/legal/disclaimer',
         builder: (context, state) => const DisclaimerPage(),
       ),
-      // D-13 登录页（独立路由，不进 Tab Shell）。
+      // D-13 登录页（独立路由，不进 Tab Shell）；注册页与之同级。
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterPage(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             HomeShell(navigationShell: navigationShell),
@@ -160,6 +169,16 @@ GoRouter createAppRouter({
               GoRoute(
                 path: '/settings/ai-model',
                 builder: (context, state) => const AiModelSettingsPage(),
+              ),
+              // 修改密码（账号安全区入口，与 /profile 同层）。
+              GoRoute(
+                path: '/settings/change-password',
+                builder: (context, state) => const ChangePasswordPage(),
+              ),
+              // 我的贡献（众包状态列表，账号组入口，与 /profile 同层）。
+              GoRoute(
+                path: '/profile/contributions',
+                builder: (context, state) => const MyContributionsPage(),
               ),
             ],
           ),

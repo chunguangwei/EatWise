@@ -245,6 +245,9 @@ class _Translations$auth$en extends Translations$auth$zh_CN {
 	@override String get logout => 'Sign out';
 	@override String get logoutConfirm => 'Sign out now? Unsynced records stay on this device.';
 	@override String get loggedOut => 'Signed out';
+	@override late final _Translations$auth$register$en register = _Translations$auth$register$en._(_root);
+	@override late final _Translations$auth$changePassword$en changePassword = _Translations$auth$changePassword$en._(_root);
+	@override late final _Translations$auth$error$en error = _Translations$auth$error$en._(_root);
 }
 
 // Path: update
@@ -544,6 +547,7 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get badgeApproved => 'Shared';
 	@override String get badgeRejected => 'Not approved';
 	@override String get badgeCommunity => 'Community';
+	@override late final _Translations$record$customFood$contributions$en contributions = _Translations$record$customFood$contributions$en._(_root);
 }
 
 // Path: record.water
@@ -632,6 +636,7 @@ class _Translations$fasting$home$en extends Translations$fasting$home$zh_CN {
 	@override String get celebrationBadge => 'Fast complete ✨';
 	@override String get signalEmpty => 'Nothing logged today — log a bite and your signal lights will show up';
 	@override late final _Translations$fasting$home$greeting$en greeting = _Translations$fasting$home$greeting$en._(_root);
+	@override late final _Translations$fasting$home$endFastDialog$en endFastDialog = _Translations$fasting$home$endFastDialog$en._(_root);
 }
 
 // Path: fasting.widget
@@ -791,8 +796,17 @@ class _Translations$reports$monthly$en extends Translations$reports$monthly$zh_C
 	final TranslationsEn _root; // ignore: unused_field
 
 	// Translations
-	@override String get title => 'This month';
-	@override String get placeholder => 'The full monthly report arrives in V1.2 — weekly report first~';
+	@override String get prevMonth => 'Previous month';
+	@override String get nextMonth => 'Next month';
+	@override String qualified({required Object days}) => '${days} fasting days on target';
+	@override String recordedDays({required Object days}) => '${days} days logged';
+	@override String avgFastingHours({required Object hours}) => 'Avg. fast ${hours} h';
+	@override String avgFastingHoursMinutes({required Object hours, required Object minutes}) => 'Avg. fast ${hours} h ${minutes} m';
+	@override String kcalAvg({required Object kcal, required Object target}) => 'Avg ${kcal} kcal · goal ${target} kcal';
+	@override String macros({required Object protein, required Object carbs, required Object fat}) => 'Protein ${protein}g · Carbs ${carbs}g · Fat ${fat}g';
+	@override String weightChange({required Object value}) => 'Weight change ${value}';
+	@override String get empty => 'No records this month yet';
+	@override String get emptyHint => 'Log a meal or finish a fast and your monthly report will bloom.';
 }
 
 // Path: streak.home
@@ -888,18 +902,20 @@ class _Translations$settings$account$en extends Translations$settings$account$zh
 	final TranslationsEn _root; // ignore: unused_field
 
 	// Translations
-	@override String get phone => 'Phone number';
-	@override String get notLoggedIn => 'Not signed in';
-	@override String get logout => 'Sign out';
-	@override String get deleteAccount => 'Delete account';
-	@override String get deleteConfirmTitle => 'Delete your account?';
-	@override String get deleteConfirmBody => 'After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.';
-	@override String get deleteConfirmAction => 'Confirm deletion';
-	@override String get deleteRequested => 'Deletion requested — your account enters a 7-day cooling-off period';
-	@override String deletionScheduled({required Object days}) => 'Deletion scheduled in ${days} day(s) — you can cancel before then';
 	@override String get cancelDeletion => 'Cancel deletion';
-	@override String get deletionCancelled => 'Deletion cancelled — your account is back to normal';
+	@override String get changePassword => 'Change password';
+	@override String get contributions => 'My contributions';
+	@override String get deleteAccount => 'Delete account';
+	@override String get deleteConfirmAction => 'Confirm deletion';
+	@override String get deleteConfirmBody => 'After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.';
+	@override String get deleteConfirmTitle => 'Delete your account?';
+	@override String get deleteRequested => 'Deletion requested — your account enters a 7-day cooling-off period';
 	@override String deleteScheduledBody({required Object date}) => 'Deletion requested. Your account will be erased on ${date}; sign in before then to cancel.';
+	@override String get deletionCancelled => 'Deletion cancelled — your account is back to normal';
+	@override String deletionScheduled({required Object days}) => 'Deletion scheduled in ${days} day(s) — you can cancel before then';
+	@override String get logout => 'Sign out';
+	@override String get notLoggedIn => 'Not signed in';
+	@override String get phone => 'Phone number';
 }
 
 // Path: settings.privacy
@@ -1083,7 +1099,9 @@ class _Translations$social$compose$en extends Translations$social$compose$zh_CN 
 	@override String charCount({required Object n}) => '${n}/500';
 	@override String get addPhoto => 'Add photo';
 	@override String get removePhoto => 'Remove photo';
-	@override String get photoUploadTodo => 'Photo upload is coming soon — posting text only this time';
+	@override String get photoUploading => 'Uploading photo…';
+	@override String get photoUploadFailed => 'Photo upload failed';
+	@override String get retryUpload => 'Try uploading again';
 	@override String streakBadge({required Object days}) => 'Current streak: ${days} days 🔥';
 	@override String get noStreak => 'Finish today\'s fast and your check-in will carry the streak badge';
 	@override String get publish => 'Post';
@@ -1098,8 +1116,8 @@ class _Translations$auth$login$en extends Translations$auth$login$zh_CN {
 	final TranslationsEn _root; // ignore: unused_field
 
 	// Translations
-	@override String get title => 'Sign in with phone';
-	@override String get subtitle => 'New numbers are registered automatically after verification';
+	@override String get title => 'Sign in';
+	@override String get subtitle => 'Sign in with your username and password';
 	@override String get phoneLabel => 'Phone number';
 	@override String get phoneHint => 'Enter your 11-digit phone number';
 	@override String get codeLabel => 'Verification code';
@@ -1112,6 +1130,69 @@ class _Translations$auth$login$en extends Translations$auth$login$zh_CN {
 	@override String get invalidPhone => 'Please enter a valid phone number';
 	@override String get invalidCode => 'Please enter the 6-digit code';
 	@override String get mockHint => 'In local dev the code is always 123456';
+	@override String get usernameLabel => 'Username';
+	@override String get usernameHint => '3-20 letters, digits or underscores';
+	@override String get passwordLabel => 'Password';
+	@override String get passwordHint => 'Enter your password';
+	@override String get invalidUsername => 'Username must be 3-20 letters, digits or underscores';
+	@override String get invalidPassword => 'Password must be 8-64 characters';
+	@override String get noAccount => 'No account?';
+	@override String get toRegister => 'Sign up';
+	@override String get otherLoginMethods => 'Other sign-in methods';
+}
+
+// Path: auth.register
+class _Translations$auth$register$en extends Translations$auth$register$zh_CN {
+	_Translations$auth$register$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Sign up';
+	@override String get subtitle => 'Create an account to get started';
+	@override String get usernameLabel => 'Username';
+	@override String get usernameHint => '3-20 letters, digits or underscores';
+	@override String get passwordLabel => 'Password';
+	@override String get passwordHint => '8-64 characters with letters and digits';
+	@override String get confirmPasswordLabel => 'Confirm password';
+	@override String get confirmPasswordHint => 'Re-enter your password';
+	@override String get register => 'Sign up';
+	@override String get registering => 'Signing up…';
+	@override String get passwordMismatch => 'Passwords do not match';
+	@override String get invalidUsername => 'Username must be 3-20 letters, digits or underscores';
+}
+
+// Path: auth.changePassword
+class _Translations$auth$changePassword$en extends Translations$auth$changePassword$zh_CN {
+	_Translations$auth$changePassword$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Change password';
+	@override String get oldLabel => 'Current password';
+	@override String get oldHint => 'Enter your current password';
+	@override String get oldRequired => 'Enter your current password';
+	@override String get newLabel => 'New password';
+	@override String get newHint => '8-64 characters with letters and digits';
+	@override String get confirmLabel => 'Confirm new password';
+	@override String get confirmHint => 'Re-enter your new password';
+	@override String get submit => 'Confirm change';
+	@override String get submitting => 'Submitting…';
+	@override String get success => 'Password changed — please sign in again';
+	@override String get passwordMismatch => 'New passwords do not match';
+}
+
+// Path: auth.error
+class _Translations$auth$error$en extends Translations$auth$error$zh_CN {
+	_Translations$auth$error$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get usernameTaken => 'Username already taken';
+	@override String get invalidCredentials => 'Incorrect username or password';
+	@override String get passwordTooWeak => 'Password must be 8-64 characters with letters and digits';
 }
 
 // Path: notify.channel.fastingReminders
@@ -1216,6 +1297,24 @@ class _Translations$onboarding$recommendation$reason$en extends Translations$onb
 	@override String get fallback => 'Let\'s start with the crowd favorite 16:8 — you can adjust it anytime in Profile.';
 }
 
+// Path: record.customFood.contributions
+class _Translations$record$customFood$contributions$en extends Translations$record$customFood$contributions$zh_CN {
+	_Translations$record$customFood$contributions$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'My contributions';
+	@override String get filterAll => 'All';
+	@override String get empty => 'No contributions yet';
+	@override String get statusPending => 'In review';
+	@override String get statusApproved => 'Approved';
+	@override String get statusRejected => 'Rejected';
+	@override String reasonLabel({required Object reason}) => 'Reason: ${reason}';
+	@override String submittedAt({required Object date}) => 'Submitted on ${date}';
+	@override String get loadFailed => 'Failed to load — please try again later';
+}
+
 // Path: fasting.home.greeting
 class _Translations$fasting$home$greeting$en extends Translations$fasting$home$greeting$zh_CN {
 	_Translations$fasting$home$greeting$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -1228,6 +1327,22 @@ class _Translations$fasting$home$greeting$en extends Translations$fasting$home$g
 	@override String get afternoon => 'Good afternoon';
 	@override String get evening => 'Good evening';
 	@override String get night => 'Still up? A glass of water and an early night is self-care too';
+}
+
+// Path: fasting.home.endFastDialog
+class _Translations$fasting$home$endFastDialog$en extends Translations$fasting$home$endFastDialog$zh_CN {
+	_Translations$fasting$home$endFastDialog$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'End fast';
+	@override String elapsed({required Object hours, required Object minutes}) => 'Fasted for ${hours} h ${minutes} min';
+	@override String plannedHours({required Object hours}) => 'Planned ${hours} h';
+	@override String plannedHoursMinutes({required Object hours, required Object minutes}) => 'Planned ${hours} h ${minutes} min';
+	@override String get earlyWarning => 'Ending more than 15 minutes early counts as not qualified';
+	@override String get cancel => 'Keep fasting';
+	@override String get confirm => 'End fast';
 }
 
 // Path: nutrition.data.dateSwitcher
@@ -1651,6 +1766,15 @@ extension on TranslationsEn {
 			'record.customFood.badgeApproved' => 'Shared',
 			'record.customFood.badgeRejected' => 'Not approved',
 			'record.customFood.badgeCommunity' => 'Community',
+			'record.customFood.contributions.title' => 'My contributions',
+			'record.customFood.contributions.filterAll' => 'All',
+			'record.customFood.contributions.empty' => 'No contributions yet',
+			'record.customFood.contributions.statusPending' => 'In review',
+			'record.customFood.contributions.statusApproved' => 'Approved',
+			'record.customFood.contributions.statusRejected' => 'Rejected',
+			'record.customFood.contributions.reasonLabel' => ({required Object reason}) => 'Reason: ${reason}',
+			'record.customFood.contributions.submittedAt' => ({required Object date}) => 'Submitted on ${date}',
+			'record.customFood.contributions.loadFailed' => 'Failed to load — please try again later',
 			'record.water.title' => 'Water today',
 			'record.water.progress' => ({required Object total, required Object goal}) => '${total} / ${goal} ml',
 			'record.water.quickAddLabel' => ({required Object ml}) => 'Add ${ml} ml of water',
@@ -1690,6 +1814,13 @@ extension on TranslationsEn {
 			'fasting.home.greeting.afternoon' => 'Good afternoon',
 			'fasting.home.greeting.evening' => 'Good evening',
 			'fasting.home.greeting.night' => 'Still up? A glass of water and an early night is self-care too',
+			'fasting.home.endFastDialog.title' => 'End fast',
+			'fasting.home.endFastDialog.elapsed' => ({required Object hours, required Object minutes}) => 'Fasted for ${hours} h ${minutes} min',
+			'fasting.home.endFastDialog.plannedHours' => ({required Object hours}) => 'Planned ${hours} h',
+			'fasting.home.endFastDialog.plannedHoursMinutes' => ({required Object hours, required Object minutes}) => 'Planned ${hours} h ${minutes} min',
+			'fasting.home.endFastDialog.earlyWarning' => 'Ending more than 15 minutes early counts as not qualified',
+			'fasting.home.endFastDialog.cancel' => 'Keep fasting',
+			'fasting.home.endFastDialog.confirm' => 'End fast',
 			'fasting.widget.dueEat' => ({required Object time}) => 'Eat at ${time}',
 			'fasting.widget.dueEatEnd' => ({required Object time}) => 'Window ends ${time}',
 			'home.tab.home' => 'Home',
@@ -1796,8 +1927,17 @@ extension on TranslationsEn {
 			'reports.weekly.cheer.mixed' => 'Ups and downs are normal. Keep the rhythm next week~',
 			'reports.weekly.cheer.start' => 'Starting is what counts — your data will grow with you.',
 			'reports.weekly.empty' => 'Almost there — log a meal or finish a fast to unlock your weekly report.',
-			'reports.monthly.title' => 'This month',
-			'reports.monthly.placeholder' => 'The full monthly report arrives in V1.2 — weekly report first~',
+			'reports.monthly.prevMonth' => 'Previous month',
+			'reports.monthly.nextMonth' => 'Next month',
+			'reports.monthly.qualified' => ({required Object days}) => '${days} fasting days on target',
+			'reports.monthly.recordedDays' => ({required Object days}) => '${days} days logged',
+			'reports.monthly.avgFastingHours' => ({required Object hours}) => 'Avg. fast ${hours} h',
+			'reports.monthly.avgFastingHoursMinutes' => ({required Object hours, required Object minutes}) => 'Avg. fast ${hours} h ${minutes} m',
+			'reports.monthly.kcalAvg' => ({required Object kcal, required Object target}) => 'Avg ${kcal} kcal · goal ${target} kcal',
+			'reports.monthly.macros' => ({required Object protein, required Object carbs, required Object fat}) => 'Protein ${protein}g · Carbs ${carbs}g · Fat ${fat}g',
+			'reports.monthly.weightChange' => ({required Object value}) => 'Weight change ${value}',
+			'reports.monthly.empty' => 'No records this month yet',
+			'reports.monthly.emptyHint' => 'Log a meal or finish a fast and your monthly report will bloom.',
 			'streak.home.streakDays' => ({required Object days}) => '${days}-day streak 🔥',
 			'streak.home.startHint' => 'Finish today\'s fast to start day 1',
 			'streak.milestone.title' => ({required Object days}) => '${days}-day streak! You\'ve outlasted 80% of the community 🎉',
@@ -1839,18 +1979,20 @@ extension on TranslationsEn {
 			'settings.group.preferences' => 'Preferences',
 			'settings.group.reminders' => 'Reminders',
 			'settings.group.about' => 'About',
-			'settings.account.phone' => 'Phone number',
-			'settings.account.notLoggedIn' => 'Not signed in',
-			'settings.account.logout' => 'Sign out',
-			'settings.account.deleteAccount' => 'Delete account',
-			'settings.account.deleteConfirmTitle' => 'Delete your account?',
-			'settings.account.deleteConfirmBody' => 'After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.',
-			'settings.account.deleteConfirmAction' => 'Confirm deletion',
-			'settings.account.deleteRequested' => 'Deletion requested — your account enters a 7-day cooling-off period',
-			'settings.account.deletionScheduled' => ({required Object days}) => 'Deletion scheduled in ${days} day(s) — you can cancel before then',
 			'settings.account.cancelDeletion' => 'Cancel deletion',
-			'settings.account.deletionCancelled' => 'Deletion cancelled — your account is back to normal',
+			'settings.account.changePassword' => 'Change password',
+			'settings.account.contributions' => 'My contributions',
+			'settings.account.deleteAccount' => 'Delete account',
+			'settings.account.deleteConfirmAction' => 'Confirm deletion',
+			'settings.account.deleteConfirmBody' => 'After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.',
+			'settings.account.deleteConfirmTitle' => 'Delete your account?',
+			'settings.account.deleteRequested' => 'Deletion requested — your account enters a 7-day cooling-off period',
 			'settings.account.deleteScheduledBody' => ({required Object date}) => 'Deletion requested. Your account will be erased on ${date}; sign in before then to cancel.',
+			'settings.account.deletionCancelled' => 'Deletion cancelled — your account is back to normal',
+			'settings.account.deletionScheduled' => ({required Object days}) => 'Deletion scheduled in ${days} day(s) — you can cancel before then',
+			'settings.account.logout' => 'Sign out',
+			'settings.account.notLoggedIn' => 'Not signed in',
+			'settings.account.phone' => 'Phone number',
 			'settings.privacy.privacyPolicy' => 'Privacy Policy',
 			'settings.privacy.userAgreement' => 'Terms of Service',
 			'settings.privacy.exportData' => 'Export my data',
@@ -1939,14 +2081,16 @@ extension on TranslationsEn {
 			'social.compose.charCount' => ({required Object n}) => '${n}/500',
 			'social.compose.addPhoto' => 'Add photo',
 			'social.compose.removePhoto' => 'Remove photo',
-			'social.compose.photoUploadTodo' => 'Photo upload is coming soon — posting text only this time',
+			'social.compose.photoUploading' => 'Uploading photo…',
+			'social.compose.photoUploadFailed' => 'Photo upload failed',
+			'social.compose.retryUpload' => 'Try uploading again',
 			'social.compose.streakBadge' => ({required Object days}) => 'Current streak: ${days} days 🔥',
 			'social.compose.noStreak' => 'Finish today\'s fast and your check-in will carry the streak badge',
 			'social.compose.publish' => 'Post',
 			'social.compose.publishFailed' => 'Couldn\'t post. Please try again.',
 			'social.compose.emptyText' => 'Write something first',
-			'auth.login.title' => 'Sign in with phone',
-			'auth.login.subtitle' => 'New numbers are registered automatically after verification',
+			'auth.login.title' => 'Sign in',
+			'auth.login.subtitle' => 'Sign in with your username and password',
 			'auth.login.phoneLabel' => 'Phone number',
 			'auth.login.phoneHint' => 'Enter your 11-digit phone number',
 			'auth.login.codeLabel' => 'Verification code',
@@ -1959,9 +2103,47 @@ extension on TranslationsEn {
 			'auth.login.invalidPhone' => 'Please enter a valid phone number',
 			'auth.login.invalidCode' => 'Please enter the 6-digit code',
 			'auth.login.mockHint' => 'In local dev the code is always 123456',
+			'auth.login.usernameLabel' => 'Username',
+			'auth.login.usernameHint' => '3-20 letters, digits or underscores',
+			'auth.login.passwordLabel' => 'Password',
+			'auth.login.passwordHint' => 'Enter your password',
+			'auth.login.invalidUsername' => 'Username must be 3-20 letters, digits or underscores',
+			'auth.login.invalidPassword' => 'Password must be 8-64 characters',
+			'auth.login.noAccount' => 'No account?',
+			'auth.login.toRegister' => 'Sign up',
+			'auth.login.otherLoginMethods' => 'Other sign-in methods',
 			'auth.logout' => 'Sign out',
 			'auth.logoutConfirm' => 'Sign out now? Unsynced records stay on this device.',
 			'auth.loggedOut' => 'Signed out',
+			'auth.register.title' => 'Sign up',
+			'auth.register.subtitle' => 'Create an account to get started',
+			'auth.register.usernameLabel' => 'Username',
+			'auth.register.usernameHint' => '3-20 letters, digits or underscores',
+			'auth.register.passwordLabel' => 'Password',
+			'auth.register.passwordHint' => '8-64 characters with letters and digits',
+			'auth.register.confirmPasswordLabel' => 'Confirm password',
+			'auth.register.confirmPasswordHint' => 'Re-enter your password',
+			'auth.register.register' => 'Sign up',
+			'auth.register.registering' => 'Signing up…',
+			'auth.register.passwordMismatch' => 'Passwords do not match',
+			'auth.register.invalidUsername' => 'Username must be 3-20 letters, digits or underscores',
+			'auth.changePassword.title' => 'Change password',
+			'auth.changePassword.oldLabel' => 'Current password',
+			'auth.changePassword.oldHint' => 'Enter your current password',
+			'auth.changePassword.oldRequired' => 'Enter your current password',
+			'auth.changePassword.newLabel' => 'New password',
+			'auth.changePassword.newHint' => '8-64 characters with letters and digits',
+			'auth.changePassword.confirmLabel' => 'Confirm new password',
+			'auth.changePassword.confirmHint' => 'Re-enter your new password',
+			'auth.changePassword.submit' => 'Confirm change',
+			_ => null,
+		} ?? switch (path) {
+			'auth.changePassword.submitting' => 'Submitting…',
+			'auth.changePassword.success' => 'Password changed — please sign in again',
+			'auth.changePassword.passwordMismatch' => 'New passwords do not match',
+			'auth.error.usernameTaken' => 'Username already taken',
+			'auth.error.invalidCredentials' => 'Incorrect username or password',
+			'auth.error.passwordTooWeak' => 'Password must be 8-64 characters with letters and digits',
 			'update.title' => 'Update available',
 			'update.newVersion' => ({required Object version}) => 'Latest version: ${version}',
 			'update.updateNow' => 'Update now',

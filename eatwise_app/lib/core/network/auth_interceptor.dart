@@ -34,6 +34,23 @@ final class AuthInterceptor extends QueuedInterceptor {
 
   bool _skipAuth(RequestOptions options) => options.extra['skipAuth'] == true;
 
+  /// 401 是否为「访问令牌失效」类错误（触发 refresh 重放）。
+  ///
+  /// 业务 401（如修改密码旧密码错误 AUTH_INVALID_CREDENTIALS）不是
+  /// 令牌过期，必须原样上抛、不得触发 refresh/清会话。信封缺失或
+  /// 无法解析时保守视为令牌失效（维持既有续期行为）。
+  bool _isTokenInvalid(Response<dynamic>? response) {
+    final body = response?.data;
+    if (body is! Map) return true;
+    final error = body['error'];
+    if (error is! Map) return true;
+    final code = error['code'];
+    if (code is! String) return true;
+    return code == 'AUTH_TOKEN_INVALID' ||
+        code == 'AUTH_TOKEN_EXPIRED' ||
+        code == 'AUTH_REFRESH_REUSED';
+  }
+
   @override
   Future<void> onRequest(
     RequestOptions options,
@@ -55,7 +72,10 @@ final class AuthInterceptor extends QueuedInterceptor {
   ) async {
     final options = err.requestOptions;
     final is401 = err.response?.statusCode == 401;
-    if (!is401 || _skipAuth(options) || options.extra['retried'] == true) {
+    if (!is401 ||
+        _skipAuth(options) ||
+        options.extra['retried'] == true ||
+        !_isTokenInvalid(err.response)) {
       handler.next(err);
       return;
     }

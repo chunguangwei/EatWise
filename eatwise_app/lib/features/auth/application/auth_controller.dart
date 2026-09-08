@@ -2,6 +2,7 @@ import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/token_store.dart';
 import 'package:eatwise/features/auth/application/auth_gate.dart';
 import 'package:eatwise/features/auth/data/auth_api.dart';
+import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 登录态机（restoring → loggedOut / loggedIn）。
@@ -15,6 +16,8 @@ final class AuthState {
     this.isNewUser = false,
     this.sendingCode = false,
     this.loggingIn = false,
+    this.registering = false,
+    this.changingPassword = false,
     this.errorCode,
     this.errorMessage,
     this.deletionCancelled = false,
@@ -35,6 +38,12 @@ final class AuthState {
   /// 「登录」请求在途。
   final bool loggingIn;
 
+  /// 「注册」请求在途。
+  final bool registering;
+
+  /// 「修改密码」请求在途。
+  final bool changingPassword;
+
   /// 最近一次失败错误码（如 AUTH_CODE_INVALID / RATE_LIMITED）。
   final String? errorCode;
 
@@ -47,6 +56,8 @@ final class AuthState {
     bool? isNewUser,
     bool? sendingCode,
     bool? loggingIn,
+    bool? registering,
+    bool? changingPassword,
     bool? deletionCancelled,
     String? Function()? errorCode,
     String? Function()? errorMessage,
@@ -57,6 +68,8 @@ final class AuthState {
       isNewUser: isNewUser ?? this.isNewUser,
       sendingCode: sendingCode ?? this.sendingCode,
       loggingIn: loggingIn ?? this.loggingIn,
+      registering: registering ?? this.registering,
+      changingPassword: changingPassword ?? this.changingPassword,
       deletionCancelled: deletionCancelled ?? this.deletionCancelled,
       errorCode: errorCode != null ? errorCode() : this.errorCode,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
@@ -71,6 +84,7 @@ final class AuthController extends StateNotifier<AuthState> {
     required this.api,
     required this.tokenStore,
     required this.gate,
+    this.onboardingGate,
   }) : super(const AuthState());
 
   /// 认证接口。
@@ -81,6 +95,10 @@ final class AuthController extends StateNotifier<AuthState> {
 
   /// 路由门禁。
   final AuthGate gate;
+
+  /// 新手引导门禁（可选；登录/注册响应 onboardingStatus 为
+  /// completed/skipped 时同步为已完成，防止老用户重装被重导）。
+  final OnboardingGate? onboardingGate;
 
   /// 启动时恢复会话：本地有 refreshToken 即视为登录
   /// （accessToken 过期由拦截器 401 refresh 无感续期）。
@@ -115,8 +133,11 @@ final class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  /// A2 手机号+验证码登录；成功持久化令牌并翻转门禁。
-  Future<void> login({required String phone, required String code}) async {
+  /// A2 手机号+验证码登录（备用方式，UI 已降级）；成功持久化令牌并翻转门禁。
+  Future<void> loginWithPhone({
+    required String phone,
+    required String code,
+  }) async {
     state = state.copyWith(
       loggingIn: true,
       errorCode: () => null,
@@ -124,18 +145,8 @@ final class AuthController extends StateNotifier<AuthState> {
     );
     try {
       final session = await api.loginPhone(phone: phone, code: code);
-      await tokenStore.saveTokens(
-        accessToken: session.accessToken,
-        refreshToken: session.refreshToken,
-      );
-      gate.loggedIn = true;
-      state = state.copyWith(
-        status: AuthStatus.loggedIn,
-        userId: session.userId,
-        isNewUser: session.isNewUser,
-        deletionCancelled: session.deletionCancelled,
-        loggingIn: false,
-      );
+      await _applySession(session);
+      state = state.copyWith(loggingIn: false);
     } on ApiException catch (e) {
       state = state.copyWith(
         loggingIn: false,
@@ -144,6 +155,108 @@ final class AuthController extends StateNotifier<AuthState> {
       );
       rethrow;
     }
+  }
+
+  /// R1 用户名+密码注册；成功即自动登录（持久化令牌并翻转门禁）。
+  Future<void> register({
+    required String username,
+    required String password,
+  }) async {
+    state = state.copyWith(
+      registering: true,
+      errorCode: () => null,
+      errorMessage: () => null,
+    );
+    try {
+      final session = await api.register(
+        username: username,
+        password: password,
+      );
+      await _applySession(session);
+      state = state.copyWith(registering: false);
+    } on ApiException catch (e) {
+      state = state.copyWith(
+        registering: false,
+        errorCode: () => e.code,
+        errorMessage: () => e.message,
+      );
+      rethrow;
+    }
+  }
+
+  /// R2 用户名+密码登录；成功持久化令牌并翻转门禁。
+  Future<void> loginWithPassword({
+    required String username,
+    required String password,
+  }) async {
+    state = state.copyWith(
+      loggingIn: true,
+      errorCode: () => null,
+      errorMessage: () => null,
+    );
+    try {
+      final session = await api.login(username: username, password: password);
+      await _applySession(session);
+      state = state.copyWith(loggingIn: false);
+    } on ApiException catch (e) {
+      state = state.copyWith(
+        loggingIn: false,
+        errorCode: () => e.code,
+        errorMessage: () => e.message,
+      );
+      rethrow;
+    }
+  }
+
+  /// R3 修改密码（需登录）。成功后服务端已吊销全部 refresh token，
+  /// 本地立即清会话并翻转门禁 → 路由强制回 /login（契约 §R3）。
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    state = state.copyWith(
+      changingPassword: true,
+      errorCode: () => null,
+      errorMessage: () => null,
+    );
+    try {
+      await api.changePassword(
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+      );
+    } on ApiException catch (e) {
+      state = state.copyWith(
+        changingPassword: false,
+        errorCode: () => e.code,
+        errorMessage: () => e.message,
+      );
+      rethrow;
+    }
+    await tokenStore.clear();
+    gate.loggedIn = false;
+    state = const AuthState(status: AuthStatus.loggedOut);
+  }
+
+  /// 会话落库 + 门禁翻转（登录/注册共用；服务端 onboardingStatus
+  /// 为 completed 时同步本地引导门禁，避免老用户重装后被重导）。
+  Future<void> _applySession(AuthSession session) async {
+    await tokenStore.saveTokens(
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
+    );
+    final onboardingGate = this.onboardingGate;
+    if (onboardingGate != null &&
+        (session.onboardingStatus == 'completed' ||
+            session.onboardingStatus == 'skipped')) {
+      onboardingGate.completed = true;
+    }
+    gate.loggedIn = true;
+    state = state.copyWith(
+      status: AuthStatus.loggedIn,
+      userId: session.userId,
+      isNewUser: session.isNewUser,
+      deletionCancelled: session.deletionCancelled,
+    );
   }
 
   /// 登出：A6 尽力而为通知服务端，本地清会话并翻转门禁（T15：

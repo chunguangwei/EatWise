@@ -106,10 +106,17 @@ void main() {
     // 我的 Tab：M7 设置页（账号/隐私/偏好/提醒/关于分组，D-18）
     await tester.tap(find.text('我的'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
     expect(find.text('设置'), findsOneWidget);
     expect(find.text('账号'), findsOneWidget);
     expect(find.text('隐私'), findsOneWidget);
+    // 账号组扩充后偏好组在首屏外：滚动至可见再断言（ListView 懒构建）
+    await tester.scrollUntilVisible(
+      find.text('语言'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pump();
     expect(find.text('语言'), findsOneWidget);
     expect(find.text('主题'), findsOneWidget);
 

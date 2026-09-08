@@ -204,7 +204,18 @@
       "badgePending": "审核中",
       "badgeApproved": "已共享",
       "badgeRejected": "未通过",
-      "badgeCommunity": "社区"
+      "badgeCommunity": "社区",
+      "contributions": {
+        "title": "我的贡献",
+        "filterAll": "全部",
+        "empty": "暂无贡献记录",
+        "statusPending": "审核中",
+        "statusApproved": "已通过",
+        "statusRejected": "已拒绝",
+        "reasonLabel": "拒绝原因：${reason}",
+        "submittedAt": "提交于 ${date}",
+        "loadFailed": "加载失败，请稍后重试"
+      }
     },
     "water": {
       "title": "今日饮水",
@@ -261,6 +272,15 @@
         "afternoon": "下午好",
         "evening": "晚上好",
         "night": "这么晚还醒着？喝口水早点睡也是养生哦"
+      },
+      "endFastDialog": {
+        "title": "结束断食",
+        "elapsed": "已断食 ${hours} 小时 ${minutes} 分钟",
+        "plannedHours": "计划 ${hours} 小时",
+        "plannedHoursMinutes": "计划 ${hours} 小时 ${minutes} 分钟",
+        "earlyWarning": "距计划结束还有 15 分钟以上，本次将记为不达标",
+        "cancel": "继续断食",
+        "confirm": "确认结束"
       }
     },
     "widget": {
@@ -430,8 +450,17 @@
       "empty": "周报还差一点点数据，记一笔或完成一次断食就生成啦"
     },
     "monthly": {
-      "title": "本月报告",
-      "placeholder": "月报完整版将于 V1.2 提供，先把周报跑起来～"
+      "prevMonth": "上一月",
+      "nextMonth": "下一月",
+      "qualified": "断食达标 ${days} 天",
+      "recordedDays": "记录 ${days} 天",
+      "avgFastingHours": "平均断食 ${hours} 小时",
+      "avgFastingHoursMinutes": "平均断食 ${hours} 小时 ${minutes} 分钟",
+      "kcalAvg": "月均热量 ${kcal} 千卡 · 目标 ${target} 千卡",
+      "macros": "蛋白质 ${protein}g · 碳水 ${carbs}g · 脂肪 ${fat}g",
+      "weightChange": "体重变化 ${value}",
+      "empty": "本月暂无记录",
+      "emptyHint": "记一笔饮食或完成一次断食，月报就会长出来～"
     }
   },
   "streak": {
@@ -493,18 +522,20 @@
       "about": "关于"
     },
     "account": {
-      "phone": "手机号",
-      "notLoggedIn": "未登录",
-      "logout": "登出",
-      "deleteAccount": "删除账号",
-      "deleteConfirmTitle": "删除账号？",
-      "deleteConfirmBody": "删除后，你的手机号、基础资料、全部饮食/断食记录等个人数据将被物理删除，且不可恢复。申请后进入 7 天冷静期：冷静期内登录即视为撤销删除，第 7 天执行删除。",
-      "deleteConfirmAction": "确认删除",
-      "deleteRequested": "删除申请已提交，账号进入 7 天冷静期",
-      "deletionScheduled": "删除已预约，${days} 日后执行，到期前可撤销",
       "cancelDeletion": "撤销删除",
+      "changePassword": "修改密码",
+      "contributions": "我的贡献",
+      "deleteAccount": "删除账号",
+      "deleteConfirmAction": "确认删除",
+      "deleteConfirmBody": "删除后，你的手机号、基础资料、全部饮食/断食记录等个人数据将被物理删除，且不可恢复。申请后进入 7 天冷静期：冷静期内登录即视为撤销删除，第 7 天执行删除。",
+      "deleteConfirmTitle": "删除账号？",
+      "deleteRequested": "删除申请已提交，账号进入 7 天冷静期",
+      "deleteScheduledBody": "删除申请已提交。账号将于 ${date} 删除，此日期前重新登录即可撤销。",
       "deletionCancelled": "已撤销删除申请，账号恢复正常",
-      "deleteScheduledBody": "删除申请已提交。账号将于 ${date} 删除，此日期前重新登录即可撤销。"
+      "deletionScheduled": "删除已预约，${days} 日后执行，到期前可撤销",
+      "logout": "登出",
+      "notLoggedIn": "未登录",
+      "phone": "手机号"
     },
     "privacy": {
       "privacyPolicy": "隐私政策",
@@ -621,7 +652,9 @@
       "charCount": "${n}/500",
       "addPhoto": "添加图片",
       "removePhoto": "移除图片",
-      "photoUploadTodo": "图片上传即将支持，本次先发布文字",
+      "photoUploading": "图片上传中…",
+      "photoUploadFailed": "图片上传失败",
+      "retryUpload": "重新上传",
       "streakBadge": "当前连续 ${days} 天 🔥",
       "noStreak": "完成今天的断食，打卡就会带上连胜徽章哦",
       "publish": "发布",
@@ -631,8 +664,8 @@
   },
   "auth": {
     "login": {
-      "title": "手机号登录",
-      "subtitle": "未注册的手机号验证后将自动注册",
+      "title": "登录",
+      "subtitle": "使用账号密码登录",
       "phoneLabel": "手机号",
       "phoneHint": "请输入 11 位手机号",
       "codeLabel": "验证码",
@@ -644,11 +677,53 @@
       "codeSent": "验证码已发送，请查收",
       "invalidPhone": "请输入正确的手机号",
       "invalidCode": "请输入 6 位数字验证码",
-      "mockHint": "本地联调环境验证码固定为 123456"
+      "mockHint": "本地联调环境验证码固定为 123456",
+      "usernameLabel": "用户名",
+      "usernameHint": "3-20 位字母、数字或下划线",
+      "passwordLabel": "密码",
+      "passwordHint": "请输入密码",
+      "invalidUsername": "用户名需为 3-20 位字母、数字或下划线",
+      "invalidPassword": "密码需为 8-64 位",
+      "noAccount": "没有账号？",
+      "toRegister": "注册",
+      "otherLoginMethods": "其他登录方式"
     },
     "logout": "退出登录",
     "logoutConfirm": "确定退出登录吗？未同步的记录会保留在本机。",
-    "loggedOut": "已退出登录"
+    "loggedOut": "已退出登录",
+    "register": {
+      "title": "注册",
+      "subtitle": "创建账号后即可开始使用",
+      "usernameLabel": "用户名",
+      "usernameHint": "3-20 位字母、数字或下划线",
+      "passwordLabel": "密码",
+      "passwordHint": "8-64 位，需包含字母和数字",
+      "confirmPasswordLabel": "确认密码",
+      "confirmPasswordHint": "再次输入密码",
+      "register": "注册",
+      "registering": "注册中…",
+      "passwordMismatch": "两次输入的密码不一致",
+      "invalidUsername": "用户名需为 3-20 位字母、数字或下划线"
+    },
+    "changePassword": {
+      "title": "修改密码",
+      "oldLabel": "当前密码",
+      "oldHint": "请输入当前密码",
+      "oldRequired": "请输入当前密码",
+      "newLabel": "新密码",
+      "newHint": "8-64 位，需包含字母和数字",
+      "confirmLabel": "确认新密码",
+      "confirmHint": "再次输入新密码",
+      "submit": "确认修改",
+      "submitting": "提交中…",
+      "success": "密码已修改，请重新登录",
+      "passwordMismatch": "两次输入的新密码不一致"
+    },
+    "error": {
+      "usernameTaken": "用户名已被使用",
+      "invalidCredentials": "用户名或密码错误",
+      "passwordTooWeak": "密码需 8-64 位且包含字母和数字"
+    }
   },
   "update": {
     "title": "发现新版本",

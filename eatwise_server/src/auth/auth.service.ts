@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcryptjs';
 import { err } from '../common/errors/business.exception';
 import { DataStore, RefreshTokenEntity, UserEntity } from '../common/store/data-store';
 import { hashToken, newId, newRefreshToken } from '../common/utils/id.util';
-import { DeviceDto } from './auth.dto';
+import { PASSWORD_PATTERN, DeviceDto } from './auth.dto';
 
 const SMS_CODE_TTL_SEC = 300;
 const SMS_RESEND_AFTER_SEC = 60;
@@ -94,6 +95,61 @@ export class AuthService {
       }
     }
     return { loggedOut: true };
+  }
+
+  /**
+   * 账号密码注册（D-13 修订主路径）。用户名唯一（大小写不敏感，存储小写归一化）；
+   * 密码策略在服务端最终判定（AUTH_PASSWORD_TOO_WEAK），哈希后存储永不返回。
+   */
+  async register(username: string, password: string, device?: DeviceDto) {
+    if (!PASSWORD_PATTERN.test(password)) throw err.passwordTooWeak();
+    const name = username.trim().toLowerCase();
+    if (this.store.findUserByUsername(name)) throw err.usernameTaken();
+    const user = this.store.createUser({
+      username: name,
+      passwordHash: await bcrypt.hash(password, 10),
+    });
+    const tokens = await this.issueTokens(user, device?.deviceId ?? null);
+    return { ...tokens, isNewUser: true, deletionCancelled: false, user: this.publicUser(user) };
+  }
+
+  /**
+   * 账号密码登录。用户名不存在 / 无密码（纯手机号账号）/ 密码错误 一律
+   * AUTH_INVALID_CREDENTIALS，不泄露账号存在性（防枚举）。
+   */
+  async login(username: string, password: string, device?: DeviceDto) {
+    const user = this.store.findUserByUsername(username);
+    if (!user || !user.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
+      throw err.invalidCredentials();
+    }
+    let deletionCancelled = false;
+    if (user.deletionStatus === 'pending') {
+      // 合规 §4.3：冷静期内登录即撤销注销并明示告知（同 loginPhone）
+      user.deletionStatus = null;
+      user.scheduledDeletionAt = null;
+      user.version += 1;
+      user.updatedAt = new Date();
+      deletionCancelled = true;
+    }
+    const tokens = await this.issueTokens(user, device?.deviceId ?? null);
+    return { ...tokens, isNewUser: false, deletionCancelled, user: this.publicUser(user) };
+  }
+
+  /**
+   * 修改密码（需认证）。旧密码不符 → AUTH_INVALID_CREDENTIALS；
+   * 成功后吊销该用户全部 refresh token（全端强制重新登录）。
+   * accessToken 无状态，在有效期内仍可用，下一次 refresh 起失效。
+   */
+  async changePassword(userId: string, oldPassword: string, newPassword: string) {
+    const user = this.store.users.get(userId);
+    if (!user || user.deletedAt || !user.passwordHash) throw err.invalidCredentials();
+    if (!(await bcrypt.compare(oldPassword, user.passwordHash))) throw err.invalidCredentials();
+    if (!PASSWORD_PATTERN.test(newPassword)) throw err.passwordTooWeak();
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    user.version += 1;
+    user.updatedAt = new Date();
+    this.revokeAllUserTokens(userId);
+    return { changed: true };
   }
 
   private async issueTokens(user: UserEntity, deviceId: string | null) {

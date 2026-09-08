@@ -42,6 +42,14 @@ export const err = {
   authCodeInvalid: (remainingAttempts?: number) =>
     new BusinessException('AUTH_CODE_INVALID', HttpStatus.BAD_REQUEST, { remainingAttempts }),
 
+  // 账号密码认证（D-13 修订：账号密码为主路径）
+  /** 注册用户名已被占用 */
+  usernameTaken: () => new BusinessException('AUTH_USERNAME_TAKEN', HttpStatus.CONFLICT),
+  /** 用户名不存在 / 密码错误 / 改密旧密码错误：同一码不泄露账号存在性（防枚举） */
+  invalidCredentials: () => new BusinessException('AUTH_INVALID_CREDENTIALS', HttpStatus.UNAUTHORIZED),
+  /** 密码不满足强度策略（8-64 且同时含字母和数字） */
+  passwordTooWeak: () => new BusinessException('AUTH_PASSWORD_TOO_WEAK', HttpStatus.BAD_REQUEST),
+
   // 断食
   fastingAlreadyEnded: () => new BusinessException('FASTING_ALREADY_ENDED', HttpStatus.CONFLICT),
   fastingExtendLimit: (extendRemainingMinutes: number) =>
@@ -69,4 +77,9 @@ export const err = {
   postContentRejected: (reason?: { zh: string; en: string }) =>
     new BusinessException('POST_CONTENT_REJECTED', HttpStatus.BAD_REQUEST, { reason }),
   resourceGone: () => new BusinessException('RESOURCE_GONE', HttpStatus.GONE),
+
+  // 图片上传（打卡配图）
+  uploadTypeUnsupported: () =>
+    new BusinessException('UPLOAD_TYPE_UNSUPPORTED', HttpStatus.UNSUPPORTED_MEDIA_TYPE),
+  uploadTooLarge: () => new BusinessException('UPLOAD_FILE_TOO_LARGE', HttpStatus.PAYLOAD_TOO_LARGE),
 };

@@ -79,6 +79,14 @@ class SettingsPage extends ConsumerWidget {
                     ),
                   ),
                 _SettingsTile(
+                  title: t.settings.account.changePassword,
+                  onTap: () => context.push('/settings/change-password'),
+                ),
+                _SettingsTile(
+                  title: t.settings.account.contributions,
+                  onTap: () => context.push('/profile/contributions'),
+                ),
+                _SettingsTile(
                   title: t.settings.account.logout,
                   onTap: () => _confirmLogout(context, ref),
                 ),

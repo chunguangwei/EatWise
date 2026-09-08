@@ -173,6 +173,8 @@ void main() {
     await pumpSettings(tester);
     expect(find.text('设置'), findsOneWidget);
 
+    // 账号区新增行后语言行可能落在视口外，先滚动到可见。
+    await scrollTo(tester, find.text('语言'));
     await tester.tap(find.text('语言'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
@@ -192,7 +194,8 @@ void main() {
   testWidgets('主题切换即时生效并持久化（亮/暗/跟随系统）', (tester) async {
     final container = await pumpSettings(tester);
     expect(container.read(themeModeProvider), ThemeMode.system);
-
+    // 账号区新增「修改密码」行后主题行落在视口外，先滚动到可见。
+    await scrollTo(tester, find.text('主题'));
     await tester.tap(find.text('主题'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
