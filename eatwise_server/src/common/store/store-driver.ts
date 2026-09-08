@@ -104,10 +104,7 @@ export abstract class StoreDriver {
   abstract deleteWaterLog(userId: string, clientRequestId: string): Promise<void>;
 
   /** 当日饮水明细（按 loggedAt 升序；排除 tombstone） */
-  abstract findWaterLogsByUserAndDate(
-    userId: string,
-    localDate: string,
-  ): Promise<WaterLogEntity[]>;
+  abstract findWaterLogsByUserAndDate(userId: string, localDate: string): Promise<WaterLogEntity[]>;
 
   /** syncToken 增量下游标：updatedAt > since（含 tombstone），按 (updatedAt, id) 升序 */
   abstract findWaterLogsSince(userId: string, since: Date): Promise<WaterLogEntity[]>;
@@ -230,9 +227,7 @@ export abstract class StoreDriver {
   abstract findFoodCandidateById(id: string): Promise<FoodCandidateEntity | null>;
 
   /** 管理端审核队列：status 缺省返回全部，(createdAt 升序, id 升序) 先入先审 */
-  abstract listFoodCandidates(
-    status?: FoodCandidateStatus,
-  ): Promise<FoodCandidateEntity[]>;
+  abstract listFoodCandidates(status?: FoodCandidateStatus): Promise<FoodCandidateEntity[]>;
 
   /** 用户端「我的贡献」：仅本人候选，status 缺省全状态，(createdAt 降序, id 降序) 最新在前 */
   abstract findFoodCandidatesByUser(
@@ -310,11 +305,7 @@ export abstract class StoreDriver {
   abstract hasPostReport(postId: string, userId: string): Promise<boolean>;
 
   /** 举报记录落库；(postId, userId) 唯一冲突 = 幂等重放静默 */
-  abstract createPostReport(
-    postId: string,
-    userId: string,
-    reason?: string | null,
-  ): Promise<void>;
+  abstract createPostReport(postId: string, userId: string, reason?: string | null): Promise<void>;
 
   // ===== 人工审核队列（moderation_queue，入队顺序即 seq 升序）=====
 
@@ -715,9 +706,7 @@ export class MemoryStoreDriver extends StoreDriver {
   }
 
   findCustomFoodsByUser(userId: string): Promise<CustomFoodEntity[]> {
-    return Promise.resolve(
-      [...this.store.customFoods.values()].filter((f) => f.userId === userId),
-    );
+    return Promise.resolve([...this.store.customFoods.values()].filter((f) => f.userId === userId));
   }
 
   deleteCustomFood(id: string): Promise<void> {
@@ -969,7 +958,13 @@ export class MemoryStoreDriver extends StoreDriver {
     }
     const alias = food.aliases.find((a) => a.toLowerCase().includes(ql));
     if (alias) {
-      return { food, isCustom, score: 1, matchedOn: 'alias', highlight: { field: 'aliases', text: alias } };
+      return {
+        food,
+        isCustom,
+        score: 1,
+        matchedOn: 'alias',
+        highlight: { field: 'aliases', text: alias },
+      };
     }
     return null;
   }

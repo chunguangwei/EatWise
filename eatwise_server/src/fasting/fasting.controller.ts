@@ -21,9 +21,8 @@ export class FastingController {
   async getCurrentPlan(@CurrentUser() user: AuthUser, @Headers('x-timezone') tz?: string) {
     const plan = await this.fasting.getCurrentPlan(user.userId, await this.tz(user, tz));
     const pending =
-      (await this.driver.listFastingPlansByUser(user.userId)).find(
-        (p) => p.status === 'pending',
-      ) ?? null;
+      (await this.driver.listFastingPlansByUser(user.userId)).find((p) => p.status === 'pending') ??
+      null;
     return {
       current: {
         id: plan.id,

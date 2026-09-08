@@ -27,7 +27,10 @@ const WEBP = Buffer.concat([
   Buffer.from('WEBPVP8 ', 'ascii'),
   Buffer.alloc(32, 0x01),
 ]);
-const GIF = Buffer.from('4749463839610100010080000000000021f90401000000002c000000000100010000020042', 'hex');
+const GIF = Buffer.from(
+  '4749463839610100010080000000000021f90401000000002c000000000100010000020042',
+  'hex',
+);
 
 /** e2e：图片上传 U1/U2（类型白名单 + 魔数一致性 / 5MB 上限 / 静态读取 / 路径穿越） */
 describe('Uploads (e2e)', () => {
@@ -62,7 +65,10 @@ describe('Uploads (e2e)', () => {
       .post('/v1/uploads')
       .set('Authorization', `Bearer ${token}`)
       .field('filename', name)
-      .attach('file', buf, { filename: `${name}.${type === 'image/jpeg' ? 'jpg' : type.split('/')[1]}`, contentType: type });
+      .attach('file', buf, {
+        filename: `${name}.${type === 'image/jpeg' ? 'jpg' : type.split('/')[1]}`,
+        contentType: type,
+      });
 
   it('U1 上传 png → 201 {id, url}，id 为 uuid.jpg/png/webp 形态；url 即 GET 路径', async () => {
     const res = await post(PNG, 'image/png').expect(201);
@@ -104,10 +110,7 @@ describe('Uploads (e2e)', () => {
   });
 
   it('U1 未登录 → 401', async () => {
-    await request(server)
-      .post('/v1/uploads')
-      .attach('file', PNG, 'a.png')
-      .expect(401);
+    await request(server).post('/v1/uploads').attach('file', PNG, 'a.png').expect(401);
   });
 
   it('U2 读取（无 Authorization 头）：Content-Type 按扩展名，字节与上传一致', async () => {

@@ -89,10 +89,7 @@ describe('Food contributions list (e2e)', () => {
 
   it('无贡献 → 空列表（items=[], total=0, 默认 page=1, pageSize=20）', async () => {
     const token = await login(nextPhone());
-    const res = await request(server)
-      .get('/v1/foods/contributions')
-      .set(auth(token))
-      .expect(200);
+    const res = await request(server).get('/v1/foods/contributions').set(auth(token)).expect(200);
     expect(res.body.data.items).toEqual([]);
     expect(res.body.data.total).toBe(0);
     expect(res.body.data.page).toBe(1);
@@ -110,10 +107,7 @@ describe('Food contributions list (e2e)', () => {
     const foodB = await createCustom(me, '贡献列表乙');
     const candidateB = await contribute(me, foodB);
 
-    const res = await request(server)
-      .get('/v1/foods/contributions')
-      .set(auth(me))
-      .expect(200);
+    const res = await request(server).get('/v1/foods/contributions').set(auth(me)).expect(200);
     const ids = res.body.data.items.map((i: { id: string }) => i.id);
     expect(ids).toContain(candidateA);
     expect(ids).toContain(candidateB);

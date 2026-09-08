@@ -61,15 +61,16 @@ export class PrismaStore extends StoreDriver {
   async collectUserExport(userId: string): Promise<UserDataExport | null> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user || user.deletedAt) return null;
-    const [foodEntries, fastingPlans, fastingRecords, streak, posts, waterLogs] =
-      await Promise.all([
+    const [foodEntries, fastingPlans, fastingRecords, streak, posts, waterLogs] = await Promise.all(
+      [
         this.prisma.foodEntry.findMany({ where: { userId, deletedAt: null } }),
         this.prisma.fastingPlan.findMany({ where: { userId } }),
         this.prisma.fastingRecord.findMany({ where: { userId } }),
         this.prisma.streak.findUnique({ where: { userId } }),
         this.prisma.post.findMany({ where: { userId, deletedAt: null } }),
         this.prisma.waterLog.findMany({ where: { userId, deletedAt: null } }),
-      ]);
+      ],
+    );
     return {
       generatedAt: new Date().toISOString(),
       profile: toUserEntity(user),
@@ -460,7 +461,7 @@ export class PrismaStore extends StoreDriver {
     status: FoodCandidateStatus,
     reason?: string,
   ): Promise<void> {
-    const trimmed = reason === undefined ? undefined : (reason.trim() || null);
+    const trimmed = reason === undefined ? undefined : reason.trim() || null;
     try {
       const updated = await this.prisma.foodCandidate.updateMany({
         where: { id },
@@ -584,7 +585,12 @@ export class PrismaStore extends StoreDriver {
     try {
       const updated = await this.prisma.user.updateMany({
         where: { id: userId, deletedAt: null },
-        data: { deletionStatus, scheduledDeletionAt, version: { increment: 1 }, updatedAt: new Date() },
+        data: {
+          deletionStatus,
+          scheduledDeletionAt,
+          version: { increment: 1 },
+          updatedAt: new Date(),
+        },
       });
       if (updated.count === 0) throw err.notFound();
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -1077,7 +1083,11 @@ export class PrismaStore extends StoreDriver {
       deletedAt: post.deletedAt,
     };
     try {
-      await this.prisma.post.upsert({ where: { id: post.id }, create: { id: post.id, ...data }, update: data });
+      await this.prisma.post.upsert({
+        where: { id: post.id },
+        create: { id: post.id, ...data },
+        update: data,
+      });
     } catch (e) {
       throw this.fail('savePost', e);
     }
@@ -1184,11 +1194,7 @@ export class PrismaStore extends StoreDriver {
     }
   }
 
-  async createPostReport(
-    postId: string,
-    userId: string,
-    reason?: string | null,
-  ): Promise<void> {
+  async createPostReport(postId: string, userId: string, reason?: string | null): Promise<void> {
     try {
       await this.prisma.postReport.create({
         data: { id: newId(), postId, userId, reason: reason ?? null },

@@ -14,8 +14,7 @@ export class StreakController {
   /** S1 当前 streak、历史最长、里程碑、补签卡状态 */
   @Get()
   async get(@CurrentUser() user: AuthUser, @Headers('x-timezone') tz?: string) {
-    const zone =
-      tz ?? (await this.driver.findUserById(user.userId))?.timezone ?? 'Asia/Shanghai';
+    const zone = tz ?? (await this.driver.findUserById(user.userId))?.timezone ?? 'Asia/Shanghai';
     const entity = await this.streak.recompute(user.userId);
     return this.streak.streakView(entity, zone);
   }

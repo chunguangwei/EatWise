@@ -55,11 +55,7 @@ export class SocialController {
   /** C7 举报（幂等，下架转人工复核） */
   @Post(':id/report')
   @HttpCode(200)
-  async report(
-    @CurrentUser() user: AuthUser,
-    @Param('id') id: string,
-    @Body() dto: ReportPostDto,
-  ) {
+  async report(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: ReportPostDto) {
     return await this.social.report(user.userId, id, dto.reason);
   }
 }

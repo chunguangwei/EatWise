@@ -40,7 +40,8 @@ export interface UploadedImage {
  */
 export function sniffImageMimetype(buffer: Buffer): string | undefined {
   if (buffer.length >= 8 && buffer.subarray(0, 8).equals(PNG_MAGIC)) return 'image/png';
-  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff)
+    return 'image/jpeg';
   if (
     buffer.length >= 12 &&
     buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&

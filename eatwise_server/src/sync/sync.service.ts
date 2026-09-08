@@ -1,10 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { err } from '../common/errors/business.exception';
-import {
-  FoodEntryEntity,
-  NutritionSnapshot,
-  WaterLogEntity,
-} from '../common/store/data-store';
+import { FoodEntryEntity, NutritionSnapshot, WaterLogEntity } from '../common/store/data-store';
 import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { newId, payloadHash } from '../common/utils/id.util';
 import { NutritionService, round1 } from '../nutrition/nutrition.service';

@@ -273,8 +273,12 @@ describePg('PrismaStore 饮水 / 候选 / 举报（集成，真实 PostgreSQL）
   });
 
   it('饮水：创建落库 + 按归属日查询（升序，排除 tombstone）', async () => {
-    await store.createWaterLog(waterLog({ amountMl: 200, loggedAt: new Date('2026-09-07T09:00:00Z') }));
-    await store.createWaterLog(waterLog({ amountMl: 300, loggedAt: new Date('2026-09-07T07:30:00Z') }));
+    await store.createWaterLog(
+      waterLog({ amountMl: 200, loggedAt: new Date('2026-09-07T09:00:00Z') }),
+    );
+    await store.createWaterLog(
+      waterLog({ amountMl: 300, loggedAt: new Date('2026-09-07T07:30:00Z') }),
+    );
     await store.createWaterLog(waterLog({ localDate: '2026-09-06' }));
 
     const rows = await store.findWaterLogsByUserAndDate(userId, '2026-09-07');
@@ -453,7 +457,11 @@ describePg('PrismaStore 全量 CRUD 基座（集成，真实 PostgreSQL）', () 
     const u = await store.createUser({ phone: '+86137CRUD001' });
     expect((await store.findUserByPhone('+86137CRUD001'))!.id).toBe(u.id);
 
-    const pending = await store.updateUserDeletion(u.id, 'pending', new Date('2026-09-15T00:00:00Z'));
+    const pending = await store.updateUserDeletion(
+      u.id,
+      'pending',
+      new Date('2026-09-15T00:00:00Z'),
+    );
     expect(pending.deletionStatus).toBe('pending');
     expect(pending.scheduledDeletionAt).toEqual(new Date('2026-09-15T00:00:00Z'));
     const cleared = await store.updateUserDeletion(u.id, null, null);
@@ -478,8 +486,12 @@ describePg('PrismaStore 全量 CRUD 基座（集成，真实 PostgreSQL）', () 
       createdAt: new Date(),
       ...over,
     });
-    await store.createRefreshToken(mk('rt-hash-1', { createdAt: new Date('2026-09-01T00:00:00Z') }));
-    await store.createRefreshToken(mk('rt-hash-2', { createdAt: new Date('2026-09-02T00:00:00Z') }));
+    await store.createRefreshToken(
+      mk('rt-hash-1', { createdAt: new Date('2026-09-01T00:00:00Z') }),
+    );
+    await store.createRefreshToken(
+      mk('rt-hash-2', { createdAt: new Date('2026-09-02T00:00:00Z') }),
+    );
     await store.createRefreshToken(
       mk('rt-hash-3', { deviceId: 'dev-2', expiresAt: new Date(Date.now() - 1000) }), // 已过期
     );
@@ -545,7 +557,11 @@ describePg('PrismaStore 全量 CRUD 基座（集成，真实 PostgreSQL）', () 
       updatedAt: new Date(),
     };
     await store.saveFastingRecord(record);
-    record.eventLog.push({ at: '2026-09-08T13:00:00Z', event: 'extended', detail: { minutes: 30 } });
+    record.eventLog.push({
+      at: '2026-09-08T13:00:00Z',
+      event: 'extended',
+      detail: { minutes: 30 },
+    });
     record.extendedMinutes = 30;
     record.version = 2;
     await store.saveFastingRecord(record); // eventLog 全量回写
@@ -554,7 +570,9 @@ describePg('PrismaStore 全量 CRUD 基座（集成，真实 PostgreSQL）', () 
     expect(byEnd!.id).toBe(record.id);
     expect(byEnd!.eventLog).toHaveLength(2);
     expect(byEnd!.eventLog[1].detail).toEqual({ minutes: 30 });
-    expect(await store.findFastingRecordByPlannedEnd(userId, new Date('2027-01-01T00:00:00Z'))).toBeNull();
+    expect(
+      await store.findFastingRecordByPlannedEnd(userId, new Date('2027-01-01T00:00:00Z')),
+    ).toBeNull();
     expect((await store.findFastingRecordById(record.id))!.extendedMinutes).toBe(30);
     expect(await store.listFastingRecordsByUser(userId)).toHaveLength(1);
   });
@@ -721,12 +739,8 @@ describePg('PrismaStore 全量 CRUD 基座（集成，真实 PostgreSQL）', () 
       newer.id,
       older.id,
     ]);
-    expect(
-      only((await store.listPostsForAdmin('rejected')).map((p) => p.id)),
-    ).toHaveLength(0);
-    expect(
-      only((await store.listPostsForAdmin('reported')).map((p) => p.id)),
-    ).toHaveLength(0);
+    expect(only((await store.listPostsForAdmin('rejected')).map((p) => p.id))).toHaveLength(0);
+    expect(only((await store.listPostsForAdmin('reported')).map((p) => p.id))).toHaveLength(0);
     expect((await store.listPostsForAdmin(undefined)).length).toBeGreaterThanOrEqual(3);
 
     // tombstone 排除
@@ -1050,7 +1064,11 @@ describePg('PrismaStore auth / 食物搜索 / 候选 / 晋升（集成，真实 
       'it-search-mine', // 本人自定义整体置后
     ]);
     expect(hits[0]).toMatchObject({ isCustom: false, score: 3, matchedOn: 'nameEn' });
-    expect(hits[3]).toMatchObject({ score: 1, matchedOn: 'alias', highlight: { text: 'seashell' } });
+    expect(hits[3]).toMatchObject({
+      score: 1,
+      matchedOn: 'alias',
+      highlight: { text: 'seashell' },
+    });
     expect(hits[4]).toMatchObject({ isCustom: true, score: 3 });
 
     // 无 userId → 仅内置/共享（含他人/本人自定义均不可见）

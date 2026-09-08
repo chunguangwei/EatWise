@@ -64,9 +64,7 @@ export class UserService {
   async requestDeletion(userId: string) {
     const user = await this.mustGet(userId);
     if (user.deletionStatus === 'pending') return this.deletionView(user);
-    const scheduled = new Date(
-      new Date().getTime() + DELETION_COOLING_OFF_DAYS * 24 * 3600 * 1000,
-    );
+    const scheduled = new Date(new Date().getTime() + DELETION_COOLING_OFF_DAYS * 24 * 3600 * 1000);
     const updated = await this.driver.updateUserDeletion(userId, 'pending', scheduled);
     await this.revokeAllTokens(userId);
     return this.deletionView(updated);

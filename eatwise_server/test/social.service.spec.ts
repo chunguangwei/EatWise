@@ -234,9 +234,9 @@ describe('社区打卡（M5 P1 / D-17 先审后发）', () => {
     expect(reviewed.reportCount).toBe(1);
     expect(store.moderationQueue.some((q) => q.postId === post.id)).toBe(false);
     // 同状态重复审核 → 409
-    await expect(
-      social.adminReview(post.id, { action: 'approve' }),
-    ).rejects.toThrow(expect.objectContaining({ code: 'CONFLICT' }) as unknown as Error);
+    await expect(social.adminReview(post.id, { action: 'approve' })).rejects.toThrow(
+      expect.objectContaining({ code: 'CONFLICT' }) as unknown as Error,
+    );
     // 恢复后他人可见
     expect((await social.feed(otherId)).items.map((i) => i.id)).toContain(post.id);
   });
