@@ -103,5 +103,4 @@ python3 eatwise_data/scripts/build_seed.py       # 生成 foods.seed.json + 校�
 
 - 决策锚点：`docs/00-决策记录-开放问题拍板-v1.0.md`
 - 开发命令与踩坑速查：`AGENTS.md`
-- 各模块规格：`docs/specs/`；API：`docs/tech/后端API契约-v1.0.md`；埋点：`docs/tech/埋点规范与事件字典-v1.0.md`
-- 排期与准备清单：`docs/plan/里程碑排期与开发准备清单-v1.0.md`
+- 各模块规格：`docs/specs/`；API：`docs/tech/后端API契约-v1.0.md`；埋点：`docs/tech/埋点规范与事件字典-v1.0.md`；部署：`docs/tech/部署-海外上线-v1.0.md`
