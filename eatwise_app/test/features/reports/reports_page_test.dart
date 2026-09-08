@@ -11,6 +11,7 @@ import 'package:eatwise/features/reports/application/weight_log_store.dart';
 import 'package:eatwise/features/reports/presentation/reports_page.dart';
 import 'package:eatwise/features/reports/presentation/trend_section.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -95,6 +96,11 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light(),
+            // 与 main.dart 对齐：slang locale + 官方 delegates，
+            // DateFormat 才能按当前语言取到日期符号（zh_CN 等）。
+            locale: LocaleSettings.currentLocale.flutterLocale,
+            supportedLocales: AppLocaleUtils.supportedLocales,
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
             home: const ReportsPage(),
           ),
         ),
@@ -132,8 +138,9 @@ void main() {
     await tester.pump();
     // 周报空态。
     expect(find.text('周报还差一点点数据，记一笔或完成一次断食就生成啦'), findsOneWidget);
-    // 月报占位（标注 V1.2）。
-    expect(find.text('月报完整版将于 V1.2 提供，先把周报跑起来～'), findsOneWidget);
+    // 月报卡：月份标题 + 空态引导。
+    expect(find.text('2026年7月'), findsOneWidget);
+    expect(find.text('本月暂无记录'), findsOneWidget);
 
     await unmount(tester);
   });
@@ -192,6 +199,52 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('月报卡：月份切换（未来月不可达）+ 四项统计 + 切到空月走空态', (tester) async {
+    await seedNutrition('2026-07-26', 2000, entries: 3);
+    await seedNutrition('2026-07-28', 1600);
+    await seedFast('2026-07-26', 16);
+    await seedFast('2026-07-27', 14, qualified: false);
+    await WeightLogStore(prefs).save('2026-07-26', 65.0);
+    await WeightLogStore(prefs).save('2026-07-28', 64.4);
+    await pumpPage(tester);
+
+    // 月报卡在首屏外，滚动露出。
+    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // 当月（2026-07）四项统计。
+    expect(find.text('断食达标 1 天'), findsOneWidget); // 仅 7/26 达标
+    expect(find.text('记录 3 天'), findsOneWidget); // 断食 7/26、7/27 ∪ 饮食 7/26、7/28
+    expect(find.text('平均断食 15 小时'), findsOneWidget); // (16+14)/2
+    expect(find.text('月均热量 1800 千卡 · 目标 2000 千卡'), findsOneWidget);
+    expect(find.text('蛋白质 100g · 碳水 200g · 脂肪 60g'), findsOneWidget);
+    expect(find.text('体重变化 −0.6 kg'), findsOneWidget);
+
+    // 下一月是未来月（now=2026-07-28）→ 禁用；上一月可切。
+    final nextButton = find.ancestor(
+      of: find.byIcon(Icons.chevron_right),
+      matching: find.byType(IconButton),
+    );
+    expect(tester.widget<IconButton>(nextButton).onPressed, isNull);
+    await tester.tap(find.byIcon(Icons.chevron_left));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('2026年6月'), findsOneWidget);
+    // 6 月无数据 → 空态。
+    expect(find.text('本月暂无记录'), findsOneWidget);
+    expect(find.text('断食达标 1 天'), findsNothing);
+
+    // 从 6 月可以回到 7 月。
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('2026年7月'), findsOneWidget);
+    expect(find.text('断食达标 1 天'), findsOneWidget);
+
+    await unmount(tester);
+  });
+
   testWidgets('英文渲染：维度/范围/周报双语', (tester) async {
     await LocaleSettings.setLocale(AppLocale.en);
     await pumpPage(tester);
@@ -214,7 +267,8 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -600));
     await tester.pump();
     expect(find.text('This week'), findsOneWidget);
-    expect(find.text('This month'), findsOneWidget);
+    expect(find.text('July 2026'), findsOneWidget);
+    expect(find.text('No records this month yet'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await unmount(tester);

@@ -7,6 +7,7 @@ import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart'
     show nutritionGoalProvider;
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart'
     show dateOnly, localDateOf;
+import 'package:eatwise/features/reports/application/monthly_report.dart';
 import 'package:eatwise/features/reports/application/report_aggregation.dart';
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -271,6 +272,72 @@ final FutureProvider<WeeklyReportStats> weeklyReportProvider =
           for (final r in fasts)
             if (r.qualified) r.attributionDate,
         },
+        goal: ref.watch(nutritionGoalProvider),
+      );
+    });
+
+/// 月报选中月份（每月 1 日；不可切换到未来月）。
+final NotifierProvider<MonthlyReportMonthController, DateTime>
+monthlyReportMonthProvider =
+    NotifierProvider<MonthlyReportMonthController, DateTime>(
+      MonthlyReportMonthController.new,
+    );
+
+/// 月报月份控制器（默认当月；下一月在未来时停在当月）。
+class MonthlyReportMonthController extends Notifier<DateTime> {
+  @override
+  DateTime build() {
+    final now = ref.watch(reportsNowProvider);
+    return DateTime(now.year, now.month, 1);
+  }
+
+  /// 上一月。
+  void previous() => state = DateTime(state.year, state.month - 1, 1);
+
+  /// 下一月（未来月不可达，多次调用安全）。
+  void next() {
+    final now = dateOnly(ref.read(reportsNowProvider));
+    final current = DateTime(now.year, now.month, 1);
+    final candidate = DateTime(state.year, state.month + 1, 1);
+    if (!candidate.isAfter(current)) state = candidate;
+  }
+}
+
+/// 月报（选中自然月，本地生成，独立于趋势窗口单独取数）。
+///
+/// 当月范围终点取今天（未过完的月份不做未来统计）。
+final FutureProvider<MonthlyReport> monthlyReportProvider =
+    FutureProvider<MonthlyReport>((ref) async {
+      final monthStart = ref.watch(monthlyReportMonthProvider);
+      final now = dateOnly(ref.watch(reportsNowProvider));
+      final from = localDateOf(monthStart);
+      final monthEnd = DateTime(monthStart.year, monthStart.month + 1, 0);
+      final to = localDateOf(monthEnd.isBefore(now) ? monthEnd : now);
+      final source = ref.watch(reportsDataSourceProvider);
+      final caches = await source.nutritionRange(from, to);
+      final fasts = await source.fastingRange(from, to);
+      final weights = await source.weightRange(from, to);
+      return computeMonthlyReport(
+        month: monthStart,
+        fastingHoursByDate: <String, double>{
+          for (final r in fasts) r.attributionDate: r.actualSec / 3600,
+        },
+        qualifiedDates: <String>{
+          for (final r in fasts)
+            if (r.qualified) r.attributionDate,
+        },
+        intakeByDate: <String, DailyIntake>{
+          for (final c in caches)
+            if (c.entryCount > 0)
+              c.date: DailyIntake(
+                entryCount: c.entryCount,
+                kcal: c.kcal,
+                proteinG: c.proteinG,
+                carbG: c.carbG,
+                fatG: c.fatG,
+              ),
+        },
+        weightByDate: weights,
         goal: ref.watch(nutritionGoalProvider),
       );
     });
