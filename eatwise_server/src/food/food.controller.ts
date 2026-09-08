@@ -5,8 +5,11 @@ import { err } from '../common/errors/business.exception';
 import { EstimateService } from '../llm/estimate.service';
 import { UserThrottlerGuard } from '../llm/user-throttler.guard';
 import { BarcodeService } from './barcode/barcode.service';
+import { FoodCandidateStatus } from '../common/store/data-store';
 import { ContributeFoodDto, CreateCustomFoodDto, EstimateFoodDto } from './food.dto';
 import { FoodService } from './food.service';
+
+const CONTRIBUTION_STATUSES: FoodCandidateStatus[] = ['pending', 'approved', 'rejected'];
 
 @Controller('foods')
 export class FoodController {
@@ -75,5 +78,28 @@ export class FoodController {
     @Body() dto: ContributeFoodDto,
   ) {
     return this.food.contributeCustomFood(user.userId, foodId, dto);
+  }
+
+  /**
+   * 我的贡献列表（众包状态批量查询）：只返回本人候选，
+   * ?status=pending|approved|rejected（缺省全部），页码分页（pageSize ≤50）。
+   */
+  @Get('contributions')
+  contributions(
+    @CurrentUser() user: AuthUser,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    let filter: FoodCandidateStatus | undefined;
+    if (status) {
+      if (!CONTRIBUTION_STATUSES.includes(status as FoodCandidateStatus)) {
+        throw err.validation({ status: 'must be pending|approved|rejected' });
+      }
+      filter = status as FoodCandidateStatus;
+    }
+    const page1 = Math.max(1, Number(page ?? 1) || 1);
+    const size = Math.min(50, Math.max(1, Number(pageSize ?? 20) || 20));
+    return this.food.findContributionsByUser(user.userId, filter, page1, size);
   }
 }

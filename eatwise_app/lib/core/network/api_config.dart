@@ -23,6 +23,22 @@ final class ApiConfig {
     };
   }
 
+  /// 服务端返回的相对路径 → 可直接给 Image.network/dio 用的绝对 URL。
+  ///
+  /// 上传接口按契约回 `/v1/uploads/<id>`（相对、自带版本前缀），换环境/
+  /// 换域名时客户端不用改；这里只补 origin（scheme://host[:port]），
+  /// 不拼 [baseUrl]（它已含 /v1，再拼会成 /v1/v1）。已是绝对地址的原样返回。
+  String resolveUrl(String url) {
+    if (!url.startsWith('/')) return url;
+    final base = Uri.parse(baseUrl);
+    return Uri(
+      scheme: base.scheme,
+      host: base.host,
+      port: base.hasPort ? base.port : null,
+      path: url,
+    ).toString();
+  }
+
   static const String _baseUrlOverride = String.fromEnvironment('API_BASE_URL');
 
   static ApiEnv get _envFromDefine =>

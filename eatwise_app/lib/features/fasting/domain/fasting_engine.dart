@@ -173,6 +173,22 @@ FastCycle? extendCycle(
   );
 }
 
+/// D-08 预判：若 [nowUtc] 手动结束本周期是否达标（与 closeCycle 的
+/// manualEnd 判定同口径——延长条款优先于容差条款），供确认弹窗
+/// 在结束前置警示「本次将记为不达标」。
+bool wouldManualEndQualify(
+  FastCycle cycle,
+  int nowUtc, {
+  int toleranceSec = kDefaultToleranceSec,
+}) {
+  final actual = nowUtc - cycle.startUtc;
+  final planned = cycle.plannedEndUtc - cycle.startUtc;
+  final plannedOriginal = planned - cycle.extendedMinutes * 60;
+  if (cycle.extendedMinutes > 0 && actual >= plannedOriginal) return true;
+  final earlyBy = cycle.plannedEndUtc - nowUtc; // >0 表示提前
+  return earlyBy <= toleranceSec;
+}
+
 /// 手动「结束断食」（T3/T4/T9，仅 FASTING / FASTING_EXTENDED 下可达，
 /// EATING 下防御性丢弃见 T11，由调用侧保证）。
 ///

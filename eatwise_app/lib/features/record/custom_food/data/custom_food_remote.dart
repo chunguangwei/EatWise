@@ -19,6 +19,14 @@ abstract interface class CustomFoodRemote {
   /// clientRequestId；返回候选状态 pending/approved/rejected；
   /// 机审拒收抛 400 FOOD_CONTRIBUTE_REJECTED，message 为服务端双语原因）。
   Future<String> contribute(String foodId, {required String clientRequestId});
+
+  /// 我的贡献批量查询（GET /foods/contributions，需认证，只返回本人候选；
+  /// createdAt 降序，页码分页）。[status] 缺省返回全部状态。
+  Future<FoodContributionPage> getContributions({
+    FoodContributionStatus? status,
+    int page = 1,
+    int pageSize = 20,
+  });
 }
 
 /// 估算不可用（503 ESTIMATE_UNAVAILABLE / 超时 / 网络错误）的统一判定：
@@ -110,6 +118,29 @@ final class RemoteCustomFoodApi implements CustomFoodRemote {
       throw toApiException(e);
     }
   }
+
+  @override
+  Future<FoodContributionPage> getContributions({
+    FoodContributionStatus? status,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    try {
+      final response = await dio.get<Map<String, dynamic>>(
+        '/foods/contributions',
+        queryParameters: <String, dynamic>{
+          if (status != null) 'status': foodContributionStatusName(status),
+          'page': page,
+          'pageSize': pageSize,
+        },
+      );
+      return FoodContributionPage.fromJson(
+        response.data ?? const <String, dynamic>{},
+      );
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
 }
 
 /// Fake 远程端可注入模式：成功 / 估算不可用（503）/ 离线。
@@ -147,6 +178,13 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
 
   /// 贡献幂等表（clientRequestId → 首次返回的状态）。
   final Map<String, String> _contributeIdem = <String, String>{};
+
+  /// 可注入的我的贡献列表（服务端 createdAt 降序口径由测试数据保证，Fake
+  /// 只做状态过滤 + 页码切片）。
+  List<FoodContribution> contributions = <FoodContribution>[];
+
+  /// 已收到的查询参数（`status/page/pageSize`，断言查询口径用）。
+  final List<String> receivedContributionQueries = <String>[];
 
   int _serverSeq = 0;
 
@@ -214,5 +252,29 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
     receivedContributeIds.add('$foodId:$clientRequestId');
     _contributeIdem[clientRequestId] = contributeStatus;
     return contributeStatus;
+  }
+
+  @override
+  Future<FoodContributionPage> getContributions({
+    FoodContributionStatus? status,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    if (mode == FakeCustomFoodMode.offline) {
+      throw const NetworkApiException();
+    }
+    receivedContributionQueries.add(
+      '${status == null ? 'all' : status.name}/$page/$pageSize',
+    );
+    final all = contributions
+        .where((c) => status == null || c.status == status)
+        .toList();
+    final offset = (page - 1) * pageSize;
+    return FoodContributionPage(
+      items: all.skip(offset).take(pageSize).toList(),
+      total: all.length,
+      page: page,
+      pageSize: pageSize,
+    );
   }
 }

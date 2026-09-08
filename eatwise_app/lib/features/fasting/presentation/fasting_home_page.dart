@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/exposure_tracker.dart';
+import 'package:eatwise/core/analytics/scroll_depth_tracker.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
@@ -199,7 +200,9 @@ class _TimerBody extends ConsumerWidget {
     final extendedMinutes = timer.cycle?.extendedMinutes ?? 0;
     final extendLimitReached = extendedMinutes >= kExtendMaxMinutes;
 
-    return ListView(
+    // 首页主体滚动区（包进 ScrollDepthTracker 前先成型，避免整棵子树
+    // 只因包裹而重缩进）。
+    final body = ListView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
       children: <Widget>[
         const SizedBox(height: AppSpacing.s4),
@@ -326,7 +329,9 @@ class _TimerBody extends ConsumerWidget {
           children: <Widget>[
             Expanded(
               child: FilledButton(
-                onPressed: isFasting ? controller.endFast : null,
+                onPressed: isFasting
+                    ? () => _showEndFastDialog(context, ref)
+                    : null,
                 style: FilledButton.styleFrom(
                   backgroundColor: colors.brandPrimary,
                   disabledBackgroundColor: colors.border.withValues(alpha: 0.3),
@@ -370,6 +375,91 @@ class _TimerBody extends ConsumerWidget {
         MiniSignalCards(onTap: () => context.go('/data')),
         const SizedBox(height: AppSpacing.s8),
       ],
+    );
+
+    // 首页滚动深度（§4.2 scroll_depth；25/50/75/100 档位，session 内
+    // 同档位只报一次；短内容不足一屏自动按 100 收口）。
+    return ScrollDepthTracker(page: 'home', child: body);
+  }
+
+  /// 结束断食两步确认弹窗（§3.2：点按钮先报 fasting_end_click，弹窗内
+  /// 「确认结束」→ fasting_end_confirm + 执行结束；「继续断食」→
+  /// fasting_end_cancel）。D-08 预判不达标时展示警示文案。
+  void _showEndFastDialog(BuildContext context, WidgetRef ref) {
+    final t = Translations.of(context);
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final controller = ref.read(fastingTimerControllerProvider.notifier);
+    final cycle = timer.cycle;
+    // EATING 下按钮置灰不可达，防御性丢弃（T11）。
+    if (cycle == null) return;
+    controller.trackEndFastClick();
+    final elapsedSec = ref.read(fastingClockProvider)() - cycle.startUtc;
+    final plannedSec = cycle.plannedSec;
+    final willQualify = controller.wouldEndQualify();
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          t.fasting.home.endFastDialog.title,
+          style: textStyles.textXl,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              t.fasting.home.endFastDialog.elapsed(
+                hours: elapsedSec ~/ 3600,
+                minutes: (elapsedSec % 3600) ~/ 60,
+              ),
+              style: textStyles.textBase.copyWith(color: colors.textPrimary),
+            ),
+            const SizedBox(height: AppSpacing.s1),
+            Text(
+              plannedSec % 60 == 0 && (plannedSec ~/ 60) % 60 == 0
+                  ? t.fasting.home.endFastDialog.plannedHours(
+                      hours: plannedSec ~/ 3600,
+                    )
+                  : t.fasting.home.endFastDialog.plannedHoursMinutes(
+                      hours: plannedSec ~/ 3600,
+                      minutes: (plannedSec % 3600) ~/ 60,
+                    ),
+              style: textStyles.textSm.copyWith(color: colors.textSecondary),
+            ),
+            if (!willQualify) ...<Widget>[
+              const SizedBox(height: AppSpacing.s3),
+              Text(
+                t.fasting.home.endFastDialog.earlyWarning,
+                style: textStyles.textSm.copyWith(color: colors.signalRed),
+              ),
+            ],
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              controller.trackEndFastCancel();
+            },
+            child: Text(
+              t.fasting.home.endFastDialog.cancel,
+              style: textStyles.textBase.copyWith(color: colors.textPrimary),
+            ),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              controller.endFast();
+            },
+            style: FilledButton.styleFrom(backgroundColor: colors.brandPrimary),
+            child: Text(
+              t.fasting.home.endFastDialog.confirm,
+              style: textStyles.textBase.copyWith(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

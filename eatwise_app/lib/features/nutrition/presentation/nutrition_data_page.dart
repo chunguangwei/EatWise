@@ -1,5 +1,6 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/analytics/scroll_depth_tracker.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
@@ -92,70 +93,76 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
         ],
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.s4),
-          children: <Widget>[
-            const DateSwitcher(),
-            const SizedBox(height: AppSpacing.s2),
-            // 一句话总结（H2，温和品牌语气）。
-            Text(
-              summaryText,
-              style: textStyles.textXl.copyWith(color: colors.textPrimary),
-            ),
-            // D-04 兜底目标 → 引导补全资料。
-            if (goal.usedFallback) ...<Widget>[
+        // 数据页滚动深度（§4.2 scroll_depth，page=analytics）。
+        child: ScrollDepthTracker(
+          page: 'analytics',
+          child: ListView(
+            padding: const EdgeInsets.all(AppSpacing.s4),
+            children: <Widget>[
+              const DateSwitcher(),
               const SizedBox(height: AppSpacing.s2),
-              _HintBanner(
-                icon: Icons.info_outline,
-                text: t.nutrition.data.summary.fallbackGoal,
-              ),
-            ],
-            // 本地预估角标（§2.6：isLocalEstimate 时注明待云端校准）。
-            if (signal.hasData && isLocalEstimate) ...<Widget>[
-              const SizedBox(height: AppSpacing.s1),
+              // 一句话总结（H2，温和品牌语气）。
               Text(
-                t.nutrition.data.localEstimate,
+                summaryText,
+                style: textStyles.textXl.copyWith(color: colors.textPrimary),
+              ),
+              // D-04 兜底目标 → 引导补全资料。
+              if (goal.usedFallback) ...<Widget>[
+                const SizedBox(height: AppSpacing.s2),
+                _HintBanner(
+                  icon: Icons.info_outline,
+                  text: t.nutrition.data.summary.fallbackGoal,
+                ),
+              ],
+              // 本地预估角标（§2.6：isLocalEstimate 时注明待云端校准）。
+              if (signal.hasData && isLocalEstimate) ...<Widget>[
+                const SizedBox(height: AppSpacing.s1),
+                Text(
+                  t.nutrition.data.localEstimate,
+                  style: textStyles.textXs.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.s6),
+              // 信号灯区：无记录走空态，不出现误导性信号灯（D-05）。
+              if (signal.hasData && intake != null)
+                SignalCardsGrid(
+                  intake: intake,
+                  signal: signal,
+                  goal: goal,
+                  mealSegment: mealSegment,
+                  exposureDateKey: '$dateOffset',
+                  onCardTap: (nutrient, verdict) {
+                    // 信号灯卡点击（§3.4 signal_card_click）。
+                    ref
+                        .read(analyticsServiceProvider)
+                        .track(
+                          'signal_card_click',
+                          properties: <String, Object?>{
+                            'nutrient': _nutrientEventValue(nutrient),
+                            'signal_level': verdict.zone.name,
+                          },
+                        );
+                  },
+                )
+              else
+                const _EmptyDayState(),
+              if (signal.hasData && intake != null) ...<Widget>[
+                const SizedBox(height: AppSpacing.s8),
+                ProDetailsSection(intake: intake, goal: goal),
+              ],
+              const SizedBox(height: AppSpacing.s8),
+              const TrendChartSection(),
+              // 合规 §5.1：「非医疗建议」数据页底部常驻。
+              const SizedBox(height: AppSpacing.s6),
+              Text(
+                t.legal.disclaimer.short,
                 style: textStyles.textXs.copyWith(color: colors.textSecondary),
+                textAlign: TextAlign.center,
               ),
             ],
-            const SizedBox(height: AppSpacing.s6),
-            // 信号灯区：无记录走空态，不出现误导性信号灯（D-05）。
-            if (signal.hasData && intake != null)
-              SignalCardsGrid(
-                intake: intake,
-                signal: signal,
-                goal: goal,
-                mealSegment: mealSegment,
-                exposureDateKey: '$dateOffset',
-                onCardTap: (nutrient, verdict) {
-                  // 信号灯卡点击（§3.4 signal_card_click）。
-                  ref
-                      .read(analyticsServiceProvider)
-                      .track(
-                        'signal_card_click',
-                        properties: <String, Object?>{
-                          'nutrient': _nutrientEventValue(nutrient),
-                          'signal_level': verdict.zone.name,
-                        },
-                      );
-                },
-              )
-            else
-              const _EmptyDayState(),
-            if (signal.hasData && intake != null) ...<Widget>[
-              const SizedBox(height: AppSpacing.s8),
-              ProDetailsSection(intake: intake, goal: goal),
-            ],
-            const SizedBox(height: AppSpacing.s8),
-            const TrendChartSection(),
-            // 合规 §5.1：「非医疗建议」数据页底部常驻。
-            const SizedBox(height: AppSpacing.s6),
-            Text(
-              t.legal.disclaimer.short,
-              style: textStyles.textXs.copyWith(color: colors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-          ],
+          ),
         ),
       ),
     );

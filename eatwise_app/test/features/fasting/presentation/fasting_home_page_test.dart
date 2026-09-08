@@ -178,6 +178,9 @@ void main() {
 
     await tester.tap(find.text('结束断食'));
     await tester.pump();
+    // 两步确认弹窗（P3）：确认后才执行结束逻辑
+    await tester.tap(find.text('确认结束'));
+    await tester.pump();
     // 破壳庆祝：文案切「断食完成！…」
     expect(find.text('断食完成！身体悄悄做了次大扫除 ✨'), findsOneWidget);
     expect(
@@ -280,6 +283,8 @@ void main() {
     await pumpHome(tester, reduceMotion: true);
 
     await tester.tap(find.text('结束断食'));
+    await tester.pump();
+    await tester.tap(find.text('确认结束'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400)); // 淡入完成
     expect(find.text('断食完成 ✨'), findsOneWidget);

@@ -1,6 +1,7 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_context.dart';
 import 'package:eatwise/core/analytics/exposure_tracker.dart';
+import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
@@ -143,7 +144,8 @@ class _PostCardState extends ConsumerState<PostCard> {
               linkColor: colors.brandPrimary,
               onToggle: () => setState(() => _expanded = !_expanded),
             ),
-            // 图片（MVP URL 占位；加载失败 → 占位图，§3.2.4）。
+            // 图片：服务端回相对路径（/v1/uploads/<id>），渲染前补 origin；
+            // 加载失败 → 占位图（§3.2.4）。
             if (post.imageUrls.isNotEmpty) ...<Widget>[
               const SizedBox(height: AppSpacing.s2),
               ClipRRect(
@@ -151,7 +153,9 @@ class _PostCardState extends ConsumerState<PostCard> {
                 child: AspectRatio(
                   aspectRatio: 4 / 3,
                   child: Image.network(
-                    post.imageUrls.first,
+                    ref
+                        .read(apiConfigProvider)
+                        .resolveUrl(post.imageUrls.first),
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
                       color: colors.bgPrimary,

@@ -188,4 +188,13 @@ final class _RejectingRemote implements CustomFoodRemote {
   Future<String> contribute(String foodId, {required String clientRequestId}) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<FoodContributionPage> getContributions({
+    FoodContributionStatus? status,
+    int page = 1,
+    int pageSize = 20,
+  }) {
+    throw UnimplementedError();
+  }
 }

@@ -29,7 +29,7 @@ String pageIdForLocation(String location) {
 /// 退后台回前台构成同 session 时新开一段。Tab 切换走 [onTabSwitch]
 /// （StatefulShellRoute 的 IndexedStack 切换不产生 push/pop）。
 ///
-/// `scroll_depth` 依赖各页滚动监听，本轮未接线（留 TODO）。
+/// `scroll_depth` 由各页 `ScrollDepthTracker` 监听滚动上报（§4.2）。
 class PageStayTracker extends NavigatorObserver with WidgetsBindingObserver {
   PageStayTracker({required this.analytics, DateTime Function()? now})
     : _now = now ?? DateTime.now;

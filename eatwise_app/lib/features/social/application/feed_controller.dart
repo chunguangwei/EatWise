@@ -6,6 +6,7 @@ import 'package:eatwise/core/analytics/analytics_service.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/features/social/data/social_api.dart';
+import 'package:eatwise/features/social/data/upload_api.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart'
     show newClientRequestId;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -105,6 +106,11 @@ final class PublishFailed extends PublishResult {
 /// 社区接口 Provider（测试 override 为桩实现）。
 final socialApiProvider = Provider<SocialApi>((ref) {
   return SocialApi(ref.watch(apiDioProvider));
+});
+
+/// 图片上传接口 Provider（测试 override 为桩实现）。
+final uploadApiProvider = Provider<UploadApi>((ref) {
+  return UploadApi(ref.watch(apiDioProvider));
 });
 
 /// 打卡流控制器（M5 P1：游标分页 / 下拉刷新 / 点赞乐观更新 /

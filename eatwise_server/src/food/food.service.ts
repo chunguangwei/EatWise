@@ -214,6 +214,36 @@ export class FoodService {
   }
 
   /**
+   * 用户端：我的贡献批量查询（众包状态列表）。只返回本人候选；
+   * status 缺省返回全部状态；createdAt 降序（最新在前），页码分页（page 从 1 起）。
+   * 返回精简视图（不含营养/名称——食物名由客户端按 foodId 本地解析）。
+   */
+  findContributionsByUser(
+    userId: string,
+    status: FoodCandidateStatus | undefined,
+    page = 1,
+    pageSize = 20,
+  ) {
+    const all = [...this.store.foodCandidates.values()]
+      .filter((c) => c.userId === userId && (!status || c.status === status))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id));
+    const offset = (page - 1) * pageSize;
+    return {
+      items: all.slice(offset, offset + pageSize).map((c) => ({
+        id: c.id,
+        foodId: c.foodId,
+        status: c.status,
+        reason: c.reason,
+        createdAt: c.createdAt.toISOString(),
+        updatedAt: c.updatedAt.toISOString(),
+      })),
+      total: all.length,
+      page,
+      pageSize,
+    };
+  }
+
+  /**
    * 管理端：审核候选。
    * approve → 自定义食物晋升为共享食物（原 id 不变，isCustom=false 入共享库，全用户 K1 可见，
    * source='community'，createdByUserId 保留溯源）；reject → 状态 rejected + reason，

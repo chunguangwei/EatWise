@@ -4,6 +4,7 @@ import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_context.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/analytics_service.dart';
+import 'package:eatwise/core/analytics/scroll_depth_tracker.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
@@ -397,7 +398,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                           ),
                         );
                       }
-                      return ListView.builder(
+                      final resultsList = ListView.builder(
                         itemCount: foods.length,
                         itemBuilder: (context, index) {
                           final food = foods[index];
@@ -466,6 +467,14 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                             },
                           );
                         },
+                      );
+
+                      // 搜索结果区滚动深度（§4.2 scroll_depth 组件级：
+                      // component_id=search_results，容器内每档位只报一次）。
+                      return ScrollDepthTracker(
+                        page: 'record',
+                        componentId: 'search_results',
+                        child: resultsList,
                       );
                     },
                     loading: () =>

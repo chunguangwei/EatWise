@@ -291,24 +291,49 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     state = _resolve(plan, resolveState(now, plan, _location));
   }
 
-  /// 手动「结束断食」（T3/T4/T9；D-08 容差判定在 domain）。
-  /// EATING 下按钮置灰、事件防御性丢弃（T11）。
-  void endFast() {
-    final plan = state.plan;
+  /// 「结束断食」按钮点击（§3.2 fasting_end_click）：打开两步确认弹窗前
+  /// 上报；属性口径与 [endFast] 的 confirm 事件一致。
+  void trackEndFastClick() {
+    _analytics.track('fasting_end_click', properties: _endFastProps());
+  }
+
+  /// 确认弹窗「继续断食」（取消结束，§3.2 fasting_end_cancel）。
+  void trackEndFastCancel() {
+    _analytics.track('fasting_end_cancel', properties: _endFastProps());
+  }
+
+  /// D-08 预判：此刻手动结束是否达标（false = 弹窗展示不达标警示）。
+  bool wouldEndQualify() {
     final cycle = state.cycle;
-    if (plan == null || cycle == null) return;
+    if (cycle == null) return true;
+    return wouldManualEndQualify(cycle, _now());
+  }
+
+  /// 结束断食事件私有属性（§3.2：elapsed/planned/early 口径同字典）。
+  Map<String, Object?> _endFastProps() {
+    final cycle = state.cycle;
+    if (cycle == null) return const <String, Object?>{};
     final now = _now();
-    // 结束断食埋点（§3.2 fasting_end_click → fasting_end_confirm）：
-    // 〔假设〕确认弹窗未实现，当前一步确认，两事件同点上报（TODO 确认弹窗）。
-    final endProps = <String, Object?>{
+    return <String, Object?>{
       'elapsed_ms': (now - cycle.startUtc) * 1000,
       'planned_ms': cycle.plannedSec * 1000,
       'early_minutes': now >= cycle.plannedEndUtc
           ? 0
           : ((cycle.plannedEndUtc - now) ~/ 60),
     };
-    _analytics.track('fasting_end_click', properties: endProps);
-    _analytics.track('fasting_end_confirm', properties: endProps);
+  }
+
+  /// 手动「结束断食」（T3/T4/T9；D-08 容差判定在 domain）。
+  /// EATING 下按钮置灰、事件防御性丢弃（T11）。
+  ///
+  /// 由确认弹窗「确认结束」触发（两步确认，§3.2：click 在打开弹窗时
+  /// 由 [trackEndFastClick] 上报，confirm 在此上报）。
+  void endFast() {
+    final plan = state.plan;
+    final cycle = state.cycle;
+    if (plan == null || cycle == null) return;
+    final now = _now();
+    _analytics.track('fasting_end_confirm', properties: _endFastProps());
     final record = manualEndFast(cycle, now, _location);
     _analytics.track(
       'fasting_state_change',

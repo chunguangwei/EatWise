@@ -15,6 +15,7 @@ import { NutritionModule } from './nutrition/nutrition.module';
 import { SocialModule } from './social/social.module';
 import { StreakModule } from './streak/streak.module';
 import { SyncModule } from './sync/sync.module';
+import { UploadsModule } from './uploads/uploads.module';
 import { UserModule } from './user/user.module';
 
 @Module({
@@ -33,6 +34,7 @@ import { UserModule } from './user/user.module';
     SocialModule,
     StreakModule,
     SyncModule,
+    UploadsModule,
   ],
   controllers: [HealthController],
   providers: [

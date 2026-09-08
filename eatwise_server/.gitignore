@@ -5,3 +5,5 @@ coverage/
 *.log
 # 管理控制台运行时配置（含 LLM apiKey 覆盖项，不入库）
 data/
+# 打卡配图本地上传目录（MVP 本地磁盘存储，后续迁 CDN 后清理）
+/uploads/
