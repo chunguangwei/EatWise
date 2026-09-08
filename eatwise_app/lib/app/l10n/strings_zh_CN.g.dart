@@ -1943,6 +1943,24 @@ class Translations$auth$register$zh_CN {
 	/// zh-CN: '两次输入的密码不一致'
 	String get passwordMismatch => '两次输入的密码不一致';
 
+	/// zh-CN: '我已阅读并同意'
+	String get agreePrefix => '我已阅读并同意';
+
+	/// zh-CN: '和'
+	String get agreeAnd => '和';
+
+	/// zh-CN: '请先阅读并同意隐私政策与用户协议'
+	String get agreeRequired => '请先阅读并同意隐私政策与用户协议';
+
+	/// zh-CN: '密码强度：弱'
+	String get strengthWeak => '密码强度：弱';
+
+	/// zh-CN: '密码强度：中'
+	String get strengthMedium => '密码强度：中';
+
+	/// zh-CN: '密码强度：强'
+	String get strengthStrong => '密码强度：强';
+
 	/// zh-CN: '用户名需为 3-20 位字母、数字或下划线'
 	String get invalidUsername => '用户名需为 3-20 位字母、数字或下划线';
 }
@@ -3194,18 +3212,24 @@ extension on Translations {
 			'auth.register.register' => '注册',
 			'auth.register.registering' => '注册中…',
 			'auth.register.passwordMismatch' => '两次输入的密码不一致',
+			'auth.register.agreePrefix' => '我已阅读并同意',
+			'auth.register.agreeAnd' => '和',
+			'auth.register.agreeRequired' => '请先阅读并同意隐私政策与用户协议',
+			'auth.register.strengthWeak' => '密码强度：弱',
+			'auth.register.strengthMedium' => '密码强度：中',
+			'auth.register.strengthStrong' => '密码强度：强',
 			'auth.register.invalidUsername' => '用户名需为 3-20 位字母、数字或下划线',
 			'auth.changePassword.title' => '修改密码',
 			'auth.changePassword.oldLabel' => '当前密码',
 			'auth.changePassword.oldHint' => '请输入当前密码',
+			_ => null,
+		} ?? switch (path) {
 			'auth.changePassword.oldRequired' => '请输入当前密码',
 			'auth.changePassword.newLabel' => '新密码',
 			'auth.changePassword.newHint' => '8-64 位，需包含字母和数字',
 			'auth.changePassword.confirmLabel' => '确认新密码',
 			'auth.changePassword.confirmHint' => '再次输入新密码',
 			'auth.changePassword.submit' => '确认修改',
-			_ => null,
-		} ?? switch (path) {
 			'auth.changePassword.submitting' => '提交中…',
 			'auth.changePassword.success' => '密码已修改，请重新登录',
 			'auth.changePassword.passwordMismatch' => '两次输入的新密码不一致',

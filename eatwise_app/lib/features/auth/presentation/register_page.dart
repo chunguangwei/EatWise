@@ -8,9 +8,11 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/auth/presentation/auth_error.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 /// 注册页（R1：用户名+密码，注册成功即自动登录）。
 ///
@@ -30,12 +32,28 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+  bool _agreed = false;
+  int _passwordStrengthValue = 0;
 
   /// 用户名：3-20 位字母/数字/下划线（契约 R1）。
   static final RegExp _username = RegExp(r'^[A-Za-z0-9_]{3,20}$');
 
   @override
+  void initState() {
+    super.initState();
+    _passwordController.addListener(_onPasswordChanged);
+  }
+
+  void _onPasswordChanged() {
+    setState(
+      () =>
+          _passwordStrengthValue = _passwordStrength(_passwordController.text),
+    );
+  }
+
+  @override
   void dispose() {
+    _passwordController.removeListener(_onPasswordChanged);
     _usernameController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
@@ -43,7 +61,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   }
 
   /// 客户端先校验再发请求：用户名格式 + 密码强度（8-64 位含字母数字）
-  /// + 两次输入一致。
+  /// + 两次输入一致 + 协议勾选。
   bool _validate() {
     final t = Translations.of(context);
     if (!_username.hasMatch(_usernameController.text.trim())) {
@@ -60,6 +78,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     }
     if (_confirmController.text != password) {
       _showError(t.auth.register.passwordMismatch);
+      return false;
+    }
+    if (!_agreed) {
+      _showError(t.auth.register.agreeRequired);
       return false;
     }
     return true;
@@ -179,6 +201,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 style: textStyles.textSm.copyWith(color: colors.signalRed),
               ),
             ],
+            const SizedBox(height: AppSpacing.s3),
+            _buildPasswordStrength(t, colors, textStyles),
+            const SizedBox(height: AppSpacing.s4),
+            _buildAgreementRow(t, colors, textStyles),
             const SizedBox(height: AppSpacing.s6),
             FilledButton(
               onPressed: busy ? null : _register,
@@ -196,6 +222,120 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildPasswordStrength(
+    Translations t,
+    AppColors colors,
+    AppTextStyles textStyles,
+  ) {
+    final strength = _passwordStrengthValue;
+    if (strength == 0 && _passwordController.text.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final labels = [
+      t.auth.register.strengthWeak,
+      t.auth.register.strengthMedium,
+      t.auth.register.strengthStrong,
+    ];
+    final barColors = [
+      colors.signalRed,
+      colors.signalYellow,
+      colors.signalGreen,
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            for (int i = 0; i < 3; i++)
+              Expanded(
+                child: Container(
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  decoration: BoxDecoration(
+                    color: i < strength
+                        ? barColors[strength - 1]
+                        : colors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.s1),
+        Text(
+          labels[strength - 1],
+          style: textStyles.textXs.copyWith(color: barColors[strength - 1]),
+        ),
+      ],
+    );
+  }
+
+  /// 密码强度：1=弱（长度≥8），2=中（含字母+数字+特殊字符），3=强（≥12位且含三类）。
+  int _passwordStrength(String password) {
+    if (password.length < 8) return 0;
+    final hasLetter = RegExp(r'[A-Za-z]').hasMatch(password);
+    final hasDigit = RegExp(r'\d').hasMatch(password);
+    final hasSpecial = RegExp(r'[^A-Za-z0-9]').hasMatch(password);
+    if (password.length >= 12 && hasLetter && hasDigit && hasSpecial) return 3;
+    if (hasLetter && hasDigit && hasSpecial) return 2;
+    return 1;
+  }
+
+  Widget _buildAgreementRow(
+    Translations t,
+    AppColors colors,
+    AppTextStyles textStyles,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        SizedBox(
+          width: 24,
+          height: 24,
+          child: Checkbox(
+            value: _agreed,
+            onChanged: (v) => setState(() => _agreed = v ?? false),
+            activeColor: colors.brandPrimary,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.s2),
+        Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _agreed = !_agreed),
+            child: RichText(
+              text: TextSpan(
+                style: textStyles.textSm.copyWith(color: colors.textPrimary),
+                children: <TextSpan>[
+                  TextSpan(text: t.auth.register.agreePrefix),
+                  TextSpan(
+                    text: t.legal.privacyPolicy.title,
+                    style: TextStyle(
+                      color: colors.brandPrimary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => context.push('/legal/privacy'),
+                  ),
+                  TextSpan(text: t.auth.register.agreeAnd),
+                  TextSpan(
+                    text: t.legal.userAgreement.title,
+                    style: TextStyle(
+                      color: colors.brandPrimary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => context.push('/legal/agreement'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

@@ -2,6 +2,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { DataStore } from '../src/common/store/data-store';
 
 const ADMIN = 'test-admin-token';
 
@@ -13,7 +14,7 @@ const ADMIN = 'test-admin-token';
 describe('Admin posts review (e2e)', () => {
   let app: INestApplication;
   let server: Parameters<typeof request>[0];
-
+  let store: DataStore;
   beforeAll(async () => {
     process.env.ADMIN_TOKEN = ADMIN;
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -22,6 +23,7 @@ describe('Admin posts review (e2e)', () => {
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
     server = app.getHttpServer() as Parameters<typeof request>[0];
+    store = app.get(DataStore);
   });
 
   afterAll(async () => {
@@ -55,6 +57,11 @@ describe('Admin posts review (e2e)', () => {
     return res.body.data.id as string;
   }
 
+  /** 开放模式下发帖即 approved；pending 夹具直接改库存状态构造。 */
+  function markPending(postId: string) {
+    store.posts.get(postId)!.auditStatus = 'pending';
+  }
+
   async function listIds(status: string): Promise<Array<Record<string, unknown>>> {
     const res = await request(server)
       .get(`/v1/admin/posts?status=${status}`)
@@ -82,6 +89,7 @@ describe('Admin posts review (e2e)', () => {
     const author = await login(nextPhone());
     const reporter = await login(nextPhone());
     const pendingId = await createPost(author, '队列待审：顺便代购一点');
+    markPending(pendingId);
     const approvedId = await createPost(author, '队列已上架打卡');
     const reportedId = await createPost(author, '队列将被举报的打卡');
     await request(server)
@@ -127,7 +135,7 @@ describe('Admin posts review (e2e)', () => {
   it('游标分页：limit 生效，nextCursor 翻页不重复', async () => {
     const author = await login(nextPhone());
     for (let i = 0; i < 3; i++) {
-      await createPost(author, `管理端分页待审 ${i} 代购`);
+      markPending(await createPost(author, `管理端分页待审 ${i} 代购`));
     }
     const page1 = await request(server)
       .get('/v1/admin/posts?status=pending&limit=2')
@@ -152,6 +160,7 @@ describe('Admin posts review (e2e)', () => {
     const author = await login(nextPhone());
     const viewer = await login(nextPhone());
     const postId = await createPost(author, '待审恢复：兼职心得分享');
+    markPending(postId);
     expect(await feedHas(viewer, postId)).toBe(false);
 
     const res = await request(server)
@@ -174,6 +183,7 @@ describe('Admin posts review (e2e)', () => {
     const author = await login(nextPhone());
     const viewer = await login(nextPhone());
     const pendingId = await createPost(author, '待审下架：刷单返利了解一下');
+    markPending(pendingId);
     const res = await request(server)
       .post(`/v1/admin/posts/${pendingId}/review`)
       .set('x-admin-token', ADMIN)

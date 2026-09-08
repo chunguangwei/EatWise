@@ -82,12 +82,13 @@ void main() {
   });
 
   group('注册页（zh-CN）', () {
-    testWidgets('渲染表单：标题/三个输入框/注册按钮，48px 输入框', (tester) async {
+    testWidgets('渲染表单：标题/三个输入框/协议勾选/注册按钮，48px 输入框', (tester) async {
       await pumpRegisterPage(tester);
       expect(find.text('注册'), findsWidgets);
       expect(find.text('用户名'), findsOneWidget);
       expect(find.text('确认密码'), findsOneWidget);
       expect(find.text('再次输入密码'), findsOneWidget);
+      expect(find.byType(Checkbox), findsOneWidget);
       final fieldSize = tester.getSize(find.byType(TextField).first);
       expect(fieldSize.height, 48);
     });
@@ -120,6 +121,37 @@ void main() {
       expect(adapter.requests, isEmpty);
     });
 
+    testWidgets('未勾选协议 → 校验提示，不发请求', (tester) async {
+      await pumpRegisterPage(tester);
+      await fillForm(
+        tester,
+        username: 'new_user',
+        password: 'passw0rd',
+        confirm: 'passw0rd',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, '注册'));
+      await tester.pump();
+      expect(find.text('请先阅读并同意隐私政策与用户协议'), findsOneWidget);
+      expect(adapter.requests, isEmpty);
+    });
+
+    testWidgets('密码强度实时提示：弱/中/强', (tester) async {
+      await pumpRegisterPage(tester);
+      final fields = find.byType(TextField);
+      // 弱：仅长度够
+      await tester.enterText(fields.at(1), 'passw0rd');
+      await tester.pump();
+      expect(find.text('密码强度：弱'), findsOneWidget);
+      // 中：字母+数字+特殊字符
+      await tester.enterText(fields.at(1), 'Passw0rd!');
+      await tester.pump();
+      expect(find.text('密码强度：中'), findsOneWidget);
+      // 强：≥12 且三类
+      await tester.enterText(fields.at(1), 'Passw0rd!123');
+      await tester.pump();
+      expect(find.text('密码强度：强'), findsOneWidget);
+    });
+
     testWidgets('注册成功 → 自动登录：令牌持久化、门禁打开', (tester) async {
       adapter.stub('/auth/register', StubResponse.json(201, registerPayload()));
       await pumpRegisterPage(tester);
@@ -129,6 +161,9 @@ void main() {
         password: 'passw0rd',
         confirm: 'passw0rd',
       );
+      // 勾选协议
+      await tester.tap(find.byType(Checkbox));
+      await tester.pump();
       await tester.tap(find.widgetWithText(FilledButton, '注册'));
       await tester.pump(const Duration(milliseconds: 100));
       await tester.pump(const Duration(milliseconds: 100));
@@ -155,6 +190,8 @@ void main() {
         password: 'passw0rd',
         confirm: 'passw0rd',
       );
+      await tester.tap(find.byType(Checkbox));
+      await tester.pump();
       await tester.tap(find.widgetWithText(FilledButton, '注册'));
       await tester.pump(const Duration(milliseconds: 100));
       await tester.pump(const Duration(milliseconds: 100));
@@ -170,6 +207,8 @@ void main() {
         password: '12345678',
         confirm: '12345678',
       );
+      await tester.tap(find.byType(Checkbox));
+      await tester.pump();
       await tester.tap(find.widgetWithText(FilledButton, '注册'));
       await tester.pump();
       expect(find.text('密码需 8-64 位且包含字母和数字'), findsOneWidget);

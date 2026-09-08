@@ -55,7 +55,7 @@ describe('社区打卡（M5 P1 / D-17 先审后发）', () => {
     }>;
   }
 
-  it('机审通过 → approved 上流，自动附带当前 streak 天数（服务端权威）', async () => {
+  it('开放模式 → 发帖直接 approved 上流，自动附带当前 streak 天数（服务端权威）', async () => {
     const today = localDateOf(new Date(), TZ);
     addQualifiedRecord(userId, addDays(today, -1));
     const post = await createPost(userId, '第 2 天，感觉不错！');
@@ -63,29 +63,24 @@ describe('社区打卡（M5 P1 / D-17 先审后发）', () => {
     expect(post.streakDaysAtPost).toBe(1); // 昨天达标、今天未达标 → currentStreak=1
   });
 
-  it('命中违规词 → 400 POST_CONTENT_REJECTED（双语 reason），不入库不上流', async () => {
-    await expect(createPost(userId, '来赌博网站看看')).rejects.toThrow(
-      expect.objectContaining({ code: 'POST_CONTENT_REJECTED' }) as unknown as Error,
-    );
-    expect(store.posts.size).toBe(0);
+  it('开放模式：违规词不再拦截，帖子上架（举报队列仍可用）', async () => {
+    const post = await createPost(userId, '来赌博网站看看');
+    expect(post.auditStatus).toBe('approved');
+    expect(store.posts.size).toBe(1);
   });
 
-  it('命中疑似词 → pending 转人工队列，他人不可见、本人可见', async () => {
+  it('开放模式：疑似词不再 pending，直接 approved 且他人可见', async () => {
     const post = await createPost(userId, '打卡顺便做个兼职推广');
-    expect(post.auditStatus).toBe('pending');
+    expect(post.auditStatus).toBe('approved');
     expect(store.moderationQueue.some((q) => q.postId === post.id && q.source === 'auto')).toBe(
-      true,
+      false,
     );
-    // 他人的流里不可见
+    // 他人的流里可见
     const otherFeed = await social.feed(otherId);
-    expect(otherFeed.items.find((i: { id: string }) => i.id === post.id)).toBeUndefined();
-    // 本人的流里可见（带审核中标记）
+    expect(otherFeed.items.find((i: { id: string }) => i.id === post.id)).toBeDefined();
+    // 本人的流里同样可见
     const ownFeed = await social.feed(userId);
-    expect(ownFeed.items.find((i: { id: string }) => i.id === post.id)).toBeTruthy();
-    // 他人详情 404
-    await expect(social.getById(otherId, post.id)).rejects.toThrow(
-      expect.objectContaining({ code: 'NOT_FOUND' }) as unknown as Error,
-    );
+    expect(ownFeed.items.find((i: { id: string }) => i.id === post.id)).toBeDefined();
   });
 
   it('发布幂等：同 clientRequestId 重放返回首次结果，不重复发帖', async () => {
@@ -220,6 +215,7 @@ describe('社区打卡（M5 P1 / D-17 先审后发）', () => {
   it('管理端队列：reported 口径（reportCount>0 且 rejected）→ approve 恢复上架并清队列', async () => {
     const post = (await createPost(userId, '待复核')) as { id: string };
     const pending = (await createPost(userId, '兼职推广引流')) as { id: string };
+    store.posts.get(pending.id)!.auditStatus = 'pending'; // 开放模式下手工构造待审态
     await social.report(otherId, post.id, '广告');
 
     expect((await social.adminList('reported')).items.map((i) => i.id)).toContain(post.id);

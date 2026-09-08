@@ -1159,6 +1159,12 @@ class _Translations$auth$register$en extends Translations$auth$register$zh_CN {
 	@override String get register => 'Sign up';
 	@override String get registering => 'Signing up…';
 	@override String get passwordMismatch => 'Passwords do not match';
+	@override String get agreePrefix => 'I have read and agree to the ';
+	@override String get agreeAnd => ' and ';
+	@override String get agreeRequired => 'Please agree to the Privacy Policy and Terms of Service first';
+	@override String get strengthWeak => 'Strength: weak';
+	@override String get strengthMedium => 'Strength: medium';
+	@override String get strengthStrong => 'Strength: strong';
 	@override String get invalidUsername => 'Username must be 3-20 letters, digits or underscores';
 }
 
@@ -2126,18 +2132,24 @@ extension on TranslationsEn {
 			'auth.register.register' => 'Sign up',
 			'auth.register.registering' => 'Signing up…',
 			'auth.register.passwordMismatch' => 'Passwords do not match',
+			'auth.register.agreePrefix' => 'I have read and agree to the ',
+			'auth.register.agreeAnd' => ' and ',
+			'auth.register.agreeRequired' => 'Please agree to the Privacy Policy and Terms of Service first',
+			'auth.register.strengthWeak' => 'Strength: weak',
+			'auth.register.strengthMedium' => 'Strength: medium',
+			'auth.register.strengthStrong' => 'Strength: strong',
 			'auth.register.invalidUsername' => 'Username must be 3-20 letters, digits or underscores',
 			'auth.changePassword.title' => 'Change password',
 			'auth.changePassword.oldLabel' => 'Current password',
 			'auth.changePassword.oldHint' => 'Enter your current password',
+			_ => null,
+		} ?? switch (path) {
 			'auth.changePassword.oldRequired' => 'Enter your current password',
 			'auth.changePassword.newLabel' => 'New password',
 			'auth.changePassword.newHint' => '8-64 characters with letters and digits',
 			'auth.changePassword.confirmLabel' => 'Confirm new password',
 			'auth.changePassword.confirmHint' => 'Re-enter your new password',
 			'auth.changePassword.submit' => 'Confirm change',
-			_ => null,
-		} ?? switch (path) {
 			'auth.changePassword.submitting' => 'Submitting…',
 			'auth.changePassword.success' => 'Password changed — please sign in again',
 			'auth.changePassword.passwordMismatch' => 'New passwords do not match',

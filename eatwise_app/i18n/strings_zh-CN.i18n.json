@@ -703,6 +703,12 @@
       "register": "注册",
       "registering": "注册中…",
       "passwordMismatch": "两次输入的密码不一致",
+      "agreePrefix": "我已阅读并同意",
+      "agreeAnd": "和",
+      "agreeRequired": "请先阅读并同意隐私政策与用户协议",
+      "strengthWeak": "密码强度：弱",
+      "strengthMedium": "密码强度：中",
+      "strengthStrong": "密码强度：强",
       "invalidUsername": "用户名需为 3-20 位字母、数字或下划线"
     },
     "changePassword": {

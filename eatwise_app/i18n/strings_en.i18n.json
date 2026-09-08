@@ -703,6 +703,12 @@
       "register": "Sign up",
       "registering": "Signing up…",
       "passwordMismatch": "Passwords do not match",
+      "agreePrefix": "I have read and agree to the ",
+      "agreeAnd": " and ",
+      "agreeRequired": "Please agree to the Privacy Policy and Terms of Service first",
+      "strengthWeak": "Strength: weak",
+      "strengthMedium": "Strength: medium",
+      "strengthStrong": "Strength: strong",
       "invalidUsername": "Username must be 3-20 letters, digits or underscores"
     },
     "changePassword": {

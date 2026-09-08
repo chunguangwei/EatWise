@@ -89,27 +89,22 @@ describe('Social posts (e2e)', () => {
     expect(gone.body.error.code).toBe('RESOURCE_GONE');
   });
 
-  it('C1 违规内容 → 400 POST_CONTENT_REJECTED（Accept-Language 双语）', async () => {
+  it('C1 开放模式：违规词不再 400，帖子上架 approved', async () => {
     const token = await login(nextPhone());
-    const zh = await request(server)
+    const res = await request(server)
       .post('/v1/posts')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientRequestId: crypto.randomUUID(), text: '赌博广告' })
-      .expect(400);
-    expect(zh.body.error.code).toBe('POST_CONTENT_REJECTED');
-    expect(zh.body.error.message).toBe('内容未通过审核，无法发布');
-    expect(zh.body.error.details.reason.zh).toContain('违规');
-
-    const en = await request(server)
-      .post('/v1/posts')
+      .expect(200);
+    expect(res.body.data.auditStatus).toBe('approved');
+    // 清理：避免影响后续分页测试的可见帖计数
+    await request(server)
+      .delete(`/v1/posts/${res.body.data.id}`)
       .set('Authorization', `Bearer ${token}`)
-      .set('Accept-Language', 'en')
-      .send({ clientRequestId: crypto.randomUUID(), text: 'come to casino' })
-      .expect(400);
-    expect(en.body.error.message).toBe('Content did not pass review and cannot be published');
+      .expect(200);
   });
 
-  it('C1 疑似内容 → pending 转人工：本人流可见，他人流不可见', async () => {
+  it('C1 开放模式：疑似词不再 pending，直接 approved 且他人可见', async () => {
     const author = await login(nextPhone());
     const viewer = await login(nextPhone());
     const created = await request(server)
@@ -117,7 +112,7 @@ describe('Social posts (e2e)', () => {
       .set('Authorization', `Bearer ${author}`)
       .send({ clientRequestId: crypto.randomUUID(), text: '打卡，顺便代购一下' })
       .expect(200);
-    expect(created.body.data.auditStatus).toBe('pending');
+    expect(created.body.data.auditStatus).toBe('approved');
     const postId = created.body.data.id as string;
 
     const ownFeed = await request(server)
@@ -130,12 +125,17 @@ describe('Social posts (e2e)', () => {
       .get('/v1/posts/feed')
       .set('Authorization', `Bearer ${viewer}`)
       .expect(200);
-    expect(otherFeed.body.data.items.some((i: { id: string }) => i.id === postId)).toBe(false);
+    expect(otherFeed.body.data.items.some((i: { id: string }) => i.id === postId)).toBe(true);
 
     await request(server)
       .get(`/v1/posts/${postId}`)
       .set('Authorization', `Bearer ${viewer}`)
-      .expect(404);
+      .expect(200);
+    // 清理：避免影响后续分页测试的可见帖计数
+    await request(server)
+      .delete(`/v1/posts/${postId}`)
+      .set('Authorization', `Bearer ${author}`)
+      .expect(200);
   });
 
   it('C7 举报 → 下架（他人流不可见）且幂等', async () => {

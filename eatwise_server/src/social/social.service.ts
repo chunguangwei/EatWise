@@ -41,11 +41,8 @@ export class SocialService {
       return hit.responseBody;
     }
 
-    // 先审后发（D-17）：机审三态分流。
-    const verdict = await this.moderation.moderate(dto.text, dto.imageUrls ?? []);
-    if (verdict.verdict === 'rejected') {
-      throw err.postContentRejected(verdict.reason);
-    }
+    // 社区开放模式（2026-09-08 决策）：发帖直接 approved 上架，不做先审后发。
+    // 举报下架/人工队列链路保留；接入审核供应商后恢复机审门（见 D-17 v2）。
 
     // streak 服务端权威计算（D-12 口径），忽略客户端提示值。
     const streakDays = (await this.streak.recompute(userId)).currentStreak;
@@ -58,8 +55,8 @@ export class SocialService {
       imageUrls: dto.imageUrls ?? [],
       streakDaysAtPost: streakDays,
       likeCount: 0,
-      auditStatus: verdict.verdict === 'manual' ? 'pending' : 'approved',
-      auditReason: verdict.reason ?? null,
+      auditStatus: 'approved',
+      auditReason: null,
       reportCount: 0,
       reportedAt: null,
       visibility: 'public',
@@ -69,14 +66,6 @@ export class SocialService {
       deletedAt: null,
     };
     await this.driver.savePost(post);
-    if (verdict.verdict === 'manual') {
-      await this.driver.enqueueModerationItem({
-        postId: post.id,
-        source: 'auto',
-        reason: verdict.reason?.zh ?? 'manual',
-        createdAt: now,
-      });
-    }
 
     const [response] = await this.postViews([post], userId);
     await this.driver.saveIdempotencyRecord({
