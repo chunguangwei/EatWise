@@ -157,3 +157,44 @@
 ## 总体结论
 
 v1.1.1 客户端主流程（注册 → 引导 → 断食 → 记录 → 社区 → 设置）页面渲染质量整体良好：无红屏、无布局错乱、无文字溢出，i18n 双语热切换干净，本轮两个重点修复项（密码强度提示崩溃、协议链接弹回）**均已确认修复**。但存在 3 个阻塞级问题：**首启授权卡死（R1）**、**数据页读写口径不一致导致统计恒空（R2）**、**D-06 换方案闭环入口缺失（R3）**，均建议进入主线修复后排期回归。R1 影响所有新用户首次启动，建议最高优先级。
+
+---
+
+## 附：v1.1.2 复验（2026-09-14 深夜，commit 938abc8 / bbf96fe）
+
+环境同前（AVD eatwise_test，后端内存模式，账号 walktest02）。截图均为 `/tmp/ui_walkthrough/recheck-*.png`。三个 🔴 修复全部复验通过，另顺手复验了 🟡 Y1。
+
+### R1 首启隐私授权卡死 → ✅ 已修复
+
+`pm clear` 全新安装 → 授权页勾选两项 → 点「Agree and continue」→ **直接进入登录页**，不再卡死。
+截图：recheck-r1-01-consent / recheck-r1-02-checked / recheck-r1-03-after-agree。
+
+### R2 数据 Tab 统计恒空 → ✅ 已修复
+
+登录 walktest02 → 记录页入账糙米 100g → 数据 Tab 当日四张信号灯卡正常显示（Calories 392 / Protein 9 / Carbs 82 / Fat 3，含目标值与建议文案），近 7 日热量趋势在 9/14 出现数据点。数值与服务端 `/v1/nutrition/daily` 一致（280 历史 + 112 新增 = 392，读写口径已对齐）。
+截图：recheck-r2-03-log-tab / recheck-r2-05-food-logged / recheck-r2-06-stats / recheck-r2-07-stats-trend。
+
+### R3 D-06 换方案不可达 → ✅ 已修复
+
+设置 → Preferences 新增「Fasting plan」入口（副标题已预告次日生效）→ 推荐页选 14:10 → Start now → **弹出「Change fasting plan：The new plan takes effect at 00:00 on 2026-09-15. Today still follows your current plan.」** → 确认后回首页，当日方案 chip 仍为 16:8（不变）；将模拟器时钟拨到 9/15 后首页方案 chip 变为 14:10，**次日 0:00 生效闭环完整验证**。
+截图：recheck-r3-01-settings / recheck-r3-02-plan-page / recheck-r3-03-plan-switched / recheck-r3-04-plan-change-dialog / recheck-r3-06-home-plan-unchanged / recheck-r3-07-home-nextday。
+
+### 补测：数据页「断食」维度 7 日趋势 → ✅
+
+拨时钟制造一条手动结束的断食记录（9/15 21:00 结束，1h）→ 9/16 查看数据 Tab → Fasting 维度 → 趋势图在 9/15 显示「1 h」数据点，weeklyFastingHours 接线正常。
+截图：recheck-r4-04-endfast-dialog / recheck-r4-06-fasting-trend-916。
+
+### 附带复验：Y1 AI 测试连接文案 → ✅ 已修复
+
+假端点测试连接失败提示由「Connection failed: connectionError」改为「Connection failed: server unreachable — check the Base URL and your network」，不再泄漏 dio 类型名。
+截图：recheck-y1-06-ai-toast。
+
+### 复验中新发现（均不阻塞）
+
+- 🔵 推荐页把备选方案升为 Top pick 后，卡片推荐理由文案未随方案切换：14:10 卡片显示「Let's start with the crowd favorite 16:8」（recheck-r3-03/04）。
+- 🟡 时钟跨天大幅拨动后重启，数据页曾出现一次空态（9/14 显示 Nothing logged），但本地聚合数据实际未丢（随后新入账一笔后 9/14 显示 392=280+112，recheck-x-01），疑似登录态恢复/时钟变化后的读取时序问题；真实使用场景（跨午夜）建议观察或补集成测试。
+- 🔵 强制杀进程跨越断食自然结束点（App 未在前台）时，该次断食未见到落记录的证据；手动结束路径已验证正常。若为设计如此（仅前台对账落记录）可忽略，建议确认跨午夜自动完成的断食是否有补录机制。
+
+### v1.1.2 复验结论
+
+三个 🔴（授权卡死/数据页口径/D-06 入口）与 Y1（AI 文案）全部修复并验证通过，断食维度趋势补测通过。模拟器时钟已拨回真实时间。剩余待办：中文搜索真机补测、上方 3 条新观察项排期。
