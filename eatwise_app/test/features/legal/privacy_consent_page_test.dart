@@ -41,6 +41,12 @@ void main() {
     final router = GoRouter(
       initialLocation: '/legal/consent',
       routes: <RouteBase>[
+        // 同意后的显式导航目标（占位页，断言离开授权页用）。
+        GoRoute(
+          path: '/',
+          builder: (context, state) =>
+              const Scaffold(body: Text('home-placeholder')),
+        ),
         GoRoute(
           path: '/legal/consent',
           builder: (context, state) => const PrivacyConsentPage(),
@@ -133,6 +139,22 @@ void main() {
     expect(store.agreedAtEpochSec, isNotNull);
     // 埋点授权默认跟随主同意（弹窗完成前保持 suppressed）。
     expect(consentStore.analyticsGranted, isTrue);
+  });
+
+  testWidgets('同意后显式导航离开授权页（回归 R1：不依赖隐式 redirect）', (tester) async {
+    await pumpConsent(tester);
+
+    await tester.tap(find.text('我已阅读并同意《用户协议》与《隐私政策》'));
+    await tester.pump();
+    await tester.tap(find.text('健康数据单独同意（可选）'));
+    await tester.pump();
+    await tester.tap(find.text('同意并继续'));
+    await tester.pumpAndSettle();
+
+    // 授权页已卸载，路由推进到 '/'（真实路由表内由 redirect 再分流到
+    // /login 或 /onboarding；此处仅断言发生了导航）。
+    expect(find.byType(PrivacyConsentPage), findsNothing);
+    expect(find.text('home-placeholder'), findsOneWidget);
   });
 
   testWidgets('仅主同意：健康数据单独同意保持拒绝，仍可继续', (tester) async {

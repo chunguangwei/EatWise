@@ -220,6 +220,7 @@ class Translations$settings$zh_CN {
 	late final Translations$settings$account$zh_CN account = Translations$settings$account$zh_CN.internal(_root);
 	late final Translations$settings$privacy$zh_CN privacy = Translations$settings$privacy$zh_CN.internal(_root);
 	late final Translations$settings$theme$zh_CN theme = Translations$settings$theme$zh_CN.internal(_root);
+	late final Translations$settings$fastingPlan$zh_CN fastingPlan = Translations$settings$fastingPlan$zh_CN.internal(_root);
 	late final Translations$settings$reminders$zh_CN reminders = Translations$settings$reminders$zh_CN.internal(_root);
 	late final Translations$settings$about$zh_CN about = Translations$settings$about$zh_CN.internal(_root);
 	late final Translations$settings$aiModel$zh_CN aiModel = Translations$settings$aiModel$zh_CN.internal(_root);
@@ -1516,6 +1517,21 @@ class Translations$settings$theme$zh_CN {
 	String get dark => '深色';
 }
 
+// Path: settings.fastingPlan
+class Translations$settings$fastingPlan$zh_CN {
+	Translations$settings$fastingPlan$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '断食方案'
+	String get title => '断食方案';
+
+	/// zh-CN: '查看或更换断食方案，新方案次日 0:00 生效'
+	String get subtitle => '查看或更换断食方案，新方案次日 0:00 生效';
+}
+
 // Path: settings.reminders
 class Translations$settings$reminders$zh_CN {
 	Translations$settings$reminders$zh_CN.internal(this._root);
@@ -1600,6 +1616,15 @@ class Translations$settings$aiModel$zh_CN {
 
 	/// zh-CN: '连接失败：${reason}'
 	String testFail({required Object reason}) => '连接失败：${reason}';
+
+	/// zh-CN: '连接失败：无法连接服务器，请检查 Base URL 与网络'
+	String get testFailNetwork => '连接失败：无法连接服务器，请检查 Base URL 与网络';
+
+	/// zh-CN: '连接失败：连接超时，请检查网络后重试'
+	String get testFailTimeout => '连接失败：连接超时，请检查网络后重试';
+
+	/// zh-CN: '连接失败：API Key 无效或无权限，请检查后重试'
+	String get testFailAuth => '连接失败：API Key 无效或无权限，请检查后重试';
 
 	/// zh-CN: '清除配置'
 	String get clear => '清除配置';
@@ -3110,6 +3135,8 @@ extension on Translations {
 			'settings.theme.system' => '跟随系统',
 			'settings.theme.light' => '浅色',
 			'settings.theme.dark' => '深色',
+			'settings.fastingPlan.title' => '断食方案',
+			'settings.fastingPlan.subtitle' => '查看或更换断食方案，新方案次日 0:00 生效',
 			'settings.reminders.notifications' => '通知设置',
 			'settings.reminders.notificationsSubtitle' => '前往系统设置管理通知权限',
 			'settings.about.version' => '版本',
@@ -3133,6 +3160,9 @@ extension on Translations {
 			'settings.aiModel.testing' => '测试中…',
 			'settings.aiModel.testOk' => '连接成功，模型服务可用',
 			'settings.aiModel.testFail' => ({required Object reason}) => '连接失败：${reason}',
+			'settings.aiModel.testFailNetwork' => '连接失败：无法连接服务器，请检查 Base URL 与网络',
+			'settings.aiModel.testFailTimeout' => '连接失败：连接超时，请检查网络后重试',
+			'settings.aiModel.testFailAuth' => '连接失败：API Key 无效或无权限，请检查后重试',
 			'settings.aiModel.clear' => '清除配置',
 			'settings.aiModel.clearConfirmTitle' => '清除 AI 模型配置？',
 			'settings.aiModel.clearConfirmBody' => '清除后，自定义食物估算将回退为服务端模型。',
@@ -3232,13 +3262,13 @@ extension on Translations {
 			'auth.register.registering' => '注册中…',
 			'auth.register.passwordMismatch' => '两次输入的密码不一致',
 			'auth.register.agreePrefix' => '我已阅读并同意',
+			_ => null,
+		} ?? switch (path) {
 			'auth.register.agreeAnd' => '和',
 			'auth.register.agreeRequired' => '请先阅读并同意隐私政策与用户协议',
 			'auth.register.strengthWeak' => '密码强度：弱',
 			'auth.register.strengthMedium' => '密码强度：中',
 			'auth.register.strengthStrong' => '密码强度：强',
-			_ => null,
-		} ?? switch (path) {
 			'auth.register.strengthTooShort' => '密码长度至少 8 位',
 			'auth.register.invalidUsername' => '用户名需为 3-20 位字母、数字或下划线',
 			'auth.changePassword.title' => '修改密码',

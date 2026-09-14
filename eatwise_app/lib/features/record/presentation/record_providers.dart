@@ -20,6 +20,8 @@ import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.da
 import 'package:eatwise/features/record/recognition/voice/speech_gateway.dart';
 import 'package:eatwise/features/record/recognition/voice/voice_text_parser.dart';
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
+import 'package:eatwise/features/streak/application/streak_controller.dart'
+    show currentUserIdProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -34,12 +36,17 @@ final Provider<RecordRemote> recordRemoteProvider = Provider<RecordRemote>((
 ///
 /// 〔集成说明〕时区用 `tz.local`，需启动时初始化 timezone 数据库
 /// （见 M2 计时模块既有做法）。
+/// userId 与读取侧（nutrition_data_controller / reports_controller）
+/// 同口径取 [currentUserIdProvider]：登录取真实 userId，未登录
+/// anonymous；否则登录用户写入落 anonymous、读取按真实 userId 查空
+/// （v1.1.1 走查 R2：数据页当日信号灯/7 日趋势恒空）。
 final Provider<RecordRepository> recordRepositoryProvider =
     Provider<RecordRepository>((ref) {
       final repo = RecordRepository(
         db: ref.watch(appDatabaseProvider),
         remote: ref.watch(recordRemoteProvider),
         location: tz.local,
+        userId: ref.watch(currentUserIdProvider),
       );
       ref.onDispose(() => unawaited(repo.dispose()));
       return repo;
@@ -173,9 +180,14 @@ final Provider<RemoteWaterLogSync> waterLogSyncProvider =
     });
 
 /// 饮水轻量记录仓库（本地落库 pending，经同步引擎上行云端）。
+/// userId 与 [recordRepositoryProvider] 同口径（[currentUserIdProvider]），
+/// 否则登录用户的饮水记录落 anonymous、趋势按真实 userId 查空。
 final Provider<WaterLogRepository> waterLogRepositoryProvider =
     Provider<WaterLogRepository>((ref) {
-      return WaterLogRepository(db: ref.watch(appDatabaseProvider));
+      return WaterLogRepository(
+        db: ref.watch(appDatabaseProvider),
+        userId: ref.watch(currentUserIdProvider),
+      );
     });
 
 /// 当日累计饮水量流（毫升，记录页轻量区展示）。

@@ -179,6 +179,13 @@ GoRouter createAppRouter({
                 path: '/settings/change-password',
                 builder: (context, state) => const ChangePasswordPage(),
               ),
+              // D-06 换方案入口（设置页「断食方案」→ 方案推荐页，触发已有
+              // 「次日 0:00 生效」确认弹窗）。不复用 /onboarding 前缀：
+              // 已完成引导用户访问 /onboarding/* 会被 redirect 弹回首页。
+              GoRoute(
+                path: '/settings/fasting-plan',
+                builder: (context, state) => const RecommendationScreen(),
+              ),
               // 我的贡献（众包状态列表，账号组入口，与 /profile 同层）。
               GoRoute(
                 path: '/profile/contributions',

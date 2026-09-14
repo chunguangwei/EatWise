@@ -228,7 +228,7 @@ void main() {
     expect(find.text(t.settings.aiModel.testOk), findsOneWidget);
   });
 
-  testWidgets('测试连接：失败显示 testFail 与原因', (tester) async {
+  testWidgets('测试连接：HTTP 401 映射为鉴权失败友好文案（不泄漏状态码拼接）', (tester) async {
     await store.save(
       const LlmConfig(provider: 'kimi', baseUrl: '', model: '', apiKey: 'sk'),
     );
@@ -242,8 +242,61 @@ void main() {
     await tester.tap(find.text(t.settings.aiModel.test));
     await tester.pumpAndSettle();
 
+    expect(find.text(t.settings.aiModel.testFailAuth), findsOneWidget);
+  });
+
+  testWidgets('测试连接：dio connectionError 映射为网络友好文案（类型名不上屏，Y1）', (tester) async {
+    await store.save(
+      const LlmConfig(provider: 'kimi', baseUrl: '', model: '', apiKey: 'sk'),
+    );
+    tester2.result = 'connectionError';
+    await pumpPage(tester);
+    final Translations t = Translations.of(
+      tester.element(find.byType(AiModelSettingsPage)),
+    );
+
+    await scrollTo(tester, find.text(t.settings.aiModel.test));
+    await tester.tap(find.text(t.settings.aiModel.test));
+    await tester.pumpAndSettle();
+
+    expect(find.text(t.settings.aiModel.testFailNetwork), findsOneWidget);
+    expect(find.textContaining('connectionError'), findsNothing);
+  });
+
+  testWidgets('测试连接：dio 超时映射为超时友好文案（Y1）', (tester) async {
+    await store.save(
+      const LlmConfig(provider: 'kimi', baseUrl: '', model: '', apiKey: 'sk'),
+    );
+    tester2.result = 'connectionTimeout';
+    await pumpPage(tester);
+    final Translations t = Translations.of(
+      tester.element(find.byType(AiModelSettingsPage)),
+    );
+
+    await scrollTo(tester, find.text(t.settings.aiModel.test));
+    await tester.tap(find.text(t.settings.aiModel.test));
+    await tester.pumpAndSettle();
+
+    expect(find.text(t.settings.aiModel.testFailTimeout), findsOneWidget);
+    expect(find.textContaining('connectionTimeout'), findsNothing);
+  });
+
+  testWidgets('测试连接：非鉴权 HTTP 状态码保留原文（便于排查）', (tester) async {
+    await store.save(
+      const LlmConfig(provider: 'kimi', baseUrl: '', model: '', apiKey: 'sk'),
+    );
+    tester2.result = 'HTTP 500';
+    await pumpPage(tester);
+    final Translations t = Translations.of(
+      tester.element(find.byType(AiModelSettingsPage)),
+    );
+
+    await scrollTo(tester, find.text(t.settings.aiModel.test));
+    await tester.tap(find.text(t.settings.aiModel.test));
+    await tester.pumpAndSettle();
+
     expect(
-      find.text(t.settings.aiModel.testFail(reason: 'HTTP 401')),
+      find.text(t.settings.aiModel.testFail(reason: 'HTTP 500')),
       findsOneWidget,
     );
   });

@@ -557,6 +557,10 @@
       "light": "Light",
       "dark": "Dark"
     },
+    "fastingPlan": {
+      "title": "Fasting plan",
+      "subtitle": "View or change your fasting plan — changes take effect at 00:00 the next day"
+    },
     "reminders": {
       "notifications": "Notification settings",
       "notificationsSubtitle": "Manage notification permission in system settings"
@@ -587,6 +591,9 @@
       "testing": "Testing…",
       "testOk": "Connection successful — model service is reachable",
       "testFail": "Connection failed: ${reason}",
+      "testFailNetwork": "Connection failed: server unreachable — check the Base URL and your network",
+      "testFailTimeout": "Connection failed: timed out — check your network and try again",
+      "testFailAuth": "Connection failed: invalid API Key or insufficient permission",
       "clear": "Clear configuration",
       "clearConfirmTitle": "Clear AI model configuration?",
       "clearConfirmBody": "After clearing, custom food estimates will fall back to the server-side model.",

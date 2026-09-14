@@ -557,6 +557,10 @@
       "light": "浅色",
       "dark": "深色"
     },
+    "fastingPlan": {
+      "title": "断食方案",
+      "subtitle": "查看或更换断食方案，新方案次日 0:00 生效"
+    },
     "reminders": {
       "notifications": "通知设置",
       "notificationsSubtitle": "前往系统设置管理通知权限"
@@ -587,6 +591,9 @@
       "testing": "测试中…",
       "testOk": "连接成功，模型服务可用",
       "testFail": "连接失败：${reason}",
+      "testFailNetwork": "连接失败：无法连接服务器，请检查 Base URL 与网络",
+      "testFailTimeout": "连接失败：连接超时，请检查网络后重试",
+      "testFailAuth": "连接失败：API Key 无效或无权限，请检查后重试",
       "clear": "清除配置",
       "clearConfirmTitle": "清除 AI 模型配置？",
       "clearConfirmBody": "清除后，自定义食物估算将回退为服务端模型。",

@@ -151,6 +151,13 @@ class SettingsPage extends ConsumerWidget {
                   trailing: _themeLabel(t, themeMode),
                   onTap: () => _pickTheme(context, ref),
                 ),
+                // D-06 换方案入口：方案推荐页（已有生效方案且窗口不同时
+                // 触发「次日 0:00 生效」确认弹窗）。
+                _SettingsTile(
+                  title: t.settings.fastingPlan.title,
+                  subtitle: t.settings.fastingPlan.subtitle,
+                  onTap: () => context.push('/settings/fasting-plan'),
+                ),
                 // 用户自定义 LLM 配置（规格 §3）：/settings/ai-model。
                 _SettingsTile(
                   title: t.settings.aiModel.title,

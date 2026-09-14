@@ -204,6 +204,7 @@ class _Translations$settings$en extends Translations$settings$zh_CN {
 	@override late final _Translations$settings$account$en account = _Translations$settings$account$en._(_root);
 	@override late final _Translations$settings$privacy$en privacy = _Translations$settings$privacy$en._(_root);
 	@override late final _Translations$settings$theme$en theme = _Translations$settings$theme$en._(_root);
+	@override late final _Translations$settings$fastingPlan$en fastingPlan = _Translations$settings$fastingPlan$en._(_root);
 	@override late final _Translations$settings$reminders$en reminders = _Translations$settings$reminders$en._(_root);
 	@override late final _Translations$settings$about$en about = _Translations$settings$about$en._(_root);
 	@override late final _Translations$settings$aiModel$en aiModel = _Translations$settings$aiModel$en._(_root);
@@ -952,6 +953,17 @@ class _Translations$settings$theme$en extends Translations$settings$theme$zh_CN 
 	@override String get dark => 'Dark';
 }
 
+// Path: settings.fastingPlan
+class _Translations$settings$fastingPlan$en extends Translations$settings$fastingPlan$zh_CN {
+	_Translations$settings$fastingPlan$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Fasting plan';
+	@override String get subtitle => 'View or change your fasting plan — changes take effect at 00:00 the next day';
+}
+
 // Path: settings.reminders
 class _Translations$settings$reminders$en extends Translations$settings$reminders$zh_CN {
 	_Translations$settings$reminders$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -997,6 +1009,9 @@ class _Translations$settings$aiModel$en extends Translations$settings$aiModel$zh
 	@override String get testing => 'Testing…';
 	@override String get testOk => 'Connection successful — model service is reachable';
 	@override String testFail({required Object reason}) => 'Connection failed: ${reason}';
+	@override String get testFailNetwork => 'Connection failed: server unreachable — check the Base URL and your network';
+	@override String get testFailTimeout => 'Connection failed: timed out — check your network and try again';
+	@override String get testFailAuth => 'Connection failed: invalid API Key or insufficient permission';
 	@override String get clear => 'Clear configuration';
 	@override String get clearConfirmTitle => 'Clear AI model configuration?';
 	@override String get clearConfirmBody => 'After clearing, custom food estimates will fall back to the server-side model.';
@@ -2020,6 +2035,8 @@ extension on TranslationsEn {
 			'settings.theme.system' => 'System',
 			'settings.theme.light' => 'Light',
 			'settings.theme.dark' => 'Dark',
+			'settings.fastingPlan.title' => 'Fasting plan',
+			'settings.fastingPlan.subtitle' => 'View or change your fasting plan — changes take effect at 00:00 the next day',
 			'settings.reminders.notifications' => 'Notification settings',
 			'settings.reminders.notificationsSubtitle' => 'Manage notification permission in system settings',
 			'settings.about.version' => 'Version',
@@ -2043,6 +2060,9 @@ extension on TranslationsEn {
 			'settings.aiModel.testing' => 'Testing…',
 			'settings.aiModel.testOk' => 'Connection successful — model service is reachable',
 			'settings.aiModel.testFail' => ({required Object reason}) => 'Connection failed: ${reason}',
+			'settings.aiModel.testFailNetwork' => 'Connection failed: server unreachable — check the Base URL and your network',
+			'settings.aiModel.testFailTimeout' => 'Connection failed: timed out — check your network and try again',
+			'settings.aiModel.testFailAuth' => 'Connection failed: invalid API Key or insufficient permission',
 			'settings.aiModel.clear' => 'Clear configuration',
 			'settings.aiModel.clearConfirmTitle' => 'Clear AI model configuration?',
 			'settings.aiModel.clearConfirmBody' => 'After clearing, custom food estimates will fall back to the server-side model.',
@@ -2142,13 +2162,13 @@ extension on TranslationsEn {
 			'auth.register.registering' => 'Signing up…',
 			'auth.register.passwordMismatch' => 'Passwords do not match',
 			'auth.register.agreePrefix' => 'I have read and agree to the ',
+			_ => null,
+		} ?? switch (path) {
 			'auth.register.agreeAnd' => ' and ',
 			'auth.register.agreeRequired' => 'Please agree to the Privacy Policy and Terms of Service first',
 			'auth.register.strengthWeak' => 'Strength: weak',
 			'auth.register.strengthMedium' => 'Strength: medium',
 			'auth.register.strengthStrong' => 'Strength: strong',
-			_ => null,
-		} ?? switch (path) {
 			'auth.register.strengthTooShort' => 'Password must be at least 8 characters',
 			'auth.register.invalidUsername' => 'Username must be 3-20 letters, digits or underscores',
 			'auth.changePassword.title' => 'Change password',

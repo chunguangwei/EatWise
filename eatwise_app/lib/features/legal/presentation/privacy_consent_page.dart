@@ -31,16 +31,26 @@ class _PrivacyConsentPageState extends ConsumerState<PrivacyConsentPage> {
   Future<void> _agree() async {
     if (!_mainAgreed || _submitting) return;
     setState(() => _submitting = true);
-    await ref
-        .read(privacyConsentControllerProvider.notifier)
-        .agree(healthDataGranted: _healthAgreed);
-    // 埋点授权默认跟随主同意（合规 §4.4 产品改进计划默认开启可关
-    // 〔待外部确认：法务〕；弹窗完成前 ConsentStore 缺省 false，
-    // AnalyticsService 全程 suppressed）。
-    await ref
-        .read(analyticsServiceProvider)
-        .setAnalyticsConsent(true, consentType: 'privacy_dialog');
-    // 门禁翻转后由 GoRouter redirect 自动放行，无需手动导航。
+    try {
+      await ref
+          .read(privacyConsentControllerProvider.notifier)
+          .agree(healthDataGranted: _healthAgreed);
+      // 埋点授权默认跟随主同意（合规 §4.4 产品改进计划默认开启可关
+      // 〔待外部确认：法务〕；弹窗完成前 ConsentStore 缺省 false，
+      // AnalyticsService 全程 suppressed）。
+      await ref
+          .read(analyticsServiceProvider)
+          .setAnalyticsConsent(true, consentType: 'privacy_dialog');
+    } on Object {
+      // 落盘失败：复位提交态允许重试（原实现无复位路径，按钮永久置灰）。
+      if (mounted) setState(() => _submitting = false);
+      return;
+    }
+    // 显式导航离开授权页：不能依赖门禁翻转后的隐式 redirect——未登录新
+    // 用户停留在 /legal/consent 时 redirect 因 /legal/* 放行规则返回
+    // null，页面永不跳转（v1.1.1 走查 R1 卡死）。go('/') 后由 redirect
+    // 按登录/引导门禁分流（/login、/onboarding 或首页）。
+    if (mounted) context.go('/');
   }
 
   @override

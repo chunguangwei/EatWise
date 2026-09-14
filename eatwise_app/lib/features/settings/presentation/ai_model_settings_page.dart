@@ -51,6 +51,23 @@ final class DioLlmConnectionTester implements LlmConnectionTester {
 final Provider<LlmConnectionTester> llmConnectionTesterProvider =
     Provider<LlmConnectionTester>((ref) => DioLlmConnectionTester());
 
+/// 测试连接失败原因 → 友好文案（Y1：dio 内部错误类型名如
+/// connectionError 不上屏；HTTP 状态码保留，401/403 单列鉴权失败）。
+String llmTestFailText(Translations t, String reason) {
+  final m = t.settings.aiModel;
+  if (reason.startsWith('HTTP ')) {
+    final status = int.tryParse(reason.substring(5));
+    if (status == 401 || status == 403) return m.testFailAuth;
+    return m.testFail(reason: reason);
+  }
+  return switch (reason) {
+    'connectionTimeout' ||
+    'sendTimeout' ||
+    'receiveTimeout' => m.testFailTimeout,
+    _ => m.testFailNetwork,
+  };
+}
+
 /// AI 模型配置页（/settings/ai-model）：用户自定义 LLM 的
 /// provider/baseUrl/model/apiKey 本机配置（规格 §3，D-本-02）。
 /// 内置供应商（deepseek/qwen/kimi）留空即补 preset；apiKey 留空保持不变；
@@ -183,7 +200,7 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
         content: Text(
           reason == null
               ? t.settings.aiModel.testOk
-              : t.settings.aiModel.testFail(reason: reason),
+              : llmTestFailText(t, reason),
         ),
       ),
     );

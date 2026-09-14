@@ -95,8 +95,8 @@ final class DriftNutritionDataSource implements NutritionDataSource {
 
   final FoodEntryDao _dao;
 
-  /// 归属用户。〔集成说明〕与 recordRepository 缺省口径一致（anonymous）；
-  /// M7 登录态贯通后按会话 userId 装配。
+  /// 归属用户。〔集成说明〕与写入侧 recordRepository 同口径
+  /// （currentUserIdProvider：登录取真实 userId，未登录 anonymous）。
   final String userId;
 
   @override

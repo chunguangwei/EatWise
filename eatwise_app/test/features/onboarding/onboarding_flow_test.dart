@@ -336,4 +336,60 @@ void main() {
     expect(pending.plan.id, '16:8');
     expect(pending.effectiveDate.toIsoString(), '2026-07-29');
   });
+
+  testWidgets('D-06 换方案入口闭环（R3 回归）：已完成引导用户从设置页'
+      '「断食方案」直达推荐页，弹窗确认后登记 pendingPlan', (tester) async {
+    // 已完成引导 + 生效方案 14:10：/onboarding 前缀会被 redirect 弹回首页，
+    // 入口走 /settings/fasting-plan。
+    final (:gate, :store) = await pumpApp(
+      tester,
+      completed: true,
+      initialPrefs: <String, Object>{
+        'onboarding.activePlan': jsonEncode(<String, dynamic>{
+          'planId': '14:10',
+          'eatStartMinutes': 600,
+          'eatEndMinutes': 1200,
+          'initialState': 'fasting',
+          'targetUtc': null,
+          'attributionDate': null,
+          'startedAtUtc': fixedNowUtc - 86400,
+        }),
+      },
+    );
+    expect(find.text('断食计时'), findsOneWidget);
+
+    // 我的 Tab → 设置页「断食方案」入口（偏好组，视口外先滚动）。
+    await tester.tap(find.text('我的'));
+    await pumpFrames(tester);
+    await tester.scrollUntilVisible(
+      find.text('断食方案'),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await pumpFrames(tester);
+    await tester.tap(find.text('断食方案'));
+    await pumpFrames(tester);
+
+    // 直达推荐页（未被 redirect 弹回）；兜底推荐 16:8 ≠ 生效 14:10 → 换方案。
+    expect(find.text('为你推荐的方案'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.recommendation.start')),
+    );
+    await pumpFrames(tester);
+    // T12 确认弹窗：次日 0:00 生效（fixedNow = 07-28 → 生效日 07-29）。
+    expect(find.text('更换断食方案'), findsOneWidget);
+    expect(find.text('新方案将于 2026-07-29 00:00 生效，今天仍按当前方案计时。'), findsOneWidget);
+    expect(store.loadPendingPlan(), isNull); // 确认前不写入
+
+    await tester.tap(find.text('确定'));
+    await pumpFrames(tester);
+
+    expect(gate.completed, isTrue);
+    expect(store.loadActivePlan()!.plan.id, '14:10'); // 当日方案不动
+    final pending = store.loadPendingPlan()!;
+    expect(pending.plan.id, '16:8');
+    expect(pending.effectiveDate.toIsoString(), '2026-07-29');
+    expect(find.text('断食计时'), findsOneWidget); // 确认后回首页
+  });
 }
