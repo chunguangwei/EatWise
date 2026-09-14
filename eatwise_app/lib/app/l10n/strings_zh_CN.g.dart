@@ -402,6 +402,12 @@ class Translations$onboarding$recommendation$zh_CN {
 
 	/// zh-CN: '每日营养目标先按 ${kcal} kcal 估算，去「我的」补全身高体重后会更准哦。'
 	String fallbackNotice({required Object kcal}) => '每日营养目标先按 ${kcal} kcal 估算，去「我的」补全身高体重后会更准哦。';
+
+	/// zh-CN: '更换断食方案'
+	String get planChangeTitle => '更换断食方案';
+
+	/// zh-CN: '新方案将于 ${date} 00:00 生效，今天仍按当前方案计时。'
+	String planChangeConfirm({required Object date}) => '新方案将于 ${date} 00:00 生效，今天仍按当前方案计时。';
 }
 
 // Path: onboarding.science
@@ -1805,6 +1811,12 @@ class Translations$social$compose$zh_CN {
 	/// zh-CN: '图片上传失败'
 	String get photoUploadFailed => '图片上传失败';
 
+	/// zh-CN: '图片上传失败：可以不带图发布，或取消后重新上传。'
+	String get photoUploadFailedBody => '图片上传失败：可以不带图发布，或取消后重新上传。';
+
+	/// zh-CN: '不带图发布'
+	String get publishWithoutPhoto => '不带图发布';
+
 	/// zh-CN: '重新上传'
 	String get retryUpload => '重新上传';
 
@@ -1960,6 +1972,9 @@ class Translations$auth$register$zh_CN {
 
 	/// zh-CN: '密码强度：强'
 	String get strengthStrong => '密码强度：强';
+
+	/// zh-CN: '密码长度至少 8 位'
+	String get strengthTooShort => '密码长度至少 8 位';
 
 	/// zh-CN: '用户名需为 3-20 位字母、数字或下划线'
 	String get invalidUsername => '用户名需为 3-20 位字母、数字或下划线';
@@ -2757,6 +2772,8 @@ extension on Translations {
 			'onboarding.recommendation.reason.fallback' => '先按人气最高的 16:8 开始，随时可以在「我的」里调整。',
 			'onboarding.recommendation.flexibleHint' => '你的作息不太固定，进食窗口可以随时自由调整，跟着生活节奏走就好。',
 			'onboarding.recommendation.fallbackNotice' => ({required Object kcal}) => '每日营养目标先按 ${kcal} kcal 估算，去「我的」补全身高体重后会更准哦。',
+			'onboarding.recommendation.planChangeTitle' => '更换断食方案',
+			'onboarding.recommendation.planChangeConfirm' => ({required Object date}) => '新方案将于 ${date} 00:00 生效，今天仍按当前方案计时。',
 			'onboarding.science.title' => '断食原理小科普',
 			'onboarding.science.card1Title' => '给身体一点休息时间',
 			'onboarding.science.card1Body' => '断食期间，身体会慢慢切换到燃脂模式，用储存的能量供能。',
@@ -3169,6 +3186,8 @@ extension on Translations {
 			'social.compose.removePhoto' => '移除图片',
 			'social.compose.photoUploading' => '图片上传中…',
 			'social.compose.photoUploadFailed' => '图片上传失败',
+			'social.compose.photoUploadFailedBody' => '图片上传失败：可以不带图发布，或取消后重新上传。',
+			'social.compose.publishWithoutPhoto' => '不带图发布',
 			'social.compose.retryUpload' => '重新上传',
 			'social.compose.streakBadge' => ({required Object days}) => '当前连续 ${days} 天 🔥',
 			'social.compose.noStreak' => '完成今天的断食，打卡就会带上连胜徽章哦',
@@ -3218,12 +3237,13 @@ extension on Translations {
 			'auth.register.strengthWeak' => '密码强度：弱',
 			'auth.register.strengthMedium' => '密码强度：中',
 			'auth.register.strengthStrong' => '密码强度：强',
+			_ => null,
+		} ?? switch (path) {
+			'auth.register.strengthTooShort' => '密码长度至少 8 位',
 			'auth.register.invalidUsername' => '用户名需为 3-20 位字母、数字或下划线',
 			'auth.changePassword.title' => '修改密码',
 			'auth.changePassword.oldLabel' => '当前密码',
 			'auth.changePassword.oldHint' => '请输入当前密码',
-			_ => null,
-		} ?? switch (path) {
 			'auth.changePassword.oldRequired' => '请输入当前密码',
 			'auth.changePassword.newLabel' => '新密码',
 			'auth.changePassword.newHint' => '8-64 位，需包含字母和数字',

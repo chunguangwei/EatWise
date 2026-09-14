@@ -39,9 +39,9 @@ Future<void> startVoiceInput(BuildContext context, WidgetRef ref) async {
   // null = 用户取消听写：静默返回，不动已输入内容。
   if (transcript == null || !context.mounted) return;
 
-  final foods = await ref
-      .read(recordRepositoryProvider)
-      .searchFoods('', limit: 500);
+  // 全量食物库构建解析词典（约 7.5k 条内存可行；limit 截断会让尾部
+  // 词条永远匹配不到）。
+  final foods = await ref.read(recordRepositoryProvider).allFoodsForVoiceDict();
   if (!context.mounted) return;
   final result = ref.read(voiceTextParserProvider).parse(transcript, foods);
   if (result.isEmpty) {

@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Headers, HttpCode, Inject, Post, Put } from '@nestjs/common';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
+import { isValidTimezone } from '../common/utils/time.util';
 import { EndFastingDto, ExtendFastingDto, PutPlanDto } from './fasting.dto';
 import { FastingService } from './fasting.service';
 
@@ -12,8 +13,10 @@ export class FastingController {
   ) {}
 
   private async tz(user: AuthUser, headerTz?: string): Promise<string> {
-    if (headerTz) return headerTz;
-    return (await this.driver.findUserById(user.userId))?.timezone ?? 'Asia/Shanghai';
+    // 非法 X-Timezone 不 500（Intl.RangeError）：回退用户 profile 时区，profile 亦非法则兜底
+    if (headerTz && isValidTimezone(headerTz)) return headerTz;
+    const profileTz = (await this.driver.findUserById(user.userId))?.timezone;
+    return profileTz && isValidTimezone(profileTz) ? profileTz : 'Asia/Shanghai';
   }
 
   /** P3 当前方案（含 pending 更换） */

@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { err } from '../common/errors/business.exception';
+import { BusinessException, err } from '../common/errors/business.exception';
 import { FoodEntryEntity, NutritionSnapshot, WaterLogEntity } from '../common/store/data-store';
 import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { newId, payloadHash } from '../common/utils/id.util';
+import { clampPageLimit } from '../common/utils/pagination.util';
 import { NutritionService, round1 } from '../nutrition/nutrition.service';
 import { localDateOf } from '../common/utils/time.util';
 import { CreateEntryDto, SyncOpDto } from './sync.dto';
@@ -82,11 +83,13 @@ export class SyncService {
             error: { code: 'VALIDATION_ERROR' },
           };
       }
-    } catch {
+    } catch (e) {
+      // 业务校验错误（如未知 foodId 的 VALIDATION_ERROR）保留原 code，不吞成 INTERNAL_ERROR
+      const code = e instanceof BusinessException ? e.code : 'INTERNAL_ERROR';
       return {
         clientRequestId: op.clientRequestId,
         status: 'error',
-        error: { code: 'INTERNAL_ERROR' },
+        error: { code },
       };
     }
   }
@@ -312,6 +315,7 @@ export class SyncService {
   }
   // ===== E6 / sync/pull 增量下行（syncToken 游标）=====
   async pull(userId: string, syncToken: string | undefined, limit = 200) {
+    limit = clampPageLimit(limit, 200, 1000); // 非法 limit（负数/NaN）回落默认，防游标死循环
     let after: { ts: number; id: string } | null = null;
     if (syncToken) after = this.decodeToken(syncToken);
 

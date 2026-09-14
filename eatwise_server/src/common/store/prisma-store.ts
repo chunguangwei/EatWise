@@ -103,6 +103,9 @@ export class PrismaStore extends StoreDriver {
       const fastingPlans = await tx.fastingPlan.deleteMany({ where: { userId } });
       await tx.dailyNutrition.deleteMany({ where: { userId } });
       await tx.waterLog.deleteMany({ where: { userId } }); // users 外键必填，须先于用户行删除
+      // 贡献候选与个人自定义食物随账号清除（已晋升共享的食物 isCustom=false 留存，内存模式同口径）
+      await tx.foodCandidate.deleteMany({ where: { userId } });
+      await tx.food.deleteMany({ where: { createdByUserId: userId, isCustom: true } });
       await tx.streak.deleteMany({ where: { userId } });
       await tx.idempotencyKey.deleteMany({ where: { userId } });
       await tx.postLike.deleteMany({ where: { userId } }); // 点赞/举报幂等记录随账号清除（内存模式同口径）
@@ -170,6 +173,15 @@ export class PrismaStore extends StoreDriver {
         try {
           results.push(await this.applyOp(tx, userId, op));
         } catch (e) {
+          // 业务校验错误（如未知 foodId 的 VALIDATION_ERROR）保留原 code，不吞成 INTERNAL_ERROR
+          if (e instanceof BusinessException) {
+            results.push({
+              clientRequestId: op.clientRequestId,
+              status: 'error',
+              errorCode: e.code,
+            });
+            continue;
+          }
           this.logger.warn(`push op ${op.clientRequestId} failed: ${(e as Error).message}`);
           results.push({
             clientRequestId: op.clientRequestId,
@@ -726,6 +738,18 @@ export class PrismaStore extends StoreDriver {
       return row ? toFastingRecordEntity(row) : null;
     } catch (e) {
       throw this.fail('findFastingRecordByPlannedEnd', e);
+    }
+  }
+
+  async findOngoingFastingRecord(userId: string): Promise<FastingRecordEntity | null> {
+    try {
+      const row = await this.prisma.fastingRecord.findFirst({
+        where: { userId, result: 'on_track' },
+        orderBy: { plannedEndAt: 'desc' },
+      });
+      return row ? toFastingRecordEntity(row) : null;
+    } catch (e) {
+      throw this.fail('findOngoingFastingRecord', e);
     }
   }
 

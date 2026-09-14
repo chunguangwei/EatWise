@@ -8,6 +8,7 @@ import {
 } from '../common/store/data-store';
 import { FoodSearchHit, STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { newId, payloadHash } from '../common/utils/id.util';
+import { clampPageLimit, parseOffsetCursor } from '../common/utils/pagination.util';
 import { ContentModerationService } from '../social/moderation/content-moderation.service';
 import { ContributeFoodDto, CreateCustomFoodDto, ReviewFoodCandidateDto } from './food.dto';
 import { isPer100gInRange } from './food.rules';
@@ -39,15 +40,8 @@ export class FoodService {
    * 自定义食物（仅创建者可见）排在内置结果之后，标注 isCustom。
    */
   async search(q: string, limit = 20, cursor?: string, userId?: string) {
-    if (limit > 50) limit = 50;
-    let offset = 0;
-    if (cursor) {
-      try {
-        offset = JSON.parse(Buffer.from(cursor, 'base64').toString('utf8')).offset ?? 0;
-      } catch {
-        throw err.invalidCursor();
-      }
-    }
+    limit = clampPageLimit(limit, 20, 50); // 非法 limit（负数/NaN/小数）回落默认，上限 50
+    const offset = cursor ? parseOffsetCursor(cursor) : 0;
     const hits = await this.driver.searchFoods(q, userId);
     const page = hits.slice(offset, offset + limit);
     const nextOffset = offset + limit;
@@ -161,15 +155,8 @@ export class FoodService {
 
   /** 管理端：审核队列（游标分页，createdAt 升序先入先审；status 过滤） */
   async listFoodCandidates(status: FoodCandidateStatus | undefined, limit = 20, cursor?: string) {
-    if (limit > 50) limit = 50;
-    let offset = 0;
-    if (cursor) {
-      try {
-        offset = JSON.parse(Buffer.from(cursor, 'base64').toString('utf8')).offset ?? 0;
-      } catch {
-        throw err.invalidCursor();
-      }
-    }
+    limit = clampPageLimit(limit, 20, 50);
+    const offset = cursor ? parseOffsetCursor(cursor) : 0;
     const all = await this.driver.listFoodCandidates(status);
     const page = all.slice(offset, offset + limit);
     const nextOffset = offset + limit;

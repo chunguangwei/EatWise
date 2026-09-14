@@ -79,7 +79,9 @@
         "fallback": "先按人气最高的 16:8 开始，随时可以在「我的」里调整。"
       },
       "flexibleHint": "你的作息不太固定，进食窗口可以随时自由调整，跟着生活节奏走就好。",
-      "fallbackNotice": "每日营养目标先按 ${kcal} kcal 估算，去「我的」补全身高体重后会更准哦。"
+      "fallbackNotice": "每日营养目标先按 ${kcal} kcal 估算，去「我的」补全身高体重后会更准哦。",
+      "planChangeTitle": "更换断食方案",
+      "planChangeConfirm": "新方案将于 ${date} 00:00 生效，今天仍按当前方案计时。"
     },
     "science": {
       "title": "断食原理小科普",
@@ -654,6 +656,8 @@
       "removePhoto": "移除图片",
       "photoUploading": "图片上传中…",
       "photoUploadFailed": "图片上传失败",
+      "photoUploadFailedBody": "图片上传失败：可以不带图发布，或取消后重新上传。",
+      "publishWithoutPhoto": "不带图发布",
       "retryUpload": "重新上传",
       "streakBadge": "当前连续 ${days} 天 🔥",
       "noStreak": "完成今天的断食，打卡就会带上连胜徽章哦",
@@ -709,6 +713,7 @@
       "strengthWeak": "密码强度：弱",
       "strengthMedium": "密码强度：中",
       "strengthStrong": "密码强度：强",
+      "strengthTooShort": "密码长度至少 8 位",
       "invalidUsername": "用户名需为 3-20 位字母、数字或下划线"
     },
     "changePassword": {

@@ -58,8 +58,12 @@ GoRouter createAppRouter({
       final onLogin = location == '/login';
       final onRegister = location == '/register';
       final onOnboarding = location.startsWith('/onboarding');
-      // 未登录时 /register 与 /login 同级放行（注册即自动登录，无门禁意义）。
-      if (!loggedIn) return (onLogin || onRegister) ? null : '/login';
+      // 未登录时 /register、/login 与 /legal/* 协议正文同级放行
+      // （注册即自动登录无门禁意义；注册/登录页须可读隐私政策与用户协议）。
+      if (!loggedIn) {
+        final onAuthPage = onLogin || onRegister || onLegal;
+        return onAuthPage ? null : '/login';
+      }
       if (onLogin || onRegister) return gate.completed ? '/' : '/onboarding';
       if (!gate.completed && !onOnboarding) return '/onboarding';
       // 同意后停留在弹窗页 → 按登录/引导门禁送到应去页面。

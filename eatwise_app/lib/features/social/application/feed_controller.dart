@@ -177,6 +177,9 @@ final class FeedController extends Notifier<FeedState> {
   }
 
   /// 点赞/取消点赞（乐观更新，失败回滚；幂等由服务端 postId+userId 保证）。
+  ///
+  /// 回写一律按 postId 重新定位（[_replaceById]）：等待网络期间
+  /// refresh/loadMore/publish 可能改序或移除条目，位置索引会写错帖子。
   Future<void> toggleLike(String postId) async {
     final index = state.items.indexWhere((i) => i.post.id == postId);
     if (index < 0) return;
@@ -196,13 +199,13 @@ final class FeedController extends Notifier<FeedState> {
       likedByMe: !liked,
       likeCount: item.post.likeCount + (liked ? -1 : 1),
     );
-    _replaceAt(index, FeedItem(post: optimistic));
+    _replaceById(postId, FeedItem(post: optimistic));
     try {
       final result = liked
           ? await _api.unlike(postId)
           : await _api.like(postId);
-      _replaceAt(
-        index,
+      _replaceById(
+        postId,
         FeedItem(
           post: optimistic.copyWith(
             likeCount: result.likeCount,
@@ -211,7 +214,7 @@ final class FeedController extends Notifier<FeedState> {
         ),
       );
     } on ApiException {
-      _replaceAt(index, item); // 回滚
+      _replaceById(postId, item); // 回滚（帖子已不在流中则丢弃）
     }
   }
 
@@ -249,10 +252,7 @@ final class FeedController extends Notifier<FeedState> {
         text: trimmed,
         imageUrls: imageUrls,
       );
-      _replaceAt(
-        state.items.indexWhere((i) => i.post.id == localId),
-        FeedItem(post: created),
-      );
+      _replaceById(localId, FeedItem(post: created));
       // 打卡发布埋点（§3.5 community_post_publish；2.6 活跃判定）。
       _analytics.track(
         'community_post_publish',
@@ -281,28 +281,43 @@ final class FeedController extends Notifier<FeedState> {
   }
 
   /// 举报（服务端下架转人工；本地乐观移除该帖）。
+  ///
+  /// 失败回滚锚定「原后继」postId 重新定位插入点：等待网络期间
+  /// refresh/loadMore 可能改序，位置索引会插错位置；期间被 refresh
+  /// 拉回的帖子不重复插入。
   Future<bool> report(String postId) async {
     final index = state.items.indexWhere((i) => i.post.id == postId);
     if (index < 0) return false;
     final removed = state.items[index];
+    final nextId = index + 1 < state.items.length
+        ? state.items[index + 1].post.id
+        : null;
     _removeById(postId);
     try {
       await _api.report(postId);
       return true;
     } on ApiException {
+      if (state.items.any((i) => i.post.id == postId)) return false;
+      final anchor = nextId == null
+          ? state.items.length
+          : state.items.indexWhere((i) => i.post.id == nextId);
+      // 原后继也被移除（refresh 整体换掉）时退化为追加到末尾。
+      final at = anchor < 0 ? state.items.length : anchor;
       state = state.copyWith(
         items: <FeedItem>[
-          ...state.items.sublist(0, index.clamp(0, state.items.length)),
+          ...state.items.sublist(0, at),
           removed,
-          ...state.items.sublist(index.clamp(0, state.items.length)),
+          ...state.items.sublist(at),
         ],
       );
       return false;
     }
   }
 
-  void _replaceAt(int index, FeedItem item) {
-    if (index < 0 || index >= state.items.length) return;
+  /// 按 postId 重定位替换（找不到说明条目已被移除/刷新，丢弃本次回写）。
+  void _replaceById(String postId, FeedItem item) {
+    final index = state.items.indexWhere((i) => i.post.id == postId);
+    if (index < 0) return;
     final items = List<FeedItem>.of(state.items);
     items[index] = item;
     state = state.copyWith(items: items);

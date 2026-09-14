@@ -16,6 +16,7 @@ import 'package:eatwise/features/fasting/domain/fasting_record.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_cycle_store.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -158,12 +159,31 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
 
   @override
   FastingTimerState build() {
-    final plan = ref.watch(onboardingStoreProvider).loadActivePlan()?.plan;
+    // 方案写入信号量：一键启动/换方案登记时 +1（onboardingStoreProvider 是
+    // 普通 Provider，watch 它不会因键值写入触发重建）。
+    ref.watch(planVersionProvider);
+    final onboardStore = ref.read(onboardingStoreProvider);
+    // T13 兜底转正（§4.1）：pendingPlan 到点（本地 0:00 已过）先生效再读
+    // 方案，覆盖杀进程后首开 / 0:00 后首次 build 的场景。
+    final activated = _activatePendingPlanIfDue(onboardStore);
+    final plan = activated ?? onboardStore.loadActivePlan()?.plan;
     if (plan == null) {
       _syncWidget(null);
       return const FastingTimerState.noPlan();
     }
     final now = _now();
+
+    // T16 APP_FOREGROUND 对账副作用（§7.2.3）：回前台/重启恢复一律全量
+    // 重排——此前只在状态迁移时重排，App 存活超过 48h 通知视界会耗尽。
+    // 重排幂等（先 cancelAll 再重建），build 高频触发无妨；T13 转正路径
+    // 已按 planActivate 重排，不重复。
+    if (activated == null) {
+      _reschedule(
+        plan,
+        _store.loadActiveCycle()?.extendedMinutes ?? 0,
+        RescheduleReason.appForeground,
+      );
+    }
 
     // 重启恢复对账（T16 APP_FOREGROUND，§6-B12/B13）：
     // 持久化的进行中周期若在离线期间跨过窗口边界，按 T2/T8 规则补关闭——
@@ -194,6 +214,36 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     }
     _syncWidget(plan);
     return _resolve(plan, resolveState(now, plan, _location));
+  }
+
+  /// T13：pendingPlan 到期（本地 0:00 已过）则转正，返回新方案；
+  /// 无 pending 或未到期返回 null。
+  ///
+  /// 进行中周期口径：旧方案的 activeCycle **作废、不写 FastingRecord**——
+  /// T13 规定当前区间按新方案锚点重算落点（「当前时刻之后最近的窗口
+  /// 边界」原则），若按旧锚点补关闭，会把一条归属旧窗口的「幽灵记录」
+  /// （甚至幽灵达标）写进 streak。历史已关闭记录保留不回算（D-06）。
+  FastingPlan? _activatePendingPlanIfDue(OnboardingStore onboardStore) {
+    final pending = onboardStore.loadPendingPlan();
+    if (pending == null) return null;
+    final now = _now();
+    final plan = activatePendingPlan(pending, now);
+    if (plan == null) return null;
+    final snapshot = resolveState(now, plan, _location);
+    onboardStore.saveActivePlan(
+      ActivePlanSnapshot(
+        plan: plan,
+        initialState: snapshot.state.name,
+        targetUtc: snapshot.targetUtc,
+        attributionDate: snapshot.attributionPreview?.toIsoString(),
+        startedAtUtc: now,
+      ),
+    );
+    onboardStore.clearPendingPlan();
+    _store.clearActiveCycle(); // 作废进行中周期（口径见函数注释）
+    _store.clearEarlyEatEndUtc(); // 旧方案的提前破窗覆盖一并作废
+    _reschedule(plan, 0, RescheduleReason.planActivate);
+    return plan;
   }
 
   /// 用落点快照重建状态；持久化周期与重算周期同根（同一断食开始锚点）
@@ -257,6 +307,16 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     final plan = state.plan;
     if (plan == null) return;
     final now = _now();
+    // T13：前台跨过本地 0:00 时由每秒 tick 兜底转正（杀进程场景由
+    // build 对账转正）；转正后当前区间按新方案锚点重算落点。
+    final activated = _activatePendingPlanIfDue(
+      ref.read(onboardingStoreProvider),
+    );
+    if (activated != null) {
+      state = _resolve(activated, resolveState(now, activated, _location));
+      _syncWidget(activated);
+      return;
+    }
     final cycle = state.cycle;
     if (cycle != null && now >= cycle.plannedEndUtc) {
       final record = completeCycleOnTime(cycle, _location);

@@ -145,6 +145,19 @@ describe('社区打卡（M5 P1 / D-17 先审后发）', () => {
     );
   });
 
+  it('非法 limit（负数/NaN/0）回落默认分页：不绕过页上限、不游标死循环', async () => {
+    for (let i = 0; i < 3; i++) await createPost(userId, `limit 校验 ${i}`);
+    for (const limit of [-10, Number.NaN, 0]) {
+      const page = await social.feed(userId, limit);
+      expect(page.items.length).toBe(3); // 按默认页大小正常返回
+      expect(page.pageInfo.hasMore).toBe(false);
+      expect(page.pageInfo.nextCursor).toBeNull();
+    }
+    // 超限封顶 50
+    const capped = await social.feed(userId, 1000);
+    expect(capped.items.length).toBe(3);
+  });
+
   it('点赞幂等：重复点赞不重复计数；取消点赞幂等', async () => {
     const post = (await createPost(userId, '求点赞')) as { id: string };
     const l1 = await social.like(otherId, post.id);

@@ -42,6 +42,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   void initState() {
     super.initState();
     _passwordController.addListener(_onPasswordChanged);
+    // 共享 AuthState：进入注册页清掉上一页残留的失败文案。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(authControllerProvider.notifier).clearError();
+    });
   }
 
   void _onPasswordChanged() {
@@ -231,8 +235,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     AppTextStyles textStyles,
   ) {
     final strength = _passwordStrengthValue;
-    if (strength == 0 && _passwordController.text.isEmpty) {
-      return const SizedBox.shrink();
+    if (strength == 0) {
+      // 空密码不展示；不足 8 位尚无强度评级，只给长度提示
+      // （直接取 labels[strength-1] 会越界崩溃）。
+      if (_passwordController.text.isEmpty) return const SizedBox.shrink();
+      return Text(
+        t.auth.register.strengthTooShort,
+        style: textStyles.textXs.copyWith(color: colors.signalRed),
+      );
     }
     final labels = [
       t.auth.register.strengthWeak,

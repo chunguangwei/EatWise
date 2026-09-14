@@ -19,13 +19,11 @@ import {
 } from './data-store';
 
 /**
- * 仓储驱动抽象（持久化收口）：业务侧通过本接口读写「必须由真实库保证」的操作，
+ * 仓储驱动抽象（持久化收口，2026-09-08 完成）：业务 Service 全部经本接口读写，
  * 由环境变量 STORE_DRIVER=memory|prisma 选择实现（默认 memory，见 InfraModule）。
- *
- * 现状说明（阶段性迁移）：fasting/streak/social/sync 等业务 Service 仍直接读写
- * 同步内存 DataStore（接口契约不变）；PrismaStore 已覆盖批量上行、导出聚合、
- * 删除清除、食物库种子，以及饮水记录 / 食物候选审核 / 帖子举报计数三条真实持久化路径，
- * 供 prisma 模式与后续迁移使用。
+ * MemoryStoreDriver 适配同步内存 DataStore（行为与历史一致）；PrismaStore 覆盖
+ * 全实体真实落库（用户/令牌/断食/饮食/饮水/streak/帖子/点赞举报/审核队列/
+ * 自定义食物/幂等键），仅 smsCodes（mock）与管理端登录限流保留内存。
  */
 
 /** DI token：STORE_DRIVER 环境变量选择 MemoryStoreDriver / PrismaStore */
@@ -192,6 +190,10 @@ export abstract class StoreDriver {
     userId: string,
     plannedEndAt: Date,
   ): Promise<FastingRecordEntity | null>;
+
+  /** 进行中记录定位：result=on_track 的最新一条（按 plannedEndAt 降序）。
+   * 延长会后移 plannedEndAt、脱离 plan 窗口精确匹配口径，状态判定须优先按本方法查（F1） */
+  abstract findOngoingFastingRecord(userId: string): Promise<FastingRecordEntity | null>;
 
   abstract listFastingRecordsByUser(userId: string): Promise<FastingRecordEntity[]>;
 
@@ -406,6 +408,13 @@ export class MemoryStoreDriver extends StoreDriver {
     }
     for (const [id, e] of this.store.waterLogs) {
       if (e.userId === userId) this.store.waterLogs.delete(id);
+    }
+    // 个人自定义食物与贡献候选随账号清除（审核晋升的共享食物已转出个人库，留存）
+    for (const [id, f] of this.store.customFoods) {
+      if (f.userId === userId) this.store.customFoods.delete(id);
+    }
+    for (const [id, c] of this.store.foodCandidates) {
+      if (c.userId === userId) this.store.foodCandidates.delete(id);
     }
     let fastingRecords = 0;
     for (const [id, r] of this.store.fastingRecords) {
@@ -676,6 +685,13 @@ export class MemoryStoreDriver extends StoreDriver {
     const row = [...this.store.fastingRecords.values()].find(
       (r) => r.userId === userId && r.plannedEndAt.getTime() === plannedEndAt.getTime(),
     );
+    return Promise.resolve(row ?? null);
+  }
+
+  findOngoingFastingRecord(userId: string): Promise<FastingRecordEntity | null> {
+    const row = [...this.store.fastingRecords.values()]
+      .filter((r) => r.userId === userId && r.result === 'on_track')
+      .sort((a, b) => b.plannedEndAt.getTime() - a.plannedEndAt.getTime())[0];
     return Promise.resolve(row ?? null);
   }
 

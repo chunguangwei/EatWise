@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:eatwise/features/social/application/feed_controller.dart';
 import 'package:eatwise/features/social/data/social_api.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -161,5 +163,98 @@ void main() {
     final failed = await controller().report('p2');
     expect(failed, isFalse);
     expect(state().items.map((i) => i.post.id).toList(), <String>['p2']);
+  });
+
+  test('点赞回写按 postId 重定位：在途 refresh 换序不写错帖子', () async {
+    api.posts = <ServerPost>[
+      stubPost(id: 'p1', likeCount: 1),
+      stubPost(id: 'p2', likeCount: 2),
+    ];
+    controller();
+    await settle();
+
+    api.likeGate = Completer<void>();
+    final future = controller().toggleLike('p1');
+    // 点赞在途时下拉刷新换序（p2 移到前面）。
+    api.posts = <ServerPost>[
+      stubPost(id: 'p2', likeCount: 2),
+      stubPost(id: 'p1', likeCount: 1),
+    ];
+    await controller().refresh();
+    // 刷新以服务端为准（乐观更新被覆盖，顺序换为 p2 在前）。
+    expect(state().items.map((i) => i.post.id).toList(), <String>['p2', 'p1']);
+    api.likeGate!.complete();
+    await future;
+
+    final p1 = state().items.firstWhere((i) => i.post.id == 'p1').post;
+    final p2 = state().items.firstWhere((i) => i.post.id == 'p2').post;
+    expect(p1.likedByMe, isTrue);
+    expect(p1.likeCount, 2); // 服务端权威计数（1+1）
+    expect(p2.likeCount, 2); // 未被误写
+    expect(p2.likedByMe, isFalse);
+  });
+
+  test('点赞完成时帖子已被刷新移除：丢弃回写，不报错', () async {
+    api.posts = <ServerPost>[stubPost(id: 'p1'), stubPost(id: 'p2')];
+    controller();
+    await settle();
+
+    api.likeGate = Completer<void>();
+    final future = controller().toggleLike('p1');
+    // 点赞在途时 refresh 把 p1 刷掉。
+    api.posts = <ServerPost>[stubPost(id: 'p2')];
+    await controller().refresh();
+    api.likeGate!.complete();
+    await future; // 不抛异常、不复活已移除的帖子
+    expect(state().items.map((i) => i.post.id).toList(), <String>['p2']);
+  });
+
+  test('举报失败回滚锚定原后继：在途列表变长仍插回原位', () async {
+    api.posts = <ServerPost>[
+      stubPost(id: 'p1'),
+      stubPost(id: 'p2'),
+      stubPost(id: 'p3'),
+    ];
+    controller();
+    await settle();
+
+    api.reportError = networkException;
+    api.reportGate = Completer<void>();
+    final future = controller().report('p1');
+    // 举报在途时 refresh 拉回新列表（不含被举报帖，尾部新增 p4）。
+    api.posts = <ServerPost>[
+      stubPost(id: 'p2'),
+      stubPost(id: 'p3'),
+      stubPost(id: 'p4'),
+    ];
+    await controller().refresh();
+    api.reportGate!.complete();
+    final ok = await future;
+
+    expect(ok, isFalse);
+    // 插回原后继 p2 之前（原位），而不是按旧索引错位或丢失。
+    expect(state().items.map((i) => i.post.id).toList(), <String>[
+      'p1',
+      'p2',
+      'p3',
+      'p4',
+    ]);
+  });
+
+  test('举报失败但期间 refresh 已拉回该帖：不重复插入', () async {
+    api.posts = <ServerPost>[stubPost(id: 'p1'), stubPost(id: 'p2')];
+    controller();
+    await settle();
+
+    api.reportError = networkException;
+    api.reportGate = Completer<void>();
+    final future = controller().report('p1');
+    // 举报在途时 refresh 把 p1 重新拉回流中。
+    await controller().refresh();
+    api.reportGate!.complete();
+    final ok = await future;
+
+    expect(ok, isFalse);
+    expect(state().items.map((i) => i.post.id).toList(), <String>['p1', 'p2']);
   });
 }

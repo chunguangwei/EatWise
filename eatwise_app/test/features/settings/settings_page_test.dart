@@ -55,7 +55,10 @@ void main() {
     await LocaleSettings.setLocale(AppLocale.zhCn);
   });
 
-  Future<ProviderContainer> pumpSettings(WidgetTester tester) async {
+  Future<ProviderContainer> pumpSettings(
+    WidgetTester tester, {
+    List<Override> extraOverrides = const <Override>[],
+  }) async {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -120,6 +123,7 @@ void main() {
             }),
             dataExportServiceProvider.overrideWithValue(exportService),
             accountDeletionServiceProvider.overrideWithValue(deletionService),
+            ...extraOverrides,
           ],
           child: MaterialApp.router(
             theme: AppTheme.light(),
@@ -359,6 +363,21 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('生效日期'), findsOneWidget);
+
+    await unmount(tester);
+  });
+
+  testWidgets('关于区版本号读 package_info_plus（注入值上屏，非硬编码）', (tester) async {
+    await pumpSettings(
+      tester,
+      extraOverrides: <Override>[
+        appVersionLabelProvider.overrideWith((ref) async => '1.2.3 (4)'),
+      ],
+    );
+
+    await scrollTo(tester, find.text('1.2.3 (4)'));
+    expect(find.text('1.2.3 (4)'), findsOneWidget);
+    expect(find.text('1.0.0 (1)'), findsNothing); // 旧硬编码版本不再出现
 
     await unmount(tester);
   });

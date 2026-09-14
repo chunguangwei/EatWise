@@ -143,6 +143,61 @@ void main() {
       expect(sessionClearedCount, 0);
     });
 
+    test('multipart 上传 401 → refresh 后重放：FormData 克隆重建不抛 StateError', () async {
+      await tokenStore.saveTokens(accessToken: 'at-old', refreshToken: 'rt-1');
+      adapter.stub(
+        '/posts',
+        StubResponse.json(
+          401,
+          StubResponse.errorEnvelope('AUTH_TOKEN_EXPIRED', '令牌已过期'),
+        ),
+      );
+      adapter.stub(
+        '/auth/refresh',
+        StubResponse.json(
+          200,
+          StubResponse.envelope(<String, dynamic>{
+            'accessToken': 'at-new',
+            'refreshToken': 'rt-2',
+            'expiresIn': 7200,
+          }),
+        ),
+      );
+      adapter.stub(
+        '/posts',
+        StubResponse.json(
+          201,
+          StubResponse.envelope(<String, dynamic>{'id': 'p-1'}),
+        ),
+      );
+
+      final formData = FormData.fromMap(<String, dynamic>{
+        'caption': '早餐打卡',
+        'image': MultipartFile.fromBytes(<int>[1, 2, 3, 4], filename: 'a.jpg'),
+      });
+      final response = await dio.post<Map<String, dynamic>>(
+        '/posts',
+        data: formData,
+      );
+
+      expect(response.data!['id'], 'p-1');
+      // 顺序：原请求 401（消费了原 FormData）→ refresh → 克隆体重放成功。
+      expect(adapter.requests.map((r) => r.path).toList(), <String>[
+        '/posts',
+        '/auth/refresh',
+        '/posts',
+      ]);
+      expect(adapter.requests.last.headers['Authorization'], 'Bearer at-new');
+      // 重放体为克隆 FormData：字段与文件完整保留。
+      final replayedBody = adapter.requests.last.data! as FormData;
+      expect(replayedBody, isNot(same(formData)));
+      expect(
+        replayedBody.fields.map((e) => '${e.key}=${e.value}'),
+        contains('caption=早餐打卡'),
+      );
+      expect(replayedBody.files.single.key, 'image');
+    });
+
     test('skipAuth 请求（登录/发短信）不注入 token、401 不触发 refresh', () async {
       await tokenStore.saveTokens(accessToken: 'at-1', refreshToken: 'rt-1');
       adapter.stub(

@@ -51,6 +51,13 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
     )..where((e) => e.localId.equals(localId))).write(entry);
   }
 
+  /// 级联改写食物引用（离线自定义食物上行后 id 重映射用：
+  /// 指向旧本地 id 的记录统一改指服务端 id）。
+  Future<void> remapFoodId(String oldFoodId, String newFoodId) {
+    return (update(foodEntries)..where((e) => e.foodId.equals(oldFoodId)))
+        .write(FoodEntriesCompanion(foodId: Value(newFoodId)));
+  }
+
   /// 物理删除（D-11 撤销窗内撤回 / T7 校验拒绝回滚，此时上行未成功，
   /// 云端无此记录，无需 tombstone）。
   Future<void> deleteEntry(String localId) {

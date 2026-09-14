@@ -64,11 +64,14 @@ FastingSnapshot resolveState(
   tz.Location location,
 ) {
   final today = localDateOf(nowUtc, location);
-  // 覆盖 [昨天, 后天] 的窗口锚点，足以定位任意 now 的落点。
+  // 覆盖 [昨天, 后天] 的窗口锚点，正常 now 必落在覆盖范围内；
+  // 越界 now（时钟大幅拨快/回拨）由循环后的兜底分支防御性落点。
   final anchors = <({int eatStartUtc, int eatEndUtc})>[
     for (var i = -1; i <= 2; i++) anchorsFor(plan, today.addDays(i), location),
   ];
-  for (var i = 0; i < anchors.length; i++) {
+  // 上界取 anchors.length - 1：循环体内恒读 anchors[i + 1]，
+  // 放开到 anchors.length 会在末位下标越界抛 RangeError 打挂首页。
+  for (var i = 0; i < anchors.length - 1; i++) {
     final a = anchors[i];
     if (a.eatStartUtc <= nowUtc && nowUtc < a.eatEndUtc) {
       // EATING：倒计时 = 距进食窗口结束（T10 反向）
@@ -97,8 +100,50 @@ FastingSnapshot resolveState(
       );
     }
   }
-  // 防御：窗口配置异常（如进食窗口 = 24h）时无法落点。
-  throw StateError('resolveState: no window boundary covers nowUtc=$nowUtc');
+  // 兜底：now ≥ 最后一个进食窗口开始锚点（时钟拨快越界，B10）——
+  // 落到最近区间而不是抛异常：进食窗内判 EATING，否则以最后进食结束
+  // 锚点为起点、按需补算的下一进食锚点为终点构造断食周期。
+  final last = anchors.last;
+  if (last.eatStartUtc <= nowUtc) {
+    final next = anchorsFor(plan, today.addDays(3), location);
+    if (nowUtc < last.eatEndUtc) {
+      return FastingSnapshot(
+        state: FastingState.eating,
+        nowUtc: nowUtc,
+        targetUtc: last.eatEndUtc,
+        attributionPreview: localDateOf(next.eatStartUtc, location),
+      );
+    }
+    final cycle = FastCycle(
+      startUtc: last.eatEndUtc,
+      plannedEndUtc: next.eatStartUtc,
+      eatWindowEndUtc: next.eatEndUtc,
+    );
+    return FastingSnapshot(
+      state: cycle.state,
+      nowUtc: nowUtc,
+      cycle: cycle,
+      targetUtc: next.eatStartUtc,
+      attributionPreview: localDateOf(next.eatStartUtc, location),
+    );
+  }
+  // 兜底：now 早于覆盖范围（时钟回拨越界，B9）——落到首个进食窗口前的
+  // 断食区间（起点为按需补算的前一进食结束锚点）；§4.4 回拨不惩罚，
+  // 倒计时按锚点自然变长。
+  final first = anchors.first;
+  final prev = anchorsFor(plan, today.addDays(-2), location);
+  final cycle = FastCycle(
+    startUtc: prev.eatEndUtc,
+    plannedEndUtc: first.eatStartUtc,
+    eatWindowEndUtc: first.eatEndUtc,
+  );
+  return FastingSnapshot(
+    state: cycle.state,
+    nowUtc: nowUtc,
+    cycle: cycle,
+    targetUtc: first.eatStartUtc,
+    attributionPreview: localDateOf(first.eatStartUtc, location),
+  );
 }
 
 /// 关闭周期（§3.3 `close_cycle` 伪代码的可运行实现，D-07/D-08）。

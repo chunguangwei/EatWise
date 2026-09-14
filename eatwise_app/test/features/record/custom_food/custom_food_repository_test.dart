@@ -1,5 +1,8 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/storage/sync_status.dart';
+import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
@@ -64,10 +67,11 @@ void main() {
     expect(hits, hasLength(1));
   });
 
-  test('联网后 retryPending：原幂等键上行成功并清除 pending', () async {
+  test('联网后 retryPending：原幂等键上行成功，本地行重映射为服务端 id', () async {
     remote.mode = FakeCustomFoodMode.offline;
     final saved = await repository.save(draft);
     final pendingId = saved.food.customClientRequestId;
+    final localId = saved.food.id;
 
     // 恢复在线 → 重试上行。
     remote.mode = FakeCustomFoodMode.success;
@@ -75,12 +79,49 @@ void main() {
 
     expect(synced, 1);
     expect(remote.receivedRequestIds, <String>[pendingId]); // 幂等键复用
-    final row = await db.foodDao.getById(saved.food.id);
+    // 本地临时 id（custom-*）已重映射为服务端 id，pending 与幂等键清除。
+    expect(await db.foodDao.getById(localId), isNull);
+    final row = await db.foodDao.getById('srv-food-1');
     expect(row!.customSyncPending, isFalse);
+    expect(row.customClientRequestId, isEmpty);
 
     // 重复 retryPending 不再上行（已无 pending）。
     expect(await repository.retryPending(), 0);
     expect(remote.receivedRequestIds, hasLength(1));
+  });
+
+  test('retryPending 级联改写引用该食物的饮食记录 foodId', () async {
+    remote.mode = FakeCustomFoodMode.offline;
+    final saved = await repository.save(draft);
+    final localId = saved.food.id;
+    // 离线期间用临时 id 记账（pending 待上行）。
+    await db.foodEntryDao.insertEntry(
+      FoodEntriesCompanion(
+        localId: const Value('l-entry-1'),
+        userId: const Value('u-1'),
+        clientRequestId: const Value('c-entry-1'),
+        syncStatus: const Value(SyncStatus.pending),
+        datetimeUtc: const Value('2026-09-14T01:10:00.000Z'),
+        localDate: const Value('2026-09-14'),
+        foodId: Value(localId),
+        amountG: const Value(200),
+        kcal: const Value(120),
+        proteinG: const Value(10),
+        carbG: const Value(16),
+        fatG: const Value(2),
+        source: const Value(EntrySource.manual),
+        createdAtUtc: const Value('2026-09-14T01:10:00.000Z'),
+        updatedAtUtc: const Value('2026-09-14T01:10:00.000Z'),
+      ),
+    );
+
+    remote.mode = FakeCustomFoodMode.success;
+    expect(await repository.retryPending(), 1);
+
+    // 记录引用已级联改写为服务端 id——上行时服务端 snapshotOf 才能
+    // 按 foodId 查到食物（修复前永远卡 pending 的根因）。
+    final entry = await db.foodEntryDao.getByLocalId('l-entry-1');
+    expect(entry!.foodId, 'srv-food-1');
   });
 
   test('业务错误（4xx 校验拒绝）：上抛且不落库', () async {

@@ -61,21 +61,7 @@ class RecommendationScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.s4),
             FilledButton(
               key: const ValueKey<String>('onboarding.recommendation.start'),
-              onPressed: () {
-                final result = controller.startPrimaryPlan();
-                if (result.usedFallback) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        t.onboarding.recommendation.fallbackNotice(
-                          kcal: result.targetKcal,
-                        ),
-                      ),
-                    ),
-                  );
-                }
-                context.go('/');
-              },
+              onPressed: () => _onStartPressed(context, ref),
               style: FilledButton.styleFrom(
                 backgroundColor: colors.brandPrimary,
                 minimumSize: const Size.fromHeight(AppSpacing.s12),
@@ -126,6 +112,49 @@ class RecommendationScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// 一键启动：已有生效方案且窗口不同时先弹 T12 确认（「新方案将于
+  /// 次日 0:00 生效」，D-06），确认后写入；首次启动立即生效。
+  Future<void> _onStartPressed(BuildContext context, WidgetRef ref) async {
+    final t = Translations.of(context);
+    final controller = ref.read(onboardingControllerProvider.notifier);
+    if (controller.isPlanChange) {
+      final date = controller.planChangeEffectiveDate.toIsoString();
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(t.onboarding.recommendation.planChangeTitle),
+          content: Text(
+            t.onboarding.recommendation.planChangeConfirm(date: date),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(t.common.action.cancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(t.common.action.confirm),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !context.mounted) return;
+    }
+    final result = controller.startPrimaryPlan();
+    if (result.usedFallback && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            t.onboarding.recommendation.fallbackNotice(kcal: result.targetKcal),
+          ),
+        ),
+      );
+    }
+    if (context.mounted) {
+      context.go('/');
+    }
   }
 
   String _reasonText(Translations t, PlanRecommendation rec) {

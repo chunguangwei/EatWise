@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Patch, Post } from '@nestjs/common';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
+import { PatchUserDto } from './user.dto';
 import { UserService } from './user.service';
 
 @Controller('users')
@@ -12,10 +13,10 @@ export class UserController {
     return this.users.getMe(user.userId);
   }
 
-  /** U2 修改资料（字段级 LWW + 目标重算） */
+  /** U2 修改资料（字段级 LWW + 目标重算；DTO 校验时区/数值范围） */
   @Patch('me')
-  patchMe(@CurrentUser() user: AuthUser, @Body() body: Record<string, unknown>) {
-    return this.users.patchMe(user.userId, body);
+  patchMe(@CurrentUser() user: AuthUser, @Body() dto: PatchUserDto) {
+    return this.users.patchMe(user.userId, dto);
   }
 
   /** U3 申请数据导出（合规 §4.2）：聚合全量个人数据，JSON 直接返回（只读，天然幂等） */

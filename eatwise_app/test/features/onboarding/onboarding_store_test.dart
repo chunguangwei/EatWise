@@ -1,6 +1,8 @@
 import 'dart:convert';
 
+import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
+import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -92,6 +94,29 @@ void main() {
       );
       expect(store.loadQuizProgress(), isNull);
       expect(store.loadActivePlan(), isNull);
+    });
+
+    test('待生效方案（PendingPlan，D-06/T12）保存/读取/清除', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SharedPreferencesOnboardingStore(
+        await SharedPreferences.getInstance(),
+      );
+      expect(store.loadPendingPlan(), isNull);
+
+      store.savePendingPlan(
+        const PendingPlan(
+          plan: FastingPlan.plan14x10,
+          effectiveDate: LocalDate(2026, 7, 29),
+          effectiveUtc: 1780000000,
+        ),
+      );
+      final pending = store.loadPendingPlan()!;
+      expect(pending.plan, FastingPlan.plan14x10);
+      expect(pending.effectiveDate, const LocalDate(2026, 7, 29));
+      expect(pending.effectiveUtc, 1780000000);
+
+      store.clearPendingPlan();
+      expect(store.loadPendingPlan(), isNull);
     });
   });
 

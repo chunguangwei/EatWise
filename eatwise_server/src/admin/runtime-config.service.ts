@@ -92,9 +92,13 @@ export class RuntimeConfigService {
   /**
    * 更新 LLM 覆盖项并持久化。provider 必传；baseUrl/model 提供则覆盖；
    * apiKey 留空（undefined/空串）= 保持不变（控制台密码框语义）。
+   * provider 变更时重置 baseUrl/model/apiKey 覆盖项：否则从 custom 切回 preset 后
+   * 旧值仍压过 preset 默认值（串味）。
    */
   setLlmOverride(patch: LlmOverride): void {
-    const next: LlmOverride = { ...this.llmOverride };
+    const providerChanged =
+      patch.provider !== undefined && patch.provider !== this.llmOverride.provider;
+    const next: LlmOverride = providerChanged ? {} : { ...this.llmOverride };
     if (patch.provider !== undefined) next.provider = patch.provider;
     if (patch.baseUrl?.trim()) next.baseUrl = patch.baseUrl.trim();
     if (patch.model?.trim()) next.model = patch.model.trim();

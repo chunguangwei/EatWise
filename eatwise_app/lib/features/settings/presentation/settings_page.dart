@@ -17,6 +17,14 @@ import 'package:eatwise/features/streak/presentation/streak_profile_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+
+/// 关于区版本号（package_info_plus：`version (buildNumber)`，与
+/// core/update/update_providers.dart 同源；测试注入固定值）。
+final appVersionLabelProvider = FutureProvider<String>((ref) async {
+  final info = await PackageInfo.fromPlatform();
+  return '${info.version} (${info.buildNumber})';
+});
 
 /// 设置页（替换 我的 Tab 占位，M7 + 合规 D-18 落地）。
 ///
@@ -171,10 +179,12 @@ class SettingsPage extends ConsumerWidget {
             _SettingsGroup(
               title: t.settings.group.about,
               children: <Widget>[
-                // 版本号与 pubspec version 对齐（1.0.0+1）。
+                // 版本号读 package_info_plus（version (buildNumber)），
+                // 加载完成前占位不展示假版本。
                 _SettingsTile(
                   title: t.settings.about.version,
-                  trailing: '1.0.0 (1)',
+                  trailing:
+                      ref.watch(appVersionLabelProvider).valueOrNull ?? '…',
                 ),
                 // 应用内更新检查（手动触发，不节流；已是最新弹提示）。
                 _SettingsTile(

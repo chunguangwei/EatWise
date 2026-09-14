@@ -8,7 +8,7 @@ import { SocialService } from './social.service';
 export class SocialController {
   constructor(private readonly social: SocialService) {}
 
-  /** C1 发布打卡（先审后发 D-17；approved → auditStatus=approved，manual → pending） */
+  /** C1 发布打卡（社区开放模式：发帖直接 approved 上架，不做先审后发；举报下架/人工队列保留，见 D-17 v2） */
   @Post()
   @HttpCode(200)
   async create(@CurrentUser() user: AuthUser, @Body() dto: CreatePostDto) {

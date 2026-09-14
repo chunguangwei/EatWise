@@ -326,6 +326,8 @@ class _Translations$onboarding$recommendation$en extends Translations$onboarding
 	@override late final _Translations$onboarding$recommendation$reason$en reason = _Translations$onboarding$recommendation$reason$en._(_root);
 	@override String get flexibleHint => 'Your schedule isn\'t fixed, so feel free to shift your eating window around your life.';
 	@override String fallbackNotice({required Object kcal}) => 'Your daily nutrition goal is estimated at ${kcal} kcal for now — add your height & weight in Profile for a precise target.';
+	@override String get planChangeTitle => 'Change fasting plan';
+	@override String planChangeConfirm({required Object date}) => 'The new plan takes effect at 00:00 on ${date}. Today still follows your current plan.';
 }
 
 // Path: onboarding.science
@@ -1101,6 +1103,8 @@ class _Translations$social$compose$en extends Translations$social$compose$zh_CN 
 	@override String get removePhoto => 'Remove photo';
 	@override String get photoUploading => 'Uploading photo…';
 	@override String get photoUploadFailed => 'Photo upload failed';
+	@override String get photoUploadFailedBody => 'The photo failed to upload. You can post without it, or cancel and retry the upload.';
+	@override String get publishWithoutPhoto => 'Post without photo';
 	@override String get retryUpload => 'Try uploading again';
 	@override String streakBadge({required Object days}) => 'Current streak: ${days} days 🔥';
 	@override String get noStreak => 'Finish today\'s fast and your check-in will carry the streak badge';
@@ -1165,6 +1169,7 @@ class _Translations$auth$register$en extends Translations$auth$register$zh_CN {
 	@override String get strengthWeak => 'Strength: weak';
 	@override String get strengthMedium => 'Strength: medium';
 	@override String get strengthStrong => 'Strength: strong';
+	@override String get strengthTooShort => 'Password must be at least 8 characters';
 	@override String get invalidUsername => 'Username must be 3-20 letters, digits or underscores';
 }
 
@@ -1677,6 +1682,8 @@ extension on TranslationsEn {
 			'onboarding.recommendation.reason.fallback' => 'Let\'s start with the crowd favorite 16:8 — you can adjust it anytime in Profile.',
 			'onboarding.recommendation.flexibleHint' => 'Your schedule isn\'t fixed, so feel free to shift your eating window around your life.',
 			'onboarding.recommendation.fallbackNotice' => ({required Object kcal}) => 'Your daily nutrition goal is estimated at ${kcal} kcal for now — add your height & weight in Profile for a precise target.',
+			'onboarding.recommendation.planChangeTitle' => 'Change fasting plan',
+			'onboarding.recommendation.planChangeConfirm' => ({required Object date}) => 'The new plan takes effect at 00:00 on ${date}. Today still follows your current plan.',
 			'onboarding.science.title' => 'How fasting works',
 			'onboarding.science.card1Title' => 'Give your body a break',
 			'onboarding.science.card1Body' => 'During a fast, your body gradually switches to fat-burning mode, running on stored energy.',
@@ -2089,6 +2096,8 @@ extension on TranslationsEn {
 			'social.compose.removePhoto' => 'Remove photo',
 			'social.compose.photoUploading' => 'Uploading photo…',
 			'social.compose.photoUploadFailed' => 'Photo upload failed',
+			'social.compose.photoUploadFailedBody' => 'The photo failed to upload. You can post without it, or cancel and retry the upload.',
+			'social.compose.publishWithoutPhoto' => 'Post without photo',
 			'social.compose.retryUpload' => 'Try uploading again',
 			'social.compose.streakBadge' => ({required Object days}) => 'Current streak: ${days} days 🔥',
 			'social.compose.noStreak' => 'Finish today\'s fast and your check-in will carry the streak badge',
@@ -2138,12 +2147,13 @@ extension on TranslationsEn {
 			'auth.register.strengthWeak' => 'Strength: weak',
 			'auth.register.strengthMedium' => 'Strength: medium',
 			'auth.register.strengthStrong' => 'Strength: strong',
+			_ => null,
+		} ?? switch (path) {
+			'auth.register.strengthTooShort' => 'Password must be at least 8 characters',
 			'auth.register.invalidUsername' => 'Username must be 3-20 letters, digits or underscores',
 			'auth.changePassword.title' => 'Change password',
 			'auth.changePassword.oldLabel' => 'Current password',
 			'auth.changePassword.oldHint' => 'Enter your current password',
-			_ => null,
-		} ?? switch (path) {
 			'auth.changePassword.oldRequired' => 'Enter your current password',
 			'auth.changePassword.newLabel' => 'New password',
 			'auth.changePassword.newHint' => '8-64 characters with letters and digits',

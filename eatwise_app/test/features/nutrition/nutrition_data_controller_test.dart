@@ -1,11 +1,14 @@
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
+import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
+import 'package:eatwise/features/streak/application/streak_controller.dart'
+    show currentUserIdProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -238,6 +241,96 @@ void main() {
 
       await container.read(weeklyTrendProvider.future);
       expect(container.read(weeklyKcalProvider), List<double?>.filled(7, null));
+    });
+  });
+
+  group('近 7 日断食时长（FastingRecords，同 userId 口径）', () {
+    Future<void> seedFast(
+      String date,
+      int hours, {
+      String userId = 'anonymous',
+      bool qualified = true,
+    }) {
+      return db
+          .into(db.fastingRecords)
+          .insert(
+            FastingRecordsCompanion(
+              localId: Value('$userId-$date'),
+              userId: Value(userId),
+              attributionDate: Value(date),
+              startUtc: const Value(0),
+              endUtc: Value(hours * 3600),
+              actualSec: Value(hours * 3600),
+              plannedSec: Value(hours * 3600),
+              extendedMinutes: const Value(0),
+              result: const Value('completed'),
+              qualified: Value(qualified),
+              clientRequestId: Value('req-$userId-$date'),
+              syncStatus: const Value(SyncStatus.synced),
+              createdAtUtc: Value(now.toUtc().toIso8601String()),
+            ),
+          );
+    }
+
+    test('有记录日按归属日出小时数，无记录日 null；他人数据不混入', () async {
+      await seedFast('2026-07-28', 16);
+      await seedFast('2026-07-25', 14, qualified: false); // 未达标也计时长
+      await seedFast('2026-07-27', 20, userId: 'u-1'); // 其他用户
+
+      final container = makeContainer();
+      addTearDown(container.dispose);
+
+      await container.read(weeklyFastingRecordsProvider.future);
+      expect(container.read(weeklyFastingHoursProvider), <double?>[
+        null,
+        null,
+        null,
+        14,
+        null,
+        null,
+        16,
+      ]);
+    });
+
+    test('登录用户按 currentUserIdProvider 真实 userId 读取', () async {
+      await seedFast('2026-07-27', 18, userId: 'u-1');
+      await seedFast('2026-07-26', 12); // anonymous，登录后不应读到
+
+      final container = ProviderContainer(
+        overrides: <Override>[
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          appDatabaseProvider.overrideWithValue(db),
+          nutritionNowProvider.overrideWithValue(now),
+          currentUserIdProvider.overrideWithValue('u-1'),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(weeklyFastingRecordsProvider.future);
+      expect(container.read(weeklyFastingHoursProvider), <double?>[
+        null,
+        null,
+        null,
+        null,
+        null,
+        18,
+        null,
+      ]);
+    });
+
+    test('窗口随日期切换联动（终点 = 选中日）', () async {
+      await seedFast('2026-07-25', 15);
+
+      final container = makeContainer();
+      addTearDown(container.dispose);
+
+      await container.read(weeklyFastingRecordsProvider.future);
+      expect(container.read(weeklyFastingHoursProvider)[3], 15);
+
+      // 切到前一天：窗口前移为 07-21..07-27，07-25 落在 index 4。
+      container.read(selectedDateProvider.notifier).prevDay();
+      await container.read(weeklyFastingRecordsProvider.future);
+      expect(container.read(weeklyFastingHoursProvider)[4], 15);
     });
   });
 }

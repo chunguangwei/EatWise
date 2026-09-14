@@ -277,4 +277,11 @@ final class AuthController extends StateNotifier<AuthState> {
     gate.loggedIn = false;
     state = const AuthState(status: AuthStatus.loggedOut);
   }
+
+  /// 清掉残留错误（登录/注册/改密共享 AuthState，进入页面时调用，
+  /// 避免上一页的失败文案残留到下一页）。
+  void clearError() {
+    if (state.errorCode == null && state.errorMessage == null) return;
+    state = state.copyWith(errorCode: () => null, errorMessage: () => null);
+  }
 }

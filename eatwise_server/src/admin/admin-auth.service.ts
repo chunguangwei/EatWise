@@ -36,10 +36,17 @@ export class AdminAuthService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
+    // 生产 fail-fast：管理端 JWT secret 必须显式配置，不允许回落到 JWT_SECRET 派生/缺省值
+    if (
+      this.config.get<string>('NODE_ENV') === 'production' &&
+      !this.config.get<string>('ADMIN_JWT_SECRET')
+    ) {
+      throw new Error('ADMIN_JWT_SECRET must be explicitly configured when NODE_ENV=production');
+    }
     await this.seedInitialAdmin();
   }
 
-  /** 管理员 JWT 独立 secret：缺省由 JWT_SECRET 派生〔假设〕，生产建议显式配置 */
+  /** 管理员 JWT 独立 secret：缺省由 JWT_SECRET 派生〔假设〕；生产环境由启动 fail-fast 保证显式配置 */
   jwtSecret(): string {
     return (
       this.config.get<string>('ADMIN_JWT_SECRET') ??

@@ -1,12 +1,15 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/network/api_client.dart';
 import 'package:eatwise/core/network/api_config.dart';
+import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/auth_interceptor.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/network/token_store.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
+import 'package:eatwise/features/auth/application/auth_controller.dart';
 import 'package:eatwise/features/auth/application/auth_gate.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
+import 'package:eatwise/features/auth/data/auth_api.dart';
 import 'package:eatwise/features/auth/presentation/register_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,7 +32,10 @@ void main() {
         'user': <String, dynamic>{'id': 'u-9', 'onboardingStatus': 'none'},
       });
 
-  Future<void> pumpRegisterPage(WidgetTester tester) async {
+  Future<void> pumpRegisterPage(
+    WidgetTester tester, {
+    List<Override> extraOverrides = const <Override>[],
+  }) async {
     await tester.pumpWidget(
       TranslationProvider(
         child: ProviderScope(
@@ -50,6 +56,7 @@ void main() {
                   adapter;
               return dio;
             }),
+            ...extraOverrides,
           ],
           child: MaterialApp(
             theme: AppTheme.light(),
@@ -152,6 +159,23 @@ void main() {
       expect(find.text('密码强度：强'), findsOneWidget);
     });
 
+    testWidgets('密码强度条：输入 1/5/7 位（不足 8 位）提示至少 8 位且不崩溃', (tester) async {
+      await pumpRegisterPage(tester);
+      final fields = find.byType(TextField);
+      for (final short in <String>['a', 'abcde', 'abcdefg']) {
+        await tester.enterText(fields.at(1), short);
+        await tester.pump();
+        // strength=0 且非空：只给长度提示，不得取 labels[-1] 崩溃。
+        expect(find.text('密码长度至少 8 位'), findsOneWidget);
+        expect(find.text('密码强度：弱'), findsNothing);
+      }
+      // 达到 8 位后恢复强度评级。
+      await tester.enterText(fields.at(1), 'passw0rd');
+      await tester.pump();
+      expect(find.text('密码强度：弱'), findsOneWidget);
+      expect(find.text('密码长度至少 8 位'), findsNothing);
+    });
+
     testWidgets('注册成功 → 自动登录：令牌持久化、门禁打开', (tester) async {
       adapter.stub('/auth/register', StubResponse.json(201, registerPayload()));
       await pumpRegisterPage(tester);
@@ -213,6 +237,46 @@ void main() {
       await tester.pump();
       expect(find.text('密码需 8-64 位且包含字母和数字'), findsOneWidget);
       expect(adapter.requests, isEmpty);
+    });
+
+    testWidgets('进入注册页清掉上一页残留的登录失败文案（共享 AuthState）', (tester) async {
+      // 预置一次登录失败残留：共享 AuthState 带上 AUTH_INVALID_CREDENTIALS
+      // （runAsync 跳出 FakeAsync 走真实事件循环完成 fake adapter 请求）。
+      final dio = createApiDio(config: ApiConfig(), tokenStore: tokenStore);
+      dio.httpClientAdapter = adapter;
+      final controller = AuthController(
+        api: AuthApi(dio),
+        tokenStore: tokenStore,
+        gate: authGate,
+      );
+      adapter.stub(
+        '/auth/login',
+        StubResponse.json(
+          401,
+          StubResponse.errorEnvelope('AUTH_INVALID_CREDENTIALS', 'bad'),
+        ),
+      );
+      await tester.runAsync(() async {
+        await expectLater(
+          controller.loginWithPassword(
+            username: 'old_user',
+            password: 'passw0rd',
+          ),
+          throwsA(isA<ApiException>()),
+        );
+      });
+      expect(controller.state.errorCode, 'AUTH_INVALID_CREDENTIALS');
+
+      await pumpRegisterPage(
+        tester,
+        extraOverrides: <Override>[
+          authControllerProvider.overrideWith((ref) => controller),
+        ],
+      );
+      // 页面进入后残留错误已清除，注册页不再展示登录失败文案。
+      expect(find.text('用户名或密码错误'), findsNothing);
+      expect(controller.state.errorCode, isNull);
+      expect(controller.state.errorMessage, isNull);
     });
   });
 

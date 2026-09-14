@@ -123,15 +123,23 @@ export class FastingService {
     const now = new Date();
     const plan = await this.getCurrentPlan(userId, tz);
     const win = computeWindow(plan, tz, now);
-    let activeRecord: FastingRecordEntity | null;
-    if (win.state === 'fasting') {
-      activeRecord = await this.findOrCreateActiveRecord(userId, plan, win, tz, now);
-    } else {
-      activeRecord = await this.driver.findFastingRecordByPlannedEnd(userId, win.eatingStartAt);
+    // 进行中的记录优先于 plan 窗口：延长会后移 plannedEndAt，脱离窗口精确匹配口径
+    let activeRecord: FastingRecordEntity | null =
+      await this.driver.findOngoingFastingRecord(userId);
+    if (!activeRecord) {
+      if (win.state === 'fasting') {
+        activeRecord = await this.findOrCreateActiveRecord(userId, plan, win, tz, now);
+      } else {
+        activeRecord = await this.driver.findFastingRecordByPlannedEnd(userId, win.eatingStartAt);
+      }
     }
+    // 延长覆盖名义进食窗口（on_track 且 plannedEndAt>now）→ 仍在断食，状态不消失
+    const recordActive =
+      activeRecord?.result === 'on_track' && activeRecord.plannedEndAt.getTime() > now.getTime();
+    const state = win.state === 'eating' && recordActive ? 'fasting' : win.state;
     const streak = await this.streak.getOrCreate(userId, tz);
     return {
-      state: win.state,
+      state,
       plan: {
         planType: plan.planType,
         eatingWindow: { start: plan.eatingWindowStart, end: plan.eatingWindowEnd },
@@ -157,6 +165,9 @@ export class FastingService {
     tz: string,
     now: Date,
   ): Promise<FastingRecordEntity> {
+    // on_track 记录去重：延长后 plannedEndAt 已偏离窗口，先按进行中记录命中
+    const ongoing = await this.driver.findOngoingFastingRecord(userId);
+    if (ongoing) return ongoing;
     const plannedEndAt = win.eatingStartAt;
     const existing = await this.driver.findFastingRecordByPlannedEnd(userId, plannedEndAt);
     if (existing) return existing;

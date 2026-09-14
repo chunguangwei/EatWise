@@ -1,11 +1,17 @@
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart'
     show nutritionGoalProvider;
+import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/reports/application/reports_controller.dart';
+import 'package:eatwise/features/streak/application/streak_controller.dart'
+    show currentUserIdProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final _now = DateTime(2026, 7, 28, 14); // 周二
 
@@ -188,5 +194,98 @@ void main() {
     // 7/28：1600/2000=80% 黄；其余 100% 绿 → 3/4 绿。
     expect(stats.greenRatio, 0.75);
     expect(stats.hasData, isTrue);
+  });
+
+  group('数据源 userId 口径（drift 实现）', () {
+    late AppDatabase db;
+    late SharedPreferences prefs;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      prefs = await SharedPreferences.getInstance();
+      db = AppDatabase.memory();
+      addTearDown(db.close);
+    });
+
+    Future<void> seedCache(String userId, String date) {
+      return db
+          .into(db.dailyNutritionCaches)
+          .insert(
+            DailyNutritionCachesCompanion(
+              userId: Value(userId),
+              date: Value(date),
+              entryCount: const Value(2),
+              kcal: const Value(1800),
+              proteinG: const Value(100),
+              carbG: const Value(200),
+              fatG: const Value(60),
+              updatedAtUtc: Value(_now.toUtc().toIso8601String()),
+            ),
+          );
+    }
+
+    Future<void> seedFast(String userId, String date) {
+      return db
+          .into(db.fastingRecords)
+          .insert(
+            FastingRecordsCompanion(
+              localId: Value('$userId-$date'),
+              userId: Value(userId),
+              attributionDate: Value(date),
+              startUtc: const Value(0),
+              endUtc: const Value(16 * 3600),
+              actualSec: const Value(16 * 3600),
+              plannedSec: const Value(16 * 3600),
+              extendedMinutes: const Value(0),
+              result: const Value('completed'),
+              qualified: const Value(true),
+              clientRequestId: Value('req-$userId-$date'),
+              syncStatus: const Value(SyncStatus.synced),
+              createdAtUtc: Value(_now.toUtc().toIso8601String()),
+            ),
+          );
+    }
+
+    ProviderContainer driftContainer({required String userId}) {
+      final container = ProviderContainer(
+        overrides: <Override>[
+          appDatabaseProvider.overrideWithValue(db),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          reportsNowProvider.overrideWithValue(_now),
+          currentUserIdProvider.overrideWithValue(userId),
+          nutritionGoalProvider.overrideWithValue(_goal),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    test('登录用户按 currentUserIdProvider 取数（不再硬编码 anonymous 全空）', () async {
+      await seedCache('u-1', '2026-07-28');
+      await seedCache('anonymous', '2026-07-28');
+      await seedFast('u-1', '2026-07-27');
+      await seedFast('anonymous', '2026-07-27');
+
+      final container = driftContainer(userId: 'u-1');
+      final caches = await container.read(reportNutritionProvider.future);
+      final fasts = await container.read(reportFastingProvider.future);
+      expect(caches.map((c) => c.userId).toList(), <String>['u-1']);
+      expect(fasts.map((r) => r.userId).toList(), <String>['u-1']);
+      // 登录用户的断食趋势不再全空。
+      expect(container.read(fastingHoursByDateProvider), <String, double>{
+        '2026-07-27': 16,
+      });
+    });
+
+    test('未登录回落 anonymous（与写入侧缺省口径一致）', () async {
+      await seedCache('u-1', '2026-07-28');
+      await seedFast('anonymous', '2026-07-27');
+
+      final container = driftContainer(userId: 'anonymous');
+      final caches = await container.read(reportNutritionProvider.future);
+      final fasts = await container.read(reportFastingProvider.future);
+      expect(caches, isEmpty);
+      expect(fasts.map((r) => r.userId).toList(), <String>['anonymous']);
+    });
   });
 }

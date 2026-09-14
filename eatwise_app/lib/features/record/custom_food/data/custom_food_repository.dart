@@ -111,16 +111,29 @@ final class CustomFoodRepository {
 
   /// 联网后重试 pending 自定义食物（幂等键复用，重复上行不产生重复条目）。
   /// 返回本轮上行成功条数。
+  ///
+  /// 上行成功后以服务端返回的 id 重映射本地食物行，并同事务级联更新
+  /// food_entries.foodId 引用——离线期间用临时 id（custom-*）记账的记录
+  /// 上行时服务端 snapshotOf 需按服务端 id 查到食物，不重映射会让这些
+  /// 记录永远卡 pending。
   Future<int> retryPending() async {
     final rows = await db.foodDao.pendingCustomFoods();
     var synced = 0;
     for (final row in rows) {
       try {
-        await remote.createCustom(
+        final serverId = await remote.createCustom(
           _draftFromRow(row),
           clientRequestId: row.customClientRequestId,
         );
-        await db.foodDao.markCustomSynced(row.id);
+        if (serverId.isNotEmpty && serverId != row.id) {
+          await db.transaction(() async {
+            await db.foodDao.remapCustomFoodId(row.id, serverId);
+            await db.foodEntryDao.remapFoodId(row.id, serverId);
+          });
+        } else {
+          // 服务端未返回新 id（防御）：仅清 pending，主键不变。
+          await db.foodDao.markCustomSynced(row.id);
+        }
         synced++;
       } on ApiException catch (e) {
         // 仍离线：整批留待下轮；业务错误保持 pending 下轮重试。

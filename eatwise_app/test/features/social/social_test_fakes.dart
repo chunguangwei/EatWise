@@ -99,8 +99,16 @@ final class FakeSocialApi extends SocialApi {
     return 0;
   }
 
+  /// 非 null 时 like/unlike 挂起在该 Completer 上（竞态测试用）。
+  Completer<void>? likeGate;
+
+  /// 非 null 时 report 挂起在该 Completer 上（竞态测试用）。
+  Completer<void>? reportGate;
+
   @override
   Future<({int likeCount, bool likedByMe})> like(String postId) async {
+    final pending = likeGate;
+    if (pending != null) await pending.future;
     if (likeError != null) throw likeError!;
     liked.add(postId);
     final count = (likeCounts[postId] ?? _baseCount(postId)) + 1;
@@ -110,6 +118,8 @@ final class FakeSocialApi extends SocialApi {
 
   @override
   Future<({int likeCount, bool likedByMe})> unlike(String postId) async {
+    final pending = likeGate;
+    if (pending != null) await pending.future;
     if (likeError != null) throw likeError!;
     unliked.add(postId);
     final count = (likeCounts[postId] ?? _baseCount(postId)) - 1;
@@ -119,6 +129,8 @@ final class FakeSocialApi extends SocialApi {
 
   @override
   Future<void> report(String postId, {String? reason}) async {
+    final pending = reportGate;
+    if (pending != null) await pending.future;
     if (reportError != null) throw reportError!;
     reported.add(postId);
   }

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
+import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 新手引导本地持久化（M1：进度本地保存可续答 / 方案与营养目标写入）。
@@ -136,6 +137,11 @@ abstract interface class OnboardingStore {
   ActivePlanSnapshot? loadActivePlan();
   void saveActivePlan(ActivePlanSnapshot snapshot);
 
+  /// 待生效方案（T12，D-06：换方案次日 0:00 本地生效）。
+  PendingPlan? loadPendingPlan();
+  void savePendingPlan(PendingPlan pending);
+  void clearPendingPlan();
+
   NutritionGoalSnapshot? loadNutritionGoal();
   void saveNutritionGoal(NutritionGoalSnapshot snapshot);
 }
@@ -147,6 +153,7 @@ final class SharedPreferencesOnboardingStore implements OnboardingStore {
   static const String _keyCompleted = 'onboarding.completed';
   static const String _keyQuizProgress = 'onboarding.quizProgress';
   static const String _keyActivePlan = 'onboarding.activePlan';
+  static const String _keyPendingPlan = 'onboarding.pendingPlan';
   static const String _keyNutritionGoal = 'onboarding.nutritionGoal';
 
   final SharedPreferences _prefs;
@@ -183,6 +190,46 @@ final class SharedPreferencesOnboardingStore implements OnboardingStore {
   }
 
   @override
+  PendingPlan? loadPendingPlan() =>
+      _readJson(_keyPendingPlan, _pendingPlanFromJson);
+
+  @override
+  void savePendingPlan(PendingPlan pending) {
+    _prefs.setString(
+      _keyPendingPlan,
+      jsonEncode(<String, dynamic>{
+        'planId': pending.plan.id,
+        'eatStartMinutes': pending.plan.eatStartMinutes,
+        'eatEndMinutes': pending.plan.eatEndMinutes,
+        'effectiveDate': pending.effectiveDate.toIsoString(),
+        'effectiveUtc': pending.effectiveUtc,
+      }),
+    );
+  }
+
+  @override
+  void clearPendingPlan() {
+    _prefs.remove(_keyPendingPlan);
+  }
+
+  static PendingPlan _pendingPlanFromJson(Map<String, dynamic> json) {
+    final parts = (json['effectiveDate']! as String).split('-');
+    return PendingPlan(
+      plan: FastingPlan(
+        id: json['planId']! as String,
+        eatStartMinutes: json['eatStartMinutes']! as int,
+        eatEndMinutes: json['eatEndMinutes']! as int,
+      ),
+      effectiveDate: LocalDate(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      ),
+      effectiveUtc: json['effectiveUtc']! as int,
+    );
+  }
+
+  @override
   NutritionGoalSnapshot? loadNutritionGoal() =>
       _readJson(_keyNutritionGoal, NutritionGoalSnapshot.fromJson);
 
@@ -207,6 +254,7 @@ final class InMemoryOnboardingStore implements OnboardingStore {
   bool _completed = false;
   QuizProgress? _progress;
   ActivePlanSnapshot? _plan;
+  PendingPlan? _pending;
   NutritionGoalSnapshot? _goal;
 
   @override
@@ -229,6 +277,15 @@ final class InMemoryOnboardingStore implements OnboardingStore {
 
   @override
   void saveActivePlan(ActivePlanSnapshot snapshot) => _plan = snapshot;
+
+  @override
+  PendingPlan? loadPendingPlan() => _pending;
+
+  @override
+  void savePendingPlan(PendingPlan pending) => _pending = pending;
+
+  @override
+  void clearPendingPlan() => _pending = null;
 
   @override
   NutritionGoalSnapshot? loadNutritionGoal() => _goal;

@@ -31,6 +31,15 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
   bool _obscureConfirm = true;
 
   @override
+  void initState() {
+    super.initState();
+    // 共享 AuthState：进入改密页清掉上一页残留的失败文案。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(authControllerProvider.notifier).clearError();
+    });
+  }
+
+  @override
   void dispose() {
     _oldController.dispose();
     _newController.dispose();

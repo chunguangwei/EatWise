@@ -203,6 +203,12 @@ final class RecordRepository {
     return db.foodDao.searchFoods(query, limit: limit);
   }
 
+  /// 语音录入词典全量加载（食物库量级约 7.5k 条，内存可行；
+  /// 不复用 searchFoods 的 limit 截断——截断会让尾部词条永远匹配不到）。
+  Future<List<Food>> allFoodsForVoiceDict() {
+    return db.foodDao.allFoods();
+  }
+
   /// 释放资源：取消全部待发上行与事件流。
   Future<void> dispose() async {
     for (final timer in _pushTimers.values) {

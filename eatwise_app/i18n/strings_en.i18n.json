@@ -79,7 +79,9 @@
         "fallback": "Let's start with the crowd favorite 16:8 — you can adjust it anytime in Profile."
       },
       "flexibleHint": "Your schedule isn't fixed, so feel free to shift your eating window around your life.",
-      "fallbackNotice": "Your daily nutrition goal is estimated at ${kcal} kcal for now — add your height & weight in Profile for a precise target."
+      "fallbackNotice": "Your daily nutrition goal is estimated at ${kcal} kcal for now — add your height & weight in Profile for a precise target.",
+      "planChangeTitle": "Change fasting plan",
+      "planChangeConfirm": "The new plan takes effect at 00:00 on ${date}. Today still follows your current plan."
     },
     "science": {
       "title": "How fasting works",
@@ -654,6 +656,8 @@
       "removePhoto": "Remove photo",
       "photoUploading": "Uploading photo…",
       "photoUploadFailed": "Photo upload failed",
+      "photoUploadFailedBody": "The photo failed to upload. You can post without it, or cancel and retry the upload.",
+      "publishWithoutPhoto": "Post without photo",
       "retryUpload": "Try uploading again",
       "streakBadge": "Current streak: ${days} days 🔥",
       "noStreak": "Finish today's fast and your check-in will carry the streak badge",
@@ -709,6 +713,7 @@
       "strengthWeak": "Strength: weak",
       "strengthMedium": "Strength: medium",
       "strengthStrong": "Strength: strong",
+      "strengthTooShort": "Password must be at least 8 characters",
       "invalidUsername": "Username must be 3-20 letters, digits or underscores"
     },
     "changePassword": {

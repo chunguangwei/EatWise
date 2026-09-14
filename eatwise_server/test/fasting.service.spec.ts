@@ -213,4 +213,45 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
       );
     });
   });
+
+  describe('延长后状态保持（plannedEndAt 后移不丢记录、不重复建档）', () => {
+    it('延长后再次查询（断食窗口内）：返回同一记录，不重复建档', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-07-27T01:00:00.000Z')); // 09:00 本地，断食中
+      try {
+        const s1 = await fasting.getStatus(userId, TZ);
+        const recordId = s1.activeRecord!.id;
+        await fasting.extend(userId, randomUUID(), recordId, 30); // plannedEndAt 后移 30min
+        const count = store.fastingRecords.size;
+        const s2 = await fasting.getStatus(userId, TZ);
+        expect(s2.state).toBe('fasting');
+        expect(s2.activeRecord?.id).toBe(recordId);
+        expect(s2.activeRecord?.extendedMinutes).toBe(30);
+        expect(store.fastingRecords.size).toBe(count); // 无重复建档
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('延长覆盖名义进食窗口：state 仍为 fasting，activeRecord 保留；延长窗口过后果进食', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-07-27T01:00:00.000Z'));
+      try {
+        const s1 = await fasting.getStatus(userId, TZ);
+        const recordId = s1.activeRecord!.id;
+        await fasting.extend(userId, randomUUID(), recordId, 30); // plannedEndAt → 12:30 本地
+
+        jest.setSystemTime(new Date('2026-07-27T04:15:00.000Z')); // 12:15 本地：名义进食窗口
+        const s2 = await fasting.getStatus(userId, TZ);
+        expect(s2.state).toBe('fasting'); // 记录优先于 plan 窗口：断食状态不消失
+        expect(s2.activeRecord?.id).toBe(recordId);
+
+        jest.setSystemTime(new Date('2026-07-27T05:00:00.000Z')); // 13:00 本地：延长窗口已过
+        const s3 = await fasting.getStatus(userId, TZ);
+        expect(s3.state).toBe('eating');
+        expect(s3.activeRecord?.id).toBe(recordId); // 未结束的记录仍回显（不重复建档）
+        expect(store.fastingRecords.size).toBe(1);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+  });
 });

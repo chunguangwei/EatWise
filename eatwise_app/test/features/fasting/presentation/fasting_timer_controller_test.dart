@@ -1,9 +1,11 @@
 import 'package:eatwise/features/fasting/application/fasting_notification_scheduler.dart';
+import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_cycle_store.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -107,14 +109,18 @@ void main() {
       expect(state.snapshot!.countdownSec, 4 * 3600 + 30 * 60);
       // 落盘：重启可还原
       expect(cycleStore.loadActiveCycle()!.extendedMinutes, 30);
-      // reschedule：extensionApplied + 30min
-      expect(scheduler.rescheduleCalls, hasLength(1));
+      // reschedule：build 对账补排（appForeground，T16）+ extensionApplied 30min
+      expect(scheduler.rescheduleCalls, hasLength(2));
       expect(
-        scheduler.rescheduleCalls.single.reason,
+        scheduler.rescheduleCalls.first.reason,
+        RescheduleReason.appForeground,
+      );
+      expect(
+        scheduler.rescheduleCalls.last.reason,
         RescheduleReason.extensionApplied,
       );
-      expect(scheduler.rescheduleCalls.single.extensionMinutes, 30);
-      expect(scheduler.rescheduleCalls.single.plan, FastingPlan.plan16x8);
+      expect(scheduler.rescheduleCalls.last.extensionMinutes, 30);
+      expect(scheduler.rescheduleCalls.last.plan, FastingPlan.plan16x8);
     });
 
     test('累计 4h 上限：第 9 次返回 false（按钮置 disabled，T7）', () async {
@@ -166,7 +172,7 @@ void main() {
       expect(state.lastClosedRecord!.date, '2026-07-28');
       expect(cycleStore.loadActiveCycle(), isNull);
       expect(
-        scheduler.rescheduleCalls.single.reason,
+        scheduler.rescheduleCalls.last.reason,
         RescheduleReason.manualEndFast,
       );
     });
@@ -194,7 +200,12 @@ void main() {
         container.read(fastingTimerControllerProvider).state,
         FastingState.eating,
       );
-      expect(scheduler.rescheduleCalls, isEmpty);
+      // endFast 被丢弃：除 build 对账补排（appForeground，T16）外无新重排
+      expect(scheduler.rescheduleCalls, hasLength(1));
+      expect(
+        scheduler.rescheduleCalls.single.reason,
+        RescheduleReason.appForeground,
+      );
     });
 
     test('进食窗已关闭后的断食段破窗：进食终点 = 破窗时刻 + 计划进食窗长（C3 回归）', () async {
@@ -231,9 +242,24 @@ void main() {
       expect(state.celebrating, isTrue);
       expect(state.lastClosedRecord!.result, CycleResult.completedOnTime);
       expect(
-        scheduler.rescheduleCalls.single.reason,
+        scheduler.rescheduleCalls.last.reason,
         RescheduleReason.stateTransition,
       );
+    });
+
+    test('回前台对账补重排（T16/§7.2.3）：build 触发 appForeground 全量重排', () async {
+      prefs = await seedActivePlanPrefs(startedAtUtc: bjtUtc(27, 12));
+      clock = FakeClock(bjtUtc(28, 0));
+      final container = await buildContainer();
+
+      // 回归：此前 build 只 reconcile 不重排，App 存活超 48h 通知视界耗尽。
+      container.read(fastingTimerControllerProvider);
+      expect(scheduler.rescheduleCalls, hasLength(1));
+      expect(
+        scheduler.rescheduleCalls.single.reason,
+        RescheduleReason.appForeground,
+      );
+      expect(scheduler.rescheduleCalls.single.plan, FastingPlan.plan16x8);
     });
 
     test('tick 未到点：仅刷新倒计时，无副作用', () async {
@@ -246,7 +272,12 @@ void main() {
       final state = container.read(fastingTimerControllerProvider);
       expect(state.state, FastingState.fasting);
       expect(state.snapshot!.countdownSec, 4 * 3600 - 60);
-      expect(scheduler.rescheduleCalls, isEmpty);
+      // 除 build 对账补排（appForeground）外，tick 未触发新重排
+      expect(scheduler.rescheduleCalls, hasLength(1));
+      expect(
+        scheduler.rescheduleCalls.single.reason,
+        RescheduleReason.appForeground,
+      );
     });
 
     test('重启对账：离线期间跨过窗口边界，持久化周期按 T2 补关闭', () async {
@@ -270,6 +301,76 @@ void main() {
       expect(state.lastClosedRecord!.result, CycleResult.completedOnTime);
       expect(state.lastClosedRecord!.date, '2026-07-28');
       expect(cycleStore.loadActiveCycle(), isNull);
+    });
+  });
+
+  group('方案生效（T13，D-06：pendingPlan 次日 0:00 本地转正）', () {
+    test('build 对账转正：新方案生效，进行中周期作废不写幽灵记录', () async {
+      prefs = await seedActivePlanPrefs(startedAtUtc: bjtUtc(27, 12));
+      final store = SharedPreferencesOnboardingStore(prefs);
+      store.savePendingPlan(
+        PendingPlan(
+          plan: FastingPlan.plan14x10,
+          effectiveDate: const LocalDate(2026, 7, 28),
+          effectiveUtc: bjtUtc(27, 16),
+        ),
+      );
+      // 旧方案进行中周期（计划结束 = 本地 12:00，未到点）。
+      cycleStore.saveActiveCycle(
+        ActiveCycleSnapshot(
+          startUtc: bjtUtc(27, 12),
+          plannedEndUtc: bjtUtc(28, 4),
+          eatWindowEndUtc: bjtUtc(28, 12),
+          extendedMinutes: 0,
+        ),
+      );
+      clock = FakeClock(bjtUtc(28, 0)); // 本地 08:00，生效时刻已过
+      final container = await buildContainer();
+
+      final state = container.read(fastingTimerControllerProvider);
+      expect(state.plan, FastingPlan.plan14x10);
+      expect(store.loadPendingPlan(), isNull);
+      expect(store.loadActivePlan()!.plan, FastingPlan.plan14x10);
+      // 进行中周期口径：作废不写 FastingRecord（不产生幽灵达标记录）。
+      expect(cycleStore.loadActiveCycle(), isNull);
+      expect(state.lastClosedRecord, isNull);
+      expect(state.celebrating, isFalse);
+      // 重排按 planActivate；build 不再重复 appForeground。
+      expect(scheduler.rescheduleCalls, hasLength(1));
+      expect(
+        scheduler.rescheduleCalls.single.reason,
+        RescheduleReason.planActivate,
+      );
+      expect(scheduler.rescheduleCalls.single.plan, FastingPlan.plan14x10);
+    });
+
+    test('前台跨过本地 0:00：tick 兜底转正 pendingPlan', () async {
+      prefs = await seedActivePlanPrefs(startedAtUtc: bjtUtc(27, 12));
+      final store = SharedPreferencesOnboardingStore(prefs);
+      store.savePendingPlan(
+        PendingPlan(
+          plan: FastingPlan.plan14x10,
+          effectiveDate: const LocalDate(2026, 7, 28),
+          effectiveUtc: bjtUtc(27, 16), // 本地 07-28 00:00
+        ),
+      );
+      clock = FakeClock(bjtUtc(27, 15, 59, 50)); // 本地 23:59:50，未到期
+      final container = await buildContainer();
+      expect(
+        container.read(fastingTimerControllerProvider).plan,
+        FastingPlan.plan16x8,
+      );
+
+      clock.now = bjtUtc(27, 16, 0, 5); // 本地 00:00:05，跨过生效时刻
+      container.read(fastingTimerControllerProvider.notifier).tick();
+
+      final state = container.read(fastingTimerControllerProvider);
+      expect(state.plan, FastingPlan.plan14x10);
+      expect(store.loadPendingPlan(), isNull);
+      expect(
+        scheduler.rescheduleCalls.last.reason,
+        RescheduleReason.planActivate,
+      );
     });
   });
 }

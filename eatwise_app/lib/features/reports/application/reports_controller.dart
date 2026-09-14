@@ -10,6 +10,8 @@ import 'package:eatwise/features/nutrition/application/nutrition_data_controller
 import 'package:eatwise/features/reports/application/monthly_report.dart';
 import 'package:eatwise/features/reports/application/report_aggregation.dart';
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
+import 'package:eatwise/features/streak/application/streak_controller.dart'
+    show currentUserIdProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// M6 趋势与报告页（/data/reports）application 层：
@@ -91,7 +93,8 @@ final class DriftReportsDataSource implements ReportsDataSource {
   final AppDatabase _db;
   final WeightLogStore _weightLog;
 
-  /// 归属用户（与 record 仓储缺省口径一致：anonymous）。
+  /// 归属用户（与写入侧 currentUserIdProvider 同口径：登录取真实 userId，
+  /// 未登录 anonymous）。
   final String userId;
 
   @override
@@ -131,13 +134,17 @@ final class DriftReportsDataSource implements ReportsDataSource {
 }
 
 /// 数据源装配（生产：drift + prefs；测试：override 为内存实现）。
+///
+/// userId 与写入侧（streak_controller / record 仓储）同口径取
+/// [currentUserIdProvider]，否则登录用户的数据全落在真实 userId 下、
+/// 报告按 anonymous 读取会全空。
 final Provider<ReportsDataSource> reportsDataSourceProvider =
     Provider<ReportsDataSource>((ref) {
       final db = ref.watch(appDatabaseProvider);
       return DriftReportsDataSource(
         db,
         ref.watch(weightLogStoreProvider),
-        userId: 'anonymous',
+        userId: ref.watch(currentUserIdProvider),
       );
     });
 

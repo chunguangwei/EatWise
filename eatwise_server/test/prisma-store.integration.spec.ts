@@ -128,6 +128,22 @@ describePg('PrismaStore（集成，真实 PostgreSQL）', () => {
     expect(mismatch.errorCode).toBe('IDEMPOTENCY_PAYLOAD_MISMATCH');
   });
 
+  it('create：业务校验错误保留原 code（未知 foodId → VALIDATION_ERROR，不吞成 INTERNAL_ERROR）', async () => {
+    const [res] = await store.pushFoodEntries(userId, [
+      {
+        clientRequestId: randomUUID(),
+        op: 'create' as const,
+        payload: {
+          eatenAt: new Date('2026-07-20T10:00:00Z').toISOString(),
+          foodId: 'no-such-food',
+          grams: 100,
+        },
+      },
+    ]);
+    expect(res.status).toBe('error');
+    expect(res.errorCode).toBe('VALIDATION_ERROR');
+  });
+
   it('update/delete：LWW 版本冲突与 deleted_vs_modified', async () => {
     const crid = randomUUID();
     const [created] = await store.pushFoodEntries(userId, [
@@ -193,6 +209,34 @@ describePg('PrismaStore（集成，真实 PostgreSQL）', () => {
     ]);
     await prisma.post.create({ data: { userId, text: '打卡', imageUrls: [] } });
     await store.createWaterLog(waterLog());
+    // 个人自定义食物 + 贡献候选（U5 需一并清除）
+    const customFood: CustomFoodEntity = {
+      id: `cf_${randomUUID().slice(0, 8)}`,
+      userId,
+      clientRequestId: randomUUID(),
+      nameZh: '集成测试自定义食物',
+      nameEn: 'IT Custom Food',
+      aliases: [],
+      kcalPer100g: 100,
+      proteinPer100g: 10,
+      carbsPer100g: 10,
+      fatPer100g: 5,
+      source: 'manual',
+      createdAt: new Date(),
+    };
+    await store.createCustomFood(customFood);
+    const candidate: FoodCandidateEntity = {
+      id: `fc_${randomUUID().slice(0, 8)}`,
+      foodId: customFood.id,
+      userId,
+      status: 'pending',
+      reason: null,
+      clientRequestId: randomUUID(),
+      version: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    await store.createFoodCandidate(candidate);
 
     const bundle = await store.collectUserExport(userId);
     expect(bundle).not.toBeNull();
@@ -207,6 +251,9 @@ describePg('PrismaStore（集成，真实 PostgreSQL）', () => {
     expect(await prisma.user.findUnique({ where: { id: userId } })).toBeNull();
     // 饮水记录随账号物理清除（water_logs.userId 外键必填，未清则删用户行违反 FK）
     expect(await prisma.waterLog.count({ where: { userId } })).toBe(0);
+    // 个人自定义食物与贡献候选随账号清除
+    expect(await prisma.food.count({ where: { createdByUserId: userId, isCustom: true } })).toBe(0);
+    expect(await prisma.foodCandidate.count({ where: { userId } })).toBe(0);
     expect(await store.collectUserExport(userId)).toBeNull();
   });
 });

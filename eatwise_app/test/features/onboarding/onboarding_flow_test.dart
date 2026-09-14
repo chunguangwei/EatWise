@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
@@ -12,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:visibility_detector/visibility_detector.dart';
 
+import '../fasting/presentation/fasting_presentation_test_helper.dart';
 import '../fasting/tz_test_helper.dart';
 
 /// M1 新手引导全流程 widget 测试：
@@ -52,6 +54,12 @@ void main() {
             onboardingGateProvider.overrideWithValue(gate),
             deviceLocationProvider.overrideWithValue(shanghai),
             nowUtcProvider.overrideWithValue(fixedNowUtc),
+            // 计时主控固定时钟（换方案测试断言 pendingPlan 不被即时转正）；
+            // 通知服务替身（build 回前台对账补排走插件会抛 MissingPlugin）。
+            fastingClockProvider.overrideWithValue(() => fixedNowUtc),
+            localNotificationServiceProvider.overrideWithValue(
+              FakeNotificationService(),
+            ),
           ],
           child: EatWiseApp(gate: gate),
         ),
@@ -273,5 +281,59 @@ void main() {
     await pumpApp(tester, completed: true);
     expect(find.text('断食计时'), findsOneWidget);
     expect(find.text('你的小目标是？'), findsNothing);
+  });
+
+  testWidgets('换方案（D-06/T12）：一键启动先弹「次日 0:00 生效」确认；'
+      '取消不登记，确认后登记 pendingPlan 且当日方案不动', (tester) async {
+    // 预置生效方案 14:10；兜底推荐 16:8 与之不同 → 构成换方案。
+    final (:gate, :store) = await pumpApp(
+      tester,
+      completed: false,
+      initialPrefs: <String, Object>{
+        'onboarding.activePlan': jsonEncode(<String, dynamic>{
+          'planId': '14:10',
+          'eatStartMinutes': 600,
+          'eatEndMinutes': 1200,
+          'initialState': 'fasting',
+          'targetUtc': null,
+          'attributionDate': null,
+          'startedAtUtc': fixedNowUtc - 86400,
+        }),
+      },
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.quiz.skip')),
+    );
+    await pumpFrames(tester);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.recommendation.start')),
+    );
+    await pumpFrames(tester);
+
+    // T12 确认弹窗：明示次日 0:00 生效（fixedNow = 07-28 → 生效日 07-29）
+    expect(find.text('更换断食方案'), findsOneWidget);
+    expect(find.text('新方案将于 2026-07-29 00:00 生效，今天仍按当前方案计时。'), findsOneWidget);
+    expect(store.loadPendingPlan(), isNull); // 确认前不写入
+
+    // 取消：不登记，停留推荐页
+    await tester.tap(find.text('取消'));
+    await pumpFrames(tester);
+    expect(store.loadPendingPlan(), isNull);
+    expect(find.text('为你推荐的方案'), findsOneWidget);
+
+    // 再次启动并确认：登记 pendingPlan，当日方案不动
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.recommendation.start')),
+    );
+    await pumpFrames(tester);
+    await tester.tap(find.text('确定'));
+    await pumpFrames(tester);
+
+    expect(gate.completed, isTrue);
+    expect(store.loadActivePlan()!.plan.id, '14:10'); // 当日方案不动
+    final pending = store.loadPendingPlan()!;
+    expect(pending.plan.id, '16:8');
+    expect(pending.effectiveDate.toIsoString(), '2026-07-29');
   });
 }

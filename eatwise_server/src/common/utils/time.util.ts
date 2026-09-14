@@ -16,6 +16,16 @@ export function isValidTimeStr(s: string): boolean {
   return TIME_RE.test(s);
 }
 
+/** IANA 时区名合法性（Intl 判定；非法名会让 DateTimeFormat 抛 RangeError 打挂请求） */
+export function isValidTimezone(tz: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function tzParts(tz: string, at: Date): Record<string, number> {
   const dtf = new Intl.DateTimeFormat('en-GB', {
     timeZone: tz,

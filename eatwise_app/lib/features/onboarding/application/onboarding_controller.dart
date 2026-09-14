@@ -1,7 +1,9 @@
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/analytics_service.dart';
+import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
+import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_rule_config.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
@@ -35,6 +37,13 @@ final nowUtcProvider = Provider<int>((ref) {
   return DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
 });
 
+/// 方案写入信号量：一键启动/换方案登记时 +1。
+///
+/// onboardingStoreProvider 是普通 Provider（返回存储句柄），ref.watch 它
+/// 不会因 SharedPreferences 键值写入触发重建；FastingTimerController 改为
+/// 监听本信号量，在方案写入/登记后重建（修复「启动方案后计时首页不刷新」）。
+final planVersionProvider = StateProvider<int>((ref) => 0);
+
 /// 设备时区（D-07：UTC 存储本地渲染）。
 ///
 /// 〔假设〕MVP 上架区域为中国区（D-15），默认 Asia/Shanghai；
@@ -54,6 +63,7 @@ final class StartPlanResult {
     required this.planId,
     required this.targetKcal,
     required this.usedFallback,
+    this.pendingEffectiveDate,
   });
 
   /// 已写入的方案 id。
@@ -64,6 +74,10 @@ final class StartPlanResult {
 
   /// 营养目标是否走了 D-04 兜底（true → 提示补全资料）。
   final bool usedFallback;
+
+  /// 换方案登记（T12，D-06）的生效日（本地自然日）；
+  /// null = 首次启动立即生效。
+  final LocalDate? pendingEffectiveDate;
 }
 
 /// 引导流程状态。
@@ -199,50 +213,66 @@ final class OnboardingController extends Notifier<OnboardingState> {
     state = state.copyWith(recommendation: rec.promote(option));
   }
 
+  /// 主推荐方案（与 [startPrimaryPlan] 同口径）。
+  FastingPlan get _primaryPlan =>
+      state.recommendation?.primary.toFastingPlan() ?? FastingPlan.plan16x8;
+
+  /// 一键启动是否走换方案链路（T12，D-06：已有生效方案且窗口不同 →
+  /// 次日 0:00 本地生效；确认弹窗据此先行明示）。
+  bool get isPlanChange {
+    final existing = _store.loadActivePlan();
+    return existing != null && existing.plan != _primaryPlan;
+  }
+
+  /// 换方案生效日预览（本地次日，确认弹窗展示用）。
+  LocalDate get planChangeEffectiveDate => localDateOf(
+    ref.read(nowUtcProvider),
+    ref.read(deviceLocationProvider),
+  ).addDays(1);
+
   /// 一键启动（M1 功能点 4 / US-1.1）：
-  /// 写入用户方案、初始化进食窗口（M2 引擎 resolveState 重算落点）、
-  /// 初始化每日营养目标（D-04，缺基础信息走兜底并提示补全）、标记引导完成。
+  /// - 首次启动（或无变化重写）：立即写入用户方案、初始化进食窗口
+  ///   （M2 引擎 resolveState 重算落点）；
+  /// - 已有生效方案且窗口不同：走换方案链路（T12，D-06），登记
+  ///   pendingPlan 次日 0:00 本地生效，当日锚点不动、已记录数据保留
+  ///   不回算（生效动作见 FastingTimerController 的 T13 转正）；
+  /// 两条路径都初始化每日营养目标（D-04，与断食窗口解耦故即时更新）、
+  /// 标记引导完成。
   StartPlanResult startPrimaryPlan() {
-    final plan =
-        state.recommendation?.primary.toFastingPlan() ?? FastingPlan.plan16x8;
+    final plan = _primaryPlan;
     final nowUtc = ref.read(nowUtcProvider);
     final location = ref.read(deviceLocationProvider);
 
-    // 初始化进食窗口：按锚点重算当前落点（《规格-M2》§4.2）。
-    final snapshot = resolveState(nowUtc, plan, location);
-    _store.saveActivePlan(
-      ActivePlanSnapshot(
-        plan: plan,
-        initialState: snapshot.state.name,
-        targetUtc: snapshot.targetUtc,
-        attributionDate: snapshot.attributionPreview?.toIsoString(),
-        startedAtUtc: nowUtc,
-      ),
-    );
-
     // 每日营养目标（D-04）：问卷不含身高体重等基础信息 → 兜底默认值，
     // usedFallback=true 驱动「补全资料」提示。
-    final goalType = state.answers.goal == GoalAnswer.loseWeight
-        ? NutritionGoalType.lose
-        : NutritionGoalType.maintain;
-    final goal = computeNutritionGoal(
-      UserProfileInput(goal: goalType),
-      NutritionRuleConfig.defaults,
-    );
-    _store.saveNutritionGoal(
-      NutritionGoalSnapshot(
-        targetKcal: goal.targetKcal,
-        proteinG: goal.proteinG,
-        carbG: goal.carbG,
-        fatG: goal.fatG,
-        usedFallback: goal.usedFallback,
-        configVersion: goal.configVersion,
-      ),
-    );
+    final goal = _computeAndSaveNutritionGoal();
+
+    LocalDate? pendingEffectiveDate;
+    if (isPlanChange) {
+      // 换方案（T12，D-06）：登记 pendingPlan，次日 0:00 本地生效；
+      // 确认弹窗「新方案将于次日 0:00 生效」由 UI 层先行明示。
+      final pending = schedulePlanChange(plan, nowUtc, location);
+      _store.savePendingPlan(pending);
+      pendingEffectiveDate = pending.effectiveDate;
+    } else {
+      // 首次启动：初始化进食窗口，按锚点重算当前落点（《规格-M2》§4.2）。
+      final snapshot = resolveState(nowUtc, plan, location);
+      _store.saveActivePlan(
+        ActivePlanSnapshot(
+          plan: plan,
+          initialState: snapshot.state.name,
+          targetUtc: snapshot.targetUtc,
+          attributionDate: snapshot.attributionPreview?.toIsoString(),
+          startedAtUtc: nowUtc,
+        ),
+      );
+    }
 
     _store.clearQuizProgress();
     _store.markOnboardingCompleted();
     ref.read(onboardingGateProvider).completed = true;
+    // 通知计时主控重建（信号量语义见 planVersionProvider 注释）。
+    ref.read(planVersionProvider.notifier).state++;
 
     // 一键启动（核心转化事件，§1.5 立即上报；2.2 引导完成率分子）。
     final rec = state.recommendation;
@@ -263,7 +293,29 @@ final class OnboardingController extends Notifier<OnboardingState> {
       planId: plan.id,
       targetKcal: goal.targetKcal,
       usedFallback: goal.usedFallback,
+      pendingEffectiveDate: pendingEffectiveDate,
     );
+  }
+
+  /// 计算并落盘每日营养目标（D-04；缺基础信息走兜底并提示补全）。
+  NutritionGoalSnapshot _computeAndSaveNutritionGoal() {
+    final goalType = state.answers.goal == GoalAnswer.loseWeight
+        ? NutritionGoalType.lose
+        : NutritionGoalType.maintain;
+    final goal = computeNutritionGoal(
+      UserProfileInput(goal: goalType),
+      NutritionRuleConfig.defaults,
+    );
+    final snapshot = NutritionGoalSnapshot(
+      targetKcal: goal.targetKcal,
+      proteinG: goal.proteinG,
+      carbG: goal.carbG,
+      fatG: goal.fatG,
+      usedFallback: goal.usedFallback,
+      configVersion: goal.configVersion,
+    );
+    _store.saveNutritionGoal(snapshot);
+    return snapshot;
   }
 
   static String _questionKey(int step) => switch (step) {

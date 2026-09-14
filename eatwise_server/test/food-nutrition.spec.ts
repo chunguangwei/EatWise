@@ -45,6 +45,23 @@ describe('K1 食物双语搜索（D-16）', () => {
     expect(res.items).toEqual([]);
     expect(res.pageInfo.hasMore).toBe(false);
   });
+
+  it('非法 limit（负数/NaN/小数）回落默认分页，不报错不死循环', async () => {
+    for (const limit of [-5, Number.NaN, 0]) {
+      const res = await food.search('鸡', limit);
+      expect(res.items.length).toBeGreaterThanOrEqual(1);
+      expect(res.pageInfo.hasMore).toBe(false); // 数据量小，默认页即可装下
+    }
+  });
+
+  it('cursor offset 非负整数校验：负数/非整数 → 400 INVALID_CURSOR', async () => {
+    const bad = (offset: unknown) => Buffer.from(JSON.stringify({ offset })).toString('base64');
+    for (const cursor of [bad(-1), bad(1.5), bad('5')]) {
+      await expect(food.search('鸡', 20, cursor)).rejects.toThrow(
+        expect.objectContaining({ code: 'INVALID_CURSOR' }) as unknown as Error,
+      );
+    }
+  });
 });
 
 describe('营养目标（D-04）与信号灯（D-05）', () => {
@@ -89,5 +106,21 @@ describe('营养目标（D-04）与信号灯（D-05）', () => {
     expect(by('carbs').level).toBe('yellow'); // 75% ∈ [65,85)
     expect(by('fat').level).toBe('green'); // 91%
     expect(by('kcal').adviceKey).toBe('advice.kcal.ok');
+  });
+
+  it('偏高黄灯方向修正：kcal 120% → advice.kcal.high（吃多了，而非 low）', () => {
+    const signals = computeSignals(
+      { kcal: 1920, proteinG: 160, carbsG: 240, fatG: 37 },
+      { kcal: 1600, proteinG: 100, carbsG: 200, fatG: 53, fallback: false },
+    );
+    const by = (n: string) => signals.find((s) => s.nutrient === n)!;
+    expect(by('kcal').level).toBe('yellow'); // 120% ∈ [110,130)
+    expect(by('kcal').adviceKey).toBe('advice.kcal.high');
+    expect(by('carbs').level).toBe('yellow'); // 120% ∈ [115,135)
+    expect(by('carbs').adviceKey).toBe('advice.carbs.high');
+    expect(by('protein').level).toBe('red'); // 160% > 150%
+    expect(by('protein').adviceKey).toBe('advice.protein.high');
+    expect(by('fat').level).toBe('yellow'); // 70% ∈ [55,80) 偏低
+    expect(by('fat').adviceKey).toBe('advice.fat.low');
   });
 });

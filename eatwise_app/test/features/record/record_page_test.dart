@@ -1,4 +1,12 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/analytics/analytics_client.dart';
+import 'package:eatwise/core/analytics/analytics_context.dart';
+import 'package:eatwise/core/analytics/analytics_event.dart';
+import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/analytics/analytics_service.dart';
+import 'package:eatwise/core/analytics/consent_store.dart';
+import 'package:eatwise/core/analytics/device_identity_store.dart';
+import 'package:eatwise/core/analytics/event_queue_store.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
@@ -12,6 +20,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import 'record_test_helper.dart';
+
+/// 录制型假通道：收集上报批次（埋点断言用）。
+final class _RecordingClient implements AnalyticsClient {
+  final List<AnalyticsEvent> sent = <AnalyticsEvent>[];
+
+  @override
+  Future<void> send(List<AnalyticsEvent> batch) async {
+    sent.addAll(batch);
+  }
+
+  @override
+  void logSuppressed(String name, Map<String, Object?> properties) {}
+}
 
 /// M3 记录页 widget 测试：主流程（搜索 → 选食物 → 份量实时重算 →
 /// 确认乐观更新 → 「已记录·撤销」吐司 → 撤销撤回）+ 三入口占位 + 待同步角标。
@@ -67,7 +88,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
   }
 
-  Future<void> pumpPage(WidgetTester tester) async {
+  Future<void> pumpPage(
+    WidgetTester tester, {
+    AnalyticsService? analytics,
+  }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
@@ -75,6 +99,8 @@ void main() {
           waterLogRepositoryProvider.overrideWithValue(
             WaterLogRepository(db: db),
           ),
+          if (analytics != null)
+            analyticsServiceProvider.overrideWithValue(analytics),
         ],
         child: TranslationProvider(
           child: MaterialApp(theme: AppTheme.light(), home: const RecordPage()),
@@ -157,6 +183,70 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('没找到？换个关键词试试'), findsOneWidget);
+    await settleUi(tester);
+  });
+
+  testWidgets('连续入账：确认成功后重启记录流程，第二单埋点不丢', (tester) async {
+    final client = _RecordingClient();
+    final analytics = AnalyticsService(
+      consentStore: InMemoryConsentStore(analyticsGranted: true),
+      queueStore: InMemoryEventQueueStore(),
+      context: AnalyticsContext(
+        deviceIdentityStore: InMemoryDeviceIdentityStore(),
+      ),
+      clients: <AnalyticsClient>[client],
+    );
+    await pumpPage(tester, analytics: analytics);
+
+    // 第一单：搜索 → 选中 → 份量 → 确认。
+    await tester.enterText(find.byType(TextField).first, '米饭');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('白米饭'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField).last, '100');
+    await tester.pump();
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('已记录'), findsOneWidget);
+
+    // 第二单：同样链路再记一笔（修复前第二单起无任何流程埋点）。
+    await tester.enterText(find.byType(TextField).first, '鸡蛋');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.widgetWithText(ListTile, '鸡蛋'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField).last, '50');
+    await tester.pump();
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await analytics.flush();
+
+    // 进入页面 1 次 + 两单确认各重启 1 次 = 3 次 flow_start。
+    final starts = client.sent
+        .where((e) => e.name == 'record_flow_start')
+        .toList();
+    expect(starts, hasLength(3));
+    // 两单各有 record_flow_success，且 flow_id 不同（一单一流程）。
+    final successes = client.sent
+        .where((e) => e.name == 'record_flow_success')
+        .toList();
+    expect(successes, hasLength(2));
+    final firstFlowId = successes[0].properties['flow_id'];
+    final secondFlowId = successes[1].properties['flow_id'];
+    expect(secondFlowId, isNot(firstFlowId));
+    // 两单的 flow_id 分别对应该单进行时的流程（首单=进入页开启，
+    // 第二单=首单确认后重启；starts[2] 是第二单确认后再重启、页面退出时
+    // 才 abandon 的流程）。
+    expect(firstFlowId, starts[0].properties['flow_id']);
+    expect(secondFlowId, starts[1].properties['flow_id']);
+    // 步数按单重置：选中食物 + 确认 = 2 步（不累积上一单）。
+    expect(successes[1].properties['step_count'], 2);
+
+    // 冲刷 10s 撤销窗上行 Timer（D-11），避免测试结束挂起 Timer。
+    await tester.pump(const Duration(seconds: 11));
     await settleUi(tester);
   });
 }

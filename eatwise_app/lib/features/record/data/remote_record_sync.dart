@@ -219,6 +219,9 @@ final class RemoteRecordSync implements RecordRemote {
   ///
   /// 落库规则（§2.4）：本地存在未上行修改（非 synced）的记录不被下行
   /// 覆盖；tombstone 仅软删已同步记录（删改冲突双份保留待人工处理）。
+  /// 防丢约束：某条 change 因本地食物库缺条目被跳过时，返回的游标停留在
+  /// 首个发生跳过的页面之前——该 change 未落库，token 不得越过它，
+  /// 下轮（食物库刷新后）从旧游标重拉补齐（重放对已落库行幂等）。
   Future<String?> pullDown(
     AppDatabase db,
     String userId,
@@ -243,19 +246,24 @@ final class RemoteRecordSync implements RecordRemote {
     String? syncToken,
   ) async {
     String? token = syncToken;
+    // 首个发生跳过的页面之前的游标（存在跳过时返回它，不持久化新 token）。
+    String? firstSkippedPageToken;
     var hasMore = true;
     while (hasMore) {
+      final pageTokenBefore = token;
       final page = await pullPage(syncToken: token);
+      var pageSkipped = false;
       for (final change in page.changes) {
-        await _applyChange(db, userId, change);
+        pageSkipped = (await _applyChange(db, userId, change)) || pageSkipped;
       }
       for (final change in page.waterLogChanges) {
         await _applyWaterChange(db, userId, change);
       }
+      if (pageSkipped) firstSkippedPageToken ??= pageTokenBefore;
       token = page.nextSyncToken;
       hasMore = page.hasMore;
     }
-    return token;
+    return firstSkippedPageToken ?? token;
   }
 
   /// 饮水记录下行入库（两态轻量口径）：本地 pending 不被下行覆盖；
@@ -315,7 +323,9 @@ final class RemoteRecordSync implements RecordRemote {
     }
   }
 
-  Future<void> _applyChange(
+  /// 应用单条 entry change；返回 true = 本地食物库缺条目被跳过未落库
+  /// （调用方据此回退游标，保证该 change 下轮重拉不丢）。
+  Future<bool> _applyChange(
     AppDatabase db,
     String userId,
     Map<String, dynamic> change,
@@ -329,11 +339,11 @@ final class RemoteRecordSync implements RecordRemote {
       if (local != null && local.syncStatus == SyncStatus.synced) {
         await db.foodEntryDao.markDeleted(local.localId);
       }
-      return;
+      return false;
     }
     final serverId = change['id'] as String?;
     final clientRequestId = change['clientRequestId'] as String?;
-    if (serverId == null) return;
+    if (serverId == null) return false;
     // 先按幂等键对账（本机待发记录），再按服务端主键（多端/重装）。
     FoodEntry? local;
     if (clientRequestId != null) {
@@ -342,12 +352,13 @@ final class RemoteRecordSync implements RecordRemote {
     local ??= await db.foodEntryDao.getByServerId(serverId);
     if (local != null && local.syncStatus != SyncStatus.synced) {
       // 本地有未上行修改：不被下行覆盖（§2.4），上行冲突由 push 处理。
-      return;
+      return false;
     }
     final foodId = change['foodId'] as String?;
     if (foodId == null || await db.foodDao.getById(foodId) == null) {
-      // 本地食物库缺该条目（种子未覆盖）：跳过，待食物库刷新后重拉。
-      return;
+      // 本地食物库缺该条目（种子未覆盖）：跳过不落库；游标由 _pullPages
+      // 回退到本页之前，待食物库刷新后重拉补齐。
+      return true;
     }
     final snapshot = change['nutritionSnapshot'];
     final snapshotMap = snapshot is Map<String, dynamic>
@@ -392,6 +403,7 @@ final class RemoteRecordSync implements RecordRemote {
         ),
       );
     }
+    return false;
   }
 
   /// 归属日 = 就餐 UTC 按设备时区换算的本地自然日（D-07）。

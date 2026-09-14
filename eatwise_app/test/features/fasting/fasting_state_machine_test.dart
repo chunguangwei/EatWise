@@ -173,6 +173,38 @@ void main() {
     expect(resolveState(d1Morning, plan, bjt).state, FastingState.fasting);
   });
 
+  group('resolveState 越界防御（时钟大幅拨快/回拨，B9/B10 回归）', () {
+    // 回归：循环末位无条件读 anchors[i + 1]，越界 now 会 RangeError 打挂
+    // 首页；修复后越界 now 防御性落到最近区间，正常 now 落点不变。
+    test('拨快 48h：落点与直接锚点推导一致，不抛异常', () {
+      final base = wall(2026, 7, 28, 12, 0, bjt); // 本地 12:00，进食窗内
+      final later = base + 48 * 3600; // 2026-07-30 12:00 本地
+      final s = resolveState(later, plan, bjt);
+      expect(s.state, FastingState.eating);
+      expect(s.targetUtc, wall(2026, 7, 30, 20, 0, bjt));
+      expect(s.countdownSec, 8 * 3600);
+      expect(s.attributionPreview, const LocalDate(2026, 7, 31));
+    });
+
+    test('拨快一周：断食段落点正确，周期锚点与墙钟一致', () {
+      final base = wall(2026, 7, 28, 8, 0, bjt); // 本地 08:00，断食中
+      final later = base + 7 * 24 * 3600; // 2026-08-04 08:00 本地
+      final s = resolveState(later, plan, bjt);
+      expect(s.state, FastingState.fasting);
+      expect(s.cycle!.startUtc, wall(2026, 8, 3, 20, 0, bjt));
+      expect(s.cycle!.plannedEndUtc, wall(2026, 8, 4, 12, 0, bjt));
+      expect(s.countdownSec, 4 * 3600);
+    });
+
+    test('回拨一周：仍按回拨后墙钟正常落点，不抛异常', () {
+      final base = wall(2026, 7, 28, 12, 0, bjt);
+      final earlier = base - 7 * 24 * 3600; // 2026-07-21 12:00 本地
+      final s = resolveState(earlier, plan, bjt);
+      expect(s.state, FastingState.eating);
+      expect(s.countdownSec, 8 * 3600);
+    });
+  });
+
   test('B8 飞行跨时区（北京→纽约，D-07/T14）：UTC 锚点不变，'
       '预计算归属日随时区变化，关闭时冻结', () {
     // 用冬季（EST，UTC-5）场景：锚点 04:00 UTC 在 NY 渲染为前一日 23:00，

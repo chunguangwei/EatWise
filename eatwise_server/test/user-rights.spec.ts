@@ -187,5 +187,45 @@ describe('用户权利（U1/U3/U5/U6，合规 §4.2/§4.3）', () => {
       expect(post.text).toBe('');
       expect(post.imageUrls).toEqual([]);
     });
+
+    it('到期执行：个人自定义食物与贡献候选一并清除；已晋升共享的食物留存', async () => {
+      const now = new Date();
+      store.customFoods.set('cf_1', {
+        id: 'cf_1',
+        userId,
+        clientRequestId: 'cr-cf-1',
+        nameZh: '私房菜',
+        nameEn: 'homemade',
+        aliases: [],
+        kcalPer100g: 100,
+        proteinPer100g: 5,
+        carbsPer100g: 10,
+        fatPer100g: 3,
+        source: 'manual',
+        createdAt: now,
+      });
+      store.foodCandidates.set('fc_1', {
+        id: 'fc_1',
+        foodId: 'cf_1',
+        userId,
+        status: 'pending',
+        reason: null,
+        clientRequestId: 'cr-fc-1',
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+      // 已晋升共享的食物（isCustom=false，createdByUserId 保留溯源）不清除
+      const sharedFood = [...store.foods.values()][0];
+      store.foods.set(sharedFood.id, { ...sharedFood, createdByUserId: userId });
+
+      await users.requestDeletion(userId);
+      store.users.get(userId)!.scheduledDeletionAt = new Date(Date.now() - 1000);
+      await users.executeDueDeletions(new Date());
+
+      expect(store.customFoods.size).toBe(0);
+      expect(store.foodCandidates.size).toBe(0);
+      expect(store.foods.get(sharedFood.id)).toBeTruthy(); // 共享食物留存
+    });
   });
 });

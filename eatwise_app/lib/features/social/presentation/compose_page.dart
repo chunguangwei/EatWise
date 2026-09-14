@@ -21,8 +21,9 @@ final composePhotoPickerProvider = Provider<PhotoPickerGateway>((ref) {
 /// 打卡发布页（M5：文字 ≤500 字计数 + 配图 + streak 徽章 + 乐观发布）。
 ///
 /// 配图链路：选图即上传（POST /uploads，U1）→ 拿到 `/v1/uploads/<id>` →
-/// 发布时作为 imageUrls 上行。上传中禁用发布（避免发出无图帖），失败提供
-/// 就地重试；预览上传前用本地字节、成功后切网络图。
+/// 发布时作为 imageUrls 上行。上传中禁用发布（避免发出缺图帖），失败提供
+/// 就地重试，且发布时可选「不带图发布」（失败不阻断文字发布）；预览上传前
+/// 用本地字节、成功后切网络图。
 class ComposePage extends ConsumerStatefulWidget {
   const ComposePage({super.key});
 
@@ -43,8 +44,6 @@ class _ComposePageState extends ConsumerState<ComposePage> {
 
   /// 上传代际：移除/换图后丢弃在途回调，避免旧图 URL 覆盖新图。
   int _uploadSeq = 0;
-
-  bool get _photoReady => _photo == null || _photoUrl != null;
 
   @override
   void dispose() {
@@ -102,12 +101,37 @@ class _ComposePageState extends ConsumerState<ComposePage> {
       );
       return;
     }
-    if (_uploading || !_photoReady) {
-      // 配图未就绪：不发无图帖，也不让用户以为发成功了。
+    if (_uploading) {
+      // 上传在途：等传完再发，避免发出缺图帖。
       messenger.showSnackBar(
         SnackBar(content: Text(t.social.compose.photoUploading)),
       );
       return;
+    }
+    if (_photo != null && _photoUrl == null) {
+      // 上传失败不阻断文字发布：用户选「不带图发布」则丢弃失败配图按纯
+      // 文字帖继续，取消则保留配图与就地重试入口。
+      final dropPhoto = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          content: Text(t.social.compose.photoUploadFailedBody),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(t.common.action.cancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(t.social.compose.publishWithoutPhoto),
+            ),
+          ],
+        ),
+      );
+      if (dropPhoto != true || !mounted) return;
+      setState(() {
+        _photo = null;
+        _uploadError = null;
+      });
     }
     setState(() => _submitting = true);
     final streakDays = ref.read(streakControllerProvider).currentStreak;
@@ -320,7 +344,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
               ),
             ),
             const SizedBox(height: AppSpacing.s2),
-            // 配图：选图即上传，上传中禁用发布。
+            // 配图：选图即上传，上传中禁用发布；失败可重试或不带图发布。
             _buildPhotoSection(t),
             const SizedBox(height: AppSpacing.s6),
             FilledButton(

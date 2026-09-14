@@ -48,7 +48,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
   /// 埋点服务（dispose 阶段不可再用 ref，提前持有）。
   late final AnalyticsService _analytics = ref.read(analyticsServiceProvider);
 
-  /// 当前记录流程 ID（§2.5 耗时事件对关联键；进入记录页即开启）。
+  /// 当前记录流程 ID（§2.5 耗时事件对关联键；进入记录页即开启，
+  /// 每次确认成功后重启下一条流程）。
   String? _flowId;
 
   /// 有效交互步数（≤3 步口径 §2.5：入口点击/选中食物/确认，不含曝光）。
@@ -161,6 +162,10 @@ class _RecordPageState extends ConsumerState<RecordPage> {
         flushNow: true,
       );
     }
+    // 连续入账：确认成功即开启下一条流程并重置步数（§3.3 一单一
+    // flow_id；不重启会让第二单起 record_entry_click/success 全部丢失）。
+    _flowId = _analytics.startRecordFlow();
+    _stepCount = 0;
     if (!mounted) return;
     ref.read(recordSelectedFoodProvider.notifier).state = null;
     ref.read(recordSearchQueryProvider.notifier).state = '';

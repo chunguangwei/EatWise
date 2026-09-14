@@ -32,6 +32,12 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
     return (select(foods)..where((f) => f.id.equals(id))).getSingleOrNull();
   }
 
+  /// 全量食物（语音录入词典构建用：食物库量级约 7.5k 条，内存可行，
+  /// 不做 limit 截断——截断会让尾部词条永远匹配不到）。
+  Future<List<Food>> allFoods() {
+    return select(foods).get();
+  }
+
   /// 批量写入（食物库初始化/下行刷新用）。
   Future<void> upsertAll(List<FoodsCompanion> entries) async {
     await batch((b) {
@@ -50,6 +56,19 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
   Future<void> markCustomSynced(String id) {
     return (update(foods)..where((f) => f.id.equals(id))).write(
       const FoodsCompanion(customSyncPending: Value(false)),
+    );
+  }
+
+  /// 离线自定义食物上行成功后重映射主键：本地临时 id（custom-*）改写为
+  /// 服务端 id 并清除 pending；引用级联（food_entries.foodId）由调用方
+  /// 同事务更新（见 CustomFoodRepository.retryPending）。
+  Future<void> remapCustomFoodId(String localId, String serverId) {
+    return (update(foods)..where((f) => f.id.equals(localId))).write(
+      FoodsCompanion(
+        id: Value(serverId),
+        customSyncPending: const Value(false),
+        customClientRequestId: const Value(''),
+      ),
     );
   }
 

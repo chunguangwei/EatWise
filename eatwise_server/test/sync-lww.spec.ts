@@ -165,4 +165,26 @@ describe('sync：LWW 版本冲突 + syncToken 增量下行', () => {
     expect(res.results.length).toBe(3);
     expect(res.results.every((r) => r.status === 'applied')).toBe(true);
   });
+
+  it('业务校验错误保留原 code：未知 foodId → VALIDATION_ERROR（不吞成 INTERNAL_ERROR）', async () => {
+    const res = await sync.push(userId, [
+      {
+        clientRequestId: randomUUID(),
+        entity: 'foodEntry',
+        op: 'create',
+        payload: { eatenAt: '2026-07-27T04:10:00.000Z', foodId: 'no-such-food', grams: 100 },
+      },
+    ]);
+    expect(res.results[0].status).toBe('error');
+    expect(res.results[0].error?.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('pull：非法 limit（负数/NaN/0）回落默认 200，不游标死循环', async () => {
+    await createEntry();
+    for (const limit of [-5, Number.NaN, 0]) {
+      const res = await sync.pull(userId, undefined, limit);
+      expect(res.changes.length).toBe(1);
+      expect(res.hasMore).toBe(false);
+    }
+  });
 });

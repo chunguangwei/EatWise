@@ -184,7 +184,7 @@ void main() {
     // 破壳庆祝：文案切「断食完成！…」
     expect(find.text('断食完成！身体悄悄做了次大扫除 ✨'), findsOneWidget);
     expect(
-      scheduler.rescheduleCalls.single.reason,
+      scheduler.rescheduleCalls.last.reason,
       RescheduleReason.manualEndFast,
     );
 
@@ -207,10 +207,10 @@ void main() {
     expect(find.text('已延长 +30 分钟'), findsOneWidget);
     expect(find.text('断食中 · 已延长'), findsOneWidget);
     expect(
-      scheduler.rescheduleCalls.single.reason,
+      scheduler.rescheduleCalls.last.reason,
       RescheduleReason.extensionApplied,
     );
-    expect(scheduler.rescheduleCalls.single.extensionMinutes, 30);
+    expect(scheduler.rescheduleCalls.last.extensionMinutes, 30);
 
     await unmount(tester);
 

@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/network/api_client.dart';
 import 'package:eatwise/core/network/api_config.dart';
 import 'package:eatwise/core/storage/database.dart';
@@ -357,6 +358,45 @@ void main() {
       expect(
         adapter.requests[1].queryParameters.containsKey('syncToken'),
         isFalse,
+      );
+    });
+
+    test('本地缺失食物的 change 跳过：token 不推进，食物库补齐后重拉落库', () async {
+      // 一页两条：f-rice 已知可落库，f-unknown 本地食物库缺失被跳过。
+      List<Map<String, dynamic>> page() => <Map<String, dynamic>>[
+        entryView(),
+        entryView(id: 'srv-2', clientRequestId: 'c-2', foodId: 'f-unknown'),
+      ];
+      stubPull(page(), syncToken: 'st_1');
+      final token = await remote.pullDown(db, 'u-1', 'st_0');
+
+      // 存在跳过：返回入参游标（调用方不持久化新 token），防 change 永丢。
+      expect(token, 'st_0');
+      var entries = await db.foodEntryDao.entriesForDate('u-1', '2026-07-27');
+      expect(entries.map((e) => e.serverId), <String?>['srv-1']);
+
+      // 食物库补齐后按旧游标重拉：同页重放幂等，跳过条目落库，token 推进。
+      await db.foodDao.upsertAll(<FoodsCompanion>[
+        const FoodsCompanion(
+          id: Value('f-unknown'),
+          nameZh: Value('新品食物'),
+          nameEn: Value('New Food'),
+          aliasesZh: Value('[]'),
+          aliasesEn: Value('[]'),
+          kcalPer100g: Value(100),
+          proteinPer100g: Value(5),
+          carbPer100g: Value(10),
+          fatPer100g: Value(2),
+        ),
+      ]);
+      stubPull(page(), syncToken: 'st_1');
+      final token2 = await remote.pullDown(db, 'u-1', token);
+      expect(token2, 'st_1');
+      entries = await db.foodEntryDao.entriesForDate('u-1', '2026-07-27');
+      expect(entries, hasLength(2));
+      expect(
+        entries.map((e) => e.serverId),
+        containsAll(<String?>['srv-1', 'srv-2']),
       );
     });
   });

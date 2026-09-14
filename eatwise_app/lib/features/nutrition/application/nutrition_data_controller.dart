@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/food_entry_dao.dart';
 import 'package:eatwise/core/storage/providers.dart';
@@ -5,6 +6,8 @@ import 'package:eatwise/features/fasting/domain/daily_nutrition.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_rule_config.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
+import 'package:eatwise/features/streak/application/streak_controller.dart'
+    show currentUserIdProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 数据页（/data）application 层：日期切换 + 当日信号灯判定 + 近 7 日趋势。
@@ -111,7 +114,12 @@ final class DriftNutritionDataSource implements NutritionDataSource {
 final Provider<NutritionDataSource> nutritionDataSourceProvider =
     Provider<NutritionDataSource>((ref) {
       final db = ref.watch(appDatabaseProvider);
-      return DriftNutritionDataSource(db.foodEntryDao, userId: 'anonymous');
+      // 与写入侧 currentUserIdProvider 同口径（登录取真实 userId，未登录
+      // anonymous），否则登录用户的当日/近 7 日数据全部查询落空。
+      return DriftNutritionDataSource(
+        db.foodEntryDao,
+        userId: ref.watch(currentUserIdProvider),
+      );
     });
 
 /// 选中日聚合缓存流。
@@ -203,13 +211,35 @@ final Provider<List<double?>> weeklyKcalProvider = Provider<List<double?>>((
   });
 });
 
-/// 近 7 日断食时长序列（小时）。
-///
-/// 〔假设/遗留〕断食历史尚未持久化（FastingCycleStore 仅存进行中周期与
-/// 最近一条闭合记录），M6 深度趋势接入真实历史；当前恒为空序列，
-/// 趋势图走空态引导。
+/// 近 7 日断食记录流（以选中日为终点，随日期切换联动；userId 与写入侧
+/// currentUserIdProvider 同口径，登录用户读自己的历史）。
+final StreamProvider<List<FastingRecord>> weeklyFastingRecordsProvider =
+    StreamProvider<List<FastingRecord>>((ref) {
+      final db = ref.watch(appDatabaseProvider);
+      final userId = ref.watch(currentUserIdProvider);
+      final end = ref.watch(selectedDateProvider);
+      final start = end.subtract(const Duration(days: 6));
+      return (db.select(db.fastingRecords)..where(
+            (r) =>
+                r.userId.equals(userId) &
+                r.attributionDate.isBiggerOrEqualValue(localDateOf(start)) &
+                r.attributionDate.isSmallerOrEqualValue(localDateOf(end)),
+          ))
+          .watch();
+    });
+
+/// 近 7 日断食时长序列（小时；长度 7，无记录日为 null，按日期升序对齐，
+/// 与 [weeklyKcalProvider] 同口径）。
 final Provider<List<double?>> weeklyFastingHoursProvider =
     Provider<List<double?>>((ref) {
-      ref.watch(selectedDateProvider);
-      return List<double?>.filled(7, null);
+      final end = ref.watch(selectedDateProvider);
+      final records = ref.watch(weeklyFastingRecordsProvider).valueOrNull;
+      final byDate = <String, double>{
+        for (final r in records ?? const <FastingRecord>[])
+          r.attributionDate: r.actualSec / 3600,
+      };
+      return List<double?>.generate(7, (i) {
+        final date = localDateOf(end.subtract(Duration(days: 6 - i)));
+        return byDate[date];
+      });
     });

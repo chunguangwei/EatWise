@@ -76,6 +76,39 @@ describe('RuntimeConfigService', () => {
     expect(eff.apiKey).toBe('sk-persist-123456');
   });
 
+  it('provider 变更时重置 baseUrl/model/apiKey 覆盖项（custom 切回 preset 不串味）', () => {
+    const svc = make();
+    svc.setLlmOverride({
+      provider: 'custom',
+      baseUrl: 'http://localhost:11434/v1',
+      model: 'qwen3:4b',
+      apiKey: 'sk-custom-9999',
+    });
+    svc.setLlmOverride({ provider: 'deepseek' });
+    expect(svc.getLlmOverride()).toEqual({ provider: 'deepseek' });
+    const eff = svc.resolveLlm();
+    expect(eff.baseUrl).toBe('https://api.deepseek.com/v1'); // preset 默认值生效，不被旧 custom 值压过
+    expect(eff.model).toBe('deepseek-chat');
+    expect(eff.apiKey).toBeUndefined();
+  });
+
+  it('provider 未变更时保留既有覆盖项（同 provider 更新部分字段）', () => {
+    const svc = make();
+    svc.setLlmOverride({
+      provider: 'custom',
+      baseUrl: 'http://localhost:11434/v1',
+      model: 'qwen3:4b',
+      apiKey: 'sk-custom-9999',
+    });
+    svc.setLlmOverride({ provider: 'custom', model: 'qwen3:8b' });
+    expect(svc.getLlmOverride()).toEqual({
+      provider: 'custom',
+      baseUrl: 'http://localhost:11434/v1',
+      model: 'qwen3:8b',
+      apiKey: 'sk-custom-9999',
+    });
+  });
+
   it('apiKey 留空 = 保持不变；目录不存在时自动创建', () => {
     process.env.ADMIN_CONFIG_PATH = join(dir, 'nested', 'deep', 'admin-config.json');
     const svc = make();

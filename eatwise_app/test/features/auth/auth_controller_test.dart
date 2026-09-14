@@ -319,4 +319,33 @@ void main() {
       expect(gate.loggedIn, isFalse);
     });
   });
+
+  group('clearError（共享 AuthState，页面进入时清残留错误）', () {
+    test('登录失败后 clearError 清空 errorCode/errorMessage', () async {
+      adapter.stub(
+        '/auth/login',
+        StubResponse.json(
+          401,
+          StubResponse.errorEnvelope('AUTH_INVALID_CREDENTIALS', '用户名或密码错误'),
+        ),
+      );
+      await expectLater(
+        controller.loginWithPassword(username: 'user_1', password: 'passw0rd'),
+        throwsA(isA<BusinessApiException>()),
+      );
+      expect(controller.state.errorCode, 'AUTH_INVALID_CREDENTIALS');
+      expect(controller.state.errorMessage, isNotNull);
+
+      controller.clearError();
+
+      expect(controller.state.errorCode, isNull);
+      expect(controller.state.errorMessage, isNull);
+    });
+
+    test('无错误时 clearError 为空操作（不触发状态变化）', () {
+      final before = controller.state;
+      controller.clearError();
+      expect(identical(controller.state, before), isTrue);
+    });
+  });
 }

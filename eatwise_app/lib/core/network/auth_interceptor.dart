@@ -133,7 +133,7 @@ final class AuthInterceptor extends QueuedInterceptor {
       path: options.path,
       baseUrl: options.baseUrl,
       queryParameters: options.queryParameters,
-      data: options.data,
+      data: _replayData(options.data),
       headers: Map<String, dynamic>.of(options.headers)
         ..remove('Authorization'),
       extra: Map<String, dynamic>.of(options.extra)..['retried'] = true,
@@ -145,4 +145,9 @@ final class AuthInterceptor extends QueuedInterceptor {
     );
     return dio.fetch<dynamic>(replayed);
   }
+
+  /// 重放请求体：FormData finalize 一次后不可重发，multipart 上传
+  /// （图片发帖）在 401 refresh 后原样重放会抛 StateError，须克隆重建
+  /// （dio FormData.clone 保留 boundary 并深拷贝 files）。
+  Object? _replayData(Object? data) => data is FormData ? data.clone() : data;
 }

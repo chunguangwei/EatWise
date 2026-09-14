@@ -3,6 +3,7 @@ import { err } from '../common/errors/business.exception';
 import { PostEntity, UserEntity } from '../common/store/data-store';
 import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { newId, payloadHash } from '../common/utils/id.util';
+import { clampPageLimit } from '../common/utils/pagination.util';
 import { StreakService } from '../streak/streak.service';
 import { ContentModerationService } from './moderation/content-moderation.service';
 import { CreatePostDto, ReviewPostDto } from './social.dto';
@@ -14,9 +15,8 @@ export type AdminPostFilter = 'pending' | 'approved' | 'rejected' | 'reported';
 
 /**
  * 社区打卡（M5 P1 / 契约 §3.9）：
- * - 先审后发（D-17）：发布时机审，approved 才上流；rejected 拒绝发布并返回
- *   明确错误码（双语 reason 在 details）；manual 转人工队列（pending，
- *   他人不可见，仅作者可见并带「审核中」标记）。
+ * - 社区开放模式（2026-09-08 决策）：发帖直接 approved 上架，不做先审后发；
+ *   举报下架/人工复核队列链路保留，接入审核供应商后恢复机审门（见 D-17 v2）。
  * - 打卡流：游标分页倒序，UGC 不分语言圈混排（D-15）。
  * - 点赞/举报幂等；举报即下架并转人工复核（PRD M5 异常与边界）。
  *
@@ -81,7 +81,7 @@ export class SocialService {
 
   /** C2 打卡流：他人仅 approved；本人 pending/approved 也可见（带审核中标记）。 */
   async feed(viewerId: string, limit = 20, cursor?: string) {
-    if (limit > FEED_PAGE_MAX) limit = FEED_PAGE_MAX;
+    limit = clampPageLimit(limit, 20, FEED_PAGE_MAX); // 非法 limit（负数/NaN）回落默认，防游标死循环
     const after = this.parseCursor(cursor);
 
     // 可见集 + 倒序（createdAt, id）由驱动给出口径（未删除 && (approved || 本人)）。
@@ -194,7 +194,7 @@ export class SocialService {
    * reported=被举报待处理（reportCount>0 且当前 rejected，举报即下架后的复核队列）。
    */
   async adminList(status: AdminPostFilter | undefined, limit = 20, cursor?: string) {
-    if (limit > FEED_PAGE_MAX) limit = FEED_PAGE_MAX;
+    limit = clampPageLimit(limit, 20, FEED_PAGE_MAX);
     const after = this.parseCursor(cursor);
 
     // 队列筛选（含 reported 口径）与倒序由驱动承担

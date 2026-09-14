@@ -35,6 +35,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   static final RegExp _username = RegExp(r'^[A-Za-z0-9_]{3,20}$');
 
   @override
+  void initState() {
+    super.initState();
+    // 共享 AuthState：进入登录页清掉上一页残留的失败文案。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(authControllerProvider.notifier).clearError();
+    });
+  }
+
+  @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();

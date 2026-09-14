@@ -35,6 +35,10 @@ void main() {
     Object? uploadError,
   }) async {
     if (uploadError != null) upload = FakeUploadApi(error: uploadError);
+    // 放大视口：带图 + 上传失败行时发布按钮会跌出默认 800x600 的懒构建区。
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
     final router = GoRouter(
       initialLocation: '/',
       routes: <RouteBase>[
@@ -192,6 +196,51 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(api.lastImageUrls, isEmpty);
     expect(upload.calls, 0);
+  });
+
+  testWidgets('上传失败后点发布：失败语义弹窗，选「不带图发布」按纯文字发出', (tester) async {
+    pickedPhoto = pngBytes;
+    await pumpCompose(tester, uploadError: tooLargeException);
+    await tester.tap(find.text('添加图片'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('图片超过 5MB，请换一张或压缩后再传'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), '图挂了也要打卡');
+    await tester.tap(find.text('发布'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    // 失败语义提示（不再是「上传中」），给出不带图发布选择。
+    expect(find.text('图片上传失败：可以不带图发布，或取消后重新上传。'), findsOneWidget);
+    expect(api.createCalls, 0);
+
+    await tester.tap(find.text('不带图发布'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(api.createCalls, 1);
+    expect(api.lastImageUrls, isEmpty); // 丢弃失败配图，纯文字上行
+    await unmount(tester);
+  });
+
+  testWidgets('上传失败后点发布：取消则保留配图与重试入口，不发请求', (tester) async {
+    pickedPhoto = pngBytes;
+    await pumpCompose(tester, uploadError: tooLargeException);
+    await tester.tap(find.text('添加图片'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.enterText(find.byType(TextField), '再想想');
+    await tester.tap(find.text('发布'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('图片上传失败：可以不带图发布，或取消后重新上传。'), findsOneWidget);
+
+    await tester.tap(find.text('取消'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(api.createCalls, 0);
+    // 配图与就地重试入口保留，可修正后再发。
+    expect(find.text('重新上传'), findsOneWidget);
+    expect(find.text('图片超过 5MB，请换一张或压缩后再传'), findsOneWidget);
+    await unmount(tester);
   });
 
   testWidgets('英文渲染：标题/计数/按钮双语', (tester) async {

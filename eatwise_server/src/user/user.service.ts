@@ -4,6 +4,7 @@ import { UserEntity } from '../common/store/data-store';
 import { STORE_DRIVER, StoreDriver, UserDataExport } from '../common/store/store-driver';
 import { maskPhone } from '../common/utils/phone.util';
 import { computeTargets } from '../nutrition/nutrition.rules';
+import { PatchUserDto } from './user.dto';
 
 const DELETION_COOLING_OFF_DAYS = 7; // 删除冷静期 7 天〔假设，待法务确认 D-18 / 合规 §4.3〕
 
@@ -33,7 +34,7 @@ export class UserService {
   }
 
   /** U2 修改资料：字段级 LWW（服务端 updatedAt 仲裁，无 409），触发营养目标重算（D-04） */
-  async patchMe(userId: string, body: Record<string, unknown>) {
+  async patchMe(userId: string, body: PatchUserDto) {
     await this.mustGet(userId);
     const patch: Record<string, unknown> = {};
     for (const key of PATCHABLE) {
