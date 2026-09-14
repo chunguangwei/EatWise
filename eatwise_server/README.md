@@ -66,6 +66,20 @@ npm run start:dev
 - 成功结果按「provider+model+规范化菜名」缓存 30 天〔假设〕，命中返回 `cached:true`；端点限流每用户 10 次/分钟〔假设〕。
 - 用户自定义食物：`POST /v1/foods/custom`（幂等 clientRequestId，营养区间同上）入个人库，K1 搜索合并（仅创建者可见、排内置结果之后、标注 `isCustom`）；Prisma 对应 `foods.isCustom` + `createdByUserId`。
 
+## 图片上传存储（/v1/uploads）
+
+打卡配图（jpg/png/webp ≤5MB，文件头魔数嗅探）。存储介质按 env 切换，模式与 `STORE_DRIVER` 一致（接口 `src/uploads/uploads.storage.ts` 的 `UploadsStorage`，工厂在 `uploads.module.ts`）。
+
+| 环境变量 | 说明 |
+|----------|------|
+| `STORAGE_DRIVER` | `local`（默认，落 server 根 `uploads/`，仅单实例可用）/ `s3`（R2/S3 + CDN，上线形态，见部署手册 §3） |
+| `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET` / `CDN_BASE_URL` | s3 必填，缺一启动即报错（fail fast）；`CDN_BASE_URL` 为公开读域名，上传返回的 url 与 GET 302 目标都拼在它后面 |
+| `S3_REGION` | 缺省 `auto`（R2 即用 auto；AWS S3 填实际区域） |
+| `S3_ENDPOINT` | R2 必填（`https://<account_id>.r2.cloudflarestorage.com`）；AWS S3 留空走默认端点 |
+| `UPLOAD_DIR` | local 存储目录覆盖（默认 `uploads/`，一般仅测试隔离用） |
+
+- s3 模式：`POST /v1/uploads` PUT 到桶（Key=文件名，一年强缓存），`GET /v1/uploads/:filename` 302 重定向到 CDN 地址——端点契约与 local 一致，老客户端无感。
+
 ## 常用脚本
 
 | 命令 | 说明 |

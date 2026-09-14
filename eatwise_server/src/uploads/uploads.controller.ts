@@ -67,11 +67,18 @@ export class UploadsController {
     return this.uploads.save(file);
   }
 
-  /** U2 读取图片：sendFile 按扩展名给 Content-Type；文件名含 uuid → 内容不可变。 */
+  /**
+   * U2 读取图片：local 驱动 sendFile 按扩展名给 Content-Type；s3 驱动 302
+   * 到 CDN 公开读地址（端点契约不变）。文件名含 uuid → 内容不可变。
+   */
   @Get(':filename')
   @Public()
   async get(@Param('filename') filename: string, @Res() res: Response): Promise<void> {
-    const absolute = await this.uploads.resolve(filename);
-    res.sendFile(absolute, { maxAge: '1y', immutable: true });
+    const target = await this.uploads.resolve(filename);
+    if (target.kind === 'redirect') {
+      res.redirect(302, target.url);
+      return;
+    }
+    res.sendFile(target.path, { maxAge: '1y', immutable: true });
   }
 }

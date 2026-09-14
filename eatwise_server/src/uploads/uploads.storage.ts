@@ -1,5 +1,5 @@
 import { resolve } from 'path';
-/** 上传文件存储约定（类型白名单 + 文件名规则），service / controller 共用。 */
+/** 上传文件存储约定（类型白名单 + 文件名规则 + 驱动抽象），service / controller 共用。 */
 
 /** PNG 文件头（8 字节定长签名，嗅探用）。 */
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -30,6 +30,36 @@ export interface UploadedImage {
   mimetype: string;
   size: number;
   buffer: Buffer;
+}
+
+/** 落盘/落桶结果：id 即文件名（对象 Key），url 为对外读取地址。 */
+export interface StoredUpload {
+  id: string;
+  url: string;
+}
+
+/**
+ * GET 读取定位（驱动间形态不同，判别联合交由 controller 分支）：
+ * local —— 落盘绝对路径，controller sendFile 直出；
+ * s3    —— CDN 公开读 URL，controller 302 重定向（端点契约不变，老客户端无感）。
+ */
+export type UploadReadTarget = { kind: 'file'; path: string } | { kind: 'redirect'; url: string };
+
+/** DI token：STORAGE_DRIVER 环境变量选择 LocalUploadsStorage / S3UploadsStorage */
+export const UPLOADS_STORAGE = 'UPLOADS_STORAGE';
+
+/**
+ * 图片存储驱动抽象（对象存储迁移，部署手册 §3）：业务侧（UploadsService）
+ * 只做魔数嗅探与文件名白名单校验，读写具体落到哪个介质由本接口的实现决定；
+ * 由环境变量 STORAGE_DRIVER=local|s3 选择（默认 local，见 UploadsModule），
+ * 组织模式与 STORE_DRIVER（common/store/store-driver.ts）一致。
+ * id/文件名由调用方生成（`${uuid}.${ext}`，已过白名单），实现方不再校验合法性。
+ */
+export interface UploadsStorage {
+  /** 写入一张已通过魔数校验的图片，返回 id 与对外 url。 */
+  save(id: string, buffer: Buffer, contentType: string): Promise<StoredUpload>;
+  /** 文件名的读取定位（local 查存在性，不存在 404；s3 直接给 CDN 地址）。 */
+  resolve(filename: string): Promise<UploadReadTarget>;
 }
 
 /**
