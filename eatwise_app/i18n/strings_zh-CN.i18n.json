@@ -153,14 +153,30 @@
       "invalid": "条码格式不正确，应为 8–14 位数字",
       "looking": "查询中…",
       "notFoundTitle": "未收录该商品",
-      "notFoundBody": "食物库里还没有这个商品，你可以手动搜索，或添加自定义食物（条码已填入别名）。",
+      "notFoundBody": "食物库里还没有这个商品，你可以补充商品信息（拍营养表提交审核，通过后大家都能扫到），或手动搜索、添加自定义食物。",
       "notFoundSearch": "手动搜索",
       "notFoundCustom": "添加自定义食物",
+      "notFoundContribute": "补充商品信息",
       "unavailable": "查询失败，请检查网络后重试",
       "deniedTitle": "相机未授权",
       "deniedBody": "扫不了码也能记，手动搜索或输码一样快",
       "openSettings": "去开启",
-      "useManual": "手动搜索"
+      "useManual": "手动搜索",
+      "contribute": {
+        "title": "补充商品信息",
+        "barcodeLabel": "商品条码：${code}",
+        "nameLabel": "商品名",
+        "nameRequired": "请输入商品名",
+        "photoLabel": "包装营养表照片（必填）",
+        "photoAdd": "拍摄 / 选择照片",
+        "photoRequired": "请拍摄或选择包装上的营养表照片",
+        "photoUploading": "照片上传中…",
+        "photoUploadRetry": "重新上传",
+        "submitAction": "提交补录",
+        "submitted": "已提交，审核通过后全用户都能扫到",
+        "alreadyListed": "该商品已在库，已为你预填",
+        "offlineNotice": "需要联网才能提交补录：商品已存本机可记餐，联网后请重新提交"
+      }
     },
     "voice": {
       "listening": "正在听… 说说吃了什么，如「一碗米饭」",
@@ -217,7 +233,9 @@
         "statusRejected": "已拒绝",
         "reasonLabel": "拒绝原因：${reason}",
         "submittedAt": "提交于 ${date}",
-        "loadFailed": "加载失败，请稍后重试"
+        "loadFailed": "加载失败，请稍后重试",
+        "kindBarcode": "条码商品",
+        "barcodeLabel": "条码 ${code}"
       }
     },
     "water": {

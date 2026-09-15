@@ -32,7 +32,7 @@ final class SpeechToTextGateway implements SpeechGateway {
   @override
   Future<bool> initialize() async {
     try {
-      return _speech.initialize();
+      return await _speech.initialize();
     } on Object {
       // 平台通道缺失（如无 Google 服务的 ROM）→ 视为不可用，走降级。
       return false;

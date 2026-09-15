@@ -35,9 +35,15 @@ export class FoodController {
     return { items: found.filter((f): f is NonNullable<typeof f> => Boolean(f)) };
   }
 
-  /** 包装食品条码查询（OFF 代理；未命中 404 FOOD_BARCODE_NOT_FOUND，客户端降级） */
+  /**
+   * 包装食品条码查询：先查自有共享库（条码众包上架商品，source=eatwise），
+   * 未命中再代理 OpenFoodFacts（source=openfoodfacts）；均未命中
+   * 404 FOOD_BARCODE_NOT_FOUND（客户端降级手动补录 → 众包贡献）。
+   */
   @Get('barcode/:code')
-  lookupBarcode(@Param('code') code: string) {
+  async lookupBarcode(@Param('code') code: string) {
+    const own = await this.food.lookupOwnBarcode(code);
+    if (own) return own;
     return this.barcode.lookup(code);
   }
 

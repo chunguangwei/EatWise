@@ -49,6 +49,9 @@ final class BarcodeStrings {
   /// record.barcode.notFoundCustom
   String get notFoundCustom => _t.record.barcode.notFoundCustom;
 
+  /// record.barcode.notFoundContribute（未命中主行动：众包补录入口）
+  String get notFoundContribute => _t.record.barcode.notFoundContribute;
+
   /// record.barcode.unavailable
   String get unavailable => _t.record.barcode.unavailable;
 

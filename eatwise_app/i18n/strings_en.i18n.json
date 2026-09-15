@@ -153,14 +153,30 @@
       "invalid": "Invalid barcode — should be 8–14 digits",
       "looking": "Looking up…",
       "notFoundTitle": "Product not found",
-      "notFoundBody": "This product isn't in the food library yet. Search manually, or add a custom food (the barcode is prefilled as an alias).",
+      "notFoundBody": "This product isn't in the food library yet. Add its info (snap the nutrition label for review — everyone can scan it once approved), search manually, or add a custom food.",
       "notFoundSearch": "Search manually",
       "notFoundCustom": "Add custom food",
+      "notFoundContribute": "Add product info",
       "unavailable": "Lookup failed. Check your connection and try again",
       "deniedTitle": "Camera not authorized",
       "deniedBody": "You can still log by searching or entering the code manually",
       "openSettings": "Open settings",
-      "useManual": "Search manually"
+      "useManual": "Search manually",
+      "contribute": {
+        "title": "Add product info",
+        "barcodeLabel": "Barcode: ${code}",
+        "nameLabel": "Product name",
+        "nameRequired": "Please enter the product name",
+        "photoLabel": "Nutrition label photo (required)",
+        "photoAdd": "Take / choose a photo",
+        "photoRequired": "Please take or choose a photo of the nutrition label on the package",
+        "photoUploading": "Uploading photo…",
+        "photoUploadRetry": "Try uploading again",
+        "submitAction": "Submit",
+        "submitted": "Submitted — everyone can scan it once approved",
+        "alreadyListed": "This product is already listed — prefilled for you",
+        "offlineNotice": "Submitting needs a connection: the product is saved on this device for logging — resubmit when online"
+      }
     },
     "voice": {
       "listening": "Listening… say what you ate, e.g. \"a bowl of rice\"",
@@ -217,7 +233,9 @@
         "statusRejected": "Rejected",
         "reasonLabel": "Reason: ${reason}",
         "submittedAt": "Submitted on ${date}",
-        "loadFailed": "Failed to load — please try again later"
+        "loadFailed": "Failed to load — please try again later",
+        "kindBarcode": "Barcode product",
+        "barcodeLabel": "Barcode ${code}"
       }
     },
     "water": {

@@ -205,6 +205,9 @@ export abstract class StoreDriver {
   /** 内置/共享食物按 id 读取（自定义食物走 findCustomFoodById） */
   abstract findFoodById(id: string): Promise<FoodEntity | null>;
 
+  /** 共享库按条码精确命中（isCustom=false；条码查询第一跳，命中后不再代理 OFF） */
+  abstract findFoodByBarcode(barcode: string): Promise<FoodEntity | null>;
+
   abstract createCustomFood(food: CustomFoodEntity): Promise<void>;
 
   abstract findCustomFoodById(id: string): Promise<CustomFoodEntity | null>;
@@ -241,11 +244,18 @@ export abstract class StoreDriver {
   abstract findFoodCandidateByFoodId(foodId: string): Promise<FoodCandidateEntity | null>;
 
   /**
+   * 条码贡献查重：返回该条码的阻断性候选（status pending/approved；pending 优先、
+   * 其次 approved，同级按 createdAt 升序取最早一条）。rejected 不阻断重提交，返回 null。
+   */
+  abstract findFoodCandidateByBarcode(barcode: string): Promise<FoodCandidateEntity | null>;
+
+  /**
    * 审核晋升（原子）：自定义食物行转共享——isCustom=false、source='community'、
-   * category='社区共享'、保留 id 与 createdByUserId（FoodEntry 引用不断链）。
+   * category='社区共享'、保留 id 与 createdByUserId（FoodEntry 引用不断链）；
+   * 条码候选（kind=barcode）晋升时把 barcode 一并写入共享行，后续扫码命中自有库。
    * 目标不存在或非自定义行 → NOT_FOUND；候选状态仍由调用方走 updateFoodCandidateStatus。
    */
-  abstract promoteCustomFoodToShared(foodId: string): Promise<void>;
+  abstract promoteCustomFoodToShared(foodId: string, barcode?: string | null): Promise<void>;
 
   /** 审核晋升/删除时物理移除个人库条目 */
   abstract deleteCustomFood(id: string): Promise<void>;
@@ -712,6 +722,12 @@ export class MemoryStoreDriver extends StoreDriver {
     return Promise.resolve(this.store.foods.get(id) ?? null);
   }
 
+  /** 内存 foods 表即共享/内置库（自定义在 customFoods），结构性排除 isCustom */
+  findFoodByBarcode(barcode: string): Promise<FoodEntity | null> {
+    const row = [...this.store.foods.values()].find((f) => f.barcode === barcode);
+    return Promise.resolve(row ?? null);
+  }
+
   createCustomFood(food: CustomFoodEntity): Promise<void> {
     this.store.customFoods.set(food.id, food);
     return Promise.resolve();
@@ -784,8 +800,19 @@ export class MemoryStoreDriver extends StoreDriver {
     return Promise.resolve(row ?? null);
   }
 
+  findFoodCandidateByBarcode(barcode: string): Promise<FoodCandidateEntity | null> {
+    const blocking = [...this.store.foodCandidates.values()]
+      .filter((c) => c.barcode === barcode && c.status !== 'rejected')
+      .sort((a, b) => {
+        // pending 优先于 approved，同级 createdAt 升序取最早一条
+        const rank = (c: FoodCandidateEntity) => (c.status === 'pending' ? 0 : 1);
+        return rank(a) - rank(b) || a.createdAt.getTime() - b.createdAt.getTime();
+      });
+    return Promise.resolve(blocking[0] ?? null);
+  }
+
   /** 与 food.service.reviewFoodCandidate approve 分支同口径：id 不变，转共享并移出个人库 */
-  promoteCustomFoodToShared(foodId: string): Promise<void> {
+  promoteCustomFoodToShared(foodId: string, barcode?: string | null): Promise<void> {
     const custom = this.store.customFoods.get(foodId);
     if (!custom) return Promise.reject(err.notFound());
     this.store.customFoods.delete(foodId);
@@ -801,6 +828,7 @@ export class MemoryStoreDriver extends StoreDriver {
       category: '社区共享',
       source: 'community',
       createdByUserId: custom.userId,
+      barcode: barcode ?? null,
     });
     return Promise.resolve();
   }

@@ -48,6 +48,8 @@ void main() {
     required String foodId,
     required FoodContributionStatus status,
     String? reason,
+    FoodContributionKind kind = FoodContributionKind.custom,
+    String? barcode,
     String createdAt = '2026-09-01T02:30:00.000Z',
   }) {
     return FoodContribution(
@@ -55,6 +57,8 @@ void main() {
       foodId: foodId,
       status: status,
       reason: reason,
+      kind: kind,
+      barcode: barcode,
       createdAt: DateTime.parse(createdAt),
       updatedAt: DateTime.parse(createdAt),
     );
@@ -163,6 +167,31 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, '全部'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('白米饭'), findsOneWidget);
+    expect(find.text('鸡蛋'), findsOneWidget);
+  });
+
+  testWidgets('条码补录条目：展示条码徽标 + 条码号', (tester) async {
+    customRemote.contributions = <FoodContribution>[
+      contribution(
+        id: 'fc-b1',
+        foodId: 'f-rice',
+        status: FoodContributionStatus.pending,
+        kind: FoodContributionKind.barcode,
+        barcode: '7622210449283',
+      ),
+      contribution(
+        id: 'fc-b2',
+        foodId: 'f-egg',
+        status: FoodContributionStatus.pending,
+      ),
+    ];
+    await pumpPage(tester);
+
+    // 条码贡献：类型徽标 + 条码号；普通贡献不展示徽标。
+    expect(find.text('条码商品'), findsOneWidget);
+    expect(find.text('条码 7622210449283'), findsOneWidget);
+    expect(find.byIcon(Icons.qr_code_2), findsOneWidget);
     expect(find.text('白米饭'), findsOneWidget);
     expect(find.text('鸡蛋'), findsOneWidget);
   });

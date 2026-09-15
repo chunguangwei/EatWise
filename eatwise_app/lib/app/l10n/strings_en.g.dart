@@ -470,14 +470,16 @@ class _Translations$record$barcode$en extends Translations$record$barcode$zh_CN 
 	@override String get invalid => 'Invalid barcode — should be 8–14 digits';
 	@override String get looking => 'Looking up…';
 	@override String get notFoundTitle => 'Product not found';
-	@override String get notFoundBody => 'This product isn\'t in the food library yet. Search manually, or add a custom food (the barcode is prefilled as an alias).';
+	@override String get notFoundBody => 'This product isn\'t in the food library yet. Add its info (snap the nutrition label for review — everyone can scan it once approved), search manually, or add a custom food.';
 	@override String get notFoundSearch => 'Search manually';
 	@override String get notFoundCustom => 'Add custom food';
+	@override String get notFoundContribute => 'Add product info';
 	@override String get unavailable => 'Lookup failed. Check your connection and try again';
 	@override String get deniedTitle => 'Camera not authorized';
 	@override String get deniedBody => 'You can still log by searching or entering the code manually';
 	@override String get openSettings => 'Open settings';
 	@override String get useManual => 'Search manually';
+	@override late final _Translations$record$barcode$contribute$en contribute = _Translations$record$barcode$contribute$en._(_root);
 }
 
 // Path: record.voice
@@ -1380,6 +1382,28 @@ class _Translations$onboarding$recommendation$reason$en extends Translations$onb
 	@override String get fallback => 'Let\'s start with the crowd favorite 16:8 — you can adjust it anytime in Profile.';
 }
 
+// Path: record.barcode.contribute
+class _Translations$record$barcode$contribute$en extends Translations$record$barcode$contribute$zh_CN {
+	_Translations$record$barcode$contribute$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Add product info';
+	@override String barcodeLabel({required Object code}) => 'Barcode: ${code}';
+	@override String get nameLabel => 'Product name';
+	@override String get nameRequired => 'Please enter the product name';
+	@override String get photoLabel => 'Nutrition label photo (required)';
+	@override String get photoAdd => 'Take / choose a photo';
+	@override String get photoRequired => 'Please take or choose a photo of the nutrition label on the package';
+	@override String get photoUploading => 'Uploading photo…';
+	@override String get photoUploadRetry => 'Try uploading again';
+	@override String get submitAction => 'Submit';
+	@override String get submitted => 'Submitted — everyone can scan it once approved';
+	@override String get alreadyListed => 'This product is already listed — prefilled for you';
+	@override String get offlineNotice => 'Submitting needs a connection: the product is saved on this device for logging — resubmit when online';
+}
+
 // Path: record.customFood.contributions
 class _Translations$record$customFood$contributions$en extends Translations$record$customFood$contributions$zh_CN {
 	_Translations$record$customFood$contributions$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -1396,6 +1420,8 @@ class _Translations$record$customFood$contributions$en extends Translations$reco
 	@override String reasonLabel({required Object reason}) => 'Reason: ${reason}';
 	@override String submittedAt({required Object date}) => 'Submitted on ${date}';
 	@override String get loadFailed => 'Failed to load — please try again later';
+	@override String get kindBarcode => 'Barcode product';
+	@override String barcodeLabel({required Object code}) => 'Barcode ${code}';
 }
 
 // Path: fasting.home.greeting
@@ -1805,14 +1831,28 @@ extension on TranslationsEn {
 			'record.barcode.invalid' => 'Invalid barcode — should be 8–14 digits',
 			'record.barcode.looking' => 'Looking up…',
 			'record.barcode.notFoundTitle' => 'Product not found',
-			'record.barcode.notFoundBody' => 'This product isn\'t in the food library yet. Search manually, or add a custom food (the barcode is prefilled as an alias).',
+			'record.barcode.notFoundBody' => 'This product isn\'t in the food library yet. Add its info (snap the nutrition label for review — everyone can scan it once approved), search manually, or add a custom food.',
 			'record.barcode.notFoundSearch' => 'Search manually',
 			'record.barcode.notFoundCustom' => 'Add custom food',
+			'record.barcode.notFoundContribute' => 'Add product info',
 			'record.barcode.unavailable' => 'Lookup failed. Check your connection and try again',
 			'record.barcode.deniedTitle' => 'Camera not authorized',
 			'record.barcode.deniedBody' => 'You can still log by searching or entering the code manually',
 			'record.barcode.openSettings' => 'Open settings',
 			'record.barcode.useManual' => 'Search manually',
+			'record.barcode.contribute.title' => 'Add product info',
+			'record.barcode.contribute.barcodeLabel' => ({required Object code}) => 'Barcode: ${code}',
+			'record.barcode.contribute.nameLabel' => 'Product name',
+			'record.barcode.contribute.nameRequired' => 'Please enter the product name',
+			'record.barcode.contribute.photoLabel' => 'Nutrition label photo (required)',
+			'record.barcode.contribute.photoAdd' => 'Take / choose a photo',
+			'record.barcode.contribute.photoRequired' => 'Please take or choose a photo of the nutrition label on the package',
+			'record.barcode.contribute.photoUploading' => 'Uploading photo…',
+			'record.barcode.contribute.photoUploadRetry' => 'Try uploading again',
+			'record.barcode.contribute.submitAction' => 'Submit',
+			'record.barcode.contribute.submitted' => 'Submitted — everyone can scan it once approved',
+			'record.barcode.contribute.alreadyListed' => 'This product is already listed — prefilled for you',
+			'record.barcode.contribute.offlineNotice' => 'Submitting needs a connection: the product is saved on this device for logging — resubmit when online',
 			'record.voice.listening' => 'Listening… say what you ate, e.g. "a bowl of rice"',
 			'record.voice.tapToStart' => 'Tap to start speaking',
 			'record.voice.finish' => 'Done',
@@ -1861,6 +1901,8 @@ extension on TranslationsEn {
 			'record.customFood.contributions.reasonLabel' => ({required Object reason}) => 'Reason: ${reason}',
 			'record.customFood.contributions.submittedAt' => ({required Object date}) => 'Submitted on ${date}',
 			'record.customFood.contributions.loadFailed' => 'Failed to load — please try again later',
+			'record.customFood.contributions.kindBarcode' => 'Barcode product',
+			'record.customFood.contributions.barcodeLabel' => ({required Object code}) => 'Barcode ${code}',
 			'record.water.title' => 'Water today',
 			'record.water.progress' => ({required Object total, required Object goal}) => '${total} / ${goal} ml',
 			'record.water.quickAddLabel' => ({required Object ml}) => 'Add ${ml} ml of water',
@@ -2203,6 +2245,8 @@ extension on TranslationsEn {
 			'social.feed.hoursAgo' => ({required Object n}) => '${n} hr ago',
 			'social.feed.daysAgo' => ({required Object n}) => '${n} d ago',
 			'social.feed.anonymous' => 'EatWise buddy',
+			_ => null,
+		} ?? switch (path) {
 			'social.compose.title' => 'New check-in',
 			'social.compose.hint' => 'Capture this moment of persistence…',
 			'social.compose.charCount' => ({required Object n}) => '${n}/500',
@@ -2219,8 +2263,6 @@ extension on TranslationsEn {
 			'social.compose.publishFailed' => 'Couldn\'t post. Please try again.',
 			'social.compose.emptyText' => 'Write something first',
 			'auth.login.title' => 'Sign in',
-			_ => null,
-		} ?? switch (path) {
 			'auth.login.subtitle' => 'Sign in with your username and password',
 			'auth.login.phoneLabel' => 'Phone number',
 			'auth.login.phoneHint' => 'Enter your 11-digit phone number',

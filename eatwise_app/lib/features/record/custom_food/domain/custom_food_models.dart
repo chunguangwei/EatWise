@@ -86,6 +86,20 @@ FoodContributionStatus foodContributionStatusFrom(String? raw) => switch (raw) {
   _ => FoodContributionStatus.pending,
 };
 
+/// 贡献类型（服务端 kind：普通自定义食物贡献 / 条码商品补录）。
+enum FoodContributionKind {
+  /// 普通自定义食物贡献（无条码）。
+  custom,
+
+  /// 扫码未命中补录（带条码 + 营养表佐证照片）。
+  barcode,
+}
+
+/// 贡献类型字符串 → 枚举（未知/缺省按 custom 处理，不隐藏条目）。
+FoodContributionKind foodContributionKindFrom(String? raw) => raw == 'barcode'
+    ? FoodContributionKind.barcode
+    : FoodContributionKind.custom;
+
 /// 我的贡献条目（GET /foods/contributions 精简视图；食物名由本地库按
 /// [foodId] 解析，解析不到时 UI 回退展示 [foodId]）。
 final class FoodContribution {
@@ -96,6 +110,8 @@ final class FoodContribution {
     required this.reason,
     required this.createdAt,
     required this.updatedAt,
+    this.kind = FoodContributionKind.custom,
+    this.barcode,
   });
 
   /// 候选 id。
@@ -116,6 +132,12 @@ final class FoodContribution {
   /// 末次状态变更时间。
   final DateTime updatedAt;
 
+  /// 贡献类型（barcode = 扫码未命中补录，UI 展示条码徽标 + 条码号）。
+  final FoodContributionKind kind;
+
+  /// 条码号（仅 kind=barcode 有值）。
+  final String? barcode;
+
   /// 服务端 JSON → 模型（信封已由 EnvelopeInterceptor 解包后的 item）。
   factory FoodContribution.fromJson(Map<String, dynamic> json) {
     return FoodContribution(
@@ -129,6 +151,8 @@ final class FoodContribution {
       updatedAt:
           DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
+      kind: foodContributionKindFrom(json['kind'] as String?),
+      barcode: json['barcode'] as String?,
     );
   }
 }

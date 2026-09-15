@@ -12,6 +12,9 @@ analyzer:
     unawaited_futures: error
   exclude:
     - "lib/app/l10n/**" # slang 生成产物
+    - build/**
+    - android/**
+    - ios/**
 
 linter:
   rules:

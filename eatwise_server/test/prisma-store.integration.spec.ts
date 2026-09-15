@@ -231,6 +231,9 @@ describePg('PrismaStore（集成，真实 PostgreSQL）', () => {
       userId,
       status: 'pending',
       reason: null,
+      kind: 'custom',
+      barcode: null,
+      evidenceImageUrl: null,
       clientRequestId: randomUUID(),
       version: 1,
       createdAt: new Date(),
@@ -288,6 +291,9 @@ describePg('PrismaStore 饮水 / 候选 / 举报（集成，真实 PostgreSQL）
       userId,
       status: 'pending',
       reason: null,
+      kind: 'custom',
+      barcode: null,
+      evidenceImageUrl: null,
       clientRequestId: randomUUID(),
       version: 1,
       createdAt: now,
@@ -970,6 +976,9 @@ describePg('PrismaStore auth / 食物搜索 / 候选 / 晋升（集成，真实 
       userId,
       status: 'pending',
       reason: null,
+      kind: 'custom',
+      barcode: null,
+      evidenceImageUrl: null,
       clientRequestId: randomUUID(),
       version: 1,
       createdAt: now,
@@ -1171,6 +1180,99 @@ describePg('PrismaStore auth / 食物搜索 / 候选 / 晋升（集成，真实 
     ]);
     expect(await store.findFoodCandidatesByUser(otherId)).toHaveLength(0);
     expect(await store.findFoodCandidatesByUser(userId, 'rejected')).toHaveLength(0);
+  });
+
+  it('条码候选：findFoodCandidateByBarcode 查重口径（pending 优先 / approved 次之 / rejected 不阻断）', async () => {
+    const barcode = `itbc${randomUUID().slice(0, 8)}`;
+    // 仅 rejected → 不阻断（返回 null，可重新提交）
+    await store.createFoodCandidate(
+      candidate({
+        kind: 'barcode',
+        barcode,
+        evidenceImageUrl: '/v1/uploads/a.jpg',
+        status: 'rejected',
+      }),
+    );
+    expect(await store.findFoodCandidateByBarcode(barcode)).toBeNull();
+
+    // approved 早、pending 晚 → 仍返回 pending（pending 优先于 approved）
+    const approvedFirst = candidate({
+      kind: 'barcode',
+      barcode,
+      evidenceImageUrl: '/v1/uploads/a.jpg',
+      status: 'approved',
+      createdAt: new Date('2026-09-01T00:00:00Z'),
+    });
+    const pendingLater = candidate({
+      kind: 'barcode',
+      barcode,
+      evidenceImageUrl: '/v1/uploads/a.jpg',
+      status: 'pending',
+      createdAt: new Date('2026-09-02T00:00:00Z'),
+    });
+    await store.createFoodCandidate(approvedFirst);
+    await store.createFoodCandidate(pendingLater);
+    expect((await store.findFoodCandidateByBarcode(barcode))!.id).toBe(pendingLater.id);
+    // 其他条码 / custom 候选（barcode=null）不命中
+    expect(await store.findFoodCandidateByBarcode(`itbc-none`)).toBeNull();
+  });
+
+  it('promoteCustomFoodToShared 带 barcode：共享行写入 foods.barcode（扫码命中自有库）', async () => {
+    const customId = `it-promote-bc-${randomUUID().slice(0, 8)}`;
+    await prisma.food.create({
+      data: {
+        id: customId,
+        nameZh: '条码晋升测试食品',
+        nameEn: 'IT Barcode Promote',
+        aliases: [],
+        kcalPer100g: 100,
+        proteinPer100g: 5,
+        carbsPer100g: 10,
+        fatPer100g: 3,
+        category: '自定义',
+        source: 'manual',
+        isCustom: true,
+        createdByUserId: userId,
+      },
+    });
+    try {
+      await store.promoteCustomFoodToShared(customId, '6901234567892');
+      expect(await store.findFoodById(customId)).toMatchObject({
+        id: customId,
+        barcode: '6901234567892',
+        source: 'community',
+        category: '社区共享',
+      });
+      // findFoodByBarcode：共享行按条码命中（条码查询第一跳）
+      expect((await store.findFoodByBarcode('6901234567892'))!.id).toBe(customId);
+      expect(await store.findFoodByBarcode('6999999999999')).toBeNull();
+    } finally {
+      await prisma.food.deleteMany({ where: { id: customId } });
+    }
+    // 未晋升的自定义行（isCustom=true）即使带 barcode 也不命中共享口径
+    const customOnlyId = `it-bc-custom-${randomUUID().slice(0, 8)}`;
+    await prisma.food.create({
+      data: {
+        id: customOnlyId,
+        nameZh: '未晋升条码食品',
+        nameEn: 'IT Barcode Custom Only',
+        aliases: [],
+        kcalPer100g: 100,
+        proteinPer100g: 5,
+        carbsPer100g: 10,
+        fatPer100g: 3,
+        category: '自定义',
+        source: 'manual',
+        isCustom: true,
+        createdByUserId: userId,
+        barcode: '6901234567893',
+      },
+    });
+    try {
+      expect(await store.findFoodByBarcode('6901234567893')).toBeNull();
+    } finally {
+      await prisma.food.deleteMany({ where: { id: customOnlyId } });
+    }
   });
 
   it('promoteCustomFoodToShared：id 不变转共享（个人库消失、共享库可见）；未知 id NOT_FOUND', async () => {

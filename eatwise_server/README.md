@@ -49,9 +49,12 @@ npm run start:dev
 - 持久化收口（2026-09-08 完成）：**全部业务 Service 已迁 StoreDriver**（fasting/streak/social/sync/nutrition/user/food/auth/admin-auth），prisma 模式全链路真实落库，重启不丢（已冒烟验证：注册/登录/方案/同步/营养/重启数据存活）。仅两处保留内存：auth 的 smsCodes（mock 短信）、admin-auth 的登录限流滑动窗口。
 - PrismaStore 集成测试（需真实库）：`RUN_PG_TESTS=1 DATABASE_URL=... npm test`（未起库时自动 skip）。
 
-## 自定义食物（/v1/foods/custom）
+## 自定义食物与众包贡献（/v1/foods/custom）
 
 - 用户自定义食物：`POST /v1/foods/custom`（幂等 clientRequestId，营养区间 kcal 0-900、宏量 0-100）入个人库，K1 搜索合并（仅创建者可见、排内置结果之后、标注 `isCustom`）；Prisma 对应 `foods.isCustom` + `createdByUserId`。
+- 贡献共享库：`POST /v1/foods/custom/:id/contribute`（幂等 clientRequestId，仅创建者，食物名过机审 D-17）入 `food_candidates` 审核池；管理端 `/v1/admin/food-candidates` 审核，approve 后食物行就地转共享（id 不变、`source=community`）。
+- 条码商品补录（2026-09-15）：贡献端点额外接受可选 `barcode` + `evidenceImageUrl`——扫码 OFF 未命中时用户手动补录（名称 + 每 100g 营养 + 包装营养表照片，照片先走 `POST /v1/uploads`）。两者必须成对出现（条码贡献必须带佐证照片，供管理员「对答案」），传了 `barcode` 即 `kind=barcode`；条码格式 8-14 位纯数字（与 `BarcodeService` 同口径）。同条码查重：已有 pending 候选 → 幂等返回已有；已有 approved → 409 已上架；rejected 不阻断重提交。approve 晋升时 `barcode` 写入 `foods.barcode`，后续扫码可命中自有库。
+- 条码查询闭环：`GET /v1/foods/barcode/:code` 先查自有共享库（`foods.barcode`，命中返回 `source='eatwise'`、结构与 OFF 视图同构，不外呼、不进 OFF 缓存），未命中再代理 OpenFoodFacts（`source='openfoodfacts'`），均未命中 404 `FOOD_BARCODE_NOT_FOUND` 不变。
 
 ## 图片上传存储（/v1/uploads）
 
@@ -73,8 +76,8 @@ npm run start:dev
 |------|------|
 | `npm run build` | nest build → dist/ |
 | `npm run start:dev` | watch 模式启动 |
-| `npm test` | jest 单测（149 个用例 + 26 个 pg 集成用例，无 RUN_PG_TESTS 时 skip） |
-| `npm run test:e2e` | supertest e2e（90 个用例） |
+| `npm test` | jest 单测（163 个用例 + 29 个 pg 集成用例，无 RUN_PG_TESTS 时 skip） |
+| `npm run test:e2e` | supertest e2e（91 个用例） |
 | `npm run lint` | eslint（零告警门禁） |
 | `npm run prisma:generate` / `prisma:migrate` / `prisma:seed` | Prisma client / 迁移 / 食物库种子 |
 

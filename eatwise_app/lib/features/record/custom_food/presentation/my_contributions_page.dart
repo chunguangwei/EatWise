@@ -244,8 +244,8 @@ class _FilterBar extends StatelessWidget {
   }
 }
 
-/// 贡献条目卡：食物名 + 状态标签（颜色/图标/文字三重编码）+ 拒绝原因 +
-/// 提交时间。
+/// 贡献条目卡：食物名 + 状态标签（颜色/图标/文字三重编码）+ 条码徽标
+/// （kind=barcode 时展示类型徽标 + 条码号）+ 拒绝原因 + 提交时间。
 class _ContributionCard extends ConsumerWidget {
   const _ContributionCard({super.key, required this.item});
 
@@ -287,6 +287,24 @@ class _ContributionCard extends ConsumerWidget {
               _StatusBadge(status: item.status),
             ],
           ),
+          if (item.kind == FoodContributionKind.barcode &&
+              (item.barcode?.isNotEmpty ?? false)) ...<Widget>[
+            const SizedBox(height: AppSpacing.s2),
+            Row(
+              children: <Widget>[
+                _BarcodeKindBadge(label: c.kindBarcode),
+                const SizedBox(width: AppSpacing.s2),
+                Expanded(
+                  child: Text(
+                    c.barcodeLabel(code: item.barcode!),
+                    style: textStyles.textXs.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
           if (item.status == FoodContributionStatus.rejected &&
               (item.reason?.isNotEmpty ?? false)) ...<Widget>[
             const SizedBox(height: AppSpacing.s2),
@@ -311,6 +329,41 @@ class _ContributionCard extends ConsumerWidget {
     String two(int n) => n.toString().padLeft(2, '0');
     return '${local.year}-${two(local.month)}-${two(local.day)} '
         '${two(local.hour)}:${two(local.minute)}';
+  }
+}
+
+/// 条码补录类型徽标（扫码未命中贡献：条码图标 + 文字，与状态标签同构）。
+class _BarcodeKindBadge extends StatelessWidget {
+  const _BarcodeKindBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s2,
+        vertical: AppSpacing.s1,
+      ),
+      decoration: BoxDecoration(
+        color: colors.brandPrimary.withValues(alpha: 0.12),
+        borderRadius: radii.rSm,
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(Icons.qr_code_2, size: 14, color: colors.brandPrimary),
+          const SizedBox(width: AppSpacing.s1),
+          Text(
+            label,
+            style: textStyles.textXs.copyWith(color: colors.brandPrimary),
+          ),
+        ],
+      ),
+    );
   }
 }
 

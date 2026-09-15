@@ -5,6 +5,7 @@ import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/record/barcode/data/barcode_food_service.dart';
 import 'package:eatwise/features/record/barcode/data/barcode_scanner_gateway.dart';
 import 'package:eatwise/features/record/barcode/domain/barcode_rules.dart';
+import 'package:eatwise/features/record/barcode/presentation/barcode_contribute_sheet.dart';
 import 'package:eatwise/features/record/barcode/presentation/barcode_providers.dart';
 import 'package:eatwise/features/record/barcode/presentation/barcode_strings.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_sheet.dart';
@@ -14,9 +15,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 「扫码记」入口流程（食物库扩充第一层方案）。
 ///
-/// 步骤：扫码（含手动输码）→ 服务端 /foods/barcode/{code}（OFF 代理）→
+/// 步骤：扫码（含手动输码）→ 服务端 /foods/barcode/{code}（自有库 + OFF 代理）→
 /// 命中预填记录结果卡（recordSelectedFoodProvider，EntrySource.barcode）；
-/// 未收录（404）给「手动搜索 / 添加自定义食物」双动作（条码预填别名〔假设〕）；
+/// 未收录（404）主行动「补充商品信息」（众包补录：条码 + 营养表佐证照片），
+/// 次行动「手动搜索 / 添加自定义食物」（条码预填别名〔假设〕）；
 /// 权限拒绝走 §4.3 降级说明卡（不阻断核心闭环，参考 photo_flow）。
 Future<void> startBarcodeScan(BuildContext context, WidgetRef ref) async {
   final bs = BarcodeStrings.of(context);
@@ -64,7 +66,8 @@ Future<void> applyBarcodeLookup(
   }
 }
 
-/// 未收录双动作卡：「手动搜索」（回搜索框）/「添加自定义食物」（预填条码别名）。
+/// 未收录承接卡：主行动「补充商品信息」（众包补录：条码 + 营养表照片），
+/// 次行动「手动搜索」（回搜索框）/「添加自定义食物」（预填条码别名）。
 Future<void> _showBarcodeNotFoundCard(
   BuildContext context,
   WidgetRef ref,
@@ -81,7 +84,7 @@ Future<void> _showBarcodeNotFoundCard(
           onPressed: () => Navigator.of(dialogContext).pop(),
           child: Text(bs.notFoundSearch),
         ),
-        FilledButton(
+        TextButton(
           onPressed: () {
             Navigator.of(dialogContext).pop();
             if (context.mounted) {
@@ -89,6 +92,15 @@ Future<void> _showBarcodeNotFoundCard(
             }
           },
           child: Text(bs.notFoundCustom),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.of(dialogContext).pop();
+            if (context.mounted) {
+              unawaited(startBarcodeContributeFlow(context, ref, code));
+            }
+          },
+          child: Text(bs.notFoundContribute),
         ),
       ],
     ),

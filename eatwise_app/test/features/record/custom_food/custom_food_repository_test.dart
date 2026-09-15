@@ -221,7 +221,12 @@ final class _RejectingRemote implements CustomFoodRemote {
   }
 
   @override
-  Future<String> contribute(String foodId, {required String clientRequestId}) {
+  Future<String> contribute(
+    String foodId, {
+    required String clientRequestId,
+    String? barcode,
+    String? evidenceImageUrl,
+  }) {
     throw UnimplementedError();
   }
 

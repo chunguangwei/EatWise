@@ -13,7 +13,8 @@ export interface BarcodeFoodView {
   proteinPer100g: number;
   carbsPer100g: number;
   fatPer100g: number;
-  source: 'openfoodfacts';
+  /** eatwise = 自有共享库命中（条码众包上架）；openfoodfacts = OFF 代理命中 */
+  source: 'eatwise' | 'openfoodfacts';
   isCustom: false;
 }
 

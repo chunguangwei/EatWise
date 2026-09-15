@@ -10,6 +10,7 @@ import { FoodSearchHit, STORE_DRIVER, StoreDriver } from '../common/store/store-
 import { newId, payloadHash } from '../common/utils/id.util';
 import { clampPageLimit, parseOffsetCursor } from '../common/utils/pagination.util';
 import { ContentModerationService } from '../social/moderation/content-moderation.service';
+import { BARCODE_PATTERN, BarcodeFoodView } from './barcode/barcode.service';
 import { ContributeFoodDto, CreateCustomFoodDto, ReviewFoodCandidateDto } from './food.dto';
 import { isPer100gInRange } from './food.rules';
 
@@ -107,11 +108,26 @@ export class FoodService {
    * 贡献自定义食物为共享候选（食物库扩充第三层，先审后发 D-17）。
    * - 只能贡献自己的自定义食物（他人的/不存在的 → 404，不泄露存在性）；
    * - 幂等：clientRequestId 重放返回首次结果（不同体 409）；同一食物已有候选时直接返回原状态；
+   * - 条码商品补录（OFF 未命中）：barcode + evidenceImageUrl 成对出现即 kind=barcode；
+   *   同 barcode 查重口径：pending → 幂等返回已有候选；approved → 409 已上架；
+   *   rejected 不阻断（修正照片/营养后可重新提交）；
    * - 食物名过机审：rejected → 拒收 FOOD_CONTRIBUTE_REJECTED；manual → 仍入池，状态 pending 转人工。
    */
   async contributeCustomFood(userId: string, foodId: string, dto: ContributeFoodDto) {
     const endpoint = 'foods/custom/contribute';
-    const hash = payloadHash({ foodId });
+    const barcode = dto.barcode?.trim() || null;
+    const evidenceImageUrl = dto.evidenceImageUrl?.trim() || null;
+    // 条码与佐证照片成对出现：条码贡献必须带营养表照片（「对答案」根基），单传照片无意义同样拒
+    if (barcode && !BARCODE_PATTERN.test(barcode)) {
+      throw err.validation({ barcode: 'barcode must be 8-14 digits' });
+    }
+    if (barcode && !evidenceImageUrl) {
+      throw err.validation({ evidenceImageUrl: 'required when barcode is present' });
+    }
+    if (!barcode && evidenceImageUrl) {
+      throw err.validation({ barcode: 'required when evidenceImageUrl is present' });
+    }
+    const hash = payloadHash({ foodId, barcode, evidenceImageUrl });
     const hit = await this.driver.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
     if (hit) {
       if (hit.payloadHash !== hash) throw err.payloadMismatch();
@@ -129,6 +145,19 @@ export class FoodService {
       return response;
     }
 
+    // 条码查重（同 barcode 的阻断性候选：pending/approved；rejected 已被驱动过滤）
+    if (barcode) {
+      const dup = await this.driver.findFoodCandidateByBarcode(barcode);
+      if (dup?.status === 'approved') {
+        throw err.conflict({ barcode, status: 'approved' }); // 已上架共享库，无需重复贡献
+      }
+      if (dup) {
+        const response = await this.candidateView(dup);
+        await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response);
+        return response;
+      }
+    }
+
     const verdict = await this.moderation.moderate(food.nameZh, []);
     if (verdict.verdict === 'rejected') {
       throw err.foodContributeRejected(verdict.reason);
@@ -141,6 +170,9 @@ export class FoodService {
       userId,
       status: 'pending', // manual 与 approved 机审结果均先入 pending 池，由人工终审晋升
       reason: null,
+      kind: barcode ? 'barcode' : 'custom',
+      barcode,
+      evidenceImageUrl,
       clientRequestId: dto.clientRequestId,
       version: 1,
       createdAt: now,
@@ -151,6 +183,32 @@ export class FoodService {
     const response = await this.candidateView(candidate);
     await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response);
     return response;
+  }
+
+  /**
+   * 条码查询第一跳：自有共享库（条码众包上架商品，foods.barcode）精确命中 →
+   * 与 OFF 命中同构的视图，source='eatwise' 区分来源。未命中返回 null，由调用方
+   * 回落 OFF 代理。自有库命中不走 BarcodeService（不触发外呼、不进 OFF 缓存），
+   * 因此后来上架的自有商品不会被先前 OFF 缓存命中遮蔽。
+   */
+  async lookupOwnBarcode(rawCode: string): Promise<BarcodeFoodView | null> {
+    const code = rawCode.trim();
+    if (!BARCODE_PATTERN.test(code)) return null; // 格式非法交给 OFF 路径统一报 VALIDATION_ERROR
+    const food = await this.driver.findFoodByBarcode(code);
+    if (!food) return null;
+    return {
+      id: food.id,
+      barcode: code,
+      nameZh: food.nameZh,
+      nameEn: food.nameEn,
+      aliases: food.aliases,
+      kcalPer100g: food.kcalPer100g,
+      proteinPer100g: food.proteinPer100g,
+      carbsPer100g: food.carbsPer100g,
+      fatPer100g: food.fatPer100g,
+      source: 'eatwise',
+      isCustom: false,
+    };
   }
 
   /** 管理端：审核队列（游标分页，createdAt 升序先入先审；status 过滤） */
@@ -192,6 +250,8 @@ export class FoodService {
         foodId: c.foodId,
         status: c.status,
         reason: c.reason,
+        kind: c.kind,
+        barcode: c.barcode,
         createdAt: c.createdAt.toISOString(),
         updatedAt: c.updatedAt.toISOString(),
       })),
@@ -221,8 +281,12 @@ export class FoodService {
 
     // 食物已被删除等异常态 → 404（此时不动候选状态，审核可重试）
     if (!(await this.driver.findCustomFoodById(candidate.foodId))) throw err.notFound();
-    // 原子晋升：id 不变转共享（既有 FoodEntry 引用不断链），再落候选终态
-    await this.driver.promoteCustomFoodToShared(candidate.foodId);
+    // 原子晋升：id 不变转共享（既有 FoodEntry 引用不断链）；条码候选把 barcode 写入共享行，
+    // 后续扫码优先命中自有库。再落候选终态
+    await this.driver.promoteCustomFoodToShared(
+      candidate.foodId,
+      candidate.kind === 'barcode' ? candidate.barcode : null,
+    );
     await this.driver.updateFoodCandidateStatus(candidateId, 'approved');
     return this.candidateView(await this.mustGetCandidate(candidateId));
   }
@@ -245,6 +309,9 @@ export class FoodService {
       userId: c.userId,
       status: c.status,
       reason: c.reason,
+      kind: c.kind,
+      barcode: c.barcode,
+      evidenceImageUrl: c.evidenceImageUrl,
       nameZh: food?.nameZh ?? null,
       nameEn: food?.nameEn ?? null,
       // 管理端审核台展示用（每 100g 营养）；食物已被删除等异常态为 null

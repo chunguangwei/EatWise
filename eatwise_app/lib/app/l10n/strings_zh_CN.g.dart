@@ -649,14 +649,17 @@ class Translations$record$barcode$zh_CN {
 	/// zh-CN: '未收录该商品'
 	String get notFoundTitle => '未收录该商品';
 
-	/// zh-CN: '食物库里还没有这个商品，你可以手动搜索，或添加自定义食物（条码已填入别名）。'
-	String get notFoundBody => '食物库里还没有这个商品，你可以手动搜索，或添加自定义食物（条码已填入别名）。';
+	/// zh-CN: '食物库里还没有这个商品，你可以补充商品信息（拍营养表提交审核，通过后大家都能扫到），或手动搜索、添加自定义食物。'
+	String get notFoundBody => '食物库里还没有这个商品，你可以补充商品信息（拍营养表提交审核，通过后大家都能扫到），或手动搜索、添加自定义食物。';
 
 	/// zh-CN: '手动搜索'
 	String get notFoundSearch => '手动搜索';
 
 	/// zh-CN: '添加自定义食物'
 	String get notFoundCustom => '添加自定义食物';
+
+	/// zh-CN: '补充商品信息'
+	String get notFoundContribute => '补充商品信息';
 
 	/// zh-CN: '查询失败，请检查网络后重试'
 	String get unavailable => '查询失败，请检查网络后重试';
@@ -672,6 +675,8 @@ class Translations$record$barcode$zh_CN {
 
 	/// zh-CN: '手动搜索'
 	String get useManual => '手动搜索';
+
+	late final Translations$record$barcode$contribute$zh_CN contribute = Translations$record$barcode$contribute$zh_CN.internal(_root);
 }
 
 // Path: record.voice
@@ -2340,6 +2345,54 @@ class Translations$onboarding$recommendation$reason$zh_CN {
 	String get fallback => '先按人气最高的 16:8 开始，随时可以在「我的」里调整。';
 }
 
+// Path: record.barcode.contribute
+class Translations$record$barcode$contribute$zh_CN {
+	Translations$record$barcode$contribute$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '补充商品信息'
+	String get title => '补充商品信息';
+
+	/// zh-CN: '商品条码：${code}'
+	String barcodeLabel({required Object code}) => '商品条码：${code}';
+
+	/// zh-CN: '商品名'
+	String get nameLabel => '商品名';
+
+	/// zh-CN: '请输入商品名'
+	String get nameRequired => '请输入商品名';
+
+	/// zh-CN: '包装营养表照片（必填）'
+	String get photoLabel => '包装营养表照片（必填）';
+
+	/// zh-CN: '拍摄 / 选择照片'
+	String get photoAdd => '拍摄 / 选择照片';
+
+	/// zh-CN: '请拍摄或选择包装上的营养表照片'
+	String get photoRequired => '请拍摄或选择包装上的营养表照片';
+
+	/// zh-CN: '照片上传中…'
+	String get photoUploading => '照片上传中…';
+
+	/// zh-CN: '重新上传'
+	String get photoUploadRetry => '重新上传';
+
+	/// zh-CN: '提交补录'
+	String get submitAction => '提交补录';
+
+	/// zh-CN: '已提交，审核通过后全用户都能扫到'
+	String get submitted => '已提交，审核通过后全用户都能扫到';
+
+	/// zh-CN: '该商品已在库，已为你预填'
+	String get alreadyListed => '该商品已在库，已为你预填';
+
+	/// zh-CN: '需要联网才能提交补录：商品已存本机可记餐，联网后请重新提交'
+	String get offlineNotice => '需要联网才能提交补录：商品已存本机可记餐，联网后请重新提交';
+}
+
 // Path: record.customFood.contributions
 class Translations$record$customFood$contributions$zh_CN {
 	Translations$record$customFood$contributions$zh_CN.internal(this._root);
@@ -2374,6 +2427,12 @@ class Translations$record$customFood$contributions$zh_CN {
 
 	/// zh-CN: '加载失败，请稍后重试'
 	String get loadFailed => '加载失败，请稍后重试';
+
+	/// zh-CN: '条码商品'
+	String get kindBarcode => '条码商品';
+
+	/// zh-CN: '条码 ${code}'
+	String barcodeLabel({required Object code}) => '条码 ${code}';
 }
 
 // Path: fasting.home.greeting
@@ -2979,14 +3038,28 @@ extension on Translations {
 			'record.barcode.invalid' => '条码格式不正确，应为 8–14 位数字',
 			'record.barcode.looking' => '查询中…',
 			'record.barcode.notFoundTitle' => '未收录该商品',
-			'record.barcode.notFoundBody' => '食物库里还没有这个商品，你可以手动搜索，或添加自定义食物（条码已填入别名）。',
+			'record.barcode.notFoundBody' => '食物库里还没有这个商品，你可以补充商品信息（拍营养表提交审核，通过后大家都能扫到），或手动搜索、添加自定义食物。',
 			'record.barcode.notFoundSearch' => '手动搜索',
 			'record.barcode.notFoundCustom' => '添加自定义食物',
+			'record.barcode.notFoundContribute' => '补充商品信息',
 			'record.barcode.unavailable' => '查询失败，请检查网络后重试',
 			'record.barcode.deniedTitle' => '相机未授权',
 			'record.barcode.deniedBody' => '扫不了码也能记，手动搜索或输码一样快',
 			'record.barcode.openSettings' => '去开启',
 			'record.barcode.useManual' => '手动搜索',
+			'record.barcode.contribute.title' => '补充商品信息',
+			'record.barcode.contribute.barcodeLabel' => ({required Object code}) => '商品条码：${code}',
+			'record.barcode.contribute.nameLabel' => '商品名',
+			'record.barcode.contribute.nameRequired' => '请输入商品名',
+			'record.barcode.contribute.photoLabel' => '包装营养表照片（必填）',
+			'record.barcode.contribute.photoAdd' => '拍摄 / 选择照片',
+			'record.barcode.contribute.photoRequired' => '请拍摄或选择包装上的营养表照片',
+			'record.barcode.contribute.photoUploading' => '照片上传中…',
+			'record.barcode.contribute.photoUploadRetry' => '重新上传',
+			'record.barcode.contribute.submitAction' => '提交补录',
+			'record.barcode.contribute.submitted' => '已提交，审核通过后全用户都能扫到',
+			'record.barcode.contribute.alreadyListed' => '该商品已在库，已为你预填',
+			'record.barcode.contribute.offlineNotice' => '需要联网才能提交补录：商品已存本机可记餐，联网后请重新提交',
 			'record.voice.listening' => '正在听… 说说吃了什么，如「一碗米饭」',
 			'record.voice.tapToStart' => '点一下开始说话',
 			'record.voice.finish' => '完成',
@@ -3035,6 +3108,8 @@ extension on Translations {
 			'record.customFood.contributions.reasonLabel' => ({required Object reason}) => '拒绝原因：${reason}',
 			'record.customFood.contributions.submittedAt' => ({required Object date}) => '提交于 ${date}',
 			'record.customFood.contributions.loadFailed' => '加载失败，请稍后重试',
+			'record.customFood.contributions.kindBarcode' => '条码商品',
+			'record.customFood.contributions.barcodeLabel' => ({required Object code}) => '条码 ${code}',
 			'record.water.title' => '今日饮水',
 			'record.water.progress' => ({required Object total, required Object goal}) => '${total} / ${goal} 毫升',
 			'record.water.quickAddLabel' => ({required Object ml}) => '加 ${ml} 毫升水',
@@ -3377,6 +3452,8 @@ extension on Translations {
 			'social.feed.hoursAgo' => ({required Object n}) => '${n} 小时前',
 			'social.feed.daysAgo' => ({required Object n}) => '${n} 天前',
 			'social.feed.anonymous' => 'EatWise 伙伴',
+			_ => null,
+		} ?? switch (path) {
 			'social.compose.title' => '发布打卡',
 			'social.compose.hint' => '记录这一刻的坚持…',
 			'social.compose.charCount' => ({required Object n}) => '${n}/500',
@@ -3393,8 +3470,6 @@ extension on Translations {
 			'social.compose.publishFailed' => '发布失败，请稍后重试',
 			'social.compose.emptyText' => '先写点什么吧',
 			'auth.login.title' => '登录',
-			_ => null,
-		} ?? switch (path) {
 			'auth.login.subtitle' => '使用账号密码登录',
 			'auth.login.phoneLabel' => '手机号',
 			'auth.login.phoneHint' => '请输入 11 位手机号',

@@ -96,9 +96,22 @@ final class CustomFoodRepository {
   /// 双语原因）；网络/超时错误不改本地状态直接上抛。
   /// 〔假设〕服务端无按 foodId 批量查候选状态的端点，状态以本方法写入的
   /// 本地值为准 + approved 社区食物下行时标记（见 food_search_remote）。
-  Future<String> contribute(String foodId) async {
+  ///
+  /// 条码商品补录：[barcode] 与 [evidenceImageUrl] 成对传入（营养表佐证照片
+  /// URL，先经 POST /uploads 取得）；409 CONFLICT（同条码已上架）不改本地
+  /// 状态原样上抛，由 UI 走「已在库」分支。
+  Future<String> contribute(
+    String foodId, {
+    String? barcode,
+    String? evidenceImageUrl,
+  }) async {
     try {
-      final status = await remote.contribute(foodId, clientRequestId: _uuid());
+      final status = await remote.contribute(
+        foodId,
+        clientRequestId: _uuid(),
+        barcode: barcode,
+        evidenceImageUrl: evidenceImageUrl,
+      );
       await db.foodDao.setContributionStatus(foodId, status);
       return status;
     } on BusinessApiException catch (e) {

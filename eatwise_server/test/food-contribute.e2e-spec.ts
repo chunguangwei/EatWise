@@ -195,6 +195,169 @@ describe('Food contribute & admin review (e2e)', () => {
     });
   });
 
+  describe('条码商品贡献（带营养表佐证照片）', () => {
+    it('全链路：提交 → 审核队列可见条码与佐证照片 → approve → 共享 Food 带 barcode', async () => {
+      const owner = await login(nextPhone());
+      const foodId = await createCustom(owner, '条码奥利奥');
+
+      const submitted = await request(server)
+        .post(`/v1/foods/custom/${foodId}/contribute`)
+        .set(auth(owner))
+        .send({
+          clientRequestId: nextUuid(),
+          barcode: '7622210449283',
+          evidenceImageUrl: '/v1/uploads/nutrition-facts.jpg',
+        })
+        .expect(200);
+      expect(submitted.body.data).toMatchObject({
+        foodId,
+        status: 'pending',
+        kind: 'barcode',
+        barcode: '7622210449283',
+        evidenceImageUrl: '/v1/uploads/nutrition-facts.jpg',
+      });
+      const candidateId = submitted.body.data.id as string;
+
+      // 管理端审核队列：条码 + 佐证照片 + 营养值并排可见（「对答案」）
+      const list = await request(server)
+        .get('/v1/admin/food-candidates?status=pending')
+        .set('x-admin-token', ADMIN)
+        .expect(200);
+      const row = (list.body.data.items as Array<Record<string, unknown>>).find(
+        (c) => c.id === candidateId,
+      );
+      expect(row).toMatchObject({
+        kind: 'barcode',
+        barcode: '7622210449283',
+        evidenceImageUrl: '/v1/uploads/nutrition-facts.jpg',
+        per100g: { kcal: 100, proteinG: 10, carbG: 10, fatG: 5 },
+      });
+
+      await request(server)
+        .post(`/v1/admin/food-candidates/${candidateId}/review`)
+        .set('x-admin-token', ADMIN)
+        .send({ action: 'approve' })
+        .expect(200);
+
+      // 共享 Food 带 barcode（后续扫码命中自有库）；任意用户 batch-get 可见
+      const stranger = await login(nextPhone());
+      const bg = await request(server)
+        .post('/v1/foods/batch-get')
+        .set(auth(stranger))
+        .send({ ids: [foodId] })
+        .expect(200);
+      expect(bg.body.data.items[0]).toMatchObject({
+        id: foodId,
+        barcode: '7622210449283',
+        source: 'community',
+      });
+
+      // 我的贡献列表带 kind/barcode
+      const mine = await request(server)
+        .get('/v1/foods/contributions')
+        .set(auth(owner))
+        .expect(200);
+      const myRow = (mine.body.data.items as Array<Record<string, unknown>>).find(
+        (c) => c.foodId === foodId,
+      );
+      expect(myRow).toMatchObject({
+        kind: 'barcode',
+        barcode: '7622210449283',
+        status: 'approved',
+      });
+    });
+
+    it('校验：条码无佐证照片 / 只传照片 / 条码格式非法 → 400', async () => {
+      const owner = await login(nextPhone());
+      const foodId = await createCustom(owner, '校验用条码糖');
+
+      await request(server)
+        .post(`/v1/foods/custom/${foodId}/contribute`)
+        .set(auth(owner))
+        .send({ clientRequestId: nextUuid(), barcode: '6901234567892' })
+        .expect(400);
+      await request(server)
+        .post(`/v1/foods/custom/${foodId}/contribute`)
+        .set(auth(owner))
+        .send({ clientRequestId: nextUuid(), evidenceImageUrl: '/v1/uploads/x.jpg' })
+        .expect(400);
+      const bad = await request(server)
+        .post(`/v1/foods/custom/${foodId}/contribute`)
+        .set(auth(owner))
+        .send({
+          clientRequestId: nextUuid(),
+          barcode: '123', // <8 位
+          evidenceImageUrl: '/v1/uploads/x.jpg',
+        })
+        .expect(400);
+      expect(bad.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('同条码查重：pending → 幂等返回已有候选；approved → 409 已上架', async () => {
+      const ownerA = await login(nextPhone());
+      const foodA = await createCustom(ownerA, '查重威化甲');
+      const first = await request(server)
+        .post(`/v1/foods/custom/${foodA}/contribute`)
+        .set(auth(ownerA))
+        .send({
+          clientRequestId: nextUuid(),
+          barcode: '6901234567892',
+          evidenceImageUrl: '/v1/uploads/a.jpg',
+        })
+        .expect(200);
+      const candidateId = first.body.data.id as string;
+
+      // 另一用户同条码重复提交 → 幂等返回已有候选，不产生第二条
+      const ownerB = await login(nextPhone());
+      const foodB = await createCustom(ownerB, '查重威化乙');
+      const dup = await request(server)
+        .post(`/v1/foods/custom/${foodB}/contribute`)
+        .set(auth(ownerB))
+        .send({
+          clientRequestId: nextUuid(),
+          barcode: '6901234567892',
+          evidenceImageUrl: '/v1/uploads/b.jpg',
+        })
+        .expect(200);
+      expect(dup.body.data.id).toBe(candidateId);
+
+      // 审核上架后，同条码再贡献 → 409 CONFLICT（已上架）
+      await request(server)
+        .post(`/v1/admin/food-candidates/${candidateId}/review`)
+        .set('x-admin-token', ADMIN)
+        .send({ action: 'approve' })
+        .expect(200);
+      const ownerC = await login(nextPhone());
+      const foodC = await createCustom(ownerC, '查重威化丙');
+      const conflict = await request(server)
+        .post(`/v1/foods/custom/${foodC}/contribute`)
+        .set(auth(ownerC))
+        .send({
+          clientRequestId: nextUuid(),
+          barcode: '6901234567892',
+          evidenceImageUrl: '/v1/uploads/c.jpg',
+        })
+        .expect(409);
+      expect(conflict.body.error.code).toBe('CONFLICT');
+    });
+
+    it('自定义食物旧路径回归：不传 barcode → kind=custom，条码字段为 null', async () => {
+      const owner = await login(nextPhone());
+      const foodId = await createCustom(owner, '回归红烧肉');
+      const res = await request(server)
+        .post(`/v1/foods/custom/${foodId}/contribute`)
+        .set(auth(owner))
+        .send({ clientRequestId: nextUuid() })
+        .expect(200);
+      expect(res.body.data).toMatchObject({
+        status: 'pending',
+        kind: 'custom',
+        barcode: null,
+        evidenceImageUrl: null,
+      });
+    });
+  });
+
   describe('管理端 /v1/admin/food-candidates（x-admin-token）', () => {
     it('token 保护：缺 header / 错 token → 401', async () => {
       await request(server).get('/v1/admin/food-candidates').expect(401);
@@ -241,12 +404,14 @@ describe('Food contribute & admin review (e2e)', () => {
       expect(page2.body.data.items).toHaveLength(1);
       expect(page2.body.data.items[0].id).not.toBe(page1.body.data.items[0].id);
 
-      // 无 approved → 空列表；非法 status → 400
-      const empty = await request(server)
+      // approved 过滤：只返回 approved（条码链路用例可能已产生 approved 候选）；非法 status → 400
+      const approvedOnly = await request(server)
         .get('/v1/admin/food-candidates?status=approved')
         .set('x-admin-token', ADMIN)
         .expect(200);
-      expect(empty.body.data.items).toHaveLength(0);
+      for (const c of approvedOnly.body.data.items as Array<{ status: string }>) {
+        expect(c.status).toBe('approved');
+      }
       await request(server)
         .get('/v1/admin/food-candidates?status=bogus')
         .set('x-admin-token', ADMIN)

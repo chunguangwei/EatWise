@@ -9,6 +9,7 @@ import {
   FastingPlanEntity,
   FastingRecordEntity,
   FoodCandidateEntity,
+  FoodCandidateKind,
   FoodCandidateStatus,
   FoodEntity,
   FoodEntryEntity,
@@ -442,6 +443,9 @@ export class PrismaStore extends StoreDriver {
           userId: candidate.userId,
           status: candidate.status,
           reason: candidate.reason,
+          kind: candidate.kind,
+          barcode: candidate.barcode,
+          evidenceImageUrl: candidate.evidenceImageUrl,
           clientRequestId: candidate.clientRequestId,
           version: candidate.version,
         },
@@ -790,6 +794,16 @@ export class PrismaStore extends StoreDriver {
     }
   }
 
+  /** 共享库按条码精确命中（foods_barcode_idx；与内存同口径排除 isCustom 行） */
+  async findFoodByBarcode(barcode: string): Promise<FoodEntity | null> {
+    try {
+      const row = await this.prisma.food.findFirst({ where: { barcode, isCustom: false } });
+      return row ? toFoodEntity(row) : null;
+    } catch (e) {
+      throw this.fail('findFoodByBarcode', e);
+    }
+  }
+
   async createCustomFood(food: CustomFoodEntity): Promise<void> {
     try {
       await this.prisma.food.create({
@@ -876,14 +890,19 @@ export class PrismaStore extends StoreDriver {
   }
 
   /**
-   * 审核晋升（原子）：自定义行就地转共享（id 不变，FoodEntry 引用不断链）。
-   * 非自定义/不存在 → NOT_FOUND（与内存 promoteCustomFoodToShared 同口径）。
+   * 审核晋升（原子）：自定义行就地转共享（id 不变，FoodEntry 引用不断链）；
+   * 条码候选晋升时把 barcode 一并写入共享行。非自定义/不存在 → NOT_FOUND（与内存同口径）。
    */
-  async promoteCustomFoodToShared(foodId: string): Promise<void> {
+  async promoteCustomFoodToShared(foodId: string, barcode?: string | null): Promise<void> {
     try {
       const updated = await this.prisma.food.updateMany({
         where: { id: foodId, isCustom: true },
-        data: { isCustom: false, source: 'community', category: '社区共享' },
+        data: {
+          isCustom: false,
+          source: 'community',
+          category: '社区共享',
+          ...(barcode ? { barcode } : {}),
+        },
       });
       if (updated.count === 0) throw err.notFound();
     } catch (e) {
@@ -923,6 +942,20 @@ export class PrismaStore extends StoreDriver {
       return row ? toFoodCandidateEntity(row) : null;
     } catch (e) {
       throw this.fail('findFoodCandidateByFoodId', e);
+    }
+  }
+
+  /** 条码贡献查重（与内存同口径）：pending 优先、其次 approved，同级 createdAt 升序取最早一条 */
+  async findFoodCandidateByBarcode(barcode: string): Promise<FoodCandidateEntity | null> {
+    try {
+      const rows = await this.prisma.foodCandidate.findMany({
+        where: { barcode, status: { in: ['pending', 'approved'] } },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      });
+      const row = rows.find((r) => r.status === 'pending') ?? rows[0];
+      return row ? toFoodCandidateEntity(row) : null;
+    } catch (e) {
+      throw this.fail('findFoodCandidateByBarcode', e);
     }
   }
 
@@ -1461,6 +1494,9 @@ function toFoodCandidateEntity(c: Prisma.FoodCandidateGetPayload<object>): FoodC
     userId: c.userId,
     status: c.status as FoodCandidateStatus,
     reason: c.reason,
+    kind: c.kind as FoodCandidateKind,
+    barcode: c.barcode,
+    evidenceImageUrl: c.evidenceImageUrl,
     clientRequestId: c.clientRequestId,
     version: c.version,
     createdAt: c.createdAt,
@@ -1481,6 +1517,7 @@ function toFoodEntity(f: Prisma.FoodGetPayload<object>): FoodEntity {
     category: f.category ?? '',
     source: f.source ?? '',
     createdByUserId: f.createdByUserId,
+    barcode: f.barcode,
   };
 }
 
@@ -1563,6 +1600,7 @@ function toSearchHit(
     category: f.category ?? '',
     source: f.source ?? '',
     createdByUserId: f.createdByUserId,
+    barcode: f.barcode,
   };
   const isCustom = f.isCustom;
   if (food.nameZh.includes(q)) {

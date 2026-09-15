@@ -15,7 +15,16 @@ abstract interface class CustomFoodRemote {
   /// 贡献自定义食物为共享候选（POST /foods/custom/:id/contribute，幂等
   /// clientRequestId；返回候选状态 pending/approved/rejected；
   /// 机审拒收抛 400 FOOD_CONTRIBUTE_REJECTED，message 为服务端双语原因）。
-  Future<String> contribute(String foodId, {required String clientRequestId});
+  ///
+  /// 条码商品补录（扫码未命中场景）：[barcode] 与 [evidenceImageUrl] 必须
+  /// 成对传入（服务端同口径校验，缺任一为 400 VALIDATION_ERROR）；同条码
+  /// 已有 approved 候选抛 409 CONFLICT（已上架，无需重复贡献）。
+  Future<String> contribute(
+    String foodId, {
+    required String clientRequestId,
+    String? barcode,
+    String? evidenceImageUrl,
+  });
 
   /// 我的贡献批量查询（GET /foods/contributions，需认证，只返回本人候选；
   /// createdAt 降序，页码分页）。[status] 缺省返回全部状态。
@@ -75,11 +84,21 @@ final class RemoteCustomFoodApi implements CustomFoodRemote {
   Future<String> contribute(
     String foodId, {
     required String clientRequestId,
+    String? barcode,
+    String? evidenceImageUrl,
   }) async {
     try {
       final response = await dio.post<Map<String, dynamic>>(
         '/foods/custom/$foodId/contribute',
-        data: <String, dynamic>{'clientRequestId': clientRequestId},
+        data: <String, dynamic>{
+          'clientRequestId': clientRequestId,
+          // barcode 与 evidenceImageUrl 必须成对（服务端契约）：调用方保证
+          // 同传同不传，这里防御性按成对才上行。
+          if (barcode != null && evidenceImageUrl != null) ...<String, dynamic>{
+            'barcode': barcode,
+            'evidenceImageUrl': evidenceImageUrl,
+          },
+        },
       );
       return response.data?['status'] as String? ?? 'pending';
     } on DioException catch (e) {
@@ -134,8 +153,15 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
   /// 注入贡献拒收（400 FOOD_CONTRIBUTE_REJECTED，双语 message 同服务端口径）。
   bool contributeRejected = false;
 
+  /// 注入条码已上架冲突（409 CONFLICT，同服务端条码查重口径）。
+  bool contributeConflict = false;
+
   /// 已收到的贡献幂等键列表（`foodId:clientRequestId`）。
   final List<String> receivedContributeIds = <String>[];
+
+  /// 已收到的条码补录参数列表（`foodId|barcode|evidenceImageUrl`，
+  /// 断言 barcode + evidenceImageUrl 成对上行用）。
+  final List<String> receivedContributeBarcodes = <String>[];
 
   /// 贡献幂等表（clientRequestId → 首次返回的状态）。
   final Map<String, String> _contributeIdem = <String, String>{};
@@ -170,6 +196,8 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
   Future<String> contribute(
     String foodId, {
     required String clientRequestId,
+    String? barcode,
+    String? evidenceImageUrl,
   }) async {
     if (mode == FakeCustomFoodMode.offline) {
       throw const NetworkApiException();
@@ -177,6 +205,13 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
     // 幂等：同一 clientRequestId 重放返回首次结果（与服务端口径一致）。
     final cached = _contributeIdem[clientRequestId];
     if (cached != null) return cached;
+    if (contributeConflict) {
+      throw const BusinessApiException(
+        httpStatus: 409,
+        code: 'CONFLICT',
+        message: '该条码商品已上架共享库，无需重复贡献',
+      );
+    }
     if (contributeRejected) {
       throw const BusinessApiException(
         httpStatus: 400,
@@ -185,6 +220,9 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
       );
     }
     receivedContributeIds.add('$foodId:$clientRequestId');
+    if (barcode != null || evidenceImageUrl != null) {
+      receivedContributeBarcodes.add('$foodId|$barcode|$evidenceImageUrl');
+    }
     _contributeIdem[clientRequestId] = contributeStatus;
     return contributeStatus;
   }

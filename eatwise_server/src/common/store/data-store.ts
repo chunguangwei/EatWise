@@ -88,6 +88,8 @@ export interface FoodEntity {
   source: string;
   /** 社区共享食物溯源：审核晋升的自定义食物保留创建者（内置库条目为 null/缺省） */
   createdByUserId?: string | null;
+  /** 包装食品条码（8-14 位数字；条码众包候选晋升时写入，后续扫码命中自有库） */
+  barcode?: string | null;
 }
 
 export type AdminRoleName = 'admin' | 'reviewer';
@@ -107,6 +109,9 @@ export interface AdminUserEntity {
 
 export type FoodCandidateStatus = 'pending' | 'approved' | 'rejected';
 
+/** 候选类型：custom = 自定义食物贡献；barcode = 条码商品补录贡献（必须带营养表佐证照片） */
+export type FoodCandidateKind = 'custom' | 'barcode';
+
 /** 共享食物候选（食物库扩充第三层：用户自定义食物经审核晋升为共享库，先审后发 D-17） */
 export interface FoodCandidateEntity {
   id: string;
@@ -117,6 +122,11 @@ export interface FoodCandidateEntity {
   status: FoodCandidateStatus;
   /** 审核拒绝原因（rejected 时记录） */
   reason: string | null;
+  kind: FoodCandidateKind;
+  /** kind=barcode 时非空：商品条码（8-14 位数字） */
+  barcode: string | null;
+  /** kind=barcode 时非空：包装营养表佐证照片（/v1/uploads/xxx 或 CDN URL），审核「对答案」依据 */
+  evidenceImageUrl: string | null;
   clientRequestId: string;
   version: number;
   createdAt: Date;

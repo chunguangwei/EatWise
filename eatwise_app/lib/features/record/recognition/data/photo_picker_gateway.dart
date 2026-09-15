@@ -52,7 +52,7 @@ final class ImagePickerPhotoGateway implements PhotoPickerGateway {
         imageQuality: 85,
       );
       if (file == null) return null;
-      return file.readAsBytes();
+      return await file.readAsBytes();
     } on Exception catch (e) {
       // image_picker 平台侧权限拒绝统一抛异常（iOS camera_access_denied /
       // photo_access_denied，Android SecurityException 包装），
