@@ -466,7 +466,8 @@ class _EstimateChainCard extends ConsumerWidget {
     );
   }
 
-  /// 单行「序号 名称 —— 状态」；生效行品牌色浅底 + 「当前生效」标记。
+  /// 单行「序号 名称 —— 状态」；生效行品牌色 12% 浅底 + 品牌绿文字
+  /// （此前橙底+绿字对比度不足看不清，与 home_shell 选中指示器同口径）。
   Widget _chainRow(
     AppColors colors,
     AppTextStyles textStyles,
@@ -483,7 +484,7 @@ class _EstimateChainCard extends ConsumerWidget {
         vertical: AppSpacing.s2,
       ),
       decoration: BoxDecoration(
-        color: active ? colors.brandAccent : null,
+        color: active ? colors.brandPrimary.withValues(alpha: 0.12) : null,
         borderRadius: radii.rSm,
       ),
       child: Row(
@@ -492,14 +493,18 @@ class _EstimateChainCard extends ConsumerWidget {
             child: Text(
               '$index. $name —— $status',
               style: textStyles.textSm.copyWith(
-                color: active ? colors.brandPrimary : colors.textSecondary,
+                color: active ? colors.textPrimary : colors.textSecondary,
+                fontWeight: active ? FontWeight.w600 : null,
               ),
             ),
           ),
           if (active)
             Text(
               t.settings.chain.current,
-              style: textStyles.textXs.copyWith(color: colors.brandPrimary),
+              style: textStyles.textXs.copyWith(
+                color: colors.brandPrimaryPressed,
+                fontWeight: FontWeight.w600,
+              ),
             ),
         ],
       ),
