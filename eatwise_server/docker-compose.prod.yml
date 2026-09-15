@@ -1,0 +1,81 @@
+# 云主机生产编排（配合 docs/tech/部署-云主机自部署-v1.0.md 使用）。
+# 与 docker-compose.yml（本地开发依赖）互不干扰：本文件自带 postgres + 迁移 + 服务端 + Caddy。
+# name 显式隔离：dev/prod 同目录默认项目名相同，会共享 pgdata 卷导致密码错配（P1000）。
+name: eatwise-prod
+# 用法：docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: eatwise-prod-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: eatwise
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: eatwise
+    # 不映射宿主机端口：只对 compose 内网可见，5432 永不暴露公网。
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U eatwise']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # 一次性任务：建表 + 灌食物库（幂等，重复跑安全）。
+  # 用 build 阶段镜像（含 prisma CLI 与 ts-node），跑完即退出。
+  migrate:
+    build:
+      context: .
+      target: build
+    container_name: eatwise-prod-migrate
+    env_file: .env.prod
+    # seed.ts 按 monorepo 布局读 ../eatwise_data/foods.seed.json（绝对解析为
+    # /eatwise_data/foods.seed.json），整仓克隆时把数据目录只读挂进来。
+    volumes:
+      - ../eatwise_data:/eatwise_data:ro
+    command: sh -c "npx prisma migrate deploy && npm run prisma:seed"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  server:
+    build:
+      context: .
+      target: runtime
+    container_name: eatwise-prod-server
+    restart: unless-stopped
+    env_file: .env.prod
+    # 管理端 LLM 运行时覆盖（data/admin-config.json）与本地图片上传（uploads/）
+    # 落宿主机目录持久化，容器重建不丢。
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/v1/health || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  # HTTPS 终结：自动签/续 Let's Encrypt，反代到 server。
+  caddy:
+    image: caddy:2-alpine
+    container_name: eatwise-prod-caddy
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - server
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

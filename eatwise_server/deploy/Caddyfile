@@ -1,0 +1,10 @@
+# 把 api.example.com 换成你的 API 域名（DNS A 记录已指向本机）。
+# Caddy 自动申请并续期 Let's Encrypt 证书，无需人工干预。
+api.example.com {
+	reverse_proxy server:3000
+
+	# 上传图片 ≤5MB（与服务端 MAX_UPLOAD_BYTES 对齐），超限直接 413。
+	request_body {
+		max_size 8MB
+	}
+}
