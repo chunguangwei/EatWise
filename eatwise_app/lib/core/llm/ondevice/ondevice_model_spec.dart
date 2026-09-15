@@ -37,10 +37,11 @@ final class OnDeviceModelSpec {
   static const String modelScopeUrl =
       'https://modelscope.cn/models/litert-community/gemma-4-E2B-it-litert-lm/resolve/master/gemma-4-E2B-it.litertlm';
 
-  /// GitHub Release 兜底（海外优先）。发版时需把模型上传到 EatWise 仓库
-  /// `models-v1` tag 的 Release 资产；未上传前该源 404，管理器自动回退主源。
-  static const String gitHubUrl =
-      'https://github.com/chunguangwei/EatWise/releases/download/models-v1/gemma-4-E2B-it.litertlm';
+  /// 海外兜底源：HuggingFace litert-community 官方仓直链（海外可达）。
+  /// 不用 GitHub Release 托管——模型 2.41GiB 超 GitHub 单资产 2GB 上限；
+  /// 该域名国内被墙，仅作海外源（选源逻辑已把国内用户导向 ModelScope）。
+  static const String huggingFaceUrl =
+      'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm';
 
   /// iOS 物理内存门槛（MB）。
   static const int minDeviceMemMBIos = 3000;
@@ -65,8 +66,8 @@ bool prefersChinaModelSource(String locale) {
 /// 下载候选 URL 列表（主源在前、兜底在后；管理器按序尝试，一源失败自动换源）。
 List<String> onDeviceModelUrlCandidates({required bool preferChina}) {
   const ms = OnDeviceModelSpec.modelScopeUrl;
-  const gh = OnDeviceModelSpec.gitHubUrl;
-  return preferChina ? const [ms, gh] : const [gh, ms];
+  const hf = OnDeviceModelSpec.huggingFaceUrl;
+  return preferChina ? const [ms, hf] : const [hf, ms];
 }
 
 /// 平台物理内存门槛（MB）。platform 取 io.Platform.operatingSystem。

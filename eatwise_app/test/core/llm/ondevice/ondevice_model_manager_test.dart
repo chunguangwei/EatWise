@@ -71,7 +71,7 @@ final class _FakeCapability implements DeviceCapabilityProbe {
 
 const _expected = 1024;
 const _ms = OnDeviceModelSpec.modelScopeUrl;
-const _gh = OnDeviceModelSpec.gitHubUrl;
+const _hf = OnDeviceModelSpec.huggingFaceUrl;
 
 /// 写一个 size 字节的假模型文件：头部 LITERTLM 魔数（magic=false 时为全零，
 /// 模拟 HTML 错误页/损坏文件）。
@@ -187,14 +187,14 @@ void main() {
       await _writeModelBytes(save, _expected, magic: false); // 全零=脏文件
       return 200;
     });
-    http.on(_gh, (url, save, range, onProgress, token) async {
+    http.on(_hf, (url, save, range, onProgress, token) async {
       await _writeModelBytes(save, _expected);
       return 200;
     });
 
     final path = await manager.ensureModel();
 
-    expect(http.calls.map((c) => c.url), [_ms, _gh]);
+    expect(http.calls.map((c) => c.url), [_ms, _hf]);
     // 脏 .part 已删，第二源从头下（不带 Range）
     expect(http.calls[1].rangeHeader, isNull);
     expect(await File(path).length(), _expected);
@@ -203,20 +203,20 @@ void main() {
 
   test('一源 HTTP 500 → 自动换源成功', () async {
     http.on(_ms, (url, save, range, onProgress, token) async => 500);
-    http.on(_gh, (url, save, range, onProgress, token) async {
+    http.on(_hf, (url, save, range, onProgress, token) async {
       await _writeModelBytes(save, _expected);
       return 200;
     });
 
     await manager.ensureModel();
 
-    expect(http.calls.map((c) => c.url), [_ms, _gh]);
+    expect(http.calls.map((c) => c.url), [_ms, _hf]);
     expect(manager.snapshot.status, OnDeviceModelStatus.ready);
   });
 
   test('双源皆败 → error 态，抛最后一个下载错误', () async {
     http.on(_ms, (url, save, range, onProgress, token) async => 500);
-    http.on(_gh, (url, save, range, onProgress, token) async => 403);
+    http.on(_hf, (url, save, range, onProgress, token) async => 403);
 
     await expectLater(
       manager.ensureModel(),
@@ -237,7 +237,7 @@ void main() {
       await _writeModelBytes(save, 500); // 只下到 500 就“完成”（截断）
       return 200;
     });
-    http.on(_gh, (url, save, range, onProgress, token) async {
+    http.on(_hf, (url, save, range, onProgress, token) async {
       await _writeModelBytes(save, _expected - 500, magic: false);
       return 206;
     });

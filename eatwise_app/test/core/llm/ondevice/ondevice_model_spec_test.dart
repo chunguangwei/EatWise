@@ -27,14 +27,14 @@ void main() {
       final urls = onDeviceModelUrlCandidates(preferChina: true);
       expect(urls, [
         OnDeviceModelSpec.modelScopeUrl,
-        OnDeviceModelSpec.gitHubUrl,
+        OnDeviceModelSpec.huggingFaceUrl,
       ]);
     });
 
     test('海外：GitHub 优先，ModelScope 兜底', () {
       final urls = onDeviceModelUrlCandidates(preferChina: false);
       expect(urls, [
-        OnDeviceModelSpec.gitHubUrl,
+        OnDeviceModelSpec.huggingFaceUrl,
         OnDeviceModelSpec.modelScopeUrl,
       ]);
     });
