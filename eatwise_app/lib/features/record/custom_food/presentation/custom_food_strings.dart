@@ -51,6 +51,13 @@ final class CustomFoodStrings {
   String get estimateFallbackNotice =>
       _t.record.customFood.estimateFallbackNotice;
 
+  /// record.customFood.estimateBadgeOnDevice
+  String get estimateBadgeOnDevice =>
+      _t.record.customFood.estimateBadgeOnDevice;
+
+  /// record.customFood.estimateDubious
+  String get estimateDubious => _t.record.customFood.estimateDubious;
+
   /// record.customFood.kcalLabel
   String get kcalLabel => _t.record.customFood.kcalLabel;
 

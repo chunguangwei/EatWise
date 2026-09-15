@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/analytics/analytics_service.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
@@ -9,6 +11,7 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
+import 'package:eatwise/features/record/custom_food/domain/food_estimate_orchestrator.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
@@ -91,8 +94,9 @@ Future<void> contributeCustomFood(
 
 /// 自定义食物弹层：菜名（必填）+ 别名（可选）+ AI 估算 + 四营养输入。
 ///
-/// AI 估算成功预填四营养并显示「AI 估算，请确认」徽标（low 置信度额外
-/// 提示核对）；估算不可用（503/超时/网络）降级手动填写，不阻断。
+/// AI 估算成功预填四营养并显示估算徽标（端侧来源标「端侧估算，请确认」；
+/// low 置信度/端侧 dubious 额外提示核对）；估算不可用（503/超时/网络）
+/// 降级手动填写，不阻断。
 /// [initialAlias]：扫码未收录承接场景预填的别名（条码号〔假设〕）。
 class CustomFoodSheet extends ConsumerStatefulWidget {
   const CustomFoodSheet({super.key, this.initialAlias});
@@ -122,11 +126,18 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
   /// 改后按 manual 保存——估算标记只覆盖未改动的估算值）。
   bool _estimateApplied = false;
 
-  /// 最近一次估算置信度 low（额外提示核对）。
+  /// 最近一次估算置信度 low（额外提示核对；端侧 dubious 同走此标记，
+  /// 文案按 [_estimateSource] 区分「置信度较低」/「估算存疑」）。
   bool _estimateLow = false;
+
+  /// 最近一次估算生效来源（端侧显示「端侧估算，请确认」徽标）。
+  FoodEstimateSource _estimateSource = FoodEstimateSource.server;
 
   /// 估算不可用提示（503/超时/网络；降级手动填写，不阻断）。
   bool _estimateUnavailable = false;
+
+  /// 埋点服务（与记录页同一实例；未授权时 track 为 no-op）。
+  late final AnalyticsService _analytics = ref.read(analyticsServiceProvider);
 
   /// 保存在途（防连点重复提交）。
   bool _saving = false;
@@ -145,7 +156,8 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
     super.dispose();
   }
 
-  /// 点「AI 估算」：经编排器两级回落（用户模型直连 → 服务端），成功预填四营养。
+  /// 点「AI 估算」：经编排器三级回落（端侧 → 用户模型直连 → 服务端），
+  /// 成功预填四营养并按来源显示徽标（端侧 dubious 显示「估算存疑，请核对」）。
   Future<void> _onEstimate() async {
     final cs = CustomFoodStrings.of(context);
     final name = _nameController.text.trim();
@@ -158,12 +170,22 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
       _estimateUnavailable = false;
     });
     try {
-      // 两级回落编排：已配置用户模型先直连，直连失败回落服务端并提示一次。
+      // 三级回落编排：端侧（开关开且模型就绪）→ 已配置用户模型直连
+      // → 服务端兜底；直连失败回落服务端提示一次。
       final outcome = await ref
           .read(foodEstimateOrchestratorProvider)
           .estimate(name);
       if (!mounted) return;
       final estimate = outcome.estimate;
+      // 埋点（§3.3 record_ai_estimate）：来源维度 ondevice/user_api/server。
+      _analytics.track(
+        'record_ai_estimate',
+        properties: <String, Object?>{
+          'source': foodEstimateSourceName(outcome.source),
+          'result': 'success',
+          'used_fallback': outcome.usedFallback,
+        },
+      );
       if (outcome.usedFallback) {
         ScaffoldMessenger.of(
           context,
@@ -176,13 +198,30 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
         _fatController.text = _formatNumber(estimate.per100g.fatG);
         _estimateApplied = true;
         _estimateLow = estimate.isLowConfidence;
+        _estimateSource = outcome.source;
       });
     } on Object catch (e) {
       if (!mounted) return;
       if (isEstimateUnavailable(e)) {
         // 503/超时/网络：提示降级手动填写，不阻断（字段本就可编辑）。
+        _analytics.track(
+          'record_ai_estimate',
+          properties: <String, Object?>{
+            'source': 'none',
+            'result': 'unavailable',
+            'used_fallback': false,
+          },
+        );
         setState(() => _estimateUnavailable = true);
       } else {
+        _analytics.track(
+          'record_ai_estimate',
+          properties: <String, Object?>{
+            'source': 'none',
+            'result': 'fail',
+            'used_fallback': false,
+          },
+        );
         final message = e is ApiException ? e.message : cs.estimateUnavailable;
         ScaffoldMessenger.of(
           context,
@@ -297,6 +336,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
       setState(() {
         _estimateApplied = false;
         _estimateLow = false;
+        _estimateSource = FoodEstimateSource.server;
       });
     }
   }
@@ -397,7 +437,8 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                     ),
                   ),
                 ),
-              // 「AI 估算，请确认」徽标（low 置信度额外提示核对）。
+              // 估算徽标：端侧显示「端侧估算，请确认」；low 置信度 /
+              // 端侧 dubious 额外提示核对（文案按来源区分）。
               if (_estimateApplied)
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.s3),
@@ -414,14 +455,18 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          cs.estimateBadge,
+                          _estimateSource == FoodEstimateSource.ondevice
+                              ? cs.estimateBadgeOnDevice
+                              : cs.estimateBadge,
                           style: textStyles.textSm.copyWith(
                             color: colors.bgSecondary,
                           ),
                         ),
                         if (_estimateLow)
                           Text(
-                            cs.estimateLow,
+                            _estimateSource == FoodEstimateSource.ondevice
+                                ? cs.estimateDubious
+                                : cs.estimateLow,
                             style: textStyles.textXs.copyWith(
                               color: colors.bgSecondary,
                             ),

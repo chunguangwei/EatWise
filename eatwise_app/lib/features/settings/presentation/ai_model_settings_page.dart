@@ -8,6 +8,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
+import 'package:eatwise/features/settings/presentation/ondevice_model_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -263,6 +264,9 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.s4),
           children: <Widget>[
+            // 端侧小模型（下载/开关）；下方为用户自定义 API 配置。
+            const OnDeviceModelCard(),
+            const SizedBox(height: AppSpacing.s4),
             Container(
               decoration: BoxDecoration(
                 color: colors.bgSecondary,

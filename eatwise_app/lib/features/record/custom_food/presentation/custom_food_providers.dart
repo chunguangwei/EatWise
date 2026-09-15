@@ -1,10 +1,12 @@
 import 'package:eatwise/core/llm/llm_config_store.dart';
+import 'package:eatwise/core/llm/ondevice/ondevice_providers.dart';
 import 'package:eatwise/core/llm/user_llm_client.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
 import 'package:eatwise/features/record/custom_food/domain/food_estimate_orchestrator.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
+import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 自定义食物远程端（生产 REST；测试 override 为 FakeCustomFoodRemote）。
@@ -29,13 +31,30 @@ final Provider<LlmConfigStore> llmConfigStoreProvider =
       (ref) => throw UnimplementedError('override in main'),
     );
 
-/// 估算编排器（两级回落：已配置直连用户模型，未配置/直连失败回落服务端）。
+/// 用户模型直连客户端（测试 override 为 Fake 窄接口替身）。
+final Provider<UserEstimateSource> userEstimateSourceProvider =
+    Provider<UserEstimateSource>((ref) {
+      return UserLlmClient(store: ref.watch(llmConfigStoreProvider));
+    });
+
+/// 端侧估算源（生产 = 核心层估算器适配；测试 override 为 Fake，
+/// 避免 widget 测试触碰磁盘/推理插件）。
+final Provider<OnDeviceEstimateSource> onDeviceEstimateSourceProvider =
+    Provider<OnDeviceEstimateSource>((ref) {
+      return OnDeviceEstimatorSource(
+        ref.watch(onDeviceNutritionEstimatorProvider),
+      );
+    });
+
+/// 估算编排器（三级回落：端侧（开关开且模型就绪）→ 已配置直连用户模型
+/// → 服务端兜底；端侧源惰性获取，开关关闭时不实例化推理网关）。
 final Provider<FoodEstimateOrchestrator> foodEstimateOrchestratorProvider =
     Provider<FoodEstimateOrchestrator>((ref) {
-      final store = ref.watch(llmConfigStoreProvider);
       return FoodEstimateOrchestrator(
-        store: store,
-        userClient: UserLlmClient(store: store),
+        store: ref.watch(llmConfigStoreProvider),
+        userClient: ref.watch(userEstimateSourceProvider),
         remote: ref.watch(customFoodRemoteProvider),
+        onDeviceEnabled: () => ref.read(onDeviceAiEnabledProvider),
+        onDeviceSource: () => ref.read(onDeviceEstimateSourceProvider),
       );
     });

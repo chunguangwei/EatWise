@@ -208,6 +208,7 @@ class _Translations$settings$en extends Translations$settings$zh_CN {
 	@override late final _Translations$settings$reminders$en reminders = _Translations$settings$reminders$en._(_root);
 	@override late final _Translations$settings$about$en about = _Translations$settings$about$en._(_root);
 	@override late final _Translations$settings$aiModel$en aiModel = _Translations$settings$aiModel$en._(_root);
+	@override late final _Translations$settings$onDevice$en onDevice = _Translations$settings$onDevice$en._(_root);
 }
 
 // Path: legal
@@ -534,6 +535,8 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get estimateLow => 'Low confidence — please double-check the values';
 	@override String get estimateUnavailable => 'Estimate unavailable — please enter values manually';
 	@override String get estimateFallbackNotice => 'Your model couldn\'t be reached — used the cloud estimate instead';
+	@override String get estimateBadgeOnDevice => 'On-device estimate — please confirm';
+	@override String get estimateDubious => 'Estimate looks off — please double-check the values';
 	@override String get kcalLabel => 'Calories (kcal / 100 g)';
 	@override String get proteinLabel => 'Protein (g / 100 g)';
 	@override String get carbLabel => 'Carbs (g / 100 g)';
@@ -1017,6 +1020,38 @@ class _Translations$settings$aiModel$en extends Translations$settings$aiModel$zh
 	@override String get clearConfirmBody => 'After clearing, custom food estimates will fall back to the server-side model.';
 	@override String get clearConfirmAction => 'Clear';
 	@override String get cleared => 'AI model configuration cleared';
+}
+
+// Path: settings.onDevice
+class _Translations$settings$onDevice$en extends Translations$settings$onDevice$zh_CN {
+	_Translations$settings$onDevice$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'On-device model';
+	@override String get desc => 'Estimate nutrition offline on this device — your data never leaves it';
+	@override String get size => 'Model size: ~2.41 GB';
+	@override String get wifiHint => 'Large file — Wi-Fi recommended';
+	@override String get download => 'Download model';
+	@override String downloading({required Object percent}) => 'Downloading ${percent}%';
+	@override String get cancel => 'Cancel';
+	@override String paused({required Object percent}) => 'Paused (${percent}% downloaded)';
+	@override String get resume => 'Resume';
+	@override String get delete => 'Delete model';
+	@override String get deleteConfirmTitle => 'Delete on-device model?';
+	@override String get deleteConfirmBody => 'You\'ll need to re-download the ~2.41 GB model to use on-device estimates again.';
+	@override String get deleteConfirmAction => 'Delete';
+	@override String get deleted => 'On-device model deleted';
+	@override String get ready => 'Model ready';
+	@override String get coldLoadHint => 'The first estimate loads the model and may take a few seconds';
+	@override String get enabled => 'Prefer on-device estimates';
+	@override String get errorDownload => 'Download failed — check your connection and retry';
+	@override String get errorStorage => 'Not enough free storage (~6 GB needed) — free up space and retry';
+	@override String get errorMemory => 'Not enough device memory for the on-device model';
+	@override String get retry => 'Retry';
+	@override String get oomDisabled => 'On-device estimates disabled — not enough device memory';
+	@override String get statusFailed => 'Failed to read model status';
 }
 
 // Path: legal.consent
@@ -1778,6 +1813,8 @@ extension on TranslationsEn {
 			'record.customFood.estimateLow' => 'Low confidence — please double-check the values',
 			'record.customFood.estimateUnavailable' => 'Estimate unavailable — please enter values manually',
 			'record.customFood.estimateFallbackNotice' => 'Your model couldn\'t be reached — used the cloud estimate instead',
+			'record.customFood.estimateBadgeOnDevice' => 'On-device estimate — please confirm',
+			'record.customFood.estimateDubious' => 'Estimate looks off — please double-check the values',
 			'record.customFood.kcalLabel' => 'Calories (kcal / 100 g)',
 			'record.customFood.proteinLabel' => 'Protein (g / 100 g)',
 			'record.customFood.carbLabel' => 'Carbs (g / 100 g)',
@@ -2068,6 +2105,29 @@ extension on TranslationsEn {
 			'settings.aiModel.clearConfirmBody' => 'After clearing, custom food estimates will fall back to the server-side model.',
 			'settings.aiModel.clearConfirmAction' => 'Clear',
 			'settings.aiModel.cleared' => 'AI model configuration cleared',
+			'settings.onDevice.title' => 'On-device model',
+			'settings.onDevice.desc' => 'Estimate nutrition offline on this device — your data never leaves it',
+			'settings.onDevice.size' => 'Model size: ~2.41 GB',
+			'settings.onDevice.wifiHint' => 'Large file — Wi-Fi recommended',
+			'settings.onDevice.download' => 'Download model',
+			'settings.onDevice.downloading' => ({required Object percent}) => 'Downloading ${percent}%',
+			'settings.onDevice.cancel' => 'Cancel',
+			'settings.onDevice.paused' => ({required Object percent}) => 'Paused (${percent}% downloaded)',
+			'settings.onDevice.resume' => 'Resume',
+			'settings.onDevice.delete' => 'Delete model',
+			'settings.onDevice.deleteConfirmTitle' => 'Delete on-device model?',
+			'settings.onDevice.deleteConfirmBody' => 'You\'ll need to re-download the ~2.41 GB model to use on-device estimates again.',
+			'settings.onDevice.deleteConfirmAction' => 'Delete',
+			'settings.onDevice.deleted' => 'On-device model deleted',
+			'settings.onDevice.ready' => 'Model ready',
+			'settings.onDevice.coldLoadHint' => 'The first estimate loads the model and may take a few seconds',
+			'settings.onDevice.enabled' => 'Prefer on-device estimates',
+			'settings.onDevice.errorDownload' => 'Download failed — check your connection and retry',
+			'settings.onDevice.errorStorage' => 'Not enough free storage (~6 GB needed) — free up space and retry',
+			'settings.onDevice.errorMemory' => 'Not enough device memory for the on-device model',
+			'settings.onDevice.retry' => 'Retry',
+			'settings.onDevice.oomDisabled' => 'On-device estimates disabled — not enough device memory',
+			'settings.onDevice.statusFailed' => 'Failed to read model status',
 			'legal.draftNote' => '[Pending external confirmation: final legal copy]',
 			'legal.consent.title' => 'Welcome to EatWise',
 			'legal.consent.summary' => 'We collect and use your information as described in the Privacy Policy to provide core features like fasting timers, meal logging, and nutrition feedback. Your data is stored securely in mainland China. Please review and confirm:',
@@ -2137,6 +2197,8 @@ extension on TranslationsEn {
 			'auth.login.codeSent' => 'Verification code sent',
 			'auth.login.invalidPhone' => 'Please enter a valid phone number',
 			'auth.login.invalidCode' => 'Please enter the 6-digit code',
+			_ => null,
+		} ?? switch (path) {
 			'auth.login.mockHint' => 'In local dev the code is always 123456',
 			'auth.login.usernameLabel' => 'Username',
 			'auth.login.usernameHint' => '3-20 letters, digits or underscores',
@@ -2162,8 +2224,6 @@ extension on TranslationsEn {
 			'auth.register.registering' => 'Signing up…',
 			'auth.register.passwordMismatch' => 'Passwords do not match',
 			'auth.register.agreePrefix' => 'I have read and agree to the ',
-			_ => null,
-		} ?? switch (path) {
 			'auth.register.agreeAnd' => ' and ',
 			'auth.register.agreeRequired' => 'Please agree to the Privacy Policy and Terms of Service first',
 			'auth.register.strengthWeak' => 'Strength: weak',

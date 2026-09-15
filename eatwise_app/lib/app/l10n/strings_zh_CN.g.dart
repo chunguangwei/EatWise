@@ -224,6 +224,7 @@ class Translations$settings$zh_CN {
 	late final Translations$settings$reminders$zh_CN reminders = Translations$settings$reminders$zh_CN.internal(_root);
 	late final Translations$settings$about$zh_CN about = Translations$settings$about$zh_CN.internal(_root);
 	late final Translations$settings$aiModel$zh_CN aiModel = Translations$settings$aiModel$zh_CN.internal(_root);
+	late final Translations$settings$onDevice$zh_CN onDevice = Translations$settings$onDevice$zh_CN.internal(_root);
 }
 
 // Path: legal
@@ -772,6 +773,12 @@ class Translations$record$customFood$zh_CN {
 
 	/// zh-CN: '你的模型连接失败，已改用云端估算'
 	String get estimateFallbackNotice => '你的模型连接失败，已改用云端估算';
+
+	/// zh-CN: '端侧估算，请确认'
+	String get estimateBadgeOnDevice => '端侧估算，请确认';
+
+	/// zh-CN: '估算存疑，请核对数值'
+	String get estimateDubious => '估算存疑，请核对数值';
 
 	/// zh-CN: '热量（千卡 / 100 克）'
 	String get kcalLabel => '热量（千卡 / 100 克）';
@@ -1640,6 +1647,84 @@ class Translations$settings$aiModel$zh_CN {
 
 	/// zh-CN: 'AI 模型配置已清除'
 	String get cleared => 'AI 模型配置已清除';
+}
+
+// Path: settings.onDevice
+class Translations$settings$onDevice$zh_CN {
+	Translations$settings$onDevice$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '端侧小模型'
+	String get title => '端侧小模型';
+
+	/// zh-CN: '下载后可在本机离线估算食物营养，数据不出设备'
+	String get desc => '下载后可在本机离线估算食物营养，数据不出设备';
+
+	/// zh-CN: '模型大小约 2.41GB'
+	String get size => '模型大小约 2.41GB';
+
+	/// zh-CN: '文件较大，建议在 Wi-Fi 环境下下载'
+	String get wifiHint => '文件较大，建议在 Wi-Fi 环境下下载';
+
+	/// zh-CN: '下载模型'
+	String get download => '下载模型';
+
+	/// zh-CN: '下载中 ${percent}%'
+	String downloading({required Object percent}) => '下载中 ${percent}%';
+
+	/// zh-CN: '取消'
+	String get cancel => '取消';
+
+	/// zh-CN: '已暂停（已下载 ${percent}%）'
+	String paused({required Object percent}) => '已暂停（已下载 ${percent}%）';
+
+	/// zh-CN: '继续下载'
+	String get resume => '继续下载';
+
+	/// zh-CN: '删除模型'
+	String get delete => '删除模型';
+
+	/// zh-CN: '删除端侧模型？'
+	String get deleteConfirmTitle => '删除端侧模型？';
+
+	/// zh-CN: '删除后如需端侧估算，需重新下载约 2.41GB 模型文件。'
+	String get deleteConfirmBody => '删除后如需端侧估算，需重新下载约 2.41GB 模型文件。';
+
+	/// zh-CN: '确认删除'
+	String get deleteConfirmAction => '确认删除';
+
+	/// zh-CN: '端侧模型已删除'
+	String get deleted => '端侧模型已删除';
+
+	/// zh-CN: '模型已就绪'
+	String get ready => '模型已就绪';
+
+	/// zh-CN: '首次估算需加载模型，可能等待数秒'
+	String get coldLoadHint => '首次估算需加载模型，可能等待数秒';
+
+	/// zh-CN: '优先使用端侧估算'
+	String get enabled => '优先使用端侧估算';
+
+	/// zh-CN: '下载失败，请检查网络后重试'
+	String get errorDownload => '下载失败，请检查网络后重试';
+
+	/// zh-CN: '可用存储不足（约需 6GB），请清理后重试'
+	String get errorStorage => '可用存储不足（约需 6GB），请清理后重试';
+
+	/// zh-CN: '设备内存不足，无法使用端侧模型'
+	String get errorMemory => '设备内存不足，无法使用端侧模型';
+
+	/// zh-CN: '重试'
+	String get retry => '重试';
+
+	/// zh-CN: '设备内存不足，端侧估算已停用'
+	String get oomDisabled => '设备内存不足，端侧估算已停用';
+
+	/// zh-CN: '模型状态读取失败'
+	String get statusFailed => '模型状态读取失败';
 }
 
 // Path: legal.consent
@@ -2878,6 +2963,8 @@ extension on Translations {
 			'record.customFood.estimateLow' => '置信度较低，请仔细核对数值',
 			'record.customFood.estimateUnavailable' => '估算暂不可用，请手动填写',
 			'record.customFood.estimateFallbackNotice' => '你的模型连接失败，已改用云端估算',
+			'record.customFood.estimateBadgeOnDevice' => '端侧估算，请确认',
+			'record.customFood.estimateDubious' => '估算存疑，请核对数值',
 			'record.customFood.kcalLabel' => '热量（千卡 / 100 克）',
 			'record.customFood.proteinLabel' => '蛋白质（克 / 100 克）',
 			'record.customFood.carbLabel' => '碳水（克 / 100 克）',
@@ -3168,6 +3255,29 @@ extension on Translations {
 			'settings.aiModel.clearConfirmBody' => '清除后，自定义食物估算将回退为服务端模型。',
 			'settings.aiModel.clearConfirmAction' => '确认清除',
 			'settings.aiModel.cleared' => 'AI 模型配置已清除',
+			'settings.onDevice.title' => '端侧小模型',
+			'settings.onDevice.desc' => '下载后可在本机离线估算食物营养，数据不出设备',
+			'settings.onDevice.size' => '模型大小约 2.41GB',
+			'settings.onDevice.wifiHint' => '文件较大，建议在 Wi-Fi 环境下下载',
+			'settings.onDevice.download' => '下载模型',
+			'settings.onDevice.downloading' => ({required Object percent}) => '下载中 ${percent}%',
+			'settings.onDevice.cancel' => '取消',
+			'settings.onDevice.paused' => ({required Object percent}) => '已暂停（已下载 ${percent}%）',
+			'settings.onDevice.resume' => '继续下载',
+			'settings.onDevice.delete' => '删除模型',
+			'settings.onDevice.deleteConfirmTitle' => '删除端侧模型？',
+			'settings.onDevice.deleteConfirmBody' => '删除后如需端侧估算，需重新下载约 2.41GB 模型文件。',
+			'settings.onDevice.deleteConfirmAction' => '确认删除',
+			'settings.onDevice.deleted' => '端侧模型已删除',
+			'settings.onDevice.ready' => '模型已就绪',
+			'settings.onDevice.coldLoadHint' => '首次估算需加载模型，可能等待数秒',
+			'settings.onDevice.enabled' => '优先使用端侧估算',
+			'settings.onDevice.errorDownload' => '下载失败，请检查网络后重试',
+			'settings.onDevice.errorStorage' => '可用存储不足（约需 6GB），请清理后重试',
+			'settings.onDevice.errorMemory' => '设备内存不足，无法使用端侧模型',
+			'settings.onDevice.retry' => '重试',
+			'settings.onDevice.oomDisabled' => '设备内存不足，端侧估算已停用',
+			'settings.onDevice.statusFailed' => '模型状态读取失败',
 			'legal.draftNote' => '〔待外部确认：法务终稿〕',
 			'legal.consent.title' => '欢迎使用 EatWise',
 			'legal.consent.summary' => '我们会按照《隐私政策》收集和使用你的信息，用于提供断食计时、饮食记录与营养反馈等核心功能；数据存储于中国境内并加密保护。请阅读并确认以下授权：',
@@ -3237,6 +3347,8 @@ extension on Translations {
 			'auth.login.codeSent' => '验证码已发送，请查收',
 			'auth.login.invalidPhone' => '请输入正确的手机号',
 			'auth.login.invalidCode' => '请输入 6 位数字验证码',
+			_ => null,
+		} ?? switch (path) {
 			'auth.login.mockHint' => '本地联调环境验证码固定为 123456',
 			'auth.login.usernameLabel' => '用户名',
 			'auth.login.usernameHint' => '3-20 位字母、数字或下划线',
@@ -3262,8 +3374,6 @@ extension on Translations {
 			'auth.register.registering' => '注册中…',
 			'auth.register.passwordMismatch' => '两次输入的密码不一致',
 			'auth.register.agreePrefix' => '我已阅读并同意',
-			_ => null,
-		} ?? switch (path) {
 			'auth.register.agreeAnd' => '和',
 			'auth.register.agreeRequired' => '请先阅读并同意隐私政策与用户协议',
 			'auth.register.strengthWeak' => '密码强度：弱',

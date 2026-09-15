@@ -91,6 +91,28 @@ void restoreLocalePreference(SharedPreferences prefs) {
   if (mode != null) LanguageModeController.applyLocaleMode(mode);
 }
 
+/// 端侧小模型估算开关（默认关；开启后自定义食物 AI 估算优先走端侧，
+/// 模型未就绪/端侧失败时静默降级 用户 API → 服务端链路）。
+final onDeviceAiEnabledProvider =
+    StateNotifierProvider<OnDeviceAiEnabledController, bool>(
+      (ref) => OnDeviceAiEnabledController(_tryPrefs(ref)),
+    );
+
+final class OnDeviceAiEnabledController extends StateNotifier<bool> {
+  OnDeviceAiEnabledController(this._prefs)
+    : super(_prefs?.getBool(_key) ?? false);
+
+  static const String _key = 'settings.onDeviceAiEnabled';
+
+  final SharedPreferences? _prefs;
+
+  /// 切换即时生效，异步落盘（未注入 prefs 场景仅内存生效）。
+  void setEnabled(bool enabled) {
+    state = enabled;
+    _prefs?.setBool(_key, enabled);
+  }
+}
+
 /// 数据导出服务（合规 §4.2：查阅复制权，U3 服务端聚合 JSON 直返）。
 abstract interface class DataExportService {
   /// 申请导出全量个人数据；返回保存到设备文档目录的文件路径。
