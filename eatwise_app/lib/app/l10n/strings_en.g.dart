@@ -209,6 +209,7 @@ class _Translations$settings$en extends Translations$settings$zh_CN {
 	@override late final _Translations$settings$about$en about = _Translations$settings$about$en._(_root);
 	@override late final _Translations$settings$aiModel$en aiModel = _Translations$settings$aiModel$en._(_root);
 	@override late final _Translations$settings$onDevice$en onDevice = _Translations$settings$onDevice$en._(_root);
+	@override late final _Translations$settings$chain$en chain = _Translations$settings$chain$en._(_root);
 }
 
 // Path: legal
@@ -531,11 +532,12 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get aliasLabel => 'Aliases (optional, comma-separated)';
 	@override String get estimate => 'AI estimate';
 	@override String get estimating => 'Estimating…';
-	@override String get estimateBadge => 'AI estimate — please confirm';
 	@override String get estimateLow => 'Low confidence — please double-check the values';
 	@override String get estimateUnavailable => 'Estimate unavailable — please enter values manually';
 	@override String get estimateFallbackNotice => 'Your model couldn\'t be reached — used the cloud estimate instead';
 	@override String get estimateBadgeOnDevice => 'On-device estimate — please confirm';
+	@override String get estimateBadgeUserApi => 'Custom API estimate — please confirm';
+	@override String get estimateBadgeServer => 'Cloud estimate — please confirm';
 	@override String get estimateDubious => 'Estimate looks off — please double-check the values';
 	@override String get kcalLabel => 'Calories (kcal / 100 g)';
 	@override String get proteinLabel => 'Protein (g / 100 g)';
@@ -1052,6 +1054,30 @@ class _Translations$settings$onDevice$en extends Translations$settings$onDevice$
 	@override String get retry => 'Retry';
 	@override String get oomDisabled => 'On-device estimates disabled — not enough device memory';
 	@override String get statusFailed => 'Failed to read model status';
+}
+
+// Path: settings.chain
+class _Translations$settings$chain$en extends Translations$settings$chain$zh_CN {
+	_Translations$settings$chain$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Estimate routing';
+	@override String get onDevice => 'On-device model';
+	@override String get userApi => 'Custom API';
+	@override String get server => 'Cloud fallback';
+	@override String get statusEnabled => 'Enabled';
+	@override String get statusDisabled => 'Disabled';
+	@override String get statusNotDownloaded => 'Not downloaded';
+	@override String get statusDownloading => 'Downloading';
+	@override String get statusPaused => 'Paused';
+	@override String get statusError => 'Download failed';
+	@override String get statusUnknown => 'Not ready';
+	@override String get statusConfigured => 'Configured';
+	@override String get statusNotConfigured => 'Not configured';
+	@override String get statusAlways => 'Always available';
+	@override String get current => 'Active';
 }
 
 // Path: legal.consent
@@ -1809,11 +1835,12 @@ extension on TranslationsEn {
 			'record.customFood.aliasLabel' => 'Aliases (optional, comma-separated)',
 			'record.customFood.estimate' => 'AI estimate',
 			'record.customFood.estimating' => 'Estimating…',
-			'record.customFood.estimateBadge' => 'AI estimate — please confirm',
 			'record.customFood.estimateLow' => 'Low confidence — please double-check the values',
 			'record.customFood.estimateUnavailable' => 'Estimate unavailable — please enter values manually',
 			'record.customFood.estimateFallbackNotice' => 'Your model couldn\'t be reached — used the cloud estimate instead',
 			'record.customFood.estimateBadgeOnDevice' => 'On-device estimate — please confirm',
+			'record.customFood.estimateBadgeUserApi' => 'Custom API estimate — please confirm',
+			'record.customFood.estimateBadgeServer' => 'Cloud estimate — please confirm',
 			'record.customFood.estimateDubious' => 'Estimate looks off — please double-check the values',
 			'record.customFood.kcalLabel' => 'Calories (kcal / 100 g)',
 			'record.customFood.proteinLabel' => 'Protein (g / 100 g)',
@@ -2128,6 +2155,21 @@ extension on TranslationsEn {
 			'settings.onDevice.retry' => 'Retry',
 			'settings.onDevice.oomDisabled' => 'On-device estimates disabled — not enough device memory',
 			'settings.onDevice.statusFailed' => 'Failed to read model status',
+			'settings.chain.title' => 'Estimate routing',
+			'settings.chain.onDevice' => 'On-device model',
+			'settings.chain.userApi' => 'Custom API',
+			'settings.chain.server' => 'Cloud fallback',
+			'settings.chain.statusEnabled' => 'Enabled',
+			'settings.chain.statusDisabled' => 'Disabled',
+			'settings.chain.statusNotDownloaded' => 'Not downloaded',
+			'settings.chain.statusDownloading' => 'Downloading',
+			'settings.chain.statusPaused' => 'Paused',
+			'settings.chain.statusError' => 'Download failed',
+			'settings.chain.statusUnknown' => 'Not ready',
+			'settings.chain.statusConfigured' => 'Configured',
+			'settings.chain.statusNotConfigured' => 'Not configured',
+			'settings.chain.statusAlways' => 'Always available',
+			'settings.chain.current' => 'Active',
 			'legal.draftNote' => '[Pending external confirmation: final legal copy]',
 			'legal.consent.title' => 'Welcome to EatWise',
 			'legal.consent.summary' => 'We collect and use your information as described in the Privacy Policy to provide core features like fasting timers, meal logging, and nutrition feedback. Your data is stored securely in mainland China. Please review and confirm:',
@@ -2181,6 +2223,8 @@ extension on TranslationsEn {
 			'social.compose.retryUpload' => 'Try uploading again',
 			'social.compose.streakBadge' => ({required Object days}) => 'Current streak: ${days} days 🔥',
 			'social.compose.noStreak' => 'Finish today\'s fast and your check-in will carry the streak badge',
+			_ => null,
+		} ?? switch (path) {
 			'social.compose.publish' => 'Post',
 			'social.compose.publishFailed' => 'Couldn\'t post. Please try again.',
 			'social.compose.emptyText' => 'Write something first',
@@ -2197,8 +2241,6 @@ extension on TranslationsEn {
 			'auth.login.codeSent' => 'Verification code sent',
 			'auth.login.invalidPhone' => 'Please enter a valid phone number',
 			'auth.login.invalidCode' => 'Please enter the 6-digit code',
-			_ => null,
-		} ?? switch (path) {
 			'auth.login.mockHint' => 'In local dev the code is always 123456',
 			'auth.login.usernameLabel' => 'Username',
 			'auth.login.usernameHint' => '3-20 letters, digits or underscores',

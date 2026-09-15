@@ -225,6 +225,7 @@ class Translations$settings$zh_CN {
 	late final Translations$settings$about$zh_CN about = Translations$settings$about$zh_CN.internal(_root);
 	late final Translations$settings$aiModel$zh_CN aiModel = Translations$settings$aiModel$zh_CN.internal(_root);
 	late final Translations$settings$onDevice$zh_CN onDevice = Translations$settings$onDevice$zh_CN.internal(_root);
+	late final Translations$settings$chain$zh_CN chain = Translations$settings$chain$zh_CN.internal(_root);
 }
 
 // Path: legal
@@ -762,9 +763,6 @@ class Translations$record$customFood$zh_CN {
 	/// zh-CN: '估算中…'
 	String get estimating => '估算中…';
 
-	/// zh-CN: 'AI 估算，请确认'
-	String get estimateBadge => 'AI 估算，请确认';
-
 	/// zh-CN: '置信度较低，请仔细核对数值'
 	String get estimateLow => '置信度较低，请仔细核对数值';
 
@@ -776,6 +774,12 @@ class Translations$record$customFood$zh_CN {
 
 	/// zh-CN: '端侧估算，请确认'
 	String get estimateBadgeOnDevice => '端侧估算，请确认';
+
+	/// zh-CN: '自定义 API 估算，请确认'
+	String get estimateBadgeUserApi => '自定义 API 估算，请确认';
+
+	/// zh-CN: '云端估算，请确认'
+	String get estimateBadgeServer => '云端估算，请确认';
 
 	/// zh-CN: '估算存疑，请核对数值'
 	String get estimateDubious => '估算存疑，请核对数值';
@@ -1725,6 +1729,60 @@ class Translations$settings$onDevice$zh_CN {
 
 	/// zh-CN: '模型状态读取失败'
 	String get statusFailed => '模型状态读取失败';
+}
+
+// Path: settings.chain
+class Translations$settings$chain$zh_CN {
+	Translations$settings$chain$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '估算生效链路'
+	String get title => '估算生效链路';
+
+	/// zh-CN: '端侧小模型'
+	String get onDevice => '端侧小模型';
+
+	/// zh-CN: '自定义 API'
+	String get userApi => '自定义 API';
+
+	/// zh-CN: '云端兜底'
+	String get server => '云端兜底';
+
+	/// zh-CN: '已启用'
+	String get statusEnabled => '已启用';
+
+	/// zh-CN: '未启用'
+	String get statusDisabled => '未启用';
+
+	/// zh-CN: '未下载'
+	String get statusNotDownloaded => '未下载';
+
+	/// zh-CN: '下载中'
+	String get statusDownloading => '下载中';
+
+	/// zh-CN: '已暂停'
+	String get statusPaused => '已暂停';
+
+	/// zh-CN: '下载失败'
+	String get statusError => '下载失败';
+
+	/// zh-CN: '未就绪'
+	String get statusUnknown => '未就绪';
+
+	/// zh-CN: '已配置'
+	String get statusConfigured => '已配置';
+
+	/// zh-CN: '未配置'
+	String get statusNotConfigured => '未配置';
+
+	/// zh-CN: '始终可用'
+	String get statusAlways => '始终可用';
+
+	/// zh-CN: '当前生效'
+	String get current => '当前生效';
 }
 
 // Path: legal.consent
@@ -2959,11 +3017,12 @@ extension on Translations {
 			'record.customFood.aliasLabel' => '别名（可选，逗号分隔）',
 			'record.customFood.estimate' => 'AI 估算',
 			'record.customFood.estimating' => '估算中…',
-			'record.customFood.estimateBadge' => 'AI 估算，请确认',
 			'record.customFood.estimateLow' => '置信度较低，请仔细核对数值',
 			'record.customFood.estimateUnavailable' => '估算暂不可用，请手动填写',
 			'record.customFood.estimateFallbackNotice' => '你的模型连接失败，已改用云端估算',
 			'record.customFood.estimateBadgeOnDevice' => '端侧估算，请确认',
+			'record.customFood.estimateBadgeUserApi' => '自定义 API 估算，请确认',
+			'record.customFood.estimateBadgeServer' => '云端估算，请确认',
 			'record.customFood.estimateDubious' => '估算存疑，请核对数值',
 			'record.customFood.kcalLabel' => '热量（千卡 / 100 克）',
 			'record.customFood.proteinLabel' => '蛋白质（克 / 100 克）',
@@ -3278,6 +3337,21 @@ extension on Translations {
 			'settings.onDevice.retry' => '重试',
 			'settings.onDevice.oomDisabled' => '设备内存不足，端侧估算已停用',
 			'settings.onDevice.statusFailed' => '模型状态读取失败',
+			'settings.chain.title' => '估算生效链路',
+			'settings.chain.onDevice' => '端侧小模型',
+			'settings.chain.userApi' => '自定义 API',
+			'settings.chain.server' => '云端兜底',
+			'settings.chain.statusEnabled' => '已启用',
+			'settings.chain.statusDisabled' => '未启用',
+			'settings.chain.statusNotDownloaded' => '未下载',
+			'settings.chain.statusDownloading' => '下载中',
+			'settings.chain.statusPaused' => '已暂停',
+			'settings.chain.statusError' => '下载失败',
+			'settings.chain.statusUnknown' => '未就绪',
+			'settings.chain.statusConfigured' => '已配置',
+			'settings.chain.statusNotConfigured' => '未配置',
+			'settings.chain.statusAlways' => '始终可用',
+			'settings.chain.current' => '当前生效',
 			'legal.draftNote' => '〔待外部确认：法务终稿〕',
 			'legal.consent.title' => '欢迎使用 EatWise',
 			'legal.consent.summary' => '我们会按照《隐私政策》收集和使用你的信息，用于提供断食计时、饮食记录与营养反馈等核心功能；数据存储于中国境内并加密保护。请阅读并确认以下授权：',
@@ -3331,6 +3405,8 @@ extension on Translations {
 			'social.compose.retryUpload' => '重新上传',
 			'social.compose.streakBadge' => ({required Object days}) => '当前连续 ${days} 天 🔥',
 			'social.compose.noStreak' => '完成今天的断食，打卡就会带上连胜徽章哦',
+			_ => null,
+		} ?? switch (path) {
 			'social.compose.publish' => '发布',
 			'social.compose.publishFailed' => '发布失败，请稍后重试',
 			'social.compose.emptyText' => '先写点什么吧',
@@ -3347,8 +3423,6 @@ extension on Translations {
 			'auth.login.codeSent' => '验证码已发送，请查收',
 			'auth.login.invalidPhone' => '请输入正确的手机号',
 			'auth.login.invalidCode' => '请输入 6 位数字验证码',
-			_ => null,
-		} ?? switch (path) {
 			'auth.login.mockHint' => '本地联调环境验证码固定为 123456',
 			'auth.login.usernameLabel' => '用户名',
 			'auth.login.usernameHint' => '3-20 位字母、数字或下划线',

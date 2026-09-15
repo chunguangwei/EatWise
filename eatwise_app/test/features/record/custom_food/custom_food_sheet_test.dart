@@ -21,7 +21,7 @@ import '../record_test_helper.dart';
 /// K2 自定义食物弹层 + 记录页集成 widget 测试。
 ///
 /// 覆盖：无结果 CTA 入口、表单校验（空名/越界/非正数）、AI 估算成功预填
-/// +「AI 估算，请确认」徽标（low 置信度额外提示）、503 降级手动填写、
+/// +「云端估算，请确认」徽标（low 置信度额外提示）、503 降级手动填写、
 /// 保存后立刻可搜（自定义标签）+ 结果卡回填、份量必填联动、离线本地保存。
 void main() {
   late AppDatabase db;
@@ -175,7 +175,7 @@ void main() {
           .text,
       '5',
     );
-    expect(find.text('AI 估算，请确认'), findsOneWidget);
+    expect(find.text('云端估算，请确认'), findsOneWidget);
     expect(find.text('置信度较低，请仔细核对数值'), findsOneWidget);
     await settleUi(tester);
   });
@@ -191,7 +191,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('估算暂不可用，请手动填写'), findsOneWidget);
-    expect(find.text('AI 估算，请确认'), findsNothing);
+    expect(find.text('云端估算，请确认'), findsNothing);
 
     // 手动填写后可正常保存（降级不阻断）。
     await enterSheetField(tester, 2, '180');
@@ -218,7 +218,7 @@ void main() {
     await tester.tap(find.text('AI 估算'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('AI 估算，请确认'), findsOneWidget);
+    expect(find.text('云端估算，请确认'), findsOneWidget);
     await tapSave(tester);
 
     // 弹层关闭 → 自动填入记录结果卡（份量留空必填）。

@@ -437,8 +437,8 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                     ),
                   ),
                 ),
-              // 估算徽标：端侧显示「端侧估算，请确认」；low 置信度 /
-              // 端侧 dubious 额外提示核对（文案按来源区分）。
+              // 估算徽标按来源三态（端侧/自定义 API/云端一眼可辨）；
+              // low 置信度 / 端侧 dubious 额外提示核对（文案按来源区分）。
               if (_estimateApplied)
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.s3),
@@ -455,9 +455,13 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          _estimateSource == FoodEstimateSource.ondevice
-                              ? cs.estimateBadgeOnDevice
-                              : cs.estimateBadge,
+                          switch (_estimateSource) {
+                            FoodEstimateSource.ondevice =>
+                              cs.estimateBadgeOnDevice,
+                            FoodEstimateSource.userApi =>
+                              cs.estimateBadgeUserApi,
+                            FoodEstimateSource.server => cs.estimateBadgeServer,
+                          },
                           style: textStyles.textSm.copyWith(
                             color: colors.bgSecondary,
                           ),

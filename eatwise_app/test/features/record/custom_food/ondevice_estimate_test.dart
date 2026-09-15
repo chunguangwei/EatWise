@@ -277,8 +277,9 @@ void main() {
     await openSheetAndEstimate(tester);
 
     expect(fieldText(tester, 2), '111');
-    expect(find.text('AI 估算，请确认'), findsOneWidget);
+    expect(find.text('自定义 API 估算，请确认'), findsOneWidget);
     expect(find.text('端侧估算，请确认'), findsNothing);
+    expect(find.text('云端估算，请确认'), findsNothing);
     expect(onDevice.calls, 1);
     expect(userClient.calls, 1);
     expect(customRemote.estimateCount, 0);
@@ -303,7 +304,8 @@ void main() {
 
     // FakeCustomFoodRemote 默认 high 样例 200/10/20/5。
     expect(fieldText(tester, 2), '200');
-    expect(find.text('AI 估算，请确认'), findsOneWidget);
+    expect(find.text('云端估算，请确认'), findsOneWidget);
+    expect(find.text('自定义 API 估算，请确认'), findsNothing);
     expect(find.text('你的模型连接失败，已改用云端估算'), findsOneWidget);
     expect(userClient.calls, 1);
     expect(customRemote.estimateCount, 1);
@@ -316,7 +318,7 @@ void main() {
     await openSheetAndEstimate(tester);
 
     expect(fieldText(tester, 2), '200');
-    expect(find.text('AI 估算，请确认'), findsOneWidget);
+    expect(find.text('云端估算，请确认'), findsOneWidget);
     expect(onDevice.calls, 0);
     expect(customRemote.estimateCount, 1);
     await settleUi(tester);
@@ -329,7 +331,7 @@ void main() {
     await openSheetAndEstimate(tester);
 
     expect(fieldText(tester, 2), '200');
-    expect(find.text('AI 估算，请确认'), findsOneWidget);
+    expect(find.text('云端估算，请确认'), findsOneWidget);
     expect(onDevice.calls, 0);
     expect(customRemote.estimateCount, 1);
     await settleUi(tester);

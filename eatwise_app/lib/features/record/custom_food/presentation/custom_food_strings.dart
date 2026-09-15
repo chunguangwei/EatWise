@@ -38,9 +38,6 @@ final class CustomFoodStrings {
   /// record.customFood.estimating
   String get estimating => _t.record.customFood.estimating;
 
-  /// record.customFood.estimateBadge
-  String get estimateBadge => _t.record.customFood.estimateBadge;
-
   /// record.customFood.estimateLow
   String get estimateLow => _t.record.customFood.estimateLow;
 
@@ -54,6 +51,12 @@ final class CustomFoodStrings {
   /// record.customFood.estimateBadgeOnDevice
   String get estimateBadgeOnDevice =>
       _t.record.customFood.estimateBadgeOnDevice;
+
+  /// record.customFood.estimateBadgeUserApi
+  String get estimateBadgeUserApi => _t.record.customFood.estimateBadgeUserApi;
+
+  /// record.customFood.estimateBadgeServer
+  String get estimateBadgeServer => _t.record.customFood.estimateBadgeServer;
 
   /// record.customFood.estimateDubious
   String get estimateDubious => _t.record.customFood.estimateDubious;

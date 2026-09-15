@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/llm/llm_config.dart';
+import 'package:eatwise/core/llm/ondevice/ondevice.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
+import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:eatwise/features/settings/presentation/ondevice_model_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -264,7 +266,12 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.s4),
           children: <Widget>[
-            // 端侧小模型（下载/开关）；下方为用户自定义 API 配置。
+            // 估算生效链路（三级优先级 + 当前生效高亮）；下方依次为
+            // 端侧小模型（下载/开关）与用户自定义 API 配置。
+            _EstimateChainCard(
+              userApiConfigured: _stored?.effective().isComplete ?? false,
+            ),
+            const SizedBox(height: AppSpacing.s4),
             const OnDeviceModelCard(),
             const SizedBox(height: AppSpacing.s4),
             Container(
@@ -373,6 +380,136 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 估算生效链路卡（AI 模型配置页顶部）：三级优先级「端侧小模型 →
+/// 自定义 API → 云端兜底」+ 各级状态，当前会生效的一级高亮并标
+/// 「当前生效」（与 FoodEstimateOrchestrator 的三级回落口径一致）。
+class _EstimateChainCard extends ConsumerWidget {
+  const _EstimateChainCard({required this.userApiConfigured});
+
+  /// 自定义 API 是否已配置完整（页面已存的 LlmConfig.effective()）。
+  final bool userApiConfigured;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = Translations.of(context);
+    final c = t.settings.chain;
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
+    final enabled = ref.watch(onDeviceAiEnabledProvider);
+    final snapshot = ref.watch(onDeviceModelSnapshotProvider).valueOrNull;
+    final ready = snapshot?.status == OnDeviceModelStatus.ready;
+
+    // 端侧状态文案：未就绪按模型状态细分；就绪按开关分 已启用/未启用。
+    final onDeviceStatus = !ready
+        ? switch (snapshot?.status) {
+            OnDeviceModelStatus.notDownloaded => c.statusNotDownloaded,
+            OnDeviceModelStatus.downloading => c.statusDownloading,
+            OnDeviceModelStatus.paused => c.statusPaused,
+            OnDeviceModelStatus.error => c.statusError,
+            _ => c.statusUnknown,
+          }
+        : (enabled ? c.statusEnabled : c.statusDisabled);
+    final userApiStatus = userApiConfigured
+        ? c.statusConfigured
+        : c.statusNotConfigured;
+
+    // 生效级 = 第一级可用者（端侧需开关开且模型就绪；云端始终兜底）。
+    final activeIndex = enabled && ready
+        ? 0
+        : userApiConfigured
+        ? 1
+        : 2;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.bgSecondary,
+        borderRadius: radii.rLg,
+      ),
+      padding: const EdgeInsets.all(AppSpacing.s4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(c.title, style: textStyles.textLg),
+          const SizedBox(height: AppSpacing.s3),
+          _chainRow(
+            colors,
+            textStyles,
+            radii,
+            t,
+            index: 1,
+            name: c.onDevice,
+            status: onDeviceStatus,
+            active: activeIndex == 0,
+          ),
+          const SizedBox(height: AppSpacing.s2),
+          _chainRow(
+            colors,
+            textStyles,
+            radii,
+            t,
+            index: 2,
+            name: c.userApi,
+            status: userApiStatus,
+            active: activeIndex == 1,
+          ),
+          const SizedBox(height: AppSpacing.s2),
+          _chainRow(
+            colors,
+            textStyles,
+            radii,
+            t,
+            index: 3,
+            name: c.server,
+            status: c.statusAlways,
+            active: activeIndex == 2,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 单行「序号 名称 —— 状态」；生效行品牌色浅底 + 「当前生效」标记。
+  Widget _chainRow(
+    AppColors colors,
+    AppTextStyles textStyles,
+    AppRadii radii,
+    Translations t, {
+    required int index,
+    required String name,
+    required String status,
+    required bool active,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s3,
+        vertical: AppSpacing.s2,
+      ),
+      decoration: BoxDecoration(
+        color: active ? colors.brandAccent : null,
+        borderRadius: radii.rSm,
+      ),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Text(
+              '$index. $name —— $status',
+              style: textStyles.textSm.copyWith(
+                color: active ? colors.brandPrimary : colors.textSecondary,
+              ),
+            ),
+          ),
+          if (active)
+            Text(
+              t.settings.chain.current,
+              style: textStyles.textXs.copyWith(color: colors.brandPrimary),
+            ),
+        ],
       ),
     );
   }

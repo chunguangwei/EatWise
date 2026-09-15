@@ -187,11 +187,12 @@
       "aliasLabel": "别名（可选，逗号分隔）",
       "estimate": "AI 估算",
       "estimating": "估算中…",
-      "estimateBadge": "AI 估算，请确认",
       "estimateLow": "置信度较低，请仔细核对数值",
       "estimateUnavailable": "估算暂不可用，请手动填写",
       "estimateFallbackNotice": "你的模型连接失败，已改用云端估算",
       "estimateBadgeOnDevice": "端侧估算，请确认",
+      "estimateBadgeUserApi": "自定义 API 估算，请确认",
+      "estimateBadgeServer": "云端估算，请确认",
       "estimateDubious": "估算存疑，请核对数值",
       "kcalLabel": "热量（千卡 / 100 克）",
       "proteinLabel": "蛋白质（克 / 100 克）",
@@ -626,6 +627,23 @@
       "retry": "重试",
       "oomDisabled": "设备内存不足，端侧估算已停用",
       "statusFailed": "模型状态读取失败"
+    },
+    "chain": {
+      "title": "估算生效链路",
+      "onDevice": "端侧小模型",
+      "userApi": "自定义 API",
+      "server": "云端兜底",
+      "statusEnabled": "已启用",
+      "statusDisabled": "未启用",
+      "statusNotDownloaded": "未下载",
+      "statusDownloading": "下载中",
+      "statusPaused": "已暂停",
+      "statusError": "下载失败",
+      "statusUnknown": "未就绪",
+      "statusConfigured": "已配置",
+      "statusNotConfigured": "未配置",
+      "statusAlways": "始终可用",
+      "current": "当前生效"
     }
   },
   "legal": {

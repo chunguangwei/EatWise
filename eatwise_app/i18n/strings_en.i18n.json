@@ -187,11 +187,12 @@
       "aliasLabel": "Aliases (optional, comma-separated)",
       "estimate": "AI estimate",
       "estimating": "Estimating…",
-      "estimateBadge": "AI estimate — please confirm",
       "estimateLow": "Low confidence — please double-check the values",
       "estimateUnavailable": "Estimate unavailable — please enter values manually",
       "estimateFallbackNotice": "Your model couldn't be reached — used the cloud estimate instead",
       "estimateBadgeOnDevice": "On-device estimate — please confirm",
+      "estimateBadgeUserApi": "Custom API estimate — please confirm",
+      "estimateBadgeServer": "Cloud estimate — please confirm",
       "estimateDubious": "Estimate looks off — please double-check the values",
       "kcalLabel": "Calories (kcal / 100 g)",
       "proteinLabel": "Protein (g / 100 g)",
@@ -626,6 +627,23 @@
       "retry": "Retry",
       "oomDisabled": "On-device estimates disabled — not enough device memory",
       "statusFailed": "Failed to read model status"
+    },
+    "chain": {
+      "title": "Estimate routing",
+      "onDevice": "On-device model",
+      "userApi": "Custom API",
+      "server": "Cloud fallback",
+      "statusEnabled": "Enabled",
+      "statusDisabled": "Disabled",
+      "statusNotDownloaded": "Not downloaded",
+      "statusDownloading": "Downloading",
+      "statusPaused": "Paused",
+      "statusError": "Download failed",
+      "statusUnknown": "Not ready",
+      "statusConfigured": "Configured",
+      "statusNotConfigured": "Not configured",
+      "statusAlways": "Always available",
+      "current": "Active"
     }
   },
   "legal": {
