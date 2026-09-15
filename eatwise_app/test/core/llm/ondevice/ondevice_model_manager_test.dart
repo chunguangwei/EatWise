@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:eatwise/core/llm/ondevice/ondevice_model_manager.dart';
 import 'package:eatwise/core/llm/ondevice/ondevice_model_spec.dart';
@@ -281,9 +282,17 @@ void main() {
       await _writeModelBytes(save, _expected - 600, magic: false);
       return 206;
     });
+    final states = <OnDeviceModelSnapshot>[];
+    final sub = manager.snapshots.listen(states.add);
     final path = await manager.ensureModel();
+    await Future<void>.delayed(Duration.zero); // 等 broadcast 事件投递
+    await sub.cancel();
 
     expect(http.calls[1].rangeHeader, 'bytes=600-');
+    final resumed = states.where(
+      (s) => s.status == OnDeviceModelStatus.downloading,
+    );
+    expect(resumed.first.downloadedBytes, 600, reason: '续传进度从断点 N 起算，不得从 0 重爬');
     expect(await File(path).length(), _expected);
     expect(manager.snapshot.status, OnDeviceModelStatus.ready);
   });
@@ -390,5 +399,96 @@ void main() {
     expect(downloading, isNotEmpty);
     expect(downloading.last.progress, 1.0);
     expect(states.last.status, OnDeviceModelStatus.ready);
+  });
+
+  test('Dio 取消下载保留半成品，续传带 Range: bytes=N-（deleteOnError 回归）', () async {
+    // 真实 Dio + 本地 HTTP 服务，钉住「取消时 dio 不得删 .part」这条契约：
+    // dio 默认 deleteOnError:true 会在取消时物理删除半成品，导致 Resume 从 0% 重下。
+    const total = 4096;
+    const chunk = 512;
+    final body = Uint8List(total)
+      ..setRange(
+        0,
+        OnDeviceModelSpec.magicBytes.length,
+        OnDeviceModelSpec.magicBytes,
+      );
+    final seenRanges = <String?>[];
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() => server.close(force: true));
+    server.listen((request) async {
+      try {
+        final range = request.headers.value('range');
+        seenRanges.add(range);
+        final match = range == null
+            ? null
+            : RegExp(r'bytes=(\d+)-').firstMatch(range);
+        final start = match == null ? 0 : int.parse(match.group(1)!);
+        request.response.statusCode = start > 0 ? 206 : 200;
+        if (start > 0) {
+          request.response.headers.set(
+            'content-range',
+            'bytes $start-${total - 1}/$total',
+          );
+        }
+        // 分块慢发给取消留出窗口；bufferOutput=false 才会真正逐块下发
+        //（默认缓冲会把 4KB 整包一次性塞给客户端，取消永远落在下完之后）
+        request.response.bufferOutput = false;
+        request.response.contentLength = total - start;
+        for (var i = start; i < total; i += chunk) {
+          final end = i + chunk > total ? total : i + chunk;
+          request.response.add(body.sublist(i, end));
+          await request.response.flush();
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+        }
+        await request.response.close();
+      } on Object {
+        // 客户端取消后写半关断的连接会抛 broken pipe，忽略
+      }
+    });
+    final url = 'http://127.0.0.1:${server.port}/model.litertlm';
+    final client = DioModelHttpClient();
+
+    // 首下：收到首批字节即取消（模拟设置页 Cancel）
+    final token = ModelDownloadCancelToken();
+    final partPath = '${tmp.path}/dio_cancel.part';
+    await expectLater(
+      client.downloadToFile(
+        url,
+        partPath,
+        cancelToken: token,
+        onProgress: (received, totalBytes) {
+          if (received > 0 && !token.isCancelled) token.cancel();
+        },
+      ),
+      throwsA(isA<OnDeviceDownloadCancelledException>()),
+    );
+
+    // dio 的 deleteOnError 删除是异步的（取消后 await 订阅取消 + 关文件
+    // 才删），立刻检查会漏抓回归——轮询一个删除窗口确认文件始终存活。
+    var kept = 0;
+    for (var i = 0; i < 10; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      if (!await File(partPath).exists()) break;
+      kept = await File(partPath).length();
+    }
+    expect(
+      await File(partPath).exists(),
+      isTrue,
+      reason: '取消后 .part 不得被删除（deleteOnError 回归）',
+    );
+    expect(kept, greaterThan(0), reason: '取消后已下字节必须保留供续传');
+    expect(kept, lessThan(total), reason: '取消发生在下完之前');
+    expect(seenRanges.single, isNull, reason: '首下不带 Range 头');
+
+    // 续传：剩余段带 Range: bytes=N-，服务器回 206
+    final tailPath = '$partPath.tail';
+    final status = await client.downloadToFile(
+      url,
+      tailPath,
+      rangeHeader: 'bytes=$kept-',
+    );
+    expect(status, 206);
+    expect(seenRanges.last, 'bytes=$kept-');
+    expect(await File(tailPath).length(), total - kept);
   });
 }

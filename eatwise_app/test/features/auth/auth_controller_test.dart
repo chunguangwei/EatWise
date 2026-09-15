@@ -67,6 +67,24 @@ void main() {
       expect(controller.state.status, AuthStatus.loggedIn);
       expect(gate.loggedIn, isTrue);
     });
+
+    test('有 refreshToken + 持久化 userId → userId 一并恢复（B1 冷启动回归）', () async {
+      await tokenStore.saveTokens(
+        accessToken: 'a',
+        refreshToken: 'r',
+        userId: 'u-9',
+      );
+      await controller.restore();
+      expect(controller.state.status, AuthStatus.loggedIn);
+      expect(controller.state.userId, 'u-9');
+    });
+
+    test('旧版本会话（无持久化 userId）→ loggedIn 且 userId 保持 null', () async {
+      await tokenStore.saveTokens(accessToken: 'a', refreshToken: 'r');
+      await controller.restore();
+      expect(controller.state.status, AuthStatus.loggedIn);
+      expect(controller.state.userId, isNull);
+    });
   });
 
   group('sendCode', () {
@@ -118,6 +136,8 @@ void main() {
       expect(controller.state.userId, 'u-1');
       expect(controller.state.isNewUser, isTrue);
       expect(gate.loggedIn, isTrue);
+      // userId 随令牌持久化（冷启动 restore 恢复依赖，v1.2.1 走查 B1）。
+      expect(await tokenStore.userId, 'u-1');
       expect(await tokenStore.accessToken, 'at-1');
       expect(await tokenStore.refreshToken, 'rt-9');
     });

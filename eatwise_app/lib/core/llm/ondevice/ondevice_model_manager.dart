@@ -144,6 +144,10 @@ final class DioModelHttpClient implements ModelHttpClient {
       final response = await _dio.download(
         url,
         savePath,
+        // 取消/出错不得删半成品：.part 已下字节是断点续传的全部依据
+        //（dio 默认 deleteOnError:true，取消时会把 .part 物理删除，
+        // 导致 Resume 从 0% 重下）。
+        deleteOnError: false,
         options: Options(
           connectTimeout: _connectTimeout,
           receiveTimeout: _receiveTimeout,

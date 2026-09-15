@@ -102,11 +102,17 @@ final class AuthController extends StateNotifier<AuthState> {
 
   /// 启动时恢复会话：本地有 refreshToken 即视为登录
   /// （accessToken 过期由拦截器 401 refresh 无感续期）。
+  /// userId 随令牌持久化、此处一并恢复——否则重启后
+  /// currentUserIdProvider 恒 anonymous，历史数据按真实 userId
+  /// 查询落空（假空态，v1.2.1 走查 B1）。
   Future<void> restore() async {
     final refreshToken = await tokenStore.refreshToken;
     if (refreshToken != null && refreshToken.isNotEmpty) {
       gate.loggedIn = true;
-      state = state.copyWith(status: AuthStatus.loggedIn);
+      state = state.copyWith(
+        status: AuthStatus.loggedIn,
+        userId: await tokenStore.userId,
+      );
     } else {
       state = state.copyWith(status: AuthStatus.loggedOut);
     }
@@ -243,6 +249,7 @@ final class AuthController extends StateNotifier<AuthState> {
     await tokenStore.saveTokens(
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
+      userId: session.userId,
     );
     final onboardingGate = this.onboardingGate;
     if (onboardingGate != null &&
