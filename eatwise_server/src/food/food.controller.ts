@@ -1,12 +1,9 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Query, UseGuards } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { err } from '../common/errors/business.exception';
-import { EstimateService } from '../llm/estimate.service';
-import { UserThrottlerGuard } from '../llm/user-throttler.guard';
 import { BarcodeService } from './barcode/barcode.service';
 import { FoodCandidateStatus } from '../common/store/data-store';
-import { ContributeFoodDto, CreateCustomFoodDto, EstimateFoodDto } from './food.dto';
+import { ContributeFoodDto, CreateCustomFoodDto } from './food.dto';
 import { FoodService } from './food.service';
 
 const CONTRIBUTION_STATUSES: FoodCandidateStatus[] = ['pending', 'approved', 'rejected'];
@@ -15,7 +12,6 @@ const CONTRIBUTION_STATUSES: FoodCandidateStatus[] = ['pending', 'approved', 're
 export class FoodController {
   constructor(
     private readonly food: FoodService,
-    private readonly estimate: EstimateService,
     private readonly barcode: BarcodeService,
   ) {}
 
@@ -37,18 +33,6 @@ export class FoodController {
     if (ids.length > 200) throw err.validation({ ids: 'at most 200 ids' });
     const found = await Promise.all(ids.map((id) => this.food.getById(id, user.userId)));
     return { items: found.filter((f): f is NonNullable<typeof f> => Boolean(f)) };
-  }
-
-  /**
-   * LLM 营养估算（供应商可插拔，LLM_PROVIDER 配置）。估算值仅作「估算」标记使用。
-   * 限流〔假设〕每用户 10 次/分钟；未配置供应商时返回 ESTIMATE_UNAVAILABLE，客户端降级手动填写。
-   */
-  @Post('estimate')
-  @HttpCode(200)
-  @UseGuards(UserThrottlerGuard)
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  estimateFood(@Body() dto: EstimateFoodDto) {
-    return this.estimate.estimate(dto.name, dto.description);
   }
 
   /** 包装食品条码查询（OFF 代理；未命中 404 FOOD_BARCODE_NOT_FOUND，客户端降级） */

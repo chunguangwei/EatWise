@@ -95,8 +95,8 @@ Future<void> contributeCustomFood(
 /// 自定义食物弹层：菜名（必填）+ 别名（可选）+ AI 估算 + 四营养输入。
 ///
 /// AI 估算成功预填四营养并显示估算徽标（端侧来源标「端侧估算，请确认」；
-/// low 置信度/端侧 dubious 额外提示核对）；估算不可用（503/超时/网络）
-/// 降级手动填写，不阻断。
+/// low 置信度/端侧 dubious 额外提示核对）；估算不可用（端侧与用户自配
+/// API 均不可用，503）降级手动填写，不阻断。
 /// [initialAlias]：扫码未收录承接场景预填的别名（条码号〔假设〕）。
 class CustomFoodSheet extends ConsumerStatefulWidget {
   const CustomFoodSheet({super.key, this.initialAlias});
@@ -131,7 +131,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
   bool _estimateLow = false;
 
   /// 最近一次估算生效来源（端侧显示「端侧估算，请确认」徽标）。
-  FoodEstimateSource _estimateSource = FoodEstimateSource.server;
+  FoodEstimateSource _estimateSource = FoodEstimateSource.userApi;
 
   /// 估算不可用提示（503/超时/网络；降级手动填写，不阻断）。
   bool _estimateUnavailable = false;
@@ -156,8 +156,9 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
     super.dispose();
   }
 
-  /// 点「AI 估算」：经编排器三级回落（端侧 → 用户模型直连 → 服务端），
-  /// 成功预填四营养并按来源显示徽标（端侧 dubious 显示「估算存疑，请核对」）。
+  /// 点「AI 估算」：经编排器两级路由（端侧 → 用户模型直连），
+  /// 成功预填四营养并按来源显示徽标（端侧 dubious 显示「估算存疑，请核对」）；
+  /// 两级都不可用走「估算暂不可用」降级分支。
   Future<void> _onEstimate() async {
     final cs = CustomFoodStrings.of(context);
     final name = _nameController.text.trim();
@@ -170,27 +171,20 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
       _estimateUnavailable = false;
     });
     try {
-      // 三级回落编排：端侧（开关开且模型就绪）→ 已配置用户模型直连
-      // → 服务端兜底；直连失败回落服务端提示一次。
+      // 两级路由编排：端侧（开关开且模型就绪）→ 已配置用户模型直连。
       final outcome = await ref
           .read(foodEstimateOrchestratorProvider)
           .estimate(name);
       if (!mounted) return;
       final estimate = outcome.estimate;
-      // 埋点（§3.3 record_ai_estimate）：来源维度 ondevice/user_api/server。
+      // 埋点（§3.3 record_ai_estimate）：来源维度 ondevice/user_api。
       _analytics.track(
         'record_ai_estimate',
         properties: <String, Object?>{
           'source': foodEstimateSourceName(outcome.source),
           'result': 'success',
-          'used_fallback': outcome.usedFallback,
         },
       );
-      if (outcome.usedFallback) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(cs.estimateFallbackNotice)));
-      }
       setState(() {
         _kcalController.text = _formatNumber(estimate.per100g.kcal);
         _proteinController.text = _formatNumber(estimate.per100g.proteinG);
@@ -203,24 +197,19 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
     } on Object catch (e) {
       if (!mounted) return;
       if (isEstimateUnavailable(e)) {
-        // 503/超时/网络：提示降级手动填写，不阻断（字段本就可编辑）。
+        // 两级都不可用（503）：提示降级手动填写，不阻断（字段本就可编辑）。
         _analytics.track(
           'record_ai_estimate',
           properties: <String, Object?>{
             'source': 'none',
             'result': 'unavailable',
-            'used_fallback': false,
           },
         );
         setState(() => _estimateUnavailable = true);
       } else {
         _analytics.track(
           'record_ai_estimate',
-          properties: <String, Object?>{
-            'source': 'none',
-            'result': 'fail',
-            'used_fallback': false,
-          },
+          properties: <String, Object?>{'source': 'none', 'result': 'fail'},
         );
         final message = e is ApiException ? e.message : cs.estimateUnavailable;
         ScaffoldMessenger.of(
@@ -336,7 +325,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
       setState(() {
         _estimateApplied = false;
         _estimateLow = false;
-        _estimateSource = FoodEstimateSource.server;
+        _estimateSource = FoodEstimateSource.userApi;
       });
     }
   }
@@ -437,7 +426,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                     ),
                   ),
                 ),
-              // 估算徽标按来源三态（端侧/自定义 API/云端一眼可辨）；
+              // 估算徽标按来源两态（端侧/自定义 API 一眼可辨）；
               // low 置信度 / 端侧 dubious 额外提示核对（文案按来源区分）。
               if (_estimateApplied)
                 Padding(
@@ -460,7 +449,6 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                               cs.estimateBadgeOnDevice,
                             FoodEstimateSource.userApi =>
                               cs.estimateBadgeUserApi,
-                            FoodEstimateSource.server => cs.estimateBadgeServer,
                           },
                           style: textStyles.textSm.copyWith(
                             color: colors.bgSecondary,

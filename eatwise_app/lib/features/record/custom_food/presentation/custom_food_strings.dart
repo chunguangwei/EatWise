@@ -44,19 +44,12 @@ final class CustomFoodStrings {
   /// record.customFood.estimateUnavailable
   String get estimateUnavailable => _t.record.customFood.estimateUnavailable;
 
-  /// record.customFood.estimateFallbackNotice
-  String get estimateFallbackNotice =>
-      _t.record.customFood.estimateFallbackNotice;
-
   /// record.customFood.estimateBadgeOnDevice
   String get estimateBadgeOnDevice =>
       _t.record.customFood.estimateBadgeOnDevice;
 
   /// record.customFood.estimateBadgeUserApi
   String get estimateBadgeUserApi => _t.record.customFood.estimateBadgeUserApi;
-
-  /// record.customFood.estimateBadgeServer
-  String get estimateBadgeServer => _t.record.customFood.estimateBadgeServer;
 
   /// record.customFood.estimateDubious
   String get estimateDubious => _t.record.customFood.estimateDubious;

@@ -209,11 +209,6 @@ void main() {
 /// 模拟 422 校验拒绝的远程端（T7 口径：不可重试错误上抛）。
 final class _RejectingRemote implements CustomFoodRemote {
   @override
-  Future<FoodEstimate> estimate(String name, {String? description}) {
-    throw UnimplementedError();
-  }
-
-  @override
   Future<String> createCustom(
     CustomFoodDraft draft, {
     required String clientRequestId,

@@ -16,9 +16,7 @@ src/
 │                            # U6 撤销（合规 §4.2/§4.3，DeletionScheduler 到期扫描）
 ├── fasting/                 # P3/P4/F1/F2/F3：方案次日生效（D-06）、归属日（D-07）、
 │                            # 容差达标（D-08）、延长步进/上限（D-10）
-├── food/                    # K1/K2：双语食物搜索（D-16）、自定义食物（个人库）、估算端点
-├── llm/                     # LLM 营养估算：Provider 可插拔（stub/deepseek/qwen/kimi/custom）、
-│                            # 30 天结果缓存〔假设〕、每用户 10 次/分钟限流〔假设〕
+├── food/                    # K1/K2：双语食物搜索（D-16）、自定义食物（个人库）、条码查询
 ├── nutrition/               # N1：当日聚合 + 红黄绿信号灯（D-04/D-05 纯函数）
 ├── streak/                  # S1/S2/S3：streak 口径与补签卡（D-12）
 └── sync/                    # E1/E4/E6：批量上行 ≤100/批、幂等去重、逐条 LWW 冲突、
@@ -51,20 +49,9 @@ npm run start:dev
 - 持久化收口（2026-09-08 完成）：**全部业务 Service 已迁 StoreDriver**（fasting/streak/social/sync/nutrition/user/food/auth/admin-auth），prisma 模式全链路真实落库，重启不丢（已冒烟验证：注册/登录/方案/同步/营养/重启数据存活）。仅两处保留内存：auth 的 smsCodes（mock 短信）、admin-auth 的登录限流滑动窗口。
 - PrismaStore 集成测试（需真实库）：`RUN_PG_TESTS=1 DATABASE_URL=... npm test`（未起库时自动 skip）。
 
-## LLM 营养估算（/v1/foods/estimate）
+## 自定义食物（/v1/foods/custom）
 
-供应商可插拔，key 仅服务端配置，估算结果只作「估算」标记值（不写入权威食物库）。
-
-| 环境变量 | 说明 |
-|----------|------|
-| `LLM_PROVIDER` | `stub`（默认，端点返回 503 `ESTIMATE_UNAVAILABLE`，客户端降级手动填写）/ `deepseek` / `qwen` / `kimi` / `custom`（任意 OpenAI 兼容端点） |
-| `LLM_API_KEY` | 供应商 key；custom 本地 Ollama 可留空 |
-| `LLM_BASE_URL` | custom 必填（内置供应商有默认值〔假设〕）。本地 Ollama：`http://localhost:11434/v1` |
-| `LLM_MODEL` | custom 必填（内置供应商有默认值〔假设〕）。本地 Ollama 示例：`qwen3:4b` |
-
-- 调用 `{base}/chat/completions`，system prompt 约束只返回 JSON，temperature 0.2，超时 15s；失败/超时/非法 JSON/营养越界（kcal 0-900、宏量 0-100）一律 `ESTIMATE_UNAVAILABLE`。
-- 成功结果按「provider+model+规范化菜名」缓存 30 天〔假设〕，命中返回 `cached:true`；端点限流每用户 10 次/分钟〔假设〕。
-- 用户自定义食物：`POST /v1/foods/custom`（幂等 clientRequestId，营养区间同上）入个人库，K1 搜索合并（仅创建者可见、排内置结果之后、标注 `isCustom`）；Prisma 对应 `foods.isCustom` + `createdByUserId`。
+- 用户自定义食物：`POST /v1/foods/custom`（幂等 clientRequestId，营养区间 kcal 0-900、宏量 0-100）入个人库，K1 搜索合并（仅创建者可见、排内置结果之后、标注 `isCustom`）；Prisma 对应 `foods.isCustom` + `createdByUserId`。
 
 ## 图片上传存储（/v1/uploads）
 

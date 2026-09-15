@@ -46,14 +46,14 @@ final Provider<OnDeviceEstimateSource> onDeviceEstimateSourceProvider =
       );
     });
 
-/// 估算编排器（三级回落：端侧（开关开且模型就绪）→ 已配置直连用户模型
-/// → 服务端兜底；端侧源惰性获取，开关关闭时不实例化推理网关）。
+/// 估算编排器（两级：端侧（开关开且模型就绪）→ 已配置直连用户模型；
+/// 两级都不可用抛 503，UI 降级手动填写。端侧源惰性获取，开关关闭时
+/// 不实例化推理网关）。
 final Provider<FoodEstimateOrchestrator> foodEstimateOrchestratorProvider =
     Provider<FoodEstimateOrchestrator>((ref) {
       return FoodEstimateOrchestrator(
         store: ref.watch(llmConfigStoreProvider),
         userClient: ref.watch(userEstimateSourceProvider),
-        remote: ref.watch(customFoodRemoteProvider),
         onDeviceEnabled: () => ref.read(onDeviceAiEnabledProvider),
         onDeviceSource: () => ref.read(onDeviceEstimateSourceProvider),
       );

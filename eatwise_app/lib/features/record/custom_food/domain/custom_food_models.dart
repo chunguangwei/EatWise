@@ -15,7 +15,7 @@ String customFoodSourceName(CustomFoodSource source) => switch (source) {
   CustomFoodSource.llmEstimate => 'llm-estimate',
 };
 
-/// AI 估算结果（POST /foods/estimate；估算值仅作「估算」标记使用）。
+/// AI 估算结果（端侧小模型 / 用户自配 API 产物；估算值仅作「估算」标记使用）。
 final class FoodEstimate {
   const FoodEstimate({required this.per100g, required this.confidence});
 

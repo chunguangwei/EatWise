@@ -85,7 +85,7 @@ python3 eatwise_data/scripts/build_seed.py       # 生成 foods.seed.json + 校�
 
 ## 当前状态
 
-- **功能**：M1–M6 全部落地（新手引导/断食计时/快捷记录/营养信号灯/streak 与社区/趋势报告），账号同步、无障碍贯穿、隐私合规基础、双端构建与 CI 门禁齐备；AI 估算支持用户自配模型（设置 → AI 模型，OpenAI 兼容端点如局域网 Ollama，未配置回落服务端，规格见 `docs/specs/规格-用户自定义LLM估算-v1.0.md`）。
+- **功能**：M1–M6 全部落地（新手引导/断食计时/快捷记录/营养信号灯/streak 与社区/趋势报告），账号同步、无障碍贯穿、隐私合规基础、双端构建与 CI 门禁齐备；AI 估算两级链路：端侧小模型 → 用户自配模型（设置 → AI 模型，OpenAI 兼容端点如局域网 Ollama），两级都不可用提示手动填写，无服务端兜底（规格见 `docs/specs/规格-用户自定义LLM估算-v1.0.md`）。
 - **测试**：App 508 条全绿；服务端 137 单测 + 70 e2e 全绿（Prisma 集成测试 CI 真跑）。
 - **发版**：最新 v1.0.9（GitHub Releases）。
 
@@ -103,4 +103,5 @@ python3 eatwise_data/scripts/build_seed.py       # 生成 foods.seed.json + 校�
 
 - 决策锚点：`docs/00-决策记录-开放问题拍板-v1.0.md`
 - 开发命令与踩坑速查：`AGENTS.md`
-- 各模块规格：`docs/specs/`；API：`docs/tech/后端API契约-v1.0.md`；埋点：`docs/tech/埋点规范与事件字典-v1.0.md`；部署：`docs/tech/部署-海外上线-v1.0.md`
+- 各模块规格：`docs/specs/`；API：`docs/tech/后端API契约-v1.0.md`；埋点：`docs/tech/埋点规范与事件字典-v1.0.md`
+- **服务端部署**：云主机自部署（Docker 一站式）：`docs/tech/部署-云主机自部署-v1.0.md`；海外托管路线（Render）：`docs/tech/部署-海外上线-v1.0.md`

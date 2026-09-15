@@ -31,7 +31,8 @@ abstract interface class UserEstimateSource {
 
 /// 用户自定义 LLM 直连客户端（规格 §3）：POST {baseUrl}/chat/completions。
 /// 不复用 apiDioProvider（其拦截器面向服务端信封/鉴权）；独立裸 Dio。
-/// 一切失败抛 503 ESTIMATE_UNAVAILABLE，由编排器决定回落（规格 §6）。
+/// 一切失败抛 503 ESTIMATE_UNAVAILABLE，由 UI 走「估算暂不可用」降级
+///（规格 §6；无服务端兜底）。
 final class UserLlmClient implements UserEstimateSource {
   UserLlmClient({Dio? dio, required this.store}) : _dio = dio ?? Dio();
 

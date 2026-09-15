@@ -3,8 +3,8 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 
-/** e2e：LLM 估算端点（stub 降级/校验/限流）+ 自定义食物（幂等/搜索合并/可见性隔离） */
-describe('Foods estimate & custom (e2e)', () => {
+/** e2e：自定义食物（幂等/校验/搜索合并/可见性隔离）+ 条码查询参数校验 */
+describe('Foods custom & barcode (e2e)', () => {
   let app: INestApplication;
   let server: Parameters<typeof request>[0];
 
@@ -153,56 +153,6 @@ describe('Foods estimate & custom (e2e)', () => {
         .send({ ids: [foodId] })
         .expect(200);
       expect(bg2.body.data.items).toHaveLength(0);
-    });
-  });
-
-  describe('POST /v1/foods/estimate', () => {
-    it('未配置供应商（stub）→ 503 ESTIMATE_UNAVAILABLE（双语 message）', async () => {
-      const token = await login(nextPhone());
-      const res = await request(server)
-        .post('/v1/foods/estimate')
-        .set(auth(token))
-        .send({ name: '红烧肉' })
-        .expect(503);
-      expect(res.body.error.code).toBe('ESTIMATE_UNAVAILABLE');
-      expect(res.body.error.message).toBe('营养估算暂不可用，请手动填写');
-
-      const en = await request(server)
-        .post('/v1/foods/estimate')
-        .set(auth(token))
-        .set('Accept-Language', 'en')
-        .send({ name: '红烧肉' })
-        .expect(503);
-      expect(en.body.error.message).toBe(
-        'Nutrition estimate unavailable, please enter values manually',
-      );
-    });
-
-    it('菜名空白 → 400 VALIDATION_ERROR；未认证 → 401', async () => {
-      const token = await login(nextPhone());
-      await request(server)
-        .post('/v1/foods/estimate')
-        .set(auth(token))
-        .send({ name: '   ' })
-        .expect(400);
-      await request(server).post('/v1/foods/estimate').send({ name: 'x' }).expect(401);
-    });
-
-    it('限流〔假设〕每用户 10 次/分钟：第 11 次 429 RATE_LIMITED', async () => {
-      const token = await login(nextPhone());
-      for (let i = 0; i < 10; i++) {
-        await request(server)
-          .post('/v1/foods/estimate')
-          .set(auth(token))
-          .send({ name: `测试菜${i}` })
-          .expect(503); // stub 降级也被计数
-      }
-      const res = await request(server)
-        .post('/v1/foods/estimate')
-        .set(auth(token))
-        .send({ name: '测试菜10' })
-        .expect(429);
-      expect(res.body.error.code).toBe('RATE_LIMITED');
     });
   });
 

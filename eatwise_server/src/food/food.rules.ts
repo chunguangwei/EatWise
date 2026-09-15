@@ -1,7 +1,13 @@
-import type { Per100g } from '../llm/llm-estimate.types';
+/** 每 100g 营养（自定义食物防腐校验 + 条码 OFF 数据校验共用） */
+export interface Per100g {
+  kcal: number;
+  proteinG: number;
+  carbG: number;
+  fatG: number;
+}
 
 /**
- * 每 100g 营养合理区间（LLM 估算结果校验 + 自定义食物防腐共用）。
+ * 每 100g 营养合理区间（自定义食物 + 条码数据防腐共用）。
  * 〔假设〕kcal ≤900 覆盖纯油脂上限；三大营养素单项 ≤100g。
  */
 export function isPer100gInRange(p: Per100g): boolean {

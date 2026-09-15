@@ -1,5 +1,8 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/llm/llm_config.dart';
 import 'package:eatwise/core/llm/llm_config_store.dart';
+import 'package:eatwise/core/llm/user_llm_client.dart';
+import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
@@ -18,16 +21,39 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../record_test_helper.dart';
 
+/// 用户自配 API 窄抽象替身（可注入结果；ok=false 模拟直连失败 503）。
+final class _FakeUserClient implements UserEstimateSource {
+  bool ok = true;
+  FoodEstimate result = const FoodEstimate(
+    per100g: NutritionSnapshot(kcal: 200, proteinG: 10, carbG: 20, fatG: 5),
+    confidence: 'high',
+  );
+
+  @override
+  Future<FoodEstimate> estimate(String name, {String? description}) async {
+    if (!ok) {
+      throw const BusinessApiException(
+        httpStatus: 503,
+        code: 'ESTIMATE_UNAVAILABLE',
+        message: 'estimate unavailable',
+      );
+    }
+    return result;
+  }
+}
+
 /// K2 自定义食物弹层 + 记录页集成 widget 测试。
 ///
 /// 覆盖：无结果 CTA 入口、表单校验（空名/越界/非正数）、AI 估算成功预填
-/// +「云端估算，请确认」徽标（low 置信度额外提示）、503 降级手动填写、
+/// +「自定义 API 估算，请确认」徽标（low 置信度额外提示）、503 降级手动填写、
 /// 保存后立刻可搜（自定义标签）+ 结果卡回填、份量必填联动、离线本地保存。
 void main() {
   late AppDatabase db;
   late FakeRecordRemote recordRemote;
   late FakeCustomFoodRemote customRemote;
   late RecordRepository repository;
+  late InMemoryLlmConfigStore llmStore;
+  late _FakeUserClient userClient;
 
   setUpAll(() async {
     await initRecordTestTimeZones();
@@ -44,6 +70,12 @@ void main() {
       remote: recordRemote,
       location: tz.getLocation('Asia/Shanghai'),
     );
+    // 估算链路：已配置用户自配 API（两级路由的第二级），由 userClient 决定成败。
+    llmStore = InMemoryLlmConfigStore();
+    await llmStore.save(
+      const LlmConfig(provider: 'custom', baseUrl: 'http://x/v1', model: 'm'),
+    );
+    userClient = _FakeUserClient();
     addTearDown(() async {
       await repository.dispose();
       await db.close();
@@ -82,8 +114,9 @@ void main() {
             WaterLogRepository(db: db),
           ),
           customFoodRemoteProvider.overrideWithValue(customRemote),
-          // 估算编排器依赖：未配置 → 直走服务端 fake（既有断言语义不变）。
-          llmConfigStoreProvider.overrideWithValue(InMemoryLlmConfigStore()),
+          // 估算编排器依赖：已配置用户自配 API，成败由 userClient 注入。
+          llmConfigStoreProvider.overrideWithValue(llmStore),
+          userEstimateSourceProvider.overrideWithValue(userClient),
         ],
         child: TranslationProvider(
           child: MaterialApp(theme: AppTheme.light(), home: const RecordPage()),
@@ -149,7 +182,7 @@ void main() {
   });
 
   testWidgets('AI 估算成功：预填四营养 + 估算徽标，low 置信度额外提示', (tester) async {
-    customRemote.estimateResult = const FoodEstimate(
+    userClient.result = const FoodEstimate(
       per100g: NutritionSnapshot(kcal: 200, proteinG: 10, carbG: 20, fatG: 5),
       confidence: 'low',
     );
@@ -175,13 +208,13 @@ void main() {
           .text,
       '5',
     );
-    expect(find.text('云端估算，请确认'), findsOneWidget);
+    expect(find.text('自定义 API 估算，请确认'), findsOneWidget);
     expect(find.text('置信度较低，请仔细核对数值'), findsOneWidget);
     await settleUi(tester);
   });
 
-  testWidgets('估算不可用（503）：双语降级提示，手动填写不阻断', (tester) async {
-    customRemote.mode = FakeCustomFoodMode.estimateUnavailable;
+  testWidgets('估算不可用（两级都失败，503）：降级提示，手动填写不阻断', (tester) async {
+    userClient.ok = false;
     await pumpPage(tester);
     await openSheet(tester);
     await enterSheetField(tester, 0, '手工丸子');
@@ -191,7 +224,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('估算暂不可用，请手动填写'), findsOneWidget);
-    expect(find.text('云端估算，请确认'), findsNothing);
+    expect(find.text('自定义 API 估算，请确认'), findsNothing);
 
     // 手动填写后可正常保存（降级不阻断）。
     await enterSheetField(tester, 2, '180');
@@ -218,7 +251,7 @@ void main() {
     await tester.tap(find.text('AI 估算'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('云端估算，请确认'), findsOneWidget);
+    expect(find.text('自定义 API 估算，请确认'), findsOneWidget);
     await tapSave(tester);
 
     // 弹层关闭 → 自动填入记录结果卡（份量留空必填）。

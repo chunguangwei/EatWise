@@ -534,10 +534,8 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get estimating => 'Estimating…';
 	@override String get estimateLow => 'Low confidence — please double-check the values';
 	@override String get estimateUnavailable => 'Estimate unavailable — please enter values manually';
-	@override String get estimateFallbackNotice => 'Your model couldn\'t be reached — used the cloud estimate instead';
 	@override String get estimateBadgeOnDevice => 'On-device estimate — please confirm';
 	@override String get estimateBadgeUserApi => 'Custom API estimate — please confirm';
-	@override String get estimateBadgeServer => 'Cloud estimate — please confirm';
 	@override String get estimateDubious => 'Estimate looks off — please double-check the values';
 	@override String get kcalLabel => 'Calories (kcal / 100 g)';
 	@override String get proteinLabel => 'Protein (g / 100 g)';
@@ -1019,7 +1017,7 @@ class _Translations$settings$aiModel$en extends Translations$settings$aiModel$zh
 	@override String get testFailAuth => 'Connection failed: invalid API Key or insufficient permission';
 	@override String get clear => 'Clear configuration';
 	@override String get clearConfirmTitle => 'Clear AI model configuration?';
-	@override String get clearConfirmBody => 'After clearing, custom food estimates will fall back to the server-side model.';
+	@override String get clearConfirmBody => 'After clearing, custom food estimates will be unavailable (enable the on-device model or configure again).';
 	@override String get clearConfirmAction => 'Clear';
 	@override String get cleared => 'AI model configuration cleared';
 }
@@ -1066,7 +1064,6 @@ class _Translations$settings$chain$en extends Translations$settings$chain$zh_CN 
 	@override String get title => 'Estimate routing';
 	@override String get onDevice => 'On-device model';
 	@override String get userApi => 'Custom API';
-	@override String get server => 'Cloud fallback';
 	@override String get statusEnabled => 'Enabled';
 	@override String get statusDisabled => 'Disabled';
 	@override String get statusNotDownloaded => 'Not downloaded';
@@ -1076,7 +1073,6 @@ class _Translations$settings$chain$en extends Translations$settings$chain$zh_CN 
 	@override String get statusUnknown => 'Not ready';
 	@override String get statusConfigured => 'Configured';
 	@override String get statusNotConfigured => 'Not configured';
-	@override String get statusAlways => 'Always available';
 	@override String get current => 'Active';
 }
 
@@ -1837,10 +1833,8 @@ extension on TranslationsEn {
 			'record.customFood.estimating' => 'Estimating…',
 			'record.customFood.estimateLow' => 'Low confidence — please double-check the values',
 			'record.customFood.estimateUnavailable' => 'Estimate unavailable — please enter values manually',
-			'record.customFood.estimateFallbackNotice' => 'Your model couldn\'t be reached — used the cloud estimate instead',
 			'record.customFood.estimateBadgeOnDevice' => 'On-device estimate — please confirm',
 			'record.customFood.estimateBadgeUserApi' => 'Custom API estimate — please confirm',
-			'record.customFood.estimateBadgeServer' => 'Cloud estimate — please confirm',
 			'record.customFood.estimateDubious' => 'Estimate looks off — please double-check the values',
 			'record.customFood.kcalLabel' => 'Calories (kcal / 100 g)',
 			'record.customFood.proteinLabel' => 'Protein (g / 100 g)',
@@ -2129,7 +2123,7 @@ extension on TranslationsEn {
 			'settings.aiModel.testFailAuth' => 'Connection failed: invalid API Key or insufficient permission',
 			'settings.aiModel.clear' => 'Clear configuration',
 			'settings.aiModel.clearConfirmTitle' => 'Clear AI model configuration?',
-			'settings.aiModel.clearConfirmBody' => 'After clearing, custom food estimates will fall back to the server-side model.',
+			'settings.aiModel.clearConfirmBody' => 'After clearing, custom food estimates will be unavailable (enable the on-device model or configure again).',
 			'settings.aiModel.clearConfirmAction' => 'Clear',
 			'settings.aiModel.cleared' => 'AI model configuration cleared',
 			'settings.onDevice.title' => 'On-device model',
@@ -2158,7 +2152,6 @@ extension on TranslationsEn {
 			'settings.chain.title' => 'Estimate routing',
 			'settings.chain.onDevice' => 'On-device model',
 			'settings.chain.userApi' => 'Custom API',
-			'settings.chain.server' => 'Cloud fallback',
 			'settings.chain.statusEnabled' => 'Enabled',
 			'settings.chain.statusDisabled' => 'Disabled',
 			'settings.chain.statusNotDownloaded' => 'Not downloaded',
@@ -2168,7 +2161,6 @@ extension on TranslationsEn {
 			'settings.chain.statusUnknown' => 'Not ready',
 			'settings.chain.statusConfigured' => 'Configured',
 			'settings.chain.statusNotConfigured' => 'Not configured',
-			'settings.chain.statusAlways' => 'Always available',
 			'settings.chain.current' => 'Active',
 			'legal.draftNote' => '[Pending external confirmation: final legal copy]',
 			'legal.consent.title' => 'Welcome to EatWise',
@@ -2223,12 +2215,12 @@ extension on TranslationsEn {
 			'social.compose.retryUpload' => 'Try uploading again',
 			'social.compose.streakBadge' => ({required Object days}) => 'Current streak: ${days} days 🔥',
 			'social.compose.noStreak' => 'Finish today\'s fast and your check-in will carry the streak badge',
-			_ => null,
-		} ?? switch (path) {
 			'social.compose.publish' => 'Post',
 			'social.compose.publishFailed' => 'Couldn\'t post. Please try again.',
 			'social.compose.emptyText' => 'Write something first',
 			'auth.login.title' => 'Sign in',
+			_ => null,
+		} ?? switch (path) {
 			'auth.login.subtitle' => 'Sign in with your username and password',
 			'auth.login.phoneLabel' => 'Phone number',
 			'auth.login.phoneHint' => 'Enter your 11-digit phone number',

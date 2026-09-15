@@ -1,14 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
-import 'package:eatwise/features/record/domain/record_models.dart';
 
-/// 自定义食物远程端抽象（K2：/foods/estimate + /foods/custom；
-/// 生产走 dio，测试注入 Fake）。
+/// 自定义食物远程端抽象（K2：/foods/custom + 贡献；
+/// 生产走 dio，测试注入 Fake）。AI 估算不走服务端（编排器两级：
+/// 端侧 → 用户自配 API）。
 abstract interface class CustomFoodRemote {
-  /// AI 营养估算（未配置 LLM → 503 ESTIMATE_UNAVAILABLE，客户端降级手动填写）。
-  Future<FoodEstimate> estimate(String name, {String? description});
-
   /// 创建自定义食物（幂等 clientRequestId；返回服务端分配的食物 ID）。
   Future<String> createCustom(
     CustomFoodDraft draft, {
@@ -43,35 +40,6 @@ final class RemoteCustomFoodApi implements CustomFoodRemote {
 
   /// 已装配 dio。
   final Dio dio;
-
-  @override
-  Future<FoodEstimate> estimate(String name, {String? description}) async {
-    try {
-      final response = await dio.post<Map<String, dynamic>>(
-        '/foods/estimate',
-        data: <String, dynamic>{
-          'name': name,
-          if (description != null && description.isNotEmpty)
-            'description': description,
-        },
-      );
-      final body = response.data ?? const <String, dynamic>{};
-      final per =
-          (body['per100g'] as Map<String, dynamic>? ??
-          const <String, dynamic>{});
-      return FoodEstimate(
-        per100g: NutritionSnapshot(
-          kcal: (per['kcal'] as num?)?.toDouble() ?? 0,
-          proteinG: (per['proteinG'] as num?)?.toDouble() ?? 0,
-          carbG: (per['carbG'] as num?)?.toDouble() ?? 0,
-          fatG: (per['fatG'] as num?)?.toDouble() ?? 0,
-        ),
-        confidence: body['confidence'] as String? ?? 'low',
-      );
-    } on DioException catch (e) {
-      throw toApiException(e);
-    }
-  }
 
   @override
   Future<String> createCustom(
@@ -143,26 +111,19 @@ final class RemoteCustomFoodApi implements CustomFoodRemote {
   }
 }
 
-/// Fake 远程端可注入模式：成功 / 估算不可用（503）/ 离线。
-enum FakeCustomFoodMode { success, estimateUnavailable, offline }
+/// Fake 远程端可注入模式：成功 / 离线。
+enum FakeCustomFoodMode { success, offline }
 
 /// 内存 Fake 远程端（任务约束：不写真实网络；与 FakeRecordRemote 同法）。
 ///
-/// - success：估算返回可注入的 [estimateResult]（默认 high 置信度样例），
-///   创建分配服务端 ID 且按 clientRequestId 幂等（重复上行返回首次结果）；
-/// - estimateUnavailable：估算抛 503 ESTIMATE_UNAVAILABLE（创建仍成功）；
-/// - offline：估算/创建均抛 NetworkApiException（离线降级本地 pending）。
+/// - success：创建分配服务端 ID 且按 clientRequestId 幂等（重复上行返回
+///   首次结果）；
+/// - offline：创建/贡献均抛 NetworkApiException（离线降级本地 pending）。
 final class FakeCustomFoodRemote implements CustomFoodRemote {
   FakeCustomFoodRemote({this.mode = FakeCustomFoodMode.success});
 
   /// 当前模式（测试中可随时切换，如「先离线再联网」）。
   FakeCustomFoodMode mode;
-
-  /// 可注入的估算结果（null 时用默认 high 置信度样例）。
-  FoodEstimate? estimateResult;
-
-  /// 已收到的估算次数。
-  int estimateCount = 0;
 
   /// 已收到的 clientRequestId 列表（服务端幂等表替身，§2.2）。
   final List<String> receivedRequestIds = <String>[];
@@ -187,32 +148,6 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
   final List<String> receivedContributionQueries = <String>[];
 
   int _serverSeq = 0;
-
-  @override
-  Future<FoodEstimate> estimate(String name, {String? description}) async {
-    estimateCount++;
-    switch (mode) {
-      case FakeCustomFoodMode.offline:
-        throw const NetworkApiException();
-      case FakeCustomFoodMode.estimateUnavailable:
-        throw const BusinessApiException(
-          httpStatus: 503,
-          code: 'ESTIMATE_UNAVAILABLE',
-          message: '估算暂不可用，请手动填写',
-        );
-      case FakeCustomFoodMode.success:
-        return estimateResult ??
-            const FoodEstimate(
-              per100g: NutritionSnapshot(
-                kcal: 200,
-                proteinG: 10,
-                carbG: 20,
-                fatG: 5,
-              ),
-              confidence: 'high',
-            );
-    }
-  }
 
   @override
   Future<String> createCustom(

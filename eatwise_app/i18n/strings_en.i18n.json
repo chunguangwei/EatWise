@@ -189,10 +189,8 @@
       "estimating": "Estimating…",
       "estimateLow": "Low confidence — please double-check the values",
       "estimateUnavailable": "Estimate unavailable — please enter values manually",
-      "estimateFallbackNotice": "Your model couldn't be reached — used the cloud estimate instead",
       "estimateBadgeOnDevice": "On-device estimate — please confirm",
       "estimateBadgeUserApi": "Custom API estimate — please confirm",
-      "estimateBadgeServer": "Cloud estimate — please confirm",
       "estimateDubious": "Estimate looks off — please double-check the values",
       "kcalLabel": "Calories (kcal / 100 g)",
       "proteinLabel": "Protein (g / 100 g)",
@@ -599,7 +597,7 @@
       "testFailAuth": "Connection failed: invalid API Key or insufficient permission",
       "clear": "Clear configuration",
       "clearConfirmTitle": "Clear AI model configuration?",
-      "clearConfirmBody": "After clearing, custom food estimates will fall back to the server-side model.",
+      "clearConfirmBody": "After clearing, custom food estimates will be unavailable (enable the on-device model or configure again).",
       "clearConfirmAction": "Clear",
       "cleared": "AI model configuration cleared"
     },
@@ -632,7 +630,6 @@
       "title": "Estimate routing",
       "onDevice": "On-device model",
       "userApi": "Custom API",
-      "server": "Cloud fallback",
       "statusEnabled": "Enabled",
       "statusDisabled": "Disabled",
       "statusNotDownloaded": "Not downloaded",
@@ -642,7 +639,6 @@
       "statusUnknown": "Not ready",
       "statusConfigured": "Configured",
       "statusNotConfigured": "Not configured",
-      "statusAlways": "Always available",
       "current": "Active"
     }
   },

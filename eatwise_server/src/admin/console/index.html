@@ -35,18 +35,9 @@
   .badge.approved { background: #e6f7ef; color: #1f8f63; }
   .badge.rejected { background: #fdeae5; color: #c24a2a; }
   .badge.reported { background: #f3e8fd; color: #7a3fc2; }
-  .badge.runtime { background: #e6f7ef; color: #1f8f63; }
-  .badge.env { background: #e8f0fd; color: #2c62b8; }
-  .badge.stub { background: #f0f1f1; color: #6d7c76; }
-  .form-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-  .form-row label { width: 90px; font-size: 13px; color: #5a6b63; flex-shrink: 0; }
-  .form-row input, .form-row select { flex: 1; max-width: 380px; padding: 7px 10px; border: 1px solid #cfd8d4; border-radius: 6px; font-size: 13px; }
   .msg { margin-top: 12px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; white-space: pre-wrap; word-break: break-all; }
   .msg.ok { display: block; background: #e6f7ef; color: #176b4b; }
   .msg.fail { display: block; background: #fdeae5; color: #a03c1f; }
-  .result { margin-top: 12px; background: #f7f9f8; border: 1px solid #e3e8e6; border-radius: 6px; padding: 10px 12px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; display: none; }
-  .cfg-summary { font-size: 13px; color: #3c4a44; margin-bottom: 16px; line-height: 1.9; }
-  .cfg-summary code { background: #f0f3f2; padding: 1px 6px; border-radius: 4px; }
 </style>
 </head>
 <body>
@@ -71,7 +62,6 @@
   <div class="tabs">
     <button id="tabReview" class="active" onclick="switchTab('review')">食物审核</button>
     <button id="tabPosts" onclick="switchTab('posts')">打卡审核</button>
-    <button id="tabConfig" onclick="switchTab('config')">API 配置</button>
   </div>
 
   <!-- 食物审核 -->
@@ -113,34 +103,6 @@
     <div style="margin-top:12px; text-align:center">
       <button id="postMoreBtn" class="btn ghost" style="display:none" onclick="loadPosts(true)">加载更多</button>
     </div>
-  </section>
-
-  <!-- API 配置 -->
-  <section id="panelConfig" class="panel" style="display:none">
-    <div id="cfgRoleNote" class="msg fail" style="display:none">当前角色为审核员（reviewer）：API 配置为管理员（admin）专属，仅可查看提示，无法读写。</div>
-    <div class="cfg-summary" id="cfgSummary">加载中…</div>
-    <div class="form-row">
-      <label>供应商</label>
-      <select id="fProvider">
-        <option value="stub">stub（关闭估算）</option>
-        <option value="deepseek">deepseek</option>
-        <option value="qwen">qwen</option>
-        <option value="kimi">kimi</option>
-        <option value="custom">custom（OpenAI 兼容）</option>
-      </select>
-    </div>
-    <div class="form-row"><label>Base URL</label><input id="fBaseUrl" placeholder="custom 必填，如 http://localhost:11434/v1"></div>
-    <div class="form-row"><label>模型</label><input id="fModel" placeholder="custom 必填，如 qwen3:4b"></div>
-    <div class="form-row"><label>API Key</label><input id="fApiKey" type="password" placeholder="留空 = 保持不变" autocomplete="new-password"></div>
-    <div class="form-row">
-      <label></label>
-      <div style="display:flex; gap:8px">
-        <button class="btn" id="saveBtn" onclick="saveConfig()">保存</button>
-        <button class="btn ghost" id="testBtn" onclick="testConfig()">测试估算（白米饭）</button>
-      </div>
-    </div>
-    <div id="configMsg" class="msg"></div>
-    <div id="testResult" class="result"></div>
   </section>
 </main>
 
@@ -249,13 +211,10 @@ async function api(path, opts) {
 function switchTab(name) {
   document.getElementById('tabReview').className = name === 'review' ? 'active' : '';
   document.getElementById('tabPosts').className = name === 'posts' ? 'active' : '';
-  document.getElementById('tabConfig').className = name === 'config' ? 'active' : '';
   document.getElementById('panelReview').style.display = name === 'review' ? '' : 'none';
   document.getElementById('panelPosts').style.display = name === 'posts' ? '' : 'none';
-  document.getElementById('panelConfig').style.display = name === 'config' ? '' : 'none';
   if (name === 'review') loadCandidates(false);
   if (name === 'posts') loadPosts(false);
-  if (name === 'config') loadConfig();
 }
 
 function setStatus(s) {
@@ -410,80 +369,6 @@ async function reviewPost(id, action) {
   } catch (e) {
     flash('postsMsg', e.message, false);
     loadPosts(false);
-  }
-}
-
-/* ===== API 配置 ===== */
-
-var SOURCE_LABEL = { runtime: '运行时覆盖', env: '环境变量', stub: '未配置（stub 降级）' };
-
-async function loadConfig() {
-  // reviewer 角色：config 端点仅 admin 可用（服务端 403），前端直接只读提示不再请求
-  var reviewerOnly = me && me.role !== 'admin';
-  document.getElementById('cfgRoleNote').style.display = reviewerOnly ? 'block' : 'none';
-  var ids = ['fProvider', 'fBaseUrl', 'fModel', 'fApiKey', 'saveBtn', 'testBtn'];
-  for (var i = 0; i < ids.length; i++) document.getElementById(ids[i]).disabled = reviewerOnly;
-  if (reviewerOnly) {
-    document.getElementById('cfgSummary').textContent = '当前角色无权限查看 API 配置。';
-    return;
-  }
-  try {
-    var data = await api('/admin/config');
-    var llm = data.llm;
-    document.getElementById('cfgSummary').innerHTML =
-      '当前生效：<span class="badge ' + llm.source + '">' + SOURCE_LABEL[llm.source] + '</span> ' +
-      'provider <code>' + esc(llm.provider) + '</code>' +
-      (llm.baseUrl ? ' · baseUrl <code>' + esc(llm.baseUrl) + '</code>' : '') +
-      (llm.model ? ' · model <code>' + esc(llm.model) + '</code>' : '') +
-      ' · apiKey <code>' + esc(llm.apiKey || '(未配置)') + '</code>' +
-      (data.persisted ? '' : '<br><span class="badge rejected">配置文件写入失败，改动仅本次进程内生效</span>');
-    if (data.override) {
-      document.getElementById('fProvider').value = data.override.provider;
-      document.getElementById('fBaseUrl').value = data.override.baseUrl || '';
-      document.getElementById('fModel').value = data.override.model || '';
-    } else {
-      document.getElementById('fProvider').value = llm.provider;
-      document.getElementById('fBaseUrl').value = '';
-      document.getElementById('fModel').value = '';
-    }
-    document.getElementById('fApiKey').value = '';
-  } catch (e) {
-    flash('configMsg', e.message, false);
-  }
-}
-
-async function saveConfig() {
-  try {
-    var body = {
-      provider: document.getElementById('fProvider').value,
-      baseUrl: document.getElementById('fBaseUrl').value.trim(),
-      model: document.getElementById('fModel').value.trim()
-    };
-    var key = document.getElementById('fApiKey').value.trim();
-    if (key) body.apiKey = key;
-    await api('/admin/config/llm', { method: 'PUT', body: body });
-    flash('configMsg', '已保存并即时生效（免重启）', true);
-    loadConfig();
-  } catch (e) {
-    flash('configMsg', e.message, false);
-  }
-}
-
-async function testConfig() {
-  var el = document.getElementById('testResult');
-  el.style.display = 'block';
-  el.textContent = '测试中…';
-  try {
-    var data = await api('/admin/config/llm/test', { method: 'POST' });
-    if (data.ok) {
-      el.textContent = '✓ 估算成功（provider=' + data.provider + (data.model ? ', model=' + data.model : '') + '）\n' +
-        JSON.stringify(data.result, null, 2);
-    } else {
-      el.textContent = '✗ 估算失败（provider=' + data.provider + '）\n' +
-        (data.error ? data.error.code + '：' + data.error.message : '未知错误');
-    }
-  } catch (e) {
-    el.textContent = '✗ 请求失败：' + e.message;
   }
 }
 

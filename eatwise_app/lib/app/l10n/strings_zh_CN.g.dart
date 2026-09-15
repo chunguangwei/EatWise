@@ -769,17 +769,11 @@ class Translations$record$customFood$zh_CN {
 	/// zh-CN: '估算暂不可用，请手动填写'
 	String get estimateUnavailable => '估算暂不可用，请手动填写';
 
-	/// zh-CN: '你的模型连接失败，已改用云端估算'
-	String get estimateFallbackNotice => '你的模型连接失败，已改用云端估算';
-
 	/// zh-CN: '端侧估算，请确认'
 	String get estimateBadgeOnDevice => '端侧估算，请确认';
 
 	/// zh-CN: '自定义 API 估算，请确认'
 	String get estimateBadgeUserApi => '自定义 API 估算，请确认';
-
-	/// zh-CN: '云端估算，请确认'
-	String get estimateBadgeServer => '云端估算，请确认';
 
 	/// zh-CN: '估算存疑，请核对数值'
 	String get estimateDubious => '估算存疑，请核对数值';
@@ -1643,8 +1637,8 @@ class Translations$settings$aiModel$zh_CN {
 	/// zh-CN: '清除 AI 模型配置？'
 	String get clearConfirmTitle => '清除 AI 模型配置？';
 
-	/// zh-CN: '清除后，自定义食物估算将回退为服务端模型。'
-	String get clearConfirmBody => '清除后，自定义食物估算将回退为服务端模型。';
+	/// zh-CN: '清除后，自定义食物估算将不可用（可开启端侧小模型或重新配置）。'
+	String get clearConfirmBody => '清除后，自定义食物估算将不可用（可开启端侧小模型或重新配置）。';
 
 	/// zh-CN: '确认清除'
 	String get clearConfirmAction => '确认清除';
@@ -1748,9 +1742,6 @@ class Translations$settings$chain$zh_CN {
 	/// zh-CN: '自定义 API'
 	String get userApi => '自定义 API';
 
-	/// zh-CN: '云端兜底'
-	String get server => '云端兜底';
-
 	/// zh-CN: '已启用'
 	String get statusEnabled => '已启用';
 
@@ -1777,9 +1768,6 @@ class Translations$settings$chain$zh_CN {
 
 	/// zh-CN: '未配置'
 	String get statusNotConfigured => '未配置';
-
-	/// zh-CN: '始终可用'
-	String get statusAlways => '始终可用';
 
 	/// zh-CN: '当前生效'
 	String get current => '当前生效';
@@ -3019,10 +3007,8 @@ extension on Translations {
 			'record.customFood.estimating' => '估算中…',
 			'record.customFood.estimateLow' => '置信度较低，请仔细核对数值',
 			'record.customFood.estimateUnavailable' => '估算暂不可用，请手动填写',
-			'record.customFood.estimateFallbackNotice' => '你的模型连接失败，已改用云端估算',
 			'record.customFood.estimateBadgeOnDevice' => '端侧估算，请确认',
 			'record.customFood.estimateBadgeUserApi' => '自定义 API 估算，请确认',
-			'record.customFood.estimateBadgeServer' => '云端估算，请确认',
 			'record.customFood.estimateDubious' => '估算存疑，请核对数值',
 			'record.customFood.kcalLabel' => '热量（千卡 / 100 克）',
 			'record.customFood.proteinLabel' => '蛋白质（克 / 100 克）',
@@ -3311,7 +3297,7 @@ extension on Translations {
 			'settings.aiModel.testFailAuth' => '连接失败：API Key 无效或无权限，请检查后重试',
 			'settings.aiModel.clear' => '清除配置',
 			'settings.aiModel.clearConfirmTitle' => '清除 AI 模型配置？',
-			'settings.aiModel.clearConfirmBody' => '清除后，自定义食物估算将回退为服务端模型。',
+			'settings.aiModel.clearConfirmBody' => '清除后，自定义食物估算将不可用（可开启端侧小模型或重新配置）。',
 			'settings.aiModel.clearConfirmAction' => '确认清除',
 			'settings.aiModel.cleared' => 'AI 模型配置已清除',
 			'settings.onDevice.title' => '端侧小模型',
@@ -3340,7 +3326,6 @@ extension on Translations {
 			'settings.chain.title' => '估算生效链路',
 			'settings.chain.onDevice' => '端侧小模型',
 			'settings.chain.userApi' => '自定义 API',
-			'settings.chain.server' => '云端兜底',
 			'settings.chain.statusEnabled' => '已启用',
 			'settings.chain.statusDisabled' => '未启用',
 			'settings.chain.statusNotDownloaded' => '未下载',
@@ -3350,7 +3335,6 @@ extension on Translations {
 			'settings.chain.statusUnknown' => '未就绪',
 			'settings.chain.statusConfigured' => '已配置',
 			'settings.chain.statusNotConfigured' => '未配置',
-			'settings.chain.statusAlways' => '始终可用',
 			'settings.chain.current' => '当前生效',
 			'legal.draftNote' => '〔待外部确认：法务终稿〕',
 			'legal.consent.title' => '欢迎使用 EatWise',
@@ -3405,12 +3389,12 @@ extension on Translations {
 			'social.compose.retryUpload' => '重新上传',
 			'social.compose.streakBadge' => ({required Object days}) => '当前连续 ${days} 天 🔥',
 			'social.compose.noStreak' => '完成今天的断食，打卡就会带上连胜徽章哦',
-			_ => null,
-		} ?? switch (path) {
 			'social.compose.publish' => '发布',
 			'social.compose.publishFailed' => '发布失败，请稍后重试',
 			'social.compose.emptyText' => '先写点什么吧',
 			'auth.login.title' => '登录',
+			_ => null,
+		} ?? switch (path) {
 			'auth.login.subtitle' => '使用账号密码登录',
 			'auth.login.phoneLabel' => '手机号',
 			'auth.login.phoneHint' => '请输入 11 位手机号',

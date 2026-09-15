@@ -32,7 +32,8 @@ final class OnDeviceNutritionEstimator {
   final OnDeviceLlmGateway gateway;
 
   /// OOM 后永久禁用（本设备不再尝试端侧加载，避免反复 OOM 杀进程；
-  /// 上层捕获 [OnDeviceLlmMemoryException] 后应回退服务端/云端估算链路）。
+  /// 上层捕获 [OnDeviceLlmMemoryException] 后应降级用户自配 API 或
+  /// 「估算暂不可用」提示）。
   bool _permanentlyDisabled = false;
   bool get isPermanentlyDisabled => _permanentlyDisabled;
 

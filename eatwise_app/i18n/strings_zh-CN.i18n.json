@@ -189,10 +189,8 @@
       "estimating": "估算中…",
       "estimateLow": "置信度较低，请仔细核对数值",
       "estimateUnavailable": "估算暂不可用，请手动填写",
-      "estimateFallbackNotice": "你的模型连接失败，已改用云端估算",
       "estimateBadgeOnDevice": "端侧估算，请确认",
       "estimateBadgeUserApi": "自定义 API 估算，请确认",
-      "estimateBadgeServer": "云端估算，请确认",
       "estimateDubious": "估算存疑，请核对数值",
       "kcalLabel": "热量（千卡 / 100 克）",
       "proteinLabel": "蛋白质（克 / 100 克）",
@@ -599,7 +597,7 @@
       "testFailAuth": "连接失败：API Key 无效或无权限，请检查后重试",
       "clear": "清除配置",
       "clearConfirmTitle": "清除 AI 模型配置？",
-      "clearConfirmBody": "清除后，自定义食物估算将回退为服务端模型。",
+      "clearConfirmBody": "清除后，自定义食物估算将不可用（可开启端侧小模型或重新配置）。",
       "clearConfirmAction": "确认清除",
       "cleared": "AI 模型配置已清除"
     },
@@ -632,7 +630,6 @@
       "title": "估算生效链路",
       "onDevice": "端侧小模型",
       "userApi": "自定义 API",
-      "server": "云端兜底",
       "statusEnabled": "已启用",
       "statusDisabled": "未启用",
       "statusNotDownloaded": "未下载",
@@ -642,7 +639,6 @@
       "statusUnknown": "未就绪",
       "statusConfigured": "已配置",
       "statusNotConfigured": "未配置",
-      "statusAlways": "始终可用",
       "current": "当前生效"
     }
   },

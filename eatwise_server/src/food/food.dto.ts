@@ -14,20 +14,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-export class EstimateFoodDto {
-  /** 菜名（trim 后 1-50 字，服务侧再校验） */
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  name: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  description?: string;
-}
-
-/** 每 100g 营养（区间与 LLM 估算校验一致：kcal ≤900，其余 ≤100） */
+/** 每 100g 营养（区间与 food.rules 防腐校验一致：kcal ≤900，其余 ≤100） */
 export class Per100gDto {
   @IsNumber()
   @Min(0)

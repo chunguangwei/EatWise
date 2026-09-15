@@ -108,8 +108,8 @@ final class _RecordingClient implements AnalyticsClient {
 
 // ==================== 测试 ====================
 
-/// 自定义食物 AI 估算三级路由 widget 测试：
-/// 端侧（开关开且模型就绪）→ 用户自配 API → 服务端兜底；
+/// 自定义食物 AI 估算两级路由 widget 测试：
+/// 端侧（开关开且模型就绪）→ 用户自配 API（两级都不可用走「估算暂不可用」提示）；
 /// 端侧 dubious 预填 +「估算存疑」提示；端侧失败静默降级；开关关闭/未就绪不走端侧。
 void main() {
   late AppDatabase db;
@@ -248,7 +248,6 @@ void main() {
     expect(find.text('估算存疑，请核对数值'), findsOneWidget);
     expect(onDevice.calls, 1);
     expect(userClient.calls, 0, reason: '端侧命中不再走用户 API');
-    expect(customRemote.estimateCount, 0, reason: '端侧命中不再走服务端');
 
     await analytics.flush();
     final estimateEvents = analyticsClient.events.where(
@@ -279,15 +278,24 @@ void main() {
     expect(fieldText(tester, 2), '111');
     expect(find.text('自定义 API 估算，请确认'), findsOneWidget);
     expect(find.text('端侧估算，请确认'), findsNothing);
-    expect(find.text('云端估算，请确认'), findsNothing);
     expect(onDevice.calls, 1);
     expect(userClient.calls, 1);
-    expect(customRemote.estimateCount, 0);
     await settleUi(tester);
   });
 
-  testWidgets('端侧失败 + 用户 API 失败 → 服务端兜底 + 回落提示', (tester) async {
+  testWidgets('端侧失败 + 用户 API 失败 → 估算不可用提示（无服务端兜底），埋点 result=unavailable', (
+    tester,
+  ) async {
     onDevice.error = const OnDeviceLlmEngineException('推理失败');
+    final analyticsClient = _RecordingClient();
+    final analytics = AnalyticsService(
+      consentStore: InMemoryConsentStore(analyticsGranted: true),
+      queueStore: InMemoryEventQueueStore(),
+      context: AnalyticsContext(
+        deviceIdentityStore: InMemoryDeviceIdentityStore(),
+      ),
+      clients: <AnalyticsClient>[analyticsClient],
+    );
     final store = InMemoryLlmConfigStore();
     await store.save(
       const LlmConfig(provider: 'custom', baseUrl: 'http://x/v1', model: 'm'),
@@ -298,42 +306,45 @@ void main() {
       onDeviceEnabled: true,
       userClient: userClient,
       llmStore: store,
+      analytics: analytics,
     );
 
     await openSheetAndEstimate(tester);
 
-    // FakeCustomFoodRemote 默认 high 样例 200/10/20/5。
-    expect(fieldText(tester, 2), '200');
-    expect(find.text('云端估算，请确认'), findsOneWidget);
+    expect(find.text('估算暂不可用，请手动填写'), findsOneWidget);
     expect(find.text('自定义 API 估算，请确认'), findsNothing);
-    expect(find.text('你的模型连接失败，已改用云端估算'), findsOneWidget);
+    expect(find.text('端侧估算，请确认'), findsNothing);
+    expect(onDevice.calls, 1);
     expect(userClient.calls, 1);
-    expect(customRemote.estimateCount, 1);
+
+    await analytics.flush();
+    final estimateEvents = analyticsClient.events.where(
+      (e) => e.name == 'record_ai_estimate',
+    );
+    expect(estimateEvents, hasLength(1));
+    expect(estimateEvents.single.properties['source'], 'none');
+    expect(estimateEvents.single.properties['result'], 'unavailable');
     await settleUi(tester);
   });
 
-  testWidgets('开关关闭 → 不走端侧（端侧零调用），直走服务端', (tester) async {
+  testWidgets('开关关闭 → 不走端侧（端侧零调用）；未配置 API → 估算不可用提示', (tester) async {
     await pumpPage(tester, onDeviceEnabled: false);
 
     await openSheetAndEstimate(tester);
 
-    expect(fieldText(tester, 2), '200');
-    expect(find.text('云端估算，请确认'), findsOneWidget);
+    expect(find.text('估算暂不可用，请手动填写'), findsOneWidget);
     expect(onDevice.calls, 0);
-    expect(customRemote.estimateCount, 1);
     await settleUi(tester);
   });
 
-  testWidgets('开关开但模型未就绪 → 不走端侧不触发下载，直走服务端', (tester) async {
+  testWidgets('开关开但模型未就绪 → 不走端侧不触发下载；未配置 API → 估算不可用提示', (tester) async {
     onDevice.ready = false;
     await pumpPage(tester, onDeviceEnabled: true);
 
     await openSheetAndEstimate(tester);
 
-    expect(fieldText(tester, 2), '200');
-    expect(find.text('云端估算，请确认'), findsOneWidget);
+    expect(find.text('估算暂不可用，请手动填写'), findsOneWidget);
     expect(onDevice.calls, 0);
-    expect(customRemote.estimateCount, 1);
     await settleUi(tester);
   });
 }

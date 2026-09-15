@@ -12,10 +12,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// 「估算生效链路」卡：三级优先级状态展示 + 当前生效行高亮。
+/// 「估算生效链路」卡：两级优先级状态展示 + 当前生效行高亮。
 ///
 /// 覆盖：开关开+模型就绪 → 高亮端侧（已启用）；开关关+已配 API →
-/// 高亮自定义 API（已配置）；都未配 → 高亮云端兜底（始终可用）。
+/// 高亮自定义 API（已配置）；两级都不可用 → 无高亮（估算走「暂不可用」提示）。
 void main() {
   setUp(() async {
     await LocaleSettings.setLocale(AppLocale.zhCn);
@@ -102,10 +102,9 @@ void main() {
     );
 
     expect(find.text('估算生效链路'), findsOneWidget);
-    expectActiveRow('端侧小模型', <String>['自定义 API', '云端兜底']);
+    expectActiveRow('端侧小模型', <String>['自定义 API']);
     expect(find.textContaining('端侧小模型 —— 已启用'), findsOneWidget);
     expect(find.textContaining('自定义 API —— 已配置'), findsOneWidget);
-    expect(find.textContaining('云端兜底 —— 始终可用'), findsOneWidget);
   });
 
   testWidgets('开关关（模型就绪）+ 已配 API → 高亮自定义 API', (tester) async {
@@ -116,11 +115,11 @@ void main() {
       userApiConfigured: true,
     );
 
-    expectActiveRow('自定义 API', <String>['端侧小模型', '云端兜底']);
+    expectActiveRow('自定义 API', <String>['端侧小模型']);
     expect(find.textContaining('端侧小模型 —— 未启用'), findsOneWidget);
   });
 
-  testWidgets('端侧未下载 + API 未配置 → 高亮云端兜底', (tester) async {
+  testWidgets('端侧未下载 + API 未配置 → 两级都不可用，无高亮', (tester) async {
     await pumpPage(
       tester,
       modelStatus: OnDeviceModelStatus.notDownloaded,
@@ -128,7 +127,7 @@ void main() {
       userApiConfigured: false,
     );
 
-    expectActiveRow('云端兜底', <String>['端侧小模型', '自定义 API']);
+    expect(find.text('当前生效'), findsNothing);
     expect(find.textContaining('端侧小模型 —— 未下载'), findsOneWidget);
     expect(find.textContaining('自定义 API —— 未配置'), findsOneWidget);
   });
@@ -141,7 +140,7 @@ void main() {
       userApiConfigured: true,
     );
 
-    expectActiveRow('自定义 API', <String>['端侧小模型', '云端兜底']);
+    expectActiveRow('自定义 API', <String>['端侧小模型']);
     expect(find.textContaining('端侧小模型 —— 已暂停'), findsOneWidget);
   });
 }

@@ -6,7 +6,7 @@ export const ADMIN_ROLE_KEY = 'adminRole';
 /**
  * 管理端点最低角色要求（角色层级：admin > reviewer）。
  * - reviewer：食物候选/打卡审核端点（admin 亦可）
- * - admin：API 配置端点（GET/PUT config、llm/test）
+ * - admin：预留给仅管理员可用的端点（当前暂无）
  */
 export const AdminRole = (role: AdminRoleName) => SetMetadata(ADMIN_ROLE_KEY, role);
 

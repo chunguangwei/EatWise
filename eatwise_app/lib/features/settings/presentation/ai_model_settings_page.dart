@@ -74,7 +74,7 @@ String llmTestFailText(Translations t, String reason) {
 /// AI 模型配置页（/settings/ai-model）：用户自定义 LLM 的
 /// provider/baseUrl/model/apiKey 本机配置（规格 §3，D-本-02）。
 /// 内置供应商（deepseek/qwen/kimi）留空即补 preset；apiKey 留空保持不变；
-/// 测试连接用当前表单（未保存也可测）；清除后回退服务端估算链路。
+/// 测试连接用当前表单（未保存也可测）；清除后估算仅剩端侧小模型一级可用。
 class AiModelSettingsPage extends ConsumerStatefulWidget {
   const AiModelSettingsPage({super.key});
 
@@ -266,7 +266,8 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.s4),
           children: <Widget>[
-            // 估算生效链路（三级优先级 + 当前生效高亮）；下方依次为
+            // 估算生效链路（两级优先级 + 当前生效高亮；两级都不可用
+            // 时无高亮，估算走「暂不可用」提示）；下方依次为
             // 端侧小模型（下载/开关）与用户自定义 API 配置。
             _EstimateChainCard(
               userApiConfigured: _stored?.effective().isComplete ?? false,
@@ -385,9 +386,10 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
   }
 }
 
-/// 估算生效链路卡（AI 模型配置页顶部）：三级优先级「端侧小模型 →
-/// 自定义 API → 云端兜底」+ 各级状态，当前会生效的一级高亮并标
-/// 「当前生效」（与 FoodEstimateOrchestrator 的三级回落口径一致）。
+/// 估算生效链路卡（AI 模型配置页顶部）：两级优先级「端侧小模型 →
+/// 自定义 API」+ 各级状态，当前会生效的一级高亮并标「当前生效」
+///（与 FoodEstimateOrchestrator 的两级路由口径一致；两级都不可用
+/// 时无高亮，估算走「暂不可用」提示）。
 class _EstimateChainCard extends ConsumerWidget {
   const _EstimateChainCard({required this.userApiConfigured});
 
@@ -419,12 +421,13 @@ class _EstimateChainCard extends ConsumerWidget {
         ? c.statusConfigured
         : c.statusNotConfigured;
 
-    // 生效级 = 第一级可用者（端侧需开关开且模型就绪；云端始终兜底）。
+    // 生效级 = 第一级可用者（端侧需开关开且模型就绪）；两级都不可用
+    // 无高亮（无服务端兜底，估算走「暂不可用」提示）。
     final activeIndex = enabled && ready
         ? 0
         : userApiConfigured
         ? 1
-        : 2;
+        : -1;
 
     return Container(
       decoration: BoxDecoration(
@@ -457,17 +460,6 @@ class _EstimateChainCard extends ConsumerWidget {
             name: c.userApi,
             status: userApiStatus,
             active: activeIndex == 1,
-          ),
-          const SizedBox(height: AppSpacing.s2),
-          _chainRow(
-            colors,
-            textStyles,
-            radii,
-            t,
-            index: 3,
-            name: c.server,
-            status: c.statusAlways,
-            active: activeIndex == 2,
           ),
         ],
       ),

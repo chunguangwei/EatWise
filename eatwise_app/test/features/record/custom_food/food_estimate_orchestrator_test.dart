@@ -5,7 +5,6 @@ import 'package:eatwise/core/llm/ondevice/ondevice_llm_gateway.dart';
 import 'package:eatwise/core/llm/ondevice/ondevice_nutrition_estimator.dart';
 import 'package:eatwise/core/llm/user_llm_client.dart';
 import 'package:eatwise/core/network/api_exception.dart';
-import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
 import 'package:eatwise/features/record/custom_food/domain/food_estimate_orchestrator.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
@@ -68,56 +67,37 @@ final class _FakeOnDeviceSource implements OnDeviceEstimateSource {
   }
 }
 
+/// 判定为「估算不可用」（UI 降级手动填写分支的同一口径）。
+Matcher get _unavailable => throwsA(
+  isA<BusinessApiException>()
+      .having((e) => e.httpStatus, 'httpStatus', 503)
+      .having((e) => e.code, 'code', 'ESTIMATE_UNAVAILABLE'),
+);
+
 void main() {
-  test('未配置 → 直走服务端，usedFallback=false', () async {
-    final remote = FakeCustomFoodRemote()..estimateResult = _sample;
+  test('未配置用户 API → 抛 503 ESTIMATE_UNAVAILABLE（无服务端兜底）', () async {
     final orch = FoodEstimateOrchestrator(
       store: InMemoryLlmConfigStore(),
       userClient: _FakeUserClient(ok: true),
-      remote: remote,
     );
-    final out = await orch.estimate('x');
-    expect(out.usedFallback, isFalse);
-    expect(out.source, FoodEstimateSource.server);
-    expect(remote.estimateCount, 1);
+    await expectLater(orch.estimate('x'), _unavailable);
   });
 
-  test('已配置且直连成功 → 不走服务端', () async {
+  test('已配置且直连成功 → source=userApi', () async {
     final store = InMemoryLlmConfigStore();
     await store.save(
       const LlmConfig(provider: 'custom', baseUrl: 'http://x/v1', model: 'm'),
     );
-    final remote = FakeCustomFoodRemote();
     final orch = FoodEstimateOrchestrator(
       store: store,
       userClient: _FakeUserClient(ok: true),
-      remote: remote,
     );
     final out = await orch.estimate('x');
-    expect(out.usedFallback, isFalse);
     expect(out.source, FoodEstimateSource.userApi);
     expect(out.estimate.per100g.kcal, _sample.per100g.kcal);
-    expect(remote.estimateCount, 0);
   });
 
-  test('直连失败 → 回落服务端，usedFallback=true', () async {
-    final store = InMemoryLlmConfigStore();
-    await store.save(
-      const LlmConfig(provider: 'custom', baseUrl: 'http://x/v1', model: 'm'),
-    );
-    final remote = FakeCustomFoodRemote()..estimateResult = _sample;
-    final orch = FoodEstimateOrchestrator(
-      store: store,
-      userClient: _FakeUserClient(ok: false),
-      remote: remote,
-    );
-    final out = await orch.estimate('x');
-    expect(out.usedFallback, isTrue);
-    expect(out.source, FoodEstimateSource.server);
-    expect(out.estimate.per100g.kcal, _sample.per100g.kcal);
-  });
-
-  test('双失败 → 抛 ESTIMATE_UNAVAILABLE', () async {
+  test('直连失败 → 抛 503 ESTIMATE_UNAVAILABLE（不再回落服务端）', () async {
     final store = InMemoryLlmConfigStore();
     await store.save(
       const LlmConfig(provider: 'custom', baseUrl: 'http://x/v1', model: 'm'),
@@ -125,14 +105,11 @@ void main() {
     final orch = FoodEstimateOrchestrator(
       store: store,
       userClient: _FakeUserClient(ok: false),
-      remote: FakeCustomFoodRemote(
-        mode: FakeCustomFoodMode.estimateUnavailable,
-      ),
     );
-    await expectLater(orch.estimate('x'), throwsA(isA<ApiException>()));
+    await expectLater(orch.estimate('x'), _unavailable);
   });
 
-  group('端侧优先级（开关开且模型就绪 → 端侧 → 用户 API → 服务端）', () {
+  group('端侧优先级（开关开且模型就绪 → 端侧 → 用户 API）', () {
     late _FakeOnDeviceSource onDevice;
 
     setUp(() {
@@ -142,28 +119,21 @@ void main() {
     FoodEstimateOrchestrator build({
       bool enabled = true,
       _FakeUserClient? userClient,
-      FakeCustomFoodRemote? remote,
       LlmConfigStore? store,
     }) {
       return FoodEstimateOrchestrator(
         store: store ?? InMemoryLlmConfigStore(),
         userClient: userClient ?? _FakeUserClient(ok: true),
-        remote: remote ?? (FakeCustomFoodRemote()..estimateResult = _sample),
         onDeviceEnabled: () => enabled,
         onDeviceSource: () => onDevice,
       );
     }
 
-    test('端侧成功 → source=ondevice 预填，不再触碰用户 API/服务端', () async {
+    test('端侧成功 → source=ondevice 预填，不再触碰用户 API', () async {
       final userClient = _FakeUserClient(ok: true);
-      final remote = FakeCustomFoodRemote()..estimateResult = _sample;
-      final out = await build(
-        userClient: userClient,
-        remote: remote,
-      ).estimate('番茄炒蛋');
+      final out = await build(userClient: userClient).estimate('番茄炒蛋');
 
       expect(out.source, FoodEstimateSource.ondevice);
-      expect(out.usedFallback, isFalse);
       expect(out.estimate.per100g.kcal, 150);
       expect(out.estimate.per100g.proteinG, 8);
       expect(out.estimate.per100g.carbG, 12);
@@ -171,7 +141,6 @@ void main() {
       expect(out.estimate.confidence, 'medium');
       expect(onDevice.calls, 1);
       expect(userClient.calls, 0);
-      expect(remote.estimateCount, 0);
     });
 
     test('端侧 dubious（sanity-clamp 命中）→ confidence=low 仍预填', () async {
@@ -191,23 +160,15 @@ void main() {
       expect(out.estimate.per100g.kcal, 320);
     });
 
-    test('开关关闭 → 跳过端侧走服务端（端侧零调用）', () async {
-      final remote = FakeCustomFoodRemote()..estimateResult = _sample;
-      final out = await build(enabled: false, remote: remote).estimate('x');
-
-      expect(out.source, FoodEstimateSource.server);
+    test('开关关闭 → 跳过端侧（零调用）；未配置 API → 估算不可用', () async {
+      await expectLater(build(enabled: false).estimate('x'), _unavailable);
       expect(onDevice.calls, 0);
-      expect(remote.estimateCount, 1);
     });
 
     test('模型未就绪 → 跳过端侧不触发下载（端侧零调用）', () async {
       onDevice.ready = false;
-      final remote = FakeCustomFoodRemote()..estimateResult = _sample;
-      final out = await build(remote: remote).estimate('x');
-
-      expect(out.source, FoodEstimateSource.server);
+      await expectLater(build().estimate('x'), _unavailable);
       expect(onDevice.calls, 0);
-      expect(remote.estimateCount, 1);
     });
 
     test('端侧引擎错误 → 静默降级下一级（已配置用户 API）', () async {
@@ -223,36 +184,27 @@ void main() {
       ).estimate('x');
 
       expect(out.source, FoodEstimateSource.userApi);
-      expect(out.usedFallback, isFalse);
       expect(userClient.calls, 1);
     });
 
-    test('端侧解析失败（返回 null）→ 静默降级服务端', () async {
+    test('端侧解析失败（返回 null）→ 静默降级；无可用级 → 估算不可用', () async {
       onDevice.result = null;
-      final remote = FakeCustomFoodRemote()..estimateResult = _sample;
-      final out = await build(remote: remote).estimate('x');
-
-      expect(out.source, FoodEstimateSource.server);
+      await expectLater(build().estimate('x'), _unavailable);
       expect(onDevice.calls, 1);
-      expect(remote.estimateCount, 1);
     });
 
     test('端侧 OOM → 静默降级；永久禁用后后续估算不再触碰端侧', () async {
       onDevice.error = const OnDeviceLlmMemoryException('引擎加载内存不足');
-      final remote = FakeCustomFoodRemote()..estimateResult = _sample;
 
-      final first = await build(remote: remote).estimate('x');
-      expect(first.source, FoodEstimateSource.server);
+      await expectLater(build().estimate('x'), _unavailable);
       expect(onDevice.calls, 1);
 
       // 估算器内部置永久禁用（Fake 模拟）：编排器不再调用端侧。
       onDevice
         ..permanentlyDisabled = true
         ..error = null;
-      final second = await build(remote: remote).estimate('y');
-      expect(second.source, FoodEstimateSource.server);
+      await expectLater(build().estimate('y'), _unavailable);
       expect(onDevice.calls, 1, reason: '永久禁用后不再尝试端侧');
-      expect(remote.estimateCount, 2);
     });
   });
 }
