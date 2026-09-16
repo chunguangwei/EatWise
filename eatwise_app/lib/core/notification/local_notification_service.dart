@@ -1,3 +1,4 @@
+import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/notification/notification_service.dart';
 import 'package:eatwise/core/notification/notification_types.dart';
 import 'package:flutter/foundation.dart';
@@ -17,13 +18,17 @@ class LocalNotificationService implements NotificationService {
 
   final FlutterLocalNotificationsPlugin _plugin;
 
-  /// 缺省渠道（initialize 未指定时兜底；文案为系统占位，生产路径应传 i18n 文案）。
-  static const NotificationChannelConfig fallbackChannel =
-      NotificationChannelConfig(
-        id: 'general_reminders',
-        name: 'EatWise',
-        description: 'General reminders',
-      );
+  /// 缺省渠道（initialize 未指定时的防御兜底；生产路径 main.dart 总是
+  /// 显式传入 fastingReminderChannel）。渠道名/描述是系统设置页可见文案，
+  /// 必须走 i18n（D-15），跟随当前 slang 语言即时取值。
+  static NotificationChannelConfig get fallbackChannel {
+    final t = LocaleSettings.currentLocale.buildSync();
+    return NotificationChannelConfig(
+      id: 'general_reminders',
+      name: t.notify.channel.general.name,
+      description: t.notify.channel.general.description,
+    );
+  }
 
   NotificationChannelConfig _channel = fallbackChannel;
 

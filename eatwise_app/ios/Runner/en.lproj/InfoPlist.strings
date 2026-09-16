@@ -1,0 +1,5 @@
+/* M3 photo recognition + barcode scan (compliance §3.1: ask on first use) */
+"NSCameraUsageDescription" = "Take photos or scan barcodes to log a meal faster";
+/* M3 voice input (speech recognition + microphone, ask on first use) */
+"NSSpeechRecognitionUsageDescription" = "Turn what you say into text so you can log meals by voice";
+"NSMicrophoneUsageDescription" = "Voice logging needs access to your microphone";

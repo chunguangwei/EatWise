@@ -7,6 +7,7 @@ import 'package:eatwise/core/analytics/analytics_service.dart';
 import 'package:eatwise/core/analytics/consent_store.dart';
 import 'package:eatwise/core/analytics/device_identity_store.dart';
 import 'package:eatwise/core/analytics/event_queue_store.dart';
+import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
@@ -229,13 +230,13 @@ void main() {
 
   testWidgets('查询不可用（网络错误）→ 提示文案，不误判未收录', (tester) async {
     barcodeService.outcomes['7622210449283'] = const BarcodeLookupUnavailable(
-      '网络连接失败',
+      NetworkApiException(),
     );
     await pumpPage(tester);
 
     await tapBarcodeEntry(tester);
 
-    expect(find.text('网络连接失败'), findsOneWidget);
+    expect(find.text('网络连接失败，请检查网络后重试'), findsOneWidget);
     expect(find.text('未收录该商品'), findsNothing);
     await settleUi(tester);
   });

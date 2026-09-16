@@ -19,12 +19,16 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:eatwise/core/llm/ondevice/ondevice_llm_gateway.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';
 
 final class FlutterGemmaGateway implements OnDeviceLlmGateway {
   bool _initialized = false;
   InferenceModel? _model;
+
+  /// 当前已加载模型的视觉能力（与 getActiveModel 的 supportImage 对应）。
+  bool _visionEnabled = false;
 
   /// genMutex：全局操作串行化（引擎单租户）。
   Future<void> _tail = Future<void>.value();
@@ -46,26 +50,40 @@ final class FlutterGemmaGateway implements OnDeviceLlmGateway {
   bool get isLoaded => _model != null;
 
   @override
-  Future<void> load(String modelPath) {
+  bool get visionEnabled => _model != null && _visionEnabled;
+
+  @override
+  Future<void> load(String modelPath, {bool enableVision = false}) {
     return _serialized(() async {
-      if (_model != null) return; // 幂等：已加载直接复用
+      // 幂等：已加载且视觉能力一致直接复用；能力不一致时交给
+      // getActiveModel —— core 单例检测到 supportImage 变化会自动关旧模型
+      // 重建（ActiveModelParams.firstDifference），无需手动 unload。
+      if (_model != null && _visionEnabled == enableVision) return;
       if (!await File(modelPath).exists()) {
         throw OnDeviceModelMissingException('模型文件不存在：$modelPath');
       }
       try {
         await _ensureInitialized();
-        await FlutterGemma.installModel(
-          modelType: ModelType.gemma4, // Gemma4 专用枚举，别用 gemmaIt
-          fileType: ModelFileType.litertlm, // 必须显式！默认 task 必败
-        ).fromFile(modelPath).install();
+        if (_model == null) {
+          await FlutterGemma.installModel(
+            modelType: ModelType.gemma4, // Gemma4 专用枚举，别用 gemmaIt
+            fileType: ModelFileType.litertlm, // 必须显式！默认 task 必败
+          ).fromFile(modelPath).install();
+        }
         _model = await FlutterGemma.getActiveModel(
           maxTokens: 2048, // 上下文窗口（KV cache），非输出长度
           preferredBackend: PreferredBackend.cpu,
+          // 视觉编码器开关（Gemma4-E2B 多模态）；编码器后端缺省即 CPU
+          // （Metal 备不了 STABLEHLO_COMPOSITE，LiteRT-LM#2461）。
+          supportImage: enableVision,
+          maxNumImages: enableVision ? 1 : null,
         );
+        _visionEnabled = enableVision;
       } on OnDeviceLlmException {
         rethrow;
       } on Object catch (e) {
         _model = null;
+        _visionEnabled = false;
         throw _classifyLoadError(e);
       }
     });
@@ -80,14 +98,61 @@ final class FlutterGemmaGateway implements OnDeviceLlmGateway {
     int topK = 1,
     int seed = 42,
   }) {
+    return _runChat(
+      Message.text(text: prompt, isUser: true),
+      requiresVision: false,
+      systemInstruction: systemInstruction,
+      maxOutputTokens: maxOutputTokens,
+      temperature: temperature,
+      topK: topK,
+      seed: seed,
+    );
+  }
+
+  @override
+  Future<String> inferWithImage(
+    String prompt,
+    Uint8List imageBytes, {
+    String? systemInstruction,
+    int maxOutputTokens = 96,
+    double temperature = 0.15,
+    int topK = 1,
+    int seed = 42,
+  }) {
+    return _runChat(
+      Message.withImage(text: prompt, imageBytes: imageBytes, isUser: true),
+      requiresVision: true,
+      systemInstruction: systemInstruction,
+      maxOutputTokens: maxOutputTokens,
+      temperature: temperature,
+      topK: topK,
+      seed: seed,
+    );
+  }
+
+  /// 单会话 close+recreate 执行一次推理（spike 定稿采样参数为默认值）。
+  Future<String> _runChat(
+    Message message, {
+    required bool requiresVision,
+    String? systemInstruction,
+    required int maxOutputTokens,
+    required double temperature,
+    required int topK,
+    required int seed,
+  }) {
     return _serialized(() async {
       final model = _model;
       if (model == null) {
         throw const OnDeviceLlmEngineException('引擎未加载模型，请先 load()');
       }
+      if (requiresVision && !_visionEnabled) {
+        // 插件在 supportImage=false 时静默丢图按纯文本回答，必须显式拦截。
+        throw const OnDeviceLlmEngineException(
+          '当前模型未启用视觉能力，请 load(enableVision: true)',
+        );
+      }
       InferenceChat? chat;
       try {
-        // 单会话 close+recreate（spike 定稿采样参数为默认值）
         chat = await model.createChat(
           temperature: temperature,
           topK: topK,
@@ -95,7 +160,7 @@ final class FlutterGemmaGateway implements OnDeviceLlmGateway {
           systemInstruction: systemInstruction ?? '',
           maxOutputTokens: maxOutputTokens,
         );
-        await chat.addQueryChunk(Message.text(text: prompt, isUser: true));
+        await chat.addQueryChunk(message);
         final response = await chat.generateChatResponse();
         return switch (response) {
           TextResponse(:final token) => token,
@@ -120,6 +185,7 @@ final class FlutterGemmaGateway implements OnDeviceLlmGateway {
     return _serialized(() async {
       final model = _model;
       _model = null;
+      _visionEnabled = false;
       if (model != null) {
         try {
           await model.close();

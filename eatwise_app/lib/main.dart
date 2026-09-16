@@ -238,7 +238,8 @@ class _EatWiseAppState extends State<EatWiseApp> {
     return Consumer(
       builder: (context, ref, _) {
         return MaterialApp.router(
-          title: 'EatWise',
+          // 系统任务切换器可见的 App 名，走 i18n（D-15）。
+          onGenerateTitle: (context) => Translations.of(context).common.appName,
           routerConfig: _router,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),

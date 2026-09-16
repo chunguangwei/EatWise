@@ -116,6 +116,7 @@ class _Translations$common$en extends Translations$common$zh_CN {
 	// Translations
 	@override String get appName => 'EatWise';
 	@override late final _Translations$common$action$en action = _Translations$common$action$en._(_root);
+	@override late final _Translations$common$error$en error = _Translations$common$error$en._(_root);
 }
 
 // Path: fasting
@@ -277,6 +278,7 @@ class _Translations$notify$channel$en extends Translations$notify$channel$zh_CN 
 
 	// Translations
 	@override late final _Translations$notify$channel$fastingReminders$en fastingReminders = _Translations$notify$channel$fastingReminders$en._(_root);
+	@override late final _Translations$notify$channel$general$en general = _Translations$notify$channel$general$en._(_root);
 }
 
 // Path: onboarding.quiz
@@ -619,6 +621,17 @@ class _Translations$common$action$en extends Translations$common$action$zh_CN {
 	@override String get undo => 'Undo';
 	@override String get retry => 'Retry';
 	@override String get confirm => 'OK';
+}
+
+// Path: common.error
+class _Translations$common$error$en extends Translations$common$error$zh_CN {
+	_Translations$common$error$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get network => 'Network connection failed. Check your connection and try again.';
+	@override String get timeout => 'Request timed out. Please try again.';
 }
 
 // Path: fasting.home
@@ -1296,6 +1309,17 @@ class _Translations$notify$channel$fastingReminders$en extends Translations$noti
 	@override String get description => 'Reminders for when your eating and fasting windows start';
 }
 
+// Path: notify.channel.general
+class _Translations$notify$channel$general$en extends Translations$notify$channel$general$zh_CN {
+	_Translations$notify$channel$general$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get name => 'General reminders';
+	@override String get description => 'General app reminders';
+}
+
 // Path: onboarding.quiz.q1
 class _Translations$onboarding$quiz$q1$en extends Translations$onboarding$quiz$q1$zh_CN {
 	_Translations$onboarding$quiz$q1$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -1740,6 +1764,8 @@ extension on TranslationsEn {
 		return switch (path) {
 			'notify.channel.fastingReminders.name' => 'Fasting reminders',
 			'notify.channel.fastingReminders.description' => 'Reminders for when your eating and fasting windows start',
+			'notify.channel.general.name' => 'General reminders',
+			'notify.channel.general.description' => 'General app reminders',
 			'notify.permissionBanner' => 'Turn on notifications to get reminded when your eating and fasting windows start',
 			'notify.exactAlarmHint' => 'Battery-saving policies may delay reminders — allow exact alarms for on-time alerts',
 			'onboarding.quiz.title' => '3 quick questions to find your fasting rhythm 🌱',
@@ -1927,6 +1953,8 @@ extension on TranslationsEn {
 			'common.action.undo' => 'Undo',
 			'common.action.retry' => 'Retry',
 			'common.action.confirm' => 'OK',
+			'common.error.network' => 'Network connection failed. Check your connection and try again.',
+			'common.error.timeout' => 'Request timed out. Please try again.',
 			'fasting.home.title' => 'Fasting Timer',
 			'fasting.home.endFast' => 'End fast',
 			'fasting.home.extend' => 'Extend',
@@ -2246,12 +2274,12 @@ extension on TranslationsEn {
 			'social.feed.reported' => 'Reported. Thanks for the heads-up.',
 			'social.feed.reportFailed' => 'Couldn\'t report. Please try again later.',
 			'social.feed.expand' => 'Expand',
+			_ => null,
+		} ?? switch (path) {
 			'social.feed.collapse' => 'Collapse',
 			'social.feed.justNow' => 'Just now',
 			'social.feed.minutesAgo' => ({required Object n}) => '${n} min ago',
 			'social.feed.hoursAgo' => ({required Object n}) => '${n} hr ago',
-			_ => null,
-		} ?? switch (path) {
 			'social.feed.daysAgo' => ({required Object n}) => '${n} d ago',
 			'social.feed.anonymous' => 'EatWise buddy',
 			'social.compose.title' => 'New check-in',

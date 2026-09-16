@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/analytics_service.dart';
+import 'package:eatwise/core/network/api_error_text.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
@@ -80,6 +82,7 @@ Future<void> contributeCustomFood(
   String foodId,
 ) async {
   final cs = CustomFoodStrings.of(context);
+  final t = Translations.of(context);
   final messenger = ScaffoldMessenger.of(context);
   try {
     await ref.read(customFoodRepositoryProvider).contribute(foodId);
@@ -88,7 +91,9 @@ Future<void> contributeCustomFood(
     messenger.showSnackBar(SnackBar(content: Text(cs.submittedReview)));
   } on ApiException catch (e) {
     ref.invalidate(recordFoodSearchProvider); // 拒收落 rejected 同样需刷新
-    messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    messenger.showSnackBar(
+      SnackBar(content: Text(apiErrorDisplayMessage(t, e))),
+    );
   }
 }
 
@@ -211,7 +216,9 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
           'record_ai_estimate',
           properties: <String, Object?>{'source': 'none', 'result': 'fail'},
         );
-        final message = e is ApiException ? e.message : cs.estimateUnavailable;
+        final message = e is ApiException
+            ? apiErrorDisplayMessage(Translations.of(context), e)
+            : cs.estimateUnavailable;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(message)));
@@ -267,9 +274,13 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
           );
           ref.invalidate(recordFoodSearchProvider);
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(e.message)));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  apiErrorDisplayMessage(Translations.of(context), e),
+                ),
+              ),
+            );
           }
         }
       }
@@ -280,9 +291,11 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
       }
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(apiErrorDisplayMessage(Translations.of(context), e)),
+          ),
+        );
       }
     } finally {
       _saving = false;

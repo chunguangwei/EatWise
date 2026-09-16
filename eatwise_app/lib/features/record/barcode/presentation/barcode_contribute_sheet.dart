@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/analytics_service.dart';
+import 'package:eatwise/core/network/api_error_text.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/tables.dart';
@@ -218,7 +219,7 @@ class _BarcodeContributeSheetState
       if (!mounted || seq != _uploadSeq) return;
       setState(() {
         _uploading = false;
-        _uploadError = e.message;
+        _uploadError = apiErrorDisplayMessage(Translations.of(context), e);
       });
     }
   }
@@ -226,6 +227,7 @@ class _BarcodeContributeSheetState
   /// 提交：校验（含照片必填）→ 创建自定义食物 → 带条码贡献。
   Future<void> _onSubmit() async {
     if (_saving) return;
+    final t = Translations.of(context);
     final valid = _formKey.currentState?.validate() ?? false;
     if (_photoUrl == null) {
       // 照片必填：未选/上传失败都不可提交（上传失败时已展示重试入口）。
@@ -335,9 +337,9 @@ class _BarcodeContributeSheetState
           );
           // 留在表单可重试（贡献幂等，重试不产生重复候选）。
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(e.message)));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(apiErrorDisplayMessage(t, e))),
+            );
           }
         }
       } on ApiException catch (e) {
@@ -349,7 +351,7 @@ class _BarcodeContributeSheetState
         if (mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text(e.message)));
+          ).showSnackBar(SnackBar(content: Text(apiErrorDisplayMessage(t, e))));
         }
       }
     } on ApiException catch (e) {

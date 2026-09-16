@@ -1,0 +1,5 @@
+/* M3 拍照识别 + 扫码记（合规 §3.1：用时申请） */
+"NSCameraUsageDescription" = "拍照识别或扫描商品条码，帮你更快记一笔";
+/* M3 语音录入（语音识别 + 麦克风双权限，用时申请） */
+"NSSpeechRecognitionUsageDescription" = "把你说出的食物转成文字，语音也能记一笔";
+"NSMicrophoneUsageDescription" = "语音录入需要用到麦克风";

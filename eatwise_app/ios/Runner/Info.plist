@@ -26,14 +26,14 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<!-- M3 拍照识别 + 扫码记（合规 §3.1：首次点击「拍照」/「扫码记」入口时申请） -->
+	<!-- M3 拍照识别 + 扫码记（合规 §3.1：首次点击「拍照」/「扫码记」入口时申请）；双语文案见 zh-Hans/en.lproj/InfoPlist.strings，此处为开发语言（en）兜底 -->
 	<key>NSCameraUsageDescription</key>
-	<string>拍照识别或扫描商品条码，帮你更快记一笔</string>
-	<!-- M3 语音录入（合规 §3.1：语音识别 + 麦克风双权限，首次点击「语音」入口时申请） -->
+	<string>Take photos or scan barcodes to log a meal faster</string>
+	<!-- M3 语音录入（合规 §3.1：语音识别 + 麦克风双权限，首次点击「语音」入口时申请）；同上走 InfoPlist.strings -->
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>把你说出的食物转成文字，语音也能记一笔</string>
+	<string>Turn what you say into text so you can log meals by voice</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>语音录入需要用到麦克风</string>
+	<string>Voice logging needs access to your microphone</string>
 	<!-- 用户自定义 LLM 估算：允许直连局域网/本地 http 端点（如 192.168.x.x、localhost） -->
 	<key>NSAppTransportSecurity</key>
 	<dict>

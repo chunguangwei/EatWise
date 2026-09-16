@@ -124,6 +124,7 @@ class Translations$common$zh_CN {
 	String get appName => 'EatWise';
 
 	late final Translations$common$action$zh_CN action = Translations$common$action$zh_CN.internal(_root);
+	late final Translations$common$error$zh_CN error = Translations$common$error$zh_CN.internal(_root);
 }
 
 // Path: fasting
@@ -317,6 +318,7 @@ class Translations$notify$channel$zh_CN {
 
 	// Translations
 	late final Translations$notify$channel$fastingReminders$zh_CN fastingReminders = Translations$notify$channel$fastingReminders$zh_CN.internal(_root);
+	late final Translations$notify$channel$general$zh_CN general = Translations$notify$channel$general$zh_CN.internal(_root);
 }
 
 // Path: onboarding.quiz
@@ -931,6 +933,21 @@ class Translations$common$action$zh_CN {
 
 	/// zh-CN: '确定'
 	String get confirm => '确定';
+}
+
+// Path: common.error
+class Translations$common$error$zh_CN {
+	Translations$common$error$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '网络连接失败，请检查网络后重试'
+	String get network => '网络连接失败，请检查网络后重试';
+
+	/// zh-CN: '请求超时，请稍后重试'
+	String get timeout => '请求超时，请稍后重试';
 }
 
 // Path: fasting.home
@@ -2227,6 +2244,21 @@ class Translations$notify$channel$fastingReminders$zh_CN {
 	String get description => '进食窗口与断食窗口的到点提醒';
 }
 
+// Path: notify.channel.general
+class Translations$notify$channel$general$zh_CN {
+	Translations$notify$channel$general$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '常规提醒'
+	String get name => '常规提醒';
+
+	/// zh-CN: 'App 的一般性提醒'
+	String get description => 'App 的一般性提醒';
+}
+
 // Path: onboarding.quiz.q1
 class Translations$onboarding$quiz$q1$zh_CN {
 	Translations$onboarding$quiz$q1$zh_CN.internal(this._root);
@@ -2950,6 +2982,8 @@ extension on Translations {
 		return switch (path) {
 			'notify.channel.fastingReminders.name' => '断食提醒',
 			'notify.channel.fastingReminders.description' => '进食窗口与断食窗口的到点提醒',
+			'notify.channel.general.name' => '常规提醒',
+			'notify.channel.general.description' => 'App 的一般性提醒',
 			'notify.permissionBanner' => '开启通知，到点提醒你进食与断食',
 			'notify.exactAlarmHint' => '系统省电策略可能延迟提醒，建议允许精确闹钟',
 			'onboarding.quiz.title' => '3 个小问题，帮你找到最适合的断食节奏 🌱',
@@ -3137,6 +3171,8 @@ extension on Translations {
 			'common.action.undo' => '撤销',
 			'common.action.retry' => '重试',
 			'common.action.confirm' => '确定',
+			'common.error.network' => '网络连接失败，请检查网络后重试',
+			'common.error.timeout' => '请求超时，请稍后重试',
 			'fasting.home.title' => '断食计时',
 			'fasting.home.endFast' => '结束断食',
 			'fasting.home.extend' => '延长',
@@ -3456,12 +3492,12 @@ extension on Translations {
 			'social.feed.reported' => '已举报，感谢反馈',
 			'social.feed.reportFailed' => '举报失败，请稍后重试',
 			'social.feed.expand' => '展开',
+			_ => null,
+		} ?? switch (path) {
 			'social.feed.collapse' => '收起',
 			'social.feed.justNow' => '刚刚',
 			'social.feed.minutesAgo' => ({required Object n}) => '${n} 分钟前',
 			'social.feed.hoursAgo' => ({required Object n}) => '${n} 小时前',
-			_ => null,
-		} ?? switch (path) {
 			'social.feed.daysAgo' => ({required Object n}) => '${n} 天前',
 			'social.feed.anonymous' => 'EatWise 伙伴',
 			'social.compose.title' => '发布打卡',

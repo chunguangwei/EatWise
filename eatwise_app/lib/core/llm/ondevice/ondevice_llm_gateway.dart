@@ -1,9 +1,11 @@
 /// 端侧推理引擎网关接口与 typed error。
 ///
 /// 引擎单租户（flutter_gemma 全局串行、KV cache 按会话占内存），
-/// 实现侧必须保证 load/infer/unload 串行（参照 yiren genMutex 模式）。
-/// 单测不实例化引擎：上层依赖本接口，测试注入 Fake。
+/// 实现侧必须保证 load/infer/inferWithImage/unload 串行（参照 yiren
+/// genMutex 模式）。单测不实例化引擎：上层依赖本接口，测试注入 Fake。
 library;
+
+import 'dart:typed_data';
 
 /// 端侧推理异常基类（sealed，上层 switch 决策降级策略）。
 sealed class OnDeviceLlmException implements Exception {
@@ -37,15 +39,38 @@ abstract interface class OnDeviceLlmGateway {
   /// 引擎是否已加载模型。
   bool get isLoaded;
 
+  /// 已加载模型是否带视觉能力（load 时 enableVision: true）。
+  bool get visionEnabled;
+
   /// 加载模型文件（.litertlm 绝对路径）。文件不存在抛
   /// [OnDeviceModelMissingException]；OOM 抛 [OnDeviceLlmMemoryException]。
-  Future<void> load(String modelPath);
+  ///
+  /// [enableVision] 启用多模态视觉编码器（拍照识别用；flutter_gemma 的
+  /// supportImage → LiteRT-LM enableVision，视觉编码器固定走 CPU，见
+  /// flutter_gemma RuntimeConfig 文档）。已加载且能力一致时幂等复用；
+  /// 已加载但视觉能力不一致时引擎侧先关旧模型再按新参数重建（core 单例
+  /// 自动处理，调用方无需先 unload）。
+  Future<void> load(String modelPath, {bool enableVision = false});
 
   /// 单次推理，返回模型输出原文（解析由纯函数层负责）。
   /// 每次调用新建会话、结束即关闭（手机端单会话 close+recreate，
   /// 避免多会话叠加 100-500MB 上下文内存，spike §7-7）。
   Future<String> infer(
     String prompt, {
+    String? systemInstruction,
+    int maxOutputTokens,
+    double temperature,
+    int topK,
+    int seed,
+  });
+
+  /// 带图推理（拍照识别）：[imageBytes] 为 JPEG/PNG 字节，随用户消息
+  /// 一并送入视觉编码器。模型未以视觉能力加载（[visionEnabled] 为 false）
+  /// 时抛 [OnDeviceLlmEngineException]——插件在 supportImage=false 时会
+  /// 静默丢弃图片按纯文本回答，这里必须显式拦截。
+  Future<String> inferWithImage(
+    String prompt,
+    Uint8List imageBytes, {
     String? systemInstruction,
     int maxOutputTokens,
     double temperature,

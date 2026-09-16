@@ -23,10 +23,11 @@ final class BarcodeLookupNotFound extends BarcodeLookupOutcome {
 
 /// 网络/超时/5xx：提示后重试（不误判为「未收录」）。
 final class BarcodeLookupUnavailable extends BarcodeLookupOutcome {
-  const BarcodeLookupUnavailable(this.message);
+  const BarcodeLookupUnavailable(this.error);
 
-  /// 用户可读文案（服务端已本地化）。
-  final String message;
+  /// 原始领域异常；上屏文案由流程层经 apiErrorDisplayMessage 解析
+  /// （业务错误用服务端本地化 message，网络/超时走本地 i18n 兜底，D-15）。
+  final ApiException error;
 }
 
 /// 条码查询服务抽象（测试 override 为 fake）。
@@ -61,7 +62,7 @@ final class RemoteBarcodeFoodService implements BarcodeFoodService {
       if (api.code == 'FOOD_BARCODE_NOT_FOUND') {
         return const BarcodeLookupNotFound();
       }
-      return BarcodeLookupUnavailable(api.message);
+      return BarcodeLookupUnavailable(api);
     }
     final id = item['id'] as String?;
     if (id == null) return const BarcodeLookupNotFound();

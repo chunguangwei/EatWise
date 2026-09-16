@@ -4,6 +4,10 @@
       "fastingReminders": {
         "name": "Fasting reminders",
         "description": "Reminders for when your eating and fasting windows start"
+      },
+      "general": {
+        "name": "General reminders",
+        "description": "General app reminders"
       }
     },
     "permissionBanner": "Turn on notifications to get reminded when your eating and fasting windows start",
@@ -268,6 +272,10 @@
       "undo": "Undo",
       "retry": "Retry",
       "confirm": "OK"
+    },
+    "error": {
+      "network": "Network connection failed. Check your connection and try again.",
+      "timeout": "Request timed out. Please try again."
     }
   },
   "fasting": {

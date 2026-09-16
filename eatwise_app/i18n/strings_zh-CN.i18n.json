@@ -4,6 +4,10 @@
       "fastingReminders": {
         "name": "断食提醒",
         "description": "进食窗口与断食窗口的到点提醒"
+      },
+      "general": {
+        "name": "常规提醒",
+        "description": "App 的一般性提醒"
       }
     },
     "permissionBanner": "开启通知，到点提醒你进食与断食",
@@ -268,6 +272,10 @@
       "undo": "撤销",
       "retry": "重试",
       "confirm": "确定"
+    },
+    "error": {
+      "network": "网络连接失败，请检查网络后重试",
+      "timeout": "请求超时，请稍后重试"
     }
   },
   "fasting": {

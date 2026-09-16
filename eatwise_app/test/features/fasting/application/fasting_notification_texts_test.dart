@@ -3,6 +3,7 @@ import 'package:eatwise/features/fasting/application/fasting_notification_plan.d
 import 'package:eatwise/features/fasting/application/fasting_notification_texts.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 /// 通知文案 slang 适配器测试（D-15：三类文案走 i18n key，双语）。
 void main() {
@@ -86,13 +87,25 @@ void main() {
       expect(formatAttributionDate(date, locale: AppLocale.zhCn), '1月5日');
       expect(formatAttributionDate(date, locale: AppLocale.en), 'Jan 5');
     });
+
+    test('intl 日期符号就绪后输出一致（MMMd 骨架）', () async {
+      await initializeDateFormatting('zh_CN');
+      await initializeDateFormatting('en');
+      const date = LocalDate(2026, 1, 5);
+      expect(formatAttributionDate(date, locale: AppLocale.zhCn), '1月5日');
+      expect(formatAttributionDate(date, locale: AppLocale.en), 'Jan 5');
+      const date2 = LocalDate(2026, 9, 17);
+      expect(formatAttributionDate(date2, locale: AppLocale.zhCn), '9月17日');
+      expect(formatAttributionDate(date2, locale: AppLocale.en), 'Sep 17');
+    });
   });
 
   group('fastingReminderChannel', () {
     test('渠道 id 稳定，名称来自 i18n', () {
       final channel = fastingReminderChannel(AppLocale.zhCn.buildSync());
       expect(channel.id, fastingReminderChannelId);
-      expect(channel.name, 'EatWise');
+      expect(channel.name, '断食提醒');
+      expect(channel.description, '进食窗口与断食窗口的到点提醒');
     });
   });
 }

@@ -27,7 +27,7 @@ flutter test                    # 门禁：全绿
 - **代码一致性**：提交前 `dart format .` + `dart analyze` 零 issue + `flutter test` 全绿。CI 有 Android/iOS 双端构建门禁，本地改原生配置后至少跑 `flutter build apk --debug`。
 - **分层**：feature-first（presentation/application/domain/infrastructure），Token 走 `lib/core/theme/` ThemeExtension，文案一律 i18n key 禁止硬编码。
 - **领域逻辑纯函数化**：计时/营养/streak 等纯 Dart 可测，UI 只做接线。
-- **端侧小模型 AI 估算（2026-09-15 核心层入库）**：`lib/core/llm/ondevice/`——Gemma4-E2B `.litertlm`（2.41GB，按需下载）。依赖 `flutter_gemma` + `flutter_gemma_litertlm` 必须成对（core 无引擎）；安装必须显式 `ModelFileType.litertlm`；`maxTokens` 是上下文窗口、限输出用 createChat `maxOutputTokens`。下载自管（OnDeviceModelManager：双源选源/Range 续传/字节+LITERTLM 魔数双校验），**不要用** flutter_gemma 的 fromNetwork 下载（不续传、残留孤儿分片）。估算结果带 sanity-clamp 存疑标记，只能作食物库未命中兜底。iOS 真机需 Xcode 登录 Apple ID；首次加载生成 ~0.75GiB XNNPACK cache 属正常，清理策略要保留。
+- **端侧小模型 AI 估算（2026-09-15 核心层入库）**：`lib/core/llm/ondevice/`——Gemma4-E2B `.litertlm`（2.41GB，按需下载）。依赖 `flutter_gemma` + `flutter_gemma_litertlm` 必须成对（core 无引擎）；安装必须显式 `ModelFileType.litertlm`；`maxTokens` 是上下文窗口、限输出用 createChat `maxOutputTokens`。下载自管（OnDeviceModelManager：双源选源/Range 续传/字节+LITERTLM 魔数双校验），**不要用** flutter_gemma 的 fromNetwork 下载（不续传、残留孤儿分片）。估算结果带 sanity-clamp 存疑标记，只能作食物库未命中兜底。iOS 真机需 Xcode 登录 Apple ID；首次加载生成 ~0.75GiB XNNPACK cache 属正常，清理策略要保留。视觉推理（2026-09-16 拍照识别接通）：`load(enableVision: true)` + `inferWithImage`（getActiveModel supportImage → LiteRT-LM enableVision，视觉编码器固定 CPU；supportImage=false 时插件静默丢图，网关已显式拦截），服务在 `features/record/recognition/data/ondevice_food_recognition_service.dart`，识别名必须映射回食物库（未命中降级手动搜索），模型估值只作存疑判定不入账。
 
 ## 后端（eatwise_server/）
 

@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:app_settings/app_settings.dart';
+import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/network/api_error_text.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/record/barcode/data/barcode_food_service.dart';
 import 'package:eatwise/features/record/barcode/data/barcode_scanner_gateway.dart';
@@ -59,10 +61,14 @@ Future<void> applyBarcodeLookup(
       ref.read(recordLowConfidenceProvider.notifier).state = false;
     case BarcodeLookupNotFound():
       await _showBarcodeNotFoundCard(context, ref, bs, trimmed);
-    case BarcodeLookupUnavailable(message: final message):
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+    case BarcodeLookupUnavailable(error: final error):
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            apiErrorDisplayMessage(Translations.of(context), error),
+          ),
+        ),
+      );
   }
 }
 

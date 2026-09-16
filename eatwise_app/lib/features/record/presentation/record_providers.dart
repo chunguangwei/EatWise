@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:eatwise/core/llm/ondevice/ondevice_model_manager.dart';
+import 'package:eatwise/core/llm/ondevice/ondevice_providers.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
@@ -16,10 +18,12 @@ import 'package:eatwise/features/record/data/water_log_repository.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/recognition/data/food_recognition_service.dart';
 import 'package:eatwise/features/record/recognition/data/frequent_foods.dart';
+import 'package:eatwise/features/record/recognition/data/ondevice_food_recognition_service.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
 import 'package:eatwise/features/record/recognition/voice/speech_gateway.dart';
 import 'package:eatwise/features/record/recognition/voice/voice_text_parser.dart';
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
+import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart'
     show currentUserIdProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -141,11 +145,26 @@ final StateProvider<bool> recordLowConfidenceProvider = StateProvider<bool>(
 final Provider<PhotoPickerGateway> photoPickerGatewayProvider =
     Provider<PhotoPickerGateway>((ref) => ImagePickerPhotoGateway());
 
-/// 拍照识别服务（D-16）。**当前为远端 stub**：服务端识别端点未实现，
-/// 任何输入都返回 RecognitionUnavailable → UI 走手动搜索兜底。
-/// 〔待外部确认：第三方食物识别 API 选型 M0 定〕
+/// 拍照识别服务（D-16）。端侧小模型开关启用且模型已下载 → Gemma4-E2B
+/// 视觉识别（[OnDeviceFoodRecognitionService]）；否则保留**远端 stub**
+/// （服务端识别端点未实现，任何输入都返回 RecognitionUnavailable → UI
+/// 走手动搜索兜底）。〔待外部确认：第三方食物识别 API 选型 M0 定〕
 final Provider<FoodRecognitionService> foodRecognitionServiceProvider =
     Provider<FoodRecognitionService>((ref) {
+      final enabled = ref.watch(onDeviceAiEnabledProvider);
+      // 状态流优先（下载完成即时生效），流未发首帧时回退管理器当前快照。
+      final snapshot =
+          ref.watch(onDeviceModelSnapshotProvider).valueOrNull ??
+          ref.watch(onDeviceModelManagerProvider).snapshot;
+      if (enabled && snapshot.status == OnDeviceModelStatus.ready) {
+        final manager = ref.watch(onDeviceModelManagerProvider);
+        return OnDeviceFoodRecognitionService(
+          gateway: ref.watch(onDeviceLlmGatewayProvider),
+          modelPath: manager.modelPath,
+          searchFoods: (query) =>
+              ref.read(recordRepositoryProvider).searchFoods(query),
+        );
+      }
       return RemoteFoodRecognitionStub(dio: ref.watch(apiDioProvider));
     });
 

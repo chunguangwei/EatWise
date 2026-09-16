@@ -1,6 +1,7 @@
 import 'package:app_settings/app_settings.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/network/api_error_text.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
@@ -271,7 +272,7 @@ class SettingsPage extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(e.message)));
+        ).showSnackBar(SnackBar(content: Text(apiErrorDisplayMessage(t, e))));
       }
       return;
     }
@@ -313,7 +314,7 @@ class SettingsPage extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(e.message)));
+        ).showSnackBar(SnackBar(content: Text(apiErrorDisplayMessage(t, e))));
       }
       return;
     }
