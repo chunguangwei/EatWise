@@ -162,6 +162,45 @@ void main() {
     expect(await store.read(), isNull);
   });
 
+  testWidgets('校验时机（Y2）：未交互不亮红错，字段失焦后仅该字段报错', (tester) async {
+    await pumpPage(tester);
+    final Translations t = Translations.of(
+      tester.element(find.byType(AiModelSettingsPage)),
+    );
+
+    // 进入页面（custom 空表单）：无任何错误提示。
+    await scrollTo(
+      tester,
+      find.widgetWithText(TextField, t.settings.aiModel.baseUrl),
+    );
+    // 表单区块标题与链路卡同名（走查 B-3）。
+    expect(find.text('自定义 API'), findsOneWidget);
+    expect(find.text(t.settings.aiModel.baseUrlRequired), findsNothing);
+    expect(find.text(t.settings.aiModel.modelRequired), findsNothing);
+
+    // 聚焦 Base URL 后切到 Model（失焦）→ 仅 Base URL 亮错。
+    await tester.tap(
+      find.widgetWithText(TextField, t.settings.aiModel.baseUrl),
+    );
+    await tester.pumpAndSettle();
+    await scrollTo(
+      tester,
+      find.widgetWithText(TextField, t.settings.aiModel.model),
+    );
+    await tester.tap(find.widgetWithText(TextField, t.settings.aiModel.model));
+    await tester.pumpAndSettle();
+    expect(find.text(t.settings.aiModel.baseUrlRequired), findsOneWidget);
+    expect(find.text(t.settings.aiModel.modelRequired), findsNothing);
+
+    // 输入合法值后错误即时消失（实时重算）。
+    await tester.enterText(
+      find.widgetWithText(TextField, t.settings.aiModel.baseUrl),
+      'http://localhost:11434/v1',
+    );
+    await tester.pump();
+    expect(find.text(t.settings.aiModel.baseUrlRequired), findsNothing);
+  });
+
   testWidgets('清除配置：确认弹窗 → store 清空并提示', (tester) async {
     await store.save(
       const LlmConfig(provider: 'qwen', baseUrl: '', model: '', apiKey: 'sk-x'),

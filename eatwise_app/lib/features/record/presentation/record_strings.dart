@@ -49,6 +49,9 @@ final class RecordStrings {
   /// record.search.empty
   String get searchEmpty => _t.record.search.empty;
 
+  /// record.search.clear
+  String get searchClear => _t.record.search.clear;
+
   /// record.amount.label
   String get amountLabel => _t.record.amount.label;
 

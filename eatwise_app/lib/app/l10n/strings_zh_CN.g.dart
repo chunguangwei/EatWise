@@ -510,6 +510,9 @@ class Translations$record$search$zh_CN {
 
 	/// zh-CN: '没找到？换个关键词试试'
 	String get empty => '没找到？换个关键词试试';
+
+	/// zh-CN: '清空搜索'
+	String get clear => '清空搜索';
 }
 
 // Path: record.amount
@@ -965,14 +968,17 @@ class Translations$fasting$home$zh_CN {
 	/// zh-CN: '本次断食计入 ${date}'
 	String attribution({required Object date}) => '本次断食计入 ${date}';
 
+	/// zh-CN: '下一段断食将计入 ${date}'
+	String attributionEating({required Object date}) => '下一段断食将计入 ${date}';
+
 	/// zh-CN: '已延长 +${minutes} 分钟'
 	String extendedBadge({required Object minutes}) => '已延长 +${minutes} 分钟';
 
 	/// zh-CN: '单次最多延长 4 小时'
 	String get extendLimit => '单次最多延长 4 小时';
 
-	/// zh-CN: '${id} · 进食窗 ${start}–${end}'
-	String planTag({required Object id, required Object start, required Object end}) => '${id} · 进食窗 ${start}–${end}';
+	/// zh-CN: '${id} · 进食窗口 ${start}–${end}'
+	String planTag({required Object id, required Object start, required Object end}) => '${id} · 进食窗口 ${start}–${end}';
 
 	/// zh-CN: '3 个小问题，帮你找到最适合的断食节奏'
 	String get noPlanSubtitle => '3 个小问题，帮你找到最适合的断食节奏';
@@ -1213,8 +1219,10 @@ class Translations$reports$weekly$zh_CN {
 	/// zh-CN: '达标 ${days} 天'
 	String qualified({required Object days}) => '达标 ${days} 天';
 
-	/// zh-CN: '记录 ${count} 条'
-	String entries({required Object count}) => '记录 ${count} 条';
+	/// zh-CN: '(other) {记录 ${n} 条}'
+	String entries({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('zh'))(n,
+		other: '记录 ${n} 条',
+	);
 
 	/// zh-CN: '绿灯占比 ${percent}%'
 	String greenRatio({required Object percent}) => '绿灯占比 ${percent}%';
@@ -1586,8 +1594,8 @@ class Translations$settings$aiModel$zh_CN {
 	/// zh-CN: 'AI 模型'
 	String get title => 'AI 模型';
 
-	/// zh-CN: '供应商'
-	String get provider => '供应商';
+	/// zh-CN: '服务商'
+	String get provider => '服务商';
 
 	late final Translations$settings$aiModel$providers$zh_CN providers = Translations$settings$aiModel$providers$zh_CN.internal(_root);
 
@@ -1603,11 +1611,11 @@ class Translations$settings$aiModel$zh_CN {
 	/// zh-CN: '留空保持不变'
 	String get apiKeyHint => '留空保持不变';
 
-	/// zh-CN: '自定义供应商需填写 Base URL'
-	String get baseUrlRequired => '自定义供应商需填写 Base URL';
+	/// zh-CN: '自定义服务商需填写 Base URL'
+	String get baseUrlRequired => '自定义服务商需填写 Base URL';
 
-	/// zh-CN: '自定义供应商需填写模型名称'
-	String get modelRequired => '自定义供应商需填写模型名称';
+	/// zh-CN: '自定义服务商需填写模型名称'
+	String get modelRequired => '自定义服务商需填写模型名称';
 
 	/// zh-CN: '保存'
 	String get save => '保存';
@@ -3007,6 +3015,7 @@ extension on Translations {
 			'record.pending.banner' => ({required Object count}) => '还有 ${count} 条记录在路上，联网后自动同步',
 			'record.search.hint' => '搜索食物（中文或英文）',
 			'record.search.empty' => '没找到？换个关键词试试',
+			'record.search.clear' => '清空搜索',
 			'record.amount.label' => '份量（克）',
 			'record.amount.invalid' => '请输入大于 0 的份量',
 			'record.nutrition.kcal' => '热量',
@@ -3137,9 +3146,10 @@ extension on Translations {
 			'fasting.home.stateFastingExtended' => '断食中 · 已延长',
 			'fasting.home.stateNoPlan' => '还未开始断食方案',
 			'fasting.home.attribution' => ({required Object date}) => '本次断食计入 ${date}',
+			'fasting.home.attributionEating' => ({required Object date}) => '下一段断食将计入 ${date}',
 			'fasting.home.extendedBadge' => ({required Object minutes}) => '已延长 +${minutes} 分钟',
 			'fasting.home.extendLimit' => '单次最多延长 4 小时',
-			'fasting.home.planTag' => ({required Object id, required Object start, required Object end}) => '${id} · 进食窗 ${start}–${end}',
+			'fasting.home.planTag' => ({required Object id, required Object start, required Object end}) => '${id} · 进食窗口 ${start}–${end}',
 			'fasting.home.noPlanSubtitle' => '3 个小问题，帮你找到最适合的断食节奏',
 			'fasting.home.celebrationTitle' => '断食完成！身体悄悄做了次大扫除 ✨',
 			'fasting.home.celebrationBadge' => '断食完成 ✨',
@@ -3256,7 +3266,7 @@ extension on Translations {
 			'reports.weekly.title' => '本周报告',
 			'reports.weekly.range' => ({required Object start, required Object end}) => '${start} – ${end}',
 			'reports.weekly.qualified' => ({required Object days}) => '达标 ${days} 天',
-			'reports.weekly.entries' => ({required Object count}) => '记录 ${count} 条',
+			'reports.weekly.entries' => ({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('zh'))(n, other: '记录 ${n} 条', ), 
 			'reports.weekly.greenRatio' => ({required Object percent}) => '绿灯占比 ${percent}%',
 			'reports.weekly.cheer.great' => '这一周节奏超稳，给自己点个大大的赞 🌱',
 			'reports.weekly.cheer.mixed' => '有起有落很正常，稳住节奏，下周继续～',
@@ -3350,7 +3360,7 @@ extension on Translations {
 			'settings.about.disclaimer' => '免责声明与特殊人群提示',
 			'settings.about.checkUpdate' => '检查更新',
 			'settings.aiModel.title' => 'AI 模型',
-			'settings.aiModel.provider' => '供应商',
+			'settings.aiModel.provider' => '服务商',
 			'settings.aiModel.providers.custom' => '自定义',
 			'settings.aiModel.providers.deepseek' => 'DeepSeek',
 			'settings.aiModel.providers.qwen' => '通义千问（Qwen）',
@@ -3359,8 +3369,8 @@ extension on Translations {
 			'settings.aiModel.model' => '模型',
 			'settings.aiModel.apiKey' => 'API Key',
 			'settings.aiModel.apiKeyHint' => '留空保持不变',
-			'settings.aiModel.baseUrlRequired' => '自定义供应商需填写 Base URL',
-			'settings.aiModel.modelRequired' => '自定义供应商需填写模型名称',
+			'settings.aiModel.baseUrlRequired' => '自定义服务商需填写 Base URL',
+			'settings.aiModel.modelRequired' => '自定义服务商需填写模型名称',
 			'settings.aiModel.save' => '保存',
 			'settings.aiModel.saved' => 'AI 模型配置已保存',
 			'settings.aiModel.test' => '测试连接',
@@ -3450,10 +3460,10 @@ extension on Translations {
 			'social.feed.justNow' => '刚刚',
 			'social.feed.minutesAgo' => ({required Object n}) => '${n} 分钟前',
 			'social.feed.hoursAgo' => ({required Object n}) => '${n} 小时前',
-			'social.feed.daysAgo' => ({required Object n}) => '${n} 天前',
-			'social.feed.anonymous' => 'EatWise 伙伴',
 			_ => null,
 		} ?? switch (path) {
+			'social.feed.daysAgo' => ({required Object n}) => '${n} 天前',
+			'social.feed.anonymous' => 'EatWise 伙伴',
 			'social.compose.title' => '发布打卡',
 			'social.compose.hint' => '记录这一刻的坚持…',
 			'social.compose.charCount' => ({required Object n}) => '${n}/500',

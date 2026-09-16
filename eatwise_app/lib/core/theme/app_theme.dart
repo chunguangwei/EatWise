@@ -44,6 +44,22 @@ abstract final class AppTheme {
         AppRadii.standard,
         shadows,
       ],
+      // 开关全局统一（走查 B-2）：开启品牌绿填充/白滑块；关闭雾灰浅轨 +
+      // 雾灰滑块、无描边（此前依赖 M3 默认，关闭态黑线框与设置页观感割裂）。
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? Colors
+                    .white // 与 colorScheme.onPrimary 同源
+              : colors.textSecondary,
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? colors.brandPrimary
+              : colors.textSecondary.withValues(alpha: 0.24),
+        ),
+        trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+      ),
     );
   }
 }

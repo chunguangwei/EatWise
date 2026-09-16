@@ -95,14 +95,21 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _apiKeyController = TextEditingController();
 
+  final FocusNode _baseUrlFocus = FocusNode();
+  final FocusNode _modelFocus = FocusNode();
+
   String _provider = 'custom';
 
   /// 已存配置（apiKey 留空测试时回退用）。
   LlmConfig? _stored;
 
   bool _testing = false;
-  bool _baseUrlInvalid = false;
-  bool _modelInvalid = false;
+
+  /// 校验时机（Y2）：字段失焦（touched）或首次保存（submitted）后才
+  /// 亮红错；未交互不预亮，输入/清除后按当前文本实时重算。
+  bool _baseUrlTouched = false;
+  bool _modelTouched = false;
+  bool _submitted = false;
 
   @override
   void initState() {
@@ -111,6 +118,16 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
     _baseUrlController.addListener(_onFormChanged);
     _modelController.addListener(_onFormChanged);
     _apiKeyController.addListener(_onFormChanged);
+    _baseUrlFocus.addListener(() {
+      if (!_baseUrlFocus.hasFocus && !_baseUrlTouched) {
+        setState(() => _baseUrlTouched = true);
+      }
+    });
+    _modelFocus.addListener(() {
+      if (!_modelFocus.hasFocus && !_modelTouched) {
+        setState(() => _modelTouched = true);
+      }
+    });
     unawaited(_load());
   }
 
@@ -133,6 +150,8 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
     _baseUrlController.dispose();
     _modelController.dispose();
     _apiKeyController.dispose();
+    _baseUrlFocus.dispose();
+    _modelFocus.dispose();
     super.dispose();
   }
 
@@ -155,24 +174,19 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
     _ => t.settings.aiModel.providers.custom,
   };
 
+  /// custom 供应商必填缺失（纯判断，展示与否由 touched/submitted 门控）。
+  bool get _baseUrlMissing =>
+      _provider == 'custom' && _baseUrlController.text.trim().isEmpty;
+  bool get _modelMissing =>
+      _provider == 'custom' && _modelController.text.trim().isEmpty;
+
   Future<void> _save() async {
     final t = Translations.of(context);
     final baseUrl = _baseUrlController.text.trim();
     final model = _modelController.text.trim();
     // 校验：provider 非空（下拉恒有值）；custom 时 baseUrl/model 必填。
-    final baseUrlMissing = _provider == 'custom' && baseUrl.isEmpty;
-    final modelMissing = _provider == 'custom' && model.isEmpty;
-    if (baseUrlMissing || modelMissing) {
-      setState(() {
-        _baseUrlInvalid = baseUrlMissing;
-        _modelInvalid = modelMissing;
-      });
-      return;
-    }
-    setState(() {
-      _baseUrlInvalid = false;
-      _modelInvalid = false;
-    });
+    setState(() => _submitted = true);
+    if (_baseUrlMissing || _modelMissing) return;
     final apiKeyText = _apiKeyController.text.trim();
     final store = ref.read(llmConfigStoreProvider);
     await store.save(
@@ -186,6 +200,8 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
     );
     _stored = await store.read();
     if (!mounted) return;
+    // 提交成功后收起键盘（Y5），避免遮挡保存成功 toast。
+    FocusManager.instance.primaryFocus?.unfocus();
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(t.settings.aiModel.saved)));
@@ -239,8 +255,9 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
       _baseUrlController.clear();
       _modelController.clear();
       _apiKeyController.clear();
-      _baseUrlInvalid = false;
-      _modelInvalid = false;
+      _baseUrlTouched = false;
+      _modelTouched = false;
+      _submitted = false;
     });
     ScaffoldMessenger.of(
       context,
@@ -284,6 +301,9 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
+                  // 区块标题与另两张卡对齐（链路卡同名「Custom API」）。
+                  Text(t.settings.chain.userApi, style: textStyles.textLg),
+                  const SizedBox(height: AppSpacing.s3),
                   DropdownButtonFormField<String>(
                     initialValue: _provider,
                     decoration: InputDecoration(
@@ -304,13 +324,15 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
                   const SizedBox(height: AppSpacing.s3),
                   TextField(
                     controller: _baseUrlController,
+                    focusNode: _baseUrlFocus,
                     keyboardType: TextInputType.url,
                     autocorrect: false,
                     decoration: InputDecoration(
                       labelText: t.settings.aiModel.baseUrl,
                       // 内置供应商：hint 显示 preset 值，可留空。
                       hintText: preset?.baseUrl,
-                      errorText: _baseUrlInvalid
+                      errorText:
+                          _baseUrlMissing && (_baseUrlTouched || _submitted)
                           ? t.settings.aiModel.baseUrlRequired
                           : null,
                     ),
@@ -318,11 +340,12 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
                   const SizedBox(height: AppSpacing.s3),
                   TextField(
                     controller: _modelController,
+                    focusNode: _modelFocus,
                     autocorrect: false,
                     decoration: InputDecoration(
                       labelText: t.settings.aiModel.model,
                       hintText: preset?.model,
-                      errorText: _modelInvalid
+                      errorText: _modelMissing && (_modelTouched || _submitted)
                           ? t.settings.aiModel.modelRequired
                           : null,
                     ),
@@ -466,7 +489,7 @@ class _EstimateChainCard extends ConsumerWidget {
     );
   }
 
-  /// 单行「序号 名称 —— 状态」；生效行品牌色 12% 浅底 + 品牌绿文字
+  /// 单行「序号 名称 — 状态」；生效行品牌色 12% 浅底 + 品牌绿文字
   /// （此前橙底+绿字对比度不足看不清，与 home_shell 选中指示器同口径）。
   Widget _chainRow(
     AppColors colors,
@@ -491,7 +514,7 @@ class _EstimateChainCard extends ConsumerWidget {
         children: <Widget>[
           Expanded(
             child: Text(
-              '$index. $name —— $status',
+              '$index. $name — $status',
               style: textStyles.textSm.copyWith(
                 color: active ? colors.textPrimary : colors.textSecondary,
                 fontWeight: active ? FontWeight.w600 : null,

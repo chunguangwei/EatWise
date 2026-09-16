@@ -111,7 +111,8 @@
     },
     "search": {
       "hint": "Search foods (Chinese or English)",
-      "empty": "No match? Try another keyword"
+      "empty": "No match? Try another keyword",
+      "clear": "Clear search"
     },
     "amount": {
       "label": "Amount (g)",
@@ -280,6 +281,7 @@
       "stateFastingExtended": "Fasting · Extended",
       "stateNoPlan": "No fasting plan yet",
       "attribution": "This fast counts toward ${date}",
+      "attributionEating": "Your next fast will count toward ${date}",
       "extendedBadge": "Extended +${minutes} min",
       "extendLimit": "You can extend by up to 4 hours per fast",
       "planTag": "${id} · Eating window ${start}–${end}",
@@ -461,7 +463,10 @@
       "title": "This week",
       "range": "${start} – ${end}",
       "qualified": "${days} days on target",
-      "entries": "${count} entries logged",
+      "entries": {
+        "one": "${n} entry logged",
+        "other": "${n} entries logged"
+      },
       "greenRatio": "${percent}% green lights",
       "cheer": {
         "great": "Rock-steady week — give yourself a big thumbs-up 🌱",

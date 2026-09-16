@@ -273,7 +273,11 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
           }
         }
       }
-      if (mounted) Navigator.of(context).pop(result);
+      if (mounted) {
+        // 提交成功后收起键盘（Y5），避免弹层关闭后键盘滞留遮挡 toast。
+        FocusManager.instance.primaryFocus?.unfocus();
+        Navigator.of(context).pop(result);
+      }
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(

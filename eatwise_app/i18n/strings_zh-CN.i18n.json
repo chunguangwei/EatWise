@@ -111,7 +111,8 @@
     },
     "search": {
       "hint": "搜索食物（中文或英文）",
-      "empty": "没找到？换个关键词试试"
+      "empty": "没找到？换个关键词试试",
+      "clear": "清空搜索"
     },
     "amount": {
       "label": "份量（克）",
@@ -280,9 +281,10 @@
       "stateFastingExtended": "断食中 · 已延长",
       "stateNoPlan": "还未开始断食方案",
       "attribution": "本次断食计入 ${date}",
+      "attributionEating": "下一段断食将计入 ${date}",
       "extendedBadge": "已延长 +${minutes} 分钟",
       "extendLimit": "单次最多延长 4 小时",
-      "planTag": "${id} · 进食窗 ${start}–${end}",
+      "planTag": "${id} · 进食窗口 ${start}–${end}",
       "noPlanSubtitle": "3 个小问题，帮你找到最适合的断食节奏",
       "celebrationTitle": "断食完成！身体悄悄做了次大扫除 ✨",
       "celebrationBadge": "断食完成 ✨",
@@ -461,7 +463,9 @@
       "title": "本周报告",
       "range": "${start} – ${end}",
       "qualified": "达标 ${days} 天",
-      "entries": "记录 ${count} 条",
+      "entries": {
+        "other": "记录 ${n} 条"
+      },
       "greenRatio": "绿灯占比 ${percent}%",
       "cheer": {
         "great": "这一周节奏超稳，给自己点个大大的赞 🌱",
@@ -591,7 +595,7 @@
     },
     "aiModel": {
       "title": "AI 模型",
-      "provider": "供应商",
+      "provider": "服务商",
       "providers": {
         "custom": "自定义",
         "deepseek": "DeepSeek",
@@ -602,8 +606,8 @@
       "model": "模型",
       "apiKey": "API Key",
       "apiKeyHint": "留空保持不变",
-      "baseUrlRequired": "自定义供应商需填写 Base URL",
-      "modelRequired": "自定义供应商需填写模型名称",
+      "baseUrlRequired": "自定义服务商需填写 Base URL",
+      "modelRequired": "自定义服务商需填写模型名称",
       "save": "保存",
       "saved": "AI 模型配置已保存",
       "test": "测试连接",

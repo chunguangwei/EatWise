@@ -394,6 +394,7 @@ class _Translations$record$search$en extends Translations$record$search$zh_CN {
 	// Translations
 	@override String get hint => 'Search foods (Chinese or English)';
 	@override String get empty => 'No match? Try another keyword';
+	@override String get clear => 'Clear search';
 }
 
 // Path: record.amount
@@ -636,6 +637,7 @@ class _Translations$fasting$home$en extends Translations$fasting$home$zh_CN {
 	@override String get stateFastingExtended => 'Fasting · Extended';
 	@override String get stateNoPlan => 'No fasting plan yet';
 	@override String attribution({required Object date}) => 'This fast counts toward ${date}';
+	@override String attributionEating({required Object date}) => 'Your next fast will count toward ${date}';
 	@override String extendedBadge({required Object minutes}) => 'Extended +${minutes} min';
 	@override String get extendLimit => 'You can extend by up to 4 hours per fast';
 	@override String planTag({required Object id, required Object start, required Object end}) => '${id} · Eating window ${start}–${end}';
@@ -791,7 +793,10 @@ class _Translations$reports$weekly$en extends Translations$reports$weekly$zh_CN 
 	@override String get title => 'This week';
 	@override String range({required Object start, required Object end}) => '${start} – ${end}';
 	@override String qualified({required Object days}) => '${days} days on target';
-	@override String entries({required Object count}) => '${count} entries logged';
+	@override String entries({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(n,
+		one: '${n} entry logged',
+		other: '${n} entries logged',
+	);
 	@override String greenRatio({required Object percent}) => '${percent}% green lights';
 	@override late final _Translations$reports$weekly$cheer$en cheer = _Translations$reports$weekly$cheer$en._(_root);
 	@override String get empty => 'Almost there — log a meal or finish a fast to unlock your weekly report.';
@@ -1800,6 +1805,7 @@ extension on TranslationsEn {
 			'record.pending.banner' => ({required Object count}) => '${count} record(s) still on the way — will sync when online',
 			'record.search.hint' => 'Search foods (Chinese or English)',
 			'record.search.empty' => 'No match? Try another keyword',
+			'record.search.clear' => 'Clear search',
 			'record.amount.label' => 'Amount (g)',
 			'record.amount.invalid' => 'Enter an amount greater than 0',
 			'record.nutrition.kcal' => 'Calories',
@@ -1930,6 +1936,7 @@ extension on TranslationsEn {
 			'fasting.home.stateFastingExtended' => 'Fasting · Extended',
 			'fasting.home.stateNoPlan' => 'No fasting plan yet',
 			'fasting.home.attribution' => ({required Object date}) => 'This fast counts toward ${date}',
+			'fasting.home.attributionEating' => ({required Object date}) => 'Your next fast will count toward ${date}',
 			'fasting.home.extendedBadge' => ({required Object minutes}) => 'Extended +${minutes} min',
 			'fasting.home.extendLimit' => 'You can extend by up to 4 hours per fast',
 			'fasting.home.planTag' => ({required Object id, required Object start, required Object end}) => '${id} · Eating window ${start}–${end}',
@@ -2049,7 +2056,7 @@ extension on TranslationsEn {
 			'reports.weekly.title' => 'This week',
 			'reports.weekly.range' => ({required Object start, required Object end}) => '${start} – ${end}',
 			'reports.weekly.qualified' => ({required Object days}) => '${days} days on target',
-			'reports.weekly.entries' => ({required Object count}) => '${count} entries logged',
+			'reports.weekly.entries' => ({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(n, one: '${n} entry logged', other: '${n} entries logged', ), 
 			'reports.weekly.greenRatio' => ({required Object percent}) => '${percent}% green lights',
 			'reports.weekly.cheer.great' => 'Rock-steady week — give yourself a big thumbs-up 🌱',
 			'reports.weekly.cheer.mixed' => 'Ups and downs are normal. Keep the rhythm next week~',
@@ -2243,10 +2250,10 @@ extension on TranslationsEn {
 			'social.feed.justNow' => 'Just now',
 			'social.feed.minutesAgo' => ({required Object n}) => '${n} min ago',
 			'social.feed.hoursAgo' => ({required Object n}) => '${n} hr ago',
-			'social.feed.daysAgo' => ({required Object n}) => '${n} d ago',
-			'social.feed.anonymous' => 'EatWise buddy',
 			_ => null,
 		} ?? switch (path) {
+			'social.feed.daysAgo' => ({required Object n}) => '${n} d ago',
+			'social.feed.anonymous' => 'EatWise buddy',
 			'social.compose.title' => 'New check-in',
 			'social.compose.hint' => 'Capture this moment of persistence…',
 			'social.compose.charCount' => ({required Object n}) => '${n}/500',

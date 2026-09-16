@@ -302,15 +302,24 @@ class _TimerBody extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.s3),
         // 归属日文案（D-07 / 评审项 1：环下常驻，双语日期格式）。
+        // 进食态无进行中断食，文案改用将来时「下一段断食将计入 X」
+        //（走查 B-9：进食窗态沿用「本次断食计入」属旧口径）。
         if (snapshot.attributionPreview != null)
           Center(
             child: Text(
-              t.fasting.home.attribution(
-                date: formatAttributionDate(
-                  snapshot.attributionPreview!,
-                  locale: LocaleSettings.currentLocale,
-                ),
-              ),
+              timer.state == FastingState.eating
+                  ? t.fasting.home.attributionEating(
+                      date: formatAttributionDate(
+                        snapshot.attributionPreview!,
+                        locale: LocaleSettings.currentLocale,
+                      ),
+                    )
+                  : t.fasting.home.attribution(
+                      date: formatAttributionDate(
+                        snapshot.attributionPreview!,
+                        locale: LocaleSettings.currentLocale,
+                      ),
+                    ),
               style: textStyles.textSm.copyWith(color: colors.textSecondary),
             ),
           ),

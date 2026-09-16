@@ -171,6 +171,19 @@ class OnDeviceModelCard extends ConsumerWidget {
     );
   }
 
+  /// 下载进度条（Y4）：轨道浅灰、进度品牌绿——默认轨道取
+  /// secondaryContainer（暖阳橙派生）时 0% 整条橙色，误读为已完成。
+  /// 透明度叠加与 home_shell 选中指示器同口径（withValues）。
+  Widget _progressBar(AppColors colors, double? progress) {
+    return LinearProgressIndicator(
+      value: progress,
+      backgroundColor: colors.textSecondary.withValues(alpha: 0.2),
+      color: colors.brandPrimary,
+      minHeight: 6,
+      borderRadius: BorderRadius.circular(3),
+    );
+  }
+
   List<Widget> _buildStatus(
     BuildContext context,
     WidgetRef ref,
@@ -200,7 +213,7 @@ class OnDeviceModelCard extends ConsumerWidget {
         ),
       ],
       OnDeviceModelStatus.downloading => <Widget>[
-        LinearProgressIndicator(value: snapshot.progress),
+        _progressBar(colors, snapshot.progress),
         const SizedBox(height: AppSpacing.s2),
         Text(m.downloading(percent: percent), style: textStyles.textSm),
         const SizedBox(height: AppSpacing.s2),
@@ -211,7 +224,7 @@ class OnDeviceModelCard extends ConsumerWidget {
         ),
       ],
       OnDeviceModelStatus.paused => <Widget>[
-        LinearProgressIndicator(value: snapshot.progress),
+        _progressBar(colors, snapshot.progress),
         const SizedBox(height: AppSpacing.s2),
         Text(m.paused(percent: percent), style: textStyles.textSm),
         const SizedBox(height: AppSpacing.s2),

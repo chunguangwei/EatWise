@@ -14,7 +14,7 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <!-- 相册选图走系统 Photo Picker 主路径，不申请 READ_MEDIA_IMAGES（合规 §3.2〔假设〕） -->
     <application
-        android:label="eatwise"
+        android:label="EatWise"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">

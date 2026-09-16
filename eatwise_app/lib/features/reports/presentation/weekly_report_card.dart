@@ -83,7 +83,7 @@ class _WeeklyBody extends StatelessWidget {
     final ratio = stats.greenRatio;
     final lines = <String>[
       weekly.qualified(days: stats.qualifiedDays),
-      weekly.entries(count: stats.entryCount),
+      weekly.entries(n: stats.entryCount),
       if (ratio != null) weekly.greenRatio(percent: (ratio * 100).round()),
     ];
 

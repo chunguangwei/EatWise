@@ -61,6 +61,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
   @override
   void initState() {
     super.initState();
+    // 搜索框清空键显隐跟随文本（含程序化 clear）。
+    _searchController.addListener(() => setState(() {}));
     // 记录流程起点（§3.3 record_flow_start：进入记录页即触发一次）。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _flowId ??= _analytics.startRecordFlow();
@@ -167,6 +169,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     _flowId = _analytics.startRecordFlow();
     _stepCount = 0;
     if (!mounted) return;
+    // 提交成功后收起键盘（Y5），避免遮挡 toast 与底部内容。
+    FocusManager.instance.primaryFocus?.unfocus();
     ref.read(recordSelectedFoodProvider.notifier).state = null;
     ref.read(recordSearchQueryProvider.notifier).state = '';
     ref.read(recordEntrySourceProvider.notifier).state = EntrySource.manual;
@@ -232,6 +236,9 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     final selected = ref.watch(recordSelectedFoodProvider);
     final results = ref.watch(recordFoodSearchProvider);
     final isEn = LocaleSettings.currentLocale == AppLocale.en;
+    // 键盘可见性须在 Scaffold 之外读取（resizeToAvoidBottomInset 会把
+    // bottom inset 从 body 的 MediaQuery 里消化掉）。
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return Scaffold(
       backgroundColor: colors.bgPrimary,
@@ -354,6 +361,22 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                     decoration: InputDecoration(
                       hintText: s.searchHint,
                       prefixIcon: const Icon(Icons.search),
+                      // 一键清空（走查 B-4）：输入非空时出现。
+                      suffixIcon: _searchController.text.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.close),
+                              tooltip: s.searchClear,
+                              onPressed: () {
+                                _searchController.clear();
+                                ref
+                                        .read(
+                                          recordSearchQueryProvider.notifier,
+                                        )
+                                        .state =
+                                    '';
+                              },
+                            ),
                       filled: true,
                       fillColor: colors.bgSecondary,
                       border: OutlineInputBorder(
@@ -372,34 +395,45 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                   child: results.when(
                     data: (foods) {
                       if (foods.isEmpty) {
-                        return Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Text(
-                                s.searchEmpty,
-                                style: textStyles.textSm.copyWith(
-                                  color: colors.textSecondary,
+                        // 空态可滚动（走查 Y1）：键盘顶起高度不足时
+                        // 可滚而不溢出（BOTTOM OVERFLOWED）。
+                        return LayoutBuilder(
+                          builder: (context, box) => SingleChildScrollView(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: box.maxHeight,
+                              ),
+                              child: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                      s.searchEmpty,
+                                      style: textStyles.textSm.copyWith(
+                                        color: colors.textSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppSpacing.s2),
+                                    // K2 自定义食物入口（搜索无结果 CTA，≥44px 触控区）。
+                                    TextButton(
+                                      style: TextButton.styleFrom(
+                                        minimumSize: const Size(44, 48),
+                                        foregroundColor: colors.brandPrimary,
+                                      ),
+                                      onPressed: () => unawaited(
+                                        startCustomFoodFlow(context, ref),
+                                      ),
+                                      child: Text(
+                                        cs.cta,
+                                        style: textStyles.textBase.copyWith(
+                                          color: colors.brandPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: AppSpacing.s2),
-                              // K2 自定义食物入口（搜索无结果 CTA，≥44px 触控区）。
-                              TextButton(
-                                style: TextButton.styleFrom(
-                                  minimumSize: const Size(44, 48),
-                                  foregroundColor: colors.brandPrimary,
-                                ),
-                                onPressed: () => unawaited(
-                                  startCustomFoodFlow(context, ref),
-                                ),
-                                child: Text(
-                                  cs.cta,
-                                  style: textStyles.textBase.copyWith(
-                                    color: colors.brandPrimary,
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         );
                       }
@@ -494,8 +528,9 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                     ),
                   ),
                 ),
-                // 今日聚合（本地预估，§2.6 注明待云端校准）。
-                if (today != null && today.entryCount > 0)
+                // 今日聚合（本地预估，§2.6 注明待云端校准；键盘顶起时
+                // 收起此行给主流程让位，走查 Y1）。
+                if (today != null && today.entryCount > 0 && !keyboardVisible)
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.s4,

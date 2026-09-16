@@ -119,7 +119,7 @@ void main() {
     expect(find.text('04:00:00'), findsOneWidget);
     expect(find.text('断食中'), findsOneWidget);
     expect(find.text('本次断食计入 7月28日'), findsOneWidget);
-    expect(find.text('16:8 · 进食窗 12:00–20:00'), findsOneWidget);
+    expect(find.text('16:8 · 进食窗口 12:00–20:00'), findsOneWidget);
     expect(
       tester
           .widget<FilledButton>(find.widgetWithText(FilledButton, '结束断食'))
@@ -144,6 +144,9 @@ void main() {
 
     expect(find.text('06:00:00'), findsOneWidget);
     expect(find.text('进食窗口中'), findsOneWidget);
+    // 进食态无进行中断食：归属日文案用将来时（走查 B-9）。
+    expect(find.text('下一段断食将计入 7月29日'), findsOneWidget);
+    expect(find.textContaining('本次断食计入'), findsNothing);
     expect(
       tester
           .widget<FilledButton>(find.widgetWithText(FilledButton, '结束断食'))

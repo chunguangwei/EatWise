@@ -143,10 +143,12 @@ class _StatCell extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: AppSpacing.s1),
+          // 标签允许两行换行（走查：英文长标签如 "Fasting goals hit"
+          // 单行省略截断后读不出含义；两行内仍放不下才省略）。
           Text(
             label,
             style: textStyles.textXs.copyWith(color: colors.textSecondary),
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
           ),

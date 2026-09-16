@@ -186,6 +186,65 @@ void main() {
     await settleUi(tester);
   });
 
+  testWidgets('搜索框清空键：输入非空出现，点击清空并复位搜索词（走查 B-4）', (tester) async {
+    await pumpPage(tester);
+
+    // 初始无清空键。
+    expect(find.byTooltip('清空搜索'), findsNothing);
+
+    await tester.enterText(find.byType(TextField).first, '米饭');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byTooltip('清空搜索'), findsOneWidget);
+    expect(find.text('白米饭'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('清空搜索'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byTooltip('清空搜索'), findsNothing);
+    final TextField searchField = tester.widget(find.byType(TextField).first);
+    expect(searchField.controller!.text, isEmpty);
+
+    await settleUi(tester);
+  });
+
+  testWidgets('键盘顶起：空态可滚不溢出，今日汇总行让位（走查 Y1）', (tester) async {
+    tester.view.physicalSize = const Size(800, 1100);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pumpPage(tester);
+
+    // 记一笔让「今日已记」汇总行出现。
+    await tester.enterText(find.byType(TextField).first, '米饭');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('白米饭'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField).last, '100');
+    await tester.pump();
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.textContaining('今日已记 1 笔'), findsOneWidget);
+
+    // 搜索无结果（先输入再抬键盘：先设 viewInsets 会让
+    // enterText 的输入连接挂不上、静默丢输入）。
+    await tester.enterText(find.byType(TextField).first, '不存在的食物');
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+    // 键盘顶起 600px（修复前：空态 + 汇总行 + 键盘 → BOTTOM OVERFLOWED 38px）。
+    tester.view.viewInsets = FakeViewPadding(bottom: 600);
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+    expect(find.text('没找到？换个关键词试试'), findsOneWidget);
+    expect(find.textContaining('今日已记'), findsNothing); // 汇总行让位
+    expect(tester.takeException(), isNull); // 无溢出异常
+
+    tester.view.resetViewInsets();
+    // 冲刷 10s 撤销窗上行 Timer（D-11），避免测试结束挂起 Timer。
+    await tester.pump(const Duration(seconds: 11));
+    await settleUi(tester);
+  });
   testWidgets('连续入账：确认成功后重启记录流程，第二单埋点不丢', (tester) async {
     final client = _RecordingClient();
     final analytics = AnalyticsService(

@@ -72,9 +72,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// 名称所在链路由（行文本为「序号 名称 —— 状态」单串，用包含匹配）。
+  /// 名称所在链路由（行文本为「序号 名称 — 状态」单串，用包含匹配）。
   Finder chainRow(String name) => find.ancestor(
-    of: find.textContaining('$name ——'),
+    of: find.textContaining('$name —'),
     matching: find.byType(Row),
   );
 
@@ -103,8 +103,8 @@ void main() {
 
     expect(find.text('估算生效链路'), findsOneWidget);
     expectActiveRow('端侧小模型', <String>['自定义 API']);
-    expect(find.textContaining('端侧小模型 —— 已启用'), findsOneWidget);
-    expect(find.textContaining('自定义 API —— 已配置'), findsOneWidget);
+    expect(find.textContaining('端侧小模型 — 已启用'), findsOneWidget);
+    expect(find.textContaining('自定义 API — 已配置'), findsOneWidget);
   });
 
   testWidgets('开关关（模型就绪）+ 已配 API → 高亮自定义 API', (tester) async {
@@ -116,7 +116,7 @@ void main() {
     );
 
     expectActiveRow('自定义 API', <String>['端侧小模型']);
-    expect(find.textContaining('端侧小模型 —— 未启用'), findsOneWidget);
+    expect(find.textContaining('端侧小模型 — 未启用'), findsOneWidget);
   });
 
   testWidgets('端侧未下载 + API 未配置 → 两级都不可用，无高亮', (tester) async {
@@ -128,8 +128,8 @@ void main() {
     );
 
     expect(find.text('当前生效'), findsNothing);
-    expect(find.textContaining('端侧小模型 —— 未下载'), findsOneWidget);
-    expect(find.textContaining('自定义 API —— 未配置'), findsOneWidget);
+    expect(find.textContaining('端侧小模型 — 未下载'), findsOneWidget);
+    expect(find.textContaining('自定义 API — 未配置'), findsOneWidget);
   });
 
   testWidgets('开关开但模型未就绪（已暂停）→ 端侧不算可用，高亮自定义 API', (tester) async {
@@ -141,6 +141,6 @@ void main() {
     );
 
     expectActiveRow('自定义 API', <String>['端侧小模型']);
-    expect(find.textContaining('端侧小模型 —— 已暂停'), findsOneWidget);
+    expect(find.textContaining('端侧小模型 — 已暂停'), findsOneWidget);
   });
 }
