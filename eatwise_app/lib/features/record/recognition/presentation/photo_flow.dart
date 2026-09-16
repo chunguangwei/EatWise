@@ -7,6 +7,7 @@ import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
+import 'package:eatwise/features/record/recognition/data/ondevice_food_recognition_service.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
 import 'package:eatwise/features/record/recognition/domain/recognition_models.dart';
 import 'package:flutter/material.dart';
@@ -233,16 +234,27 @@ Future<void> showPhotoPermissionDeniedCard(
 }
 
 /// 识别中对话框：加载态 + 「取消」（D-16 异步不阻塞；取消不丢输入）。
+///
+/// 两阶段文案（真机反馈：首拍视觉重建数秒、单一句「识别中…」像卡住）：
+/// 端侧实现经 [OnDeviceFoodRecognitionService.onPhaseChanged] 上报阶段，
+/// 加载/视觉重建 → 「正在加载视觉模型…」，推理 → 「识别中…」；
+/// 非端侧实现（stub/超时降级）恒为识别中文案。
 Future<RecognitionOutcome?> _recognizeWithCancel(
   BuildContext context,
   WidgetRef ref,
   Uint8List bytes,
 ) async {
   final s = RecordStrings.of(context);
+  final service = ref.read(foodRecognitionServiceProvider);
+  final phase = ValueNotifier<OnDeviceRecognitionPhase>(
+    OnDeviceRecognitionPhase.inferring,
+  );
+  if (service is OnDeviceFoodRecognitionService) {
+    service.onPhaseChanged = (next) => phase.value = next;
+  }
   // 超时保护：低端机首次视觉引擎重建 + 推理可能很久，超时按
   // RecognitionUnavailable('timeout') 走现有 snackbar 兜底（detail 空）。
-  final future = ref
-      .read(foodRecognitionServiceProvider)
+  final future = service
       .recognize(bytes)
       .timeout(
         kPhotoRecognitionTimeout,
@@ -265,23 +277,32 @@ Future<RecognitionOutcome?> _recognizeWithCancel(
             const CircularProgressIndicator(),
             const SizedBox(width: AppSpacing.s4),
             Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    s.photoRecognizing,
-                    style: Theme.of(
-                      context,
-                    ).extension<AppTextStyles>()!.textBase,
-                  ),
-                  const SizedBox(height: AppSpacing.s1),
-                  // 预期管理：首次识别要加载视觉引擎，可能等几秒。
-                  Text(
-                    s.photoRecognizingHint,
-                    style: Theme.of(context).extension<AppTextStyles>()!.textSm,
-                  ),
-                ],
+              child: ValueListenableBuilder<OnDeviceRecognitionPhase>(
+                valueListenable: phase,
+                builder: (context, current, _) {
+                  final loading =
+                      current == OnDeviceRecognitionPhase.loadingModel;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        loading ? s.photoLoadingModel : s.photoRecognizing,
+                        style: Theme.of(
+                          context,
+                        ).extension<AppTextStyles>()!.textBase,
+                      ),
+                      const SizedBox(height: AppSpacing.s1),
+                      // 预期管理：首次识别要加载视觉引擎，可能等几秒。
+                      Text(
+                        s.photoRecognizingHint,
+                        style: Theme.of(
+                          context,
+                        ).extension<AppTextStyles>()!.textSm,
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],
@@ -299,14 +320,21 @@ Future<RecognitionOutcome?> _recognizeWithCancel(
       );
     },
   );
-  final outcome = await future.then<RecognitionOutcome?>(
-    (outcome) => cancelled ? null : outcome,
-  );
-  // 关键顺序：等加载对话框真正关闭再返回。它的 pop 是延迟落地的
-  // （builder 注册 then 回调要等下一帧），快速识别（stub/端侧缓存命中）
-  // 时若不等待，这个迟到的 pop 会误关调用方随后打开的对话框。
-  await dialogClosed;
-  return outcome;
+  try {
+    final outcome = await future.then<RecognitionOutcome?>(
+      (outcome) => cancelled ? null : outcome,
+    );
+    // 关键顺序：等加载对话框真正关闭再返回。它的 pop 是延迟落地的
+    // （builder 注册 then 回调要等下一帧），快速识别（stub/端侧缓存命中）
+    // 时若不等待，这个迟到的 pop 会误关调用方随后打开的对话框。
+    await dialogClosed;
+    return outcome;
+  } finally {
+    if (service is OnDeviceFoodRecognitionService) {
+      service.onPhaseChanged = null;
+    }
+    phase.dispose();
+  }
 }
 
 /// 份量整数化展示（200.0 → "200"，153.5 → "153.5"）。

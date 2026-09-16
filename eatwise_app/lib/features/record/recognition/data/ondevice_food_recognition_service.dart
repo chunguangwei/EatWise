@@ -24,6 +24,15 @@ import 'package:eatwise/features/record/recognition/domain/recognition_models.da
 /// 图片归一化抽象（解码缩放重编码；单测注入恒等实现避开 dart:ui 编解码）。
 typedef PhotoImageNormalizer = Future<Uint8List> Function(Uint8List bytes);
 
+/// 端侧识别阶段（识别中对话框据此切换文案：加载模型 vs 推理中）。
+enum OnDeviceRecognitionPhase {
+  /// 引擎加载/视觉重建阶段（text-only → enableVision，首拍要数秒）。
+  loadingModel,
+
+  /// 视觉推理阶段（模型已就绪）。
+  inferring,
+}
+
 /// 视觉输入长边上限（imagepilot visualTokenBudget 经验：≤768 足够分类，
 /// 更大只涨 base64 体积与编码耗时，视觉编码器 token 数固定）。
 const int kPhotoRecognitionMaxEdge = 768;
@@ -88,6 +97,10 @@ final class OnDeviceFoodRecognitionService implements FoodRecognitionService {
   bool _permanentlyDisabled = false;
   bool get isPermanentlyDisabled => _permanentlyDisabled;
 
+  /// 识别阶段回调（UI 在调 [recognize] 前挂上，用完置 null；
+  /// 加载/视觉重建 → loadingModel，开始推理 → inferring）。
+  void Function(OnDeviceRecognitionPhase phase)? onPhaseChanged;
+
   @override
   Future<RecognitionOutcome> recognize(Uint8List imageBytes) async {
     if (_permanentlyDisabled) {
@@ -101,8 +114,11 @@ final class OnDeviceFoodRecognitionService implements FoodRecognitionService {
     }
     try {
       if (!gateway.isLoaded || !gateway.visionEnabled) {
+        // 加载/视觉重建阶段（首拍数秒）：通知 UI 切「正在加载视觉模型…」。
+        onPhaseChanged?.call(OnDeviceRecognitionPhase.loadingModel);
         await gateway.load(await modelPath(), enableVision: true);
       }
+      onPhaseChanged?.call(OnDeviceRecognitionPhase.inferring);
       final raw = await gateway.inferWithImage(
         buildPhotoRecognitionPrompt(),
         normalized,
@@ -136,6 +152,8 @@ final class OnDeviceFoodRecognitionService implements FoodRecognitionService {
           confidence: photoRecognitionConfidence(
             dubious: isNutritionEstimateDubious(parsed.values),
             exactNameMatch: match.exact,
+            // 类别词兜底（prompt 已禁，命中即「不够具体」→ 必走请确认）。
+            tooGeneric: isGenericCategoryName(parsed.name),
           ),
         ),
       ]);

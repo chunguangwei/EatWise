@@ -461,6 +461,7 @@ class _Translations$record$photo$en extends Translations$record$photo$zh_CN {
 	@override String get gotIt => 'Got it';
 	@override String get retake => 'Retake photo';
 	@override String get recognizingHint => 'The first recognition loads the on-device vision engine — this can take a few seconds';
+	@override String get loadingModel => 'Loading vision model…';
 }
 
 // Path: record.barcode
@@ -1867,6 +1868,7 @@ extension on TranslationsEn {
 			'record.photo.gotIt' => 'Got it',
 			'record.photo.retake' => 'Retake photo',
 			'record.photo.recognizingHint' => 'The first recognition loads the on-device vision engine — this can take a few seconds',
+			'record.photo.loadingModel' => 'Loading vision model…',
 			'record.barcode.entry' => 'Scan',
 			'record.barcode.title' => 'Scan product barcode',
 			'record.barcode.torch' => 'Torch',
@@ -2280,9 +2282,9 @@ extension on TranslationsEn {
 			'social.feed.emptySubtitle' => 'Post your first check-in and light the way for others.',
 			'social.feed.emptyCta' => 'Check in',
 			'social.feed.errorTitle' => 'Couldn\'t load the feed. Please try again.',
-			'social.feed.pendingBadge' => 'Under review — visible only to you',
 			_ => null,
 		} ?? switch (path) {
+			'social.feed.pendingBadge' => 'Under review — visible only to you',
 			'social.feed.streakBadge' => ({required Object days}) => '${days}-day streak',
 			'social.feed.like' => 'Like',
 			'social.feed.report' => 'Report',

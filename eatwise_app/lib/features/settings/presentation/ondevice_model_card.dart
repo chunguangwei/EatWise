@@ -261,9 +261,24 @@ class OnDeviceModelCard extends ConsumerWidget {
               Expanded(child: Text(m.enabled, style: textStyles.textBase)),
               Switch(
                 value: enabled,
-                onChanged: (value) => ref
-                    .read(onDeviceAiEnabledProvider.notifier)
-                    .setEnabled(value),
+                onChanged: (value) {
+                  ref
+                      .read(onDeviceAiEnabledProvider.notifier)
+                      .setEnabled(value);
+                  if (value) {
+                    // 后台预热引擎（只 load 不推理），首拍即热；失败静默。
+                    final manager = ref.read(onDeviceModelManagerProvider);
+                    unawaited(
+                      prewarmOnDeviceEngine(
+                        modelPath: manager.modelPath,
+                        isModelReady: () =>
+                            manager.snapshot.status ==
+                            OnDeviceModelStatus.ready,
+                        gateway: ref.read(onDeviceLlmGatewayProvider),
+                      ),
+                    );
+                  }
+                },
               ),
             ],
           ),

@@ -9,12 +9,20 @@ library;
 import 'package:eatwise/core/llm/ondevice/nutrition_estimate_logic.dart';
 import 'package:eatwise/core/storage/database.dart';
 
-/// 视觉版 system instruction（v5 营养约束逐字保留，仅加识别与命名约束）。
+/// 视觉版 system instruction（v5 营养约束逐字保留，加识别与命名约束）。
+///
+/// 命名约束（真机反馈「只给类别词」后加固）：必须输出**最具体的常见
+/// 食物名**，禁止只输出类别词；few-shot 示例定死输出格式与命名粒度。
 const String kPhotoRecognitionSystemPrompt =
     '你是食物拍照识别助手。用户给你一张餐食照片，你识别画面中最主要的一种食物，'
     '并估算其每100克可食部的营养。'
     '按通常食用状态估算：米饭、面条等主食指煮熟后的成品，菜名指烧制完成的成品菜，肉蛋水果按生鲜。'
-    '食物名用最常见的通用中文名（如 米饭、番茄炒蛋、鸡胸肉），不要品牌名，不要份量和形容词。'
+    '食物名必须是最具体的常见中文食物名（如 米饭、番茄炒蛋、苹果、鸡胸肉），'
+    '禁止只输出类别词（水果、蔬菜、肉类、主食、饮料、零食、菜肴这类词都不可以）；'
+    '不要品牌名，不要份量和形容词（红富士就写苹果）。'
+    '示例：一碗白米饭 → 米饭 => 116 => 2.6 => 23 => 0.3；'
+    '一盘番茄炒鸡蛋 → 番茄炒蛋 => 120 => 6 => 8 => 7；'
+    '一个苹果 → 苹果 => 53 => 0.4 => 14 => 0.2。'
     '常见食物每100克热量参考范围：蔬菜20-50千卡，水果30-90千卡，熟主食110-150千卡，'
     '瘦肉蛋100-200千卡，肥肉菜品250-500千卡，含糖饮料35-50千卡。'
     '一般规律：新鲜水果蔬菜水分高，碳水化合物通常不超过25克/100克（干果除外）；'
@@ -22,6 +30,44 @@ const String kPhotoRecognitionSystemPrompt =
     '只输出一行，格式为：食物名 => 热量 => 蛋白质 => 碳水 => 脂肪，'
     '单位分别是千卡、克、克、克（每100克）。只写食物名、数字和 =>，不要任何其他文字。'
     '看不清或画面不是食物时，只输出：无法识别。';
+
+/// 类别词黑名单（解析层兜底，prompt 已禁止输出这些词）：
+/// 命中即「识别不够具体」——置信度强制降档走「请确认」。**精确匹配**
+/// （忽略大小写与首尾空白），「水果捞」「水果沙拉」这类具体名不误伤。
+const Set<String> kGenericFoodCategoryWords = <String>{
+  // 中文类别词
+  '水果',
+  '蔬菜',
+  '肉',
+  '肉类',
+  '主食',
+  '饮料',
+  '零食',
+  '菜肴',
+  '食物',
+  '菜品',
+  '早餐',
+  '午餐',
+  '晚餐',
+  // 英文类别词
+  'fruit',
+  'fruits',
+  'vegetable',
+  'vegetables',
+  'meat',
+  'staple',
+  'beverage',
+  'drink',
+  'snack',
+  'dish',
+  'food',
+  'meal',
+};
+
+/// 识别名是否只命中类别词（不够具体）。
+bool isGenericCategoryName(String name) {
+  return kGenericFoodCategoryWords.contains(name.trim().toLowerCase());
+}
 
 /// 视觉版 user 模板（图片随消息一并送入，文本只需点题）。
 String buildPhotoRecognitionPrompt() {
@@ -114,13 +160,15 @@ Future<FoodNameMatch?> matchFoodByName(
 }
 
 /// 候选置信度策略（端侧模型无原生置信度，按信号合成）：
-/// - sanity-clamp 命中（[isNutritionEstimateDubious]）→ 0.5，必标「请确认」；
+/// - sanity-clamp 命中（[isNutritionEstimateDubious]）或名字只命中类别词
+///   黑名单（[isGenericCategoryName]，识别不够具体）→ 0.5，必标「请确认」；
 /// - 名字精确命中食物库 → 0.85（库内精准营养值兜底，只需确认份量）；
 /// - 仅模糊命中 → 0.6，低于 RecognizedCandidate 低置信阈值 0.7，标「请确认」。
 double photoRecognitionConfidence({
   required bool dubious,
   required bool exactNameMatch,
+  bool tooGeneric = false,
 }) {
-  if (dubious) return 0.5;
+  if (dubious || tooGeneric) return 0.5;
   return exactNameMatch ? 0.85 : 0.6;
 }

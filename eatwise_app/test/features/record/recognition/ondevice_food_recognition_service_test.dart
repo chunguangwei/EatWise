@@ -275,6 +275,107 @@ void main() {
     });
   });
 
+  group('识别阶段回调（两阶段文案数据源）', () {
+    test('引擎未加载 → loadingModel → inferring 依次上报', () async {
+      final gateway = _FakeGateway()
+        ..response = '米饭 => 116 => 2.6 => 23 => 0.3';
+      final service = makeService(
+        gateway: gateway,
+        searchResults: <String, List<Food>>{
+          '米饭': [food(id: 'f-rice', zh: '米饭')],
+        },
+      );
+      final phases = <OnDeviceRecognitionPhase>[];
+      service.onPhaseChanged = phases.add;
+
+      await service.recognize(photoBytes);
+
+      expect(phases, <OnDeviceRecognitionPhase>[
+        OnDeviceRecognitionPhase.loadingModel,
+        OnDeviceRecognitionPhase.inferring,
+      ]);
+    });
+
+    test('已带视觉加载 → 只上报 inferring（无加载阶段）', () async {
+      final gateway = _FakeGateway(loaded: true, vision: true)
+        ..response = '米饭 => 116 => 2.6 => 23 => 0.3';
+      final service = makeService(
+        gateway: gateway,
+        searchResults: <String, List<Food>>{
+          '米饭': [food(id: 'f-rice', zh: '米饭')],
+        },
+      );
+      final phases = <OnDeviceRecognitionPhase>[];
+      service.onPhaseChanged = phases.add;
+
+      await service.recognize(photoBytes);
+
+      expect(phases, <OnDeviceRecognitionPhase>[
+        OnDeviceRecognitionPhase.inferring,
+      ]);
+    });
+
+    test('未挂回调 → 正常完成（回调为可选项）', () async {
+      final gateway = _FakeGateway()
+        ..response = '米饭 => 116 => 2.6 => 23 => 0.3';
+      final service = makeService(
+        gateway: gateway,
+        searchResults: <String, List<Food>>{
+          '米饭': [food(id: 'f-rice', zh: '米饭')],
+        },
+      );
+
+      final outcome = await service.recognize(photoBytes);
+
+      expect(outcome, isA<RecognitionSuccess>());
+    });
+  });
+
+  group('类别词黑名单（识别不够具体）', () {
+    test('类别词即便精确命中库 → 置信 0.5 必标「请确认」', () async {
+      final gateway = _FakeGateway()..response = '水果 => 60 => 0.5 => 14 => 0.2';
+      final service = makeService(
+        gateway: gateway,
+        searchResults: <String, List<Food>>{
+          '水果': [food(id: 'f-fruit', zh: '水果')],
+        },
+      );
+
+      final outcome = await service.recognize(photoBytes);
+
+      final success = outcome as RecognitionSuccess;
+      expect(success.candidates.first.confidence, 0.5);
+      expect(success.candidates.first.isLowConfidence, isTrue);
+    });
+
+    test('「水果捞」不误伤：具体名精确命中 → 0.85 高置信', () async {
+      final gateway = _FakeGateway()..response = '水果捞 => 90 => 1 => 20 => 0.5';
+      final service = makeService(
+        gateway: gateway,
+        searchResults: <String, List<Food>>{
+          '水果捞': [food(id: 'f-fruit-lao', zh: '水果捞')],
+        },
+      );
+
+      final outcome = await service.recognize(photoBytes);
+
+      final success = outcome as RecognitionSuccess;
+      expect(success.candidates.first.confidence, 0.85);
+      expect(success.candidates.first.isLowConfidence, isFalse);
+    });
+
+    test('类别词库未命中 → no_match，detail 原样透出类别词', () async {
+      final gateway = _FakeGateway()..response = '水果 => 60 => 0.5 => 14 => 0.2';
+      final service = makeService(gateway: gateway); // 搜索恒空
+
+      final outcome = await service.recognize(photoBytes);
+
+      final unavailable = outcome as RecognitionUnavailable;
+      expect(unavailable.reason, 'no_match');
+      expect(unavailable.detail, '水果');
+    });
+  });
+
   group('foodRecognitionServiceProvider 选择逻辑', () {
     Future<ProviderContainer> makeContainer({
       required bool enabled,

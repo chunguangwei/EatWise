@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/llm/ondevice/ondevice_llm_gateway.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/presentation/record_page.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
+import 'package:eatwise/features/record/recognition/data/ondevice_food_recognition_service.dart';
 import 'package:eatwise/features/record/recognition/domain/recognition_models.dart';
 import 'package:eatwise/features/record/recognition/presentation/photo_flow.dart';
 import 'package:flutter/material.dart';
@@ -257,4 +260,125 @@ void main() {
     expect(find.text('暂时识别不了，手动搜索一样快'), findsOneWidget);
     await settleUi(tester);
   });
+
+  testWidgets('两阶段文案：加载/视觉重建 →「正在加载视觉模型…」，推理 →「识别中…」', (tester) async {
+    // 真实端侧服务 + 可控网关：挂起 load / infer 分别断言两阶段文案。
+    final gateway = _ControllableGateway();
+    final onDeviceService = OnDeviceFoodRecognitionService(
+      gateway: gateway,
+      modelPath: () async => '/fake/gemma4-e2b.litertlm',
+      searchFoods: (_) async => <Food>[],
+      normalizeImage: (bytes) async => bytes,
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          recordRepositoryProvider.overrideWithValue(repository),
+          photoPickerGatewayProvider.overrideWithValue(photoGateway),
+          foodRecognitionServiceProvider.overrideWithValue(onDeviceService),
+          speechGatewayProvider.overrideWithValue(FakeSpeechGateway()),
+        ],
+        child: TranslationProvider(
+          child: MaterialApp(theme: AppTheme.light(), home: const RecordPage()),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text('拍照记'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('拍照'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 加载/视觉重建阶段（load 挂起中）→ 加载模型文案，不是「识别中…」。
+    expect(gateway.loadCalled, isTrue);
+    expect(find.text('正在加载视觉模型…'), findsOneWidget);
+    expect(find.text('识别中…'), findsNothing);
+
+    // 加载完成 → 推理阶段（infer 挂起中）→ 识别中文案。
+    gateway.completeLoad();
+    await tester.pump();
+    expect(gateway.inferCalled, isTrue);
+    expect(find.text('识别中…'), findsOneWidget);
+    expect(find.text('正在加载视觉模型…'), findsNothing);
+
+    // 推理完成（无法识别）→ 加载框关闭，detail 对话框出现。
+    gateway.completeInfer('无法识别');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(find.text('未识别到食物'), findsOneWidget);
+    await tester.tap(find.text('知道了'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await settleUi(tester);
+  });
+}
+
+/// 可控推理网关：load / inferWithImage 挂起在完成器上，测试手动推进。
+final class _ControllableGateway implements OnDeviceLlmGateway {
+  bool _loaded = false;
+  bool _vision = false;
+  bool loadCalled = false;
+  bool inferCalled = false;
+  Completer<void>? _loadCompleter;
+  Completer<String>? _inferCompleter;
+
+  @override
+  bool get isLoaded => _loaded;
+
+  @override
+  bool get visionEnabled => _loaded && _vision;
+
+  @override
+  Future<void> load(String modelPath, {bool enableVision = false}) {
+    loadCalled = true;
+    final completer = Completer<void>();
+    _loadCompleter = completer;
+    return completer.future.then((_) {
+      _loaded = true;
+      _vision = enableVision;
+    });
+  }
+
+  void completeLoad() => _loadCompleter!.complete();
+
+  @override
+  Future<String> infer(
+    String prompt, {
+    String? systemInstruction,
+    int maxOutputTokens = 96,
+    double temperature = 0.15,
+    int topK = 1,
+    int seed = 42,
+  }) {
+    throw UnimplementedError('本测试只走视觉推理');
+  }
+
+  @override
+  Future<String> inferWithImage(
+    String prompt,
+    Uint8List imageBytes, {
+    String? systemInstruction,
+    int maxOutputTokens = 96,
+    double temperature = 0.15,
+    int topK = 1,
+    int seed = 42,
+  }) {
+    inferCalled = true;
+    final completer = Completer<String>();
+    _inferCompleter = completer;
+    return completer.future;
+  }
+
+  void completeInfer(String response) => _inferCompleter!.complete(response);
+
+  @override
+  Future<void> unload() async {
+    _loaded = false;
+    _vision = false;
+  }
 }

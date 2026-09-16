@@ -635,6 +635,9 @@ class Translations$record$photo$zh_CN {
 
 	/// zh-CN: '首次识别需要加载视觉引擎，可能需要几秒'
 	String get recognizingHint => '首次识别需要加载视觉引擎，可能需要几秒';
+
+	/// zh-CN: '正在加载视觉模型…'
+	String get loadingModel => '正在加载视觉模型…';
 }
 
 // Path: record.barcode
@@ -3099,6 +3102,7 @@ extension on Translations {
 			'record.photo.gotIt' => '知道了',
 			'record.photo.retake' => '重新拍摄',
 			'record.photo.recognizingHint' => '首次识别需要加载视觉引擎，可能需要几秒',
+			'record.photo.loadingModel' => '正在加载视觉模型…',
 			'record.barcode.entry' => '扫码记',
 			'record.barcode.title' => '扫描商品条码',
 			'record.barcode.torch' => '照明灯',
@@ -3512,9 +3516,9 @@ extension on Translations {
 			'social.feed.emptySubtitle' => '发布你的第一条打卡，给同样在坚持的人一点光。',
 			'social.feed.emptyCta' => '发布打卡',
 			'social.feed.errorTitle' => '打卡流加载失败，请稍后重试',
-			'social.feed.pendingBadge' => '内容审核中，仅自己可见',
 			_ => null,
 		} ?? switch (path) {
+			'social.feed.pendingBadge' => '内容审核中，仅自己可见',
 			'social.feed.streakBadge' => ({required Object days}) => '连续 ${days} 天',
 			'social.feed.like' => '点赞',
 			'social.feed.report' => '举报',

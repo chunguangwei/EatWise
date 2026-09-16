@@ -47,3 +47,22 @@ final onDeviceNutritionEstimatorProvider = Provider<OnDeviceNutritionEstimator>(
     );
   },
 );
+
+/// 后台预热端侧引擎（只 load 不推理）：设置页打开「优先使用端侧估算」
+/// 开关后调用，把 text-only → enableVision 的重建成本从首拍路径挪到
+/// 后台，首拍即热。模型未就绪时直接返回；任何失败静默（拍照/估算路径
+/// 会按原逻辑重试并有自己的降级）。
+Future<void> prewarmOnDeviceEngine({
+  required Future<String> Function() modelPath,
+  required bool Function() isModelReady,
+  required OnDeviceLlmGateway gateway,
+}) async {
+  if (!isModelReady()) return;
+  try {
+    if (!gateway.isLoaded || !gateway.visionEnabled) {
+      await gateway.load(await modelPath(), enableVision: true);
+    }
+  } on Object {
+    // 静默：使用路径会重试加载并走各自降级（OOM 永久禁用等）。
+  }
+}

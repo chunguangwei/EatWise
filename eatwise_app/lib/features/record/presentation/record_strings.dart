@@ -137,6 +137,9 @@ final class RecordStrings {
   /// record.photo.recognizingHint
   String get photoRecognizingHint => _t.record.photo.recognizingHint;
 
+  /// record.photo.loadingModel
+  String get photoLoadingModel => _t.record.photo.loadingModel;
+
   /// record.voice.listening
   String get voiceListening => _t.record.voice.listening;
 

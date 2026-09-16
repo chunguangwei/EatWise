@@ -31,10 +31,56 @@ void main() {
       expect(kPhotoRecognitionSystemPrompt, contains('熟主食110-150千卡'));
     });
 
+    test('命名约束：要求最具体食物名、禁止类别词、含 few-shot 示例', () {
+      expect(kPhotoRecognitionSystemPrompt, contains('最具体的常见中文食物名'));
+      expect(kPhotoRecognitionSystemPrompt, contains('禁止只输出类别词'));
+      // few-shot：示例定死输出格式与命名粒度。
+      expect(
+        kPhotoRecognitionSystemPrompt,
+        contains('米饭 => 116 => 2.6 => 23 => 0.3'),
+      );
+      expect(
+        kPhotoRecognitionSystemPrompt,
+        contains('番茄炒蛋 => 120 => 6 => 8 => 7'),
+      );
+      expect(
+        kPhotoRecognitionSystemPrompt,
+        contains('苹果 => 53 => 0.4 => 14 => 0.2'),
+      );
+    });
+
     test('user prompt 点题并以结果引导结尾', () {
       final prompt = buildPhotoRecognitionPrompt();
       expect(prompt, contains('识别'));
       expect(prompt.trimRight(), endsWith('结果：'));
+    });
+  });
+
+  group('isGenericCategoryName 类别词黑名单', () {
+    test('常见类别词命中（中英、忽略大小写与首尾空白）', () {
+      for (final word in <String>[
+        '水果',
+        '蔬菜',
+        '肉类',
+        '主食',
+        '饮料',
+        '零食',
+        '菜肴',
+        '食物',
+        'fruit',
+        'Fruit',
+        ' vegetable ',
+        'MEAT',
+        'food',
+      ]) {
+        expect(isGenericCategoryName(word), isTrue, reason: word);
+      }
+    });
+
+    test('含类别词的具体食物名不误伤（精确匹配口径）', () {
+      for (final word in <String>['水果捞', '水果沙拉', '肉夹馍', '苹果', '米饭', '番茄炒蛋']) {
+        expect(isGenericCategoryName(word), isFalse, reason: word);
+      }
     });
   });
 
@@ -163,6 +209,17 @@ void main() {
     test('sanity-clamp 命中 → 0.5（必低于 0.7 阈值标「请确认」）', () {
       expect(
         photoRecognitionConfidence(dubious: true, exactNameMatch: true),
+        0.5,
+      );
+    });
+
+    test('类别词命中（识别不够具体）→ 0.5，即便精确命中库也必「请确认」', () {
+      expect(
+        photoRecognitionConfidence(
+          dubious: false,
+          exactNameMatch: true,
+          tooGeneric: true,
+        ),
         0.5,
       );
     });
