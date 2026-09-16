@@ -134,6 +134,31 @@ void main() {
     });
   });
 
+  group('cleanRecognitionDetail', () {
+    test('换行/制表/连续空白压缩为单个空格并去首尾空白', () {
+      expect(
+        cleanRecognitionDetail('  无法识别。\n画面里似乎\t是  一张桌子 \n'),
+        '无法识别。 画面里似乎 是 一张桌子',
+      );
+    });
+
+    test('短文本原样返回（无省略号）', () {
+      expect(cleanRecognitionDetail('无法识别'), '无法识别');
+    });
+
+    test('超长截断到 80 字符并以 … 收尾', () {
+      final long = '很长' * 50; // 100 字符
+      final cleaned = cleanRecognitionDetail(long);
+      expect(cleaned.length, kRecognitionDetailMaxLength + 1);
+      expect(cleaned, endsWith('…'));
+      expect(cleaned.startsWith('很长'), isTrue);
+    });
+
+    test('空白-only 输入 → 空串', () {
+      expect(cleanRecognitionDetail('  \n\t '), '');
+    });
+  });
+
   group('photoRecognitionConfidence', () {
     test('sanity-clamp 命中 → 0.5（必低于 0.7 阈值标「请确认」）', () {
       expect(

@@ -111,13 +111,23 @@ final class OnDeviceFoodRecognitionService implements FoodRecognitionService {
       );
       final parsed = parsePhotoRecognitionOutput(raw);
       if (parsed == null) {
-        return const RecognitionUnavailable('parse_failed');
+        // 含模型明说「无法识别」：透出原始回复，用户能看到模型实际看到
+        // 了什么（detail 为空串时按 null 处理，走无详情 snackbar）。
+        final detail = cleanRecognitionDetail(raw);
+        return RecognitionUnavailable(
+          'parse_failed',
+          detail: detail.isEmpty ? null : detail,
+        );
       }
       final match = await matchFoodByName(searchFoods, parsed.name);
       if (match == null) {
-        // 识别名映射不回食物库：按不可用降级手动搜索（识别结果必须
-        // 落回自建核心库，D-16；模型估值不直接入账）。
-        return const RecognitionUnavailable('no_match');
+        // 识别名映射不回食物库：透出识别名（「识别为 xx 但库未收录」，
+        // 引导换词手动搜索）；识别结果必须落回自建核心库，D-16，
+        // 模型估值不直接入账。
+        return RecognitionUnavailable(
+          'no_match',
+          detail: cleanRecognitionDetail(parsed.name),
+        );
       }
       return RecognitionSuccess(<RecognizedCandidate>[
         RecognizedCandidate(

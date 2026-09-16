@@ -454,6 +454,13 @@ class _Translations$record$photo$en extends Translations$record$photo$zh_CN {
 	@override String get deniedBody => 'No camera? No problem — searching manually is just as fast';
 	@override String get openSettings => 'Open Settings';
 	@override String get useManual => 'Search manually';
+	@override String get noFoodTitle => 'No food recognized';
+	@override String get noFoodHint => 'Try another angle, or search manually';
+	@override String unmatchedTitle({required Object name}) => 'Recognized as "${name}"';
+	@override String get unmatchedBody => 'This food isn\'t in the library yet — try searching with a different keyword';
+	@override String get gotIt => 'Got it';
+	@override String get retake => 'Retake photo';
+	@override String get recognizingHint => 'The first recognition loads the on-device vision engine — this can take a few seconds';
 }
 
 // Path: record.barcode
@@ -1853,6 +1860,13 @@ extension on TranslationsEn {
 			'record.photo.deniedBody' => 'No camera? No problem — searching manually is just as fast',
 			'record.photo.openSettings' => 'Open Settings',
 			'record.photo.useManual' => 'Search manually',
+			'record.photo.noFoodTitle' => 'No food recognized',
+			'record.photo.noFoodHint' => 'Try another angle, or search manually',
+			'record.photo.unmatchedTitle' => ({required Object name}) => 'Recognized as "${name}"',
+			'record.photo.unmatchedBody' => 'This food isn\'t in the library yet — try searching with a different keyword',
+			'record.photo.gotIt' => 'Got it',
+			'record.photo.retake' => 'Retake photo',
+			'record.photo.recognizingHint' => 'The first recognition loads the on-device vision engine — this can take a few seconds',
 			'record.barcode.entry' => 'Scan',
 			'record.barcode.title' => 'Scan product barcode',
 			'record.barcode.torch' => 'Torch',
@@ -2267,6 +2281,8 @@ extension on TranslationsEn {
 			'social.feed.emptyCta' => 'Check in',
 			'social.feed.errorTitle' => 'Couldn\'t load the feed. Please try again.',
 			'social.feed.pendingBadge' => 'Under review — visible only to you',
+			_ => null,
+		} ?? switch (path) {
 			'social.feed.streakBadge' => ({required Object days}) => '${days}-day streak',
 			'social.feed.like' => 'Like',
 			'social.feed.report' => 'Report',
@@ -2274,8 +2290,6 @@ extension on TranslationsEn {
 			'social.feed.reported' => 'Reported. Thanks for the heads-up.',
 			'social.feed.reportFailed' => 'Couldn\'t report. Please try again later.',
 			'social.feed.expand' => 'Expand',
-			_ => null,
-		} ?? switch (path) {
 			'social.feed.collapse' => 'Collapse',
 			'social.feed.justNow' => 'Just now',
 			'social.feed.minutesAgo' => ({required Object n}) => '${n} min ago',

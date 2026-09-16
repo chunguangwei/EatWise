@@ -45,6 +45,9 @@ class _RecordPageState extends ConsumerState<RecordPage> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
 
+  /// 搜索框焦点（识别降级对话框「手动搜索」出口对焦用）。
+  final FocusNode _searchFocusNode = FocusNode();
+
   /// 埋点服务（dispose 阶段不可再用 ref，提前持有）。
   late final AnalyticsService _analytics = ref.read(analyticsServiceProvider);
 
@@ -86,6 +89,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     }
     _searchController.dispose();
     _amountController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -225,6 +229,19 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     ref.listen<String>(recordAmountTextProvider, (previous, next) {
       if (_amountController.text != next) _amountController.text = next;
     });
+    // 识别降级对话框「手动搜索」出口：预填识别名（如有）+ 对焦搜索框。
+    ref.listen<String?>(recordSearchPrefillProvider, (previous, next) {
+      if (next == null) return;
+      ref.read(recordSearchPrefillProvider.notifier).state = null;
+      if (next.isNotEmpty) {
+        _searchController.value = TextEditingValue(
+          text: next,
+          selection: TextSelection.collapsed(offset: next.length),
+        );
+        ref.read(recordSearchQueryProvider.notifier).state = next;
+      }
+      _searchFocusNode.requestFocus();
+    });
     final s = RecordStrings.of(context);
     final cs = CustomFoodStrings.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -357,6 +374,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                   ),
                   child: TextField(
                     controller: _searchController,
+                    focusNode: _searchFocusNode,
                     style: textStyles.textBase,
                     decoration: InputDecoration(
                       hintText: s.searchHint,

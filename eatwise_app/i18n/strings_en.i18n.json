@@ -145,7 +145,14 @@
       "deniedTitle": "Camera not allowed",
       "deniedBody": "No camera? No problem — searching manually is just as fast",
       "openSettings": "Open Settings",
-      "useManual": "Search manually"
+      "useManual": "Search manually",
+      "noFoodTitle": "No food recognized",
+      "noFoodHint": "Try another angle, or search manually",
+      "unmatchedTitle": "Recognized as \"${name}\"",
+      "unmatchedBody": "This food isn't in the library yet — try searching with a different keyword",
+      "gotIt": "Got it",
+      "retake": "Retake photo",
+      "recognizingHint": "The first recognition loads the on-device vision engine — this can take a few seconds"
     },
     "barcode": {
       "entry": "Scan",

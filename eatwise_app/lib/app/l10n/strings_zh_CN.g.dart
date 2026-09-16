@@ -614,6 +614,27 @@ class Translations$record$photo$zh_CN {
 
 	/// zh-CN: '手动搜索'
 	String get useManual => '手动搜索';
+
+	/// zh-CN: '未识别到食物'
+	String get noFoodTitle => '未识别到食物';
+
+	/// zh-CN: '换个角度拍，或手动搜索试试'
+	String get noFoodHint => '换个角度拍，或手动搜索试试';
+
+	/// zh-CN: '识别为「${name}」'
+	String unmatchedTitle({required Object name}) => '识别为「${name}」';
+
+	/// zh-CN: '食物库暂未收录这种食物，换个关键词手动搜索试试'
+	String get unmatchedBody => '食物库暂未收录这种食物，换个关键词手动搜索试试';
+
+	/// zh-CN: '知道了'
+	String get gotIt => '知道了';
+
+	/// zh-CN: '重新拍摄'
+	String get retake => '重新拍摄';
+
+	/// zh-CN: '首次识别需要加载视觉引擎，可能需要几秒'
+	String get recognizingHint => '首次识别需要加载视觉引擎，可能需要几秒';
 }
 
 // Path: record.barcode
@@ -3071,6 +3092,13 @@ extension on Translations {
 			'record.photo.deniedBody' => '拍不了照也能记，手动搜一样快',
 			'record.photo.openSettings' => '去开启',
 			'record.photo.useManual' => '手动搜索',
+			'record.photo.noFoodTitle' => '未识别到食物',
+			'record.photo.noFoodHint' => '换个角度拍，或手动搜索试试',
+			'record.photo.unmatchedTitle' => ({required Object name}) => '识别为「${name}」',
+			'record.photo.unmatchedBody' => '食物库暂未收录这种食物，换个关键词手动搜索试试',
+			'record.photo.gotIt' => '知道了',
+			'record.photo.retake' => '重新拍摄',
+			'record.photo.recognizingHint' => '首次识别需要加载视觉引擎，可能需要几秒',
 			'record.barcode.entry' => '扫码记',
 			'record.barcode.title' => '扫描商品条码',
 			'record.barcode.torch' => '照明灯',
@@ -3485,6 +3513,8 @@ extension on Translations {
 			'social.feed.emptyCta' => '发布打卡',
 			'social.feed.errorTitle' => '打卡流加载失败，请稍后重试',
 			'social.feed.pendingBadge' => '内容审核中，仅自己可见',
+			_ => null,
+		} ?? switch (path) {
 			'social.feed.streakBadge' => ({required Object days}) => '连续 ${days} 天',
 			'social.feed.like' => '点赞',
 			'social.feed.report' => '举报',
@@ -3492,8 +3522,6 @@ extension on Translations {
 			'social.feed.reported' => '已举报，感谢反馈',
 			'social.feed.reportFailed' => '举报失败，请稍后重试',
 			'social.feed.expand' => '展开',
-			_ => null,
-		} ?? switch (path) {
 			'social.feed.collapse' => '收起',
 			'social.feed.justNow' => '刚刚',
 			'social.feed.minutesAgo' => ({required Object n}) => '${n} 分钟前',

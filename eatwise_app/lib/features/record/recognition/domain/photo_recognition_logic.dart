@@ -46,8 +46,19 @@ final RegExp _parseRegex = RegExp(
   r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)',
 );
 
-/// 食物名前缀杂质（模型偶发复述「食物：」「结果：」等提示词片段）。
+/// 识别名前缀杂质（模型偶发复述「食物：」「结果：」等提示词片段）。
 final RegExp _namePrefixRegex = RegExp(r'^(食物|结果|名称|答案)\s*[:：]\s*');
+
+/// detail 透出长度上限（字符数；超出部分以 … 收尾，总长度 ≤ 上限+1）。
+const int kRecognitionDetailMaxLength = 80;
+
+/// 模型原文 → 可透出给用户的单行详情：压缩全部空白（含换行/制表）为
+/// 单个空格、去首尾空白、超长截断加省略号。空白-only 输入返回空串。
+String cleanRecognitionDetail(String raw) {
+  final collapsed = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (collapsed.length <= kRecognitionDetailMaxLength) return collapsed;
+  return '${collapsed.substring(0, kRecognitionDetailMaxLength)}…';
+}
 
 /// 解析视觉模型输出原文；匹配失败/「无法识别」返回 null（上层走降级）。
 ParsedPhotoRecognition? parsePhotoRecognitionOutput(String text) {

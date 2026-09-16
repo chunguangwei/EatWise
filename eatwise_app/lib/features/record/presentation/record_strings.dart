@@ -115,6 +115,28 @@ final class RecordStrings {
   /// record.photo.useManual
   String get photoUseManual => _t.record.photo.useManual;
 
+  /// record.photo.noFoodTitle
+  String get photoNoFoodTitle => _t.record.photo.noFoodTitle;
+
+  /// record.photo.noFoodHint
+  String get photoNoFoodHint => _t.record.photo.noFoodHint;
+
+  /// record.photo.unmatchedTitle
+  String photoUnmatchedTitle(String name) =>
+      _t.record.photo.unmatchedTitle(name: name);
+
+  /// record.photo.unmatchedBody
+  String get photoUnmatchedBody => _t.record.photo.unmatchedBody;
+
+  /// record.photo.gotIt
+  String get photoGotIt => _t.record.photo.gotIt;
+
+  /// record.photo.retake
+  String get photoRetake => _t.record.photo.retake;
+
+  /// record.photo.recognizingHint
+  String get photoRecognizingHint => _t.record.photo.recognizingHint;
+
   /// record.voice.listening
   String get voiceListening => _t.record.voice.listening;
 

@@ -38,11 +38,22 @@ final class RecognitionSuccess extends RecognitionOutcome {
   final List<RecognizedCandidate> candidates;
 }
 
-/// 识别不可用：第三方 API 未接入/超时/无网络/服务端未部署。
+/// 识别不可用：第三方 API 未接入/超时/无网络/服务端未部署，
+/// 或端侧视觉识别各环节失败（bad_image / parse_failed / no_match /
+/// ondevice_error / ondevice_oom / ondevice_disabled）。
 /// UI 按 D-16 兜底语义引导手动搜索（不丢已输入内容）。
 final class RecognitionUnavailable extends RecognitionOutcome {
-  const RecognitionUnavailable(this.reason);
+  const RecognitionUnavailable(this.reason, {this.detail});
 
-  /// 失败原因码（埋点用：not_integrated / timeout / network / server_error）。
+  /// 失败原因码（埋点用：not_integrated / timeout / network / server_error /
+  /// bad_image / parse_failed / no_match / ondevice_error / ondevice_oom /
+  /// ondevice_disabled）。
   final String reason;
+
+  /// 可选详情（端侧识别透出给用户的内容）：
+  /// - parse_failed/「无法识别」：模型原始回复（已去换行并截断，见
+  ///   cleanRecognitionDetail）；
+  /// - no_match：识别出的食物名（库未收录，引导换词手动搜索）；
+  /// - 其他原因码恒为 null（无用户可读的模型内容）。
+  final String? detail;
 }

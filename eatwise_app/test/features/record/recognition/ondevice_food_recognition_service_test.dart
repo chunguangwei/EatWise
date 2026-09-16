@@ -131,25 +131,44 @@ void main() {
   });
 
   group('降级路径（一律 RecognitionUnavailable，与 UI 兜底兼容）', () {
-    test('模型输出「无法识别」→ parse_failed', () async {
+    test('模型输出「无法识别」→ parse_failed，detail 透出原文', () async {
       final gateway = _FakeGateway()..response = '无法识别';
       final service = makeService(gateway: gateway);
 
       final outcome = await service.recognize(photoBytes);
 
-      expect((outcome as RecognitionUnavailable).reason, 'parse_failed');
+      final unavailable = outcome as RecognitionUnavailable;
+      expect(unavailable.reason, 'parse_failed');
+      expect(unavailable.detail, '无法识别');
     });
 
-    test('识别名映射不回食物库 → no_match（估值不入账）', () async {
+    test('parse_failed 的 detail 去换行并截断（80 字符 + …）', () async {
+      final gateway = _FakeGateway()
+        ..response = '这张照片里似乎没有食物，\n只有一张${'很长的桌' * 20}子。';
+      final service = makeService(gateway: gateway);
+
+      final outcome = await service.recognize(photoBytes);
+
+      final unavailable = outcome as RecognitionUnavailable;
+      expect(unavailable.reason, 'parse_failed');
+      final detail = unavailable.detail!;
+      expect(detail, isNot(contains('\n')));
+      expect(detail.length, kRecognitionDetailMaxLength + 1);
+      expect(detail, endsWith('…'));
+    });
+
+    test('识别名映射不回食物库 → no_match，detail 透出识别名', () async {
       final gateway = _FakeGateway()..response = '外星食物 => 100 => 5 => 10 => 2';
       final service = makeService(gateway: gateway); // 搜索恒空
 
       final outcome = await service.recognize(photoBytes);
 
-      expect((outcome as RecognitionUnavailable).reason, 'no_match');
+      final unavailable = outcome as RecognitionUnavailable;
+      expect(unavailable.reason, 'no_match');
+      expect(unavailable.detail, '外星食物');
     });
 
-    test('图片解码失败 → bad_image（不触发推理）', () async {
+    test('图片解码失败 → bad_image，detail 为空（不触发推理）', () async {
       final gateway = _FakeGateway();
       final service = makeService(
         gateway: gateway,
@@ -158,21 +177,25 @@ void main() {
 
       final outcome = await service.recognize(photoBytes);
 
-      expect((outcome as RecognitionUnavailable).reason, 'bad_image');
+      final unavailable = outcome as RecognitionUnavailable;
+      expect(unavailable.reason, 'bad_image');
+      expect(unavailable.detail, isNull);
       expect(gateway.inferCalls, 0);
     });
 
-    test('加载 OOM → ondevice_oom，且后续调用永久短路', () async {
+    test('加载 OOM → ondevice_oom（detail 为空），且后续调用永久短路', () async {
       final gateway = _FakeGateway()
         ..loadError = const OnDeviceLlmMemoryException('引擎加载内存不足');
       final service = makeService(gateway: gateway);
 
       final first = await service.recognize(photoBytes);
       expect((first as RecognitionUnavailable).reason, 'ondevice_oom');
+      expect(first.detail, isNull);
       expect(service.isPermanentlyDisabled, isTrue);
 
       final second = await service.recognize(photoBytes);
       expect((second as RecognitionUnavailable).reason, 'ondevice_disabled');
+      expect(second.detail, isNull);
       expect(gateway.loadCalls, 1); // 不再重试加载
     });
 
@@ -183,18 +206,22 @@ void main() {
 
       final outcome = await service.recognize(photoBytes);
 
-      expect((outcome as RecognitionUnavailable).reason, 'ondevice_oom');
+      final unavailable = outcome as RecognitionUnavailable;
+      expect(unavailable.reason, 'ondevice_oom');
+      expect(unavailable.detail, isNull);
       expect(service.isPermanentlyDisabled, isTrue);
     });
 
-    test('引擎错误 → ondevice_error（可重试，不永久禁用）', () async {
+    test('引擎错误 → ondevice_error（detail 为空，可重试不永久禁用）', () async {
       final gateway = _FakeGateway(loaded: true, vision: true)
         ..inferError = const OnDeviceLlmEngineException('推理失败');
       final service = makeService(gateway: gateway);
 
       final outcome = await service.recognize(photoBytes);
 
-      expect((outcome as RecognitionUnavailable).reason, 'ondevice_error');
+      final unavailable = outcome as RecognitionUnavailable;
+      expect(unavailable.reason, 'ondevice_error');
+      expect(unavailable.detail, isNull);
       expect(service.isPermanentlyDisabled, isFalse);
     });
   });

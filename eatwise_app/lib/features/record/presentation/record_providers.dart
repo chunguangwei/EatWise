@@ -61,6 +61,12 @@ final StateProvider<String> recordSearchQueryProvider = StateProvider<String>(
   (ref) => '',
 );
 
+/// 搜索框预填/对焦请求（拍照识别降级对话框的「手动搜索」出口）：
+/// 非 null 即请求——非空串预填进搜索框并同步 [recordSearchQueryProvider]，
+/// 空串仅对焦；消费方（RecordPage）处理完须复位 null。
+final StateProvider<String?> recordSearchPrefillProvider =
+    StateProvider<String?>((ref) => null);
+
 /// 食物搜索（D-16）：本地优先 + 远端 K1 补充（远端结果合入本地缓存）；
 /// dio 不可用/远端失败时静默降级为纯本地 drift 双语搜索。
 final Provider<RemoteFoodSearch> remoteFoodSearchProvider =
