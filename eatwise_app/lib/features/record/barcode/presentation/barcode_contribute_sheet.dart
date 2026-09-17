@@ -142,6 +142,10 @@ class _BarcodeContributeSheetState
   /// 提交在途（防连点重复提交）。
   bool _saving = false;
 
+  /// 营养表 OCR 已预填四营养（显示「AI 读表，请核对」徽标；
+  /// 用户改值即清除——徽标只覆盖未改动的读数）。
+  bool _ocrApplied = false;
+
   /// 埋点服务（与记录页同一实例；未授权时 track 为 no-op）。
   late final AnalyticsService _analytics = ref.read(analyticsServiceProvider);
 
@@ -197,7 +201,43 @@ class _BarcodeContributeSheetState
       _photoUrl = null;
       _photoMissing = false;
     });
+    // 一图两用：佐证照上传与端侧读表并行；OCR 不可用（端侧未启用/
+    // 模型未就绪）时按钮退回纯佐证语义，文案不变不误导。
+    unawaited(_runLabelOcr(bytes));
     await _uploadPhoto(bytes);
+  }
+
+  /// 端侧营养表 OCR：读出每 100g 四营养预填表单 + 「AI 读表，请核对」
+  /// 徽标；读不出静默（照片仍是佐证）。失败/读不出不影响上传链路。
+  Future<void> _runLabelOcr(Uint8List bytes) async {
+    final ocr = ref.read(nutritionLabelOcrServiceProvider);
+    if (ocr == null) return;
+    final reading = await ocr.read(bytes);
+    if (!mounted) return;
+    // 换图后旧读数不回填（与上传代际同思路）。
+    if (!identical(bytes, _photo)) return;
+    _analytics.track(
+      'record_photo_label_ocr',
+      properties: <String, Object?>{
+        'scene': 'barcode_contribute',
+        'result': reading == null ? 'failed' : 'success',
+      },
+    );
+    if (reading == null) return;
+    setState(() {
+      _kcalController.text = _formatNumber(reading.values.kcal);
+      _proteinController.text = _formatNumber(reading.values.proteinG);
+      _carbController.text = _formatNumber(reading.values.carbsG);
+      _fatController.text = _formatNumber(reading.values.fatG);
+      _ocrApplied = true;
+    });
+  }
+
+  /// 数字展示（116.0 → "116"，13.3 → "13.3"）。
+  static String _formatNumber(double value) {
+    return value == value.roundToDouble()
+        ? value.round().toString()
+        : value.toString();
   }
 
   /// 上传照片（POST /uploads，U1 契约）：上传态 + 失败就地重试，
@@ -368,6 +408,11 @@ class _BarcodeContributeSheetState
     } finally {
       _saving = false;
     }
+  }
+
+  /// OCR 读数被手动改动：清除「AI 读表」徽标（徽标只覆盖未改动读数）。
+  void _clearOcrBadge() {
+    if (_ocrApplied) setState(() => _ocrApplied = false);
   }
 
   /// 是否纯英文名（粗略：不含 CJK 字符，与自定义食物弹层同口径）。
@@ -589,6 +634,7 @@ class _BarcodeContributeSheetState
                 style: textStyles.textBase,
                 decoration: _fieldDecoration(colors, radii, cs.kcalLabel),
                 validator: _nutritionValidator(cs, 900, cs.kcalRange),
+                onChanged: (_) => _clearOcrBadge(),
               ),
               const SizedBox(height: AppSpacing.s3),
               TextFormField(
@@ -598,6 +644,7 @@ class _BarcodeContributeSheetState
                 style: textStyles.textBase,
                 decoration: _fieldDecoration(colors, radii, cs.proteinLabel),
                 validator: _nutritionValidator(cs, 100, cs.macroRange),
+                onChanged: (_) => _clearOcrBadge(),
               ),
               const SizedBox(height: AppSpacing.s3),
               TextFormField(
@@ -607,6 +654,7 @@ class _BarcodeContributeSheetState
                 style: textStyles.textBase,
                 decoration: _fieldDecoration(colors, radii, cs.carbLabel),
                 validator: _nutritionValidator(cs, 100, cs.macroRange),
+                onChanged: (_) => _clearOcrBadge(),
               ),
               const SizedBox(height: AppSpacing.s3),
               TextFormField(
@@ -616,7 +664,29 @@ class _BarcodeContributeSheetState
                 style: textStyles.textBase,
                 decoration: _fieldDecoration(colors, radii, cs.fatLabel),
                 validator: _nutritionValidator(cs, 100, cs.macroRange),
+                onChanged: (_) => _clearOcrBadge(),
               ),
+              // 「AI 读表，请核对」徽标（读表预填时展示；改值即消）。
+              if (_ocrApplied)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.s3),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s3,
+                      vertical: AppSpacing.s2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.brandAccent,
+                      borderRadius: radii.rSm,
+                    ),
+                    child: Text(
+                      cs.estimateBadgeOcr,
+                      style: textStyles.textSm.copyWith(
+                        color: colors.bgSecondary,
+                      ),
+                    ),
+                  ),
+                ),
               const SizedBox(height: AppSpacing.s4),
               _buildPhotoSection(context, colors, textStyles, radii),
               const SizedBox(height: AppSpacing.s4),

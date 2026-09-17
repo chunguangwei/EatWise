@@ -18,6 +18,9 @@ import 'package:eatwise/features/record/custom_food/presentation/custom_food_pro
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
+import 'package:eatwise/features/record/presentation/record_strings.dart';
+import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
+import 'package:eatwise/features/record/recognition/presentation/photo_flow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -147,6 +150,9 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
   /// 保存在途（防连点重复提交）。
   bool _saving = false;
 
+  /// 拍营养表 OCR 在途（按钮转 loading，防连点）。
+  bool _ocrReading = false;
+
   /// 勾选「分享给所有用户」（默认不勾；保存成功后调 /contribute 提交审核）。
   bool _shareToAll = false;
 
@@ -226,6 +232,61 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
     } finally {
       if (mounted) setState(() => _estimating = false);
     }
+  }
+
+  /// 拍营养表：选来源取图 → 端侧视觉读表 → 预填四营养 + 「AI 读表，
+  /// 请核对」徽标（端侧 dubious 附「估算存疑」）；读不出降级手动填写
+  /// （不阻断，按钮仅在 OCR 服务可用时渲染）。
+  Future<void> _onPhotoOcr() async {
+    final cs = CustomFoodStrings.of(context);
+    final s = RecordStrings.of(context);
+    final ocr = ref.read(nutritionLabelOcrServiceProvider);
+    if (ocr == null || _ocrReading) return;
+    final source = await showPhotoSourceSheet(context, s);
+    if (source == null || !mounted) return;
+    Uint8List bytes;
+    try {
+      final picked = await ref.read(photoPickerGatewayProvider).pick(source);
+      // 用户主动取消取图：静默返回，不动表单。
+      if (picked == null || !mounted) return;
+      bytes = picked;
+    } on PhotoPermissionDeniedException {
+      if (mounted) await showPhotoPermissionDeniedCard(context, s);
+      return;
+    }
+    setState(() => _ocrReading = true);
+    final reading = await ocr.read(bytes);
+    if (!mounted) return;
+    if (reading == null) {
+      _analytics.track(
+        'record_photo_label_ocr',
+        properties: <String, Object?>{
+          'scene': 'custom_food',
+          'result': 'failed',
+        },
+      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(cs.photoOcrFailed)));
+    } else {
+      _analytics.track(
+        'record_photo_label_ocr',
+        properties: <String, Object?>{
+          'scene': 'custom_food',
+          'result': 'success',
+        },
+      );
+      setState(() {
+        _kcalController.text = _formatNumber(reading.values.kcal);
+        _proteinController.text = _formatNumber(reading.values.proteinG);
+        _carbController.text = _formatNumber(reading.values.carbsG);
+        _fatController.text = _formatNumber(reading.values.fatG);
+        _estimateApplied = true;
+        _estimateLow = reading.dubious;
+        _estimateSource = FoodEstimateSource.photoOcr;
+      });
+    }
+    if (mounted) setState(() => _ocrReading = false);
   }
 
   /// 保存：校验 → 远端 /foods/custom（离线仅落本地 pending）→ 关弹层回填。
@@ -432,6 +493,35 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                   style: textStyles.textBase,
                 ),
               ),
+              // 拍营养表（端侧 OCR 可用时才渲染；不可用隐藏不误导）。
+              if (ref.watch(nutritionLabelOcrServiceProvider) != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.s2),
+                  child: OutlinedButton.icon(
+                    onPressed: _ocrReading
+                        ? null
+                        : () => unawaited(_onPhotoOcr()),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(AppSpacing.s12),
+                      foregroundColor: colors.brandPrimary,
+                      side: BorderSide(color: colors.brandPrimary),
+                    ),
+                    icon: _ocrReading
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: colors.brandPrimary,
+                            ),
+                          )
+                        : const Icon(Icons.document_scanner_outlined),
+                    label: Text(
+                      _ocrReading ? cs.photoOcrReading : cs.photoOcr,
+                      style: textStyles.textBase,
+                    ),
+                  ),
+                ),
               // 估算不可用降级提示（双语，不阻断手动填写）。
               if (_estimateUnavailable)
                 Padding(
@@ -466,6 +556,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                               cs.estimateBadgeOnDevice,
                             FoodEstimateSource.userApi =>
                               cs.estimateBadgeUserApi,
+                            FoodEstimateSource.photoOcr => cs.estimateBadgeOcr,
                           },
                           style: textStyles.textSm.copyWith(
                             color: colors.bgSecondary,

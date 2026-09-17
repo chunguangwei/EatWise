@@ -19,6 +19,8 @@ import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/recognition/data/food_recognition_service.dart';
 import 'package:eatwise/features/record/recognition/data/frequent_foods.dart';
 import 'package:eatwise/features/record/recognition/data/ondevice_food_recognition_service.dart';
+import 'package:eatwise/features/record/recognition/data/ondevice_free_text_meal_service.dart';
+import 'package:eatwise/features/record/recognition/data/ondevice_label_ocr_service.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
 import 'package:eatwise/features/record/recognition/voice/speech_gateway.dart';
 import 'package:eatwise/features/record/recognition/voice/voice_text_parser.dart';
@@ -151,36 +153,61 @@ final StateProvider<bool> recordLowConfidenceProvider = StateProvider<bool>(
 final Provider<PhotoPickerGateway> photoPickerGatewayProvider =
     Provider<PhotoPickerGateway>((ref) => ImagePickerPhotoGateway());
 
+/// 端侧识别能力是否可用（三服务共用判定：拍照识别/营养表 OCR/自由记）：
+/// 开关开且（快照明确 ready 或快照未出首帧——冷启动窗口期乐观，真实
+/// 就绪由服务内部 load 把关：模型真未下载 → load 抛缺失 → 各服务按自身
+/// 降级路径处理，与 stub/回落同一兜底）。快照已出且未就绪 → false。
+bool _onDeviceRecognitionActive(Ref ref) {
+  if (!ref.watch(onDeviceAiEnabledProvider)) return false;
+  final snapshotAsync = ref.watch(onDeviceModelSnapshotProvider);
+  return switch (snapshotAsync) {
+    AsyncData(:final value) => value.status == OnDeviceModelStatus.ready,
+    // 快照未出（冷启动 refresh 进行中）：乐观按就绪。
+    _ => true,
+  };
+}
+
 /// 拍照识别服务（D-16）。端侧小模型开关启用且模型已下载 → Gemma4-E2B
 /// 视觉识别（[OnDeviceFoodRecognitionService]）；否则保留**远端 stub**
 /// （服务端识别端点未实现，任何输入都返回 RecognitionUnavailable → UI
 /// 走手动搜索兜底）。〔待外部确认：第三方食物识别 API 选型 M0 定〕
 final Provider<FoodRecognitionService> foodRecognitionServiceProvider =
     Provider<FoodRecognitionService>((ref) {
-      final enabled = ref.watch(onDeviceAiEnabledProvider);
-      if (enabled) {
-        final snapshotAsync = ref.watch(onDeviceModelSnapshotProvider);
-        // 冷启动竞态（真机反馈：重启后开关是开的，但快照首帧未出 →
-        // 磁盘 refresh 还在路上 → 误落 stub，首拍不走端侧）：快照未出时
-        // 乐观按就绪选端侧，真实就绪交给服务内部 load 把关——模型真未
-        // 下载时 load 抛 OnDeviceModelMissingException → ondevice_error →
-        // 手动搜索 snackbar，与 stub 同一兜底路径。快照已出则按磁盘实况
-        // 判定（notDownloaded/paused/error 等仍落 stub）。
-        final optimisticReady = switch (snapshotAsync) {
-          AsyncData(:final value) => value.status == OnDeviceModelStatus.ready,
-          _ => true,
-        };
-        if (optimisticReady) {
-          final manager = ref.watch(onDeviceModelManagerProvider);
-          return OnDeviceFoodRecognitionService(
-            gateway: ref.watch(onDeviceLlmGatewayProvider),
-            modelPath: manager.modelPath,
-            searchFoods: (query) =>
-                ref.read(recordRepositoryProvider).searchFoods(query),
-          );
-        }
+      if (_onDeviceRecognitionActive(ref)) {
+        final manager = ref.watch(onDeviceModelManagerProvider);
+        return OnDeviceFoodRecognitionService(
+          gateway: ref.watch(onDeviceLlmGatewayProvider),
+          modelPath: manager.modelPath,
+          searchFoods: (query) =>
+              ref.read(recordRepositoryProvider).searchFoods(query),
+        );
       }
       return RemoteFoodRecognitionStub(dio: ref.watch(apiDioProvider));
+    });
+
+/// 营养表 OCR 服务（端侧视觉读表）。开关关或快照明确未就绪 → null
+/// （表单降级：自定义食物隐藏「拍营养表」入口，条码补录退回纯佐证照）。
+final Provider<OnDeviceNutritionLabelOcrService?>
+nutritionLabelOcrServiceProvider = Provider((ref) {
+  if (!_onDeviceRecognitionActive(ref)) return null;
+  return OnDeviceNutritionLabelOcrService(
+    gateway: ref.watch(onDeviceLlmGatewayProvider),
+    modelPath: ref.watch(onDeviceModelManagerProvider).modelPath,
+  );
+});
+
+/// 自由记文本明细服务（端侧文本推理）。开关关或快照明确未就绪 → null
+/// （语音录入回落既有词典解析路径）。
+final Provider<OnDeviceFreeTextMealService?> freeTextMealServiceProvider =
+    Provider((ref) {
+      if (!_onDeviceRecognitionActive(ref)) return null;
+      final manager = ref.watch(onDeviceModelManagerProvider);
+      return OnDeviceFreeTextMealService(
+        gateway: ref.watch(onDeviceLlmGatewayProvider),
+        modelPath: manager.modelPath,
+        searchFoods: (query) =>
+            ref.read(recordRepositoryProvider).searchFoods(query),
+      );
     });
 
 /// 系统 ASR（生产 speech_to_text；测试 override 为 fake）。

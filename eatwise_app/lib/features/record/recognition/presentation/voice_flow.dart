@@ -2,18 +2,25 @@ import 'dart:async';
 
 import 'package:app_settings/app_settings.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
+import 'package:eatwise/features/record/recognition/domain/recognition_models.dart';
+import 'package:eatwise/features/record/recognition/presentation/photo_meal_sheet.dart';
 import 'package:eatwise/features/record/recognition/voice/speech_gateway.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// 语音录入入口流程（PRD M3 / D-16：系统 ASR + 自研轻量解析，
-/// 不引入独立 NLP 服务）。
+/// 语音录入入口流程（PRD M3 / D-16：系统 ASR + 端侧文本明细推理优先，
+/// 回落自研轻量词典解析，不引入独立 NLP 服务）。
+///
+/// 「说一句记一笔」：ASR/键盘输入文本 → 端侧文本推理（明细协议文本版，
+/// 与拍照识别七段同构）→ 明细确认卡一键入账（EntrySource.voice）；
+/// 端侧未启用/推理失败/解析空 → 回落既有词典解析路径（不破坏）。
 ///
 /// 首次点击用时申请权限（合规 §3.1：iOS 语音识别+麦克风双权限，
 /// Android RECORD_AUDIO）；权限拒绝/设备不支持 → 降级说明卡引导手动
@@ -31,7 +38,7 @@ Future<void> startVoiceInput(BuildContext context, WidgetRef ref) async {
     '-',
     '_',
   );
-  final transcript = await showModalBottomSheet<String>(
+  final transcript = await showModalBottomSheet<VoiceTranscript>(
     context: context,
     isDismissible: false,
     builder: (_) => _VoiceListeningSheet(gateway: gateway, localeId: localeId),
@@ -39,11 +46,37 @@ Future<void> startVoiceInput(BuildContext context, WidgetRef ref) async {
   // null = 用户取消听写：静默返回，不动已输入内容。
   if (transcript == null || !context.mounted) return;
 
+  // 「说一句记一笔」：端侧文本明细推理优先（开关开且模型就绪时），
+  // 成功 → 明细确认卡一键入账；失败/解析空/取消 → 回落词典解析。
+  final items = await _tryFreeTextInference(
+    context,
+    ref,
+    transcript.text,
+    inputKind: transcript.typed ? 'keyboard' : 'voice',
+  );
+  if (!context.mounted) return;
+  if (items != null && items.isNotEmpty) {
+    final result = await showPhotoMealConfirmSheet(
+      context,
+      ref,
+      items,
+      entrySource: EntrySource.voice,
+      showRetake: false, // 文本场景无「重新拍摄」
+    );
+    if (!context.mounted || result == null || result.loggedCount == 0) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(s.photoLoggedItems(result.loggedCount))),
+    );
+    return;
+  }
+
   // 全量食物库构建解析词典（约 7.5k 条内存可行；limit 截断会让尾部
   // 词条永远匹配不到）。
   final foods = await ref.read(recordRepositoryProvider).allFoodsForVoiceDict();
   if (!context.mounted) return;
-  final result = ref.read(voiceTextParserProvider).parse(transcript, foods);
+  final result = ref
+      .read(voiceTextParserProvider)
+      .parse(transcript.text, foods);
   if (result.isEmpty) {
     // 词典没匹配上：提示换个说法或手动搜索（输入内容保留）。
     ScaffoldMessenger.of(
@@ -61,6 +94,84 @@ Future<void> startVoiceInput(BuildContext context, WidgetRef ref) async {
   // 语音文本已由用户亲口确认，不标「请确认」（该标记留给拍照低置信度）。
   ref.read(recordLowConfidenceProvider.notifier).state = false;
   ref.read(recordEntrySourceProvider.notifier).state = EntrySource.voice;
+}
+
+/// 听写面板产出：转写文本 + 输入方式（语音/键盘，埋点 input 维度）。
+final class VoiceTranscript {
+  const VoiceTranscript(this.text, {required this.typed});
+
+  final String text;
+
+  /// true = 键盘输入（语音转写为 false）。
+  final bool typed;
+}
+
+/// 自由记推理整体超时（端侧文本推理 + 可能的引擎冷加载）。
+const Duration kFreeTextInferenceTimeout = Duration(seconds: 60);
+
+/// 端侧自由记推理（「理解中…」加载框 + 取消；超时/取消/失败返回 null
+/// → 调用方回落词典解析）。埋点 record_free_text（input/result 维度）。
+Future<List<RecognizedMealItem>?> _tryFreeTextInference(
+  BuildContext context,
+  WidgetRef ref,
+  String text, {
+  required String inputKind,
+}) async {
+  final service = ref.read(freeTextMealServiceProvider);
+  if (service == null) return null; // 端侧未启用：直接回落（不埋点）
+  final s = RecordStrings.of(context);
+  var cancelled = false;
+  final future = service
+      .parse(text)
+      .timeout(kFreeTextInferenceTimeout, onTimeout: () => null);
+  final dialogClosed = showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) {
+      // 推理完成时自动关闭加载框（若用户未先取消）。
+      future.then((items) {
+        if (!cancelled && dialogContext.mounted) {
+          Navigator.of(dialogContext).pop();
+        }
+      });
+      return AlertDialog(
+        content: Row(
+          children: <Widget>[
+            const CircularProgressIndicator(),
+            const SizedBox(width: AppSpacing.s4),
+            Expanded(
+              child: Text(
+                s.voiceUnderstanding,
+                style: Theme.of(context).extension<AppTextStyles>()!.textBase,
+              ),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              cancelled = true;
+              Navigator.of(dialogContext).pop();
+            },
+            child: Text(s.cancelAction),
+          ),
+        ],
+      );
+    },
+  );
+  final items = await future;
+  // 与拍照识别同款顺序：等加载框真正关闭再返回（快速完成时防竞态）。
+  await dialogClosed;
+  ref
+      .read(analyticsServiceProvider)
+      .track(
+        'record_free_text',
+        properties: <String, Object?>{
+          'input': inputKind,
+          'result': items != null && items.isNotEmpty ? 'success' : 'fallback',
+        },
+      );
+  return cancelled ? null : items;
 }
 
 /// 语音不可用/权限拒绝降级说明卡（§4.3：「去开启」/「改用文字」）。
@@ -103,6 +214,16 @@ class _VoiceListeningSheet extends ConsumerStatefulWidget {
 class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
   String _text = '';
 
+  /// 键盘输入模式（纯文本自由记入口：听写面板内一键切换，最小 UI 改动）。
+  bool _typing = false;
+  final TextEditingController _typeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _typeController.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -130,13 +251,47 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
           children: <Widget>[
             Row(
               children: <Widget>[
-                Icon(Icons.mic, color: colors.brandPrimary),
+                Icon(
+                  _typing ? Icons.keyboard_outlined : Icons.mic,
+                  color: colors.brandPrimary,
+                ),
                 const SizedBox(width: AppSpacing.s2),
                 Expanded(
-                  child: Text(
-                    _text.isEmpty ? s.voiceListening : _text,
-                    style: textStyles.textBase,
+                  child: _typing
+                      ? TextField(
+                          controller: _typeController,
+                          autofocus: true,
+                          style: textStyles.textBase,
+                          decoration: InputDecoration(
+                            hintText: s.voiceTypeHint,
+                            isDense: true,
+                          ),
+                          onChanged: (value) => _text = value,
+                        )
+                      : Text(
+                          _text.isEmpty ? s.voiceListening : _text,
+                          style: textStyles.textBase,
+                        ),
+                ),
+                // 语音/键盘切换（≥48px 触控目标）。
+                IconButton(
+                  icon: Icon(_typing ? Icons.mic : Icons.keyboard_outlined),
+                  tooltip: s.voiceTypeInput,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
                   ),
+                  onPressed: () => setState(() {
+                    _typing = !_typing;
+                    if (_typing) {
+                      _typeController.text = _text;
+                      _typeController.selection = TextSelection.collapsed(
+                        offset: _typeController.text.length,
+                      );
+                    } else {
+                      _text = _typeController.text;
+                    }
+                  }),
                 ),
               ],
             ),
@@ -163,7 +318,9 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
                       onPressed: () async {
                         await widget.gateway.stop();
                         if (context.mounted) {
-                          Navigator.of(context).pop(_text);
+                          Navigator.of(
+                            context,
+                          ).pop(VoiceTranscript(_text, typed: _typing));
                         }
                       },
                       child: Text(s.voiceFinish),

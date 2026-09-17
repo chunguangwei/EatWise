@@ -509,6 +509,9 @@ class _Translations$record$voice$en extends Translations$record$voice$zh_CN {
 	@override String get deniedTitle => 'Microphone not allowed';
 	@override String get deniedBody => 'No voice? No problem — typing a search is just as fast';
 	@override String get noMatch => 'Couldn\'t catch the food — try rephrasing or search manually';
+	@override String get typeInput => 'Type instead';
+	@override String get typeHint => 'Say it in one line, e.g. "beef noodle soup and an egg for lunch"';
+	@override String get understanding => 'Understanding…';
 }
 
 // Path: record.frequent
@@ -569,6 +572,10 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get badgeRejected => 'Not approved';
 	@override String get badgeCommunity => 'Community';
 	@override late final _Translations$record$customFood$contributions$en contributions = _Translations$record$customFood$contributions$en._(_root);
+	@override String get photoOcr => 'Scan nutrition label';
+	@override String get photoOcrReading => 'Reading label…';
+	@override String get photoOcrFailed => 'Couldn\'t read the label — try another angle or fill in manually';
+	@override String get estimateBadgeOcr => 'AI read the label — please verify';
 }
 
 // Path: record.water
@@ -1912,6 +1919,9 @@ extension on TranslationsEn {
 			'record.voice.deniedTitle' => 'Microphone not allowed',
 			'record.voice.deniedBody' => 'No voice? No problem — typing a search is just as fast',
 			'record.voice.noMatch' => 'Couldn\'t catch the food — try rephrasing or search manually',
+			'record.voice.typeInput' => 'Type instead',
+			'record.voice.typeHint' => 'Say it in one line, e.g. "beef noodle soup and an egg for lunch"',
+			'record.voice.understanding' => 'Understanding…',
 			'record.frequent.title' => 'Frequently logged',
 			'record.frequent.empty' => 'Log a few more meals and your usuals will show up here',
 			'record.card.pleaseConfirm' => 'Please confirm',
@@ -1955,6 +1965,10 @@ extension on TranslationsEn {
 			'record.customFood.contributions.loadFailed' => 'Failed to load — please try again later',
 			'record.customFood.contributions.kindBarcode' => 'Barcode product',
 			'record.customFood.contributions.barcodeLabel' => ({required Object code}) => 'Barcode ${code}',
+			'record.customFood.photoOcr' => 'Scan nutrition label',
+			'record.customFood.photoOcrReading' => 'Reading label…',
+			'record.customFood.photoOcrFailed' => 'Couldn\'t read the label — try another angle or fill in manually',
+			'record.customFood.estimateBadgeOcr' => 'AI read the label — please verify',
 			'record.water.title' => 'Water today',
 			'record.water.progress' => ({required Object total, required Object goal}) => '${total} / ${goal} ml',
 			'record.water.quickAddLabel' => ({required Object ml}) => 'Add ${ml} ml of water',
@@ -2277,6 +2291,8 @@ extension on TranslationsEn {
 			'legal.disclaimer.specialGroupsTitle' => 'Special Groups Notice',
 			'legal.disclaimer.specialGroupsBody' => '⚠️ Intermittent fasting is not recommended for the following groups, or should only be done under medical supervision: pregnant or breastfeeding women; minors (under 18); people with a history of or at risk for eating disorders (e.g., anorexia, bulimia); people with diabetes (especially those using insulin or glucose-lowering medication); people with hypoglycemia or hypotension; people who are underweight (BMI < 18.5); people with chronic conditions such as gout, kidney or liver disease; people recovering from recent surgery or illness; and frail older adults. If you fall into any of these categories, do not start a fasting plan and consult your doctor first.',
 			'legal.disclaimer.short' => 'EatWise content is not medical advice',
+			_ => null,
+		} ?? switch (path) {
 			'legal.privacyPolicy.title' => 'Privacy Policy',
 			'legal.privacyPolicy.body' => 'Effective: 2026-07-27 | Version 1.0.0 [Pending external confirmation: final legal copy]\n\nEatWise ("we") provides services in mainland China only. This policy explains how we collect, use, store, and protect your personal information, and the rights you have.\n\n1. Information We Collect\n1) Phone number: for registration, sign-in, and account recovery; stored encrypted in mainland China.\n2) Height, weight, age, gender: used to compute daily nutrition targets; sensitive personal information requiring your separate consent.\n3) Meal and fasting records: required for core features; sensitive personal information.\n4) Goal, schedule, and fasting experience (3-question quiz): used for plan recommendation.\n5) Nickname and avatar: optional, for personalization and community display.\n6) Device info and push token: for notification delivery and crash analysis; we never collect IMEI/IMSI/MAC.\n7) Crash and performance logs: de-identified, retained for 6 months.\n8) Analytics events: event-level usage stats only; can be turned off in Settings > Privacy.\nWe do NOT collect: location, contacts, Bluetooth, or HealthKit/Health Connect data.\n\n2. Separate Consent for Sensitive Personal Information\nHealth-related data (height/weight, meal/fasting records) is processed only with your separate consent under PIPL Article 29. Declining does not affect account features — nutrition targets fall back to defaults — and you may withdraw anytime in Settings > Privacy.\n\n3. Storage and Security\nAll data is stored on servers in mainland China; transmission uses TLS 1.2+; phone numbers and health data use field-level encryption; the local database is fully encrypted. No data crosses borders.\n\n4. Third-Party SDKs\nWe use WeChat Login, Sign in with Apple, aggregated push, content safety, and crash monitoring SDKs, all operating within mainland China. No SDK ever receives your raw health data.\n\n5. Your Rights\n1) Access & copy: request a full export of your personal data (JSON+CSV) in Settings > Privacy > Export my data.\n2) Deletion: Settings > Account > Delete account starts a 7-day cooling-off period; signing in during this period cancels the deletion.\n3) Withdraw consent: you may withdraw health data consent and analytics consent anytime in Settings > Privacy.\n\n6. Minors\nThis product is not intended for children under 14.\n\n7. Policy Updates\nIf this policy changes materially, we will ask for your consent again.\n\n8. Contact Us\nFor questions about this policy, reach us via Settings > About in the app.',
 			'legal.userAgreement.title' => 'Terms of Service',
@@ -2284,8 +2300,6 @@ extension on TranslationsEn {
 			'social.feed.title' => 'Community',
 			'social.feed.emptyTitle' => 'Waiting for today\'s first check-in to show up.',
 			'social.feed.emptySubtitle' => 'Post your first check-in and light the way for others.',
-			_ => null,
-		} ?? switch (path) {
 			'social.feed.emptyCta' => 'Check in',
 			'social.feed.errorTitle' => 'Couldn\'t load the feed. Please try again.',
 			'social.feed.pendingBadge' => 'Under review — visible only to you',

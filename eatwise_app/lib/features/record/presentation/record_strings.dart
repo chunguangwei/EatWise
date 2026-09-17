@@ -167,6 +167,15 @@ final class RecordStrings {
   /// record.voice.noMatch
   String get voiceNoMatch => _t.record.voice.noMatch;
 
+  /// record.voice.typeInput
+  String get voiceTypeInput => _t.record.voice.typeInput;
+
+  /// record.voice.typeHint
+  String get voiceTypeHint => _t.record.voice.typeHint;
+
+  /// record.voice.understanding
+  String get voiceUnderstanding => _t.record.voice.understanding;
+
   /// record.frequent.title
   String get frequentTitle => _t.record.frequent.title;
 

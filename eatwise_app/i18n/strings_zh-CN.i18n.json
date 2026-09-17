@@ -200,7 +200,10 @@
       "unavailable": "这台设备暂时用不了语音识别，打字搜一样快",
       "deniedTitle": "麦克风未授权",
       "deniedBody": "开不了语音也能记，打字搜一样快",
-      "noMatch": "没听出是什么食物，换个说法或手动搜索"
+      "noMatch": "没听出是什么食物，换个说法或手动搜索",
+      "typeInput": "键盘输入",
+      "typeHint": "说一句，比如「中午吃了一碗牛肉面加个蛋」",
+      "understanding": "理解中…"
     },
     "frequent": {
       "title": "常吃的食物",
@@ -251,7 +254,11 @@
         "loadFailed": "加载失败，请稍后重试",
         "kindBarcode": "条码商品",
         "barcodeLabel": "条码 ${code}"
-      }
+      },
+      "photoOcr": "拍营养表",
+      "photoOcrReading": "读表中…",
+      "photoOcrFailed": "没读出来，换个角度拍或手动填写",
+      "estimateBadgeOcr": "AI 读表，请核对"
     },
     "water": {
       "title": "今日饮水",

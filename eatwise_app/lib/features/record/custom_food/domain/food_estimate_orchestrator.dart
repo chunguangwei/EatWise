@@ -14,12 +14,16 @@ enum FoodEstimateSource {
 
   /// 用户自配 LLM 直连。
   userApi,
+
+  /// 端侧视觉读表（拍营养表 OCR 预填；与 ondevice 同模型，区分场景埋点）。
+  photoOcr,
 }
 
 /// FoodEstimateSource → 埋点 source 字符串。
 String foodEstimateSourceName(FoodEstimateSource source) => switch (source) {
   FoodEstimateSource.ondevice => 'ondevice',
   FoodEstimateSource.userApi => 'user_api',
+  FoodEstimateSource.photoOcr => 'photo_ocr',
 };
 
 /// 端侧估算窄抽象（测试注入 Fake；与 UserEstimateSource 同法）。

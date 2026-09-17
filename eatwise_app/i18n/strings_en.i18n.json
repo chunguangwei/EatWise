@@ -200,7 +200,10 @@
       "unavailable": "Speech recognition isn't available on this device — typing works just as well",
       "deniedTitle": "Microphone not allowed",
       "deniedBody": "No voice? No problem — typing a search is just as fast",
-      "noMatch": "Couldn't catch the food — try rephrasing or search manually"
+      "noMatch": "Couldn't catch the food — try rephrasing or search manually",
+      "typeInput": "Type instead",
+      "typeHint": "Say it in one line, e.g. \"beef noodle soup and an egg for lunch\"",
+      "understanding": "Understanding…"
     },
     "frequent": {
       "title": "Frequently logged",
@@ -251,7 +254,11 @@
         "loadFailed": "Failed to load — please try again later",
         "kindBarcode": "Barcode product",
         "barcodeLabel": "Barcode ${code}"
-      }
+      },
+      "photoOcr": "Scan nutrition label",
+      "photoOcrReading": "Reading label…",
+      "photoOcrFailed": "Couldn't read the label — try another angle or fill in manually",
+      "estimateBadgeOcr": "AI read the label — please verify"
     },
     "water": {
       "title": "Water today",

@@ -54,6 +54,18 @@ final class CustomFoodStrings {
   /// record.customFood.estimateDubious
   String get estimateDubious => _t.record.customFood.estimateDubious;
 
+  /// record.customFood.photoOcr
+  String get photoOcr => _t.record.customFood.photoOcr;
+
+  /// record.customFood.photoOcrReading
+  String get photoOcrReading => _t.record.customFood.photoOcrReading;
+
+  /// record.customFood.photoOcrFailed
+  String get photoOcrFailed => _t.record.customFood.photoOcrFailed;
+
+  /// record.customFood.estimateBadgeOcr
+  String get estimateBadgeOcr => _t.record.customFood.estimateBadgeOcr;
+
   /// record.customFood.kcalLabel
   String get kcalLabel => _t.record.customFood.kcalLabel;
 

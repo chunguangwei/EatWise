@@ -1,6 +1,7 @@
-/// 拍照识别明细确认弹层（多行明细协议 UI）：逐条「名称 + 克数输入（可改）
-/// + 该条营养（按克数实时换算）+ 低置信『请确认』标记 + 删除」，底部
-/// 「全部记录」一键入账（每条一条 entry，EntrySource.photo）。
+/// 识别明细确认弹层（多行明细协议 UI，拍照识别与一句话自由记共用）：
+/// 逐条「名称 + 克数输入（可改）+ 该条营养（按克数实时换算）+ 低置信
+/// 『请确认』标记 + 删除」，底部「全部记录」一键入账（每条一条 entry，
+/// 来源由 [PhotoMealConfirmSheet.entrySource] 定）。
 ///
 /// 库未命中条目：入账时先自动建成自定义食物（模型估值 +
 /// CustomFoodSource.llmEstimate 口径）再入账；离线落本地 pending，
@@ -39,8 +40,10 @@ final class PhotoMealResult {
 Future<PhotoMealResult?> showPhotoMealConfirmSheet(
   BuildContext context,
   WidgetRef ref,
-  List<RecognizedMealItem> items,
-) {
+  List<RecognizedMealItem> items, {
+  EntrySource entrySource = EntrySource.photo,
+  bool showRetake = true,
+}) {
   return showModalBottomSheet<PhotoMealResult>(
     context: context,
     isScrollControlled: true,
@@ -48,17 +51,33 @@ Future<PhotoMealResult?> showPhotoMealConfirmSheet(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
       ),
-      child: PhotoMealConfirmSheet(items: items),
+      child: PhotoMealConfirmSheet(
+        items: items,
+        entrySource: entrySource,
+        showRetake: showRetake,
+      ),
     ),
   );
 }
 
 /// 明细确认弹层（ConsumerStateful：克数输入联动 + 删除 + 一键入账）。
 class PhotoMealConfirmSheet extends ConsumerStatefulWidget {
-  const PhotoMealConfirmSheet({super.key, required this.items});
+  const PhotoMealConfirmSheet({
+    super.key,
+    required this.items,
+    this.entrySource = EntrySource.photo,
+    this.showRetake = true,
+  });
 
   /// 识别明细（顺序即模型输出顺序）。
   final List<RecognizedMealItem> items;
+
+  /// 入账来源（拍照识别 photo / 一句话自由记 voice；自由记不显示
+  /// 「重新拍摄」入口）。
+  final EntrySource entrySource;
+
+  /// 是否显示「重新拍摄」（仅拍照场景；自由记为 false）。
+  final bool showRetake;
 
   @override
   ConsumerState<PhotoMealConfirmSheet> createState() =>
@@ -146,7 +165,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
             foodId: food.id,
             amountG: _effectiveGrams(row),
             mealUtc: DateTime.now().toUtc(),
-            source: EntrySource.photo,
+            source: widget.entrySource,
           ),
         );
         logged++;
@@ -187,14 +206,15 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
             const SizedBox(height: AppSpacing.s1),
             Row(
               children: <Widget>[
-                TextButton(
-                  onPressed: _saving
-                      ? null
-                      : () => Navigator.of(
-                          context,
-                        ).pop(const PhotoMealResult(retake: true)),
-                  child: Text(s.photoRetake),
-                ),
+                if (widget.showRetake)
+                  TextButton(
+                    onPressed: _saving
+                        ? null
+                        : () => Navigator.of(
+                            context,
+                          ).pop(const PhotoMealResult(retake: true)),
+                    child: Text(s.photoRetake),
+                  ),
                 TextButton(
                   onPressed: _saving
                       ? null

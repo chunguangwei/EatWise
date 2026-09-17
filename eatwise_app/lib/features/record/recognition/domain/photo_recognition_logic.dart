@@ -9,6 +9,8 @@ library;
 
 import 'package:eatwise/core/llm/ondevice/nutrition_estimate_logic.dart';
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/features/record/domain/record_models.dart';
+import 'package:eatwise/features/record/recognition/domain/recognition_models.dart';
 
 /// 视觉版 system instruction（v5 营养约束逐字保留，加识别/命名/份量约束）。
 ///
@@ -293,4 +295,58 @@ double photoRecognitionConfidence({
 }) {
   if (dubious || tooGeneric) return 0.5;
   return exactNameMatch ? 0.85 : 0.6;
+}
+
+/// 单条解析明细 → 明细候选（拍照识别与自由记文本共用同一管线）：
+/// 库匹配（中文→英文回退，D-16 映射回自建核心库）+ 克数 clamp +
+/// 置信度合成。命中用库内精准每 100g（模型值只参与存疑判定）；
+/// 未命中保留模型估值并标低置信（0.4，明细卡标「请确认」）。
+Future<RecognizedMealItem> recognizedMealItemFromParsed(
+  Future<List<Food>> Function(String query) searchFoods,
+  ParsedPhotoItem parsed,
+) async {
+  final match = await matchFoodByName(
+    searchFoods,
+    parsed.name,
+    nameEn: parsed.nameEn,
+  );
+  final rawGrams = parsed.grams ?? 100;
+  final gramsSuspicious = isPhotoGramsSuspicious(rawGrams);
+  final grams = clampPhotoGrams(rawGrams);
+  final dubious = isNutritionEstimateDubious(parsed.values);
+  // 类别词兜底（prompt 已禁，命中即「不够具体」→ 必走请确认）。
+  final tooGeneric = isGenericCategoryName(parsed.name);
+  if (match != null) {
+    final food = match.food;
+    return RecognizedMealItem(
+      name: food.nameZh, // 库内规范名（展示/搜索一致）
+      nameEn: food.nameEn,
+      grams: grams,
+      per100g: NutritionSnapshot(
+        kcal: food.kcalPer100g,
+        proteinG: food.proteinPer100g,
+        carbG: food.carbPer100g,
+        fatG: food.fatPer100g,
+      ),
+      confidence: photoRecognitionConfidence(
+        dubious: dubious || gramsSuspicious,
+        exactNameMatch: match.exact,
+        tooGeneric: tooGeneric,
+      ),
+      food: food,
+    );
+  }
+  return RecognizedMealItem(
+    name: parsed.name,
+    nameEn: parsed.nameEn,
+    grams: grams,
+    per100g: NutritionSnapshot(
+      kcal: parsed.values.kcal,
+      proteinG: parsed.values.proteinG,
+      carbG: parsed.values.carbsG,
+      fatG: parsed.values.fatG,
+    ),
+    // 库未命中：模型估值兜底，必低置信。
+    confidence: 0.4,
+  );
 }

@@ -32,9 +32,12 @@ enum PhotoUnavailableAction {
 /// 取图用时申请权限（合规 §3）；识别**异步不阻塞**且进入结果卡前可取消，
 /// 取消不丢已输入内容；识别不可用走手动搜索一级兜底；
 /// 权限拒绝按《规格-全局 UI 四态》§4.3 弹降级说明卡（不阻断核心闭环）。
-Future<void> startPhotoRecognition(BuildContext context, WidgetRef ref) async {
-  final s = RecordStrings.of(context);
-  final source = await showModalBottomSheet<PhotoSource>(
+/// 拍照/相册来源选择底部面板（拍照识别 / 营养表 OCR 共用）。
+Future<PhotoSource?> showPhotoSourceSheet(
+  BuildContext context,
+  RecordStrings s,
+) {
+  return showModalBottomSheet<PhotoSource>(
     context: context,
     builder: (sheetContext) => SafeArea(
       child: Column(
@@ -54,6 +57,11 @@ Future<void> startPhotoRecognition(BuildContext context, WidgetRef ref) async {
       ),
     ),
   );
+}
+
+Future<void> startPhotoRecognition(BuildContext context, WidgetRef ref) async {
+  final s = RecordStrings.of(context);
+  final source = await showPhotoSourceSheet(context, s);
   if (source == null || !context.mounted) return;
 
   Uint8List bytes;

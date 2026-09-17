@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_client.dart';
 import 'package:eatwise/core/analytics/analytics_context.dart';
@@ -7,6 +9,7 @@ import 'package:eatwise/core/analytics/analytics_service.dart';
 import 'package:eatwise/core/analytics/consent_store.dart';
 import 'package:eatwise/core/analytics/device_identity_store.dart';
 import 'package:eatwise/core/analytics/event_queue_store.dart';
+import 'package:eatwise/core/llm/ondevice/ondevice_llm_gateway.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
@@ -18,6 +21,7 @@ import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/data/water_log_repository.dart';
 import 'package:eatwise/features/record/presentation/record_page.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
+import 'package:eatwise/features/record/recognition/data/ondevice_label_ocr_service.dart';
 import 'package:eatwise/features/social/application/feed_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -97,6 +101,7 @@ void main() {
   Future<void> pumpPage(
     WidgetTester tester, {
     AnalyticsService? analytics,
+    OnDeviceNutritionLabelOcrService? ocrService,
   }) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1;
@@ -117,6 +122,8 @@ void main() {
           uploadApiProvider.overrideWithValue(uploadApi),
           if (analytics != null)
             analyticsServiceProvider.overrideWithValue(analytics),
+          if (ocrService != null)
+            nutritionLabelOcrServiceProvider.overrideWithValue(ocrService),
         ],
         child: TranslationProvider(
           child: MaterialApp(theme: AppTheme.light(), home: const RecordPage()),
@@ -305,4 +312,132 @@ void main() {
     expect(events.last.properties['reason'], 'conflict');
     await settleUi(tester);
   });
+  testWidgets('一图两用：选图即佐证上传 + 端侧读表预填四营养（AI 读表徽标）', (tester) async {
+    final gateway = _FakeOcrGateway()
+      ..imageResponse = '1540 kJ => 7.2 => 53.0 => 32.1';
+    await pumpPage(
+      tester,
+      ocrService: OnDeviceNutritionLabelOcrService(
+        gateway: gateway,
+        modelPath: () async => '/fake/gemma4-e2b.litertlm',
+        normalizeImage: (bytes) async => bytes,
+      ),
+    );
+    await openContributeSheet(tester);
+
+    await pickAndUploadPhoto(tester);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 读数预填（1540 kJ / 4.184 ≈ 368.1 kcal）+ 徽标；上传照旧进行。
+    String field(int index) => tester
+        .widget<TextFormField>(find.byType(TextFormField).at(index))
+        .controller!
+        .text;
+    expect(field(1), '368.1'); // 热量（0 是商品名）
+    expect(field(2), '7.2');
+    expect(field(3), '53');
+    expect(field(4), '32.1');
+    expect(find.text('AI 读表，请核对'), findsOneWidget);
+    expect(uploadApi.uploaded, hasLength(1)); // 佐证上传不受影响
+    await settleUi(tester);
+  });
+
+  testWidgets('端侧不可用 → 照片退回纯佐证（无徽标、字段不预填、不误导）', (tester) async {
+    await pumpPage(tester); // 不注入 OCR 服务
+    await openContributeSheet(tester);
+
+    await pickAndUploadPhoto(tester);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('AI 读表，请核对'), findsNothing);
+    expect(
+      tester
+          .widget<TextFormField>(find.byType(TextFormField).at(1))
+          .controller!
+          .text,
+      isEmpty,
+    );
+    expect(uploadApi.uploaded, hasLength(1));
+    await settleUi(tester);
+  });
+
+  testWidgets('读不出 → 照片仍是佐证，字段不写入（静默降级）', (tester) async {
+    final gateway = _FakeOcrGateway()..imageResponse = '无法识别';
+    await pumpPage(
+      tester,
+      ocrService: OnDeviceNutritionLabelOcrService(
+        gateway: gateway,
+        modelPath: () async => '/fake/gemma4-e2b.litertlm',
+        normalizeImage: (bytes) async => bytes,
+      ),
+    );
+    await openContributeSheet(tester);
+
+    await pickAndUploadPhoto(tester);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('AI 读表，请核对'), findsNothing);
+    expect(
+      tester
+          .widget<TextFormField>(find.byType(TextFormField).at(1))
+          .controller!
+          .text,
+      isEmpty,
+    );
+    expect(uploadApi.uploaded, hasLength(1));
+    await settleUi(tester);
+  });
+}
+
+/// OCR 网关 Fake（仅视觉推理）。
+final class _FakeOcrGateway implements OnDeviceLlmGateway {
+  bool loaded = false;
+  bool vision = false;
+  String imageResponse = '';
+
+  @override
+  bool get isLoaded => loaded;
+
+  @override
+  bool get visionEnabled => loaded && vision;
+
+  @override
+  Future<void> load(String modelPath, {bool enableVision = false}) async {
+    loaded = true;
+    vision = enableVision;
+  }
+
+  @override
+  Future<String> infer(
+    String prompt, {
+    String? systemInstruction,
+    int maxOutputTokens = 96,
+    double temperature = 0.15,
+    int topK = 1,
+    int seed = 42,
+  }) {
+    throw UnimplementedError('本测试只走视觉推理');
+  }
+
+  @override
+  Future<String> inferWithImage(
+    String prompt,
+    Uint8List imageBytes, {
+    String? systemInstruction,
+    int maxOutputTokens = 96,
+    double temperature = 0.15,
+    int topK = 1,
+    int seed = 42,
+  }) async {
+    return imageResponse;
+  }
+
+  @override
+  Future<void> unload() async {
+    loaded = false;
+    vision = false;
+  }
 }
