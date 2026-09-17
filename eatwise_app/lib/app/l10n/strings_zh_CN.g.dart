@@ -223,6 +223,7 @@ class Translations$settings$zh_CN {
 	late final Translations$settings$group$zh_CN group = Translations$settings$group$zh_CN.internal(_root);
 	late final Translations$settings$account$zh_CN account = Translations$settings$account$zh_CN.internal(_root);
 	late final Translations$settings$privacy$zh_CN privacy = Translations$settings$privacy$zh_CN.internal(_root);
+	late final Translations$settings$health$zh_CN health = Translations$settings$health$zh_CN.internal(_root);
 	late final Translations$settings$theme$zh_CN theme = Translations$settings$theme$zh_CN.internal(_root);
 	late final Translations$settings$fastingPlan$zh_CN fastingPlan = Translations$settings$fastingPlan$zh_CN.internal(_root);
 	late final Translations$settings$bodyProfile$zh_CN bodyProfile = Translations$settings$bodyProfile$zh_CN.internal(_root);
@@ -1332,6 +1333,7 @@ class Translations$nutrition$data$zh_CN {
 
 	late final Translations$nutrition$data$proDetails$zh_CN proDetails = Translations$nutrition$data$proDetails$zh_CN.internal(_root);
 	late final Translations$nutrition$data$trend$zh_CN trend = Translations$nutrition$data$trend$zh_CN.internal(_root);
+	late final Translations$nutrition$data$burn$zh_CN burn = Translations$nutrition$data$burn$zh_CN.internal(_root);
 }
 
 // Path: nutrition.signalCard
@@ -1731,6 +1733,72 @@ class Translations$settings$privacy$zh_CN {
 
 	/// zh-CN: '导出失败，请检查网络后重试'
 	String get exportFailed => '导出失败，请检查网络后重试';
+}
+
+// Path: settings.health
+class Translations$settings$health$zh_CN {
+	Translations$settings$health$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '运动数据'
+	String get group => '运动数据';
+
+	/// zh-CN: '同步运动数据'
+	String get sync => '同步运动数据';
+
+	/// zh-CN: '读取系统健康数据（Apple 健康 / Health Connect），展示今日活动消耗'
+	String get syncSubtitle => '读取系统健康数据（Apple 健康 / Health Connect），展示今日活动消耗';
+
+	/// zh-CN: '开启运动数据同步？'
+	String get consentTitle => '开启运动数据同步？';
+
+	/// zh-CN: '将读取本机系统健康数据中的步数、活动能量与体重，仅用于在 App 内展示今日热量消耗与结余。 数据只在本机处理和展示，不会上传到服务器。你可以随时在这里关闭，关闭后将撤销系统授权并清除已读取的数据。'
+	String get consentBody => '将读取本机系统健康数据中的步数、活动能量与体重，仅用于在 App 内展示今日热量消耗与结余。\n\n数据只在本机处理和展示，不会上传到服务器。你可以随时在这里关闭，关闭后将撤销系统授权并清除已读取的数据。';
+
+	/// zh-CN: '同意并开启'
+	String get consentAgree => '同意并开启';
+
+	/// zh-CN: '暂不同意'
+	String get consentDecline => '暂不同意';
+
+	/// zh-CN: '读取中…'
+	String get statusConnecting => '读取中…';
+
+	/// zh-CN: '已授权'
+	String get statusReady => '已授权';
+
+	/// zh-CN: '未授权，可在系统健康设置中开启后重试'
+	String get statusDenied => '未授权，可在系统健康设置中开启后重试';
+
+	/// zh-CN: '当前设备不支持（Android 需安装 Health Connect）'
+	String get statusUnsupported => '当前设备不支持（Android 需安装 Health Connect）';
+
+	/// zh-CN: '读取失败，请稍后重试'
+	String get statusError => '读取失败，请稍后重试';
+
+	/// zh-CN: '已关闭运动数据同步，系统授权已撤销'
+	String get revoked => '已关闭运动数据同步，系统授权已撤销';
+
+	/// zh-CN: '步数 ${steps}'
+	String steps({required Object steps}) => '步数 ${steps}';
+
+	/// zh-CN: '活动消耗 ${kcal} kcal'
+	String activeEnergy({required Object kcal}) => '活动消耗 ${kcal} kcal';
+
+	/// zh-CN: '最新体重 ${kg} kg'
+	String latestWeight({required Object kg}) => '最新体重 ${kg} kg';
+
+	/// zh-CN: '填入今日体重记录'
+	String get fillWeight => '填入今日体重记录';
+
+	/// zh-CN: '已填入今日体重记录 ${kg} kg'
+	String weightFilled({required Object kg}) => '已填入今日体重记录 ${kg} kg';
+
+	/// zh-CN: '今日暂无运动数据'
+	String get noData => '今日暂无运动数据';
 }
 
 // Path: settings.theme
@@ -2916,6 +2984,33 @@ class Translations$nutrition$data$trend$zh_CN {
 	String get hourUnit => '小时';
 }
 
+// Path: nutrition.data.burn
+class Translations$nutrition$data$burn$zh_CN {
+	Translations$nutrition$data$burn$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '今日消耗'
+	String get title => '今日消耗';
+
+	/// zh-CN: '活动消耗'
+	String get activeEnergy => '活动消耗';
+
+	/// zh-CN: '步数'
+	String get steps => '步数';
+
+	/// zh-CN: '${kcal} kcal'
+	String kcalValue({required Object kcal}) => '${kcal} kcal';
+
+	/// zh-CN: '约 ${kcal} kcal（按步数估算）'
+	String estimatedValue({required Object kcal}) => '约 ${kcal} kcal（按步数估算）';
+
+	/// zh-CN: '摄入 − 消耗结余：${kcal} kcal'
+	String balance({required Object kcal}) => '摄入 − 消耗结余：${kcal} kcal';
+}
+
 // Path: nutrition.signalCard.zone
 class Translations$nutrition$signalCard$zone$zh_CN {
 	Translations$nutrition$signalCard$zone$zh_CN.internal(this._root);
@@ -3611,6 +3706,12 @@ extension on Translations {
 			'nutrition.data.trend.fasting' => '断食时长',
 			'nutrition.data.trend.empty' => '记满几天，趋势曲线就跑起来啦',
 			'nutrition.data.trend.hourUnit' => '小时',
+			'nutrition.data.burn.title' => '今日消耗',
+			'nutrition.data.burn.activeEnergy' => '活动消耗',
+			'nutrition.data.burn.steps' => '步数',
+			'nutrition.data.burn.kcalValue' => ({required Object kcal}) => '${kcal} kcal',
+			'nutrition.data.burn.estimatedValue' => ({required Object kcal}) => '约 ${kcal} kcal（按步数估算）',
+			'nutrition.data.burn.balance' => ({required Object kcal}) => '摄入 − 消耗结余：${kcal} kcal',
 			'nutrition.signalCard.zone.green' => '达标',
 			'nutrition.signalCard.zone.yellow' => '适量提醒',
 			'nutrition.signalCard.zone.red' => '警示',
@@ -3754,6 +3855,25 @@ extension on Translations {
 			'settings.privacy.analytics' => '数据分析授权',
 			'settings.privacy.analyticsSubtitle' => '匿名行为统计，帮助我们改进产品，不含健康数据',
 			'settings.privacy.exportFailed' => '导出失败，请检查网络后重试',
+			'settings.health.group' => '运动数据',
+			'settings.health.sync' => '同步运动数据',
+			'settings.health.syncSubtitle' => '读取系统健康数据（Apple 健康 / Health Connect），展示今日活动消耗',
+			'settings.health.consentTitle' => '开启运动数据同步？',
+			'settings.health.consentBody' => '将读取本机系统健康数据中的步数、活动能量与体重，仅用于在 App 内展示今日热量消耗与结余。\n\n数据只在本机处理和展示，不会上传到服务器。你可以随时在这里关闭，关闭后将撤销系统授权并清除已读取的数据。',
+			'settings.health.consentAgree' => '同意并开启',
+			'settings.health.consentDecline' => '暂不同意',
+			'settings.health.statusConnecting' => '读取中…',
+			'settings.health.statusReady' => '已授权',
+			'settings.health.statusDenied' => '未授权，可在系统健康设置中开启后重试',
+			'settings.health.statusUnsupported' => '当前设备不支持（Android 需安装 Health Connect）',
+			'settings.health.statusError' => '读取失败，请稍后重试',
+			'settings.health.revoked' => '已关闭运动数据同步，系统授权已撤销',
+			'settings.health.steps' => ({required Object steps}) => '步数 ${steps}',
+			'settings.health.activeEnergy' => ({required Object kcal}) => '活动消耗 ${kcal} kcal',
+			'settings.health.latestWeight' => ({required Object kg}) => '最新体重 ${kg} kg',
+			'settings.health.fillWeight' => '填入今日体重记录',
+			'settings.health.weightFilled' => ({required Object kg}) => '已填入今日体重记录 ${kg} kg',
+			'settings.health.noData' => '今日暂无运动数据',
 			'settings.theme.title' => '主题',
 			'settings.theme.system' => '跟随系统',
 			'settings.theme.light' => '浅色',
@@ -3770,6 +3890,8 @@ extension on Translations {
 			'settings.reminders.notificationsSubtitle' => '前往系统设置管理通知权限',
 			'settings.about.version' => '版本',
 			'settings.about.disclaimer' => '免责声明与特殊人群提示',
+			_ => null,
+		} ?? switch (path) {
 			'settings.about.checkUpdate' => '检查更新',
 			'settings.aiModel.title' => 'AI 模型',
 			'settings.aiModel.provider' => '服务商',
@@ -3795,8 +3917,6 @@ extension on Translations {
 			'settings.aiModel.clear' => '清除配置',
 			'settings.aiModel.clearConfirmTitle' => '清除 AI 模型配置？',
 			'settings.aiModel.clearConfirmBody' => '清除后，自定义食物估算将不可用（可开启端侧小模型或重新配置）。',
-			_ => null,
-		} ?? switch (path) {
 			'settings.aiModel.clearConfirmAction' => '确认清除',
 			'settings.aiModel.cleared' => 'AI 模型配置已清除',
 			'settings.onDevice.title' => '端侧小模型',

@@ -460,6 +460,14 @@
         "fasting": "Fasting",
         "empty": "Log a few more days and your trend line starts moving",
         "hourUnit": "h"
+      },
+      "burn": {
+        "title": "Today's burn",
+        "activeEnergy": "Active burn",
+        "steps": "Steps",
+        "kcalValue": "${kcal} kcal",
+        "estimatedValue": "~${kcal} kcal (estimated from steps)",
+        "balance": "Intake − burn balance: ${kcal} kcal"
       }
     },
     "signalCard": {
@@ -663,6 +671,27 @@
       "analytics": "Analytics consent",
       "analyticsSubtitle": "Anonymous usage stats that help us improve — no health data included",
       "exportFailed": "Export failed. Check your connection and try again."
+    },
+    "health": {
+      "group": "Activity data",
+      "sync": "Sync activity data",
+      "syncSubtitle": "Read system health data (Apple Health / Health Connect) to show today's activity burn",
+      "consentTitle": "Turn on activity data sync?",
+      "consentBody": "EatWise will read steps, active energy and weight from your device's health app, only to show today's burn and energy balance in the app.\n\nData is processed and shown on this device only — it is never uploaded to our servers. You can turn this off anytime; doing so revokes the system permission and clears the data already read.",
+      "consentAgree": "Agree & turn on",
+      "consentDecline": "Not now",
+      "statusConnecting": "Reading…",
+      "statusReady": "Authorized",
+      "statusDenied": "Not authorized — enable it in the system health settings and retry",
+      "statusUnsupported": "Not supported on this device (Android requires Health Connect)",
+      "statusError": "Read failed — please try again later",
+      "revoked": "Activity data sync off — system permission revoked",
+      "steps": "Steps ${steps}",
+      "activeEnergy": "Active burn ${kcal} kcal",
+      "latestWeight": "Latest weight ${kg} kg",
+      "fillWeight": "Fill into today's weight log",
+      "weightFilled": "Added to today's weight log: ${kg} kg",
+      "noData": "No activity data yet today"
     },
     "theme": {
       "title": "Theme",

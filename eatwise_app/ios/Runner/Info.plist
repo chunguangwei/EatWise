@@ -34,6 +34,9 @@
 	<string>Turn what you say into text so you can log meals by voice</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Voice logging needs access to your microphone</string>
+	<!-- 阶段 D：HealthKit 运动数据接入（D-19 翻案，仅读取步数/活动能量/体重，数据不出端）；双语文案见 InfoPlist.strings -->
+	<key>NSHealthShareUsageDescription</key>
+	<string>Read your steps, active energy and weight from Apple Health to show today's activity burn</string>
 	<!-- 用户自定义 LLM 估算：允许直连局域网/本地 http 端点（如 192.168.x.x、localhost） -->
 	<key>NSAppTransportSecurity</key>
 	<dict>

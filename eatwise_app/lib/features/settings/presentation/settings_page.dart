@@ -11,6 +11,7 @@ import 'package:eatwise/core/update/update_dialog.dart';
 import 'package:eatwise/core/update/update_models.dart';
 import 'package:eatwise/core/update/update_providers.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
+import 'package:eatwise/features/health/presentation/health_sync_section.dart';
 import 'package:eatwise/features/legal/application/legal_providers.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:eatwise/features/settings/data/user_api.dart';
@@ -146,6 +147,8 @@ class SettingsPage extends ConsumerWidget {
                 ),
               ],
             ),
+            // 阶段 D：运动数据（HealthKit / Health Connect，D-19 翻案）。
+            const HealthSyncSection(),
             _SettingsGroup(
               title: t.settings.group.preferences,
               children: <Widget>[

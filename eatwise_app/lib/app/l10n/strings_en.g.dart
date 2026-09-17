@@ -207,6 +207,7 @@ class _Translations$settings$en extends Translations$settings$zh_CN {
 	@override late final _Translations$settings$group$en group = _Translations$settings$group$en._(_root);
 	@override late final _Translations$settings$account$en account = _Translations$settings$account$en._(_root);
 	@override late final _Translations$settings$privacy$en privacy = _Translations$settings$privacy$en._(_root);
+	@override late final _Translations$settings$health$en health = _Translations$settings$health$en._(_root);
 	@override late final _Translations$settings$theme$en theme = _Translations$settings$theme$en._(_root);
 	@override late final _Translations$settings$fastingPlan$en fastingPlan = _Translations$settings$fastingPlan$en._(_root);
 	@override late final _Translations$settings$bodyProfile$en bodyProfile = _Translations$settings$bodyProfile$en._(_root);
@@ -833,6 +834,7 @@ class _Translations$nutrition$data$en extends Translations$nutrition$data$zh_CN 
 	@override String get localEstimate => 'Local estimate — the cloud fine-tunes it once you\'re online';
 	@override late final _Translations$nutrition$data$proDetails$en proDetails = _Translations$nutrition$data$proDetails$en._(_root);
 	@override late final _Translations$nutrition$data$trend$en trend = _Translations$nutrition$data$trend$en._(_root);
+	@override late final _Translations$nutrition$data$burn$en burn = _Translations$nutrition$data$burn$en._(_root);
 }
 
 // Path: nutrition.signalCard
@@ -1050,6 +1052,34 @@ class _Translations$settings$privacy$en extends Translations$settings$privacy$zh
 	@override String get analytics => 'Analytics consent';
 	@override String get analyticsSubtitle => 'Anonymous usage stats that help us improve — no health data included';
 	@override String get exportFailed => 'Export failed. Check your connection and try again.';
+}
+
+// Path: settings.health
+class _Translations$settings$health$en extends Translations$settings$health$zh_CN {
+	_Translations$settings$health$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get group => 'Activity data';
+	@override String get sync => 'Sync activity data';
+	@override String get syncSubtitle => 'Read system health data (Apple Health / Health Connect) to show today\'s activity burn';
+	@override String get consentTitle => 'Turn on activity data sync?';
+	@override String get consentBody => 'EatWise will read steps, active energy and weight from your device\'s health app, only to show today\'s burn and energy balance in the app.\n\nData is processed and shown on this device only — it is never uploaded to our servers. You can turn this off anytime; doing so revokes the system permission and clears the data already read.';
+	@override String get consentAgree => 'Agree & turn on';
+	@override String get consentDecline => 'Not now';
+	@override String get statusConnecting => 'Reading…';
+	@override String get statusReady => 'Authorized';
+	@override String get statusDenied => 'Not authorized — enable it in the system health settings and retry';
+	@override String get statusUnsupported => 'Not supported on this device (Android requires Health Connect)';
+	@override String get statusError => 'Read failed — please try again later';
+	@override String get revoked => 'Activity data sync off — system permission revoked';
+	@override String steps({required Object steps}) => 'Steps ${steps}';
+	@override String activeEnergy({required Object kcal}) => 'Active burn ${kcal} kcal';
+	@override String latestWeight({required Object kg}) => 'Latest weight ${kg} kg';
+	@override String get fillWeight => 'Fill into today\'s weight log';
+	@override String weightFilled({required Object kg}) => 'Added to today\'s weight log: ${kg} kg';
+	@override String get noData => 'No activity data yet today';
 }
 
 // Path: settings.theme
@@ -1682,6 +1712,21 @@ class _Translations$nutrition$data$trend$en extends Translations$nutrition$data$
 	@override String get hourUnit => 'h';
 }
 
+// Path: nutrition.data.burn
+class _Translations$nutrition$data$burn$en extends Translations$nutrition$data$burn$zh_CN {
+	_Translations$nutrition$data$burn$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Today\'s burn';
+	@override String get activeEnergy => 'Active burn';
+	@override String get steps => 'Steps';
+	@override String kcalValue({required Object kcal}) => '${kcal} kcal';
+	@override String estimatedValue({required Object kcal}) => '~${kcal} kcal (estimated from steps)';
+	@override String balance({required Object kcal}) => 'Intake − burn balance: ${kcal} kcal';
+}
+
 // Path: nutrition.signalCard.zone
 class _Translations$nutrition$signalCard$zone$en extends Translations$nutrition$signalCard$zone$zh_CN {
 	_Translations$nutrition$signalCard$zone$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -2243,6 +2288,12 @@ extension on TranslationsEn {
 			'nutrition.data.trend.fasting' => 'Fasting',
 			'nutrition.data.trend.empty' => 'Log a few more days and your trend line starts moving',
 			'nutrition.data.trend.hourUnit' => 'h',
+			'nutrition.data.burn.title' => 'Today\'s burn',
+			'nutrition.data.burn.activeEnergy' => 'Active burn',
+			'nutrition.data.burn.steps' => 'Steps',
+			'nutrition.data.burn.kcalValue' => ({required Object kcal}) => '${kcal} kcal',
+			'nutrition.data.burn.estimatedValue' => ({required Object kcal}) => '~${kcal} kcal (estimated from steps)',
+			'nutrition.data.burn.balance' => ({required Object kcal}) => 'Intake − burn balance: ${kcal} kcal',
 			'nutrition.signalCard.zone.green' => 'On track',
 			'nutrition.signalCard.zone.yellow' => 'Heads-up',
 			'nutrition.signalCard.zone.red' => 'Warning',
@@ -2386,6 +2437,25 @@ extension on TranslationsEn {
 			'settings.privacy.analytics' => 'Analytics consent',
 			'settings.privacy.analyticsSubtitle' => 'Anonymous usage stats that help us improve — no health data included',
 			'settings.privacy.exportFailed' => 'Export failed. Check your connection and try again.',
+			'settings.health.group' => 'Activity data',
+			'settings.health.sync' => 'Sync activity data',
+			'settings.health.syncSubtitle' => 'Read system health data (Apple Health / Health Connect) to show today\'s activity burn',
+			'settings.health.consentTitle' => 'Turn on activity data sync?',
+			'settings.health.consentBody' => 'EatWise will read steps, active energy and weight from your device\'s health app, only to show today\'s burn and energy balance in the app.\n\nData is processed and shown on this device only — it is never uploaded to our servers. You can turn this off anytime; doing so revokes the system permission and clears the data already read.',
+			'settings.health.consentAgree' => 'Agree & turn on',
+			'settings.health.consentDecline' => 'Not now',
+			'settings.health.statusConnecting' => 'Reading…',
+			'settings.health.statusReady' => 'Authorized',
+			'settings.health.statusDenied' => 'Not authorized — enable it in the system health settings and retry',
+			'settings.health.statusUnsupported' => 'Not supported on this device (Android requires Health Connect)',
+			'settings.health.statusError' => 'Read failed — please try again later',
+			'settings.health.revoked' => 'Activity data sync off — system permission revoked',
+			'settings.health.steps' => ({required Object steps}) => 'Steps ${steps}',
+			'settings.health.activeEnergy' => ({required Object kcal}) => 'Active burn ${kcal} kcal',
+			'settings.health.latestWeight' => ({required Object kg}) => 'Latest weight ${kg} kg',
+			'settings.health.fillWeight' => 'Fill into today\'s weight log',
+			'settings.health.weightFilled' => ({required Object kg}) => 'Added to today\'s weight log: ${kg} kg',
+			'settings.health.noData' => 'No activity data yet today',
 			'settings.theme.title' => 'Theme',
 			'settings.theme.system' => 'System',
 			'settings.theme.light' => 'Light',
@@ -2402,6 +2472,8 @@ extension on TranslationsEn {
 			'settings.reminders.notificationsSubtitle' => 'Manage notification permission in system settings',
 			'settings.about.version' => 'Version',
 			'settings.about.disclaimer' => 'Disclaimer & special groups',
+			_ => null,
+		} ?? switch (path) {
 			'settings.about.checkUpdate' => 'Check for updates',
 			'settings.aiModel.title' => 'AI Model',
 			'settings.aiModel.provider' => 'Provider',
@@ -2427,8 +2499,6 @@ extension on TranslationsEn {
 			'settings.aiModel.clear' => 'Clear configuration',
 			'settings.aiModel.clearConfirmTitle' => 'Clear AI model configuration?',
 			'settings.aiModel.clearConfirmBody' => 'After clearing, custom food estimates will be unavailable (enable the on-device model or configure again).',
-			_ => null,
-		} ?? switch (path) {
 			'settings.aiModel.clearConfirmAction' => 'Clear',
 			'settings.aiModel.cleared' => 'AI model configuration cleared',
 			'settings.onDevice.title' => 'On-device model',

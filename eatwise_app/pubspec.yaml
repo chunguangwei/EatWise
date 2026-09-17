@@ -66,6 +66,7 @@ dependencies:
   # core 不含引擎，litertlm 包提供 .litertlm FFI 引擎，两者必须同时存在。
   flutter_gemma: ^1.8.2
   flutter_gemma_litertlm: ^1.6.3
+  health: ^13.3.2
 
 dev_dependencies:
   flutter_test:

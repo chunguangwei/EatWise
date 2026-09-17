@@ -3,3 +3,5 @@
 /* M3 voice input (speech recognition + microphone, ask on first use) */
 "NSSpeechRecognitionUsageDescription" = "Turn what you say into text so you can log meals by voice";
 "NSMicrophoneUsageDescription" = "Voice logging needs access to your microphone";
+/* 阶段 D：HealthKit 运动数据（D-19 翻案，仅读取，数据不出端） */
+"NSHealthShareUsageDescription" = "Read your steps, active energy and weight from Apple Health to show today's activity burn";

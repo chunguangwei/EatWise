@@ -6,6 +6,8 @@ import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
+import 'package:eatwise/features/health/application/health_sync_controller.dart';
+import 'package:eatwise/features/health/presentation/health_widgets.dart';
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart';
 import 'package:eatwise/features/nutrition/presentation/date_switcher.dart';
 import 'package:eatwise/features/nutrition/presentation/pro_details.dart';
@@ -35,6 +37,8 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
     // 数据页曝光（§3.4 analytics_page_expose；页面级，session 内去重 §4.1）。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      // 阶段 D：已开启运动数据同步时刷新今日消耗（未开启静默返回）。
+      ref.read(healthSyncControllerProvider.notifier).refresh();
       final selected = ref.read(selectedDateProvider);
       final now = DateTime.now();
       final dateOffset = DateUtils.dateOnly(
@@ -155,6 +159,8 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
               ],
               const SizedBox(height: AppSpacing.s8),
               const TrendChartSection(),
+              // 阶段 D：今日消耗卡（运动数据同步开启且读取就绪时展示）。
+              const _HealthBurnSection(),
               // 合规 §5.1：「非医疗建议」数据页底部常驻。
               const SizedBox(height: AppSpacing.s6),
               Text(
@@ -220,6 +226,37 @@ class _HintBanner extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 阶段 D：今日消耗卡接线（ready 时渲染 TodayBurnCard；结余 = 摄入 − 消耗，
+/// 当日无记录时只展示消耗与步数不出结余行）。
+class _HealthBurnSection extends ConsumerWidget {
+  const _HealthBurnSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(healthSyncControllerProvider);
+    if (state.status != HealthSyncStatus.ready) {
+      return const SizedBox.shrink();
+    }
+    final today = state.today;
+    if (today == null ||
+        (today.steps == null && today.displayBurnKcal == null)) {
+      return const SizedBox.shrink();
+    }
+    final intake = ref.watch(dayIntakeProvider);
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.s8),
+      child: TodayBurnCard(
+        steps: today.steps,
+        burnKcal: today.displayBurnKcal,
+        estimated: today.activeEnergyKcal == null,
+        intakeKcal: (intake != null && intake.entryCount > 0)
+            ? intake.kcal
+            : null,
       ),
     );
   }

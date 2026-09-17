@@ -460,6 +460,14 @@
         "fasting": "断食时长",
         "empty": "记满几天，趋势曲线就跑起来啦",
         "hourUnit": "小时"
+      },
+      "burn": {
+        "title": "今日消耗",
+        "activeEnergy": "活动消耗",
+        "steps": "步数",
+        "kcalValue": "${kcal} kcal",
+        "estimatedValue": "约 ${kcal} kcal（按步数估算）",
+        "balance": "摄入 − 消耗结余：${kcal} kcal"
       }
     },
     "signalCard": {
@@ -662,6 +670,27 @@
       "analytics": "数据分析授权",
       "analyticsSubtitle": "匿名行为统计，帮助我们改进产品，不含健康数据",
       "exportFailed": "导出失败，请检查网络后重试"
+    },
+    "health": {
+      "group": "运动数据",
+      "sync": "同步运动数据",
+      "syncSubtitle": "读取系统健康数据（Apple 健康 / Health Connect），展示今日活动消耗",
+      "consentTitle": "开启运动数据同步？",
+      "consentBody": "将读取本机系统健康数据中的步数、活动能量与体重，仅用于在 App 内展示今日热量消耗与结余。\n\n数据只在本机处理和展示，不会上传到服务器。你可以随时在这里关闭，关闭后将撤销系统授权并清除已读取的数据。",
+      "consentAgree": "同意并开启",
+      "consentDecline": "暂不同意",
+      "statusConnecting": "读取中…",
+      "statusReady": "已授权",
+      "statusDenied": "未授权，可在系统健康设置中开启后重试",
+      "statusUnsupported": "当前设备不支持（Android 需安装 Health Connect）",
+      "statusError": "读取失败，请稍后重试",
+      "revoked": "已关闭运动数据同步，系统授权已撤销",
+      "steps": "步数 ${steps}",
+      "activeEnergy": "活动消耗 ${kcal} kcal",
+      "latestWeight": "最新体重 ${kg} kg",
+      "fillWeight": "填入今日体重记录",
+      "weightFilled": "已填入今日体重记录 ${kg} kg",
+      "noData": "今日暂无运动数据"
     },
     "theme": {
       "title": "主题",

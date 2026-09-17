@@ -13,6 +13,13 @@
     <!-- 语音录入（M3 系统 SpeechRecognizer）：首次点击「语音」入口时申请（合规 §3.2） -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <!-- 相册选图走系统 Photo Picker 主路径，不申请 READ_MEDIA_IMAGES（合规 §3.2〔假设〕） -->
+    <!-- 阶段 D：Health Connect 运动数据（D-19 翻案，health 13.3.2 README 对齐；
+         仅读取步数/活动能量/体重，数据不出端，首次开启「同步运动数据」时单独同意后申请） -->
+    <uses-permission android:name="android.permission.health.READ_STEPS"/>
+    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED"/>
+    <uses-permission android:name="android.permission.health.READ_WEIGHT"/>
+    <!-- health README：步数读取要求声明 Activity Recognition（Health Connect 授权契约内读取，未单独弹窗） -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
     <application
         android:label="EatWise"
         android:name="${applicationName}"
@@ -41,7 +48,24 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Health Connect 隐私政策 rationale（health 13.3.2 README：
+                 权限页「隐私政策」入口回落到 MainActivity） -->
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
         </activity>
+        <!-- Health Connect 权限使用说明入口（health 13.3.2 README 要求的
+             VIEW_PERMISSION_USAGE activity-alias，Google 审核敏感权限需要） -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
@@ -91,6 +115,11 @@
         <intent>
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="https"/>
+        </intent>
+        <!-- Health Connect：检测健康应用安装态与 rationale 入口（health 13.3.2 README） -->
+        <package android:name="com.google.android.apps.healthdata" />
+        <intent>
+            <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
         </intent>
     </queries>
 </manifest>

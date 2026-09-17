@@ -21,7 +21,9 @@ android {
         applicationId = "com.eatwise.eatwise"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // 阶段 D：health 插件（Health Connect）要求 minSdk 26，与合规文档
+        // 「Android 权限清单（API 26+，D-14）」口径一致。
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
