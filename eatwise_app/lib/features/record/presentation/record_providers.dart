@@ -158,18 +158,27 @@ final Provider<PhotoPickerGateway> photoPickerGatewayProvider =
 final Provider<FoodRecognitionService> foodRecognitionServiceProvider =
     Provider<FoodRecognitionService>((ref) {
       final enabled = ref.watch(onDeviceAiEnabledProvider);
-      // 状态流优先（下载完成即时生效），流未发首帧时回退管理器当前快照。
-      final snapshot =
-          ref.watch(onDeviceModelSnapshotProvider).valueOrNull ??
-          ref.watch(onDeviceModelManagerProvider).snapshot;
-      if (enabled && snapshot.status == OnDeviceModelStatus.ready) {
-        final manager = ref.watch(onDeviceModelManagerProvider);
-        return OnDeviceFoodRecognitionService(
-          gateway: ref.watch(onDeviceLlmGatewayProvider),
-          modelPath: manager.modelPath,
-          searchFoods: (query) =>
-              ref.read(recordRepositoryProvider).searchFoods(query),
-        );
+      if (enabled) {
+        final snapshotAsync = ref.watch(onDeviceModelSnapshotProvider);
+        // 冷启动竞态（真机反馈：重启后开关是开的，但快照首帧未出 →
+        // 磁盘 refresh 还在路上 → 误落 stub，首拍不走端侧）：快照未出时
+        // 乐观按就绪选端侧，真实就绪交给服务内部 load 把关——模型真未
+        // 下载时 load 抛 OnDeviceModelMissingException → ondevice_error →
+        // 手动搜索 snackbar，与 stub 同一兜底路径。快照已出则按磁盘实况
+        // 判定（notDownloaded/paused/error 等仍落 stub）。
+        final optimisticReady = switch (snapshotAsync) {
+          AsyncData(:final value) => value.status == OnDeviceModelStatus.ready,
+          _ => true,
+        };
+        if (optimisticReady) {
+          final manager = ref.watch(onDeviceModelManagerProvider);
+          return OnDeviceFoodRecognitionService(
+            gateway: ref.watch(onDeviceLlmGatewayProvider),
+            modelPath: manager.modelPath,
+            searchFoods: (query) =>
+                ref.read(recordRepositoryProvider).searchFoods(query),
+          );
+        }
       }
       return RemoteFoodRecognitionStub(dio: ref.watch(apiDioProvider));
     });

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:eatwise/core/llm/ondevice/ondevice_llm_gateway.dart';
+import 'package:eatwise/core/llm/ondevice/ondevice_model_manager.dart';
 import 'package:eatwise/core/llm/ondevice/ondevice_providers.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -57,6 +58,76 @@ void main() {
       );
 
       expect(gateway.loadCalls, 1); // 尝试过，失败被吞
+    });
+  });
+
+  group('prewarmOnDeviceEngineOnStartup（冷启动预热编排）', () {
+    test('快照 ready + 开关开 → 触发视觉预热（重启后首拍即热）', () async {
+      final gateway = _FakeGateway();
+
+      await prewarmOnDeviceEngineOnStartup(
+        firstSnapshot: Future<OnDeviceModelSnapshot>.value(
+          const OnDeviceModelSnapshot(status: OnDeviceModelStatus.ready),
+        ),
+        isEnabled: () => true,
+        modelPath: () async => '/fake/gemma4-e2b.litertlm',
+        isModelReady: () => true,
+        gateway: gateway,
+      );
+
+      expect(gateway.loadCalls, 1);
+      expect(gateway.lastEnableVision, isTrue);
+    });
+
+    test('快照 ready 但开关关 → 不预热', () async {
+      final gateway = _FakeGateway();
+
+      await prewarmOnDeviceEngineOnStartup(
+        firstSnapshot: Future<OnDeviceModelSnapshot>.value(
+          const OnDeviceModelSnapshot(status: OnDeviceModelStatus.ready),
+        ),
+        isEnabled: () => false,
+        modelPath: () async => '/fake/gemma4-e2b.litertlm',
+        isModelReady: () => true,
+        gateway: gateway,
+      );
+
+      expect(gateway.loadCalls, 0);
+    });
+
+    test('开关开但快照未下载 → 不预热', () async {
+      final gateway = _FakeGateway();
+
+      await prewarmOnDeviceEngineOnStartup(
+        firstSnapshot: Future<OnDeviceModelSnapshot>.value(
+          const OnDeviceModelSnapshot(
+            status: OnDeviceModelStatus.notDownloaded,
+          ),
+        ),
+        isEnabled: () => true,
+        modelPath: () async => '/fake/gemma4-e2b.litertlm',
+        isModelReady: () => false,
+        gateway: gateway,
+      );
+
+      expect(gateway.loadCalls, 0);
+    });
+
+    test('快照流失败 → 静默吞掉不阻断启动', () async {
+      final gateway = _FakeGateway();
+
+      // 不抛即通过。
+      await prewarmOnDeviceEngineOnStartup(
+        firstSnapshot: Future<OnDeviceModelSnapshot>.error(
+          StateError('refresh failed'),
+        ),
+        isEnabled: () => true,
+        modelPath: () async => '/fake/gemma4-e2b.litertlm',
+        isModelReady: () => true,
+        gateway: gateway,
+      );
+
+      expect(gateway.loadCalls, 0);
     });
   });
 }

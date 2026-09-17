@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -416,6 +417,9 @@ void main() {
         enabled: true,
         status: OnDeviceModelStatus.notDownloaded,
       );
+      // 快照未出首帧的窗口期乐观选端侧（冷启动竞态修复）；等流发出
+      // notDownloaded 后按磁盘实况回退 stub。
+      await container.read(onDeviceModelSnapshotProvider.future);
       expect(
         container.read(foodRecognitionServiceProvider),
         isA<RemoteFoodRecognitionStub>(),
@@ -432,6 +436,40 @@ void main() {
       expect(
         container.read(foodRecognitionServiceProvider),
         isA<OnDeviceFoodRecognitionService>(),
+      );
+    });
+
+    test('冷启动竞态回归：开关开 + 快照未出首帧 → 仍选端侧（不落 stub）', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'settings.onDeviceAiEnabled': true,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      // 快照流悬挂不出首帧（模拟冷启动磁盘 refresh 进行中）。
+      final pending = StreamController<OnDeviceModelSnapshot>();
+      addTearDown(pending.close);
+      final container = ProviderContainer(
+        overrides: <Override>[
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          onDeviceModelSnapshotProvider.overrideWith((ref) => pending.stream),
+          apiDioProvider.overrideWithValue(Dio()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // 首帧未出也立即选端侧：真实就绪由服务内部 load 把关。
+      expect(
+        container.read(foodRecognitionServiceProvider),
+        isA<OnDeviceFoodRecognitionService>(),
+      );
+
+      // 快照落地为未下载 → 重建回 stub。
+      pending.add(
+        const OnDeviceModelSnapshot(status: OnDeviceModelStatus.notDownloaded),
+      );
+      await container.read(onDeviceModelSnapshotProvider.future);
+      expect(
+        container.read(foodRecognitionServiceProvider),
+        isA<RemoteFoodRecognitionStub>(),
       );
     });
   });

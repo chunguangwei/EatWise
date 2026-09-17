@@ -5,6 +5,8 @@ import 'package:eatwise/app/router/app_router.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/page_stay_tracker.dart';
 import 'package:eatwise/core/llm/llm_config_store.dart';
+import 'package:eatwise/core/llm/ondevice/ondevice_model_manager.dart';
+import 'package:eatwise/core/llm/ondevice/ondevice_providers.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/network/token_store.dart';
 import 'package:eatwise/core/notification/local_notification_service.dart';
@@ -126,6 +128,20 @@ Future<void> main() async {
     // §2.1：App 启动触发一轮同步（先上行 pending 再增量下行）。
     unawaited(container.read(recordSyncEngineProvider).syncNow());
   }
+  // 冷启动引擎预热（真机反馈：重启后端侧开关持久化为开但没人触发
+  // 预热，首拍仍吃视觉重建数秒）——等首个模型快照落地后「开关开 +
+  // 模型 ready」即后台 load（只 load 不推理，失败静默不阻断启动）。
+  unawaited(
+    prewarmOnDeviceEngineOnStartup(
+      firstSnapshot: container.read(onDeviceModelSnapshotProvider.future),
+      isEnabled: () => container.read(onDeviceAiEnabledProvider),
+      modelPath: container.read(onDeviceModelManagerProvider).modelPath,
+      isModelReady: () =>
+          container.read(onDeviceModelManagerProvider).snapshot.status ==
+          OnDeviceModelStatus.ready,
+      gateway: container.read(onDeviceLlmGatewayProvider),
+    ),
+  );
   runApp(
     TranslationProvider(
       child: UncontrolledProviderScope(

@@ -66,3 +66,27 @@ Future<void> prewarmOnDeviceEngine({
     // 静默：使用路径会重试加载并走各自降级（OOM 永久禁用等）。
   }
 }
+
+/// 冷启动预热编排（真机反馈：重启后开关持久化为开，但设置页
+/// onChanged 不会触发，没人预热 → 首拍仍走视觉重建数秒）：等首个模型
+/// 快照（StreamProvider 首帧前已按磁盘实况 refresh）落地后，
+/// 「开关开 + 模型 ready」即后台 load。任何失败静默，不阻断启动。
+Future<void> prewarmOnDeviceEngineOnStartup({
+  required Future<OnDeviceModelSnapshot> firstSnapshot,
+  required bool Function() isEnabled,
+  required Future<String> Function() modelPath,
+  required bool Function() isModelReady,
+  required OnDeviceLlmGateway gateway,
+}) async {
+  try {
+    final snapshot = await firstSnapshot;
+    if (snapshot.status != OnDeviceModelStatus.ready || !isEnabled()) return;
+    await prewarmOnDeviceEngine(
+      modelPath: modelPath,
+      isModelReady: isModelReady,
+      gateway: gateway,
+    );
+  } on Object {
+    // 静默：预热失败不影响启动；拍照路径会重试加载并走降级。
+  }
+}
