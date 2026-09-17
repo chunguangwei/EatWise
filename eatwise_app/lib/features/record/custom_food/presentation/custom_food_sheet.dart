@@ -27,10 +27,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// 保存成功后自动把该食物填入记录结果卡（份量留空必填，与现行规则一致）；
 /// 离线保存提示「已保存到本机，联网后自动同步」。
 /// [barcodeAlias]：扫码未收录场景传入条码号，预填进别名输入框〔假设〕。
+/// [initialEstimate]：拍照识别未收录场景传入识别名 + 模型估值预填
+/// （与 AI 估算预填同款徽标/存疑提示）。
 Future<void> startCustomFoodFlow(
   BuildContext context,
   WidgetRef ref, {
   String? barcodeAlias,
+  CustomFoodEstimatePrefill? initialEstimate,
 }) async {
   final cs = CustomFoodStrings.of(context);
   // 联网机会窗口：opportunistic 重试离线期间落本地的 pending 自定义食物
@@ -43,7 +46,10 @@ Future<void> startCustomFoodFlow(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
       ),
-      child: CustomFoodSheet(initialAlias: barcodeAlias),
+      child: CustomFoodSheet(
+        initialAlias: barcodeAlias,
+        initialEstimate: initialEstimate,
+      ),
     ),
   );
   if (result == null || !context.mounted) return;
@@ -103,11 +109,15 @@ Future<void> contributeCustomFood(
 /// low 置信度/端侧 dubious 额外提示核对）；估算不可用（端侧与用户自配
 /// API 均不可用，503）降级手动填写，不阻断。
 /// [initialAlias]：扫码未收录承接场景预填的别名（条码号〔假设〕）。
+/// [initialEstimate]：拍照识别未收录承接场景的识别名 + 模型估值预填。
 class CustomFoodSheet extends ConsumerStatefulWidget {
-  const CustomFoodSheet({super.key, this.initialAlias});
+  const CustomFoodSheet({super.key, this.initialAlias, this.initialEstimate});
 
   /// 预填别名（可选，扫码未收录时传入条码号）。
   final String? initialAlias;
+
+  /// 预填识别名 + 模型估值（可选，拍照识别未收录时传入）。
+  final CustomFoodEstimatePrefill? initialEstimate;
 
   @override
   ConsumerState<CustomFoodSheet> createState() => _CustomFoodSheetState();
@@ -149,6 +159,31 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
 
   /// 勾选「分享给所有用户」（默认不勾；保存成功后调 /contribute 提交审核）。
   bool _shareToAll = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 拍照识别未收录预填：识别名 + 模型估值进表单，
+    // 与「AI 估算」预填同款端侧徽标/存疑提示（用户改值即按 manual 保存）。
+    final prefill = widget.initialEstimate;
+    if (prefill != null) {
+      _nameController.text = prefill.name;
+      // 英文通用名进别名（辅助双语搜索；别名为空时才填）。
+      final nameEn = prefill.nameEn;
+      if (nameEn != null &&
+          nameEn.isNotEmpty &&
+          _aliasController.text.isEmpty) {
+        _aliasController.text = nameEn;
+      }
+      _kcalController.text = _formatNumber(prefill.per100g.kcal);
+      _proteinController.text = _formatNumber(prefill.per100g.proteinG);
+      _carbController.text = _formatNumber(prefill.per100g.carbG);
+      _fatController.text = _formatNumber(prefill.per100g.fatG);
+      _estimateApplied = true;
+      _estimateLow = prefill.lowConfidence;
+      _estimateSource = FoodEstimateSource.ondevice;
+    }
+  }
 
   @override
   void dispose() {

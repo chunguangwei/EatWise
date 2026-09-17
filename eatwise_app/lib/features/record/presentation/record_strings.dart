@@ -140,6 +140,9 @@ final class RecordStrings {
   /// record.photo.loadingModel
   String get photoLoadingModel => _t.record.photo.loadingModel;
 
+  /// record.photo.addWithEstimate
+  String get photoAddWithEstimate => _t.record.photo.addWithEstimate;
+
   /// record.voice.listening
   String get voiceListening => _t.record.voice.listening;
 

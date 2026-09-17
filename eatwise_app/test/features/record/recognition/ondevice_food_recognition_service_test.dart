@@ -332,6 +332,69 @@ void main() {
     });
   });
 
+  group('双语输出（六段格式）', () {
+    test('中文未命中 → 英文名回退命中库：成功 + 精确置信 0.85', () async {
+      final gateway = _FakeGateway()
+        ..response = '薯片 => potato chips => 536 => 7 => 53 => 32';
+      final chips = food(id: 'f-chips', zh: '薯片（油炸）', en: 'potato chips');
+      final service = makeService(
+        gateway: gateway,
+        searchResults: <String, List<Food>>{
+          'potato chips': [chips],
+        },
+      );
+
+      final outcome = await service.recognize(photoBytes);
+
+      final success = outcome as RecognitionSuccess;
+      expect(success.candidates.first.food.id, 'f-chips');
+      expect(success.candidates.first.confidence, 0.85);
+    });
+
+    test('no_match 透出模型估值：名称（中/英）+ 每 100g 估算 + 置信标记', () async {
+      final gateway = _FakeGateway()
+        ..response = '薯片 => potato chips => 536 => 7 => 53 => 32';
+      final service = makeService(gateway: gateway); // 搜索恒空
+
+      final outcome = await service.recognize(photoBytes);
+
+      final unavailable = outcome as RecognitionUnavailable;
+      expect(unavailable.reason, 'no_match');
+      expect(unavailable.detail, '薯片');
+      final estimate = unavailable.estimate!;
+      expect(estimate.name, '薯片');
+      expect(estimate.nameEn, 'potato chips');
+      expect(estimate.per100g.kcal, 536);
+      expect(estimate.per100g.proteinG, 7);
+      expect(estimate.per100g.carbsG, 53);
+      expect(estimate.per100g.fatG, 32);
+      expect(estimate.lowConfidence, isFalse); // 数值正常、非类别词
+    });
+
+    test('no_match 且估值 dubious → lowConfidence 透出 true', () async {
+      // 蛋白质 70g/100g 触发 sanity-clamp。
+      final gateway = _FakeGateway()
+        ..response = '神秘肉 => mystery meat => 300 => 70 => 5 => 10';
+      final service = makeService(gateway: gateway);
+
+      final outcome = await service.recognize(photoBytes);
+
+      final unavailable = outcome as RecognitionUnavailable;
+      expect(unavailable.estimate!.lowConfidence, isTrue);
+    });
+
+    test('五段兼容输出 no_match → estimate.nameEn 为 null', () async {
+      final gateway = _FakeGateway()..response = '外星食物 => 100 => 5 => 10 => 2';
+      final service = makeService(gateway: gateway);
+
+      final outcome = await service.recognize(photoBytes);
+
+      final unavailable = outcome as RecognitionUnavailable;
+      expect(unavailable.estimate!.name, '外星食物');
+      expect(unavailable.estimate!.nameEn, isNull);
+    });
+  });
+
   group('类别词黑名单（识别不够具体）', () {
     test('类别词即便精确命中库 → 置信 0.5 必标「请确认」', () async {
       final gateway = _FakeGateway()..response = '水果 => 60 => 0.5 => 14 => 0.2';

@@ -123,7 +123,7 @@ final class OnDeviceFoodRecognitionService implements FoodRecognitionService {
         buildPhotoRecognitionPrompt(),
         normalized,
         systemInstruction: kPhotoRecognitionSystemPrompt,
-        maxOutputTokens: 128, // 一行「名 => 4 数字」，比文本版多留名额度
+        maxOutputTokens: 160, // 一行「中文名 => 英文名 => 4 数字」，比文本版多留名额度
       );
       final parsed = parsePhotoRecognitionOutput(raw);
       if (parsed == null) {
@@ -135,14 +135,27 @@ final class OnDeviceFoodRecognitionService implements FoodRecognitionService {
           detail: detail.isEmpty ? null : detail,
         );
       }
-      final match = await matchFoodByName(searchFoods, parsed.name);
+      final match = await matchFoodByName(
+        searchFoods,
+        parsed.name,
+        nameEn: parsed.nameEn,
+      );
       if (match == null) {
-        // 识别名映射不回食物库：透出识别名（「识别为 xx 但库未收录」，
-        // 引导换词手动搜索）；识别结果必须落回自建核心库，D-16，
-        // 模型估值不直接入账。
+        // 识别名映射不回食物库：透出识别名 + 模型估值（「以估算值添加」
+        // 预填自定义食物表单；估值只作表单初值，用户确认后才入库，
+        // 识别结果仍须落回自建核心库，D-16）。
+        final lowConfidence =
+            isNutritionEstimateDubious(parsed.values) ||
+            isGenericCategoryName(parsed.name);
         return RecognitionUnavailable(
           'no_match',
           detail: cleanRecognitionDetail(parsed.name),
+          estimate: RecognizedFoodEstimate(
+            name: parsed.name,
+            nameEn: parsed.nameEn,
+            per100g: parsed.values,
+            lowConfidence: lowConfidence,
+          ),
         );
       }
       return RecognitionSuccess(<RecognizedCandidate>[

@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/llm/ondevice/nutrition_estimate_logic.dart';
 import 'package:eatwise/core/llm/ondevice/ondevice_llm_gateway.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
+import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
+import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/presentation/record_page.dart';
@@ -24,6 +27,7 @@ import 'recognition_test_fakes.dart';
 /// （不再是一闪而过的 snackbar）；detail 为空 → 保持 snackbar 兜底。
 void main() {
   late AppDatabase db;
+  late FakeRecordRemote recordRemote;
   late RecordRepository repository;
   late FakePhotoPickerGateway photoGateway;
   late FakeFoodRecognitionService recognitionService;
@@ -36,9 +40,10 @@ void main() {
     await LocaleSettings.setLocale(AppLocale.zhCn);
     db = AppDatabase.memory();
     await seedFoods(db);
+    recordRemote = FakeRecordRemote();
     repository = RecordRepository(
       db: db,
-      remote: FakeRecordRemote(),
+      remote: recordRemote,
       location: tz.getLocation('Asia/Shanghai'),
     );
     photoGateway = FakePhotoPickerGateway();
@@ -65,7 +70,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
   }
 
-  Future<void> pumpPage(WidgetTester tester) async {
+  Future<void> pumpPage(
+    WidgetTester tester, {
+    FakeCustomFoodRemote? customRemote,
+  }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
@@ -73,6 +81,8 @@ void main() {
           photoPickerGatewayProvider.overrideWithValue(photoGateway),
           foodRecognitionServiceProvider.overrideWithValue(recognitionService),
           speechGatewayProvider.overrideWithValue(FakeSpeechGateway()),
+          if (customRemote != null)
+            customFoodRemoteProvider.overrideWithValue(customRemote),
         ],
         child: TranslationProvider(
           child: MaterialApp(theme: AppTheme.light(), home: const RecordPage()),
@@ -314,6 +324,79 @@ void main() {
     await tester.tap(find.text('知道了'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
+    await settleUi(tester);
+  });
+
+  testWidgets('「以估算值添加」：预填自定义食物表单（徽标），保存入本地库后可入账', (tester) async {
+    // 放大测试屏幕：自定义食物弹层字段多，默认尺寸保存按钮不可点。
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final customRemote = FakeCustomFoodRemote();
+    recognitionService.outcome = const RecognitionUnavailable(
+      'no_match',
+      detail: '薯片',
+      estimate: RecognizedFoodEstimate(
+        name: '薯片',
+        nameEn: 'potato chips',
+        per100g: OnDeviceNutritionValues(
+          kcal: 536,
+          proteinG: 7,
+          carbsG: 53,
+          fatG: 32,
+        ),
+        lowConfidence: true, // 存疑提示也一并验证
+      ),
+    );
+    await pumpPage(tester, customRemote: customRemote);
+    await pickPhotoAndRecognize(tester);
+
+    // 库未收录对话框：主行动「以估算值添加」可见（估值非空才展示）。
+    expect(find.text('识别为「薯片」'), findsOneWidget);
+    expect(find.text('以估算值添加'), findsOneWidget);
+
+    await tester.tap(find.text('以估算值添加'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 表单预填：菜名 + 别名（英文通用名）+ 四营养 + 端侧徽标 + 存疑提示。
+    expect(find.text('添加自定义食物'), findsOneWidget);
+    expect(find.text('端侧估算，请确认'), findsOneWidget);
+    expect(find.text('估算存疑，请核对数值'), findsOneWidget);
+    final fields = tester
+        .widgetList<TextFormField>(find.byType(TextFormField))
+        .toList();
+    expect(fields[0].controller!.text, '薯片'); // 菜名
+    expect(fields[1].controller!.text, 'potato chips'); // 别名（英文名）
+    expect(fields[2].controller!.text, '536'); // 热量
+    expect(fields[3].controller!.text, '7'); // 蛋白质
+    expect(fields[4].controller!.text, '53'); // 碳水
+    expect(fields[5].controller!.text, '32'); // 脂肪
+
+    // 保存 → 入本地库（远端 fake 成功）→ 结果卡回填。
+    await tester.tap(find.text('保存'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(find.text('确认记录'), findsOneWidget);
+    // 已入本地库可搜（自定义食物）。
+    final saved = await db.foodDao.searchFoods('薯片');
+    expect(saved, hasLength(1));
+    expect(saved.single.isCustom, isTrue);
+    expect(saved.single.kcalPer100g, 536);
+
+    // 份量必填：填入后确认入账（切离线确认：只落 pending，
+    // 不启动 10s 上行计时器，测试假时钟不受扰）。
+    recordRemote.mode = FakeRemoteMode.offline;
+    await tester.enterText(find.byType(TextField).last, '150');
+    await tester.pump();
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    final entries = await repository.entriesForDate(DateTime.now().toUtc());
+    expect(entries, hasLength(1));
+    expect(entries.single.foodId, saved.single.id);
+    expect(entries.single.amountG, 150);
     await settleUi(tester);
   });
 }

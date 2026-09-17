@@ -24,28 +24,34 @@ void main() {
     test('system instruction 含严格行格式与「无法识别」出口', () {
       expect(
         kPhotoRecognitionSystemPrompt,
-        contains('食物名 => 热量 => 蛋白质 => 碳水 => 脂肪'),
+        contains('中文名 => 英文名 => 热量 => 蛋白质 => 碳水 => 脂肪'),
       );
       expect(kPhotoRecognitionSystemPrompt, contains('无法识别'));
       // v5 营养约束话术保留（视觉版只加识别/命名约束，不改营养口径）。
       expect(kPhotoRecognitionSystemPrompt, contains('熟主食110-150千卡'));
     });
 
-    test('命名约束：要求最具体食物名、禁止类别词、含 few-shot 示例', () {
+    test('命名约束：要求最具体食物名、禁止类别词、双语输出含 few-shot 示例', () {
       expect(kPhotoRecognitionSystemPrompt, contains('最具体的常见中文食物名'));
       expect(kPhotoRecognitionSystemPrompt, contains('禁止只输出类别词'));
+      // 双语输出约束（USDA 库英文为主，英文名匹配提命中率）。
+      expect(kPhotoRecognitionSystemPrompt, contains('英文通用名'));
+      expect(
+        kPhotoRecognitionSystemPrompt,
+        contains('中文名 => 英文名 => 热量 => 蛋白质 => 碳水 => 脂肪'),
+      );
       // few-shot：示例定死输出格式与命名粒度。
       expect(
         kPhotoRecognitionSystemPrompt,
-        contains('米饭 => 116 => 2.6 => 23 => 0.3'),
+        contains('米饭 => rice => 116 => 2.6 => 23 => 0.3'),
       );
       expect(
         kPhotoRecognitionSystemPrompt,
-        contains('番茄炒蛋 => 120 => 6 => 8 => 7'),
+        contains('番茄炒蛋 => tomato egg stir-fry => 120 => 6 => 8 => 7'),
       );
       expect(
         kPhotoRecognitionSystemPrompt,
-        contains('苹果 => 53 => 0.4 => 14 => 0.2'),
+        contains('薯片 => potato chips => 536 => 7 => 53 => 32'),
       );
     });
 
@@ -85,12 +91,40 @@ void main() {
   });
 
   group('parsePhotoRecognitionOutput', () {
-    test('标准行：名 + 四数字', () {
+    test('六段双语主格式：中文名 + 英文名 + 四数字', () {
+      final parsed = parsePhotoRecognitionOutput(
+        '薯片 => potato chips => 536 => 7 => 53 => 32',
+      );
+      expect(parsed, isNotNull);
+      expect(parsed!.name, '薯片');
+      expect(parsed.nameEn, 'potato chips');
+      expect(
+        parsed.values,
+        const OnDeviceNutritionValues(
+          kcal: 536,
+          proteinG: 7,
+          carbsG: 53,
+          fatG: 32,
+        ),
+      );
+    });
+
+    test('六段格式容忍前后杂质', () {
+      final parsed = parsePhotoRecognitionOutput(
+        '识别结果：\n番茄炒蛋 => tomato egg stir-fry => 120 => 6 => 8 => 7\n供参考。',
+      );
+      expect(parsed, isNotNull);
+      expect(parsed!.name, '番茄炒蛋');
+      expect(parsed.nameEn, 'tomato egg stir-fry');
+    });
+
+    test('五段兼容格式（模型不守六段约定时回退）：nameEn 为 null', () {
       final parsed = parsePhotoRecognitionOutput(
         '米饭 => 116 => 2.6 => 23 => 0.3',
       );
       expect(parsed, isNotNull);
       expect(parsed!.name, '米饭');
+      expect(parsed.nameEn, isNull);
       expect(
         parsed.values,
         const OnDeviceNutritionValues(
@@ -100,6 +134,14 @@ void main() {
           fatG: 0.3,
         ),
       );
+    });
+
+    test('英文段须字母开头：纯数字第二段不误判为六段', () {
+      // 五段格式若被六段正则误吃，name 会变成数字段——必须回退五段。
+      final parsed = parsePhotoRecognitionOutput('豆腐 => 100 => 7 => 3 => 1');
+      expect(parsed, isNotNull);
+      expect(parsed!.name, '豆腐');
+      expect(parsed.nameEn, isNull);
     });
 
     test('容忍前后杂质文本，取第一组有效行', () {
@@ -177,6 +219,50 @@ void main() {
     test('搜索无结果/空名 → null', () async {
       expect(await matchFoodByName((_) async => <Food>[], '外星食物'), isNull);
       expect(await matchFoodByName((_) async => [rice], '  '), isNull);
+    });
+
+    test('双语：中文未命中 → 英文名回退匹配（USDA 库英文为主）', () async {
+      final chips = food(id: 'f-chips', zh: '薯片（油炸）', en: 'potato chips');
+      final queries = <String>[];
+      final match = await matchFoodByName(
+        (q) async {
+          queries.add(q);
+          // 中文名查不到，英文名才命中。
+          return q == 'potato chips' ? [chips] : <Food>[];
+        },
+        '薯片',
+        nameEn: 'potato chips',
+      );
+      expect(match, isNotNull);
+      expect(match!.food.id, 'f-chips');
+      expect(match.exact, isTrue);
+      expect(queries, <String>['薯片', 'potato chips']);
+    });
+
+    test('双语：中文已命中 → 不再查英文名', () async {
+      final queries = <String>[];
+      final match = await matchFoodByName(
+        (q) async {
+          queries.add(q);
+          return [rice];
+        },
+        '米饭',
+        nameEn: 'rice',
+      );
+      expect(match, isNotNull);
+      expect(match!.food.id, 'f-rice');
+      expect(queries, <String>['米饭']);
+    });
+
+    test('双语均未命中 → null', () async {
+      expect(
+        await matchFoodByName(
+          (_) async => <Food>[],
+          '外星食物',
+          nameEn: 'alien food',
+        ),
+        isNull,
+      );
     });
   });
 

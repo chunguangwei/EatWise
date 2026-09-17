@@ -12,7 +12,8 @@ import 'package:eatwise/core/storage/database.dart';
 /// 视觉版 system instruction（v5 营养约束逐字保留，加识别与命名约束）。
 ///
 /// 命名约束（真机反馈「只给类别词」后加固）：必须输出**最具体的常见
-/// 食物名**，禁止只输出类别词；few-shot 示例定死输出格式与命名粒度。
+/// 食物名**，禁止只输出类别词；双语输出（USDA 库英文为主，英文名精确
+/// 匹配命中率显著高于中文模糊匹配）；few-shot 示例定死输出格式与粒度。
 const String kPhotoRecognitionSystemPrompt =
     '你是食物拍照识别助手。用户给你一张餐食照片，你识别画面中最主要的一种食物，'
     '并估算其每100克可食部的营养。'
@@ -20,15 +21,16 @@ const String kPhotoRecognitionSystemPrompt =
     '食物名必须是最具体的常见中文食物名（如 米饭、番茄炒蛋、苹果、鸡胸肉），'
     '禁止只输出类别词（水果、蔬菜、肉类、主食、饮料、零食、菜肴这类词都不可以）；'
     '不要品牌名，不要份量和形容词（红富士就写苹果）。'
-    '示例：一碗白米饭 → 米饭 => 116 => 2.6 => 23 => 0.3；'
-    '一盘番茄炒鸡蛋 → 番茄炒蛋 => 120 => 6 => 8 => 7；'
-    '一个苹果 → 苹果 => 53 => 0.4 => 14 => 0.2。'
+    '同时给出最常见的英文通用名（generic name，小写，如 potato chips、fried rice）。'
+    '示例：一碗白米饭 → 米饭 => rice => 116 => 2.6 => 23 => 0.3；'
+    '一盘番茄炒鸡蛋 → 番茄炒蛋 => tomato egg stir-fry => 120 => 6 => 8 => 7；'
+    '一包薯片 → 薯片 => potato chips => 536 => 7 => 53 => 32。'
     '常见食物每100克热量参考范围：蔬菜20-50千卡，水果30-90千卡，熟主食110-150千卡，'
     '瘦肉蛋100-200千卡，肥肉菜品250-500千卡，含糖饮料35-50千卡。'
     '一般规律：新鲜水果蔬菜水分高，碳水化合物通常不超过25克/100克（干果除外）；'
     '可乐、果汁等纯饮料的脂肪和蛋白质为0。'
-    '只输出一行，格式为：食物名 => 热量 => 蛋白质 => 碳水 => 脂肪，'
-    '单位分别是千卡、克、克、克（每100克）。只写食物名、数字和 =>，不要任何其他文字。'
+    '只输出一行，格式为：中文名 => 英文名 => 热量 => 蛋白质 => 碳水 => 脂肪，'
+    '单位分别是千卡、克、克、克（每100克）。只写名称、数字和 =>，不要任何其他文字。'
     '看不清或画面不是食物时，只输出：无法识别。';
 
 /// 类别词黑名单（解析层兜底，prompt 已禁止输出这些词）：
@@ -76,16 +78,30 @@ String buildPhotoRecognitionPrompt() {
 
 /// 解析出的视觉识别结果（食物名 + 每 100g 估算营养值）。
 final class ParsedPhotoRecognition {
-  const ParsedPhotoRecognition({required this.name, required this.values});
+  const ParsedPhotoRecognition({
+    required this.name,
+    this.nameEn,
+    required this.values,
+  });
 
-  /// 模型给出的食物名（已去前缀/杂质）。
+  /// 模型给出的中文食物名（已去前缀/杂质）。
   final String name;
+
+  /// 模型给出的英文通用名（六段双语格式才有；五段兼容输出为 null）。
+  final String? nameEn;
 
   /// 模型估算的每 100g 营养（只作匹配参考与存疑判定，不入账）。
   final OnDeviceNutritionValues values;
 }
 
-/// 宽松解析正则：全文本取第一组 `名 => a => b => c => d`，
+/// 宽松解析正则（六段双语主格式）：`中文名 => 英文名 => a => b => c => d`，
+/// 英文段须以字母开头（与五段格式互撞时此正则优先），容忍行内前后杂质。
+final RegExp _parseBilingualRegex = RegExp(
+  r'([^\s=>\d][^=>\n]*?)\s*=>\s*([A-Za-z][^=>\n]*?)\s*=>\s*'
+  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)',
+);
+
+/// 宽松解析正则（五段兼容格式）：全文本取第一组 `名 => a => b => c => d`，
 /// 容忍行内前后杂质与尾部多余 `=>`（沿用 v5 文本版的宽松策略）。
 final RegExp _parseRegex = RegExp(
   r'([^\s=>\d][^=>\n]*?)\s*=>\s*'
@@ -106,8 +122,30 @@ String cleanRecognitionDetail(String raw) {
   return '${collapsed.substring(0, kRecognitionDetailMaxLength)}…';
 }
 
-/// 解析视觉模型输出原文；匹配失败/「无法识别」返回 null（上层走降级）。
+/// 解析视觉模型输出原文；六段（双语）优先、五段（旧格式）兼容回退；
+/// 匹配失败/「无法识别」返回 null（上层走降级）。
 ParsedPhotoRecognition? parsePhotoRecognitionOutput(String text) {
+  final bilingual = _parseBilingualRegex.firstMatch(text);
+  if (bilingual != null) {
+    final values = [
+      for (var i = 3; i <= 6; i++)
+        double.tryParse(bilingual.group(i)!) ?? double.nan,
+    ];
+    if (values.any((v) => !v.isFinite)) return null;
+    final name = bilingual.group(1)!.replaceAll(_namePrefixRegex, '').trim();
+    if (name.isEmpty || name.contains('无法识别')) return null;
+    final nameEn = bilingual.group(2)!.trim();
+    return ParsedPhotoRecognition(
+      name: name,
+      nameEn: nameEn.isEmpty ? null : nameEn,
+      values: OnDeviceNutritionValues(
+        kcal: values[0],
+        proteinG: values[1],
+        carbsG: values[2],
+        fatG: values[3],
+      ),
+    );
+  }
   final m = _parseRegex.firstMatch(text);
   if (m == null) return null;
   final values = [
@@ -137,11 +175,25 @@ final class FoodNameMatch {
   final bool exact;
 }
 
-/// 用识别名搜食物库并取最优条目：中/英文名精确命中优先，
-/// 否则取搜索首条（LIKE 模糊命中）；无结果返回 null（上层走降级）。
+/// 用识别名搜食物库并取最优条目：先中文名精确/模糊匹配，未命中再用
+/// [nameEn] 匹配（USDA 库英文为主，双语输出命中率显著提升）；
+/// 均无结果返回 null（上层走降级）。
 ///
 /// [search] 即仓储的 searchFoods（本地 drift 双语 LIKE）。
 Future<FoodNameMatch?> matchFoodByName(
+  Future<List<Food>> Function(String query) search,
+  String name, {
+  String? nameEn,
+}) async {
+  final byZh = await _matchOnce(search, name);
+  if (byZh != null) return byZh;
+  final en = nameEn?.trim() ?? '';
+  if (en.isEmpty) return null;
+  return _matchOnce(search, en);
+}
+
+/// 单关键词匹配：中/英文名精确命中优先，否则取搜索首条（LIKE 模糊）。
+Future<FoodNameMatch?> _matchOnce(
   Future<List<Food>> Function(String query) search,
   String name,
 ) async {

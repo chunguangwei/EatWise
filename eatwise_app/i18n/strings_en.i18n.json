@@ -153,7 +153,8 @@
       "gotIt": "Got it",
       "retake": "Retake photo",
       "recognizingHint": "The first recognition loads the on-device vision engine — this can take a few seconds",
-      "loadingModel": "Loading vision model…"
+      "loadingModel": "Loading vision model…",
+      "addWithEstimate": "Add with estimates"
     },
     "barcode": {
       "entry": "Scan",
