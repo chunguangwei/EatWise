@@ -99,6 +99,7 @@ final class RecordRepository {
       fatG: Value(snapshot.fatG),
       source: Value(draft.source),
       note: Value(draft.note),
+      duringFast: Value(draft.duringFast),
       createdAtUtc: Value(nowIso),
       updatedAtUtc: Value(nowIso),
     );

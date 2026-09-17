@@ -1046,6 +1046,21 @@ class $FoodEntriesTable extends FoodEntries
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _duringFastMeta = const VerificationMeta(
+    'duringFast',
+  );
+  @override
+  late final GeneratedColumn<bool> duringFast = GeneratedColumn<bool>(
+    'during_fast',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("during_fast" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
     'createdAtUtc',
   );
@@ -1091,6 +1106,7 @@ class $FoodEntriesTable extends FoodEntries
     fatG,
     source,
     note,
+    duringFast,
     createdAtUtc,
     updatedAtUtc,
   ];
@@ -1257,6 +1273,12 @@ class $FoodEntriesTable extends FoodEntries
         note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
+    if (data.containsKey('during_fast')) {
+      context.handle(
+        _duringFastMeta,
+        duringFast.isAcceptableOrUnknown(data['during_fast']!, _duringFastMeta),
+      );
+    }
     if (data.containsKey('created_at_utc')) {
       context.handle(
         _createdAtUtcMeta,
@@ -1376,6 +1398,10 @@ class $FoodEntriesTable extends FoodEntries
         DriftSqlType.string,
         data['${effectivePrefix}note'],
       ),
+      duringFast: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}during_fast'],
+      )!,
       createdAtUtc: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at_utc'],
@@ -1462,6 +1488,10 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
   /// 备注。
   final String? note;
 
+  /// 断食期用餐标记（阶段 C）：入账时断食计时进行中（fasting/fastingExtended）
+  /// 为 true；仅本地属性，不上行服务端。
+  final bool duringFast;
+
   /// 本地创建时间（UTC ISO8601）。
   final String createdAtUtc;
 
@@ -1489,6 +1519,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
     required this.fatG,
     required this.source,
     this.note,
+    required this.duringFast,
     required this.createdAtUtc,
     required this.updatedAtUtc,
   });
@@ -1534,6 +1565,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
+    map['during_fast'] = Variable<bool>(duringFast);
     map['created_at_utc'] = Variable<String>(createdAtUtc);
     map['updated_at_utc'] = Variable<String>(updatedAtUtc);
     return map;
@@ -1570,6 +1602,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
       fatG: Value(fatG),
       source: Value(source),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      duringFast: Value(duringFast),
       createdAtUtc: Value(createdAtUtc),
       updatedAtUtc: Value(updatedAtUtc),
     );
@@ -1606,6 +1639,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
         serializer.fromJson<String>(json['source']),
       ),
       note: serializer.fromJson<String?>(json['note']),
+      duringFast: serializer.fromJson<bool>(json['duringFast']),
       createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
       updatedAtUtc: serializer.fromJson<String>(json['updatedAtUtc']),
     );
@@ -1639,6 +1673,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
         $FoodEntriesTable.$convertersource.toJson(source),
       ),
       'note': serializer.toJson<String?>(note),
+      'duringFast': serializer.toJson<bool>(duringFast),
       'createdAtUtc': serializer.toJson<String>(createdAtUtc),
       'updatedAtUtc': serializer.toJson<String>(updatedAtUtc),
     };
@@ -1666,6 +1701,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
     double? fatG,
     EntrySource? source,
     Value<String?> note = const Value.absent(),
+    bool? duringFast,
     String? createdAtUtc,
     String? updatedAtUtc,
   }) => FoodEntry(
@@ -1694,6 +1730,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
     fatG: fatG ?? this.fatG,
     source: source ?? this.source,
     note: note.present ? note.value : this.note,
+    duringFast: duringFast ?? this.duringFast,
     createdAtUtc: createdAtUtc ?? this.createdAtUtc,
     updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
   );
@@ -1734,6 +1771,9 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
       fatG: data.fatG.present ? data.fatG.value : this.fatG,
       source: data.source.present ? data.source.value : this.source,
       note: data.note.present ? data.note.value : this.note,
+      duringFast: data.duringFast.present
+          ? data.duringFast.value
+          : this.duringFast,
       createdAtUtc: data.createdAtUtc.present
           ? data.createdAtUtc.value
           : this.createdAtUtc,
@@ -1767,6 +1807,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
           ..write('fatG: $fatG, ')
           ..write('source: $source, ')
           ..write('note: $note, ')
+          ..write('duringFast: $duringFast, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('updatedAtUtc: $updatedAtUtc')
           ..write(')'))
@@ -1796,6 +1837,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
     fatG,
     source,
     note,
+    duringFast,
     createdAtUtc,
     updatedAtUtc,
   ]);
@@ -1824,6 +1866,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
           other.fatG == this.fatG &&
           other.source == this.source &&
           other.note == this.note &&
+          other.duringFast == this.duringFast &&
           other.createdAtUtc == this.createdAtUtc &&
           other.updatedAtUtc == this.updatedAtUtc);
 }
@@ -1850,6 +1893,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
   final Value<double> fatG;
   final Value<EntrySource> source;
   final Value<String?> note;
+  final Value<bool> duringFast;
   final Value<String> createdAtUtc;
   final Value<String> updatedAtUtc;
   final Value<int> rowid;
@@ -1875,6 +1919,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
     this.fatG = const Value.absent(),
     this.source = const Value.absent(),
     this.note = const Value.absent(),
+    this.duringFast = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.updatedAtUtc = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1901,6 +1946,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
     required double fatG,
     required EntrySource source,
     this.note = const Value.absent(),
+    this.duringFast = const Value.absent(),
     required String createdAtUtc,
     required String updatedAtUtc,
     this.rowid = const Value.absent(),
@@ -1941,6 +1987,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
     Expression<double>? fatG,
     Expression<String>? source,
     Expression<String>? note,
+    Expression<bool>? duringFast,
     Expression<String>? createdAtUtc,
     Expression<String>? updatedAtUtc,
     Expression<int>? rowid,
@@ -1967,6 +2014,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
       if (fatG != null) 'fat_g': fatG,
       if (source != null) 'source': source,
       if (note != null) 'note': note,
+      if (duringFast != null) 'during_fast': duringFast,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
       if (updatedAtUtc != null) 'updated_at_utc': updatedAtUtc,
       if (rowid != null) 'rowid': rowid,
@@ -1995,6 +2043,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
     Value<double>? fatG,
     Value<EntrySource>? source,
     Value<String?>? note,
+    Value<bool>? duringFast,
     Value<String>? createdAtUtc,
     Value<String>? updatedAtUtc,
     Value<int>? rowid,
@@ -2021,6 +2070,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
       fatG: fatG ?? this.fatG,
       source: source ?? this.source,
       note: note ?? this.note,
+      duringFast: duringFast ?? this.duringFast,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
       updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
       rowid: rowid ?? this.rowid,
@@ -2097,6 +2147,9 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (duringFast.present) {
+      map['during_fast'] = Variable<bool>(duringFast.value);
+    }
     if (createdAtUtc.present) {
       map['created_at_utc'] = Variable<String>(createdAtUtc.value);
     }
@@ -2133,6 +2186,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
           ..write('fatG: $fatG, ')
           ..write('source: $source, ')
           ..write('note: $note, ')
+          ..write('duringFast: $duringFast, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('updatedAtUtc: $updatedAtUtc, ')
           ..write('rowid: $rowid')
@@ -4685,6 +4739,7 @@ typedef $$FoodEntriesTableCreateCompanionBuilder =
       required double fatG,
       required EntrySource source,
       Value<String?> note,
+      Value<bool> duringFast,
       required String createdAtUtc,
       required String updatedAtUtc,
       Value<int> rowid,
@@ -4712,6 +4767,7 @@ typedef $$FoodEntriesTableUpdateCompanionBuilder =
       Value<double> fatG,
       Value<EntrySource> source,
       Value<String?> note,
+      Value<bool> duringFast,
       Value<String> createdAtUtc,
       Value<String> updatedAtUtc,
       Value<int> rowid,
@@ -4847,6 +4903,11 @@ class $$FoodEntriesTableFilterComposer
 
   ColumnFilters<String> get note => $composableBuilder(
     column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get duringFast => $composableBuilder(
+    column: $table.duringFast,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4993,6 +5054,11 @@ class $$FoodEntriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get duringFast => $composableBuilder(
+    column: $table.duringFast,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
     builder: (column) => ColumnOrderings(column),
@@ -5111,6 +5177,11 @@ class $$FoodEntriesTableAnnotationComposer
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
 
+  GeneratedColumn<bool> get duringFast => $composableBuilder(
+    column: $table.duringFast,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
     builder: (column) => column,
@@ -5194,6 +5265,7 @@ class $$FoodEntriesTableTableManager
                 Value<double> fatG = const Value.absent(),
                 Value<EntrySource> source = const Value.absent(),
                 Value<String?> note = const Value.absent(),
+                Value<bool> duringFast = const Value.absent(),
                 Value<String> createdAtUtc = const Value.absent(),
                 Value<String> updatedAtUtc = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -5219,6 +5291,7 @@ class $$FoodEntriesTableTableManager
                 fatG: fatG,
                 source: source,
                 note: note,
+                duringFast: duringFast,
                 createdAtUtc: createdAtUtc,
                 updatedAtUtc: updatedAtUtc,
                 rowid: rowid,
@@ -5246,6 +5319,7 @@ class $$FoodEntriesTableTableManager
                 required double fatG,
                 required EntrySource source,
                 Value<String?> note = const Value.absent(),
+                Value<bool> duringFast = const Value.absent(),
                 required String createdAtUtc,
                 required String updatedAtUtc,
                 Value<int> rowid = const Value.absent(),
@@ -5271,6 +5345,7 @@ class $$FoodEntriesTableTableManager
                 fatG: fatG,
                 source: source,
                 note: note,
+                duringFast: duringFast,
                 createdAtUtc: createdAtUtc,
                 updatedAtUtc: updatedAtUtc,
                 rowid: rowid,

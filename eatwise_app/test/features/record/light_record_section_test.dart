@@ -126,32 +126,57 @@ void main() {
     expect(find.text('体重（千克）'), findsOneWidget);
 
     // 非数字 → 校验错误，不落库。
-    await tester.enterText(find.byType(TextField), 'abc');
+    await tester.enterText(find.byType(TextField).first, 'abc');
     await tester.tap(find.text('确认记录'));
     await tester.pump();
     expect(find.text('请输入 20 到 300 之间的数'), findsOneWidget);
     expect(weightStore.loadRange(todayKey(), todayKey()), isEmpty);
 
     // 超出合理区间 → 校验错误。
-    await tester.enterText(find.byType(TextField), '500');
+    await tester.enterText(find.byType(TextField).first, '500');
     await tester.tap(find.text('确认记录'));
     await tester.pump();
     expect(find.text('请输入 20 到 300 之间的数'), findsOneWidget);
 
-    // 合法值 → 保存成功（一位小数），对话框关闭，卡片展示。
-    await tester.enterText(find.byType(TextField), '65.5');
+    // 体脂率超区间 → 校验错误，不落库（阶段 C 可空采集）。
+    await tester.enterText(find.byType(TextField).first, '65.5');
+    await tester.enterText(find.byType(TextField).last, '88');
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    expect(find.text('体脂率需在 1–70% 之间'), findsOneWidget);
+    expect(weightStore.loadRange(todayKey(), todayKey()), isEmpty);
+
+    // 合法值 + 体脂率 → 保存成功（一位小数），对话框关闭，卡片展示。
+    await tester.enterText(find.byType(TextField).last, '18.2');
     await tester.tap(find.text('确认记录'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('记录今日体重'), findsNothing);
     expect(find.text('65.5 千克'), findsOneWidget);
     expect(weightStore.loadRange(todayKey(), todayKey())[todayKey()], 65.5);
+    final saved = weightStore.loadEntries(todayKey(), todayKey())[todayKey()];
+    expect(saved?.bodyFatPct, 18.2);
+    expect(saved?.synced, isFalse); // 落库 pending，待登录态上行
+
+    // 同日覆写时体脂率预填；清空再保存即清除。
+    await tester.tap(find.text('体重'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('体脂率（%，可不填）'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).last, '');
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+      weightStore.loadEntries(todayKey(), todayKey())[todayKey()]?.bodyFatPct,
+      isNull,
+    );
 
     // 同日重复记 → 覆写取最新。
     await tester.tap(find.text('体重'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    await tester.enterText(find.byType(TextField), '70');
+    await tester.enterText(find.byType(TextField).first, '70');
     await tester.tap(find.text('确认记录'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
@@ -183,12 +208,12 @@ void main() {
     expect(find.text("Log today's weight"), findsOneWidget);
     expect(find.text('Weight (kg)'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), 'abc');
+    await tester.enterText(find.byType(TextField).first, 'abc');
     await tester.tap(find.widgetWithText(FilledButton, 'Log it'));
     await tester.pump();
     expect(find.text('Enter a value between 20 and 300'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), '180');
+    await tester.enterText(find.byType(TextField).first, '180');
     await tester.tap(find.widgetWithText(FilledButton, 'Log it'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));

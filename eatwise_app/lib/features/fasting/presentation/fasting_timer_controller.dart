@@ -496,3 +496,16 @@ final fastingTimerControllerProvider =
     NotifierProvider<FastingTimerController, FastingTimerState>(
       FastingTimerController.new,
     );
+
+/// 断食计时进行中（fasting/fastingExtended）——记录页「断食期用餐」
+/// 标记用（阶段 C：饮食记录入账时读取，写入 FoodEntry.duringFast 本地属性）。
+/// 计时链路未装配（测试/预览）时按非断食态兜底（与 currentUserIdProvider 同口径）。
+final isFastingInProgressProvider = Provider<bool>((ref) {
+  try {
+    final state = ref.watch(fastingTimerControllerProvider).state;
+    return state == FastingState.fasting ||
+        state == FastingState.fastingExtended;
+  } on Object {
+    return false;
+  }
+});

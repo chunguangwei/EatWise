@@ -25,6 +25,7 @@ import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.da
 import 'package:eatwise/features/record/recognition/voice/speech_gateway.dart';
 import 'package:eatwise/features/record/recognition/voice/voice_text_parser.dart';
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
+import 'package:eatwise/features/reports/data/remote_weight_log_sync.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart'
     show currentUserIdProvider;
@@ -99,6 +100,8 @@ final Provider<RecordSyncEngine> recordSyncEngineProvider =
         prefs: ref.watch(sharedPreferencesProvider),
         waterSync: ref.watch(waterLogSyncProvider),
         customFoodSync: ref.watch(customFoodRepositoryProvider),
+        weightSync: ref.watch(weightLogSyncProvider),
+        weightStore: ref.watch(weightLogStoreProvider),
       );
     });
 
@@ -240,6 +243,12 @@ final Provider<RemoteWaterLogSync> waterLogSyncProvider =
       return RemoteWaterLogSync(dio: ref.watch(apiDioProvider));
     });
 
+/// 体重推拉同步端（阶段 C：两态 pending/synced，挂 recordSyncEngineProvider 触发链）。
+final Provider<RemoteWeightLogSync> weightLogSyncProvider =
+    Provider<RemoteWeightLogSync>((ref) {
+      return RemoteWeightLogSync(dio: ref.watch(apiDioProvider));
+    });
+
 /// 饮水轻量记录仓库（本地落库 pending，经同步引擎上行云端）。
 /// userId 与 [recordRepositoryProvider] 同口径（[currentUserIdProvider]），
 /// 否则登录用户的饮水记录落 anonymous、趋势按真实 userId 查空。
@@ -272,4 +281,27 @@ final FutureProvider<double?> todayWeightProvider = FutureProvider<double?>((
   final store = ref.watch(weightLogStoreProvider);
   final key = localDateKey(DateTime.now());
   return store.loadRange(key, key)[key];
+});
+
+/// 当日体重完整条目（含体脂率，录入弹窗预填用；未记录为 null）。
+final FutureProvider<WeightLogEntry?> todayWeightEntryProvider =
+    FutureProvider<WeightLogEntry?>((ref) {
+      final store = ref.watch(weightLogStoreProvider);
+      final key = localDateKey(DateTime.now());
+      return store.loadEntries(key, key)[key];
+    });
+
+/// 当日「断食期用餐」记录条数（阶段 C：记录页今日聚合行标记；0 不展示）。
+final StreamProvider<int> todayDuringFastCountProvider = StreamProvider<int>((
+  ref,
+) {
+  try {
+    final repo = ref.watch(recordRepositoryProvider);
+    return repo.db.foodEntryDao.watchDuringFastCount(
+      repo.userId,
+      localDateKey(DateTime.now()),
+    );
+  } on Object {
+    return Stream<int>.value(0);
+  }
 });

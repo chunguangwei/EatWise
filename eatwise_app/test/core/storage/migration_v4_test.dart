@@ -56,19 +56,47 @@ void main() {
       VALUES ('w-old', 'anonymous', 300, '2026-07-28T01:00:00.000Z',
         '2026-07-28', '2026-07-28T01:00:00.000Z')
     ''');
+    // v1 既有 food_entries（v7 迁移补列目标；裸种子库补全，口径不含 during_fast）。
+    await seed.runCustom('''
+      CREATE TABLE food_entries (
+        local_id TEXT NOT NULL PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        server_id TEXT,
+        client_request_id TEXT NOT NULL,
+        sync_status TEXT NOT NULL,
+        local_version INTEGER NOT NULL DEFAULT 1,
+        server_version INTEGER,
+        server_updated_at TEXT,
+        retry_count INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT,
+        deleted INTEGER NOT NULL DEFAULT 0,
+        datetime_utc TEXT NOT NULL,
+        local_date TEXT NOT NULL,
+        food_id TEXT NOT NULL,
+        amount_g REAL NOT NULL,
+        kcal REAL NOT NULL,
+        protein_g REAL NOT NULL,
+        carb_g REAL NOT NULL,
+        fat_g REAL NOT NULL,
+        source TEXT NOT NULL,
+        note TEXT,
+        created_at_utc TEXT NOT NULL,
+        updated_at_utc TEXT NOT NULL
+      )
+    ''');
     await seed.runCustom('PRAGMA user_version = 3');
     await seed.close();
   }
 
   test(
-    'v3 → v6：water_logs 补同步字段 + foods 补自定义/贡献状态字段，历史数据保留且默认 pending',
+    'v3 → v7：water_logs 补同步字段 + foods 补自定义/贡献状态字段 + v7 断食期用餐列，历史数据保留且默认 pending',
     () async {
       await seedV3Database();
 
       final db = AppDatabase(NativeDatabase(dbFile));
       addTearDown(() async => db.close());
 
-      expect(db.schemaVersion, 6);
+      expect(db.schemaVersion, 7);
 
       // 历史行完整保留，新列走默认值（pending/无 serverId/无幂等键/非 tombstone）。
       final old = (await db.waterLogDao.getByLocalId('w-old'))!;
@@ -96,11 +124,11 @@ void main() {
       expect(newLog.clientRequestId, 'c-new');
       expect(newLog.syncState, WaterSyncState.pending);
 
-      // 升级后的 user_version 落为 6（重开不再重复迁移）。
+      // 升级后的 user_version 落为 7（重开不再重复迁移）。
       final versionRow = await db
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(versionRow.data['user_version'], 6);
+      expect(versionRow.data['user_version'], 7);
     },
   );
 }

@@ -21,6 +21,7 @@ import {
   StreakEntity,
   UserEntity,
   WaterLogEntity,
+  WeightLogEntity,
 } from './data-store';
 import {
   FoodSearchHit,
@@ -62,16 +63,16 @@ export class PrismaStore extends StoreDriver {
   async collectUserExport(userId: string): Promise<UserDataExport | null> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user || user.deletedAt) return null;
-    const [foodEntries, fastingPlans, fastingRecords, streak, posts, waterLogs] = await Promise.all(
-      [
+    const [foodEntries, fastingPlans, fastingRecords, streak, posts, waterLogs, weightLogs] =
+      await Promise.all([
         this.prisma.foodEntry.findMany({ where: { userId, deletedAt: null } }),
         this.prisma.fastingPlan.findMany({ where: { userId } }),
         this.prisma.fastingRecord.findMany({ where: { userId } }),
         this.prisma.streak.findUnique({ where: { userId } }),
         this.prisma.post.findMany({ where: { userId, deletedAt: null } }),
         this.prisma.waterLog.findMany({ where: { userId, deletedAt: null } }),
-      ],
-    );
+        this.prisma.weightLog.findMany({ where: { userId, deletedAt: null } }),
+      ]);
     return {
       generatedAt: new Date().toISOString(),
       profile: toUserEntity(user),
@@ -81,6 +82,7 @@ export class PrismaStore extends StoreDriver {
       streak: streak ? toStreakEntity(streak) : null,
       posts: posts.map(toPostEntity),
       waterLogs: waterLogs.map(toWaterLogEntity),
+      weightLogs: weightLogs.map(toWeightLogEntity),
     };
   }
 
@@ -104,6 +106,7 @@ export class PrismaStore extends StoreDriver {
       const fastingPlans = await tx.fastingPlan.deleteMany({ where: { userId } });
       await tx.dailyNutrition.deleteMany({ where: { userId } });
       await tx.waterLog.deleteMany({ where: { userId } }); // users 外键必填，须先于用户行删除
+      await tx.weightLog.deleteMany({ where: { userId } }); // 同口径：体重记录随账号清除
       // 贡献候选与个人自定义食物随账号清除（已晋升共享的食物 isCustom=false 留存，内存模式同口径）
       await tx.foodCandidate.deleteMany({ where: { userId } });
       await tx.food.deleteMany({ where: { createdByUserId: userId, isCustom: true } });
@@ -422,6 +425,91 @@ export class PrismaStore extends StoreDriver {
       return rows.map(toWaterLogEntity);
     } catch (e) {
       throw this.fail('findWaterLogsSince', e);
+    }
+  }
+
+  // ===== 体重记录（weight_logs，阶段 C 体重管理闭环）=====
+
+  /** 按 id upsert（新建 / 同日覆写 / 软删 tombstone 落库） */
+  async saveWeightLog(log: WeightLogEntity): Promise<void> {
+    try {
+      await this.prisma.weightLog.upsert({
+        where: { id: log.id },
+        create: {
+          id: log.id,
+          userId: log.userId,
+          clientRequestId: log.clientRequestId,
+          date: log.date,
+          weightKg: log.weightKg,
+          bodyFatPct: log.bodyFatPct,
+          version: log.version,
+          deletedAt: log.deletedAt,
+        },
+        update: {
+          clientRequestId: log.clientRequestId,
+          date: log.date,
+          weightKg: log.weightKg,
+          bodyFatPct: log.bodyFatPct,
+          version: log.version,
+          deletedAt: log.deletedAt,
+        },
+      });
+    } catch (e) {
+      throw this.fail('saveWeightLog', e);
+    }
+  }
+
+  /** 幂等键定位（含 tombstone，重放判重用） */
+  async findWeightLogByClientRequestId(
+    userId: string,
+    clientRequestId: string,
+  ): Promise<WeightLogEntity | null> {
+    try {
+      const row = await this.prisma.weightLog.findFirst({
+        where: { userId, clientRequestId },
+      });
+      return row ? toWeightLogEntity(row) : null;
+    } catch (e) {
+      throw this.fail('findWeightLogByClientRequestId', e);
+    }
+  }
+
+  /** 同日活跃记录定位（排除 tombstone；同日覆写 upsert 依据） */
+  async findWeightLogByUserAndDate(userId: string, date: string): Promise<WeightLogEntity | null> {
+    try {
+      const row = await this.prisma.weightLog.findFirst({
+        where: { userId, date, deletedAt: null },
+      });
+      return row ? toWeightLogEntity(row) : null;
+    } catch (e) {
+      throw this.fail('findWeightLogByUserAndDate', e);
+    }
+  }
+
+  /** 按 id 读取（含 tombstone；DELETE 归属校验用） */
+  async findWeightLogById(id: string): Promise<WeightLogEntity | null> {
+    try {
+      const row = await this.prisma.weightLog.findUnique({ where: { id } });
+      return row ? toWeightLogEntity(row) : null;
+    } catch (e) {
+      throw this.fail('findWeightLogById', e);
+    }
+  }
+
+  /** 日期区间查询（含端点，排除 tombstone，按 (date, id) 升序） */
+  async findWeightLogsByUserRange(
+    userId: string,
+    from: string,
+    to: string,
+  ): Promise<WeightLogEntity[]> {
+    try {
+      const rows = await this.prisma.weightLog.findMany({
+        where: { userId, deletedAt: null, date: { gte: from, lte: to } },
+        orderBy: [{ date: 'asc' }, { id: 'asc' }],
+      });
+      return rows.map(toWeightLogEntity);
+    } catch (e) {
+      throw this.fail('findWeightLogsByUserRange', e);
     }
   }
 
@@ -1482,6 +1570,21 @@ function toWaterLogEntity(w: Prisma.WaterLogGetPayload<object>): WaterLogEntity 
     amountMl: w.amountMl,
     loggedAt: w.loggedAt,
     localDate: w.localDate,
+    version: w.version,
+    createdAt: w.createdAt,
+    updatedAt: w.updatedAt,
+    deletedAt: w.deletedAt,
+  };
+}
+
+function toWeightLogEntity(w: Prisma.WeightLogGetPayload<object>): WeightLogEntity {
+  return {
+    id: w.id,
+    userId: w.userId,
+    clientRequestId: w.clientRequestId,
+    date: w.date,
+    weightKg: w.weightKg,
+    bodyFatPct: w.bodyFatPct,
     version: w.version,
     createdAt: w.createdAt,
     updatedAt: w.updatedAt,

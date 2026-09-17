@@ -32,6 +32,13 @@ class ReportTrendSection extends ConsumerWidget {
     final values = ref.watch(trendSeriesProvider);
     final hasAny = values.any((v) => v != null);
 
+    // 阶段 C：体重维度叠加目标体重参考线 + 差值文案（未设置目标不画）。
+    final targetKg = dimension == ReportDimension.weight
+        ? ref.watch(weightTargetProvider)
+        : null;
+    final lastWeightIndex = values.lastIndexWhere((v) => v != null);
+    final latestWeight = lastWeightIndex >= 0 ? values[lastWeightIndex] : null;
+
     final end = ref.watch(reportsNowProvider);
     final locale = Localizations.localeOf(context).toString();
     final labelEvery = (range.days / 5).ceil();
@@ -140,7 +147,7 @@ class ReportTrendSection extends ConsumerWidget {
           const SizedBox(height: AppSpacing.s4),
           if (!hasAny)
             _TrendEmpty(dimension: dimension)
-          else
+          else ...<Widget>[
             SizedBox(
               height: 160,
               width: double.infinity,
@@ -153,9 +160,30 @@ class ReportTrendSection extends ConsumerWidget {
                   labelStyle: textStyles.textXs,
                   unit: unit,
                   fractionDigits: dimension == ReportDimension.kcal ? 0 : 1,
+                  targetValue: targetKg,
+                  targetColor: colors.brandAccent,
+                  targetLabel: targetKg == null
+                      ? null
+                      : trend.targetLine(kg: targetKg.toStringAsFixed(1)),
                 ),
               ),
             ),
+            // 当前体重与目标差值（最新一条记录 vs 目标）。
+            if (targetKg != null && latestWeight != null)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s2),
+                child: Text(
+                  latestWeight - targetKg > 0.05
+                      ? trend.toGoal(
+                          kg: (latestWeight - targetKg).toStringAsFixed(1),
+                        )
+                      : trend.goalReached,
+                  style: textStyles.textSm.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+          ],
         ],
       ),
     );
@@ -224,6 +252,9 @@ class ReportTrendPainter extends CustomPainter {
     required this.labelStyle,
     required this.unit,
     this.fractionDigits = 0,
+    this.targetValue,
+    this.targetColor,
+    this.targetLabel,
   });
 
   final List<double?> values;
@@ -236,6 +267,15 @@ class ReportTrendPainter extends CustomPainter {
   final String unit;
   final int fractionDigits;
 
+  /// 目标参考线值（阶段 C：体重维度传目标体重；null 不画）。
+  final double? targetValue;
+
+  /// 目标参考线颜色。
+  final Color? targetColor;
+
+  /// 目标参考线标签（如「目标 55 kg」）。
+  final String? targetLabel;
+
   static const double _labelHeight = 20;
   static const double _topPadding = 16;
 
@@ -243,8 +283,14 @@ class ReportTrendPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final present = values.whereType<double>().toList();
     if (present.isEmpty) return;
-    final maxV = present.reduce((a, b) => a > b ? a : b);
-    final minV = present.reduce((a, b) => a < b ? a : b);
+    var maxV = present.reduce((a, b) => a > b ? a : b);
+    var minV = present.reduce((a, b) => a < b ? a : b);
+    // 目标线纳入纵向量程，保证参考线可见（不裁剪出图外）。
+    final target = targetValue;
+    if (target != null) {
+      if (target > maxV) maxV = target;
+      if (target < minV) minV = target;
+    }
     // 全相等时给 10% 的纵向余量，避免除零与贴边。
     final span = (maxV - minV) == 0
         ? (maxV == 0 ? 1.0 : maxV * 0.2)
@@ -260,6 +306,35 @@ class ReportTrendPainter extends CustomPainter {
       final v = values[i]!;
       final y = chartBottom - (v - minV) / span * (chartBottom - chartTop);
       return Offset(xOf(i), y);
+    }
+
+    // 目标参考虚线（阶段 C：体重目标；先于折线绘制，置于底层）。
+    final targetColor = this.targetColor;
+    if (target != null && targetColor != null) {
+      final targetY =
+          chartBottom - (target - minV) / span * (chartBottom - chartTop);
+      final dashPaint = Paint()
+        ..color = targetColor
+        ..strokeWidth = 1;
+      const dashWidth = 6.0;
+      const dashGap = 4.0;
+      for (var x = 0.0; x < size.width; x += dashWidth + dashGap) {
+        final end = x + dashWidth;
+        canvas.drawLine(
+          Offset(x, targetY),
+          Offset(end > size.width ? size.width : end, targetY),
+          dashPaint,
+        );
+      }
+      final label = targetLabel;
+      if (label != null) {
+        _drawText(
+          canvas,
+          label,
+          Offset(0, targetY - 14),
+          labelStyle.copyWith(color: targetColor),
+        );
+      }
     }
 
     // 折线（只连接两侧都有值的相邻点）。
@@ -330,6 +405,8 @@ class ReportTrendPainter extends CustomPainter {
     return oldDelegate.values != values ||
         oldDelegate.labels != labels ||
         oldDelegate.lineColor != lineColor ||
-        oldDelegate.unit != unit;
+        oldDelegate.unit != unit ||
+        oldDelegate.targetValue != targetValue ||
+        oldDelegate.targetLabel != targetLabel;
   }
 }

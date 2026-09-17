@@ -11,6 +11,7 @@ import {
   RefreshTokenEntity,
   StreakEntity,
   WaterLogEntity,
+  WeightLogEntity,
 } from '../src/common/store/data-store';
 import { PrismaStore } from '../src/common/store/prisma-store';
 import { PrismaService } from '../src/infra/prisma.service';
@@ -1299,5 +1300,107 @@ describePg('PrismaStore auth / 食物搜索 / 候选 / 晋升（集成，真实 
     await expect(store.promoteCustomFoodToShared('it-search-mine')).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
+  });
+});
+
+/** 阶段 C：体重记录真实库（独立用户，逐条清表） */
+describePg('PrismaStore 体重记录（集成，真实 PostgreSQL）', () => {
+  let prisma: PrismaService;
+  let store: PrismaStore;
+  let userId: string;
+
+  const weightLog = (over: Partial<WeightLogEntity> = {}): WeightLogEntity => {
+    const now = new Date();
+    return {
+      id: randomUUID(),
+      userId,
+      clientRequestId: randomUUID(),
+      date: '2026-09-17',
+      weightKg: 65.5,
+      bodyFatPct: null,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      ...over,
+    };
+  };
+
+  beforeAll(async () => {
+    prisma = new PrismaService(new ConfigService());
+    await prisma.$connect();
+    store = new PrismaStore(prisma);
+    const user = await prisma.user.create({ data: { phone: '+86137TEST0006' } });
+    userId = user.id;
+  });
+
+  beforeEach(async () => {
+    await prisma.weightLog.deleteMany({ where: { userId } });
+  });
+
+  afterAll(async () => {
+    if (prisma) {
+      await prisma.weightLog.deleteMany({ where: { userId } });
+      await prisma.user.deleteMany({ where: { id: userId } }).catch(() => undefined);
+      await prisma.$disconnect();
+    }
+  });
+
+  it('saveWeightLog：新建/同日覆写 upsert 往返 + 幂等键定位 + 软删 tombstone', async () => {
+    const log = weightLog({ clientRequestId: 'cr-weight-1', bodyFatPct: 18.2 });
+    await store.saveWeightLog(log);
+    const found = await store.findWeightLogByClientRequestId(userId, 'cr-weight-1');
+    expect(found).toMatchObject({ id: log.id, weightKg: 65.5, bodyFatPct: 18.2 });
+
+    // 同日覆写（应用层 upsert 落库口径：同 id update，version+1）
+    const updated: WeightLogEntity = {
+      ...log,
+      clientRequestId: 'cr-weight-2',
+      weightKg: 64.9,
+      bodyFatPct: null,
+      version: 2,
+      updatedAt: new Date(),
+    };
+    await store.saveWeightLog(updated);
+    expect(await prisma.weightLog.count({ where: { userId } })).toBe(1);
+    expect(await store.findWeightLogByClientRequestId(userId, 'cr-weight-1')).toBeNull();
+    const after = await store.findWeightLogByUserAndDate(userId, '2026-09-17');
+    expect(after).toMatchObject({ id: log.id, weightKg: 64.9, version: 2 });
+
+    // 软删 tombstone：同日定位排除，按 id 仍在
+    await store.saveWeightLog({ ...after!, deletedAt: new Date(), version: 3 });
+    expect(await store.findWeightLogByUserAndDate(userId, '2026-09-17')).toBeNull();
+    expect((await store.findWeightLogById(log.id))!.deletedAt).not.toBeNull();
+  });
+
+  it('区间查询：含端点、date 升序、排除 tombstone 与他用户', async () => {
+    await store.saveWeightLog(weightLog({ date: '2026-09-03', weightKg: 66 }));
+    await store.saveWeightLog(weightLog({ date: '2026-09-01', weightKg: 67 }));
+    await store.saveWeightLog(weightLog({ date: '2026-09-02', weightKg: 66.5 }));
+    await store.saveWeightLog(
+      weightLog({ date: '2026-09-02', weightKg: 99, deletedAt: new Date() }),
+    );
+
+    const rows = await store.findWeightLogsByUserRange(userId, '2026-09-01', '2026-09-02');
+    expect(rows.map((r) => `${r.date}:${r.weightKg}`)).toEqual([
+      '2026-09-01:67',
+      '2026-09-02:66.5',
+    ]);
+    expect(
+      await store.findWeightLogsByUserRange('user_stranger', '2026-09-01', '2026-09-03'),
+    ).toHaveLength(0);
+  });
+
+  it('U3 导出含体重记录；U5 清除随账号物理删除', async () => {
+    await store.saveWeightLog(weightLog({ clientRequestId: 'cr-weight-export' }));
+    const bundle = await store.collectUserExport(userId);
+    expect(bundle!.weightLogs).toHaveLength(1);
+    expect(bundle!.weightLogs![0].weightKg).toBe(65.5);
+
+    await store.purgeUserData(userId);
+    expect(await prisma.weightLog.count({ where: { userId } })).toBe(0);
+    // purge 后用户行已删，重建供后续用例/清理（不影响其他 describe 的独立用户）
+    const user = await prisma.user.create({ data: { id: userId, phone: '+86137TEST0006' } });
+    expect(user.id).toBe(userId);
   });
 });

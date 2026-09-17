@@ -108,6 +108,21 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
         .get();
   }
 
+  /// 某日「断食期用餐」记录条数流（阶段 C：记录页今日聚合行标记用，
+  /// 排除 tombstone）。
+  Stream<int> watchDuringFastCount(String userId, String localDate) {
+    final count = foodEntries.localId.count();
+    final query = selectOnly(foodEntries)
+      ..addColumns(<Expression<Object>>[count])
+      ..where(
+        foodEntries.userId.equals(userId) &
+            foodEntries.localDate.equals(localDate) &
+            foodEntries.deleted.equals(false) &
+            foodEntries.duringFast.equals(true),
+      );
+    return query.map((row) => row.read(count) ?? 0).watchSingle();
+  }
+
   /// 从 FoodEntry 营养快照重算某日聚合并写入缓存（§2.6 本地预估）。
   Future<void> recomputeDailyNutrition(
     String userId,

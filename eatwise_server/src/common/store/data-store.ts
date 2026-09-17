@@ -192,6 +192,21 @@ export interface WaterLogEntity {
   deletedAt: Date | null;
 }
 
+/** 体重记录（阶段 C 体重管理闭环）：同日覆写（userId+date upsert），
+ * clientRequestId 幂等（D-20 口径同 WaterLog），体脂率可空，软删 tombstone */
+export interface WeightLogEntity {
+  id: string;
+  userId: string;
+  clientRequestId: string;
+  date: string; // 归属日（yyyy-MM-dd，客户端本地口径透传）
+  weightKg: number;
+  bodyFatPct: number | null; // 体脂率（%，可空）
+  version: number;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+}
+
 export interface MakeupCards {
   stock: number;
   month: string; // YYYY-MM（用户 timezone）
@@ -289,6 +304,8 @@ export class DataStore {
   foodSeedVersion: string | null = null;
   readonly foodEntries = new Map<string, FoodEntryEntity>();
   readonly waterLogs = new Map<string, WaterLogEntity>();
+  /** 体重记录（阶段 C）；key: id，按 (userId, clientRequestId) 幂等定位 */
+  readonly weightLogs = new Map<string, WeightLogEntity>();
   readonly streaks = new Map<string, StreakEntity>(); // key: userId
   readonly idempotency = new Map<string, IdempotencyRecord>(); // key: userId|endpoint|clientRequestId
 

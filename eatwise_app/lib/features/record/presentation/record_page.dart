@@ -12,6 +12,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/record/barcode/presentation/barcode_flow.dart';
 import 'package:eatwise/features/record/barcode/presentation/barcode_strings.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_sheet.dart';
@@ -142,6 +143,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
         amountG: amount,
         mealUtc: DateTime.now().toUtc(),
         source: entrySource,
+        // 阶段 C：断食计时进行中的用餐打「断食期用餐」本地标记（不上行）。
+        duringFast: ref.read(isFastingInProgressProvider),
       ),
     );
     // 确认记录成功（§3.3 record_flow_success，核心事件 §1.5 立即上报；
@@ -162,6 +165,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
           'record_kind': 'food',
           'is_edited': isEdited,
           'meal_period': _mealPeriod(),
+          // 断食期用餐标记（阶段 C，布尔枚举非健康明细）。
+          'during_fast': entry.duringFast,
           // D-20 四态：乐观更新入账即 pending。
           'sync_state': 'pending',
         },
@@ -556,12 +561,38 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                     ),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text(
-                        '${s.loggedToday(today.entryCount)} · '
-                        '${s.todayKcal(today.kcal.round())}',
-                        style: textStyles.textSm.copyWith(
-                          color: colors.textSecondary,
-                        ),
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: AppSpacing.s2,
+                        children: <Widget>[
+                          Text(
+                            '${s.loggedToday(today.entryCount)} · '
+                            '${s.todayKcal(today.kcal.round())}',
+                            style: textStyles.textSm.copyWith(
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                          // 断食期用餐标记（阶段 C：当日含断食窗口内入账记录时展示）。
+                          if ((ref.watch(todayDuringFastCountProvider).value ??
+                                  0) >
+                              0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.s2,
+                                vertical: AppSpacing.s1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colors.brandAccent,
+                                borderRadius: radii.rSm,
+                              ),
+                              child: Text(
+                                s.duringFastBadge,
+                                style: textStyles.textXs.copyWith(
+                                  color: colors.bgPrimary,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),

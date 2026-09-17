@@ -7,9 +7,13 @@ import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart'
     show nutritionGoalProvider;
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart'
     show dateOnly, localDateOf;
+import 'package:eatwise/features/onboarding/application/onboarding_controller.dart'
+    show onboardingStoreProvider;
 import 'package:eatwise/features/reports/application/monthly_report.dart';
 import 'package:eatwise/features/reports/application/report_aggregation.dart';
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
+import 'package:eatwise/features/settings/application/settings_providers.dart'
+    show userMeProvider;
 import 'package:eatwise/features/streak/application/streak_controller.dart'
     show currentUserIdProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -183,6 +187,22 @@ final FutureProvider<Map<String, double>> reportWeightProvider =
           .watch(reportsDataSourceProvider)
           .weightRange(window.from, window.to);
     });
+
+/// 体重目标线（阶段 C 体重管理闭环）：本地档案 targetWeightKg 优先，
+/// 未设置回落服务端档案（GET /users/me）；均无 → null（趋势图不画目标线）。
+final Provider<double?> weightTargetProvider = Provider<double?>((ref) {
+  try {
+    final local = ref
+        .watch(onboardingStoreProvider)
+        .loadProfile()
+        ?.targetWeightKg;
+    if (local != null) return local;
+    return ref.watch(userMeProvider).value?.targetWeightKg;
+  } on Object {
+    // 档案/网络未装配（测试/预览）时按未设置处理。
+    return null;
+  }
+});
 
 /// 归属日 → 断食时长（小时）。
 final Provider<Map<String, double>> fastingHoursByDateProvider =

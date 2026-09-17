@@ -74,6 +74,10 @@ class FoodEntries extends Table {
   /// 备注。
   TextColumn get note => text().nullable()();
 
+  /// 断食期用餐标记（阶段 C）：入账时断食计时进行中（fasting/fastingExtended）
+  /// 为 true；仅本地属性，不上行服务端。
+  BoolColumn get duringFast => boolean().withDefault(const Constant(false))();
+
   /// 本地创建时间（UTC ISO8601）。
   TextColumn get createdAtUtc => text()();
 

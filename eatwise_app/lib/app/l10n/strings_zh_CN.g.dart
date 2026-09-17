@@ -112,6 +112,7 @@ class Translations$record$zh_CN {
 	late final Translations$record$weight$zh_CN weight = Translations$record$weight$zh_CN.internal(_root);
 	late final Translations$record$home$zh_CN home = Translations$record$home$zh_CN.internal(_root);
 	late final Translations$record$empty$zh_CN empty = Translations$record$empty$zh_CN.internal(_root);
+	late final Translations$record$duringFast$zh_CN duringFast = Translations$record$duringFast$zh_CN.internal(_root);
 }
 
 // Path: common
@@ -1056,6 +1057,12 @@ class Translations$record$weight$zh_CN {
 
 	/// zh-CN: '请输入 20 到 300 之间的数'
 	String get invalid => '请输入 20 到 300 之间的数';
+
+	/// zh-CN: '体脂率（%，可不填）'
+	String get bodyFatLabel => '体脂率（%，可不填）';
+
+	/// zh-CN: '体脂率需在 1–70% 之间'
+	String get bodyFatInvalid => '体脂率需在 1–70% 之间';
 }
 
 // Path: record.home
@@ -1083,6 +1090,18 @@ class Translations$record$empty$zh_CN {
 
 	/// zh-CN: '肚子的故事还没写呢，点橙色按钮记一笔？'
 	String get title => '肚子的故事还没写呢，点橙色按钮记一笔？';
+}
+
+// Path: record.duringFast
+class Translations$record$duringFast$zh_CN {
+	Translations$record$duringFast$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '断食期用餐'
+	String get badge => '断食期用餐';
 }
 
 // Path: common.action
@@ -1352,6 +1371,15 @@ class Translations$reports$trend$zh_CN {
 
 	/// zh-CN: '记体重'
 	String get ctaWeight => '记体重';
+
+	/// zh-CN: '目标 ${kg} 公斤'
+	String targetLine({required Object kg}) => '目标 ${kg} 公斤';
+
+	/// zh-CN: '距目标还有 ${kg} 公斤'
+	String toGoal({required Object kg}) => '距目标还有 ${kg} 公斤';
+
+	/// zh-CN: '已达到目标体重'
+	String get goalReached => '已达到目标体重';
 }
 
 // Path: reports.growth
@@ -3498,9 +3526,12 @@ extension on Translations {
 			'record.weight.dialogTitle' => '记录今日体重',
 			'record.weight.inputLabel' => '体重（千克）',
 			'record.weight.invalid' => '请输入 20 到 300 之间的数',
+			'record.weight.bodyFatLabel' => '体脂率（%，可不填）',
+			'record.weight.bodyFatInvalid' => '体脂率需在 1–70% 之间',
 			'record.home.title' => '记录',
 			'record.home.logMeal' => '记一笔',
 			'record.empty.title' => '肚子的故事还没写呢，点橙色按钮记一笔？',
+			'record.duringFast.badge' => '断食期用餐',
 			'common.appName' => 'EatWise',
 			'common.action.save' => '保存',
 			'common.action.cancel' => '取消',
@@ -3625,6 +3656,9 @@ extension on Translations {
 			'reports.trend.ctaRecord' => '去记录',
 			'reports.trend.ctaFast' => '去断食',
 			'reports.trend.ctaWeight' => '记体重',
+			'reports.trend.targetLine' => ({required Object kg}) => '目标 ${kg} 公斤',
+			'reports.trend.toGoal' => ({required Object kg}) => '距目标还有 ${kg} 公斤',
+			'reports.trend.goalReached' => '已达到目标体重',
 			'reports.growth.title' => ({required Object days}) => '${days} 天成长轨迹',
 			'reports.growth.qualifiedDays' => '断食达标',
 			'reports.growth.recordedDays' => '记录天数',
@@ -3761,14 +3795,14 @@ extension on Translations {
 			'settings.aiModel.clear' => '清除配置',
 			'settings.aiModel.clearConfirmTitle' => '清除 AI 模型配置？',
 			'settings.aiModel.clearConfirmBody' => '清除后，自定义食物估算将不可用（可开启端侧小模型或重新配置）。',
+			_ => null,
+		} ?? switch (path) {
 			'settings.aiModel.clearConfirmAction' => '确认清除',
 			'settings.aiModel.cleared' => 'AI 模型配置已清除',
 			'settings.onDevice.title' => '端侧小模型',
 			'settings.onDevice.desc' => '下载后可在本机离线估算食物营养，数据不出设备',
 			'settings.onDevice.size' => '模型大小约 2.41GB',
 			'settings.onDevice.wifiHint' => '文件较大，建议在 Wi-Fi 环境下下载',
-			_ => null,
-		} ?? switch (path) {
 			'settings.onDevice.download' => '下载模型',
 			'settings.onDevice.downloading' => ({required Object percent}) => '下载中 ${percent}%',
 			'settings.onDevice.cancel' => '取消',

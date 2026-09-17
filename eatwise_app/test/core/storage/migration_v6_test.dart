@@ -47,17 +47,45 @@ void main() {
         custom_sync_pending, custom_client_request_id)
       VALUES ('srv-food-1', '手工丸子', '手工丸子', 200, 10, 20, 5, 1, 0, 'req-1')
     ''');
+    // v1 既有 food_entries（v7 迁移补列目标；裸种子库补全，口径不含 during_fast）。
+    await seed.runCustom('''
+      CREATE TABLE food_entries (
+        local_id TEXT NOT NULL PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        server_id TEXT,
+        client_request_id TEXT NOT NULL,
+        sync_status TEXT NOT NULL,
+        local_version INTEGER NOT NULL DEFAULT 1,
+        server_version INTEGER,
+        server_updated_at TEXT,
+        retry_count INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT,
+        deleted INTEGER NOT NULL DEFAULT 0,
+        datetime_utc TEXT NOT NULL,
+        local_date TEXT NOT NULL,
+        food_id TEXT NOT NULL,
+        amount_g REAL NOT NULL,
+        kcal REAL NOT NULL,
+        protein_g REAL NOT NULL,
+        carb_g REAL NOT NULL,
+        fat_g REAL NOT NULL,
+        source TEXT NOT NULL,
+        note TEXT,
+        created_at_utc TEXT NOT NULL,
+        updated_at_utc TEXT NOT NULL
+      )
+    ''');
     await seed.runCustom('PRAGMA user_version = 5');
     await seed.close();
   }
 
-  test('v5 → v6：foods 补 contributionStatus，历史数据保留且默认未贡献', () async {
+  test('v5 → v7：foods 补 contributionStatus，历史数据保留且默认未贡献', () async {
     await seedV5Database();
 
     final db = AppDatabase(NativeDatabase(dbFile));
     addTearDown(() async => db.close());
 
-    expect(db.schemaVersion, 6);
+    expect(db.schemaVersion, 7);
 
     // 历史行完整保留，新列默认 null（未贡献 → 标签仍为「自定义」）。
     final food = (await db.foodDao.getById('srv-food-1'))!;
@@ -71,9 +99,9 @@ void main() {
     final updated = (await db.foodDao.getById('srv-food-1'))!;
     expect(updated.contributionStatus, 'pending');
 
-    // 升级后的 user_version 落为 6（重开不再重复迁移）。
+    // 升级后的 user_version 落为 7（重开不再重复迁移）。
     final versionRow = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(versionRow.data['user_version'], 6);
+    expect(versionRow.data['user_version'], 7);
   });
 }
 

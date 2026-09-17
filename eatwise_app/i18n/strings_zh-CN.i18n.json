@@ -327,7 +327,9 @@
       "current": "${kg} 千克",
       "dialogTitle": "记录今日体重",
       "inputLabel": "体重（千克）",
-      "invalid": "请输入 20 到 300 之间的数"
+      "invalid": "请输入 20 到 300 之间的数",
+      "bodyFatLabel": "体脂率（%，可不填）",
+      "bodyFatInvalid": "体脂率需在 1–70% 之间"
     },
     "home": {
       "title": "记录",
@@ -335,6 +337,9 @@
     },
     "empty": {
       "title": "肚子的故事还没写呢，点橙色按钮记一笔？"
+    },
+    "duringFast": {
+      "badge": "断食期用餐"
     }
   },
   "common": {
@@ -526,7 +531,10 @@
       "empty": "数据曲线正在热身，多记几天它就跑起来啦",
       "ctaRecord": "去记录",
       "ctaFast": "去断食",
-      "ctaWeight": "记体重"
+      "ctaWeight": "记体重",
+      "targetLine": "目标 ${kg} 公斤",
+      "toGoal": "距目标还有 ${kg} 公斤",
+      "goalReached": "已达到目标体重"
     },
     "growth": {
       "title": "${days} 天成长轨迹",

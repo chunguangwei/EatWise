@@ -17,6 +17,7 @@ import { StreakModule } from './streak/streak.module';
 import { SyncModule } from './sync/sync.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { UserModule } from './user/user.module';
+import { WeightModule } from './weight/weight.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { UserModule } from './user/user.module';
     StreakModule,
     SyncModule,
     UploadsModule,
+    WeightModule,
   ],
   controllers: [HealthController],
   providers: [

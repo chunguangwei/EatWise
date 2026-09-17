@@ -107,6 +107,7 @@ class _Translations$record$en extends Translations$record$zh_CN {
 	@override late final _Translations$record$weight$en weight = _Translations$record$weight$en._(_root);
 	@override late final _Translations$record$home$en home = _Translations$record$home$en._(_root);
 	@override late final _Translations$record$empty$en empty = _Translations$record$empty$en._(_root);
+	@override late final _Translations$record$duringFast$en duringFast = _Translations$record$duringFast$en._(_root);
 }
 
 // Path: common
@@ -659,6 +660,8 @@ class _Translations$record$weight$en extends Translations$record$weight$zh_CN {
 	@override String get dialogTitle => 'Log today\'s weight';
 	@override String get inputLabel => 'Weight (kg)';
 	@override String get invalid => 'Enter a value between 20 and 300';
+	@override String get bodyFatLabel => 'Body fat (%, optional)';
+	@override String get bodyFatInvalid => 'Enter a body fat between 1% and 70%';
 }
 
 // Path: record.home
@@ -680,6 +683,16 @@ class _Translations$record$empty$en extends Translations$record$empty$zh_CN {
 
 	// Translations
 	@override String get title => 'No food stories yet — tap the orange button to log your first bite?';
+}
+
+// Path: record.duringFast
+class _Translations$record$duringFast$en extends Translations$record$duringFast$zh_CN {
+	_Translations$record$duringFast$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get badge => 'During fast';
 }
 
 // Path: common.action
@@ -848,6 +861,9 @@ class _Translations$reports$trend$en extends Translations$reports$trend$zh_CN {
 	@override String get ctaRecord => 'Log now';
 	@override String get ctaFast => 'Start fasting';
 	@override String get ctaWeight => 'Log weight';
+	@override String targetLine({required Object kg}) => 'Goal ${kg} kg';
+	@override String toGoal({required Object kg}) => '${kg} kg to goal';
+	@override String get goalReached => 'Weight goal reached';
 }
 
 // Path: reports.growth
@@ -2142,9 +2158,12 @@ extension on TranslationsEn {
 			'record.weight.dialogTitle' => 'Log today\'s weight',
 			'record.weight.inputLabel' => 'Weight (kg)',
 			'record.weight.invalid' => 'Enter a value between 20 and 300',
+			'record.weight.bodyFatLabel' => 'Body fat (%, optional)',
+			'record.weight.bodyFatInvalid' => 'Enter a body fat between 1% and 70%',
 			'record.home.title' => 'Log',
 			'record.home.logMeal' => 'Log a bite',
 			'record.empty.title' => 'No food stories yet — tap the orange button to log your first bite?',
+			'record.duringFast.badge' => 'During fast',
 			'common.appName' => 'EatWise',
 			'common.action.save' => 'Save',
 			'common.action.cancel' => 'Cancel',
@@ -2269,6 +2288,9 @@ extension on TranslationsEn {
 			'reports.trend.ctaRecord' => 'Log now',
 			'reports.trend.ctaFast' => 'Start fasting',
 			'reports.trend.ctaWeight' => 'Log weight',
+			'reports.trend.targetLine' => ({required Object kg}) => 'Goal ${kg} kg',
+			'reports.trend.toGoal' => ({required Object kg}) => '${kg} kg to goal',
+			'reports.trend.goalReached' => 'Weight goal reached',
 			'reports.growth.title' => ({required Object days}) => '${days}-day journey',
 			'reports.growth.qualifiedDays' => 'Fasting goals hit',
 			'reports.growth.recordedDays' => 'Days logged',
@@ -2405,14 +2427,14 @@ extension on TranslationsEn {
 			'settings.aiModel.clear' => 'Clear configuration',
 			'settings.aiModel.clearConfirmTitle' => 'Clear AI model configuration?',
 			'settings.aiModel.clearConfirmBody' => 'After clearing, custom food estimates will be unavailable (enable the on-device model or configure again).',
+			_ => null,
+		} ?? switch (path) {
 			'settings.aiModel.clearConfirmAction' => 'Clear',
 			'settings.aiModel.cleared' => 'AI model configuration cleared',
 			'settings.onDevice.title' => 'On-device model',
 			'settings.onDevice.desc' => 'Estimate nutrition offline on this device — your data never leaves it',
 			'settings.onDevice.size' => 'Model size: ~2.41 GB',
 			'settings.onDevice.wifiHint' => 'Large file — Wi-Fi recommended',
-			_ => null,
-		} ?? switch (path) {
 			'settings.onDevice.download' => 'Download model',
 			'settings.onDevice.downloading' => ({required Object percent}) => 'Downloading ${percent}%',
 			'settings.onDevice.cancel' => 'Cancel',

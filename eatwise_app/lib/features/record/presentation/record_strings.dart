@@ -216,6 +216,15 @@ final class RecordStrings {
   /// record.weight.invalid
   String get weightInvalid => _t.record.weight.invalid;
 
+  /// record.weight.bodyFatLabel
+  String get bodyFatLabel => _t.record.weight.bodyFatLabel;
+
+  /// record.weight.bodyFatInvalid
+  String get bodyFatInvalid => _t.record.weight.bodyFatInvalid;
+
+  /// record.duringFast.badge
+  String get duringFastBadge => _t.record.duringFast.badge;
+
   /// common.action.cancel
   String get cancelAction => _t.common.action.cancel;
 }

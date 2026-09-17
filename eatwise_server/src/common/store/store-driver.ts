@@ -16,6 +16,7 @@ import {
   StreakEntity,
   UserEntity,
   WaterLogEntity,
+  WeightLogEntity,
 } from './data-store';
 
 /**
@@ -40,6 +41,8 @@ export interface UserDataExport {
   posts: PostEntity[];
   /** 饮水记录（M3 功能点 4）：真实库 water_logs 表全量 */
   waterLogs?: WaterLogEntity[];
+  /** 体重记录（阶段 C）：真实库 weight_logs 表全量 */
+  weightLogs?: WeightLogEntity[];
 }
 
 /** U5 到期删除执行报告（合规 §4.3：个人数据物理删除 + UGC 匿名化） */
@@ -106,6 +109,33 @@ export abstract class StoreDriver {
 
   /** syncToken 增量下游标：updatedAt > since（含 tombstone），按 (updatedAt, id) 升序 */
   abstract findWaterLogsSince(userId: string, since: Date): Promise<WaterLogEntity[]>;
+
+  // ===== 体重记录（阶段 C：同日覆写 upsert + clientRequestId 幂等 + 软删）=====
+
+  /** 按 id upsert（新建 / 同日覆写 / 软删 tombstone 落库） */
+  abstract saveWeightLog(log: WeightLogEntity): Promise<void>;
+
+  /** 幂等键定位（含 tombstone，重放判重用） */
+  abstract findWeightLogByClientRequestId(
+    userId: string,
+    clientRequestId: string,
+  ): Promise<WeightLogEntity | null>;
+
+  /** 同日活跃记录定位（排除 tombstone；同日覆写 upsert 依据） */
+  abstract findWeightLogByUserAndDate(
+    userId: string,
+    date: string,
+  ): Promise<WeightLogEntity | null>;
+
+  /** 按 id 读取（含 tombstone；DELETE 归属校验用） */
+  abstract findWeightLogById(id: string): Promise<WeightLogEntity | null>;
+
+  /** 日期区间查询（含端点，排除 tombstone，按 date 升序） */
+  abstract findWeightLogsByUserRange(
+    userId: string,
+    from: string,
+    to: string,
+  ): Promise<WeightLogEntity[]>;
 
   // ===== 共享食物候选（D-17 先审后发审核池）=====
 
@@ -399,6 +429,9 @@ export class MemoryStoreDriver extends StoreDriver {
     const waterLogs = [...this.store.waterLogs.values()].filter(
       (e) => e.userId === userId && !e.deletedAt,
     );
+    const weightLogs = [...this.store.weightLogs.values()].filter(
+      (e) => e.userId === userId && !e.deletedAt,
+    );
     return Promise.resolve({
       generatedAt: new Date().toISOString(),
       profile: user,
@@ -408,6 +441,7 @@ export class MemoryStoreDriver extends StoreDriver {
       streak,
       posts,
       waterLogs,
+      weightLogs,
     });
   }
 
@@ -421,6 +455,9 @@ export class MemoryStoreDriver extends StoreDriver {
     }
     for (const [id, e] of this.store.waterLogs) {
       if (e.userId === userId) this.store.waterLogs.delete(id);
+    }
+    for (const [id, e] of this.store.weightLogs) {
+      if (e.userId === userId) this.store.weightLogs.delete(id);
     }
     // 个人自定义食物与贡献候选随账号清除（审核晋升的共享食物已转出个人库，留存）
     for (const [id, f] of this.store.customFoods) {
@@ -529,6 +566,41 @@ export class MemoryStoreDriver extends StoreDriver {
     const rows = [...this.store.waterLogs.values()]
       .filter((e) => e.userId === userId && e.updatedAt.getTime() > since.getTime())
       .sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime() || a.id.localeCompare(b.id));
+    return Promise.resolve(rows);
+  }
+
+  // ===== 体重记录（阶段 C；与 weight.service 内存实现同口径）=====
+
+  saveWeightLog(log: WeightLogEntity): Promise<void> {
+    this.store.weightLogs.set(log.id, log);
+    return Promise.resolve();
+  }
+
+  findWeightLogByClientRequestId(
+    userId: string,
+    clientRequestId: string,
+  ): Promise<WeightLogEntity | null> {
+    const row = [...this.store.weightLogs.values()].find(
+      (e) => e.userId === userId && e.clientRequestId === clientRequestId,
+    );
+    return Promise.resolve(row ?? null);
+  }
+
+  findWeightLogByUserAndDate(userId: string, date: string): Promise<WeightLogEntity | null> {
+    const row = [...this.store.weightLogs.values()].find(
+      (e) => e.userId === userId && e.date === date && !e.deletedAt,
+    );
+    return Promise.resolve(row ?? null);
+  }
+
+  findWeightLogById(id: string): Promise<WeightLogEntity | null> {
+    return Promise.resolve(this.store.weightLogs.get(id) ?? null);
+  }
+
+  findWeightLogsByUserRange(userId: string, from: string, to: string): Promise<WeightLogEntity[]> {
+    const rows = [...this.store.weightLogs.values()]
+      .filter((e) => e.userId === userId && !e.deletedAt && e.date >= from && e.date <= to)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
     return Promise.resolve(rows);
   }
 

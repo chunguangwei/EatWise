@@ -45,6 +45,7 @@ void main() {
       carbG: 51.8,
       fatG: 0.6,
       source: EntrySource.manual,
+      duringFast: false,
       createdAtUtc: '2026-07-27T01:10:00.000Z',
       updatedAtUtc: '2026-07-27T01:10:00.000Z',
     );
@@ -425,6 +426,7 @@ Future<String> _insertLocalPending(AppDatabase db) async {
     carbG: 51.8,
     fatG: 0.6,
     source: EntrySource.manual,
+    duringFast: false,
     createdAtUtc: '2026-07-27T01:10:00.000Z',
     updatedAtUtc: '2026-07-27T01:20:00.000Z',
   );

@@ -327,7 +327,9 @@
       "current": "${kg} kg",
       "dialogTitle": "Log today's weight",
       "inputLabel": "Weight (kg)",
-      "invalid": "Enter a value between 20 and 300"
+      "invalid": "Enter a value between 20 and 300",
+      "bodyFatLabel": "Body fat (%, optional)",
+      "bodyFatInvalid": "Enter a body fat between 1% and 70%"
     },
     "home": {
       "title": "Log",
@@ -335,6 +337,9 @@
     },
     "empty": {
       "title": "No food stories yet — tap the orange button to log your first bite?"
+    },
+    "duringFast": {
+      "badge": "During fast"
     }
   },
   "common": {
@@ -526,7 +531,10 @@
       "empty": "Your trends are warming up — log a few days to get them moving.",
       "ctaRecord": "Log now",
       "ctaFast": "Start fasting",
-      "ctaWeight": "Log weight"
+      "ctaWeight": "Log weight",
+      "targetLine": "Goal ${kg} kg",
+      "toGoal": "${kg} kg to goal",
+      "goalReached": "Weight goal reached"
     },
     "growth": {
       "title": "${days}-day journey",

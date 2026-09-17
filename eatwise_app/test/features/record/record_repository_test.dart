@@ -271,4 +271,37 @@ void main() {
       await repository.dispose();
     });
   });
+
+  group('断食期用餐标记（阶段 C，纯本地属性）', () {
+    test('duringFast 入账落库 + 当日计数流；缺省 false', () async {
+      final repository = repo();
+      final fastingMeal = await repository.addEntry(
+        RecordDraft(
+          foodId: 'f-rice',
+          amountG: 100,
+          mealUtc: DateTime.utc(2026, 7, 28, 4),
+          source: EntrySource.manual,
+          duringFast: true,
+        ),
+      );
+      expect(fastingMeal.duringFast, isTrue);
+
+      final normal = await repository.addEntry(draft());
+      expect(normal.duringFast, isFalse);
+
+      final count = await db.foodEntryDao
+          .watchDuringFastCount('anonymous', '2026-07-28')
+          .first;
+      expect(count, 1);
+
+      // 撤销窗内撤销 → 计数回落。
+      final undone = await repository.undo(fastingMeal.localId);
+      expect(undone, isTrue);
+      final afterUndo = await db.foodEntryDao
+          .watchDuringFastCount('anonymous', '2026-07-28')
+          .first;
+      expect(afterUndo, 0);
+      await repository.dispose();
+    });
+  });
 }

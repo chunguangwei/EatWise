@@ -11,6 +11,8 @@ import 'package:eatwise/features/onboarding/application/onboarding_controller.da
 import 'package:eatwise/features/onboarding/application/profile_sync.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
+import 'package:eatwise/features/reports/application/reports_controller.dart'
+    show weightTargetProvider;
 import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:eatwise/features/settings/data/user_api.dart' show UserMeView;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -57,6 +59,8 @@ final class BodyProfileService {
     _store.saveProfile(merged);
     final goal = _recomputeGoal(merged);
     _ref.invalidate(nutritionGoalProvider);
+    // 体重目标线（阶段 C）：档案保存后趋势页目标参考线即刻刷新。
+    _ref.invalidate(weightTargetProvider);
     if (_isLoggedIn()) {
       await _ref
           .read(userApiProvider)

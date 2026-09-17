@@ -51,6 +51,7 @@ model User {
   refreshTokens   RefreshToken[]
 
   waterLogs      WaterLog[]
+  weightLogs     WeightLog[]
   @@map("users")
 }
 
@@ -310,6 +311,27 @@ model WaterLog {
   @@unique([userId, clientRequestId])
   @@index([userId, updatedAt, id]) // syncToken 增量下游标
   @@map("water_logs")
+}
+
+// 体重记录（阶段 C 体重管理闭环）：同日覆写（userId+date 应用层 upsert），
+// clientRequestId 幂等（D-20），体脂率可空，软删 tombstone
+model WeightLog {
+  id              String    @id @default(uuid())
+  userId          String
+  clientRequestId String
+  date            String // 归属日 YYYY-MM-DD（客户端本地口径透传，D-07）
+  weightKg        Float
+  bodyFatPct      Float? // 体脂率（%，可空）
+  version         Int       @default(1)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime? // 软删 tombstone
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, clientRequestId])
+  @@index([userId, date]) // 区间查询（GET /weight-logs?from&to）
+  @@map("weight_logs")
 }
 
 // 幂等表（D-20）：相同 (userId, clientRequestId) 重放返回首次结果，保留 90 天〔假设〕

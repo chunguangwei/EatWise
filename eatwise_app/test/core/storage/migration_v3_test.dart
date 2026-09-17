@@ -107,14 +107,14 @@ void main() {
     await seed.close();
   }
 
-  test('v2 → v6：onUpgrade 新增 water_logs + v4 同步字段 + v5 自定义食物字段'
+  test('v2 → v7：onUpgrade 新增 water_logs + v4 同步字段 + v5 自定义食物字段'
       ' + v6 贡献状态字段，v2 数据完整保留', () async {
     await seedV2Database();
 
     final db = AppDatabase(NativeDatabase(dbFile));
     addTearDown(() async => db.close());
 
-    expect(db.schemaVersion, 6);
+    expect(db.schemaVersion, 7);
 
     // 迁移后 water_logs 可写可读（v4 同步字段走默认值）。
     await db.waterLogDao.insertLog(
@@ -145,9 +145,9 @@ void main() {
     // v6 贡献状态字段默认 null（未贡献）。
     expect(food.contributionStatus, isNull);
 
-    // 升级后的 user_version 落为 6（重开不再重复迁移）。
+    // 升级后的 user_version 落为 7（重开不再重复迁移）。
     final versionRow = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(versionRow.data['user_version'], 6);
+    expect(versionRow.data['user_version'], 7);
   });
 }
 

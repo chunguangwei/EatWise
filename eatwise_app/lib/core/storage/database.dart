@@ -46,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -77,6 +77,10 @@ class AppDatabase extends _$AppDatabase {
       // v6：Foods 补共享贡献审核状态（contributionStatus，K2 众包候选）。
       if (from < 6) {
         await m.addColumn(foods, foods.contributionStatus);
+      }
+      // v7：FoodEntries 补断食期用餐标记（duringFast，阶段 C，纯本地属性）。
+      if (from < 7) {
+        await m.addColumn(foodEntries, foodEntries.duringFast);
       }
     },
   );

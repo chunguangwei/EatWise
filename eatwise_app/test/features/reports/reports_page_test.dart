@@ -6,6 +6,7 @@ import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
+import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
 import 'package:eatwise/features/reports/application/reports_controller.dart';
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
 import 'package:eatwise/features/reports/presentation/reports_page.dart';
@@ -195,6 +196,43 @@ void main() {
     expect(find.text('记录 2 条'), findsOneWidget);
     expect(find.text('绿灯占比 75%'), findsOneWidget);
     expect(find.textContaining('周报还差一点点数据'), findsNothing);
+
+    await unmount(tester);
+  });
+
+  testWidgets('体重维度目标线：未设置目标时不画虚线、无差值文案', (tester) async {
+    await WeightLogStore(prefs).save('2026-07-26', 65.0);
+    await WeightLogStore(prefs).save('2026-07-28', 64.4);
+    await pumpPage(tester);
+    await tester.tap(find.text('体重'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final painter =
+        tester.widget<CustomPaint>(findTrendPainter()).painter
+            as ReportTrendPainter;
+    expect(painter.targetValue, isNull);
+    expect(find.textContaining('距目标'), findsNothing);
+
+    await unmount(tester);
+  });
+
+  testWidgets('体重维度目标线：设置目标后展示差值文案 + painter 目标虚线', (tester) async {
+    await WeightLogStore(prefs).save('2026-07-26', 65.0);
+    await WeightLogStore(prefs).save('2026-07-28', 64.4);
+    // 设置目标体重（本地档案）→ 差值文案 + 目标虚线。
+    SharedPreferencesOnboardingStore(prefs).saveProfile(
+      const OnboardingProfile(weightKg: 64.4, targetWeightKg: 60.0),
+    );
+    await pumpPage(tester);
+    await tester.tap(find.text('体重'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('距目标还有 4.4 公斤'), findsOneWidget);
+    final painter =
+        tester.widget<CustomPaint>(findTrendPainter()).painter
+            as ReportTrendPainter;
+    expect(painter.targetValue, 60.0);
+    expect(painter.targetLabel, '目标 60.0 公斤');
 
     await unmount(tester);
   });

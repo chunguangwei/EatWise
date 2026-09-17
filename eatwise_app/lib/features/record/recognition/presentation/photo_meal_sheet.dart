@@ -15,6 +15,7 @@ import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
@@ -147,6 +148,8 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
     setState(() => _saving = true);
     final repo = ref.read(recordRepositoryProvider);
     final customRepo = ref.read(customFoodRepositoryProvider);
+    // 阶段 C：断食计时进行中的用餐打「断食期用餐」本地标记（不上行）。
+    final duringFast = ref.read(isFastingInProgressProvider);
     var logged = 0;
     try {
       for (final row in List<_MealRow>.of(_rows)) {
@@ -169,6 +172,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
             amountG: _effectiveGrams(row),
             mealUtc: DateTime.now().toUtc(),
             source: widget.entrySource,
+            duringFast: duringFast,
           ),
         );
         logged++;

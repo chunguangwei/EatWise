@@ -240,7 +240,7 @@ class _WeightCard extends ConsumerWidget {
   Future<void> _openDialog(
     BuildContext context,
     WidgetRef ref,
-    double? current,
+    WeightLogEntry? current,
   ) async {
     final analytics = ref.read(analyticsServiceProvider);
     final flowId = analytics.startRecordFlow();
@@ -261,7 +261,8 @@ class _WeightCard extends ConsumerWidget {
           'record_kind': 'weight',
           'is_edited': current != null,
           'meal_period': _WaterCard._mealPeriod(),
-          'sync_state': 'synced',
+          // 阶段 C：本地落库 pending，后台推拉上行（登录态）。
+          'sync_state': 'pending',
         },
         flushNow: true,
       );
@@ -291,7 +292,7 @@ class _WeightCard extends ConsumerWidget {
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final radii = Theme.of(context).extension<AppRadii>()!;
     final shadows = Theme.of(context).extension<AppShadows>()!;
-    final weight = ref.watch(todayWeightProvider).value;
+    final weight = ref.watch(todayWeightEntryProvider).value;
 
     return Semantics(
       button: true,
@@ -329,7 +330,7 @@ class _WeightCard extends ConsumerWidget {
                 Text(
                   weight == null
                       ? s.weightNotLogged
-                      : s.weightCurrent(weight.toStringAsFixed(1)),
+                      : s.weightCurrent(weight.kg.toStringAsFixed(1)),
                   style: textStyles.textBase.copyWith(
                     color: weight == null
                         ? colors.textSecondary
@@ -347,12 +348,13 @@ class _WeightCard extends ConsumerWidget {
   }
 }
 
-/// 体重录入对话框：48px 数字输入（kg，一位小数）+ 校验 + 同日覆写。
+/// 体重录入对话框：48px 数字输入（kg，一位小数）+ 可空体脂率（%）+ 校验 +
+/// 同日覆写（阶段 C：落库 pending，登录态后台上行）。
 class _WeightDialog extends ConsumerStatefulWidget {
   const _WeightDialog({this.current});
 
-  /// 当日已记录体重（预填，同日重复记取最新）。
-  final double? current;
+  /// 当日已记录条目（预填体重与体脂率，同日重复记取最新）。
+  final WeightLogEntry? current;
 
   @override
   ConsumerState<_WeightDialog> createState() => _WeightDialogState();
@@ -360,7 +362,10 @@ class _WeightDialog extends ConsumerStatefulWidget {
 
 class _WeightDialogState extends ConsumerState<_WeightDialog> {
   late final TextEditingController _controller = TextEditingController(
-    text: widget.current?.toStringAsFixed(1) ?? '',
+    text: widget.current?.kg.toStringAsFixed(1) ?? '',
+  );
+  late final TextEditingController _bodyFatController = TextEditingController(
+    text: widget.current?.bodyFatPct?.toStringAsFixed(1) ?? '',
   );
 
   /// 校验错误文案（null 为无错误）。
@@ -370,25 +375,49 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
   static const double _minKg = 20;
   static const double _maxKg = 300;
 
+  /// 合理体脂率区间（%，〔假设〕1–70 防误输；与服务端校验一致）。
+  static const double _minBodyFat = 1;
+  static const double _maxBodyFat = 70;
+
   @override
   void dispose() {
     _controller.dispose();
+    _bodyFatController.dispose();
     super.dispose();
   }
 
-  /// 保存：校验 → 写 M6 WeightLogStore（同日覆写）→ 刷新记录页与 M6 趋势。
+  /// 保存：校验 → 写 M6 WeightLogStore（同日覆写，pending）→ 触发一轮
+  /// 同步（登录态上行）→ 刷新记录页与 M6 趋势。
   Future<void> _save(RecordStrings s) async {
     final value = double.tryParse(_controller.text.trim());
     if (value == null || value < _minKg || value > _maxKg) {
       setState(() => _error = s.weightInvalid);
       return;
     }
+    // 体脂率可空：留空即不采集（同日覆写时清除旧值）；非空须落在合理区间。
+    final bodyFatText = _bodyFatController.text.trim();
+    double? bodyFatPct;
+    if (bodyFatText.isNotEmpty) {
+      final parsed = double.tryParse(bodyFatText);
+      if (parsed == null || parsed < _minBodyFat || parsed > _maxBodyFat) {
+        setState(() => _error = s.bodyFatInvalid);
+        return;
+      }
+      bodyFatPct = (parsed * 10).round() / 10;
+    }
     // 统一一位小数存储（i18n 规格：存储层统一 kg，展示保留 1 位小数）。
     final kg = (value * 10).round() / 10;
     await ref
         .read(weightLogStoreProvider)
-        .save(localDateKey(DateTime.now()), kg);
+        .save(localDateKey(DateTime.now()), kg, bodyFatPct: bodyFatPct);
+    // 记录后触发一轮同步（体重 pending 上行 + 下行合并，登录态生效）。
+    try {
+      unawaited(ref.read(recordSyncEngineProvider).syncNow());
+    } on Object {
+      // 防御：同步引擎未装配（如测试环境仅注入仓储）时跳过。
+    }
     ref.invalidate(todayWeightProvider);
+    ref.invalidate(todayWeightEntryProvider);
     // M6 趋势（reportWeightProvider）即刻反映新体重。
     ref.invalidate(reportWeightProvider);
     if (mounted) Navigator.of(context).pop(true);
@@ -404,31 +433,62 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
     return AlertDialog(
       backgroundColor: colors.bgPrimary,
       title: Text(s.weightDialogTitle, style: textStyles.textLg),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        style: textStyles.textBase,
-        onSubmitted: (_) => unawaited(_save(s)),
-        decoration: InputDecoration(
-          labelText: s.weightInputLabel,
-          errorText: _error,
-          filled: true,
-          fillColor: colors.bgSecondary,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.s4,
-            vertical: AppSpacing.s3,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: textStyles.textBase,
+            onSubmitted: (_) => unawaited(_save(s)),
+            decoration: InputDecoration(
+              labelText: s.weightInputLabel,
+              errorText: _error,
+              filled: true,
+              fillColor: colors.bgSecondary,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s4,
+                vertical: AppSpacing.s3,
+              ),
+              constraints: const BoxConstraints(minHeight: 48),
+              border: OutlineInputBorder(
+                borderRadius: radii.rMd,
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: radii.rMd,
+                borderSide: BorderSide(color: colors.brandPrimary, width: 2),
+              ),
+            ),
           ),
-          constraints: const BoxConstraints(minHeight: 48),
-          border: OutlineInputBorder(
-            borderRadius: radii.rMd,
-            borderSide: BorderSide.none,
+          const SizedBox(height: AppSpacing.s2),
+          // 体脂率（%，可空；阶段 C 体重管理闭环同步采集）。
+          TextField(
+            controller: _bodyFatController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: textStyles.textBase,
+            onSubmitted: (_) => unawaited(_save(s)),
+            decoration: InputDecoration(
+              labelText: s.bodyFatLabel,
+              filled: true,
+              fillColor: colors.bgSecondary,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s4,
+                vertical: AppSpacing.s3,
+              ),
+              constraints: const BoxConstraints(minHeight: 48),
+              border: OutlineInputBorder(
+                borderRadius: radii.rMd,
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: radii.rMd,
+                borderSide: BorderSide(color: colors.brandPrimary, width: 2),
+              ),
+            ),
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: radii.rMd,
-            borderSide: BorderSide(color: colors.brandPrimary, width: 2),
-          ),
-        ),
+        ],
       ),
       actions: <Widget>[
         TextButton(
