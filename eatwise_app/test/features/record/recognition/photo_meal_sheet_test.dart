@@ -70,9 +70,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
   }
 
-  Future<void> pumpPage(WidgetTester tester) async {
+  Future<void> pumpPage(
+    WidgetTester tester, {
+    double width = 1080,
+    double height = 2400,
+  }) async {
     // 放大测试屏幕：明细弹层字段多，默认尺寸按钮不可点。
-    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.physicalSize = Size(width, height);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -246,6 +250,60 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('确认这餐明细'), findsNothing);
     expect((await repository.entriesForDate(DateTime.now().toUtc())), isEmpty);
+    await settleUi(tester);
+  });
+
+  testWidgets('窄屏 360dp：名称/删除按钮始终可见，布局不溢出', (tester) async {
+    recognitionService.outcome = await comboOutcome();
+    // 窄屏 360dp（小屏机）：覆盖名称行与克数行的宽度压力。
+    await pumpPage(tester, width: 360, height: 800);
+    await pickPhotoAndRecognize(tester);
+
+    // 命中条目：库内规范名可见；未命中条目：模型名 + 双标记可见；
+    // 每行删除按钮均在且可点（find 即渲染，tap 命中即可点）。
+    expect(inSheet(find.text('白米饭')), findsOneWidget);
+    expect(inSheet(find.text('鸡蛋')), findsOneWidget);
+    expect(inSheet(find.text('薯片')), findsOneWidget);
+    expect(inSheet(find.text('库未收录，将自动新建')), findsOneWidget);
+    expect(inSheet(find.text('请确认')), findsOneWidget);
+    expect(inSheet(find.byIcon(Icons.close)), findsNWidgets(3));
+    // 溢出断言：明细行内容不得超出行容器右边界。
+    final sheetRight = tester.getTopRight(find.byType(BottomSheet)).dx;
+    for (final w in tester.widgetList<Text>(inSheet(find.byType(Text)))) {
+      if (w.data == null || w.data!.isEmpty) continue;
+      final right = tester.getTopRight(find.byWidget(w)).dx;
+      expect(
+        right,
+        lessThanOrEqualTo(sheetRight + 0.5),
+        reason: '文本「${w.data}」右缘 $right 超出弹层右缘 $sheetRight',
+      );
+    }
+    await settleUi(tester);
+  });
+
+  testWidgets('窄屏 + 大字体（360dp × 1.3 文本缩放）：名称仍可见不溢出', (tester) async {
+    recognitionService.outcome = await comboOutcome();
+    // 真机高发场景：系统大字体 + 窄屏（截图反馈名称不可见的复现口径）。
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await pumpPage(tester, width: 360, height: 800);
+    await pickPhotoAndRecognize(tester);
+
+    expect(inSheet(find.text('白米饭')), findsOneWidget);
+    expect(inSheet(find.text('鸡蛋')), findsOneWidget);
+    expect(inSheet(find.text('薯片')), findsOneWidget);
+    expect(inSheet(find.byIcon(Icons.close)), findsNWidgets(3));
+    // 溢出断言：行内所有文本右缘不得超出弹层右缘。
+    final sheetRight = tester.getTopRight(find.byType(BottomSheet)).dx;
+    for (final w in tester.widgetList<Text>(inSheet(find.byType(Text)))) {
+      if (w.data == null || w.data!.isEmpty) continue;
+      final right = tester.getTopRight(find.byWidget(w)).dx;
+      expect(
+        right,
+        lessThanOrEqualTo(sheetRight + 0.5),
+        reason: '文本「${w.data}」右缘 $right 超出弹层右缘 $sheetRight',
+      );
+    }
     await settleUi(tester);
   });
 

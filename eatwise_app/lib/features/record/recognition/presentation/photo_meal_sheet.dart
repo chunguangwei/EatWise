@@ -241,7 +241,9 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
     );
   }
 
-  /// 明细行：名称（+库未收录/请确认标记 + 删除）+ 克数输入 + 实时营养。
+  /// 明细行：名称行（名称 + 删除，名称永不被挤压——真机反馈窄屏/大字体下
+  /// 名称与删除钮被标记挤出不可见，故标记移到独立行）+ 标记行（库未收录/
+  /// 请确认）+ 克数输入与实时营养行。
   Widget _buildRow(
     RecordStrings s,
     AppColors colors,
@@ -259,29 +261,18 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
+          // 第一行只放名称 + 删除：名称是该行第一视觉元素，
+          // Expanded 保底宽度（360dp 窄屏也有 ~250px），超长省略不消失。
           Row(
             children: <Widget>[
-              Expanded(child: Text(item.name, style: textStyles.textBase)),
-              if (!item.isMatched)
-                Padding(
-                  padding: const EdgeInsets.only(right: AppSpacing.s2),
-                  child: Text(
-                    s.photoUnmatchedItemTag,
-                    style: textStyles.textXs.copyWith(
-                      color: colors.textSecondary,
-                    ),
-                  ),
+              Expanded(
+                child: Text(
+                  item.name,
+                  style: textStyles.textBase,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              if (item.isLowConfidence)
-                Padding(
-                  padding: const EdgeInsets.only(right: AppSpacing.s2),
-                  child: Text(
-                    s.cardPleaseConfirm,
-                    style: textStyles.textXs.copyWith(
-                      color: colors.signalYellow,
-                    ),
-                  ),
-                ),
+              ),
               IconButton(
                 icon: const Icon(Icons.close),
                 tooltip: s.cancelAction,
@@ -291,6 +282,30 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
               ),
             ],
           ),
+          // 标记独立成行（Wrap 可换行）：不与名称抢宽度。
+          if (!item.isMatched || item.isLowConfidence)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.s1),
+              child: Wrap(
+                spacing: AppSpacing.s2,
+                children: <Widget>[
+                  if (!item.isMatched)
+                    Text(
+                      s.photoUnmatchedItemTag,
+                      style: textStyles.textXs.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  if (item.isLowConfidence)
+                    Text(
+                      s.cardPleaseConfirm,
+                      style: textStyles.textXs.copyWith(
+                        color: colors.signalYellow,
+                      ),
+                    ),
+                ],
+              ),
+            ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
