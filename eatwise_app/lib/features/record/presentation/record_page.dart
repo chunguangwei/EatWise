@@ -19,6 +19,7 @@ import 'package:eatwise/features/record/custom_food/presentation/custom_food_she
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
+import 'package:eatwise/features/record/presentation/food_detail_sheet.dart';
 import 'package:eatwise/features/record/presentation/light_record_section.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
@@ -92,6 +93,29 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     _amountController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  /// 阶段 E：搜索结果点击 → 食物详情弹层（热量/供能圆环/红绿灯/明细折叠）；
+  /// 弹层内确认份量后回填既有选中态并走 `_confirm` 原链路入账
+  /// （乐观更新 + D-11 撤销吐司 + 流程埋点不变）。
+  void _openFoodDetail(Food food) {
+    _stepCount++;
+    unawaited(
+      showFoodDetailSheet(
+        context: context,
+        food: food,
+        onConfirm: (amountText) {
+          ref.read(recordSelectedFoodProvider.notifier).state = food;
+          // 份量必填：不再默认填 100g，留空由用户输入
+          // （避免「没写克数也能提交」的误导性默认值）。
+          ref.read(recordAmountTextProvider.notifier).state = amountText;
+          ref.read(recordEntrySourceProvider.notifier).state =
+              EntrySource.manual;
+          ref.read(recordLowConfidenceProvider.notifier).state = false;
+          unawaited(_confirm(RecordStrings.of(context)));
+        },
+      ),
+    );
   }
 
   /// 三入口点击（§3.3 record_entry_click；更新 flow 最终入口）。
@@ -504,29 +528,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                                 color: colors.textSecondary,
                               ),
                             ),
-                            onTap: () {
-                              _stepCount++;
-                              ref
-                                      .read(recordSelectedFoodProvider.notifier)
-                                      .state =
-                                  food;
-                              // 份量必填：不再默认填 100g，留空由用户输入
-                              // （避免「没写克数也能提交」的误导性默认值）。
-                              ref
-                                      .read(recordAmountTextProvider.notifier)
-                                      .state =
-                                  '';
-                              ref
-                                      .read(recordEntrySourceProvider.notifier)
-                                      .state =
-                                  EntrySource.manual;
-                              ref
-                                      .read(
-                                        recordLowConfidenceProvider.notifier,
-                                      )
-                                      .state =
-                                  false;
-                            },
+                            onTap: () => _openFoodDetail(food),
                           );
                         },
                       );

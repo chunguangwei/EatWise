@@ -9,6 +9,8 @@ import 'package:eatwise/core/analytics/device_identity_store.dart';
 import 'package:eatwise/core/analytics/event_queue_store.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
+import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
+import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/data/water_log_repository.dart';
@@ -99,6 +101,20 @@ void main() {
           waterLogRepositoryProvider.overrideWithValue(
             WaterLogRepository(db: db),
           ),
+          // 阶段 E 食物详情弹层的红绿灯徽标依赖每日营养目标
+          // （生产由 main 注入 SharedPreferences 快照；测试注入兜底口径）。
+          nutritionGoalProvider.overrideWithValue(
+            const NutritionGoal(
+              bmr: null,
+              tdee: null,
+              targetKcal: 2000,
+              proteinG: 125,
+              carbG: 225,
+              fatG: 67,
+              usedFallback: true,
+              configVersion: '1.0.0',
+            ),
+          ),
           if (analytics != null)
             analyticsServiceProvider.overrideWithValue(analytics),
         ],
@@ -127,13 +143,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('白米饭'), findsOneWidget);
 
-    // 选中食物 → 结果卡出现；份量留空必填（不再默认 100g 预览）。
+    // 选中食物 → 阶段 E 食物详情弹层打开；份量留空必填（不再默认 100g 预览）。
     await tester.tap(find.text('白米饭'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300)); // 弹层入场动画
     expect(find.text('确认记录'), findsOneWidget);
     expect(find.text('热量 116 千卡'), findsNothing);
 
-    // 空份量点确认 → 拦截提示，不入账。
+    // 空份量点确认 → 拦截提示，不入账（弹层关闭，结果卡接管份量编辑）。
     await tester.tap(find.text('确认记录'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
@@ -220,6 +237,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('白米饭'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300)); // 详情弹层入场动画
     await tester.enterText(find.byType(TextField).last, '100');
     await tester.pump();
     await tester.tap(find.text('确认记录'));
@@ -257,12 +275,13 @@ void main() {
     );
     await pumpPage(tester, analytics: analytics);
 
-    // 第一单：搜索 → 选中 → 份量 → 确认。
+    // 第一单：搜索 → 详情弹层 → 份量 → 确认。
     await tester.enterText(find.byType(TextField).first, '米饭');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('白米饭'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300)); // 详情弹层入场动画
     await tester.enterText(find.byType(TextField).last, '100');
     await tester.pump();
     await tester.tap(find.text('确认记录'));
@@ -276,6 +295,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.widgetWithText(ListTile, '鸡蛋'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300)); // 详情弹层入场动画
     await tester.enterText(find.byType(TextField).last, '50');
     await tester.pump();
     await tester.tap(find.text('确认记录'));

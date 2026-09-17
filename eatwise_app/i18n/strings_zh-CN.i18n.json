@@ -340,6 +340,18 @@
     },
     "duringFast": {
       "badge": "断食期用餐"
+    },
+    "foodDetail": {
+      "per100g": "每 100 克",
+      "macrosTitle": "三大营养素供能比例",
+      "energyShareNote": "圆环按供能占比绘制：1 克脂肪供能 9 千卡，是碳水和蛋白质（各 4 千卡）的 2.25 倍",
+      "moreTitle": "每 100 克营养明细",
+      "supplyKcal": "供能 ${kcal} 千卡",
+      "aliases": "别名：${names}",
+      "badgeGreen": "绿灯 · 放心吃",
+      "badgeYellow": "黄灯 · 适量少吃",
+      "badgeRed": "红灯 · 尽量别吃",
+      "badgeBasis": "按每 100 克对照你的每日营养目标判定"
     }
   },
   "common": {

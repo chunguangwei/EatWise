@@ -340,6 +340,18 @@
     },
     "duringFast": {
       "badge": "During fast"
+    },
+    "foodDetail": {
+      "per100g": "per 100 g",
+      "macrosTitle": "Calorie breakdown by macros",
+      "energyShareNote": "Rings show calorie share: 1 g of fat provides 9 kcal — 2.25× that of carbs or protein (4 kcal each)",
+      "moreTitle": "Nutrition per 100 g",
+      "supplyKcal": "provides ${kcal} kcal",
+      "aliases": "Also known as: ${names}",
+      "badgeGreen": "Green · enjoy freely",
+      "badgeYellow": "Yellow · go easy",
+      "badgeRed": "Red · best avoided",
+      "badgeBasis": "Rated per 100 g against your daily nutrition goals"
     }
   },
   "common": {

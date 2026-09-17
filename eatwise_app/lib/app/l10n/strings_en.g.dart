@@ -108,6 +108,7 @@ class _Translations$record$en extends Translations$record$zh_CN {
 	@override late final _Translations$record$home$en home = _Translations$record$home$en._(_root);
 	@override late final _Translations$record$empty$en empty = _Translations$record$empty$en._(_root);
 	@override late final _Translations$record$duringFast$en duringFast = _Translations$record$duringFast$en._(_root);
+	@override late final _Translations$record$foodDetail$en foodDetail = _Translations$record$foodDetail$en._(_root);
 }
 
 // Path: common
@@ -694,6 +695,25 @@ class _Translations$record$duringFast$en extends Translations$record$duringFast$
 
 	// Translations
 	@override String get badge => 'During fast';
+}
+
+// Path: record.foodDetail
+class _Translations$record$foodDetail$en extends Translations$record$foodDetail$zh_CN {
+	_Translations$record$foodDetail$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get per100g => 'per 100 g';
+	@override String get macrosTitle => 'Calorie breakdown by macros';
+	@override String get energyShareNote => 'Rings show calorie share: 1 g of fat provides 9 kcal — 2.25× that of carbs or protein (4 kcal each)';
+	@override String get moreTitle => 'Nutrition per 100 g';
+	@override String supplyKcal({required Object kcal}) => 'provides ${kcal} kcal';
+	@override String aliases({required Object names}) => 'Also known as: ${names}';
+	@override String get badgeGreen => 'Green · enjoy freely';
+	@override String get badgeYellow => 'Yellow · go easy';
+	@override String get badgeRed => 'Red · best avoided';
+	@override String get badgeBasis => 'Rated per 100 g against your daily nutrition goals';
 }
 
 // Path: common.action
@@ -2209,6 +2229,16 @@ extension on TranslationsEn {
 			'record.home.logMeal' => 'Log a bite',
 			'record.empty.title' => 'No food stories yet — tap the orange button to log your first bite?',
 			'record.duringFast.badge' => 'During fast',
+			'record.foodDetail.per100g' => 'per 100 g',
+			'record.foodDetail.macrosTitle' => 'Calorie breakdown by macros',
+			'record.foodDetail.energyShareNote' => 'Rings show calorie share: 1 g of fat provides 9 kcal — 2.25× that of carbs or protein (4 kcal each)',
+			'record.foodDetail.moreTitle' => 'Nutrition per 100 g',
+			'record.foodDetail.supplyKcal' => ({required Object kcal}) => 'provides ${kcal} kcal',
+			'record.foodDetail.aliases' => ({required Object names}) => 'Also known as: ${names}',
+			'record.foodDetail.badgeGreen' => 'Green · enjoy freely',
+			'record.foodDetail.badgeYellow' => 'Yellow · go easy',
+			'record.foodDetail.badgeRed' => 'Red · best avoided',
+			'record.foodDetail.badgeBasis' => 'Rated per 100 g against your daily nutrition goals',
 			'common.appName' => 'EatWise',
 			'common.action.save' => 'Save',
 			'common.action.cancel' => 'Cancel',
@@ -2462,6 +2492,8 @@ extension on TranslationsEn {
 			'settings.theme.dark' => 'Dark',
 			'settings.fastingPlan.title' => 'Fasting plan',
 			'settings.fastingPlan.subtitle' => 'View or change your fasting plan — changes take effect at 00:00 the next day',
+			_ => null,
+		} ?? switch (path) {
 			'settings.bodyProfile.title' => 'Body profile',
 			'settings.bodyProfile.subtitle' => 'Height, weight & more — used for precise nutrition goals',
 			'settings.bodyProfile.goalSection' => 'Weight goal (optional; applies to fat-loss goal only)',
@@ -2472,8 +2504,6 @@ extension on TranslationsEn {
 			'settings.reminders.notificationsSubtitle' => 'Manage notification permission in system settings',
 			'settings.about.version' => 'Version',
 			'settings.about.disclaimer' => 'Disclaimer & special groups',
-			_ => null,
-		} ?? switch (path) {
 			'settings.about.checkUpdate' => 'Check for updates',
 			'settings.aiModel.title' => 'AI Model',
 			'settings.aiModel.provider' => 'Provider',

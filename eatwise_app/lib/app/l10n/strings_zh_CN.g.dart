@@ -113,6 +113,7 @@ class Translations$record$zh_CN {
 	late final Translations$record$home$zh_CN home = Translations$record$home$zh_CN.internal(_root);
 	late final Translations$record$empty$zh_CN empty = Translations$record$empty$zh_CN.internal(_root);
 	late final Translations$record$duringFast$zh_CN duringFast = Translations$record$duringFast$zh_CN.internal(_root);
+	late final Translations$record$foodDetail$zh_CN foodDetail = Translations$record$foodDetail$zh_CN.internal(_root);
 }
 
 // Path: common
@@ -1103,6 +1104,45 @@ class Translations$record$duringFast$zh_CN {
 
 	/// zh-CN: '断食期用餐'
 	String get badge => '断食期用餐';
+}
+
+// Path: record.foodDetail
+class Translations$record$foodDetail$zh_CN {
+	Translations$record$foodDetail$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '每 100 克'
+	String get per100g => '每 100 克';
+
+	/// zh-CN: '三大营养素供能比例'
+	String get macrosTitle => '三大营养素供能比例';
+
+	/// zh-CN: '圆环按供能占比绘制：1 克脂肪供能 9 千卡，是碳水和蛋白质（各 4 千卡）的 2.25 倍'
+	String get energyShareNote => '圆环按供能占比绘制：1 克脂肪供能 9 千卡，是碳水和蛋白质（各 4 千卡）的 2.25 倍';
+
+	/// zh-CN: '每 100 克营养明细'
+	String get moreTitle => '每 100 克营养明细';
+
+	/// zh-CN: '供能 ${kcal} 千卡'
+	String supplyKcal({required Object kcal}) => '供能 ${kcal} 千卡';
+
+	/// zh-CN: '别名：${names}'
+	String aliases({required Object names}) => '别名：${names}';
+
+	/// zh-CN: '绿灯 · 放心吃'
+	String get badgeGreen => '绿灯 · 放心吃';
+
+	/// zh-CN: '黄灯 · 适量少吃'
+	String get badgeYellow => '黄灯 · 适量少吃';
+
+	/// zh-CN: '红灯 · 尽量别吃'
+	String get badgeRed => '红灯 · 尽量别吃';
+
+	/// zh-CN: '按每 100 克对照你的每日营养目标判定'
+	String get badgeBasis => '按每 100 克对照你的每日营养目标判定';
 }
 
 // Path: common.action
@@ -3627,6 +3667,16 @@ extension on Translations {
 			'record.home.logMeal' => '记一笔',
 			'record.empty.title' => '肚子的故事还没写呢，点橙色按钮记一笔？',
 			'record.duringFast.badge' => '断食期用餐',
+			'record.foodDetail.per100g' => '每 100 克',
+			'record.foodDetail.macrosTitle' => '三大营养素供能比例',
+			'record.foodDetail.energyShareNote' => '圆环按供能占比绘制：1 克脂肪供能 9 千卡，是碳水和蛋白质（各 4 千卡）的 2.25 倍',
+			'record.foodDetail.moreTitle' => '每 100 克营养明细',
+			'record.foodDetail.supplyKcal' => ({required Object kcal}) => '供能 ${kcal} 千卡',
+			'record.foodDetail.aliases' => ({required Object names}) => '别名：${names}',
+			'record.foodDetail.badgeGreen' => '绿灯 · 放心吃',
+			'record.foodDetail.badgeYellow' => '黄灯 · 适量少吃',
+			'record.foodDetail.badgeRed' => '红灯 · 尽量别吃',
+			'record.foodDetail.badgeBasis' => '按每 100 克对照你的每日营养目标判定',
 			'common.appName' => 'EatWise',
 			'common.action.save' => '保存',
 			'common.action.cancel' => '取消',
@@ -3880,6 +3930,8 @@ extension on Translations {
 			'settings.theme.dark' => '深色',
 			'settings.fastingPlan.title' => '断食方案',
 			'settings.fastingPlan.subtitle' => '查看或更换断食方案，新方案次日 0:00 生效',
+			_ => null,
+		} ?? switch (path) {
 			'settings.bodyProfile.title' => '身体档案',
 			'settings.bodyProfile.subtitle' => '身高体重等，用于计算精准营养目标',
 			'settings.bodyProfile.goalSection' => '减重目标（选填，仅减脂目标生效）',
@@ -3890,8 +3942,6 @@ extension on Translations {
 			'settings.reminders.notificationsSubtitle' => '前往系统设置管理通知权限',
 			'settings.about.version' => '版本',
 			'settings.about.disclaimer' => '免责声明与特殊人群提示',
-			_ => null,
-		} ?? switch (path) {
 			'settings.about.checkUpdate' => '检查更新',
 			'settings.aiModel.title' => 'AI 模型',
 			'settings.aiModel.provider' => '服务商',
