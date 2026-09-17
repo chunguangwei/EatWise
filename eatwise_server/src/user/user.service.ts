@@ -20,6 +20,7 @@ const PATCHABLE = [
   'locale',
   'themePref',
   'accessibilityPrefs',
+  'onboardingStatus',
 ] as const;
 
 @Injectable()

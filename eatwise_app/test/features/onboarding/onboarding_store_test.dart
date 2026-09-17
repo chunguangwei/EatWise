@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
+import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
+import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -82,6 +84,28 @@ void main() {
       final goal = store.loadNutritionGoal()!;
       expect(goal.targetKcal, 2000);
       expect(goal.usedFallback, isTrue);
+    });
+
+    test('档案采集往返（阶段 A）；空档案按未采集处理', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SharedPreferencesOnboardingStore(
+        await SharedPreferences.getInstance(),
+      );
+      expect(store.loadProfile(), isNull);
+
+      const profile = OnboardingProfile(
+        sex: ProfileSex.female,
+        birthYear: 1998,
+        heightCm: 162,
+        weightKg: 55,
+        activityLevel: ActivityLevel.sedentary,
+      );
+      store.saveProfile(profile);
+      expect(store.loadProfile(), profile);
+
+      // 空档案（全留空/跳过）→ 清除键位，按未采集走兜底。
+      store.saveProfile(OnboardingProfile.empty);
+      expect(store.loadProfile(), isNull);
     });
 
     test('本地数据损坏按无进度处理（防御）', () async {

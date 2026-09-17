@@ -75,4 +75,20 @@ describe('User profile patch validation (e2e)', () => {
     expect((await patch({ weightKg: 1000 })).status).toBe(400);
     expect((await patch({ weightKg: -5 })).status).toBe(400);
   });
+
+  it('onboardingStatus 可 PATCH（none/completed/skipped），非法值 → 400', async () => {
+    const res = await patch({ onboardingStatus: 'completed' }).expect(200);
+    expect(res.body.data.user.onboardingStatus).toBe('completed');
+
+    const skipped = await patch({ onboardingStatus: 'skipped' }).expect(200);
+    expect(skipped.body.data.user.onboardingStatus).toBe('skipped');
+
+    // 非法枚举 → 400 且不落库
+    expect((await patch({ onboardingStatus: 'done' })).status).toBe(400);
+    const me = await request(server)
+      .get('/v1/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(me.body.data.user.onboardingStatus).toBe('skipped');
+  });
 });

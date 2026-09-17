@@ -11,6 +11,7 @@ import 'package:eatwise/features/legal/presentation/legal_pages.dart';
 import 'package:eatwise/features/legal/presentation/privacy_consent_page.dart';
 import 'package:eatwise/features/nutrition/presentation/nutrition_data_page.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
+import 'package:eatwise/features/onboarding/presentation/profile_screen.dart';
 import 'package:eatwise/features/onboarding/presentation/questionnaire_screen.dart';
 import 'package:eatwise/features/onboarding/presentation/recommendation_screen.dart';
 import 'package:eatwise/features/onboarding/presentation/science_card_screen.dart';
@@ -18,6 +19,7 @@ import 'package:eatwise/features/record/custom_food/presentation/my_contribution
 import 'package:eatwise/features/record/presentation/record_page.dart';
 import 'package:eatwise/features/reports/presentation/reports_page.dart';
 import 'package:eatwise/features/settings/presentation/ai_model_settings_page.dart';
+import 'package:eatwise/features/settings/presentation/body_profile_page.dart';
 import 'package:eatwise/features/settings/presentation/settings_page.dart';
 import 'package:eatwise/features/social/presentation/community_feed_page.dart';
 import 'package:eatwise/features/social/presentation/compose_page.dart';
@@ -179,6 +181,11 @@ GoRouter createAppRouter({
                 path: '/settings/change-password',
                 builder: (context, state) => const ChangePasswordPage(),
               ),
+              // 身体档案（账号组入口，与 /profile 同层；阶段 A）。
+              GoRoute(
+                path: '/settings/body-profile',
+                builder: (context, state) => const BodyProfilePage(),
+              ),
               // D-06 换方案入口（设置页「断食方案」→ 方案推荐页，触发已有
               // 「次日 0:00 生效」确认弹窗）。不复用 /onboarding 前缀：
               // 已完成引导用户访问 /onboarding/* 会被 redirect 弹回首页。
@@ -203,6 +210,11 @@ GoRouter createAppRouter({
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const QuestionnaireScreen(),
+      ),
+      // 阶段 A：档案采集页（第 3 题之后、推荐页之前，可跳过）。
+      GoRoute(
+        path: '/onboarding/profile',
+        builder: (context, state) => const OnboardingProfileScreen(),
       ),
       GoRoute(
         path: '/onboarding/recommendation',

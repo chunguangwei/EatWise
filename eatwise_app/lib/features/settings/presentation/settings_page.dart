@@ -91,6 +91,13 @@ class SettingsPage extends ConsumerWidget {
                   title: t.settings.account.changePassword,
                   onTap: () => context.push('/settings/change-password'),
                 ),
+                // 阶段 A：身体档案（性别/出生年/身高体重/活动水平，
+                // D-18 敏感信息可留空），保存即重算营养目标。
+                _SettingsTile(
+                  title: t.settings.bodyProfile.title,
+                  subtitle: t.settings.bodyProfile.subtitle,
+                  onTap: () => context.push('/settings/body-profile'),
+                ),
                 _SettingsTile(
                   title: t.settings.account.contributions,
                   onTap: () => context.push('/profile/contributions'),

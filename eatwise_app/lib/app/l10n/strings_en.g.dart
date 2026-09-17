@@ -79,6 +79,7 @@ class _Translations$onboarding$en extends Translations$onboarding$zh_CN {
 	@override late final _Translations$onboarding$plans$en plans = _Translations$onboarding$plans$en._(_root);
 	@override late final _Translations$onboarding$recommendation$en recommendation = _Translations$onboarding$recommendation$en._(_root);
 	@override late final _Translations$onboarding$science$en science = _Translations$onboarding$science$en._(_root);
+	@override late final _Translations$onboarding$profile$en profile = _Translations$onboarding$profile$en._(_root);
 }
 
 // Path: record
@@ -206,6 +207,7 @@ class _Translations$settings$en extends Translations$settings$zh_CN {
 	@override late final _Translations$settings$privacy$en privacy = _Translations$settings$privacy$en._(_root);
 	@override late final _Translations$settings$theme$en theme = _Translations$settings$theme$en._(_root);
 	@override late final _Translations$settings$fastingPlan$en fastingPlan = _Translations$settings$fastingPlan$en._(_root);
+	@override late final _Translations$settings$bodyProfile$en bodyProfile = _Translations$settings$bodyProfile$en._(_root);
 	@override late final _Translations$settings$reminders$en reminders = _Translations$settings$reminders$en._(_root);
 	@override late final _Translations$settings$about$en about = _Translations$settings$about$en._(_root);
 	@override late final _Translations$settings$aiModel$en aiModel = _Translations$settings$aiModel$en._(_root);
@@ -349,6 +351,32 @@ class _Translations$onboarding$science$en extends Translations$onboarding$scienc
 	@override String get card2Body => 'Fasting is about when you eat, not what you can\'t eat — eating well inside your window matters.';
 	@override String get disclaimer => 'This content is general wellness information, not medical advice. If you are pregnant, breastfeeding, or managing a medical condition, please consult your doctor first.';
 	@override String get back => 'Back';
+}
+
+// Path: onboarding.profile
+class _Translations$onboarding$profile$en extends Translations$onboarding$profile$zh_CN {
+	_Translations$onboarding$profile$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Know your body, sharpen your goals';
+	@override String get subtitle => 'These details are only used to calculate your daily nutrition goal and count as sensitive personal info: you can skip this page or fill in just part of it — anything left blank falls back to a default estimate.';
+	@override String get genderLabel => 'Biological sex (used by the calorie formula)';
+	@override late final _Translations$onboarding$profile$gender$en gender = _Translations$onboarding$profile$gender$en._(_root);
+	@override String get birthYearLabel => 'Birth year';
+	@override String get birthYearHint => 'e.g. 1995';
+	@override String birthYearInvalid({required Object min, required Object max}) => 'Enter a year between ${min} and ${max}';
+	@override String get heightLabel => 'Height (cm)';
+	@override String get heightHint => 'e.g. 168';
+	@override String get heightInvalid => 'Enter a height between 100 and 250 cm';
+	@override String get weightLabel => 'Weight (kg)';
+	@override String get weightHint => 'e.g. 60';
+	@override String get weightInvalid => 'Enter a weight between 25 and 300 kg';
+	@override String get activityLabel => 'Daily activity level';
+	@override late final _Translations$onboarding$profile$activity$en activity = _Translations$onboarding$profile$activity$en._(_root);
+	@override String get save => 'Save & continue';
+	@override String get skip => 'Skip, use default estimate';
 }
 
 // Path: record.page
@@ -1005,6 +1033,20 @@ class _Translations$settings$fastingPlan$en extends Translations$settings$fastin
 	@override String get subtitle => 'View or change your fasting plan — changes take effect at 00:00 the next day';
 }
 
+// Path: settings.bodyProfile
+class _Translations$settings$bodyProfile$en extends Translations$settings$bodyProfile$zh_CN {
+	_Translations$settings$bodyProfile$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Body profile';
+	@override String get subtitle => 'Height, weight & more — used for precise nutrition goals';
+	@override String get save => 'Save';
+	@override String get saved => 'Body profile saved';
+	@override String goalUpdated({required Object kcal}) => 'Daily nutrition goal updated to ${kcal} kcal';
+}
+
 // Path: settings.reminders
 class _Translations$settings$reminders$en extends Translations$settings$reminders$zh_CN {
 	_Translations$settings$reminders$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -1429,6 +1471,31 @@ class _Translations$onboarding$recommendation$reason$en extends Translations$onb
 	@override String get fallback => 'Let\'s start with the crowd favorite 16:8 — you can adjust it anytime in Profile.';
 }
 
+// Path: onboarding.profile.gender
+class _Translations$onboarding$profile$gender$en extends Translations$onboarding$profile$gender$zh_CN {
+	_Translations$onboarding$profile$gender$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get male => 'Male';
+	@override String get female => 'Female';
+	@override String get undisclosed => 'Prefer not to say';
+}
+
+// Path: onboarding.profile.activity
+class _Translations$onboarding$profile$activity$en extends Translations$onboarding$profile$activity$zh_CN {
+	_Translations$onboarding$profile$activity$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get sedentary => 'Mostly sitting (office/home, barely any exercise)';
+	@override String get light => 'Light exercise 1–3 times a week (walking, yoga, etc.)';
+	@override String get moderate => 'Moderate exercise 3–5 times a week (running, swimming, etc.)';
+	@override String get high => 'Intense exercise 6+ times a week or physical labor';
+}
+
 // Path: record.barcode.contribute
 class _Translations$record$barcode$contribute$en extends Translations$record$barcode$contribute$zh_CN {
 	_Translations$record$barcode$contribute$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -1838,6 +1905,28 @@ extension on TranslationsEn {
 			'onboarding.science.card2Body' => 'Fasting is about when you eat, not what you can\'t eat — eating well inside your window matters.',
 			'onboarding.science.disclaimer' => 'This content is general wellness information, not medical advice. If you are pregnant, breastfeeding, or managing a medical condition, please consult your doctor first.',
 			'onboarding.science.back' => 'Back',
+			'onboarding.profile.title' => 'Know your body, sharpen your goals',
+			'onboarding.profile.subtitle' => 'These details are only used to calculate your daily nutrition goal and count as sensitive personal info: you can skip this page or fill in just part of it — anything left blank falls back to a default estimate.',
+			'onboarding.profile.genderLabel' => 'Biological sex (used by the calorie formula)',
+			'onboarding.profile.gender.male' => 'Male',
+			'onboarding.profile.gender.female' => 'Female',
+			'onboarding.profile.gender.undisclosed' => 'Prefer not to say',
+			'onboarding.profile.birthYearLabel' => 'Birth year',
+			'onboarding.profile.birthYearHint' => 'e.g. 1995',
+			'onboarding.profile.birthYearInvalid' => ({required Object min, required Object max}) => 'Enter a year between ${min} and ${max}',
+			'onboarding.profile.heightLabel' => 'Height (cm)',
+			'onboarding.profile.heightHint' => 'e.g. 168',
+			'onboarding.profile.heightInvalid' => 'Enter a height between 100 and 250 cm',
+			'onboarding.profile.weightLabel' => 'Weight (kg)',
+			'onboarding.profile.weightHint' => 'e.g. 60',
+			'onboarding.profile.weightInvalid' => 'Enter a weight between 25 and 300 kg',
+			'onboarding.profile.activityLabel' => 'Daily activity level',
+			'onboarding.profile.activity.sedentary' => 'Mostly sitting (office/home, barely any exercise)',
+			'onboarding.profile.activity.light' => 'Light exercise 1–3 times a week (walking, yoga, etc.)',
+			'onboarding.profile.activity.moderate' => 'Moderate exercise 3–5 times a week (running, swimming, etc.)',
+			'onboarding.profile.activity.high' => 'Intense exercise 6+ times a week or physical labor',
+			'onboarding.profile.save' => 'Save & continue',
+			'onboarding.profile.skip' => 'Skip, use default estimate',
 			'record.page.title' => 'Records',
 			'record.page.confirm' => 'Log it',
 			'record.page.loggedToday' => ({required Object count}) => '${count} logged today',
@@ -2208,6 +2297,11 @@ extension on TranslationsEn {
 			'settings.theme.dark' => 'Dark',
 			'settings.fastingPlan.title' => 'Fasting plan',
 			'settings.fastingPlan.subtitle' => 'View or change your fasting plan — changes take effect at 00:00 the next day',
+			'settings.bodyProfile.title' => 'Body profile',
+			'settings.bodyProfile.subtitle' => 'Height, weight & more — used for precise nutrition goals',
+			'settings.bodyProfile.save' => 'Save',
+			'settings.bodyProfile.saved' => 'Body profile saved',
+			'settings.bodyProfile.goalUpdated' => ({required Object kcal}) => 'Daily nutrition goal updated to ${kcal} kcal',
 			'settings.reminders.notifications' => 'Notification settings',
 			'settings.reminders.notificationsSubtitle' => 'Manage notification permission in system settings',
 			'settings.about.version' => 'Version',
@@ -2265,6 +2359,8 @@ extension on TranslationsEn {
 			'settings.chain.title' => 'Estimate routing',
 			'settings.chain.onDevice' => 'On-device model',
 			'settings.chain.userApi' => 'Custom API',
+			_ => null,
+		} ?? switch (path) {
 			'settings.chain.statusEnabled' => 'Enabled',
 			'settings.chain.statusDisabled' => 'Disabled',
 			'settings.chain.statusNotDownloaded' => 'Not downloaded',
@@ -2292,8 +2388,6 @@ extension on TranslationsEn {
 			'legal.disclaimer.notMedicalBody' => 'EatWise provides content (including fasting plans, nutrition targets, signal-light feedback and suggestions) for general healthy-lifestyle reference only. It is not medical advice, diagnosis, or treatment, and is no substitute for guidance from a physician, registered dietitian, or other qualified professional. Your nutrition targets are estimated from general formulas and may not fit your individual condition. If you have any health condition, take medication, or have a disease, consult a qualified healthcare professional before fasting or changing your diet. EatWise assumes no medical liability for consequences arising from use of this information.',
 			'legal.disclaimer.specialGroupsTitle' => 'Special Groups Notice',
 			'legal.disclaimer.specialGroupsBody' => '⚠️ Intermittent fasting is not recommended for the following groups, or should only be done under medical supervision: pregnant or breastfeeding women; minors (under 18); people with a history of or at risk for eating disorders (e.g., anorexia, bulimia); people with diabetes (especially those using insulin or glucose-lowering medication); people with hypoglycemia or hypotension; people who are underweight (BMI < 18.5); people with chronic conditions such as gout, kidney or liver disease; people recovering from recent surgery or illness; and frail older adults. If you fall into any of these categories, do not start a fasting plan and consult your doctor first.',
-			_ => null,
-		} ?? switch (path) {
 			'legal.disclaimer.short' => 'EatWise content is not medical advice',
 			'legal.privacyPolicy.title' => 'Privacy Policy',
 			'legal.privacyPolicy.body' => 'Effective: 2026-07-27 | Version 1.0.0 [Pending external confirmation: final legal copy]\n\nEatWise ("we") provides services in mainland China only. This policy explains how we collect, use, store, and protect your personal information, and the rights you have.\n\n1. Information We Collect\n1) Phone number: for registration, sign-in, and account recovery; stored encrypted in mainland China.\n2) Height, weight, age, gender: used to compute daily nutrition targets; sensitive personal information requiring your separate consent.\n3) Meal and fasting records: required for core features; sensitive personal information.\n4) Goal, schedule, and fasting experience (3-question quiz): used for plan recommendation.\n5) Nickname and avatar: optional, for personalization and community display.\n6) Device info and push token: for notification delivery and crash analysis; we never collect IMEI/IMSI/MAC.\n7) Crash and performance logs: de-identified, retained for 6 months.\n8) Analytics events: event-level usage stats only; can be turned off in Settings > Privacy.\nWe do NOT collect: location, contacts, Bluetooth, or HealthKit/Health Connect data.\n\n2. Separate Consent for Sensitive Personal Information\nHealth-related data (height/weight, meal/fasting records) is processed only with your separate consent under PIPL Article 29. Declining does not affect account features — nutrition targets fall back to defaults — and you may withdraw anytime in Settings > Privacy.\n\n3. Storage and Security\nAll data is stored on servers in mainland China; transmission uses TLS 1.2+; phone numbers and health data use field-level encryption; the local database is fully encrypted. No data crosses borders.\n\n4. Third-Party SDKs\nWe use WeChat Login, Sign in with Apple, aggregated push, content safety, and crash monitoring SDKs, all operating within mainland China. No SDK ever receives your raw health data.\n\n5. Your Rights\n1) Access & copy: request a full export of your personal data (JSON+CSV) in Settings > Privacy > Export my data.\n2) Deletion: Settings > Account > Delete account starts a 7-day cooling-off period; signing in during this period cancels the deletion.\n3) Withdraw consent: you may withdraw health data consent and analytics consent anytime in Settings > Privacy.\n\n6. Minors\nThis product is not intended for children under 14.\n\n7. Policy Updates\nIf this policy changes materially, we will ask for your consent again.\n\n8. Contact Us\nFor questions about this policy, reach us via Settings > About in the app.',

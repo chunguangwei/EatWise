@@ -118,7 +118,9 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
                               controller.nextStep();
                             } else {
                               controller.finishQuiz();
-                              context.go('/onboarding/recommendation');
+                              // 阶段 A：3 题之后先进档案采集页（可跳过），
+                              // 再到推荐页。
+                              context.go('/onboarding/profile');
                             }
                           },
                     style: FilledButton.styleFrom(

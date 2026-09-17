@@ -358,6 +358,7 @@ export type UserProfilePatch = Partial<
     | 'locale'
     | 'themePref'
     | 'accessibilityPrefs'
+    | 'onboardingStatus'
   >
 >;
 

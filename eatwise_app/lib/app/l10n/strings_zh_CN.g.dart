@@ -84,6 +84,7 @@ class Translations$onboarding$zh_CN {
 	late final Translations$onboarding$plans$zh_CN plans = Translations$onboarding$plans$zh_CN.internal(_root);
 	late final Translations$onboarding$recommendation$zh_CN recommendation = Translations$onboarding$recommendation$zh_CN.internal(_root);
 	late final Translations$onboarding$science$zh_CN science = Translations$onboarding$science$zh_CN.internal(_root);
+	late final Translations$onboarding$profile$zh_CN profile = Translations$onboarding$profile$zh_CN.internal(_root);
 }
 
 // Path: record
@@ -222,6 +223,7 @@ class Translations$settings$zh_CN {
 	late final Translations$settings$privacy$zh_CN privacy = Translations$settings$privacy$zh_CN.internal(_root);
 	late final Translations$settings$theme$zh_CN theme = Translations$settings$theme$zh_CN.internal(_root);
 	late final Translations$settings$fastingPlan$zh_CN fastingPlan = Translations$settings$fastingPlan$zh_CN.internal(_root);
+	late final Translations$settings$bodyProfile$zh_CN bodyProfile = Translations$settings$bodyProfile$zh_CN.internal(_root);
 	late final Translations$settings$reminders$zh_CN reminders = Translations$settings$reminders$zh_CN.internal(_root);
 	late final Translations$settings$about$zh_CN about = Translations$settings$about$zh_CN.internal(_root);
 	late final Translations$settings$aiModel$zh_CN aiModel = Translations$settings$aiModel$zh_CN.internal(_root);
@@ -443,6 +445,64 @@ class Translations$onboarding$science$zh_CN {
 
 	/// zh-CN: '返回'
 	String get back => '返回';
+}
+
+// Path: onboarding.profile
+class Translations$onboarding$profile$zh_CN {
+	Translations$onboarding$profile$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '了解你的身体，目标更精准'
+	String get title => '了解你的身体，目标更精准';
+
+	/// zh-CN: '以下信息仅用于计算每日营养目标，属敏感个人信息：可以整页跳过，也可以只填部分；留空项将使用默认估算。'
+	String get subtitle => '以下信息仅用于计算每日营养目标，属敏感个人信息：可以整页跳过，也可以只填部分；留空项将使用默认估算。';
+
+	/// zh-CN: '生理性别（用于热量公式）'
+	String get genderLabel => '生理性别（用于热量公式）';
+
+	late final Translations$onboarding$profile$gender$zh_CN gender = Translations$onboarding$profile$gender$zh_CN.internal(_root);
+
+	/// zh-CN: '出生年份'
+	String get birthYearLabel => '出生年份';
+
+	/// zh-CN: '如 1995'
+	String get birthYearHint => '如 1995';
+
+	/// zh-CN: '请输入 ${min}–${max} 之间的年份'
+	String birthYearInvalid({required Object min, required Object max}) => '请输入 ${min}–${max} 之间的年份';
+
+	/// zh-CN: '身高（cm）'
+	String get heightLabel => '身高（cm）';
+
+	/// zh-CN: '如 168'
+	String get heightHint => '如 168';
+
+	/// zh-CN: '请输入 100–250 之间的身高'
+	String get heightInvalid => '请输入 100–250 之间的身高';
+
+	/// zh-CN: '体重（kg）'
+	String get weightLabel => '体重（kg）';
+
+	/// zh-CN: '如 60'
+	String get weightHint => '如 60';
+
+	/// zh-CN: '请输入 25–300 之间的体重'
+	String get weightInvalid => '请输入 25–300 之间的体重';
+
+	/// zh-CN: '日常活动量'
+	String get activityLabel => '日常活动量';
+
+	late final Translations$onboarding$profile$activity$zh_CN activity = Translations$onboarding$profile$activity$zh_CN.internal(_root);
+
+	/// zh-CN: '保存并继续'
+	String get save => '保存并继续';
+
+	/// zh-CN: '跳过，使用默认估算'
+	String get skip => '跳过，使用默认估算';
 }
 
 // Path: record.page
@@ -1621,6 +1681,30 @@ class Translations$settings$fastingPlan$zh_CN {
 	String get subtitle => '查看或更换断食方案，新方案次日 0:00 生效';
 }
 
+// Path: settings.bodyProfile
+class Translations$settings$bodyProfile$zh_CN {
+	Translations$settings$bodyProfile$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '身体档案'
+	String get title => '身体档案';
+
+	/// zh-CN: '身高体重等，用于计算精准营养目标'
+	String get subtitle => '身高体重等，用于计算精准营养目标';
+
+	/// zh-CN: '保存'
+	String get save => '保存';
+
+	/// zh-CN: '身体档案已保存'
+	String get saved => '身体档案已保存';
+
+	/// zh-CN: '每日营养目标已更新为 ${kcal} kcal'
+	String goalUpdated({required Object kcal}) => '每日营养目标已更新为 ${kcal} kcal';
+}
+
 // Path: settings.reminders
 class Translations$settings$reminders$zh_CN {
 	Translations$settings$reminders$zh_CN.internal(this._root);
@@ -2439,6 +2523,45 @@ class Translations$onboarding$recommendation$reason$zh_CN {
 	String get fallback => '先按人气最高的 16:8 开始，随时可以在「我的」里调整。';
 }
 
+// Path: onboarding.profile.gender
+class Translations$onboarding$profile$gender$zh_CN {
+	Translations$onboarding$profile$gender$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '男'
+	String get male => '男';
+
+	/// zh-CN: '女'
+	String get female => '女';
+
+	/// zh-CN: '不便透露'
+	String get undisclosed => '不便透露';
+}
+
+// Path: onboarding.profile.activity
+class Translations$onboarding$profile$activity$zh_CN {
+	Translations$onboarding$profile$activity$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '大部分时间是坐着的（办公室/居家，几乎不运动）'
+	String get sedentary => '大部分时间是坐着的（办公室/居家，几乎不运动）';
+
+	/// zh-CN: '每周轻度运动 1–3 次（散步、瑜伽等）'
+	String get light => '每周轻度运动 1–3 次（散步、瑜伽等）';
+
+	/// zh-CN: '每周中等强度运动 3–5 次（跑步、游泳等）'
+	String get moderate => '每周中等强度运动 3–5 次（跑步、游泳等）';
+
+	/// zh-CN: '每周高强度运动 6 次以上或体力劳动'
+	String get high => '每周高强度运动 6 次以上或体力劳动';
+}
+
 // Path: record.barcode.contribute
 class Translations$record$barcode$contribute$zh_CN {
 	Translations$record$barcode$contribute$zh_CN.internal(this._root);
@@ -3092,6 +3215,28 @@ extension on Translations {
 			'onboarding.science.card2Body' => '轻断食关注「什么时候吃」，而不是「这不能吃那不能吃」，进食窗口里好好吃饭很重要。',
 			'onboarding.science.disclaimer' => '本内容仅为健康科普，非医疗建议。如有基础疾病，或在孕期、哺乳期等特殊情况，请先咨询医生。',
 			'onboarding.science.back' => '返回',
+			'onboarding.profile.title' => '了解你的身体，目标更精准',
+			'onboarding.profile.subtitle' => '以下信息仅用于计算每日营养目标，属敏感个人信息：可以整页跳过，也可以只填部分；留空项将使用默认估算。',
+			'onboarding.profile.genderLabel' => '生理性别（用于热量公式）',
+			'onboarding.profile.gender.male' => '男',
+			'onboarding.profile.gender.female' => '女',
+			'onboarding.profile.gender.undisclosed' => '不便透露',
+			'onboarding.profile.birthYearLabel' => '出生年份',
+			'onboarding.profile.birthYearHint' => '如 1995',
+			'onboarding.profile.birthYearInvalid' => ({required Object min, required Object max}) => '请输入 ${min}–${max} 之间的年份',
+			'onboarding.profile.heightLabel' => '身高（cm）',
+			'onboarding.profile.heightHint' => '如 168',
+			'onboarding.profile.heightInvalid' => '请输入 100–250 之间的身高',
+			'onboarding.profile.weightLabel' => '体重（kg）',
+			'onboarding.profile.weightHint' => '如 60',
+			'onboarding.profile.weightInvalid' => '请输入 25–300 之间的体重',
+			'onboarding.profile.activityLabel' => '日常活动量',
+			'onboarding.profile.activity.sedentary' => '大部分时间是坐着的（办公室/居家，几乎不运动）',
+			'onboarding.profile.activity.light' => '每周轻度运动 1–3 次（散步、瑜伽等）',
+			'onboarding.profile.activity.moderate' => '每周中等强度运动 3–5 次（跑步、游泳等）',
+			'onboarding.profile.activity.high' => '每周高强度运动 6 次以上或体力劳动',
+			'onboarding.profile.save' => '保存并继续',
+			'onboarding.profile.skip' => '跳过，使用默认估算',
 			'record.page.title' => '记录',
 			'record.page.confirm' => '确认记录',
 			'record.page.loggedToday' => ({required Object count}) => '今日已记 ${count} 笔',
@@ -3462,6 +3607,11 @@ extension on Translations {
 			'settings.theme.dark' => '深色',
 			'settings.fastingPlan.title' => '断食方案',
 			'settings.fastingPlan.subtitle' => '查看或更换断食方案，新方案次日 0:00 生效',
+			'settings.bodyProfile.title' => '身体档案',
+			'settings.bodyProfile.subtitle' => '身高体重等，用于计算精准营养目标',
+			'settings.bodyProfile.save' => '保存',
+			'settings.bodyProfile.saved' => '身体档案已保存',
+			'settings.bodyProfile.goalUpdated' => ({required Object kcal}) => '每日营养目标已更新为 ${kcal} kcal',
 			'settings.reminders.notifications' => '通知设置',
 			'settings.reminders.notificationsSubtitle' => '前往系统设置管理通知权限',
 			'settings.about.version' => '版本',
@@ -3519,6 +3669,8 @@ extension on Translations {
 			'settings.chain.title' => '估算生效链路',
 			'settings.chain.onDevice' => '端侧小模型',
 			'settings.chain.userApi' => '自定义 API',
+			_ => null,
+		} ?? switch (path) {
 			'settings.chain.statusEnabled' => '已启用',
 			'settings.chain.statusDisabled' => '未启用',
 			'settings.chain.statusNotDownloaded' => '未下载',
@@ -3546,8 +3698,6 @@ extension on Translations {
 			'legal.disclaimer.notMedicalBody' => '明食 EatWise 提供的内容（包括断食方案、营养目标、信号灯反馈与建议）仅为健康生活方式的一般性信息参考，不构成医疗建议、诊断或治疗，不能替代医生、注册营养师等专业人士的意见。您的营养目标由通用公式估算，可能与您的个体情况存在差异。如有任何健康问题、正在服药或患有疾病，请在使用断食或调整饮食前咨询专业医疗人员。因使用本应用信息而产生的任何后果，本应用不承担医疗责任。',
 			'legal.disclaimer.specialGroupsTitle' => '特殊人群提示',
 			'legal.disclaimer.specialGroupsBody' => '⚠️ 以下人群不建议进行间歇性断食，或须在医生指导下进行：孕期及哺乳期女性；未成年人（18 岁以下）；有进食障碍（如厌食症、暴食症）病史或高风险人群；糖尿病患者（尤其使用胰岛素或降糖药者）；低血糖、低血压患者；体重过低（BMI < 18.5）者；痛风、肾病、肝病等慢性疾病患者；近期手术或处于疾病恢复期者；老年体弱者。如果您属于以上任何一类，请不要开始断食方案，并咨询医生。',
-			_ => null,
-		} ?? switch (path) {
 			'legal.disclaimer.short' => '本应用内容不构成医疗建议',
 			'legal.privacyPolicy.title' => '隐私政策',
 			'legal.privacyPolicy.body' => '生效日期：2026-07-27｜版本 1.0.0〔待外部确认：法务终稿〕\n\n明食 · EatWise（下称「我们」）仅面向中国大陆地区提供服务。本政策说明我们如何收集、使用、存储和保护你的个人信息，以及你享有的权利。\n\n一、我们收集的信息\n1. 手机号：用于注册、登录与账号找回，境内加密存储。\n2. 身高、体重、年龄、性别：用于计算每日营养目标，属敏感个人信息，需你单独同意。\n3. 饮食记录与断食记录：核心功能所需，属敏感个人信息。\n4. 目标、作息、断食经验（问卷 3 题）：用于方案推荐。\n5. 昵称、头像：可选，用于个性化与社区展示。\n6. 设备信息与推送 token：用于推送送达与崩溃分析；不收集 IMEI/IMSI/MAC。\n7. 崩溃与性能日志：脱敏处理，留存 6 个月。\n8. 埋点行为数据：仅事件级行为统计，可在「设置-隐私」中关闭。\n我们不收集：位置信息、通讯录、蓝牙及 HealthKit/Health Connect 健康平台数据。\n\n二、敏感个人信息单独同意\n健康相关数据（身高体重、饮食/断食记录等）依据《个人信息保护法》第 29 条取得你的单独同意；拒绝不影响账号功能，营养目标将使用默认值；你可随时在「设置-隐私」中撤回。\n\n三、存储与安全\n全部数据存储于中国境内服务器；传输使用 TLS 1.2+ 加密；手机号与健康数据采用字段级加密存储；本地数据库全库加密。无任何数据出境。\n\n四、第三方 SDK\n我们使用微信登录、Sign in with Apple、聚合推送、内容安全、崩溃监控等境内 SDK；任何 SDK 均不接收你的健康数据原文。\n\n五、你的权利\n1. 查阅复制：「设置-隐私-导出我的数据」申请导出全量个人数据（JSON+CSV）。\n2. 删除：「设置-账号-删除账号」，申请后进入 7 天冷静期，冷静期内登录即撤销。\n3. 撤回同意：「设置-隐私」中可随时撤回健康数据授权与数据分析授权。\n\n六、未成年人\n本产品不面向 14 岁以下儿童。\n\n七、政策更新\n本政策发生重大变更时，我们将重新征得你的同意。\n\n八、联系我们\n如对本政策有任何疑问，可通过 App 内「设置-关于」与我们联系。',

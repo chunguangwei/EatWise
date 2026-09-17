@@ -1,4 +1,5 @@
 import {
+  IsIn,
   IsInt,
   IsNumber,
   IsObject,
@@ -78,4 +79,9 @@ export class PatchUserDto {
   @IsOptional()
   @IsObject()
   accessibilityPrefs?: Record<string, unknown>;
+
+  /** 引导状态回写（客户端 onboarding 完成/跳过时上报；枚举校验防脏数据） */
+  @IsOptional()
+  @IsIn(['none', 'completed', 'skipped'])
+  onboardingStatus?: string;
 }

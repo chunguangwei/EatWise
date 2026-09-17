@@ -95,6 +95,34 @@
       "card2Body": "Fasting is about when you eat, not what you can't eat — eating well inside your window matters.",
       "disclaimer": "This content is general wellness information, not medical advice. If you are pregnant, breastfeeding, or managing a medical condition, please consult your doctor first.",
       "back": "Back"
+    },
+    "profile": {
+      "title": "Know your body, sharpen your goals",
+      "subtitle": "These details are only used to calculate your daily nutrition goal and count as sensitive personal info: you can skip this page or fill in just part of it — anything left blank falls back to a default estimate.",
+      "genderLabel": "Biological sex (used by the calorie formula)",
+      "gender": {
+        "male": "Male",
+        "female": "Female",
+        "undisclosed": "Prefer not to say"
+      },
+      "birthYearLabel": "Birth year",
+      "birthYearHint": "e.g. 1995",
+      "birthYearInvalid": "Enter a year between ${min} and ${max}",
+      "heightLabel": "Height (cm)",
+      "heightHint": "e.g. 168",
+      "heightInvalid": "Enter a height between 100 and 250 cm",
+      "weightLabel": "Weight (kg)",
+      "weightHint": "e.g. 60",
+      "weightInvalid": "Enter a weight between 25 and 300 kg",
+      "activityLabel": "Daily activity level",
+      "activity": {
+        "sedentary": "Mostly sitting (office/home, barely any exercise)",
+        "light": "Light exercise 1–3 times a week (walking, yoga, etc.)",
+        "moderate": "Moderate exercise 3–5 times a week (running, swimming, etc.)",
+        "high": "Intense exercise 6+ times a week or physical labor"
+      },
+      "save": "Save & continue",
+      "skip": "Skip, use default estimate"
     }
   },
   "record": {
@@ -610,6 +638,13 @@
     "fastingPlan": {
       "title": "Fasting plan",
       "subtitle": "View or change your fasting plan — changes take effect at 00:00 the next day"
+    },
+    "bodyProfile": {
+      "title": "Body profile",
+      "subtitle": "Height, weight & more — used for precise nutrition goals",
+      "save": "Save",
+      "saved": "Body profile saved",
+      "goalUpdated": "Daily nutrition goal updated to ${kcal} kcal"
     },
     "reminders": {
       "notifications": "Notification settings",

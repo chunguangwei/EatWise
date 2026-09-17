@@ -87,6 +87,15 @@ void main() {
     await pumpFrames(tester);
   }
 
+  /// 阶段 A：3 题后先进档案采集页；本组用例不采集，直接整页跳过
+  /// （维持兜底行为）。
+  Future<void> skipProfile(WidgetTester tester) async {
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.profile.skip')),
+    );
+    await pumpFrames(tester);
+  }
+
   testWidgets('首进重定向到问卷；完成 3 题 → 推荐 → 一键启动 → 首页', (tester) async {
     final (:gate, :store) = await pumpApp(tester, completed: false);
 
@@ -101,6 +110,10 @@ void main() {
     expect(find.text('之前试过轻断食吗？'), findsOneWidget);
 
     await answerAndNext(tester, 'beginner');
+
+    // 阶段 A：3 题后先进档案采集页，跳过 → 推荐页（兜底行为不变）
+    expect(find.text('了解你的身体，目标更精准'), findsOneWidget);
+    await skipProfile(tester);
 
     // 推荐页：主方案卡（14:10）+ 备选卡（16:8）+ 推荐理由
     expect(find.text('为你推荐的方案'), findsOneWidget);
@@ -191,6 +204,7 @@ void main() {
     await answerAndNext(tester, 'improveHealth');
     await answerAndNext(tester, 'regular');
     await answerAndNext(tester, 'experienced');
+    await skipProfile(tester);
 
     expect(find.text('18:6 进阶挑战'), findsOneWidget);
     expect(find.text('想改善体检指标又有经验，18:6 更适合你，记得循序渐进哦。'), findsOneWidget);
@@ -210,6 +224,7 @@ void main() {
     await answerAndNext(tester, 'justTrying');
     await answerAndNext(tester, 'shiftWork'); // 轮班 → 窗口可自由调整提示
     await answerAndNext(tester, 'beginner');
+    await skipProfile(tester);
 
     expect(find.text('14:10 温和入门'), findsOneWidget);
     expect(find.text('你的作息不太固定，进食窗口可以随时自由调整，跟着生活节奏走就好。'), findsOneWidget);

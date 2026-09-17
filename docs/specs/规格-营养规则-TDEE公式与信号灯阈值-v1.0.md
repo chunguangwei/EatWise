@@ -86,6 +86,7 @@ NutritionGoal {
 
 - 触发条件：`sex / age / heightCm / weightKg / activityLevel / goal` 任一缺失或越域（1.1）。
 - 兜底值：**女 1800 kcal / 男 2200 kcal**；`sex` 也缺失时按 **2000 kcal**（两值均值）〔假设〕。按第 2 章同配比折算三大营养素，`usedFallback = true`。
+  - 双端口径（2026-09-17 核对统一）：客户端 `NutritionRuleConfig.fallbackUnknownKcal = 2000` 为准；服务端 `computeTargets` 性别未知曾按 1800（按女兜底），已修正为 2000，两端一致。
 - 兜底时不计算/不展示 BMR 与 TDEE 原始值。
 - **补全引导**（`usedFallback = true` 时）：
   - 数据页顶部与「我的-目标」页展示引导条：中文「补全身高体重，营养目标会更准哦 🌱」/ 英文「Add your height & weight for more accurate goals 🌱」（品牌语气：鼓励而非命令，见设计稿 2.4）。

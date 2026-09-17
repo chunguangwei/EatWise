@@ -8,14 +8,16 @@ import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_rule_config.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
+import 'package:eatwise/features/onboarding/application/profile_sync.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
+import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
 import 'package:eatwise/features/onboarding/domain/onboarding_types.dart';
 import 'package:eatwise/features/onboarding/domain/plan_recommendation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 
-/// 新手引导状态与动作（M1：问卷流 → 推荐 → 一键启动）。
+/// 新手引导状态与动作（M1：问卷流 → 档案采集（阶段 A，可跳过）→ 推荐 → 一键启动）。
 
 /// SharedPreferences 实例（main 中 await 获取后 override 注入）。
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
@@ -199,12 +201,22 @@ final class OnboardingController extends Notifier<OnboardingState> {
       properties: <String, Object?>{'at_step': state.currentStep + 1},
     );
     _store.clearQuizProgress();
+    // 登录态回写服务端 onboardingStatus=skipped（失败静默不阻塞）。
+    ref.read(profileSyncServiceProvider).syncOnboardingSkipped();
     state = state.copyWith(
       answers: OnboardingAnswers.empty,
       currentStep: 0,
       recommendation: recommendPlan(OnboardingAnswers.empty),
     );
   }
+
+  /// 档案页保存（阶段 A，D-18：单项可留空；空档案按未采集走兜底）。
+  void saveProfile(OnboardingProfile profile) {
+    _store.saveProfile(profile);
+  }
+
+  /// 已采集档案（档案页/设置页表单初值；未采集为 null）。
+  OnboardingProfile? loadProfile() => _store.loadProfile();
 
   /// 把备选方案升为主推荐。
   void promoteAlternative(PlanOption option) {
@@ -243,8 +255,8 @@ final class OnboardingController extends Notifier<OnboardingState> {
     final nowUtc = ref.read(nowUtcProvider);
     final location = ref.read(deviceLocationProvider);
 
-    // 每日营养目标（D-04）：问卷不含身高体重等基础信息 → 兜底默认值，
-    // usedFallback=true 驱动「补全资料」提示。
+    // 每日营养目标（D-04）：档案页（阶段 A）填齐有效数据 → 全参精准计算；
+    // 缺项/跳过 → 兜底默认值，usedFallback=true 驱动「补全资料」提示。
     final goal = _computeAndSaveNutritionGoal();
 
     LocalDate? pendingEffectiveDate;
@@ -271,6 +283,14 @@ final class OnboardingController extends Notifier<OnboardingState> {
     _store.clearQuizProgress();
     _store.markOnboardingCompleted();
     ref.read(onboardingGateProvider).completed = true;
+    // 登录态回写服务端（档案 + goal + onboardingStatus=completed；
+    // 失败静默不阻塞本地流程）。
+    ref
+        .read(profileSyncServiceProvider)
+        .syncOnboardingCompleted(
+          profile: _store.loadProfile(),
+          goal: state.answers.goal,
+        );
     // 通知计时主控重建（信号量语义见 planVersionProvider 注释）。
     ref.read(planVersionProvider.notifier).state++;
 
@@ -283,8 +303,8 @@ final class OnboardingController extends Notifier<OnboardingState> {
         'eating_window_start': _hhmm(plan.eatStartMinutes),
         'eating_window_end': _hhmm(plan.eatEndMinutes),
         'is_fallback': rec?.usedFallback ?? true,
-        // 问卷不含身高体重等基础信息（D-04 走兜底）→ has_profile=false。
-        'has_profile': false,
+        // 阶段 A：档案页填齐有效数据后营养目标走精准计算（非兜底）。
+        'has_profile': !goal.usedFallback,
       },
       flushNow: true,
     );
@@ -297,13 +317,21 @@ final class OnboardingController extends Notifier<OnboardingState> {
     );
   }
 
-  /// 计算并落盘每日营养目标（D-04；缺基础信息走兜底并提示补全）。
+  /// 计算并落盘每日营养目标（D-04；档案齐备走全参计算，缺基础信息走
+  /// 兜底并提示补全）。年龄由出生年按当前 UTC 年折算（与服务端
+  /// computeTargets 同口径）。
   NutritionGoalSnapshot _computeAndSaveNutritionGoal() {
     final goalType = state.answers.goal == GoalAnswer.loseWeight
         ? NutritionGoalType.lose
         : NutritionGoalType.maintain;
+    final profile = _store.loadProfile();
+    final currentYear = DateTime.fromMillisecondsSinceEpoch(
+      ref.read(nowUtcProvider) * 1000,
+      isUtc: true,
+    ).year;
     final goal = computeNutritionGoal(
-      UserProfileInput(goal: goalType),
+      profile?.toProfileInput(goal: goalType, currentYear: currentYear) ??
+          UserProfileInput(goal: goalType),
       NutritionRuleConfig.defaults,
     );
     final snapshot = NutritionGoalSnapshot(

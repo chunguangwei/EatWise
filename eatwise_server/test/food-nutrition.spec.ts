@@ -75,7 +75,14 @@ describe('营养目标（D-04）与信号灯（D-05）', () => {
       goal: null,
     });
     expect(t.fallback).toBe(true);
-    expect(t.kcal).toBe(1800); // 性别未知按女兜底
+    expect(t.kcal).toBe(2000); // 性别未知兜底 2000（与客户端口径一致，规格 §1.6）
+  });
+
+  it('缺基础信息兜底：女 1800 / 男 2200 / 性别未知 2000', () => {
+    const base = { birthYear: null, heightCm: null, weightKg: null, activityLevel: null, goal: null };
+    expect(computeTargets({ ...base, gender: 'female' }).kcal).toBe(1800);
+    expect(computeTargets({ ...base, gender: 'male' }).kcal).toBe(2200);
+    expect(computeTargets({ ...base, gender: null }).kcal).toBe(2000);
   });
 
   it('减脂目标下限保护：女 ≥1200 / 男 ≥1500', () => {

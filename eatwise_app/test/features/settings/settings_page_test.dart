@@ -156,11 +156,14 @@ void main() {
     expect(find.text('设置'), findsOneWidget);
     expect(find.text('账号'), findsOneWidget);
     expect(find.text('隐私'), findsOneWidget);
-    expect(find.text('偏好'), findsOneWidget);
     expect(find.text('删除账号'), findsOneWidget);
+    expect(find.text('身体档案'), findsOneWidget); // 阶段 A 新增入口（账号组）
     expect(find.text('导出我的数据'), findsOneWidget);
     expect(find.text('健康数据授权'), findsOneWidget);
     expect(find.text('数据分析授权'), findsOneWidget);
+
+    // 账号区新增「身体档案」行后偏好组落在视口外，先滚动到可见。
+    await scrollTo(tester, find.text('偏好'));
     expect(find.text('语言'), findsOneWidget);
     expect(find.text('主题'), findsOneWidget);
 

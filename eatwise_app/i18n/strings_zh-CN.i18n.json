@@ -95,6 +95,34 @@
       "card2Body": "轻断食关注「什么时候吃」，而不是「这不能吃那不能吃」，进食窗口里好好吃饭很重要。",
       "disclaimer": "本内容仅为健康科普，非医疗建议。如有基础疾病，或在孕期、哺乳期等特殊情况，请先咨询医生。",
       "back": "返回"
+    },
+    "profile": {
+      "title": "了解你的身体，目标更精准",
+      "subtitle": "以下信息仅用于计算每日营养目标，属敏感个人信息：可以整页跳过，也可以只填部分；留空项将使用默认估算。",
+      "genderLabel": "生理性别（用于热量公式）",
+      "gender": {
+        "male": "男",
+        "female": "女",
+        "undisclosed": "不便透露"
+      },
+      "birthYearLabel": "出生年份",
+      "birthYearHint": "如 1995",
+      "birthYearInvalid": "请输入 ${min}–${max} 之间的年份",
+      "heightLabel": "身高（cm）",
+      "heightHint": "如 168",
+      "heightInvalid": "请输入 100–250 之间的身高",
+      "weightLabel": "体重（kg）",
+      "weightHint": "如 60",
+      "weightInvalid": "请输入 25–300 之间的体重",
+      "activityLabel": "日常活动量",
+      "activity": {
+        "sedentary": "大部分时间是坐着的（办公室/居家，几乎不运动）",
+        "light": "每周轻度运动 1–3 次（散步、瑜伽等）",
+        "moderate": "每周中等强度运动 3–5 次（跑步、游泳等）",
+        "high": "每周高强度运动 6 次以上或体力劳动"
+      },
+      "save": "保存并继续",
+      "skip": "跳过，使用默认估算"
     }
   },
   "record": {
@@ -609,6 +637,13 @@
     "fastingPlan": {
       "title": "断食方案",
       "subtitle": "查看或更换断食方案，新方案次日 0:00 生效"
+    },
+    "bodyProfile": {
+      "title": "身体档案",
+      "subtitle": "身高体重等，用于计算精准营养目标",
+      "save": "保存",
+      "saved": "身体档案已保存",
+      "goalUpdated": "每日营养目标已更新为 ${kcal} kcal"
     },
     "reminders": {
       "notifications": "通知设置",

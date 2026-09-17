@@ -29,8 +29,9 @@ export function computeTargets(
 ): NutritionTargets {
   const missing = !user.gender || !user.birthYear || !user.heightCm || !user.weightKg;
   if (missing) {
-    // 缺基础信息兜底：女 1800 / 男 2200（性别未知按 1800），引导补全资料
-    const kcal = user.gender === 'male' ? 2200 : 1800;
+    // 缺基础信息兜底：女 1800 / 男 2200 / 性别未知 2000（与客户端
+    // NutritionRuleConfig.fallbackUnknownKcal 口径一致，规格 §1.6），引导补全资料
+    const kcal = user.gender === 'male' ? 2200 : user.gender === 'female' ? 1800 : 2000;
     return { ...macroSplit(kcal), fallback: true };
   }
   const age = new Date().getUTCFullYear() - (user.birthYear as number);

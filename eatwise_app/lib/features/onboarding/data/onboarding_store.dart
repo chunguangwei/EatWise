@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
+import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 新手引导本地持久化（M1：进度本地保存可续答 / 方案与营养目标写入）。
@@ -144,6 +145,10 @@ abstract interface class OnboardingStore {
 
   NutritionGoalSnapshot? loadNutritionGoal();
   void saveNutritionGoal(NutritionGoalSnapshot snapshot);
+
+  /// 档案采集（阶段 A：D-18 敏感信息，可跳过/留空；空档案按未采集处理）。
+  OnboardingProfile? loadProfile();
+  void saveProfile(OnboardingProfile profile);
 }
 
 /// SharedPreferences 实现。
@@ -155,6 +160,7 @@ final class SharedPreferencesOnboardingStore implements OnboardingStore {
   static const String _keyActivePlan = 'onboarding.activePlan';
   static const String _keyPendingPlan = 'onboarding.pendingPlan';
   static const String _keyNutritionGoal = 'onboarding.nutritionGoal';
+  static const String _keyProfile = 'onboarding.profile';
 
   final SharedPreferences _prefs;
 
@@ -238,6 +244,19 @@ final class SharedPreferencesOnboardingStore implements OnboardingStore {
     _prefs.setString(_keyNutritionGoal, jsonEncode(snapshot.toJson()));
   }
 
+  @override
+  OnboardingProfile? loadProfile() =>
+      _readJson(_keyProfile, OnboardingProfile.fromJson);
+
+  @override
+  void saveProfile(OnboardingProfile profile) {
+    if (profile.isEmpty) {
+      _prefs.remove(_keyProfile); // 空档案按未采集处理（走兜底）
+      return;
+    }
+    _prefs.setString(_keyProfile, jsonEncode(profile.toJson()));
+  }
+
   T? _readJson<T>(String key, T Function(Map<String, dynamic>) decode) {
     final raw = _prefs.getString(key);
     if (raw == null) return null;
@@ -256,6 +275,7 @@ final class InMemoryOnboardingStore implements OnboardingStore {
   ActivePlanSnapshot? _plan;
   PendingPlan? _pending;
   NutritionGoalSnapshot? _goal;
+  OnboardingProfile? _profile;
 
   @override
   bool get isOnboardingCompleted => _completed;
@@ -292,4 +312,11 @@ final class InMemoryOnboardingStore implements OnboardingStore {
 
   @override
   void saveNutritionGoal(NutritionGoalSnapshot snapshot) => _goal = snapshot;
+
+  @override
+  OnboardingProfile? loadProfile() => _profile;
+
+  @override
+  void saveProfile(OnboardingProfile profile) =>
+      _profile = profile.isEmpty ? null : profile;
 }
