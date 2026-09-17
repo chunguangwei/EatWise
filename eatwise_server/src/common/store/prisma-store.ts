@@ -1363,6 +1363,8 @@ function toUserEntity(u: Prisma.UserGetPayload<object>): UserEntity {
     weightKg: u.weightKg,
     activityLevel: u.activityLevel,
     goal: u.goal,
+    targetWeightKg: u.targetWeightKg,
+    targetDate: u.targetDate,
     locale: u.locale,
     timezone: u.timezone,
     themePref: u.themePref,

@@ -16,6 +16,8 @@ const PATCHABLE = [
   'weightKg',
   'activityLevel',
   'goal',
+  'targetWeightKg',
+  'targetDate',
   'timezone',
   'locale',
   'themePref',
@@ -40,6 +42,11 @@ export class UserService {
     const patch: Record<string, unknown> = {};
     for (const key of PATCHABLE) {
       if (body[key] !== undefined) patch[key] = body[key];
+    }
+    // targetDate 只存日期口径：DTO 收 YYYY-MM-DD 字符串，落库前归一化为 UTC 零点
+    // （null 透传 = 清空目标）。
+    if (typeof patch['targetDate'] === 'string') {
+      patch['targetDate'] = new Date(`${patch['targetDate']}T00:00:00.000Z`);
     }
     // version+1 / updatedAt=服务端时钟 由驱动赋值（客户端传入的 updatedAt 忽略，防腐层）
     const user = await this.driver.updateUserProfile(userId, patch);
@@ -127,6 +134,9 @@ export class UserService {
       weightKg: u.weightKg,
       activityLevel: u.activityLevel,
       goal: u.goal,
+      targetWeightKg: u.targetWeightKg,
+      // 对外只暴露日期部分（YYYY-MM-DD），与入库口径一致
+      targetDate: u.targetDate?.toISOString().slice(0, 10) ?? null,
       locale: u.locale,
       timezone: u.timezone,
       themePref: u.themePref,

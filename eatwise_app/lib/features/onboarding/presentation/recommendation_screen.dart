@@ -5,7 +5,9 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/account/presentation/weight_goal_fields.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
 import 'package:eatwise/features/onboarding/domain/onboarding_types.dart';
 import 'package:eatwise/features/onboarding/domain/plan_recommendation.dart';
 import 'package:flutter/material.dart';
@@ -59,6 +61,9 @@ class RecommendationScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.s4),
+            // 阶段 B：减重目标预览（缺口法生效时展示周速率/预计达成日/热量
+            // 目标；安全夹取与筛查温和化提示；筛查「是」强化免责提示）。
+            _WeightLossPreview(controller: controller),
             FilledButton(
               key: const ValueKey<String>('onboarding.recommendation.start'),
               onPressed: () => _onStartPressed(context, ref),
@@ -298,5 +303,120 @@ class _PlanCard extends StatelessWidget {
     final h = (minutes ~/ 60).toString().padLeft(2, '0');
     final m = (minutes % 60).toString().padLeft(2, '0');
     return '$h:$m';
+  }
+}
+
+/// 减重目标预览卡（阶段 B）：缺口法生效时展示「预计每周减 X kg · 约 Y 达成」
+/// + 日热量目标；速率被安全夹取时提示；进食障碍筛查「是」展示强化免责提示。
+class _WeightLossPreview extends StatelessWidget {
+  const _WeightLossPreview({required this.controller});
+
+  final OnboardingController controller;
+
+  /// 速率展示：保留至多 2 位小数并去尾零（0.50 → 0.5）。
+  static String _formatRate(double rate) {
+    final fixed = rate.toStringAsFixed(2);
+    return fixed.contains('.')
+        ? fixed.replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '')
+        : fixed;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Translations.of(context);
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
+
+    final profile = controller.loadProfile();
+    final screeningYes =
+        profile?.eatingDisorderScreening == EatingDisorderScreening.yes;
+    final preview = controller.previewNutritionGoal();
+    final plan = preview.weightLoss;
+    if (plan == null && !screeningYes) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.s4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          if (plan != null)
+            Container(
+              key: const ValueKey<String>(
+                'onboarding.recommendation.weightLoss',
+              ),
+              padding: const EdgeInsets.all(AppSpacing.s4),
+              decoration: BoxDecoration(
+                color: colors.bgSecondary,
+                borderRadius: radii.rLg,
+                border: Border.all(color: colors.brandPrimary),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    t.onboarding.recommendation.weightLossPlan(
+                      rate: _formatRate(plan.weeklyRateKg),
+                      date: formatLocalDate(context, plan.reachDate),
+                    ),
+                    style: textStyles.textBase,
+                  ),
+                  const SizedBox(height: AppSpacing.s1),
+                  Text(
+                    t.onboarding.recommendation.dailyKcalTarget(
+                      kcal: preview.targetKcal,
+                    ),
+                    style: textStyles.textSm.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                  if (plan.clamped) ...<Widget>[
+                    const SizedBox(height: AppSpacing.s2),
+                    Text(
+                      // 温和节奏（筛查「是」）下安全上限为 0.5 kg/周，文案区分。
+                      screeningYes
+                          ? t.onboarding.recommendation.gentleNotice
+                          : t.onboarding.recommendation.clampedNotice,
+                      style: textStyles.textSm.copyWith(
+                        color: colors.brandPrimaryPressed,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          if (screeningYes) ...<Widget>[
+            if (plan != null) const SizedBox(height: AppSpacing.s3),
+            Container(
+              key: const ValueKey<String>('onboarding.recommendation.edNotice'),
+              padding: const EdgeInsets.all(AppSpacing.s3),
+              decoration: BoxDecoration(
+                color: colors.brandPrimary.withValues(alpha: 0.08),
+                borderRadius: radii.rLg,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Icon(
+                    Icons.favorite_border,
+                    size: 18,
+                    color: colors.brandPrimary,
+                  ),
+                  const SizedBox(width: AppSpacing.s2),
+                  Expanded(
+                    child: Text(
+                      t.onboarding.recommendation.edNotice,
+                      style: textStyles.textSm.copyWith(
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }

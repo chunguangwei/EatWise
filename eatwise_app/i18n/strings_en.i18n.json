@@ -85,7 +85,12 @@
       "flexibleHint": "Your schedule isn't fixed, so feel free to shift your eating window around your life.",
       "fallbackNotice": "Your daily nutrition goal is estimated at ${kcal} kcal for now — add your height & weight in Profile for a precise target.",
       "planChangeTitle": "Change fasting plan",
-      "planChangeConfirm": "The new plan takes effect at 00:00 on ${date}. Today still follows your current plan."
+      "planChangeConfirm": "The new plan takes effect at 00:00 on ${date}. Today still follows your current plan.",
+      "weightLossPlan": "About ${rate} kg/week · reach your goal around ${date}",
+      "dailyKcalTarget": "Daily calorie goal ≈ ${kcal} kcal",
+      "clampedNotice": "That pace was a bit fast, so we've adjusted it to a safe maximum of 1 kg per week.",
+      "gentleNotice": "We've set a gentler pace for you — at most 0.5 kg per week.",
+      "edNotice": "You mentioned an eating-disorder history: your goal has been set to a gentler pace. This app does not provide medical advice — please consider consulting a doctor or dietitian as well."
     },
     "science": {
       "title": "How fasting works",
@@ -122,7 +127,29 @@
         "high": "Intense exercise 6+ times a week or physical labor"
       },
       "save": "Save & continue",
-      "skip": "Skip, use default estimate"
+      "skip": "Skip, use default estimate",
+      "screening": {
+        "title": "Do you have a history of eating disorders (e.g. bulimia/anorexia), or are you currently in related treatment?",
+        "hint": "Only used to set a gentler weight-loss pace for you. Your answer stays on this device and is never uploaded.",
+        "options": {
+          "yes": "Yes",
+          "no": "No",
+          "preferNotToSay": "Prefer not to say"
+        }
+      }
+    },
+    "goal": {
+      "title": "Set a weight goal",
+      "subtitle": "With a target weight and date, we can work out a safe daily calorie goal — or skip and use the default estimate.",
+      "targetWeightLabel": "Target weight (kg)",
+      "targetWeightHint": "e.g. 55",
+      "targetWeightInvalid": "Enter a weight between 25 and 300 kg",
+      "targetDateLabel": "When do you want to reach it?",
+      "quickWeeks": "In ${weeks} weeks",
+      "customDate": "Pick a date",
+      "clearDate": "Clear date",
+      "save": "Save & continue",
+      "skip": "Skip"
     }
   },
   "record": {
@@ -642,6 +669,7 @@
     "bodyProfile": {
       "title": "Body profile",
       "subtitle": "Height, weight & more — used for precise nutrition goals",
+      "goalSection": "Weight goal (optional; applies to fat-loss goal only)",
       "save": "Save",
       "saved": "Body profile saved",
       "goalUpdated": "Daily nutrition goal updated to ${kcal} kcal"

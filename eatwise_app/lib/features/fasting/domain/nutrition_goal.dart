@@ -1,5 +1,7 @@
+import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_rule_config.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
+import 'package:eatwise/features/fasting/domain/weight_loss_plan.dart';
 import 'package:meta/meta.dart';
 
 /// TDEE 计算纯函数（《规格-营养规则》§1，D-04）。
@@ -15,6 +17,10 @@ final class UserProfileInput {
     this.weightKg,
     this.activityLevel,
     this.goal,
+    this.targetWeightKg,
+    this.targetDate,
+    this.today,
+    this.gentleWeightLoss = false,
   });
 
   /// 生理性别（缺失时兜底值按 unknownKcal）。
@@ -34,6 +40,19 @@ final class UserProfileInput {
 
   /// 目标（减脂 / 维持）。
   final NutritionGoalType? goal;
+
+  /// 阶段 B 减重目标：目标体重（kg，取值域同 [weightKg]）。
+  /// 与 [targetDate] 齐备且 goal=lose 时启用缺口法（叠加 D-04）。
+  final double? targetWeightKg;
+
+  /// 阶段 B 减重目标：目标日期（本地日）。
+  final LocalDate? targetDate;
+
+  /// 计算基准日（缺口法需要；缺省视为无目标日期，回落固定 ×0.8）。
+  final LocalDate? today;
+
+  /// 进食障碍筛查「是」→ 温和节奏（周速率上限 0.5 kg/周）。
+  final bool gentleWeightLoss;
 
   /// 是否全部必填项齐备且未越域。
   bool get isComplete =>
@@ -62,6 +81,7 @@ final class NutritionGoal {
     required this.fatG,
     required this.usedFallback,
     required this.configVersion,
+    this.weightLoss,
   });
 
   /// BMR 原始值；走兜底时不计算，为 null（§1.6 不展示）。
@@ -87,6 +107,9 @@ final class NutritionGoal {
 
   /// 计算所用配置版本号（埋点与回溯用）。
   final String configVersion;
+
+  /// 阶段 B：缺口法生效时的减重计划（null = 固定折算/维持路径）。
+  final WeightLossPlan? weightLoss;
 }
 
 /// 每日营养目标计算（§1，D-04）。
@@ -116,10 +139,23 @@ NutritionGoal computeNutritionGoal(
   final tdee = bmr * config.activityFactors[input.activityLevel!]!;
 
   // §1.4 目标热量 + 下限保护
-  var target = input.goal == NutritionGoalType.lose
-      ? tdee * config.loseDeficit
-      : tdee;
   final minKcal = sex == Sex.male ? config.minKcalMale : config.minKcalFemale;
+  // 阶段 B：减脂且有目标体重+未来目标日期 → 缺口法（速率安全夹取，
+  // 结果已含下限保护）；否则维持 D-04 固定折算。
+  final plan = input.goal == NutritionGoalType.lose && input.today != null
+      ? computeWeightLossPlan(
+          currentWeightKg: w,
+          targetWeightKg: input.targetWeightKg,
+          targetDate: input.targetDate,
+          today: input.today!,
+          tdee: tdee,
+          minKcal: minKcal,
+          gentle: input.gentleWeightLoss,
+        )
+      : null;
+  var target =
+      plan?.targetKcal ??
+      (input.goal == NutritionGoalType.lose ? tdee * config.loseDeficit : tdee);
   if (target < minKcal) target = minKcal;
 
   final targetKcal = roundKcalToStep(target, config.roundingStepKcal);
@@ -132,6 +168,7 @@ NutritionGoal computeNutritionGoal(
     fatG: _macroGrams(targetKcal, config.fatRatio, 9),
     usedFallback: false,
     configVersion: config.version,
+    weightLoss: plan,
   );
 }
 

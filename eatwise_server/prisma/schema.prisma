@@ -26,6 +26,8 @@ model User {
   weightKg            Float?
   activityLevel       String? // sedentary / light / moderate / high
   goal                String? // fat_loss / health_metric / routine / trial
+  targetWeightKg      Float? // 阶段 B 减重目标：目标体重（kg，25–300；仅 fat_loss 生效）
+  targetDate          DateTime? // 阶段 B 减重目标：目标日期（只存日期，UTC 零点；须未来且 ≤2 年）
   locale              String    @default("zh-CN") // D-15
   timezone            String    @default("Asia/Shanghai") // IANA，D-07
   themePref           String    @default("system")

@@ -39,8 +39,14 @@ String? serverGoalOf(GoalAnswer? goal) {
 }
 
 /// 档案 → PATCH 字段（空项不传，字段级 LWW 由服务端保留既有值；
-/// 「不透露」性别不上报）。
-Map<String, Object?> serverProfilePatch(OnboardingProfile profile) {
+/// 「不透露」性别不上报；进食障碍筛查属敏感信息仅存本地不上报）。
+///
+/// 阶段 B 减重目标（targetWeightKg/targetDate）：缺省同样空项不传；
+/// [includeNullTargets]=true 时显式传 null（设置页「可清空」语义）。
+Map<String, Object?> serverProfilePatch(
+  OnboardingProfile profile, {
+  bool includeNullTargets = false,
+}) {
   return <String, Object?>{
     if (profile.sex == ProfileSex.male) 'gender': 'male',
     if (profile.sex == ProfileSex.female) 'gender': 'female',
@@ -49,6 +55,10 @@ Map<String, Object?> serverProfilePatch(OnboardingProfile profile) {
     if (profile.weightKg != null) 'weightKg': profile.weightKg,
     if (profile.activityLevel != null)
       'activityLevel': profile.activityLevel!.name,
+    if (profile.targetWeightKg != null || includeNullTargets)
+      'targetWeightKg': profile.targetWeightKg,
+    if (profile.targetDate != null || includeNullTargets)
+      'targetDate': profile.targetDate?.toIsoString(),
   };
 }
 

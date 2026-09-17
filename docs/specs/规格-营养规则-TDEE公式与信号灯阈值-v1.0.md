@@ -62,7 +62,7 @@
 
 | `goal` | 公式 | 下限保护 |
 |--------|------|----------|
-| `lose` 减脂 | `targetKcal = TDEE × 0.8` | **女 ≥ 1200 kcal；男 ≥ 1500 kcal**：折算结果低于下限则取下限值 |
+| `lose` 减脂 | `targetKcal = TDEE × 0.8`；**阶段 B：有目标体重+未来目标日期时改用缺口法（见第八章）** | **女 ≥ 1200 kcal；男 ≥ 1500 kcal**：折算结果低于下限则取下限值 |
 | `maintain` 维持/作息/先试试看 | `targetKcal = TDEE × 1.0` | 无需触发（TDEE 必然高于下限，但仍保留同一保护逻辑统一执行）〔假设〕 |
 
 **取整规则〔假设〕**：`targetKcal` 四舍五入到 **10 kcal**（如 1211.04 → 1210）用于存储与展示；判定与营养素克数换算均基于取整后的 `targetKcal`。
@@ -429,6 +429,78 @@ FoodEntry（含营养快照，PRD M3）──按日累加──▶ DailyNutritio
 | A8 | 配置热更新不改代码即可调阈值；灰度 5%→25%→100% 与回滚可用 | 评审项 3 |
 | A9 | 单测清单 5.2 全部通过；Dart/Node 黄金用例一致（U26） | 评审项 3 |
 | A10 | 营养专业侧书面背书取得后，本文状态由〔待外部确认〕转为定稿 | 评审项 3 / D-04 |
+| A11 | 缺口法：示例 C/D 计算结果与 8.4 完全一致；速率夹取与 clamped 标记正确 | 阶段 B |
+| A12 | 进食障碍筛查「是」→ 周速率上限 0.5 kg + 推荐页强化免责提示，不阻止使用 | 阶段 B |
+| A13 | targetDate 服务端校验：非未来/超 2 年/伪日期 → 400；targetWeightKg 25–300 | 阶段 B |
+
+---
+
+## 八、减重目标速率→热量缺口（阶段 B，叠加 D-04）
+
+> **状态：〔待外部确认〕**——以下系数与边界（7700 kcal/kg、周速率 0.1–1.0 kg、温和节奏 0.5 kg）需营养专业侧书面背书，数值改动必须同步本章。
+
+### 8.1 生效条件与输入
+
+缺口法**叠加**在 D-04 之上：仅当 `goal = lose`（fat_loss）且下列输入齐备时启用，否则维持 `TDEE × 0.8` 固定折算不变。
+
+| 输入 | 说明 | 取值域 |
+|------|------|--------|
+| `currentWeightKg` | 当前体重（kg），即 §1.1 `weightKg` | [25, 300] |
+| `targetWeightKg` | 目标体重（kg），可清空 | [25, 300]（服务端 DTO 同） |
+| `targetDate` | 目标日期（本地日，只存日期；入库 UTC 零点） | 严格未来（> 基准日）且距今 ≤ 2 年（服务端 DTO 强校验） |
+| `tdee` / `minKcal` | §1.3 计算结果 / §1.4 下限常量（女 1200 / 男 1500） | 复用，不新增 |
+| `today` | 计算基准日（客户端设备时区本地日 / 服务端 UTC 日） | 注入，纯函数无时钟依赖 |
+| `gentle` | 进食障碍筛查「是」→ 温和节奏 | bool |
+
+不生效场景（返回 null，回落固定折算）：无目标体重或目标日期、目标体重 ≥ 当前体重（增重/维持）、目标日期非未来。
+
+### 8.2 计算规则
+
+| 步骤 | 公式 | 说明 |
+|------|------|------|
+| 体重差 | `deltaKg = currentWeightKg − targetWeightKg` | 生效条件下恒 > 0 |
+| 原始周速率 | `rawRate = deltaKg ÷ (daysToTarget ÷ 7)` | `daysToTarget = targetDate − today`（天数） |
+| 速率夹取 | `weeklyRateKg = clamp(rawRate, 0.1, maxRate)` | `maxRate = gentle ? 0.5 : 1.0` kg/周 |
+| 安全夹取标记 | `clamped = rawRate > maxRate` | UI 提示「已按安全上限调整」（温和节奏下文案区分 0.5 kg） |
+| 日热量缺口 | `dailyDeficitKcal = weeklyRateKg × 7700 ÷ 7` | **1 kg ≈ 7700 kcal** |
+| 目标热量 | `targetKcal = max(TDEE − dailyDeficitKcal, minKcal)` | **不破 §1.4 下限保护**（复用既有下限常量） |
+| 预计达成日 | `reachDate = today + ceil(deltaKg ÷ weeklyRateKg × 7) 天` | 被夹取时晚于目标日期 |
+
+取整沿用 §1.4：`targetKcal` 四舍五入到 10 kcal；三大营养素克数按取整后 targetKcal 走第二章换算。`weeklyRateKg`/`dailyDeficitKcal`/`reachDate` 不参与取整，仅展示用。
+
+### 8.3 进食障碍筛查温和化（阶段 B）
+
+- onboarding 档案页顶部单选筛查题：「是否有进食障碍史（如暴食症/厌食症）或正在接受相关治疗」是/否/不愿透露；**可不作答，不阻止使用**。
+- 选「是」→ `gentle = true`：周速率上限 0.5 kg/周；推荐页额外展示**强化免责提示**（建议咨询专业医生，本应用不提供医疗建议）。
+- 筛查作答属敏感个人信息（D-18）：**仅存本地，不上报服务端**。
+
+### 8.4 完整计算示例（基准日 2026-09-17）
+
+**示例 C：28 岁女，55 kg / 162 cm，久坐，减脂，目标 53 kg / 70 天后**
+
+| 步骤 | 计算 | 结果 |
+|------|------|------|
+| TDEE | 同示例 A | 1513.8 kcal |
+| 原始周速率 | `2 ÷ (70÷7) = 0.2` | 0.2 kg/周（未夹取） |
+| 日缺口 | `0.2 × 7700 ÷ 7` | 220 kcal |
+| 目标热量 | `1513.8 − 220 = 1293.8`；≥ 1200 ✓；取整 | **targetKcal = 1290 kcal** |
+| 预计达成 | `ceil(2 ÷ 0.2 × 7) = 70 天` | 2026-11-26（= 目标日期） |
+
+**示例 D：60 kg / 2200 TDEE，目标 50 kg / 28 天后（过快）**
+
+| 步骤 | 计算 | 结果 |
+|------|------|------|
+| 原始周速率 | `10 ÷ (28÷7) = 2.5` | 超上限 → **夹取 1.0 kg/周，clamped = true** |
+| 日缺口 | `1.0 × 7700 ÷ 7` | 1100 kcal |
+| 目标热量 | `2200 − 1100 = 1100 < 1500` → 下限保护 | **targetKcal = 1500 kcal** |
+| 预计达成 | `ceil(10 ÷ 1.0 × 7) = 70 天` | 2026-11-26（晚于目标日期，UI 展示夹取后口径） |
+
+### 8.5 双端实现与接口
+
+- 客户端：`lib/features/fasting/domain/weight_loss_plan.dart`（`computeWeightLossPlan` 纯函数），由 `computeNutritionGoal` 在 §1.4 处叠加调用，输出挂 `NutritionGoal.weightLoss`。
+- 服务端：`src/nutrition/nutrition.rules.ts` 同口径复刻（`computeWeightLossPlan`），`computeTargets` 输出增 `weightLoss?` 字段（契约增量，不破坏既有字段）。
+- 持久化：Prisma `User.targetWeightKg`（Float?）/ `User.targetDate`（DateTime?，只存日期口径 UTC 零点）；PATCH /users/me 白名单与 DTO 校验（targetWeightKg 25–300；targetDate 未来且 ≤2 年）；**null 透传 = 清空目标**。
+- 目标变化当日重算营养目标（§1.6 既有口径：历史日快照不回溯）。
 
 ---
 
@@ -446,3 +518,5 @@ FoodEntry（含营养快照，PRD M3）──按日累加──▶ DailyNutritio
 | 〔假设〕 | 服务端重算校验不一致以服务端为准并埋点 | 5.1 |
 | 〔假设〕 | 灰度复用 D-20 同步通道，不设独立配置中心 | 5.3 |
 | 〔假设〕 | FoodEntry 快照不回溯；DailyNutrition 冲突以重聚合解决；目标快照当日切换 | 6.2/6.3 |
+| 〔待外部确认〕 | 缺口法系数与边界：7700 kcal/kg、周速率 0.1–1.0 kg、温和节奏 0.5 kg（营养背书） | 8.1/8.2（阶段 B） |
+| 〔假设〕 | targetDate 上限 2 年、只存日期（UTC 零点）；筛查作答仅存本地不上报 | 8.1/8.3（阶段 B） |

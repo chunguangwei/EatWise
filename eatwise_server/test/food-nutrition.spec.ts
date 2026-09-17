@@ -1,7 +1,11 @@
 import { DataStore } from '../src/common/store/data-store';
 import { MemoryStoreDriver } from '../src/common/store/store-driver';
 import { FoodService } from '../src/food/food.service';
-import { computeSignals, computeTargets } from '../src/nutrition/nutrition.rules';
+import {
+  computeSignals,
+  computeTargets,
+  computeWeightLossPlan,
+} from '../src/nutrition/nutrition.rules';
 import { StubModerationService } from '../src/social/moderation/content-moderation.service';
 
 describe('K1 食物双语搜索（D-16）', () => {
@@ -73,13 +77,23 @@ describe('营养目标（D-04）与信号灯（D-05）', () => {
       weightKg: null,
       activityLevel: null,
       goal: null,
+      targetWeightKg: null,
+      targetDate: null,
     });
     expect(t.fallback).toBe(true);
     expect(t.kcal).toBe(2000); // 性别未知兜底 2000（与客户端口径一致，规格 §1.6）
   });
 
   it('缺基础信息兜底：女 1800 / 男 2200 / 性别未知 2000', () => {
-    const base = { birthYear: null, heightCm: null, weightKg: null, activityLevel: null, goal: null };
+    const base = {
+      birthYear: null,
+      heightCm: null,
+      weightKg: null,
+      activityLevel: null,
+      goal: null,
+      targetWeightKg: null,
+      targetDate: null,
+    };
     expect(computeTargets({ ...base, gender: 'female' }).kcal).toBe(1800);
     expect(computeTargets({ ...base, gender: 'male' }).kcal).toBe(2200);
     expect(computeTargets({ ...base, gender: null }).kcal).toBe(2000);
@@ -93,6 +107,8 @@ describe('营养目标（D-04）与信号灯（D-05）', () => {
       weightKg: 40,
       activityLevel: 'sedentary',
       goal: 'fat_loss',
+      targetWeightKg: null,
+      targetDate: null,
     });
     expect(t.fallback).toBe(false);
     expect(t.kcal).toBeGreaterThanOrEqual(1200);
@@ -129,5 +145,122 @@ describe('营养目标（D-04）与信号灯（D-05）', () => {
     expect(by('protein').adviceKey).toBe('advice.protein.high');
     expect(by('fat').level).toBe('yellow'); // 70% ∈ [55,80) 偏低
     expect(by('fat').adviceKey).toBe('advice.fat.low');
+  });
+});
+
+describe('阶段 B 减重速率→热量缺口（computeWeightLossPlan，叠加 D-04）', () => {
+  const now = new Date(Date.UTC(2026, 8, 17)); // 2026-09-17 UTC
+  const dateInDays = (days: number) => new Date(now.getTime() + days * 86400000);
+
+  it('正常缺口：70→65 kg / 70 天 → 0.5 kg/周，日缺口 550 kcal', () => {
+    const plan = computeWeightLossPlan({
+      currentWeightKg: 70,
+      targetWeightKg: 65,
+      targetDate: dateInDays(70),
+      tdee: 2000,
+      minKcal: 1200,
+      now,
+    })!;
+    expect(plan.weeklyRateKg).toBeCloseTo(0.5, 6);
+    expect(plan.dailyDeficitKcal).toBeCloseTo(550, 6); // 0.5 × 7700 ÷ 7
+    expect(plan.targetKcal).toBeCloseTo(1450, 6);
+    expect(plan.clamped).toBe(false);
+    expect(plan.reachDate).toBe(dateInDays(70).toISOString().slice(0, 10));
+  });
+
+  it('超安全上限 clamp：60→50 kg / 28 天 → 夹取 1.0 kg/周并标记 clamped，达成日后移', () => {
+    const plan = computeWeightLossPlan({
+      currentWeightKg: 60,
+      targetWeightKg: 50,
+      targetDate: dateInDays(28),
+      tdee: 2200,
+      minKcal: 1500,
+      now,
+    })!;
+    expect(plan.weeklyRateKg).toBe(1.0);
+    expect(plan.dailyDeficitKcal).toBeCloseTo(1100, 6);
+    // 2200 − 1100 = 1100 < 1500 → 下限保护到 1500（不破既有下限）
+    expect(plan.targetKcal).toBe(1500);
+    expect(plan.clamped).toBe(true);
+    expect(plan.reachDate).toBe(dateInDays(70).toISOString().slice(0, 10)); // 10kg ÷ 1kg/周
+  });
+
+  it('下限保护：缺口法结果不破 minKcal', () => {
+    const plan = computeWeightLossPlan({
+      currentWeightKg: 60,
+      targetWeightKg: 55,
+      targetDate: dateInDays(35),
+      tdee: 2000,
+      minKcal: 1200,
+      now,
+    })!;
+    expect(plan.weeklyRateKg).toBe(1.0); // 5kg/5周 = 1.0 恰好不 clamp
+    expect(plan.clamped).toBe(false);
+    expect(plan.targetKcal).toBe(1200); // 2000 − 1100 = 900 → 下限 1200
+  });
+
+  it('速率下限：极缓目标夹取到 0.1 kg/周', () => {
+    const plan = computeWeightLossPlan({
+      currentWeightKg: 60,
+      targetWeightKg: 59,
+      targetDate: dateInDays(365),
+      tdee: 2000,
+      minKcal: 1200,
+      now,
+    })!;
+    expect(plan.weeklyRateKg).toBe(0.1);
+    expect(plan.clamped).toBe(false);
+  });
+
+  it('不生效场景返回 null：无目标 / 目标≥当前 / 目标日期非未来', () => {
+    const base = { currentWeightKg: 60, tdee: 2000, minKcal: 1200, now };
+    expect(
+      computeWeightLossPlan({ ...base, targetWeightKg: null, targetDate: dateInDays(30) }),
+    ).toBeNull();
+    expect(computeWeightLossPlan({ ...base, targetWeightKg: 55, targetDate: null })).toBeNull();
+    expect(
+      computeWeightLossPlan({ ...base, targetWeightKg: 60, targetDate: dateInDays(30) }),
+    ).toBeNull();
+    expect(
+      computeWeightLossPlan({ ...base, targetWeightKg: 70, targetDate: dateInDays(30) }),
+    ).toBeNull();
+    expect(computeWeightLossPlan({ ...base, targetWeightKg: 55, targetDate: now })).toBeNull();
+    expect(
+      computeWeightLossPlan({ ...base, targetWeightKg: 55, targetDate: dateInDays(-1) }),
+    ).toBeNull();
+  });
+
+  it('computeTargets 叠加：fat_loss + 目标体重+日期 → 缺口法；无目标 → 仍 TDEE×0.8', () => {
+    // 女 1998 生 / 162cm / 55kg / 久坐：BMR 1261.5，TDEE 1513.8
+    const base = {
+      gender: 'female',
+      birthYear: 1998,
+      heightCm: 162,
+      weightKg: 55,
+      activityLevel: 'sedentary',
+      goal: 'fat_loss',
+    };
+    const fixed = computeTargets({ ...base, targetWeightKg: null, targetDate: null });
+    expect(fixed.weightLoss).toBeUndefined();
+    expect(fixed.kcal).toBe(Math.round(1513.8 * 0.8)); // 1211
+
+    // 55→53 kg / 28 天：0.5 kg/周 → 缺口 550 → 1513.8−550=963.8 → 下限 1200
+    const deficit = computeTargets({
+      ...base,
+      targetWeightKg: 53,
+      targetDate: new Date(Date.now() + 28 * 86400000),
+    });
+    expect(deficit.weightLoss).toBeDefined();
+    expect(deficit.weightLoss!.weeklyRateKg).toBeCloseTo(0.5, 1);
+    expect(deficit.kcal).toBe(1200); // 下限保护兜底
+
+    // 目标≥当前 → 回落固定 ×0.8
+    const maintain = computeTargets({
+      ...base,
+      targetWeightKg: 60,
+      targetDate: new Date(Date.now() + 28 * 86400000),
+    });
+    expect(maintain.weightLoss).toBeUndefined();
+    expect(maintain.kcal).toBe(1211);
   });
 });

@@ -17,6 +17,10 @@ export interface UserEntity {
   weightKg: number | null;
   activityLevel: string | null;
   goal: string | null;
+  /** 阶段 B 减重目标：目标体重（kg；仅 fat_loss 且有 targetDate 时参与缺口法） */
+  targetWeightKg: number | null;
+  /** 阶段 B 减重目标：目标日期（只存日期口径，UTC 零点） */
+  targetDate: Date | null;
   locale: string;
   timezone: string;
   themePref: string;
@@ -350,6 +354,8 @@ export class DataStore {
       weightKg: null,
       activityLevel: null,
       goal: null,
+      targetWeightKg: null,
+      targetDate: null,
       locale: 'zh-CN',
       timezone: 'Asia/Shanghai',
       themePref: 'system',

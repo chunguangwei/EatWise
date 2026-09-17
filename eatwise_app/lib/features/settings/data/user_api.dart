@@ -43,6 +43,8 @@ final class UserMeView {
     this.weightKg,
     this.activityLevel,
     this.goal,
+    this.targetWeightKg,
+    this.targetDate,
     this.onboardingStatus,
     this.nutritionTargets,
   });
@@ -76,6 +78,12 @@ final class UserMeView {
   /// 目标（fat_loss/health_metric/routine/trial）。
   final String? goal;
 
+  /// 阶段 B 减重目标：目标体重（kg；未设置为 null）。
+  final double? targetWeightKg;
+
+  /// 阶段 B 减重目标：目标日期（YYYY-MM-DD；未设置为 null）。
+  final String? targetDate;
+
   /// 引导状态（none/completed/skipped）。
   final String? onboardingStatus;
 
@@ -100,6 +108,8 @@ final class UserMeView {
       weightKg: (json['weightKg'] as num?)?.toDouble(),
       activityLevel: json['activityLevel'] as String?,
       goal: json['goal'] as String?,
+      targetWeightKg: (json['targetWeightKg'] as num?)?.toDouble(),
+      targetDate: json['targetDate'] as String?,
       onboardingStatus: json['onboardingStatus'] as String?,
       nutritionTargets: nutritionTargets != null
           ? NutritionTargetsView.fromJson(nutritionTargets)

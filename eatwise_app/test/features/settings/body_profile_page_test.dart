@@ -265,4 +265,168 @@ void main() {
       '75',
     );
   });
+
+  testWidgets('阶段 B：编辑目标体重/目标日期 → 保存 PATCH 上送并按缺口法重算', (tester) async {
+    // 服务端档案带 fat_loss 目标（缺口法前提）。
+    adapter.stub(
+      '/users/me',
+      StubResponse.json(
+        200,
+        StubResponse.envelope(<String, dynamic>{
+          'user': <String, dynamic>{
+            'id': 'u1',
+            'phone': '+8613****8000',
+            'goal': 'fat_loss',
+          },
+          'nutritionTargets': <String, dynamic>{
+            'kcal': 1200,
+            'proteinG': 75,
+            'carbsG': 135,
+            'fatG': 40,
+            'fallback': false,
+          },
+        }),
+      ),
+    );
+    await pumpPage(tester, loggedIn: true);
+
+    await tester.tap(find.text('女'));
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.birthYear')),
+      '1998',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.heightCm')),
+      '162',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.weightKg')),
+      '70',
+    );
+    await tester.pump();
+    await tapVisible(
+      tester,
+      const ValueKey<String>('profile.activity.sedentary'),
+    );
+
+    // 目标：50 kg / 8 周（2026-09-22）→ 原始 2.5 kg/周 → 夹取 1.0。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal.targetWeight')),
+      '50',
+    );
+    await tester.pump();
+    await tapVisible(tester, const ValueKey<String>('goal.quickWeeks.8'));
+    await tapVisible(
+      tester,
+      const ValueKey<String>('settings.bodyProfile.save'),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1));
+
+    expect(patchCount(), 1);
+    final patchIndex = adapter.requests.indexWhere(
+      (r) => r.path == '/users/me' && r.method == 'PATCH',
+    );
+    final patch = adapter.requestBodies[patchIndex] as Map<String, dynamic>;
+    expect(patch['targetWeightKg'], 50);
+    expect(patch['targetDate'], '2026-09-22');
+
+    // 当日重算：TDEE 1693.8 − 1100 → 下限 1200；快照带缺口法字段。
+    final goal = store.loadNutritionGoal()!;
+    expect(goal.targetKcal, 1200);
+    expect(goal.weeklyRateKg, 1.0);
+    expect(goal.weightLossClamped, isTrue);
+    expect(goal.reachDate, '2026-12-15'); // 20kg ÷ 1kg/周 = 140 天
+    final profile = store.loadProfile()!;
+    expect(profile.targetWeightKg, 50);
+    expect(profile.targetDate?.toIsoString(), '2026-09-22');
+  });
+
+  testWidgets('阶段 B：目标可清空 → PATCH 显式传 null，回落固定折算', (tester) async {
+    // 服务端档案已有目标（预填）+ fat_loss。
+    adapter.stub(
+      '/users/me',
+      StubResponse.json(
+        200,
+        StubResponse.envelope(<String, dynamic>{
+          'user': <String, dynamic>{
+            'id': 'u1',
+            'phone': '+8613****8000',
+            'gender': 'female',
+            'birthYear': 1998,
+            'heightCm': 162.0,
+            'weightKg': 70.0,
+            'activityLevel': 'sedentary',
+            'goal': 'fat_loss',
+            'targetWeightKg': 50.0,
+            'targetDate': '2026-09-22',
+          },
+          'nutritionTargets': <String, dynamic>{
+            'kcal': 1200,
+            'proteinG': 75,
+            'carbsG': 135,
+            'fatG': 40,
+            'fallback': false,
+          },
+        }),
+      ),
+    );
+    await pumpPage(tester, loggedIn: true);
+
+    // 目标字段已预填。
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey<String>('goal.targetWeight')),
+          )
+          .controller!
+          .text,
+      '50',
+    );
+    // 日期预览在 ListView 懒构建区域，先滚动到可见。
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey<String>('goal.datePreview')),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+    // 本测试的 MaterialApp 未装 zh 代理，预览可能为 ISO 或中文格式。
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey<String>('goal.datePreview')))
+          .data,
+      anyOf('2026年9月22日', '2026-09-22'),
+    );
+
+    // 清空目标体重 + 清除日期。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal.targetWeight')),
+      '',
+    );
+    await tester.pump();
+    await tapVisible(tester, const ValueKey<String>('goal.clearDate'));
+    await tapVisible(
+      tester,
+      const ValueKey<String>('settings.bodyProfile.save'),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1));
+
+    final patchIndex = adapter.requests.indexWhere(
+      (r) => r.path == '/users/me' && r.method == 'PATCH',
+    );
+    final patch = adapter.requestBodies[patchIndex] as Map<String, dynamic>;
+    expect(patch.containsKey('targetWeightKg'), isTrue);
+    expect(patch['targetWeightKg'], isNull);
+    expect(patch['targetDate'], isNull);
+
+    // 回落 D-04 固定折算：1693.8 × 0.8 = 1355.04 → 1360；无缺口法字段。
+    final goal = store.loadNutritionGoal()!;
+    expect(goal.targetKcal, 1360);
+    expect(goal.weeklyRateKg, isNull);
+    expect(store.loadProfile()!.hasWeightGoal, isFalse);
+  });
 }

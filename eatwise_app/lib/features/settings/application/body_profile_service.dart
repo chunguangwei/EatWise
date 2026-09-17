@@ -1,5 +1,7 @@
 import 'package:eatwise/features/auth/application/auth_controller.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
+import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
+import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_rule_config.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
@@ -39,17 +41,26 @@ final class BodyProfileService {
       heightCm: me.heightCm,
       weightKg: me.weightKg,
       activityLevel: _activityOf(me.activityLevel),
+      targetWeightKg: me.targetWeightKg,
+      targetDate: _parseTargetDate(me.targetDate),
     );
   }
 
   /// 保存：本地档案 + 重算营养目标落盘并刷新目标 Provider；
-  /// 已登录再 PATCH（档案字段，字段级 LWW）。
+  /// 已登录再 PATCH（档案字段，字段级 LWW；减重目标显式传 null 支持清空）。
   Future<NutritionGoalSnapshot> save(OnboardingProfile profile) async {
-    _store.saveProfile(profile);
-    final goal = _recomputeGoal(profile);
+    // 筛查作答仅存本地且不在本表单内编辑——保留已存值，不被表单保存抹掉。
+    final screening =
+        profile.eatingDisorderScreening ??
+        _store.loadProfile()?.eatingDisorderScreening;
+    final merged = profile.copyWith(eatingDisorderScreening: () => screening);
+    _store.saveProfile(merged);
+    final goal = _recomputeGoal(merged);
     _ref.invalidate(nutritionGoalProvider);
     if (_isLoggedIn()) {
-      await _ref.read(userApiProvider).patchMe(serverProfilePatch(profile));
+      await _ref
+          .read(userApiProvider)
+          .patchMe(serverProfilePatch(merged, includeNullTargets: true));
       _ref.invalidate(userMeProvider);
     }
     return goal;
@@ -61,12 +72,18 @@ final class BodyProfileService {
     final goalType = serverGoal == 'fat_loss'
         ? NutritionGoalType.lose
         : NutritionGoalType.maintain;
+    final nowUtc = _ref.read(nowUtcProvider);
     final currentYear = DateTime.fromMillisecondsSinceEpoch(
-      _ref.read(nowUtcProvider) * 1000,
+      nowUtc * 1000,
       isUtc: true,
     ).year;
     final goal = computeNutritionGoal(
-      profile.toProfileInput(goal: goalType, currentYear: currentYear),
+      profile.toProfileInput(
+        goal: goalType,
+        currentYear: currentYear,
+        // 阶段 B 缺口法基准日（设备时区本地日）。
+        today: localDateOf(nowUtc, _ref.read(deviceLocationProvider)),
+      ),
       NutritionRuleConfig.defaults,
     );
     final snapshot = NutritionGoalSnapshot(
@@ -76,6 +93,9 @@ final class BodyProfileService {
       fatG: goal.fatG,
       usedFallback: goal.usedFallback,
       configVersion: goal.configVersion,
+      weeklyRateKg: goal.weightLoss?.weeklyRateKg,
+      weightLossClamped: goal.weightLoss?.clamped ?? false,
+      reachDate: goal.weightLoss?.reachDate.toIsoString(),
     );
     _store.saveNutritionGoal(snapshot);
     return snapshot;
@@ -94,6 +114,18 @@ final class BodyProfileService {
       if (level.name == name) return level;
     }
     return null;
+  }
+
+  /// 服务端目标日期（YYYY-MM-DD）→ LocalDate；非法串按未设置处理。
+  static LocalDate? _parseTargetDate(String? iso) {
+    if (iso == null) return null;
+    final parts = iso.split('-');
+    if (parts.length != 3) return null;
+    final y = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    final d = int.tryParse(parts[2]);
+    if (y == null || m == null || d == null) return null;
+    return LocalDate(y, m, d);
   }
 }
 

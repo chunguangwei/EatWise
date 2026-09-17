@@ -354,6 +354,8 @@ export type UserProfilePatch = Partial<
     | 'weightKg'
     | 'activityLevel'
     | 'goal'
+    | 'targetWeightKg'
+    | 'targetDate'
     | 'timezone'
     | 'locale'
     | 'themePref'

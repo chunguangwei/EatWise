@@ -91,4 +91,35 @@ describe('User profile patch validation (e2e)', () => {
       .expect(200);
     expect(me.body.data.user.onboardingStatus).toBe('skipped');
   });
+
+  it('阶段 B 减重目标：targetWeightKg/targetDate 合法 → 200 落库并以日期口径回显', async () => {
+    const future = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    const res = await patch({ targetWeightKg: 62.5, targetDate: future }).expect(200);
+    expect(res.body.data.user.targetWeightKg).toBe(62.5);
+    expect(res.body.data.user.targetDate).toBe(future);
+
+    // 可清空（null 透传）
+    const cleared = await patch({ targetWeightKg: null, targetDate: null }).expect(200);
+    expect(cleared.body.data.user.targetWeightKg).toBeNull();
+    expect(cleared.body.data.user.targetDate).toBeNull();
+  });
+
+  it('阶段 B 减重目标校验：targetWeightKg 超范围 / targetDate 非未来或超 2 年 → 400', async () => {
+    expect((await patch({ targetWeightKg: 10 })).status).toBe(400);
+    expect((await patch({ targetWeightKg: 400 })).status).toBe(400);
+    expect((await patch({ targetDate: '2020-01-01' })).status).toBe(400); // 过去
+    expect((await patch({ targetDate: new Date().toISOString().slice(0, 10) })).status).toBe(400); // 今天不算未来
+    const over2y = new Date(
+      Date.UTC(
+        new Date().getUTCFullYear() + 2,
+        new Date().getUTCMonth(),
+        new Date().getUTCDate() + 1,
+      ),
+    )
+      .toISOString()
+      .slice(0, 10);
+    expect((await patch({ targetDate: over2y })).status).toBe(400);
+    expect((await patch({ targetDate: '2026-02-30' })).status).toBe(400); // 伪日期
+    expect((await patch({ targetDate: 'next month' })).status).toBe(400);
+  });
 });

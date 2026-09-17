@@ -85,7 +85,12 @@
       "flexibleHint": "你的作息不太固定，进食窗口可以随时自由调整，跟着生活节奏走就好。",
       "fallbackNotice": "每日营养目标先按 ${kcal} kcal 估算，去「我的」补全身高体重后会更准哦。",
       "planChangeTitle": "更换断食方案",
-      "planChangeConfirm": "新方案将于 ${date} 00:00 生效，今天仍按当前方案计时。"
+      "planChangeConfirm": "新方案将于 ${date} 00:00 生效，今天仍按当前方案计时。",
+      "weightLossPlan": "预计每周减 ${rate} kg · 约 ${date} 达成",
+      "dailyKcalTarget": "每日热量目标约 ${kcal} kcal",
+      "clampedNotice": "你的目标节奏偏快，已按安全上限调整为每周最多减 1 kg。",
+      "gentleNotice": "已为你按温和节奏安排，每周最多减 0.5 kg。",
+      "edNotice": "你提到有进食障碍相关经历：减重目标已按温和节奏调整。本应用不提供医疗建议，建议同步咨询专业医生或营养师。"
     },
     "science": {
       "title": "断食原理小科普",
@@ -122,7 +127,29 @@
         "high": "每周高强度运动 6 次以上或体力劳动"
       },
       "save": "保存并继续",
-      "skip": "跳过，使用默认估算"
+      "skip": "跳过，使用默认估算",
+      "screening": {
+        "title": "是否有进食障碍史（如暴食症/厌食症），或正在接受相关治疗？",
+        "hint": "仅用于为你调整更温和的减重节奏；答案只保存在本机，不会上传。",
+        "options": {
+          "yes": "是",
+          "no": "否",
+          "preferNotToSay": "不愿透露"
+        }
+      }
+    },
+    "goal": {
+      "title": "定个减重小目标",
+      "subtitle": "填上目标体重和日期，就能按安全节奏算出每天的热量目标；也可以跳过，先按默认折算。",
+      "targetWeightLabel": "目标体重（kg）",
+      "targetWeightHint": "如 55",
+      "targetWeightInvalid": "请输入 25–300 之间的体重",
+      "targetDateLabel": "希望在哪天达成？",
+      "quickWeeks": "${weeks} 周后",
+      "customDate": "自选日期",
+      "clearDate": "清除日期",
+      "save": "保存并继续",
+      "skip": "跳过"
     }
   },
   "record": {
@@ -641,6 +668,7 @@
     "bodyProfile": {
       "title": "身体档案",
       "subtitle": "身高体重等，用于计算精准营养目标",
+      "goalSection": "减重目标（选填，仅减脂目标生效）",
       "save": "保存",
       "saved": "身体档案已保存",
       "goalUpdated": "每日营养目标已更新为 ${kcal} kcal"

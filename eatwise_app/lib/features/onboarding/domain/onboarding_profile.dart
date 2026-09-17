@@ -1,14 +1,21 @@
-/// onboarding 档案采集（阶段 A：性别/出生年/身高/体重/活动水平）。
+/// onboarding 档案采集（阶段 A：性别/出生年/身高/体重/活动水平；
+/// 阶段 B：减重目标体重/目标日期 + 进食障碍筛查）。
 ///
 /// D-18：身高体重属敏感个人信息——整页可跳过、单项可留空，
 /// 空项在营养计算中按缺失走 §1.6 兜底。
 library;
 
+import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 
 /// 生理性别采集项（比 [Sex] 多「不透露」：不透露 = 公式按缺失兜底）。
 enum ProfileSex { male, female, undisclosed }
+
+/// 进食障碍筛查作答（阶段 B，敏感信息——仅存本地，不上报服务端）。
+/// yes = 有进食障碍史或正在治疗 → 强制温和目标（周速率 ≤0.5 kg）；
+/// preferNotToSay / no / 未作答 均不触发温和化。
+enum EatingDisorderScreening { yes, no, preferNotToSay }
 
 /// 档案表单取值域（与《规格-营养规则》§1.1 取值域一致）。
 abstract final class ProfileFieldLimits {
@@ -49,6 +56,9 @@ final class OnboardingProfile {
     this.heightCm,
     this.weightKg,
     this.activityLevel,
+    this.eatingDisorderScreening,
+    this.targetWeightKg,
+    this.targetDate,
   });
 
   /// 空档案（等价于「跳过档案页」）。
@@ -60,7 +70,16 @@ final class OnboardingProfile {
   final double? weightKg;
   final ActivityLevel? activityLevel;
 
-  /// 是否一项都没填。
+  /// 进食障碍筛查作答（阶段 B；仅存本地不上报，D-18 敏感信息）。
+  final EatingDisorderScreening? eatingDisorderScreening;
+
+  /// 阶段 B 减重目标：目标体重（kg，取值域同 [weightKg]）。
+  final double? targetWeightKg;
+
+  /// 阶段 B 减重目标：目标日期（本地日）。
+  final LocalDate? targetDate;
+
+  /// 是否一项都没填（筛查与减重目标不计入——它们单独存在时没有计算意义）。
   bool get isEmpty =>
       sex == null &&
       birthYear == null &&
@@ -68,12 +87,17 @@ final class OnboardingProfile {
       weightKg == null &&
       activityLevel == null;
 
+  /// 是否填了减重目标（目标页展示条件之一：还需 Q1=减脂且有体重）。
+  bool get hasWeightGoal => targetWeightKg != null && targetDate != null;
+
   /// 转 TDEE 计算输入（§1.1）：不透露/缺失的性别 → null（兜底 2000 kcal）；
   /// 出生年 → 年龄（currentYear − birthYear，越域由 [UserProfileInput]
-  /// 取值域判定按缺失处理）。
+  /// 取值域判定按缺失处理）。阶段 B：减重目标与温和化标记透传，
+  /// [today] 为缺口法的基准日（缺省不启用缺口法）。
   UserProfileInput toProfileInput({
     required NutritionGoalType goal,
     required int currentYear,
+    LocalDate? today,
   }) {
     return UserProfileInput(
       sex: switch (sex) {
@@ -86,6 +110,10 @@ final class OnboardingProfile {
       weightKg: weightKg,
       activityLevel: activityLevel,
       goal: goal,
+      targetWeightKg: targetWeightKg,
+      targetDate: targetDate,
+      today: today,
+      gentleWeightLoss: eatingDisorderScreening == EatingDisorderScreening.yes,
     );
   }
 
@@ -95,6 +123,9 @@ final class OnboardingProfile {
     double? Function()? heightCm,
     double? Function()? weightKg,
     ActivityLevel? Function()? activityLevel,
+    EatingDisorderScreening? Function()? eatingDisorderScreening,
+    double? Function()? targetWeightKg,
+    LocalDate? Function()? targetDate,
   }) {
     return OnboardingProfile(
       sex: sex != null ? sex() : this.sex,
@@ -104,7 +135,25 @@ final class OnboardingProfile {
       activityLevel: activityLevel != null
           ? activityLevel()
           : this.activityLevel,
+      eatingDisorderScreening: eatingDisorderScreening != null
+          ? eatingDisorderScreening()
+          : this.eatingDisorderScreening,
+      targetWeightKg: targetWeightKg != null
+          ? targetWeightKg()
+          : this.targetWeightKg,
+      targetDate: targetDate != null ? targetDate() : this.targetDate,
     );
+  }
+
+  static LocalDate? _parseDate(String? iso) {
+    if (iso == null) return null;
+    final parts = iso.split('-');
+    if (parts.length != 3) return null;
+    final y = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    final d = int.tryParse(parts[2]);
+    if (y == null || m == null || d == null) return null;
+    return LocalDate(y, m, d);
   }
 
   static OnboardingProfile fromJson(Map<String, dynamic> json) {
@@ -123,6 +172,12 @@ final class OnboardingProfile {
       heightCm: (json['heightCm'] as num?)?.toDouble(),
       weightKg: (json['weightKg'] as num?)?.toDouble(),
       activityLevel: find('activityLevel', ActivityLevel.values),
+      eatingDisorderScreening: find(
+        'eatingDisorderScreening',
+        EatingDisorderScreening.values,
+      ),
+      targetWeightKg: (json['targetWeightKg'] as num?)?.toDouble(),
+      targetDate: _parseDate(json['targetDate'] as String?),
     );
   }
 
@@ -132,6 +187,10 @@ final class OnboardingProfile {
     if (heightCm != null) 'heightCm': heightCm,
     if (weightKg != null) 'weightKg': weightKg,
     if (activityLevel != null) 'activityLevel': activityLevel!.name,
+    if (eatingDisorderScreening != null)
+      'eatingDisorderScreening': eatingDisorderScreening!.name,
+    if (targetWeightKg != null) 'targetWeightKg': targetWeightKg,
+    if (targetDate != null) 'targetDate': targetDate!.toIsoString(),
   };
 
   @override
@@ -141,13 +200,26 @@ final class OnboardingProfile {
       other.birthYear == birthYear &&
       other.heightCm == heightCm &&
       other.weightKg == weightKg &&
-      other.activityLevel == activityLevel;
+      other.activityLevel == activityLevel &&
+      other.eatingDisorderScreening == eatingDisorderScreening &&
+      other.targetWeightKg == targetWeightKg &&
+      other.targetDate == targetDate;
 
   @override
-  int get hashCode =>
-      Object.hash(sex, birthYear, heightCm, weightKg, activityLevel);
+  int get hashCode => Object.hash(
+    sex,
+    birthYear,
+    heightCm,
+    weightKg,
+    activityLevel,
+    eatingDisorderScreening,
+    targetWeightKg,
+    targetDate,
+  );
 
   @override
   String toString() =>
-      'OnboardingProfile($sex, $birthYear, ${heightCm}cm, ${weightKg}kg, $activityLevel)';
+      'OnboardingProfile($sex, $birthYear, ${heightCm}cm, ${weightKg}kg, '
+      '$activityLevel, screening=$eatingDisorderScreening, '
+      'target=${targetWeightKg}kg@$targetDate)';
 }

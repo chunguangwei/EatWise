@@ -106,12 +106,13 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
                 summaryText,
                 style: textStyles.textXl.copyWith(color: colors.textPrimary),
               ),
-              // D-04 兜底目标 → 引导补全资料。
+              // D-04 兜底目标 → 引导补全资料（点击跳「我的-身体档案」）。
               if (goal.usedFallback) ...<Widget>[
                 const SizedBox(height: AppSpacing.s2),
                 _HintBanner(
                   icon: Icons.info_outline,
                   text: t.nutrition.data.summary.fallbackGoal,
+                  onTap: () => context.push('/settings/body-profile'),
                 ),
               ],
               // 本地预估角标（§2.6：isLocalEstimate 时注明待云端校准）。
@@ -179,34 +180,46 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
   }
 }
 
-/// 兜底/提示横幅（温和语气，非警告）。
+/// 兜底/提示横幅（温和语气，非警告；onTap 非空时可点击并带跳转箭头）。
 class _HintBanner extends StatelessWidget {
-  const _HintBanner({required this.icon, required this.text});
+  const _HintBanner({required this.icon, required this.text, this.onTap});
 
   final IconData icon;
   final String text;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.s3),
-      decoration: BoxDecoration(
-        color: colors.brandPrimary.withValues(alpha: 0.08),
+    return Material(
+      color: colors.brandPrimary.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        key: const ValueKey<String>('nutrition.data.hintBanner'),
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: <Widget>[
-          Icon(icon, size: 18, color: colors.brandPrimary),
-          const SizedBox(width: AppSpacing.s2),
-          Expanded(
-            child: Text(
-              text,
-              style: textStyles.textSm.copyWith(color: colors.textPrimary),
-            ),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.s3),
+          child: Row(
+            children: <Widget>[
+              Icon(icon, size: 18, color: colors.brandPrimary),
+              const SizedBox(width: AppSpacing.s2),
+              Expanded(
+                child: Text(
+                  text,
+                  style: textStyles.textSm.copyWith(color: colors.textPrimary),
+                ),
+              ),
+              if (onTap != null)
+                Icon(
+                  Icons.chevron_right,
+                  size: 18,
+                  color: colors.textSecondary,
+                ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

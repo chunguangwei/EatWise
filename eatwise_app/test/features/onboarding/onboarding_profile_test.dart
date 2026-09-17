@@ -133,6 +133,10 @@ void main() {
     );
     await tapVisible(tester, const ValueKey<String>('onboarding.profile.save'));
 
+    // 阶段 B：Q1=减脂且填了体重 → 先落目标页；跳过目标 → 推荐页。
+    expect(find.text('定个减重小目标'), findsOneWidget);
+    await tapVisible(tester, const ValueKey<String>('onboarding.goal.skip'));
+
     // 保存后落到推荐页；档案已持久化。
     expect(find.text('为你推荐的方案'), findsOneWidget);
     final profile = store.loadProfile()!;

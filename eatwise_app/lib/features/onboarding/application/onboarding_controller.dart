@@ -317,23 +317,37 @@ final class OnboardingController extends Notifier<OnboardingState> {
     );
   }
 
-  /// 计算并落盘每日营养目标（D-04；档案齐备走全参计算，缺基础信息走
-  /// 兜底并提示补全）。年龄由出生年按当前 UTC 年折算（与服务端
-  /// computeTargets 同口径）。
-  NutritionGoalSnapshot _computeAndSaveNutritionGoal() {
+  /// 计算每日营养目标（D-04 + 阶段 B 缺口法；档案齐备走全参计算，
+  /// 缺基础信息走兜底）。年龄由出生年按当前 UTC 年折算（与服务端
+  /// computeTargets 同口径）；缺口法基准日为设备时区本地日。
+  NutritionGoal _computeNutritionGoal() {
     final goalType = state.answers.goal == GoalAnswer.loseWeight
         ? NutritionGoalType.lose
         : NutritionGoalType.maintain;
     final profile = _store.loadProfile();
+    final nowUtc = ref.read(nowUtcProvider);
     final currentYear = DateTime.fromMillisecondsSinceEpoch(
-      ref.read(nowUtcProvider) * 1000,
+      nowUtc * 1000,
       isUtc: true,
     ).year;
-    final goal = computeNutritionGoal(
-      profile?.toProfileInput(goal: goalType, currentYear: currentYear) ??
+    return computeNutritionGoal(
+      profile?.toProfileInput(
+            goal: goalType,
+            currentYear: currentYear,
+            today: localDateOf(nowUtc, ref.read(deviceLocationProvider)),
+          ) ??
           UserProfileInput(goal: goalType),
       NutritionRuleConfig.defaults,
     );
+  }
+
+  /// 推荐页减重预览（阶段 B）：不落盘的试算，驱动「预计每周减 X kg」
+  /// 与安全夹取/温和节奏提示。
+  NutritionGoal previewNutritionGoal() => _computeNutritionGoal();
+
+  /// 计算并落盘每日营养目标（D-04 + 阶段 B；兜底时驱动「补全资料」提示）。
+  NutritionGoalSnapshot _computeAndSaveNutritionGoal() {
+    final goal = _computeNutritionGoal();
     final snapshot = NutritionGoalSnapshot(
       targetKcal: goal.targetKcal,
       proteinG: goal.proteinG,
@@ -341,6 +355,9 @@ final class OnboardingController extends Notifier<OnboardingState> {
       fatG: goal.fatG,
       usedFallback: goal.usedFallback,
       configVersion: goal.configVersion,
+      weeklyRateKg: goal.weightLoss?.weeklyRateKg,
+      weightLossClamped: goal.weightLoss?.clamped ?? false,
+      reachDate: goal.weightLoss?.reachDate.toIsoString(),
     );
     _store.saveNutritionGoal(snapshot);
     return snapshot;

@@ -11,6 +11,7 @@ import 'package:eatwise/features/legal/presentation/legal_pages.dart';
 import 'package:eatwise/features/legal/presentation/privacy_consent_page.dart';
 import 'package:eatwise/features/nutrition/presentation/nutrition_data_page.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
+import 'package:eatwise/features/onboarding/presentation/goal_screen.dart';
 import 'package:eatwise/features/onboarding/presentation/profile_screen.dart';
 import 'package:eatwise/features/onboarding/presentation/questionnaire_screen.dart';
 import 'package:eatwise/features/onboarding/presentation/recommendation_screen.dart';
@@ -215,6 +216,11 @@ GoRouter createAppRouter({
       GoRoute(
         path: '/onboarding/profile',
         builder: (context, state) => const OnboardingProfileScreen(),
+      ),
+      // 阶段 B：减重目标页（档案页之后；仅 Q1=减脂且填了体重时进入，可跳过）。
+      GoRoute(
+        path: '/onboarding/goal',
+        builder: (context, state) => const OnboardingGoalScreen(),
       ),
       GoRoute(
         path: '/onboarding/recommendation',

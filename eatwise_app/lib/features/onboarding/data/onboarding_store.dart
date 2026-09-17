@@ -94,6 +94,9 @@ final class NutritionGoalSnapshot {
     required this.fatG,
     required this.usedFallback,
     required this.configVersion,
+    this.weeklyRateKg,
+    this.weightLossClamped = false,
+    this.reachDate,
   });
 
   final int targetKcal;
@@ -105,6 +108,15 @@ final class NutritionGoalSnapshot {
   final bool usedFallback;
   final String configVersion;
 
+  /// 阶段 B：缺口法周减重速率（kg/周；非缺口法为 null）。
+  final double? weeklyRateKg;
+
+  /// 阶段 B：原始速率超安全上限被夹取（UI 提示「已按安全上限调整」）。
+  final bool weightLossClamped;
+
+  /// 阶段 B：预计达成日期（ISO yyyy-MM-dd；非缺口法为 null）。
+  final String? reachDate;
+
   static NutritionGoalSnapshot fromJson(Map<String, dynamic> json) {
     return NutritionGoalSnapshot(
       targetKcal: json['targetKcal']! as int,
@@ -113,6 +125,9 @@ final class NutritionGoalSnapshot {
       fatG: json['fatG']! as int,
       usedFallback: json['usedFallback']! as bool,
       configVersion: json['configVersion']! as String,
+      weeklyRateKg: (json['weeklyRateKg'] as num?)?.toDouble(),
+      weightLossClamped: json['weightLossClamped'] as bool? ?? false,
+      reachDate: json['reachDate'] as String?,
     );
   }
 
@@ -123,6 +138,9 @@ final class NutritionGoalSnapshot {
     'fatG': fatG,
     'usedFallback': usedFallback,
     'configVersion': configVersion,
+    if (weeklyRateKg != null) 'weeklyRateKg': weeklyRateKg,
+    'weightLossClamped': weightLossClamped,
+    if (reachDate != null) 'reachDate': reachDate,
   };
 }
 

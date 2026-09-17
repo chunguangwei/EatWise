@@ -5,6 +5,9 @@ import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/account/presentation/body_profile_form.dart';
+import 'package:eatwise/features/account/presentation/weight_goal_fields.dart';
+import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
+import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
 import 'package:eatwise/features/settings/application/body_profile_service.dart';
@@ -12,8 +15,10 @@ import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// 「我的-身体档案」页（阶段 A）：查看/修改性别/出生年/身高/体重/活动水平，
-/// 保存即重算当日营养目标（D-04）；登录态同步 PATCH /users/me（U2）。
+/// 「我的-身体档案」页（阶段 A：查看/修改性别/出生年/身高/体重/活动水平；
+/// 阶段 B：目标体重/目标日期编辑，可清空）。
+/// 保存即重算当日营养目标（D-04 + 缺口法，历史不回溯）；
+/// 登录态同步 PATCH /users/me（U2）。
 class BodyProfilePage extends ConsumerStatefulWidget {
   const BodyProfilePage({super.key});
 
@@ -23,7 +28,10 @@ class BodyProfilePage extends ConsumerStatefulWidget {
 
 class _BodyProfilePageState extends ConsumerState<BodyProfilePage> {
   OnboardingProfile _profile = OnboardingProfile.empty;
+  double? _targetWeightKg;
+  LocalDate? _targetDate;
   bool _valid = true;
+  bool _goalValid = true;
   bool _saving = false;
 
   @override
@@ -31,10 +39,12 @@ class _BodyProfilePageState extends ConsumerState<BodyProfilePage> {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final nowUtc = ref.read(nowUtcProvider);
     final currentYear = DateTime.fromMillisecondsSinceEpoch(
-      ref.read(nowUtcProvider) * 1000,
+      nowUtc * 1000,
       isUtc: true,
     ).year;
+    final today = localDateOf(nowUtc, ref.read(deviceLocationProvider));
     // 等 U1 就绪再建表单：本地无档案时可用服务端档案预填（失败/未登录
     // userMeProvider 回落 null，同样视为就绪）。
     final me = ref.watch(userMeProvider);
@@ -55,20 +65,55 @@ class _BodyProfilePageState extends ConsumerState<BodyProfilePage> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.s4),
-                  BodyProfileForm(
-                    currentYear: currentYear,
-                    initial: ref
-                        .read(bodyProfileServiceProvider)
-                        .initialProfile(me.value),
-                    onChanged: (profile, valid) {
-                      _profile = profile;
-                      if (valid != _valid) setState(() => _valid = valid);
+                  Builder(
+                    builder: (context) {
+                      final initial = ref
+                          .read(bodyProfileServiceProvider)
+                          .initialProfile(me.value);
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          BodyProfileForm(
+                            currentYear: currentYear,
+                            initial: initial,
+                            onChanged: (profile, valid) {
+                              _profile = profile;
+                              if (valid != _valid) {
+                                setState(() => _valid = valid);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: AppSpacing.s4),
+                          // 阶段 B：减重目标（仅减脂目标生效；可留空/清空）。
+                          Text(
+                            t.settings.bodyProfile.goalSection,
+                            style: textStyles.textSm.copyWith(
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.s2),
+                          WeightGoalFields(
+                            today: today,
+                            initialWeightKg: initial.targetWeightKg,
+                            initialDate: initial.targetDate,
+                            onChanged: (weightKg, date, valid) {
+                              _targetWeightKg = weightKg;
+                              _targetDate = date;
+                              if (valid != _goalValid) {
+                                setState(() => _goalValid = valid);
+                              }
+                            },
+                          ),
+                        ],
+                      );
                     },
                   ),
                   const SizedBox(height: AppSpacing.s6),
                   FilledButton(
                     key: const ValueKey<String>('settings.bodyProfile.save'),
-                    onPressed: !_valid || _saving ? null : () => _save(context),
+                    onPressed: !_valid || !_goalValid || _saving
+                        ? null
+                        : () => _save(context),
                     style: FilledButton.styleFrom(
                       backgroundColor: colors.brandPrimary,
                       minimumSize: const Size.fromHeight(AppSpacing.s12),
@@ -85,7 +130,14 @@ class _BodyProfilePageState extends ConsumerState<BodyProfilePage> {
     final t = Translations.of(context);
     setState(() => _saving = true);
     try {
-      final goal = await ref.read(bodyProfileServiceProvider).save(_profile);
+      final goal = await ref
+          .read(bodyProfileServiceProvider)
+          .save(
+            _profile.copyWith(
+              targetWeightKg: () => _targetWeightKg,
+              targetDate: () => _targetDate,
+            ),
+          );
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

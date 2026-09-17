@@ -80,6 +80,7 @@ class _Translations$onboarding$en extends Translations$onboarding$zh_CN {
 	@override late final _Translations$onboarding$recommendation$en recommendation = _Translations$onboarding$recommendation$en._(_root);
 	@override late final _Translations$onboarding$science$en science = _Translations$onboarding$science$en._(_root);
 	@override late final _Translations$onboarding$profile$en profile = _Translations$onboarding$profile$en._(_root);
+	@override late final _Translations$onboarding$goal$en goal = _Translations$onboarding$goal$en._(_root);
 }
 
 // Path: record
@@ -335,6 +336,11 @@ class _Translations$onboarding$recommendation$en extends Translations$onboarding
 	@override String fallbackNotice({required Object kcal}) => 'Your daily nutrition goal is estimated at ${kcal} kcal for now — add your height & weight in Profile for a precise target.';
 	@override String get planChangeTitle => 'Change fasting plan';
 	@override String planChangeConfirm({required Object date}) => 'The new plan takes effect at 00:00 on ${date}. Today still follows your current plan.';
+	@override String weightLossPlan({required Object rate, required Object date}) => 'About ${rate} kg/week · reach your goal around ${date}';
+	@override String dailyKcalTarget({required Object kcal}) => 'Daily calorie goal ≈ ${kcal} kcal';
+	@override String get clampedNotice => 'That pace was a bit fast, so we\'ve adjusted it to a safe maximum of 1 kg per week.';
+	@override String get gentleNotice => 'We\'ve set a gentler pace for you — at most 0.5 kg per week.';
+	@override String get edNotice => 'You mentioned an eating-disorder history: your goal has been set to a gentler pace. This app does not provide medical advice — please consider consulting a doctor or dietitian as well.';
 }
 
 // Path: onboarding.science
@@ -377,6 +383,27 @@ class _Translations$onboarding$profile$en extends Translations$onboarding$profil
 	@override late final _Translations$onboarding$profile$activity$en activity = _Translations$onboarding$profile$activity$en._(_root);
 	@override String get save => 'Save & continue';
 	@override String get skip => 'Skip, use default estimate';
+	@override late final _Translations$onboarding$profile$screening$en screening = _Translations$onboarding$profile$screening$en._(_root);
+}
+
+// Path: onboarding.goal
+class _Translations$onboarding$goal$en extends Translations$onboarding$goal$zh_CN {
+	_Translations$onboarding$goal$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Set a weight goal';
+	@override String get subtitle => 'With a target weight and date, we can work out a safe daily calorie goal — or skip and use the default estimate.';
+	@override String get targetWeightLabel => 'Target weight (kg)';
+	@override String get targetWeightHint => 'e.g. 55';
+	@override String get targetWeightInvalid => 'Enter a weight between 25 and 300 kg';
+	@override String get targetDateLabel => 'When do you want to reach it?';
+	@override String quickWeeks({required Object weeks}) => 'In ${weeks} weeks';
+	@override String get customDate => 'Pick a date';
+	@override String get clearDate => 'Clear date';
+	@override String get save => 'Save & continue';
+	@override String get skip => 'Skip';
 }
 
 // Path: record.page
@@ -1042,6 +1069,7 @@ class _Translations$settings$bodyProfile$en extends Translations$settings$bodyPr
 	// Translations
 	@override String get title => 'Body profile';
 	@override String get subtitle => 'Height, weight & more — used for precise nutrition goals';
+	@override String get goalSection => 'Weight goal (optional; applies to fat-loss goal only)';
 	@override String get save => 'Save';
 	@override String get saved => 'Body profile saved';
 	@override String goalUpdated({required Object kcal}) => 'Daily nutrition goal updated to ${kcal} kcal';
@@ -1496,6 +1524,18 @@ class _Translations$onboarding$profile$activity$en extends Translations$onboardi
 	@override String get high => 'Intense exercise 6+ times a week or physical labor';
 }
 
+// Path: onboarding.profile.screening
+class _Translations$onboarding$profile$screening$en extends Translations$onboarding$profile$screening$zh_CN {
+	_Translations$onboarding$profile$screening$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Do you have a history of eating disorders (e.g. bulimia/anorexia), or are you currently in related treatment?';
+	@override String get hint => 'Only used to set a gentler weight-loss pace for you. Your answer stays on this device and is never uploaded.';
+	@override late final _Translations$onboarding$profile$screening$options$en options = _Translations$onboarding$profile$screening$options$en._(_root);
+}
+
 // Path: record.barcode.contribute
 class _Translations$record$barcode$contribute$en extends Translations$record$barcode$contribute$zh_CN {
 	_Translations$record$barcode$contribute$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -1767,6 +1807,18 @@ class _Translations$onboarding$quiz$q3$options$en extends Translations$onboardin
 	@override String get experienced => 'Experienced';
 }
 
+// Path: onboarding.profile.screening.options
+class _Translations$onboarding$profile$screening$options$en extends Translations$onboarding$profile$screening$options$zh_CN {
+	_Translations$onboarding$profile$screening$options$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get yes => 'Yes';
+	@override String get no => 'No';
+	@override String get preferNotToSay => 'Prefer not to say';
+}
+
 // Path: nutrition.signalCard.advice.kcal
 class _Translations$nutrition$signalCard$advice$kcal$en extends Translations$nutrition$signalCard$advice$kcal$zh_CN {
 	_Translations$nutrition$signalCard$advice$kcal$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -1898,6 +1950,11 @@ extension on TranslationsEn {
 			'onboarding.recommendation.fallbackNotice' => ({required Object kcal}) => 'Your daily nutrition goal is estimated at ${kcal} kcal for now — add your height & weight in Profile for a precise target.',
 			'onboarding.recommendation.planChangeTitle' => 'Change fasting plan',
 			'onboarding.recommendation.planChangeConfirm' => ({required Object date}) => 'The new plan takes effect at 00:00 on ${date}. Today still follows your current plan.',
+			'onboarding.recommendation.weightLossPlan' => ({required Object rate, required Object date}) => 'About ${rate} kg/week · reach your goal around ${date}',
+			'onboarding.recommendation.dailyKcalTarget' => ({required Object kcal}) => 'Daily calorie goal ≈ ${kcal} kcal',
+			'onboarding.recommendation.clampedNotice' => 'That pace was a bit fast, so we\'ve adjusted it to a safe maximum of 1 kg per week.',
+			'onboarding.recommendation.gentleNotice' => 'We\'ve set a gentler pace for you — at most 0.5 kg per week.',
+			'onboarding.recommendation.edNotice' => 'You mentioned an eating-disorder history: your goal has been set to a gentler pace. This app does not provide medical advice — please consider consulting a doctor or dietitian as well.',
 			'onboarding.science.title' => 'How fasting works',
 			'onboarding.science.card1Title' => 'Give your body a break',
 			'onboarding.science.card1Body' => 'During a fast, your body gradually switches to fat-burning mode, running on stored energy.',
@@ -1927,6 +1984,22 @@ extension on TranslationsEn {
 			'onboarding.profile.activity.high' => 'Intense exercise 6+ times a week or physical labor',
 			'onboarding.profile.save' => 'Save & continue',
 			'onboarding.profile.skip' => 'Skip, use default estimate',
+			'onboarding.profile.screening.title' => 'Do you have a history of eating disorders (e.g. bulimia/anorexia), or are you currently in related treatment?',
+			'onboarding.profile.screening.hint' => 'Only used to set a gentler weight-loss pace for you. Your answer stays on this device and is never uploaded.',
+			'onboarding.profile.screening.options.yes' => 'Yes',
+			'onboarding.profile.screening.options.no' => 'No',
+			'onboarding.profile.screening.options.preferNotToSay' => 'Prefer not to say',
+			'onboarding.goal.title' => 'Set a weight goal',
+			'onboarding.goal.subtitle' => 'With a target weight and date, we can work out a safe daily calorie goal — or skip and use the default estimate.',
+			'onboarding.goal.targetWeightLabel' => 'Target weight (kg)',
+			'onboarding.goal.targetWeightHint' => 'e.g. 55',
+			'onboarding.goal.targetWeightInvalid' => 'Enter a weight between 25 and 300 kg',
+			'onboarding.goal.targetDateLabel' => 'When do you want to reach it?',
+			'onboarding.goal.quickWeeks' => ({required Object weeks}) => 'In ${weeks} weeks',
+			'onboarding.goal.customDate' => 'Pick a date',
+			'onboarding.goal.clearDate' => 'Clear date',
+			'onboarding.goal.save' => 'Save & continue',
+			'onboarding.goal.skip' => 'Skip',
 			'record.page.title' => 'Records',
 			'record.page.confirm' => 'Log it',
 			'record.page.loggedToday' => ({required Object count}) => '${count} logged today',
@@ -2299,6 +2372,7 @@ extension on TranslationsEn {
 			'settings.fastingPlan.subtitle' => 'View or change your fasting plan — changes take effect at 00:00 the next day',
 			'settings.bodyProfile.title' => 'Body profile',
 			'settings.bodyProfile.subtitle' => 'Height, weight & more — used for precise nutrition goals',
+			'settings.bodyProfile.goalSection' => 'Weight goal (optional; applies to fat-loss goal only)',
 			'settings.bodyProfile.save' => 'Save',
 			'settings.bodyProfile.saved' => 'Body profile saved',
 			'settings.bodyProfile.goalUpdated' => ({required Object kcal}) => 'Daily nutrition goal updated to ${kcal} kcal',
@@ -2337,6 +2411,8 @@ extension on TranslationsEn {
 			'settings.onDevice.desc' => 'Estimate nutrition offline on this device — your data never leaves it',
 			'settings.onDevice.size' => 'Model size: ~2.41 GB',
 			'settings.onDevice.wifiHint' => 'Large file — Wi-Fi recommended',
+			_ => null,
+		} ?? switch (path) {
 			'settings.onDevice.download' => 'Download model',
 			'settings.onDevice.downloading' => ({required Object percent}) => 'Downloading ${percent}%',
 			'settings.onDevice.cancel' => 'Cancel',
@@ -2359,8 +2435,6 @@ extension on TranslationsEn {
 			'settings.chain.title' => 'Estimate routing',
 			'settings.chain.onDevice' => 'On-device model',
 			'settings.chain.userApi' => 'Custom API',
-			_ => null,
-		} ?? switch (path) {
 			'settings.chain.statusEnabled' => 'Enabled',
 			'settings.chain.statusDisabled' => 'Disabled',
 			'settings.chain.statusNotDownloaded' => 'Not downloaded',

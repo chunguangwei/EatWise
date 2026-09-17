@@ -26,6 +26,29 @@ class IsIanaTimezoneConstraint implements ValidatorConstraintInterface {
   }
 }
 
+/** 减重目标日期校验（阶段 B）：YYYY-MM-DD 真实日期、严格未来（UTC 日粒度）、距今 ≤2 年 */
+@ValidatorConstraint({ name: 'isTargetDate', async: false })
+class IsTargetDateConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    if (typeof value !== 'string') return false;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const date = new Date(`${value}T00:00:00.000Z`);
+    // 滚入下月的伪日期（如 2026-02-31）拒收
+    if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+      return false;
+    }
+    const now = new Date();
+    const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const maxUtc = Date.UTC(now.getUTCFullYear() + 2, now.getUTCMonth(), now.getUTCDate());
+    const t = date.getTime();
+    return t > todayUtc && t <= maxUtc;
+  }
+
+  defaultMessage(): string {
+    return 'targetDate must be a future date (YYYY-MM-DD) within 2 years';
+  }
+}
+
 /** U2 修改资料（字段级 LWW）：全部可选；数值字段范围校验，timezone 校验 IANA 合法性 */
 export class PatchUserDto {
   @IsOptional()
@@ -62,6 +85,18 @@ export class PatchUserDto {
   @IsOptional()
   @IsString()
   goal?: string;
+
+  /** 阶段 B 减重目标：目标体重（kg，25–300）；null 表示清空 */
+  @IsOptional()
+  @IsNumber()
+  @Min(25)
+  @Max(300)
+  targetWeightKg?: number | null;
+
+  /** 阶段 B 减重目标：目标日期（YYYY-MM-DD，未来且 ≤2 年）；null 表示清空 */
+  @IsOptional()
+  @Validate(IsTargetDateConstraint)
+  targetDate?: string | null;
 
   @IsOptional()
   @IsString()

@@ -85,6 +85,7 @@ class Translations$onboarding$zh_CN {
 	late final Translations$onboarding$recommendation$zh_CN recommendation = Translations$onboarding$recommendation$zh_CN.internal(_root);
 	late final Translations$onboarding$science$zh_CN science = Translations$onboarding$science$zh_CN.internal(_root);
 	late final Translations$onboarding$profile$zh_CN profile = Translations$onboarding$profile$zh_CN.internal(_root);
+	late final Translations$onboarding$goal$zh_CN goal = Translations$onboarding$goal$zh_CN.internal(_root);
 }
 
 // Path: record
@@ -415,6 +416,21 @@ class Translations$onboarding$recommendation$zh_CN {
 
 	/// zh-CN: '新方案将于 ${date} 00:00 生效，今天仍按当前方案计时。'
 	String planChangeConfirm({required Object date}) => '新方案将于 ${date} 00:00 生效，今天仍按当前方案计时。';
+
+	/// zh-CN: '预计每周减 ${rate} kg · 约 ${date} 达成'
+	String weightLossPlan({required Object rate, required Object date}) => '预计每周减 ${rate} kg · 约 ${date} 达成';
+
+	/// zh-CN: '每日热量目标约 ${kcal} kcal'
+	String dailyKcalTarget({required Object kcal}) => '每日热量目标约 ${kcal} kcal';
+
+	/// zh-CN: '你的目标节奏偏快，已按安全上限调整为每周最多减 1 kg。'
+	String get clampedNotice => '你的目标节奏偏快，已按安全上限调整为每周最多减 1 kg。';
+
+	/// zh-CN: '已为你按温和节奏安排，每周最多减 0.5 kg。'
+	String get gentleNotice => '已为你按温和节奏安排，每周最多减 0.5 kg。';
+
+	/// zh-CN: '你提到有进食障碍相关经历：减重目标已按温和节奏调整。本应用不提供医疗建议，建议同步咨询专业医生或营养师。'
+	String get edNotice => '你提到有进食障碍相关经历：减重目标已按温和节奏调整。本应用不提供医疗建议，建议同步咨询专业医生或营养师。';
 }
 
 // Path: onboarding.science
@@ -503,6 +519,50 @@ class Translations$onboarding$profile$zh_CN {
 
 	/// zh-CN: '跳过，使用默认估算'
 	String get skip => '跳过，使用默认估算';
+
+	late final Translations$onboarding$profile$screening$zh_CN screening = Translations$onboarding$profile$screening$zh_CN.internal(_root);
+}
+
+// Path: onboarding.goal
+class Translations$onboarding$goal$zh_CN {
+	Translations$onboarding$goal$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '定个减重小目标'
+	String get title => '定个减重小目标';
+
+	/// zh-CN: '填上目标体重和日期，就能按安全节奏算出每天的热量目标；也可以跳过，先按默认折算。'
+	String get subtitle => '填上目标体重和日期，就能按安全节奏算出每天的热量目标；也可以跳过，先按默认折算。';
+
+	/// zh-CN: '目标体重（kg）'
+	String get targetWeightLabel => '目标体重（kg）';
+
+	/// zh-CN: '如 55'
+	String get targetWeightHint => '如 55';
+
+	/// zh-CN: '请输入 25–300 之间的体重'
+	String get targetWeightInvalid => '请输入 25–300 之间的体重';
+
+	/// zh-CN: '希望在哪天达成？'
+	String get targetDateLabel => '希望在哪天达成？';
+
+	/// zh-CN: '${weeks} 周后'
+	String quickWeeks({required Object weeks}) => '${weeks} 周后';
+
+	/// zh-CN: '自选日期'
+	String get customDate => '自选日期';
+
+	/// zh-CN: '清除日期'
+	String get clearDate => '清除日期';
+
+	/// zh-CN: '保存并继续'
+	String get save => '保存并继续';
+
+	/// zh-CN: '跳过'
+	String get skip => '跳过';
 }
 
 // Path: record.page
@@ -1695,6 +1755,9 @@ class Translations$settings$bodyProfile$zh_CN {
 	/// zh-CN: '身高体重等，用于计算精准营养目标'
 	String get subtitle => '身高体重等，用于计算精准营养目标';
 
+	/// zh-CN: '减重目标（选填，仅减脂目标生效）'
+	String get goalSection => '减重目标（选填，仅减脂目标生效）';
+
 	/// zh-CN: '保存'
 	String get save => '保存';
 
@@ -2562,6 +2625,23 @@ class Translations$onboarding$profile$activity$zh_CN {
 	String get high => '每周高强度运动 6 次以上或体力劳动';
 }
 
+// Path: onboarding.profile.screening
+class Translations$onboarding$profile$screening$zh_CN {
+	Translations$onboarding$profile$screening$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '是否有进食障碍史（如暴食症/厌食症），或正在接受相关治疗？'
+	String get title => '是否有进食障碍史（如暴食症/厌食症），或正在接受相关治疗？';
+
+	/// zh-CN: '仅用于为你调整更温和的减重节奏；答案只保存在本机，不会上传。'
+	String get hint => '仅用于为你调整更温和的减重节奏；答案只保存在本机，不会上传。';
+
+	late final Translations$onboarding$profile$screening$options$zh_CN options = Translations$onboarding$profile$screening$options$zh_CN.internal(_root);
+}
+
 // Path: record.barcode.contribute
 class Translations$record$barcode$contribute$zh_CN {
 	Translations$record$barcode$contribute$zh_CN.internal(this._root);
@@ -3023,6 +3103,24 @@ class Translations$onboarding$quiz$q3$options$zh_CN {
 	String get experienced => '有断食经验';
 }
 
+// Path: onboarding.profile.screening.options
+class Translations$onboarding$profile$screening$options$zh_CN {
+	Translations$onboarding$profile$screening$options$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '是'
+	String get yes => '是';
+
+	/// zh-CN: '否'
+	String get no => '否';
+
+	/// zh-CN: '不愿透露'
+	String get preferNotToSay => '不愿透露';
+}
+
 // Path: nutrition.signalCard.advice.kcal
 class Translations$nutrition$signalCard$advice$kcal$zh_CN {
 	Translations$nutrition$signalCard$advice$kcal$zh_CN.internal(this._root);
@@ -3208,6 +3306,11 @@ extension on Translations {
 			'onboarding.recommendation.fallbackNotice' => ({required Object kcal}) => '每日营养目标先按 ${kcal} kcal 估算，去「我的」补全身高体重后会更准哦。',
 			'onboarding.recommendation.planChangeTitle' => '更换断食方案',
 			'onboarding.recommendation.planChangeConfirm' => ({required Object date}) => '新方案将于 ${date} 00:00 生效，今天仍按当前方案计时。',
+			'onboarding.recommendation.weightLossPlan' => ({required Object rate, required Object date}) => '预计每周减 ${rate} kg · 约 ${date} 达成',
+			'onboarding.recommendation.dailyKcalTarget' => ({required Object kcal}) => '每日热量目标约 ${kcal} kcal',
+			'onboarding.recommendation.clampedNotice' => '你的目标节奏偏快，已按安全上限调整为每周最多减 1 kg。',
+			'onboarding.recommendation.gentleNotice' => '已为你按温和节奏安排，每周最多减 0.5 kg。',
+			'onboarding.recommendation.edNotice' => '你提到有进食障碍相关经历：减重目标已按温和节奏调整。本应用不提供医疗建议，建议同步咨询专业医生或营养师。',
 			'onboarding.science.title' => '断食原理小科普',
 			'onboarding.science.card1Title' => '给身体一点休息时间',
 			'onboarding.science.card1Body' => '断食期间，身体会慢慢切换到燃脂模式，用储存的能量供能。',
@@ -3237,6 +3340,22 @@ extension on Translations {
 			'onboarding.profile.activity.high' => '每周高强度运动 6 次以上或体力劳动',
 			'onboarding.profile.save' => '保存并继续',
 			'onboarding.profile.skip' => '跳过，使用默认估算',
+			'onboarding.profile.screening.title' => '是否有进食障碍史（如暴食症/厌食症），或正在接受相关治疗？',
+			'onboarding.profile.screening.hint' => '仅用于为你调整更温和的减重节奏；答案只保存在本机，不会上传。',
+			'onboarding.profile.screening.options.yes' => '是',
+			'onboarding.profile.screening.options.no' => '否',
+			'onboarding.profile.screening.options.preferNotToSay' => '不愿透露',
+			'onboarding.goal.title' => '定个减重小目标',
+			'onboarding.goal.subtitle' => '填上目标体重和日期，就能按安全节奏算出每天的热量目标；也可以跳过，先按默认折算。',
+			'onboarding.goal.targetWeightLabel' => '目标体重（kg）',
+			'onboarding.goal.targetWeightHint' => '如 55',
+			'onboarding.goal.targetWeightInvalid' => '请输入 25–300 之间的体重',
+			'onboarding.goal.targetDateLabel' => '希望在哪天达成？',
+			'onboarding.goal.quickWeeks' => ({required Object weeks}) => '${weeks} 周后',
+			'onboarding.goal.customDate' => '自选日期',
+			'onboarding.goal.clearDate' => '清除日期',
+			'onboarding.goal.save' => '保存并继续',
+			'onboarding.goal.skip' => '跳过',
 			'record.page.title' => '记录',
 			'record.page.confirm' => '确认记录',
 			'record.page.loggedToday' => ({required Object count}) => '今日已记 ${count} 笔',
@@ -3609,6 +3728,7 @@ extension on Translations {
 			'settings.fastingPlan.subtitle' => '查看或更换断食方案，新方案次日 0:00 生效',
 			'settings.bodyProfile.title' => '身体档案',
 			'settings.bodyProfile.subtitle' => '身高体重等，用于计算精准营养目标',
+			'settings.bodyProfile.goalSection' => '减重目标（选填，仅减脂目标生效）',
 			'settings.bodyProfile.save' => '保存',
 			'settings.bodyProfile.saved' => '身体档案已保存',
 			'settings.bodyProfile.goalUpdated' => ({required Object kcal}) => '每日营养目标已更新为 ${kcal} kcal',
@@ -3647,6 +3767,8 @@ extension on Translations {
 			'settings.onDevice.desc' => '下载后可在本机离线估算食物营养，数据不出设备',
 			'settings.onDevice.size' => '模型大小约 2.41GB',
 			'settings.onDevice.wifiHint' => '文件较大，建议在 Wi-Fi 环境下下载',
+			_ => null,
+		} ?? switch (path) {
 			'settings.onDevice.download' => '下载模型',
 			'settings.onDevice.downloading' => ({required Object percent}) => '下载中 ${percent}%',
 			'settings.onDevice.cancel' => '取消',
@@ -3669,8 +3791,6 @@ extension on Translations {
 			'settings.chain.title' => '估算生效链路',
 			'settings.chain.onDevice' => '端侧小模型',
 			'settings.chain.userApi' => '自定义 API',
-			_ => null,
-		} ?? switch (path) {
 			'settings.chain.statusEnabled' => '已启用',
 			'settings.chain.statusDisabled' => '未启用',
 			'settings.chain.statusNotDownloaded' => '未下载',
