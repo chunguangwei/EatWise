@@ -148,13 +148,14 @@
       "useManual": "手动搜索",
       "noFoodTitle": "未识别到食物",
       "noFoodHint": "换个角度拍，或手动搜索试试",
-      "unmatchedTitle": "识别为「${name}」",
-      "unmatchedBody": "食物库暂未收录这种食物，换个关键词手动搜索试试",
       "gotIt": "知道了",
       "retake": "重新拍摄",
       "recognizingHint": "首次识别需要加载视觉引擎，可能需要几秒",
       "loadingModel": "正在加载视觉模型…",
-      "addWithEstimate": "以估算值添加"
+      "mealConfirmTitle": "确认这餐明细",
+      "logAll": "全部记录",
+      "loggedItems": "已记录 ${count} 条",
+      "unmatchedItemTag": "库未收录，将自动新建"
     },
     "barcode": {
       "entry": "扫码记",

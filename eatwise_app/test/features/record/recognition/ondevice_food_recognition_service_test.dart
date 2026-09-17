@@ -19,9 +19,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// 端侧视觉拍照识别服务单测（网关 Fake，不触碰真实引擎）。
 ///
-/// 覆盖：成功精确/模糊命中、dubious 低置信、解析失败/库未命中/坏图降级、
-/// OOM 永久禁用、引擎错误降级、视觉加载契约（enableVision: true 幂等）、
-/// 以及 foodRecognitionServiceProvider 的选择逻辑（开关+就绪 → 端侧实现）。
+/// 覆盖：多行明细（组合餐多条/克数 clamp/库命中用库内每100g）、
+/// 库未命中条目保留模型估值标低置信、dubious/类别词低置信、
+/// 解析失败/坏图降级、OOM 永久禁用、引擎错误降级、视觉加载契约、
+/// 识别阶段回调、foodRecognitionServiceProvider 选择逻辑。
 void main() {
   final photoBytes = Uint8List.fromList(<int>[1, 2, 3]);
 
@@ -53,8 +54,123 @@ void main() {
     );
   }
 
-  group('recognize 成功路径', () {
-    test('精确命中库：Top-1 用库内条目，置信 0.85，默认份量 100g', () async {
+  group('recognize 成功路径（多行明细）', () {
+    test('单食物七段：克数/每100g/置信 0.85，库内精准值入账口径', () async {
+      final gateway = _FakeGateway()
+        ..response = '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3';
+      final rice = food(id: 'f-rice', zh: '米饭', en: 'Rice');
+      final service = makeService(
+        gateway: gateway,
+        searchResults: <String, List<Food>>{
+          '米饭': [rice],
+        },
+      );
+
+      final outcome = await service.recognize(photoBytes);
+
+      final success = outcome as RecognitionSuccess;
+      expect(success.items, hasLength(1));
+      final item = success.items.single;
+      expect(item.food!.id, 'f-rice');
+      expect(item.isMatched, isTrue);
+      expect(item.grams, 200); // 模型估份量预填（不再恒 100g）
+      expect(item.per100g.kcal, 116); // 库内精准值
+      expect(item.confidence, 0.85);
+      expect(item.isLowConfidence, isFalse);
+    });
+
+    test('组合餐三行明细：逐条候选、克数各自独立、逐项库匹配', () async {
+      final gateway = _FakeGateway()
+        ..response =
+            '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3\n'
+            '鸡蛋 => egg => 50 => 144 => 13.3 => 2.8 => 8.8\n'
+            '火腿 => ham => 30 => 145 => 16 => 2 => 8';
+      final service = makeService(
+        gateway: gateway,
+        searchResults: <String, List<Food>>{
+          '米饭': [food(id: 'f-rice', zh: '米饭', en: 'Rice')],
+          '鸡蛋': [food(id: 'f-egg', zh: '鸡蛋', en: 'Egg')],
+          // 火腿库未命中：保留模型估值
+        },
+      );
+
+      final outcome = await service.recognize(photoBytes);
+
+      final success = outcome as RecognitionSuccess;
+      expect(success.items, hasLength(3));
+      expect(success.items[0].food!.id, 'f-rice');
+      expect(success.items[0].grams, 200);
+      expect(success.items[1].food!.id, 'f-egg');
+      expect(success.items[1].grams, 50);
+      final ham = success.items[2];
+      expect(ham.isMatched, isFalse);
+      expect(ham.name, '火腿');
+      expect(ham.nameEn, 'ham');
+      expect(ham.grams, 30);
+      expect(ham.per100g.kcal, 145); // 模型估值
+      expect(ham.confidence, 0.4); // 库未命中必低置信
+      expect(ham.isLowConfidence, isTrue);
+    });
+
+    test('模糊命中库：成功但低置信（0.6 → 标「请确认」）', () async {
+      final gateway = _FakeGateway()
+        ..response =
+            '番茄炒鸡蛋 => tomato egg stir-fry => 150 => 120 => 6 => 8 => 7';
+      final matched = food(id: 'f-tomato-egg', zh: '西红柿炒鸡蛋');
+      final service = makeService(
+        gateway: gateway,
+        searchResults: <String, List<Food>>{
+          '番茄炒鸡蛋': [matched],
+        },
+      );
+
+      final outcome = await service.recognize(photoBytes);
+
+      final item = (outcome as RecognitionSuccess).items.single;
+      expect(item.food!.id, 'f-tomato-egg');
+      expect(item.confidence, 0.6);
+      expect(item.isLowConfidence, isTrue);
+    });
+
+    test('sanity-clamp 命中（宏量超限）→ 置信 0.5 标「请确认」', () async {
+      // 蛋白质 70g/100g 触发 isNutritionEstimateDubious 规则 1。
+      final gateway = _FakeGateway()
+        ..response = '炸鸡 => fried chicken => 200 => 300 => 70 => 5 => 10';
+      final fried = food(id: 'f-fried', zh: '炸鸡');
+      final service = makeService(
+        gateway: gateway,
+        searchResults: <String, List<Food>>{
+          '炸鸡': [fried],
+        },
+      );
+
+      final outcome = await service.recognize(photoBytes);
+
+      final item = (outcome as RecognitionSuccess).items.single;
+      expect(item.confidence, 0.5);
+      expect(item.isLowConfidence, isTrue);
+    });
+
+    test('克数越界 → clamp 回区间并按可疑标低置信', () async {
+      final gateway = _FakeGateway()
+        ..response = '米饭 => rice => 3000 => 116 => 2.6 => 23 => 0.3';
+      final rice = food(id: 'f-rice', zh: '米饭', en: 'Rice');
+      final service = makeService(
+        gateway: gateway,
+        searchResults: <String, List<Food>>{
+          '米饭': [rice],
+        },
+      );
+
+      final outcome = await service.recognize(photoBytes);
+
+      final item = (outcome as RecognitionSuccess).items.single;
+      expect(item.grams, 2000); // clamp 到上限
+      expect(item.confidence, 0.5);
+      expect(item.isLowConfidence, isTrue);
+    });
+
+    test('兼容输出无克数（六段/五段）→ 份量默认 100g', () async {
       final gateway = _FakeGateway()
         ..response = '米饭 => 116 => 2.6 => 23 => 0.3';
       final rice = food(id: 'f-rice', zh: '米饭', en: 'Rice');
@@ -67,54 +183,12 @@ void main() {
 
       final outcome = await service.recognize(photoBytes);
 
-      final success = outcome as RecognitionSuccess;
-      expect(success.candidates, hasLength(1));
-      final top = success.candidates.first;
-      expect(top.food.id, 'f-rice');
-      expect(top.defaultAmountG, 100);
-      expect(top.confidence, 0.85);
-      expect(top.isLowConfidence, isFalse);
-    });
-
-    test('模糊命中库：成功但低置信（0.6 → 标「请确认」）', () async {
-      final gateway = _FakeGateway()..response = '番茄炒鸡蛋 => 120 => 6 => 8 => 7';
-      final matched = food(id: 'f-tomato-egg', zh: '西红柿炒鸡蛋');
-      final service = makeService(
-        gateway: gateway,
-        searchResults: <String, List<Food>>{
-          '番茄炒鸡蛋': [matched],
-        },
-      );
-
-      final outcome = await service.recognize(photoBytes);
-
-      final success = outcome as RecognitionSuccess;
-      expect(success.candidates.first.food.id, 'f-tomato-egg');
-      expect(success.candidates.first.confidence, 0.6);
-      expect(success.candidates.first.isLowConfidence, isTrue);
-    });
-
-    test('sanity-clamp 命中（宏量超限）→ 置信 0.5 标「请确认」', () async {
-      // 蛋白质 70g/100g 触发 isNutritionEstimateDubious 规则 1。
-      final gateway = _FakeGateway()..response = '炸鸡 => 300 => 70 => 5 => 10';
-      final fried = food(id: 'f-fried', zh: '炸鸡');
-      final service = makeService(
-        gateway: gateway,
-        searchResults: <String, List<Food>>{
-          '炸鸡': [fried],
-        },
-      );
-
-      final outcome = await service.recognize(photoBytes);
-
-      final success = outcome as RecognitionSuccess;
-      expect(success.candidates.first.confidence, 0.5);
-      expect(success.candidates.first.isLowConfidence, isTrue);
+      expect((outcome as RecognitionSuccess).items.single.grams, 100);
     });
 
     test('prompt/系统提示词按视觉版模板传递', () async {
       final gateway = _FakeGateway()
-        ..response = '米饭 => 116 => 2.6 => 23 => 0.3';
+        ..response = '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3';
       final rice = food(id: 'f-rice', zh: '米饭');
       final service = makeService(
         gateway: gateway,
@@ -158,15 +232,24 @@ void main() {
       expect(detail, endsWith('…'));
     });
 
-    test('识别名映射不回食物库 → no_match，detail 透出识别名', () async {
-      final gateway = _FakeGateway()..response = '外星食物 => 100 => 5 => 10 => 2';
-      final service = makeService(gateway: gateway); // 搜索恒空
+    test('单行损坏不拖垮整体：坏行跳过、好行照常', () async {
+      final gateway = _FakeGateway()
+        ..response =
+            '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3\n'
+            '坏行没有数字\n';
+      final rice = food(id: 'f-rice', zh: '米饭', en: 'Rice');
+      final service = makeService(
+        gateway: gateway,
+        searchResults: <String, List<Food>>{
+          '米饭': [rice],
+        },
+      );
 
       final outcome = await service.recognize(photoBytes);
 
-      final unavailable = outcome as RecognitionUnavailable;
-      expect(unavailable.reason, 'no_match');
-      expect(unavailable.detail, '外星食物');
+      final success = outcome as RecognitionSuccess;
+      expect(success.items, hasLength(1));
+      expect(success.items.single.name, '米饭');
     });
 
     test('图片解码失败 → bad_image，detail 为空（不触发推理）', () async {
@@ -230,7 +313,7 @@ void main() {
   group('视觉加载契约', () {
     test('未加载 → 以 enableVision: true 加载一次', () async {
       final gateway = _FakeGateway()
-        ..response = '米饭 => 116 => 2.6 => 23 => 0.3';
+        ..response = '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3';
       final service = makeService(
         gateway: gateway,
         searchResults: <String, List<Food>>{
@@ -246,7 +329,7 @@ void main() {
 
     test('已加载但无视觉 → 重新以视觉能力加载', () async {
       final gateway = _FakeGateway(loaded: true)
-        ..response = '米饭 => 116 => 2.6 => 23 => 0.3';
+        ..response = '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3';
       final service = makeService(
         gateway: gateway,
         searchResults: <String, List<Food>>{
@@ -262,7 +345,7 @@ void main() {
 
     test('已带视觉加载 → 幂等复用不重复加载', () async {
       final gateway = _FakeGateway(loaded: true, vision: true)
-        ..response = '米饭 => 116 => 2.6 => 23 => 0.3';
+        ..response = '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3';
       final service = makeService(
         gateway: gateway,
         searchResults: <String, List<Food>>{
@@ -279,7 +362,7 @@ void main() {
   group('识别阶段回调（两阶段文案数据源）', () {
     test('引擎未加载 → loadingModel → inferring 依次上报', () async {
       final gateway = _FakeGateway()
-        ..response = '米饭 => 116 => 2.6 => 23 => 0.3';
+        ..response = '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3';
       final service = makeService(
         gateway: gateway,
         searchResults: <String, List<Food>>{
@@ -299,7 +382,7 @@ void main() {
 
     test('已带视觉加载 → 只上报 inferring（无加载阶段）', () async {
       final gateway = _FakeGateway(loaded: true, vision: true)
-        ..response = '米饭 => 116 => 2.6 => 23 => 0.3';
+        ..response = '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3';
       final service = makeService(
         gateway: gateway,
         searchResults: <String, List<Food>>{
@@ -318,7 +401,7 @@ void main() {
 
     test('未挂回调 → 正常完成（回调为可选项）', () async {
       final gateway = _FakeGateway()
-        ..response = '米饭 => 116 => 2.6 => 23 => 0.3';
+        ..response = '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3';
       final service = makeService(
         gateway: gateway,
         searchResults: <String, List<Food>>{
@@ -332,10 +415,10 @@ void main() {
     });
   });
 
-  group('双语输出（六段格式）', () {
+  group('双语输出与类别词黑名单', () {
     test('中文未命中 → 英文名回退命中库：成功 + 精确置信 0.85', () async {
       final gateway = _FakeGateway()
-        ..response = '薯片 => potato chips => 536 => 7 => 53 => 32';
+        ..response = '薯片 => potato chips => 60 => 536 => 7 => 53 => 32';
       final chips = food(id: 'f-chips', zh: '薯片（油炸）', en: 'potato chips');
       final service = makeService(
         gateway: gateway,
@@ -346,58 +429,15 @@ void main() {
 
       final outcome = await service.recognize(photoBytes);
 
-      final success = outcome as RecognitionSuccess;
-      expect(success.candidates.first.food.id, 'f-chips');
-      expect(success.candidates.first.confidence, 0.85);
+      final item = (outcome as RecognitionSuccess).items.single;
+      expect(item.food!.id, 'f-chips');
+      expect(item.name, '薯片（油炸）'); // 库内规范名
+      expect(item.confidence, 0.85);
     });
 
-    test('no_match 透出模型估值：名称（中/英）+ 每 100g 估算 + 置信标记', () async {
-      final gateway = _FakeGateway()
-        ..response = '薯片 => potato chips => 536 => 7 => 53 => 32';
-      final service = makeService(gateway: gateway); // 搜索恒空
-
-      final outcome = await service.recognize(photoBytes);
-
-      final unavailable = outcome as RecognitionUnavailable;
-      expect(unavailable.reason, 'no_match');
-      expect(unavailable.detail, '薯片');
-      final estimate = unavailable.estimate!;
-      expect(estimate.name, '薯片');
-      expect(estimate.nameEn, 'potato chips');
-      expect(estimate.per100g.kcal, 536);
-      expect(estimate.per100g.proteinG, 7);
-      expect(estimate.per100g.carbsG, 53);
-      expect(estimate.per100g.fatG, 32);
-      expect(estimate.lowConfidence, isFalse); // 数值正常、非类别词
-    });
-
-    test('no_match 且估值 dubious → lowConfidence 透出 true', () async {
-      // 蛋白质 70g/100g 触发 sanity-clamp。
-      final gateway = _FakeGateway()
-        ..response = '神秘肉 => mystery meat => 300 => 70 => 5 => 10';
-      final service = makeService(gateway: gateway);
-
-      final outcome = await service.recognize(photoBytes);
-
-      final unavailable = outcome as RecognitionUnavailable;
-      expect(unavailable.estimate!.lowConfidence, isTrue);
-    });
-
-    test('五段兼容输出 no_match → estimate.nameEn 为 null', () async {
-      final gateway = _FakeGateway()..response = '外星食物 => 100 => 5 => 10 => 2';
-      final service = makeService(gateway: gateway);
-
-      final outcome = await service.recognize(photoBytes);
-
-      final unavailable = outcome as RecognitionUnavailable;
-      expect(unavailable.estimate!.name, '外星食物');
-      expect(unavailable.estimate!.nameEn, isNull);
-    });
-  });
-
-  group('类别词黑名单（识别不够具体）', () {
     test('类别词即便精确命中库 → 置信 0.5 必标「请确认」', () async {
-      final gateway = _FakeGateway()..response = '水果 => 60 => 0.5 => 14 => 0.2';
+      final gateway = _FakeGateway()
+        ..response = '水果 => fruit => 80 => 60 => 0.5 => 14 => 0.2';
       final service = makeService(
         gateway: gateway,
         searchResults: <String, List<Food>>{
@@ -407,13 +447,14 @@ void main() {
 
       final outcome = await service.recognize(photoBytes);
 
-      final success = outcome as RecognitionSuccess;
-      expect(success.candidates.first.confidence, 0.5);
-      expect(success.candidates.first.isLowConfidence, isTrue);
+      final item = (outcome as RecognitionSuccess).items.single;
+      expect(item.confidence, 0.5);
+      expect(item.isLowConfidence, isTrue);
     });
 
     test('「水果捞」不误伤：具体名精确命中 → 0.85 高置信', () async {
-      final gateway = _FakeGateway()..response = '水果捞 => 90 => 1 => 20 => 0.5';
+      final gateway = _FakeGateway()
+        ..response = '水果捞 => fruit salad => 150 => 90 => 1 => 20 => 0.5';
       final service = makeService(
         gateway: gateway,
         searchResults: <String, List<Food>>{
@@ -423,20 +464,9 @@ void main() {
 
       final outcome = await service.recognize(photoBytes);
 
-      final success = outcome as RecognitionSuccess;
-      expect(success.candidates.first.confidence, 0.85);
-      expect(success.candidates.first.isLowConfidence, isFalse);
-    });
-
-    test('类别词库未命中 → no_match，detail 原样透出类别词', () async {
-      final gateway = _FakeGateway()..response = '水果 => 60 => 0.5 => 14 => 0.2';
-      final service = makeService(gateway: gateway); // 搜索恒空
-
-      final outcome = await service.recognize(photoBytes);
-
-      final unavailable = outcome as RecognitionUnavailable;
-      expect(unavailable.reason, 'no_match');
-      expect(unavailable.detail, '水果');
+      final item = (outcome as RecognitionSuccess).items.single;
+      expect(item.confidence, 0.85);
+      expect(item.isLowConfidence, isFalse);
     });
   });
 

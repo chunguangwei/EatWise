@@ -3,7 +3,8 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/features/record/recognition/domain/photo_recognition_logic.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 拍照识别纯函数层单测：prompt 模板、宽松解析、食物库匹配、置信度策略。
+/// 拍照识别纯函数层单测：多行明细 prompt、逐行解析（七段主格式 +
+/// 六/五段兼容）、克数 clamp、类别词黑名单、食物库双语匹配、置信度策略。
 void main() {
   Food food({required String id, required String zh, String en = ''}) => Food(
     id: id,
@@ -20,45 +21,168 @@ void main() {
     customClientRequestId: 'req-$id',
   );
 
-  group('prompt 模板', () {
-    test('system instruction 含严格行格式与「无法识别」出口', () {
+  group('prompt 模板（多行明细协议）', () {
+    test('system instruction 含七段行格式与「无法识别」出口', () {
       expect(
         kPhotoRecognitionSystemPrompt,
-        contains('中文名 => 英文名 => 热量 => 蛋白质 => 碳水 => 脂肪'),
+        contains(
+          '中文名 => 英文名 => 估算克数 => 每100克热量 => 每100克蛋白质 => 每100克碳水 => 每100克脂肪',
+        ),
       );
       expect(kPhotoRecognitionSystemPrompt, contains('无法识别'));
-      // v5 营养约束话术保留（视觉版只加识别/命名约束，不改营养口径）。
+      // v5 营养约束话术保留（视觉版只加识别/命名/份量约束，不改营养口径）。
       expect(kPhotoRecognitionSystemPrompt, contains('熟主食110-150千卡'));
     });
 
-    test('命名约束：要求最具体食物名、禁止类别词、双语输出含 few-shot 示例', () {
+    test('份量约束：估算克数按图中实际份量（常识锚点）', () {
+      expect(kPhotoRecognitionSystemPrompt, contains('一碗米饭约200克'));
+      expect(kPhotoRecognitionSystemPrompt, contains('一包薯片约60克'));
+      expect(kPhotoRecognitionSystemPrompt, contains('一盘菜约250克'));
+    });
+
+    test('组合餐拆分 + few-shot（含三行明细示例）', () {
+      expect(kPhotoRecognitionSystemPrompt, contains('组合餐'));
+      expect(kPhotoRecognitionSystemPrompt, contains('每种主要食物输出一行'));
+      // few-shot：单食物两条 + 组合餐三行明细。
+      expect(
+        kPhotoRecognitionSystemPrompt,
+        contains('米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3'),
+      );
+      expect(
+        kPhotoRecognitionSystemPrompt,
+        contains('薯片 => potato chips => 60 => 536 => 7 => 53 => 32'),
+      );
+      expect(
+        kPhotoRecognitionSystemPrompt,
+        contains('鸡蛋 => egg => 50 => 144 => 13.3 => 2.8 => 8.8'),
+      );
+      expect(
+        kPhotoRecognitionSystemPrompt,
+        contains('火腿 => ham => 30 => 145 => 16 => 2 => 8'),
+      );
+    });
+
+    test('命名约束：要求最具体食物名、禁止类别词、英文通用名', () {
       expect(kPhotoRecognitionSystemPrompt, contains('最具体的常见中文食物名'));
       expect(kPhotoRecognitionSystemPrompt, contains('禁止只输出类别词'));
-      // 双语输出约束（USDA 库英文为主，英文名匹配提命中率）。
-      expect(kPhotoRecognitionSystemPrompt, contains('英文通用名'));
-      expect(
-        kPhotoRecognitionSystemPrompt,
-        contains('中文名 => 英文名 => 热量 => 蛋白质 => 碳水 => 脂肪'),
-      );
-      // few-shot：示例定死输出格式与命名粒度。
-      expect(
-        kPhotoRecognitionSystemPrompt,
-        contains('米饭 => rice => 116 => 2.6 => 23 => 0.3'),
-      );
-      expect(
-        kPhotoRecognitionSystemPrompt,
-        contains('番茄炒蛋 => tomato egg stir-fry => 120 => 6 => 8 => 7'),
-      );
-      expect(
-        kPhotoRecognitionSystemPrompt,
-        contains('薯片 => potato chips => 536 => 7 => 53 => 32'),
-      );
+      expect(kPhotoRecognitionSystemPrompt, contains('最常见的通用名'));
     });
 
     test('user prompt 点题并以结果引导结尾', () {
       final prompt = buildPhotoRecognitionPrompt();
       expect(prompt, contains('识别'));
       expect(prompt.trimRight(), endsWith('结果：'));
+    });
+  });
+
+  group('parsePhotoRecognitionItems（多行明细解析）', () {
+    test('七段主格式单条：中文名 + 英文名 + 克数 + 四营养', () {
+      final items = parsePhotoRecognitionItems(
+        '薯片 => potato chips => 60 => 536 => 7 => 53 => 32',
+      );
+      expect(items, hasLength(1));
+      expect(items.single.name, '薯片');
+      expect(items.single.nameEn, 'potato chips');
+      expect(items.single.grams, 60);
+      expect(
+        items.single.values,
+        const OnDeviceNutritionValues(
+          kcal: 536,
+          proteinG: 7,
+          carbsG: 53,
+          fatG: 32,
+        ),
+      );
+    });
+
+    test('组合餐三行明细：逐行解析、克数各自独立', () {
+      final items = parsePhotoRecognitionItems(
+        '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3\n'
+        '鸡蛋 => egg => 50 => 144 => 13.3 => 2.8 => 8.8\n'
+        '火腿 => ham => 30 => 145 => 16 => 2 => 8',
+      );
+      expect(items, hasLength(3));
+      expect(items.map((i) => i.name), <String>['米饭', '鸡蛋', '火腿']);
+      expect(items.map((i) => i.grams), <double>[200, 50, 30]);
+      expect(items[1].values.kcal, 144);
+    });
+
+    test('空行/杂质行忽略；单条损坏不拖垮整体', () {
+      final items = parsePhotoRecognitionItems(
+        '好的，明细如下：\n'
+        '\n'
+        '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3\n'
+        '这一行是解说没有数字\n'
+        '鸡蛋 => egg => 坏了 => 不是数字 => x => y\n'
+        '火腿 => ham => 30 => 145 => 16 => 2 => 8\n'
+        '以上仅供参考。',
+      );
+      expect(items, hasLength(2));
+      expect(items.map((i) => i.name), <String>['米饭', '火腿']);
+    });
+
+    test('六段兼容（无克数）：grams 为 null', () {
+      final items = parsePhotoRecognitionItems(
+        '番茄炒蛋 => tomato egg stir-fry => 120 => 6 => 8 => 7',
+      );
+      expect(items, hasLength(1));
+      expect(items.single.name, '番茄炒蛋');
+      expect(items.single.nameEn, 'tomato egg stir-fry');
+      expect(items.single.grams, isNull);
+      expect(items.single.values.kcal, 120);
+    });
+
+    test('五段兼容（模型不守新格式时回退）：nameEn/grams 均为 null', () {
+      final items = parsePhotoRecognitionItems('米饭 => 116 => 2.6 => 23 => 0.3');
+      expect(items, hasLength(1));
+      expect(items.single.name, '米饭');
+      expect(items.single.nameEn, isNull);
+      expect(items.single.grams, isNull);
+    });
+
+    test('英文段须字母开头：五段不被六段/七段正则误吃', () {
+      final items = parsePhotoRecognitionItems('豆腐 => 100 => 7 => 3 => 1');
+      expect(items, hasLength(1));
+      expect(items.single.name, '豆腐');
+      expect(items.single.nameEn, isNull);
+    });
+
+    test('剥掉模型复述的前缀（食物：/结果：），容忍尾部多余 =>', () {
+      final items = parsePhotoRecognitionItems(
+        '食物：米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3 =>',
+      );
+      expect(items, hasLength(1));
+      expect(items.single.name, '米饭');
+      expect(items.single.grams, 200);
+    });
+
+    test('「无法识别」→ 空列表（走 parse_failed 降级）', () {
+      expect(parsePhotoRecognitionItems('无法识别'), isEmpty);
+      expect(parsePhotoRecognitionItems('照片看不清，无法识别。'), isEmpty);
+    });
+
+    test('纯数字行/无名字行 → 跳过', () {
+      expect(parsePhotoRecognitionItems('116 => 2.6 => 23 => 0.3'), isEmpty);
+      expect(
+        parsePhotoRecognitionItems('食物： => 116 => 2.6 => 23 => 0.3'),
+        isEmpty,
+      );
+    });
+  });
+
+  group('克数 clamp（kPhotoGramsMin/Max = 1–2000）', () {
+    test('区间内原样；越界判定可疑', () {
+      expect(isPhotoGramsSuspicious(200), isFalse);
+      expect(isPhotoGramsSuspicious(1), isFalse);
+      expect(isPhotoGramsSuspicious(2000), isFalse);
+      expect(isPhotoGramsSuspicious(0.5), isTrue);
+      expect(isPhotoGramsSuspicious(3000), isTrue);
+    });
+
+    test('clamp 回区间', () {
+      expect(clampPhotoGrams(200), 200);
+      expect(clampPhotoGrams(0), 1);
+      expect(clampPhotoGrams(3000), 2000);
     });
   });
 
@@ -90,106 +214,7 @@ void main() {
     });
   });
 
-  group('parsePhotoRecognitionOutput', () {
-    test('六段双语主格式：中文名 + 英文名 + 四数字', () {
-      final parsed = parsePhotoRecognitionOutput(
-        '薯片 => potato chips => 536 => 7 => 53 => 32',
-      );
-      expect(parsed, isNotNull);
-      expect(parsed!.name, '薯片');
-      expect(parsed.nameEn, 'potato chips');
-      expect(
-        parsed.values,
-        const OnDeviceNutritionValues(
-          kcal: 536,
-          proteinG: 7,
-          carbsG: 53,
-          fatG: 32,
-        ),
-      );
-    });
-
-    test('六段格式容忍前后杂质', () {
-      final parsed = parsePhotoRecognitionOutput(
-        '识别结果：\n番茄炒蛋 => tomato egg stir-fry => 120 => 6 => 8 => 7\n供参考。',
-      );
-      expect(parsed, isNotNull);
-      expect(parsed!.name, '番茄炒蛋');
-      expect(parsed.nameEn, 'tomato egg stir-fry');
-    });
-
-    test('五段兼容格式（模型不守六段约定时回退）：nameEn 为 null', () {
-      final parsed = parsePhotoRecognitionOutput(
-        '米饭 => 116 => 2.6 => 23 => 0.3',
-      );
-      expect(parsed, isNotNull);
-      expect(parsed!.name, '米饭');
-      expect(parsed.nameEn, isNull);
-      expect(
-        parsed.values,
-        const OnDeviceNutritionValues(
-          kcal: 116,
-          proteinG: 2.6,
-          carbsG: 23,
-          fatG: 0.3,
-        ),
-      );
-    });
-
-    test('英文段须字母开头：纯数字第二段不误判为六段', () {
-      // 五段格式若被六段正则误吃，name 会变成数字段——必须回退五段。
-      final parsed = parsePhotoRecognitionOutput('豆腐 => 100 => 7 => 3 => 1');
-      expect(parsed, isNotNull);
-      expect(parsed!.name, '豆腐');
-      expect(parsed.nameEn, isNull);
-    });
-
-    test('容忍前后杂质文本，取第一组有效行', () {
-      final parsed = parsePhotoRecognitionOutput(
-        '好的，识别结果如下：\n番茄炒蛋 => 120 => 6 => 8 => 7\n以上仅供参考。',
-      );
-      expect(parsed, isNotNull);
-      expect(parsed!.name, '番茄炒蛋');
-      expect(parsed.values.kcal, 120);
-    });
-
-    test('剥掉模型复述的前缀（食物：/结果：）', () {
-      final parsed = parsePhotoRecognitionOutput(
-        '食物：米饭 => 116 => 2.6 => 23 => 0.3',
-      );
-      expect(parsed, isNotNull);
-      expect(parsed!.name, '米饭');
-    });
-
-    test('容忍尾部多余 =>（v5 宽松策略平移）', () {
-      final parsed = parsePhotoRecognitionOutput('豆腐 => 100 => 7 => 3 => 1 =>');
-      expect(parsed, isNotNull);
-      expect(parsed!.name, '豆腐');
-    });
-
-    test('「无法识别」→ null（走降级）', () {
-      expect(parsePhotoRecognitionOutput('无法识别'), isNull);
-      expect(parsePhotoRecognitionOutput('照片看不清，无法识别。'), isNull);
-    });
-
-    test('纯数字四段（无食物名）→ null（视觉版必须带名）', () {
-      expect(parsePhotoRecognitionOutput('116 => 2.6 => 23 => 0.3'), isNull);
-    });
-
-    test('数字缺失/非数字 → null', () {
-      expect(
-        parsePhotoRecognitionOutput('米饭 => 未知 => 2.6 => 23 => 0.3'),
-        isNull,
-      );
-      expect(parsePhotoRecognitionOutput('米饭 => 116 => 2.6 => 23'), isNull);
-    });
-
-    test('前缀剥净后名为空 → null', () {
-      expect(parsePhotoRecognitionOutput('食物： => 1 => 1 => 1 => 1'), isNull);
-    });
-  });
-
-  group('matchFoodByName', () {
+  group('matchFoodByName（双语匹配）', () {
     final rice = food(id: 'f-rice', zh: '米饭', en: 'Rice');
     final riceNoodle = food(id: 'f-rice-noodle', zh: '米粉', en: 'Rice noodles');
 

@@ -17,6 +17,7 @@ import 'dart:ui' as ui;
 import 'package:eatwise/core/llm/ondevice/nutrition_estimate_logic.dart';
 import 'package:eatwise/core/llm/ondevice/ondevice_llm_gateway.dart';
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/recognition/data/food_recognition_service.dart';
 import 'package:eatwise/features/record/recognition/domain/photo_recognition_logic.dart';
 import 'package:eatwise/features/record/recognition/domain/recognition_models.dart';
@@ -123,10 +124,10 @@ final class OnDeviceFoodRecognitionService implements FoodRecognitionService {
         buildPhotoRecognitionPrompt(),
         normalized,
         systemInstruction: kPhotoRecognitionSystemPrompt,
-        maxOutputTokens: 160, // 一行「中文名 => 英文名 => 4 数字」，比文本版多留名额度
+        maxOutputTokens: 384, // 多行明细（组合餐数条），单行额度 ×3 余量
       );
-      final parsed = parsePhotoRecognitionOutput(raw);
-      if (parsed == null) {
+      final parsedItems = parsePhotoRecognitionItems(raw);
+      if (parsedItems.isEmpty) {
         // 含模型明说「无法识别」：透出原始回复，用户能看到模型实际看到
         // 了什么（detail 为空串时按 null 处理，走无详情 snackbar）。
         final detail = cleanRecognitionDetail(raw);
@@ -135,41 +136,11 @@ final class OnDeviceFoodRecognitionService implements FoodRecognitionService {
           detail: detail.isEmpty ? null : detail,
         );
       }
-      final match = await matchFoodByName(
-        searchFoods,
-        parsed.name,
-        nameEn: parsed.nameEn,
-      );
-      if (match == null) {
-        // 识别名映射不回食物库：透出识别名 + 模型估值（「以估算值添加」
-        // 预填自定义食物表单；估值只作表单初值，用户确认后才入库，
-        // 识别结果仍须落回自建核心库，D-16）。
-        final lowConfidence =
-            isNutritionEstimateDubious(parsed.values) ||
-            isGenericCategoryName(parsed.name);
-        return RecognitionUnavailable(
-          'no_match',
-          detail: cleanRecognitionDetail(parsed.name),
-          estimate: RecognizedFoodEstimate(
-            name: parsed.name,
-            nameEn: parsed.nameEn,
-            per100g: parsed.values,
-            lowConfidence: lowConfidence,
-          ),
-        );
+      final items = <RecognizedMealItem>[];
+      for (final parsed in parsedItems) {
+        items.add(await _toMealItem(parsed));
       }
-      return RecognitionSuccess(<RecognizedCandidate>[
-        RecognizedCandidate(
-          food: match.food,
-          defaultAmountG: 100,
-          confidence: photoRecognitionConfidence(
-            dubious: isNutritionEstimateDubious(parsed.values),
-            exactNameMatch: match.exact,
-            // 类别词兜底（prompt 已禁，命中即「不够具体」→ 必走请确认）。
-            tooGeneric: isGenericCategoryName(parsed.name),
-          ),
-        ),
-      ]);
+      return RecognitionSuccess(items);
     } on OnDeviceLlmMemoryException {
       _permanentlyDisabled = true;
       return const RecognitionUnavailable('ondevice_oom');
@@ -179,5 +150,55 @@ final class OnDeviceFoodRecognitionService implements FoodRecognitionService {
       // 模型路径解析/搜索等意外错误：按不可用降级，不阻断记录主流程。
       return const RecognitionUnavailable('ondevice_error');
     }
+  }
+
+  /// 单条解析明细 → 明细候选：库匹配（中文→英文回退，D-16 映射回自建
+  /// 核心库）+ 克数 clamp + 置信度合成。命中用库内精准每 100g；未命中
+  /// 保留模型估值并标低置信（入账时才自动建成自定义食物）。
+  Future<RecognizedMealItem> _toMealItem(ParsedPhotoItem parsed) async {
+    final match = await matchFoodByName(
+      searchFoods,
+      parsed.name,
+      nameEn: parsed.nameEn,
+    );
+    final rawGrams = parsed.grams ?? 100;
+    final gramsSuspicious = isPhotoGramsSuspicious(rawGrams);
+    final grams = clampPhotoGrams(rawGrams);
+    final dubious = isNutritionEstimateDubious(parsed.values);
+    final tooGeneric = isGenericCategoryName(parsed.name);
+    if (match != null) {
+      final food = match.food;
+      return RecognizedMealItem(
+        name: food.nameZh, // 库内规范名（展示/搜索一致）
+        nameEn: food.nameEn,
+        grams: grams,
+        per100g: NutritionSnapshot(
+          kcal: food.kcalPer100g,
+          proteinG: food.proteinPer100g,
+          carbG: food.carbPer100g,
+          fatG: food.fatPer100g,
+        ),
+        confidence: photoRecognitionConfidence(
+          dubious: dubious || gramsSuspicious,
+          exactNameMatch: match.exact,
+          // 类别词兜底（prompt 已禁，命中即「不够具体」→ 必走请确认）。
+          tooGeneric: tooGeneric,
+        ),
+        food: food,
+      );
+    }
+    return RecognizedMealItem(
+      name: parsed.name,
+      nameEn: parsed.nameEn,
+      grams: grams,
+      per100g: NutritionSnapshot(
+        kcal: parsed.values.kcal,
+        proteinG: parsed.values.proteinG,
+        carbG: parsed.values.carbsG,
+        fatG: parsed.values.fatG,
+      ),
+      // 库未命中：模型估值兜底，必低置信（明细行标「请确认」）。
+      confidence: 0.4,
+    );
   }
 }

@@ -621,12 +621,6 @@ class Translations$record$photo$zh_CN {
 	/// zh-CN: '换个角度拍，或手动搜索试试'
 	String get noFoodHint => '换个角度拍，或手动搜索试试';
 
-	/// zh-CN: '识别为「${name}」'
-	String unmatchedTitle({required Object name}) => '识别为「${name}」';
-
-	/// zh-CN: '食物库暂未收录这种食物，换个关键词手动搜索试试'
-	String get unmatchedBody => '食物库暂未收录这种食物，换个关键词手动搜索试试';
-
 	/// zh-CN: '知道了'
 	String get gotIt => '知道了';
 
@@ -639,8 +633,17 @@ class Translations$record$photo$zh_CN {
 	/// zh-CN: '正在加载视觉模型…'
 	String get loadingModel => '正在加载视觉模型…';
 
-	/// zh-CN: '以估算值添加'
-	String get addWithEstimate => '以估算值添加';
+	/// zh-CN: '确认这餐明细'
+	String get mealConfirmTitle => '确认这餐明细';
+
+	/// zh-CN: '全部记录'
+	String get logAll => '全部记录';
+
+	/// zh-CN: '已记录 ${count} 条'
+	String loggedItems({required Object count}) => '已记录 ${count} 条';
+
+	/// zh-CN: '库未收录，将自动新建'
+	String get unmatchedItemTag => '库未收录，将自动新建';
 }
 
 // Path: record.barcode
@@ -3100,13 +3103,14 @@ extension on Translations {
 			'record.photo.useManual' => '手动搜索',
 			'record.photo.noFoodTitle' => '未识别到食物',
 			'record.photo.noFoodHint' => '换个角度拍，或手动搜索试试',
-			'record.photo.unmatchedTitle' => ({required Object name}) => '识别为「${name}」',
-			'record.photo.unmatchedBody' => '食物库暂未收录这种食物，换个关键词手动搜索试试',
 			'record.photo.gotIt' => '知道了',
 			'record.photo.retake' => '重新拍摄',
 			'record.photo.recognizingHint' => '首次识别需要加载视觉引擎，可能需要几秒',
 			'record.photo.loadingModel' => '正在加载视觉模型…',
-			'record.photo.addWithEstimate' => '以估算值添加',
+			'record.photo.mealConfirmTitle' => '确认这餐明细',
+			'record.photo.logAll' => '全部记录',
+			'record.photo.loggedItems' => ({required Object count}) => '已记录 ${count} 条',
+			'record.photo.unmatchedItemTag' => '库未收录，将自动新建',
 			'record.barcode.entry' => '扫码记',
 			'record.barcode.title' => '扫描商品条码',
 			'record.barcode.torch' => '照明灯',
@@ -3518,9 +3522,9 @@ extension on Translations {
 			'social.feed.title' => '社区',
 			'social.feed.emptyTitle' => '这里在等今天第一口美食登场。',
 			'social.feed.emptySubtitle' => '发布你的第一条打卡，给同样在坚持的人一点光。',
-			'social.feed.emptyCta' => '发布打卡',
 			_ => null,
 		} ?? switch (path) {
+			'social.feed.emptyCta' => '发布打卡',
 			'social.feed.errorTitle' => '打卡流加载失败，请稍后重试',
 			'social.feed.pendingBadge' => '内容审核中，仅自己可见',
 			'social.feed.streakBadge' => ({required Object days}) => '连续 ${days} 天',

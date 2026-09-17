@@ -456,13 +456,14 @@ class _Translations$record$photo$en extends Translations$record$photo$zh_CN {
 	@override String get useManual => 'Search manually';
 	@override String get noFoodTitle => 'No food recognized';
 	@override String get noFoodHint => 'Try another angle, or search manually';
-	@override String unmatchedTitle({required Object name}) => 'Recognized as "${name}"';
-	@override String get unmatchedBody => 'This food isn\'t in the library yet — try searching with a different keyword';
 	@override String get gotIt => 'Got it';
 	@override String get retake => 'Retake photo';
 	@override String get recognizingHint => 'The first recognition loads the on-device vision engine — this can take a few seconds';
 	@override String get loadingModel => 'Loading vision model…';
-	@override String get addWithEstimate => 'Add with estimates';
+	@override String get mealConfirmTitle => 'Review meal items';
+	@override String get logAll => 'Log all';
+	@override String loggedItems({required Object count}) => 'Logged ${count} items';
+	@override String get unmatchedItemTag => 'Not in library — will be created';
 }
 
 // Path: record.barcode
@@ -1864,13 +1865,14 @@ extension on TranslationsEn {
 			'record.photo.useManual' => 'Search manually',
 			'record.photo.noFoodTitle' => 'No food recognized',
 			'record.photo.noFoodHint' => 'Try another angle, or search manually',
-			'record.photo.unmatchedTitle' => ({required Object name}) => 'Recognized as "${name}"',
-			'record.photo.unmatchedBody' => 'This food isn\'t in the library yet — try searching with a different keyword',
 			'record.photo.gotIt' => 'Got it',
 			'record.photo.retake' => 'Retake photo',
 			'record.photo.recognizingHint' => 'The first recognition loads the on-device vision engine — this can take a few seconds',
 			'record.photo.loadingModel' => 'Loading vision model…',
-			'record.photo.addWithEstimate' => 'Add with estimates',
+			'record.photo.mealConfirmTitle' => 'Review meal items',
+			'record.photo.logAll' => 'Log all',
+			'record.photo.loggedItems' => ({required Object count}) => 'Logged ${count} items',
+			'record.photo.unmatchedItemTag' => 'Not in library — will be created',
 			'record.barcode.entry' => 'Scan',
 			'record.barcode.title' => 'Scan product barcode',
 			'record.barcode.torch' => 'Torch',
@@ -2282,9 +2284,9 @@ extension on TranslationsEn {
 			'social.feed.title' => 'Community',
 			'social.feed.emptyTitle' => 'Waiting for today\'s first check-in to show up.',
 			'social.feed.emptySubtitle' => 'Post your first check-in and light the way for others.',
-			'social.feed.emptyCta' => 'Check in',
 			_ => null,
 		} ?? switch (path) {
+			'social.feed.emptyCta' => 'Check in',
 			'social.feed.errorTitle' => 'Couldn\'t load the feed. Please try again.',
 			'social.feed.pendingBadge' => 'Under review — visible only to you',
 			'social.feed.streakBadge' => ({required Object days}) => '${days}-day streak',

@@ -121,13 +121,6 @@ final class RecordStrings {
   /// record.photo.noFoodHint
   String get photoNoFoodHint => _t.record.photo.noFoodHint;
 
-  /// record.photo.unmatchedTitle
-  String photoUnmatchedTitle(String name) =>
-      _t.record.photo.unmatchedTitle(name: name);
-
-  /// record.photo.unmatchedBody
-  String get photoUnmatchedBody => _t.record.photo.unmatchedBody;
-
   /// record.photo.gotIt
   String get photoGotIt => _t.record.photo.gotIt;
 
@@ -140,8 +133,18 @@ final class RecordStrings {
   /// record.photo.loadingModel
   String get photoLoadingModel => _t.record.photo.loadingModel;
 
-  /// record.photo.addWithEstimate
-  String get photoAddWithEstimate => _t.record.photo.addWithEstimate;
+  /// record.photo.mealConfirmTitle
+  String get photoMealConfirmTitle => _t.record.photo.mealConfirmTitle;
+
+  /// record.photo.logAll
+  String get photoLogAll => _t.record.photo.logAll;
+
+  /// record.photo.loggedItems
+  String photoLoggedItems(int count) =>
+      _t.record.photo.loggedItems(count: count);
+
+  /// record.photo.unmatchedItemTag
+  String get photoUnmatchedItemTag => _t.record.photo.unmatchedItemTag;
 
   /// record.voice.listening
   String get voiceListening => _t.record.voice.listening;

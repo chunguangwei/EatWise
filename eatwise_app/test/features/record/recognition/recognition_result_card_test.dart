@@ -98,35 +98,59 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
+    // 明细弹层滑入动画完成后再操作（少一拍弹层还在屏外，tap 会 miss）。
+    await tester.pump(const Duration(milliseconds: 300));
   }
 
-  testWidgets('拍照识别成功：低置信度标「请确认」，份量重算，确认入账 photo', (tester) async {
+  testWidgets('拍照识别成功：明细卡逐项确认，全部入账 photo', (tester) async {
+    // 放大测试屏幕：明细弹层字段多，默认尺寸「全部记录」不可点。
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     final rice = (await db.foodDao.getById('f-rice'))!;
-    recognitionService.outcome = RecognitionSuccess(<RecognizedCandidate>[
-      RecognizedCandidate(food: rice, defaultAmountG: 150, confidence: 0.5),
+    recognitionService.outcome = RecognitionSuccess(<RecognizedMealItem>[
+      RecognizedMealItem(
+        name: rice.nameZh,
+        nameEn: rice.nameEn,
+        grams: 150,
+        per100g: const NutritionSnapshot(
+          kcal: 116,
+          proteinG: 2.6,
+          carbG: 25.9,
+          fatG: 0.3,
+        ),
+        confidence: 0.5,
+        food: rice,
+      ),
     ]);
     await pumpPage(tester);
     await pickPhotoAndRecognize(tester);
 
-    // 结果卡：预填识别份量 + 低置信度标记 + 营养按 150g 实时换算。
+    // 明细卡：模型估份量预填 + 低置信标记 + 营养按 150g 换算。
+    expect(find.text('确认这餐明细'), findsOneWidget);
     expect(find.text('请确认'), findsOneWidget);
-    expect(find.text('确认记录'), findsOneWidget);
-    expect(find.text('热量 174 千卡'), findsOneWidget);
-    final amountField = tester.widget<TextField>(find.byType(TextField).last);
-    expect(amountField.controller!.text, '150');
+    expect(find.textContaining('热量 174 千卡'), findsOneWidget);
+    expect(find.textContaining('蛋白质 3.9 克'), findsOneWidget);
+    // 弹层内查找（页底搜索框也在树上，须在 BottomSheet 内取克数输入框）。
+    final gramsFinder = find.descendant(
+      of: find.byType(BottomSheet),
+      matching: find.byType(TextField),
+    );
+    final gramsField = tester.widget<TextField>(gramsFinder);
+    expect(gramsField.controller!.text, '150');
 
-    // 份量修改 → 营养实时重算（US-3.1）。
-    await tester.enterText(find.byType(TextField).last, '200');
+    // 克数修改 → 营养实时重算。
+    await tester.enterText(gramsFinder, '200');
     await tester.pump();
-    expect(find.text('热量 232 千卡'), findsOneWidget);
+    expect(find.textContaining('热量 232 千卡'), findsOneWidget);
 
-    // 确认入账：乐观更新吐司 + source = photo。
+    // 全部记录：一条 entry（source = photo，份量按修改后 200g）。
     // 切离线确认：只落 pending（不启动 10s 上行计时器，测试假时钟不受扰）。
     remote.mode = FakeRemoteMode.offline;
-    await tester.tap(find.text('确认记录'));
+    await tester.tap(find.text('全部记录'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('已记录'), findsOneWidget);
+    expect(find.text('已记录 1 条'), findsOneWidget);
     final entries = await repository.entriesForDate(DateTime.now().toUtc());
     expect(entries, hasLength(1));
     expect(entries.single.source, EntrySource.photo);

@@ -2,35 +2,46 @@
 /// 置信度策略。零 Flutter/插件依赖，可单测。
 ///
 /// Prompt 在端侧营养估算 spike §6 v5 定稿基础上改视觉版：多模态同一份
-/// 营养约束话术，输出从「四个数字」扩展为「食物名 + 四个数字」一行。
+/// 营养约束话术，输出升级为**多行明细协议**（组合餐拆分 + AI 估份量）：
+/// 每种主要食物一行 `中文名 => 英文名 => 估算克数 => 每100g四营养`。
 /// 采样参数沿用 v5（temperature=0.15, topK=1, seed=42）。
 library;
 
 import 'package:eatwise/core/llm/ondevice/nutrition_estimate_logic.dart';
 import 'package:eatwise/core/storage/database.dart';
 
-/// 视觉版 system instruction（v5 营养约束逐字保留，加识别与命名约束）。
+/// 视觉版 system instruction（v5 营养约束逐字保留，加识别/命名/份量约束）。
 ///
-/// 命名约束（真机反馈「只给类别词」后加固）：必须输出**最具体的常见
-/// 食物名**，禁止只输出类别词；双语输出（USDA 库英文为主，英文名精确
-/// 匹配命中率显著高于中文模糊匹配）；few-shot 示例定死输出格式与粒度。
+/// 多行明细协议（真机反馈驱动）：组合餐拆成主要组成食物逐行输出；
+/// 估算克数按图中实际份量（常识锚点写进 prompt）；
+/// 命名约束（「只给类别词」反馈后加固）：最具体常见食物名，禁止类别词；
+/// 双语输出（USDA 库英文为主，英文精确匹配命中率显著更高）；
+/// few-shot 示例定死输出格式、命名粒度与组合餐拆分方式。
 const String kPhotoRecognitionSystemPrompt =
-    '你是食物拍照识别助手。用户给你一张餐食照片，你识别画面中最主要的一种食物，'
-    '并估算其每100克可食部的营养。'
-    '按通常食用状态估算：米饭、面条等主食指煮熟后的成品，菜名指烧制完成的成品菜，肉蛋水果按生鲜。'
+    '你是食物拍照识别助手。用户给你一张餐食照片，你识别画面中的食物并逐条估算份量与营养。'
+    '画面中每种主要食物输出一行；只有一种食物就只输出一行；'
+    '组合餐（如炒饭、套餐）要拆成主要组成食物，每个组成一行。'
+    '估算克数按图中实际份量（常识参考：一碗米饭约200克，一包薯片约60克，'
+    '一盘菜约250克，一个鸡蛋约50克）。'
     '食物名必须是最具体的常见中文食物名（如 米饭、番茄炒蛋、苹果、鸡胸肉），'
     '禁止只输出类别词（水果、蔬菜、肉类、主食、饮料、零食、菜肴这类词都不可以）；'
     '不要品牌名，不要份量和形容词（红富士就写苹果）。'
-    '同时给出最常见的英文通用名（generic name，小写，如 potato chips、fried rice）。'
-    '示例：一碗白米饭 → 米饭 => rice => 116 => 2.6 => 23 => 0.3；'
-    '一盘番茄炒鸡蛋 → 番茄炒蛋 => tomato egg stir-fry => 120 => 6 => 8 => 7；'
-    '一包薯片 → 薯片 => potato chips => 536 => 7 => 53 => 32。'
+    '英文名给最常见的通用名（generic name，小写，如 potato chips、fried rice）。'
+    '按通常食用状态估算每100克可食部营养：米饭、面条等主食指煮熟后的成品，'
+    '菜名指烧制完成的成品菜，肉蛋水果按生鲜。'
     '常见食物每100克热量参考范围：蔬菜20-50千卡，水果30-90千卡，熟主食110-150千卡，'
     '瘦肉蛋100-200千卡，肥肉菜品250-500千卡，含糖饮料35-50千卡。'
     '一般规律：新鲜水果蔬菜水分高，碳水化合物通常不超过25克/100克（干果除外）；'
     '可乐、果汁等纯饮料的脂肪和蛋白质为0。'
-    '只输出一行，格式为：中文名 => 英文名 => 热量 => 蛋白质 => 碳水 => 脂肪，'
-    '单位分别是千卡、克、克、克（每100克）。只写名称、数字和 =>，不要任何其他文字。'
+    '示例：一碗白米饭 → 米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3；'
+    '一包薯片 → 薯片 => potato chips => 60 => 536 => 7 => 53 => 32。'
+    '组合餐示例，一份火腿蛋炒饭（一碗）→ 三行：\n'
+    '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3\n'
+    '鸡蛋 => egg => 50 => 144 => 13.3 => 2.8 => 8.8\n'
+    '火腿 => ham => 30 => 145 => 16 => 2 => 8\n'
+    '每行格式：中文名 => 英文名 => 估算克数 => 每100克热量 => 每100克蛋白质 => '
+    '每100克碳水 => 每100克脂肪，单位分别是克、千卡、克、克、克。'
+    '只写名称、数字和 =>，每行一条，不要任何其他文字。'
     '看不清或画面不是食物时，只输出：无法识别。';
 
 /// 类别词黑名单（解析层兜底，prompt 已禁止输出这些词）：
@@ -76,39 +87,64 @@ String buildPhotoRecognitionPrompt() {
   return '识别这张照片中的主要食物。\n结果：';
 }
 
-/// 解析出的视觉识别结果（食物名 + 每 100g 估算营养值）。
-final class ParsedPhotoRecognition {
-  const ParsedPhotoRecognition({
+/// 解析出的单条识别明细（多行协议逐行产物）。
+final class ParsedPhotoItem {
+  const ParsedPhotoItem({
     required this.name,
     this.nameEn,
+    this.grams,
     required this.values,
   });
 
-  /// 模型给出的中文食物名（已去前缀/杂质）。
+  /// 中文食物名（已去前缀/杂质）。
   final String name;
 
-  /// 模型给出的英文通用名（六段双语格式才有；五段兼容输出为 null）。
+  /// 英文通用名（六/七段格式才有；五段兼容输出为 null）。
   final String? nameEn;
 
-  /// 模型估算的每 100g 营养（只作匹配参考与存疑判定，不入账）。
+  /// 模型估算的实际克数（七段格式才有；兼容旧格式为 null → 服务层默认
+  /// 100g）。原始值未 clamp，合理性判定见 [isPhotoGramsSuspicious]。
+  final double? grams;
+
+  /// 模型估算的每 100g 营养（只作匹配参考/存疑判定/表单初值，不直接入账）。
   final OnDeviceNutritionValues values;
 }
 
-/// 宽松解析正则（六段双语主格式）：`中文名 => 英文名 => a => b => c => d`，
-/// 英文段须以字母开头（与五段格式互撞时此正则优先），容忍行内前后杂质。
-final RegExp _parseBilingualRegex = RegExp(
-  r'([^\s=>\d][^=>\n]*?)\s*=>\s*([A-Za-z][^=>\n]*?)\s*=>\s*'
+/// 克数合理区间（超出按可疑标低置信，值 clamp 回区间内）。
+const double kPhotoGramsMin = 1;
+const double kPhotoGramsMax = 2000;
+
+/// 克数是否越界可疑（<1 或 >2000；如「3000g 米饭」型顽固错误）。
+bool isPhotoGramsSuspicious(double grams) {
+  return grams < kPhotoGramsMin || grams > kPhotoGramsMax;
+}
+
+/// 克数 clamp 到合理区间（明细卡/入账用）。
+double clampPhotoGrams(double grams) {
+  return grams.clamp(kPhotoGramsMin, kPhotoGramsMax);
+}
+
+/// 七段主格式（含估算克数）：`中文名 => 英文名 => 克数 => 4个营养数字`。
+final RegExp _itemWithGramsRegex = RegExp(
+  r'([^\s=>\d][^=>]*?)\s*=>\s*([A-Za-z][^=>]*?)\s*=>\s*'
+  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*'
+  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)',
+);
+
+/// 六段兼容格式（无克数）：`中文名 => 英文名 => 4个营养数字`
+/// （英文段须以字母开头，与五段格式区分）。
+final RegExp _itemBilingualRegex = RegExp(
+  r'([^\s=>\d][^=>]*?)\s*=>\s*([A-Za-z][^=>]*?)\s*=>\s*'
   r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)',
 );
 
-/// 宽松解析正则（五段兼容格式）：全文本取第一组 `名 => a => b => c => d`，
-/// 容忍行内前后杂质与尾部多余 `=>`（沿用 v5 文本版的宽松策略）。
-final RegExp _parseRegex = RegExp(
-  r'([^\s=>\d][^=>\n]*?)\s*=>\s*'
+/// 五段兼容格式（无英文名无克数）：`名 => 4个营养数字`（v5 宽松策略）。
+final RegExp _itemLegacyRegex = RegExp(
+  r'([^\s=>\d][^=>]*?)\s*=>\s*'
   r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)',
 );
 
-/// 识别名前缀杂质（模型偶发复述「食物：」「结果：」等提示词片段）。
+/// 食物名前缀杂质（模型偶发复述「食物：」「结果：」等提示词片段）。
 final RegExp _namePrefixRegex = RegExp(r'^(食物|结果|名称|答案)\s*[:：]\s*');
 
 /// detail 透出长度上限（字符数；超出部分以 … 收尾，总长度 ≤ 上限+1）。
@@ -122,45 +158,79 @@ String cleanRecognitionDetail(String raw) {
   return '${collapsed.substring(0, kRecognitionDetailMaxLength)}…';
 }
 
-/// 解析视觉模型输出原文；六段（双语）优先、五段（旧格式）兼容回退；
-/// 匹配失败/「无法识别」返回 null（上层走降级）。
-ParsedPhotoRecognition? parsePhotoRecognitionOutput(String text) {
-  final bilingual = _parseBilingualRegex.firstMatch(text);
-  if (bilingual != null) {
-    final values = [
-      for (var i = 3; i <= 6; i++)
-        double.tryParse(bilingual.group(i)!) ?? double.nan,
-    ];
-    if (values.any((v) => !v.isFinite)) return null;
-    final name = bilingual.group(1)!.replaceAll(_namePrefixRegex, '').trim();
-    if (name.isEmpty || name.contains('无法识别')) return null;
-    final nameEn = bilingual.group(2)!.trim();
-    return ParsedPhotoRecognition(
-      name: name,
-      nameEn: nameEn.isEmpty ? null : nameEn,
-      values: OnDeviceNutritionValues(
-        kcal: values[0],
-        proteinG: values[1],
-        carbsG: values[2],
-        fatG: values[3],
-      ),
+/// 解析视觉模型输出原文 → 明细列表。**逐行独立解析**：七段主格式 →
+/// 六段（无克数）→ 五段（无英文名无克数）依次回退；单条目解析失败
+/// 跳过该行不拖垮整体；空行/杂质行忽略；「无法识别」行自然落空。
+/// 全部落空返回空列表（上层按 parse_failed 走降级）。
+List<ParsedPhotoItem> parsePhotoRecognitionItems(String text) {
+  final items = <ParsedPhotoItem>[];
+  for (final rawLine in text.split('\n')) {
+    final line = rawLine.trim();
+    if (line.isEmpty) continue;
+    final item = _parseItemLine(line);
+    if (item != null) items.add(item);
+  }
+  return items;
+}
+
+/// 单行解析：七段 → 六段 → 五段回退；名字为空/「无法识别」/数字非法 → null。
+ParsedPhotoItem? _parseItemLine(String line) {
+  final full = _itemWithGramsRegex.firstMatch(line);
+  if (full != null) {
+    return _buildItem(
+      rawName: full.group(1)!,
+      nameEn: full.group(2),
+      numberGroups: [for (var i = 3; i <= 7; i++) full.group(i)!],
+      gramsFromGroup: true,
     );
   }
-  final m = _parseRegex.firstMatch(text);
-  if (m == null) return null;
-  final values = [
-    for (var i = 2; i <= 5; i++) double.tryParse(m.group(i)!) ?? double.nan,
-  ];
-  if (values.any((v) => !v.isFinite)) return null;
-  final name = m.group(1)!.replaceAll(_namePrefixRegex, '').trim();
+  final bilingual = _itemBilingualRegex.firstMatch(line);
+  if (bilingual != null) {
+    return _buildItem(
+      rawName: bilingual.group(1)!,
+      nameEn: bilingual.group(2),
+      numberGroups: [for (var i = 3; i <= 6; i++) bilingual.group(i)!],
+      gramsFromGroup: false,
+    );
+  }
+  final legacy = _itemLegacyRegex.firstMatch(line);
+  if (legacy != null) {
+    return _buildItem(
+      rawName: legacy.group(1)!,
+      nameEn: null,
+      numberGroups: [for (var i = 2; i <= 5; i++) legacy.group(i)!],
+      gramsFromGroup: false,
+    );
+  }
+  return null;
+}
+
+/// 构造明细条目（统一名字清理与数字校验； gramsFromGroup=true 时
+/// numberGroups[0] 是克数，其余四个是每 100g 营养）。
+ParsedPhotoItem? _buildItem({
+  required String rawName,
+  required String? nameEn,
+  required List<String> numberGroups,
+  required bool gramsFromGroup,
+}) {
+  final name = rawName.replaceAll(_namePrefixRegex, '').trim();
   if (name.isEmpty || name.contains('无法识别')) return null;
-  return ParsedPhotoRecognition(
+  final numbers = [
+    for (final group in numberGroups) double.tryParse(group) ?? double.nan,
+  ];
+  if (numbers.any((v) => !v.isFinite)) return null;
+  final grams = gramsFromGroup ? numbers.first : null;
+  final nutrition = gramsFromGroup ? numbers.sublist(1) : numbers;
+  final en = nameEn?.trim() ?? '';
+  return ParsedPhotoItem(
     name: name,
+    nameEn: en.isEmpty ? null : en,
+    grams: grams,
     values: OnDeviceNutritionValues(
-      kcal: values[0],
-      proteinG: values[1],
-      carbsG: values[2],
-      fatG: values[3],
+      kcal: nutrition[0],
+      proteinG: nutrition[1],
+      carbsG: nutrition[2],
+      fatG: nutrition[3],
     ),
   );
 }

@@ -2,18 +2,14 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:app_settings/app_settings.dart';
-import 'package:eatwise/core/analytics/analytics_providers.dart';
-import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
-import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
-import 'package:eatwise/features/record/custom_food/presentation/custom_food_sheet.dart';
-import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:eatwise/features/record/recognition/data/ondevice_food_recognition_service.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
 import 'package:eatwise/features/record/recognition/domain/recognition_models.dart';
+import 'package:eatwise/features/record/recognition/presentation/photo_meal_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -27,11 +23,8 @@ enum PhotoUnavailableAction {
   /// 重新拍摄（重新走来源选择 → 拍照/相册）。
   retake,
 
-  /// 手动搜索（对焦搜索框；库未收录场景顺带预填识别名）。
+  /// 手动搜索（对焦搜索框；识别名场景顺带预填）。
   manualSearch,
-
-  /// 以估算值添加（库未收录场景：识别名 + 模型估值预填自定义食物表单）。
-  addWithEstimate,
 }
 
 /// 拍照识别入口流程（PRD M3 / D-16，≤3 步：选来源 → 拍照 → 确认结果卡）。
@@ -81,74 +74,23 @@ Future<void> startPhotoRecognition(BuildContext context, WidgetRef ref) async {
   // null = 用户在识别中点了取消：不填卡、不清空输入。
   if (outcome == null || !context.mounted) return;
   switch (outcome) {
-    case RecognitionSuccess(candidates: final candidates)
-        when candidates.isNotEmpty:
-      final top = candidates.first;
-      ref.read(recordSelectedFoodProvider.notifier).state = top.food;
-      ref.read(recordAmountTextProvider.notifier).state = _formatAmount(
-        top.defaultAmountG,
-      );
-      ref.read(recordLowConfidenceProvider.notifier).state =
-          top.isLowConfidence;
-      ref.read(recordEntrySourceProvider.notifier).state = EntrySource.photo;
+    case RecognitionSuccess(items: final items) when items.isNotEmpty:
+      // 明细确认弹层（多行明细协议：组合餐逐条确认/改克数/删除，
+      // 一键全部入账；单一食物就一行，交互一致）。
+      final result = await showPhotoMealConfirmSheet(context, ref, items);
+      if (!context.mounted || result == null) return;
+      if (result.retake) {
+        unawaited(startPhotoRecognition(context, ref));
+      } else if (result.loggedCount > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(s.photoLoggedItems(result.loggedCount))),
+        );
+      }
     case RecognitionSuccess():
-      // 识别成功但候选为空：等同不可用，走手动搜索兜底。
+      // 识别成功但明细为空：等同不可用，走手动搜索兜底。
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(s.photoUnavailable)));
-    case RecognitionUnavailable(
-          reason: 'no_match',
-          detail: final name?,
-          estimate: final estimate,
-        )
-        when name.isNotEmpty:
-      // 识别出食物名但库未收录：透出识别名 + 「以估算值添加」出口
-      // （模型估值预填自定义食物表单，用户确认后才入库）。
-      final action = await showPhotoUnmatchedDialog(
-        context,
-        s,
-        name,
-        estimate: estimate,
-      );
-      if (!context.mounted) return;
-      switch (action) {
-        case PhotoUnavailableAction.addWithEstimate:
-          final prefill = estimate;
-          if (prefill != null) {
-            // 埋点 record_photo_custom（参照 record_barcode_contribute 风格）。
-            ref
-                .read(analyticsServiceProvider)
-                .track(
-                  'record_photo_custom',
-                  properties: <String, Object?>{
-                    'action': 'add_with_estimate',
-                    'low_confidence': prefill.lowConfidence,
-                  },
-                );
-            unawaited(
-              startCustomFoodFlow(
-                context,
-                ref,
-                initialEstimate: CustomFoodEstimatePrefill(
-                  name: prefill.name,
-                  nameEn: prefill.nameEn,
-                  per100g: NutritionSnapshot(
-                    kcal: prefill.per100g.kcal,
-                    proteinG: prefill.per100g.proteinG,
-                    carbG: prefill.per100g.carbsG,
-                    fatG: prefill.per100g.fatG,
-                  ),
-                  lowConfidence: prefill.lowConfidence,
-                ),
-              ),
-            );
-          }
-        case PhotoUnavailableAction.manualSearch:
-          // 预填识别名：用户改一两个字往往就能搜到。
-          ref.read(recordSearchPrefillProvider.notifier).state = name;
-        case PhotoUnavailableAction.retake:
-        case null: // 知道了/遮罩关闭：原地不动
-      }
     case RecognitionUnavailable(detail: final detail?) when detail.isNotEmpty:
       // 模型原文透出（含「无法识别」）：用户能看到模型实际看到了什么。
       final action = await showPhotoNoFoodDialog(context, s, detail);
@@ -160,7 +102,6 @@ Future<void> startPhotoRecognition(BuildContext context, WidgetRef ref) async {
         case PhotoUnavailableAction.manualSearch:
           // 仅对焦搜索框（无识别名可预填）。
           ref.read(recordSearchPrefillProvider.notifier).state = '';
-        case PhotoUnavailableAction.addWithEstimate: // 此对话框不出该动作
         case null: // 知道了/遮罩关闭：原地不动
       }
     case RecognitionUnavailable():
@@ -225,43 +166,6 @@ Future<PhotoUnavailableAction?> showPhotoNoFoodDialog(
               Navigator.of(dialogContext).pop(PhotoUnavailableAction.retake),
           child: Text(s.photoRetake),
         ),
-      ],
-    ),
-  );
-}
-
-/// 「识别为 xx 但库未收录」对话框：透出识别名，主行动「以估算值添加」
-/// （[estimate] 非空时展示：识别名 + 模型估值预填自定义食物表单），
-/// 次行动「手动搜索」（调用方预填识别名并对焦搜索框）。
-Future<PhotoUnavailableAction?> showPhotoUnmatchedDialog(
-  BuildContext context,
-  RecordStrings s,
-  String name, {
-  RecognizedFoodEstimate? estimate,
-}) {
-  return showDialog<PhotoUnavailableAction>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: Text(s.photoUnmatchedTitle(name)),
-      content: Text(s.photoUnmatchedBody),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(),
-          child: Text(s.photoGotIt),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(
-            dialogContext,
-          ).pop(PhotoUnavailableAction.manualSearch),
-          child: Text(s.photoUseManual),
-        ),
-        if (estimate != null)
-          FilledButton(
-            onPressed: () => Navigator.of(
-              dialogContext,
-            ).pop(PhotoUnavailableAction.addWithEstimate),
-            child: Text(s.photoAddWithEstimate),
-          ),
       ],
     ),
   );
@@ -396,11 +300,4 @@ Future<RecognitionOutcome?> _recognizeWithCancel(
     }
     phase.dispose();
   }
-}
-
-/// 份量整数化展示（200.0 → "200"，153.5 → "153.5"）。
-String _formatAmount(double amountG) {
-  return amountG == amountG.roundToDouble()
-      ? amountG.round().toString()
-      : amountG.toString();
 }

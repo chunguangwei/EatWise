@@ -29,30 +29,6 @@ final class FoodEstimate {
   bool get isLowConfidence => confidence == 'low';
 }
 
-/// 拍照识别未收录场景的表单预填（识别名 + 模型每 100g 估值）：
-/// 与「AI 估算」预填同款「端侧估算，请确认」徽标/存疑提示，
-/// 估值只作表单初值，用户可改名/改值，确认保存后才入库。
-final class CustomFoodEstimatePrefill {
-  const CustomFoodEstimatePrefill({
-    required this.name,
-    required this.per100g,
-    required this.lowConfidence,
-    this.nameEn,
-  });
-
-  /// 识别出的食物名（菜名初值）。
-  final String name;
-
-  /// 英文通用名（双语识别时才有；英文名/别名辅助）。
-  final String? nameEn;
-
-  /// 模型估算的每 100g 四营养（四营养输入初值）。
-  final NutritionSnapshot per100g;
-
-  /// 低置信（sanity-clamp dubious 或类别词）→ 「估算存疑，请核对」。
-  final bool lowConfidence;
-}
-
 /// 自定义食物提交草稿（弹层表单 → 仓储）。
 final class CustomFoodDraft {
   const CustomFoodDraft({
