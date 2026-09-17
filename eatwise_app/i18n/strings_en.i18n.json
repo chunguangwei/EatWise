@@ -155,7 +155,8 @@
       "mealConfirmTitle": "Review meal items",
       "logAll": "Log all",
       "loggedItems": "Logged ${count} items",
-      "unmatchedItemTag": "Not in library — will be created"
+      "unmatchedItemTag": "Not in library — will be created",
+      "labelValueTag": "From label"
     },
     "barcode": {
       "entry": "Scan",

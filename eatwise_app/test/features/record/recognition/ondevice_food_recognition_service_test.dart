@@ -470,6 +470,62 @@ void main() {
     });
   });
 
+  group('包装营养表照抄（fromLabel）', () {
+    test('标签行未命中库：标签值入账口径保留 + 置信 0.6（请确认警告通道）', () async {
+      final gateway = _FakeGateway()
+        ..response =
+            '清叶堂洋芋片 => potato chips => 50 => 2141 kJ => 6.1 => 53.0 => 30.7';
+      final service = makeService(gateway: gateway); // 搜索恒空
+
+      final outcome = await service.recognize(photoBytes);
+
+      final item = (outcome as RecognitionSuccess).items.single;
+      expect(item.isMatched, isFalse);
+      expect(item.fromLabel, isTrue);
+      expect(item.name, '清叶堂洋芋片'); // 品牌加品名
+      expect(item.grams, 50); // 净含量直填
+      expect(item.per100g.kcal, closeTo(511.7, 0.1)); // 标签值（kJ 已换算）
+      expect(item.confidence, 0.6);
+      expect(item.isLowConfidence, isTrue); // 警告通道：请确认徽标
+    });
+
+    test('标签行命中库：库内精准值 + 置信 0.9（标签+库双确认）', () async {
+      final gateway = _FakeGateway()
+        ..response =
+            '薯片 => potato chips => 50 => 2141 kJ => 6.1 => 53.0 => 30.7';
+      final chips = food(id: 'f-chips', zh: '薯片', en: 'potato chips');
+      final service = makeService(
+        gateway: gateway,
+        searchResults: <String, List<Food>>{
+          '薯片': [chips],
+        },
+      );
+
+      final outcome = await service.recognize(photoBytes);
+
+      final item = (outcome as RecognitionSuccess).items.single;
+      expect(item.fromLabel, isTrue);
+      expect(item.per100g.kcal, 116); // 命中用库内值（food() 默认 116）
+      expect(item.confidence, 0.9);
+      expect(item.isLowConfidence, isFalse);
+    });
+
+    test('标签值 sanity-clamp 不降级：宏量超限的标签行不被压到 0.5', () async {
+      // 蛋白质 70g/100g 的极端标签（肉干类确实可能高超限线）：
+      // ground truth 只警告不覆盖——不走 dubious 0.5 降级。
+      final gateway = _FakeGateway()
+        ..response = '牛肉干 => beef jerky => 80 => 1500 kJ => 70 => 5 => 10';
+      final service = makeService(gateway: gateway);
+
+      final outcome = await service.recognize(photoBytes);
+
+      final item = (outcome as RecognitionSuccess).items.single;
+      expect(item.fromLabel, isTrue);
+      expect(item.per100g.proteinG, 70); // 数值不改写
+      expect(item.confidence, 0.6); // 未命中档，不是 0.5 的 dubious 档
+    });
+  });
+
   group('foodRecognitionServiceProvider 选择逻辑', () {
     Future<ProviderContainer> makeContainer({
       required bool enabled,

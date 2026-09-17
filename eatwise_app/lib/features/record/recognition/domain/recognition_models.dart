@@ -11,6 +11,7 @@ final class RecognizedMealItem {
     required this.per100g,
     required this.confidence,
     this.food,
+    this.fromLabel = false,
   });
 
   /// 展示名（库命中用库内规范名；未命中用模型识别名）。
@@ -34,6 +35,10 @@ final class RecognizedMealItem {
   /// 库匹配结果（null = 库未命中；「全部记录」时该条目自动建成自定义
   /// 食物（模型估值 + llmEstimate 口径）再入账）。
   final Food? food;
+
+  /// 每 100g 营养来自包装营养表照抄（ground truth；明细行显「标签值」
+  /// 标记，sanity-clamp 只做警告不覆盖数值）。
+  final bool fromLabel;
 
   /// 低置信度阈值（PRD M3「识别置信度低 → 标记请确认」）。
   static const double lowConfidenceThreshold = 0.7;

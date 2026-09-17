@@ -40,6 +40,26 @@ void main() {
       expect(kPhotoRecognitionSystemPrompt, contains('一盘菜约250克'));
     });
 
+    test('包装食品标签提取约束（营养表照抄 + 净含量 + 品牌品名）', () {
+      expect(kPhotoRecognitionSystemPrompt, contains('营养成分表'));
+      expect(kPhotoRecognitionSystemPrompt, contains('优先照抄标签'));
+      expect(kPhotoRecognitionSystemPrompt, contains('不要自己换算'));
+      expect(kPhotoRecognitionSystemPrompt, contains('净含量'));
+      expect(kPhotoRecognitionSystemPrompt, contains('品牌加品名'));
+      // 包装 few-shot：kJ 单位原样透出（Dart 层换算）。
+      expect(
+        kPhotoRecognitionSystemPrompt,
+        contains(
+          '清叶堂洋芋片 => potato chips => 50 => 2141 kJ => 6.1 => 53.0 => 30.7',
+        ),
+      );
+    });
+
+    test('散装食物参照物克数估算引导（不上 AR/LiDAR）', () {
+      expect(kPhotoRecognitionSystemPrompt, contains('参照物'));
+      expect(kPhotoRecognitionSystemPrompt, contains('碗盘直径约11-13厘米'));
+    });
+
     test('组合餐拆分 + few-shot（含三行明细示例）', () {
       expect(kPhotoRecognitionSystemPrompt, contains('组合餐'));
       expect(kPhotoRecognitionSystemPrompt, contains('每种主要食物输出一行'));
@@ -154,6 +174,43 @@ void main() {
       expect(items, hasLength(1));
       expect(items.single.name, '米饭');
       expect(items.single.grams, 200);
+    });
+
+    test('包装标签行：kJ 单位透出 → Dart 层换算 kcal + fromLabel 标记', () {
+      final items = parsePhotoRecognitionItems(
+        '清叶堂洋芋片 => potato chips => 50 => 2141 kJ => 6.1 => 53.0 => 30.7',
+      );
+      expect(items, hasLength(1));
+      final item = items.single;
+      expect(item.name, '清叶堂洋芋片');
+      expect(item.nameEn, 'potato chips');
+      expect(item.grams, 50); // 净含量直填
+      expect(item.fromLabel, isTrue);
+      expect(item.values.kcal, closeTo(511.7, 0.1)); // 2141 / 4.184
+      expect(item.values.proteinG, 6.1);
+      expect(item.values.carbsG, 53.0);
+      expect(item.values.fatG, 30.7);
+    });
+
+    test('包装标签行：千卡标注/中文单位 原样或换算正确', () {
+      final kcal = parsePhotoRecognitionItems(
+        '某饼干 => cookies => 40 => 480 kcal => 6 => 60 => 22',
+      );
+      expect(kcal.single.fromLabel, isTrue);
+      expect(kcal.single.values.kcal, 480);
+      final kj = parsePhotoRecognitionItems(
+        '某饼干 => cookies => 40 => 2008千焦 => 6 => 60 => 22',
+      );
+      expect(kj.single.fromLabel, isTrue);
+      expect(kj.single.values.kcal, closeTo(479.9, 0.1)); // 2008 / 4.184
+    });
+
+    test('散装估算行（无单位）→ fromLabel=false（向后兼容）', () {
+      final items = parsePhotoRecognitionItems(
+        '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3',
+      );
+      expect(items.single.fromLabel, isFalse);
+      expect(items.single.values.kcal, 116);
     });
 
     test('「无法识别」→ 空列表（走 parse_failed 降级）', () {

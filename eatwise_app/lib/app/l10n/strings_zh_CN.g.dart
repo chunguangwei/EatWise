@@ -644,6 +644,9 @@ class Translations$record$photo$zh_CN {
 
 	/// zh-CN: '库未收录，将自动新建'
 	String get unmatchedItemTag => '库未收录，将自动新建';
+
+	/// zh-CN: '标签值'
+	String get labelValueTag => '标签值';
 }
 
 // Path: record.barcode
@@ -3132,6 +3135,7 @@ extension on Translations {
 			'record.photo.logAll' => '全部记录',
 			'record.photo.loggedItems' => ({required Object count}) => '已记录 ${count} 条',
 			'record.photo.unmatchedItemTag' => '库未收录，将自动新建',
+			'record.photo.labelValueTag' => '标签值',
 			'record.barcode.entry' => '扫码记',
 			'record.barcode.title' => '扫描商品条码',
 			'record.barcode.torch' => '照明灯',
@@ -3542,9 +3546,9 @@ extension on Translations {
 			'legal.disclaimer.notMedicalBody' => '明食 EatWise 提供的内容（包括断食方案、营养目标、信号灯反馈与建议）仅为健康生活方式的一般性信息参考，不构成医疗建议、诊断或治疗，不能替代医生、注册营养师等专业人士的意见。您的营养目标由通用公式估算，可能与您的个体情况存在差异。如有任何健康问题、正在服药或患有疾病，请在使用断食或调整饮食前咨询专业医疗人员。因使用本应用信息而产生的任何后果，本应用不承担医疗责任。',
 			'legal.disclaimer.specialGroupsTitle' => '特殊人群提示',
 			'legal.disclaimer.specialGroupsBody' => '⚠️ 以下人群不建议进行间歇性断食，或须在医生指导下进行：孕期及哺乳期女性；未成年人（18 岁以下）；有进食障碍（如厌食症、暴食症）病史或高风险人群；糖尿病患者（尤其使用胰岛素或降糖药者）；低血糖、低血压患者；体重过低（BMI < 18.5）者；痛风、肾病、肝病等慢性疾病患者；近期手术或处于疾病恢复期者；老年体弱者。如果您属于以上任何一类，请不要开始断食方案，并咨询医生。',
-			'legal.disclaimer.short' => '本应用内容不构成医疗建议',
 			_ => null,
 		} ?? switch (path) {
+			'legal.disclaimer.short' => '本应用内容不构成医疗建议',
 			'legal.privacyPolicy.title' => '隐私政策',
 			'legal.privacyPolicy.body' => '生效日期：2026-07-27｜版本 1.0.0〔待外部确认：法务终稿〕\n\n明食 · EatWise（下称「我们」）仅面向中国大陆地区提供服务。本政策说明我们如何收集、使用、存储和保护你的个人信息，以及你享有的权利。\n\n一、我们收集的信息\n1. 手机号：用于注册、登录与账号找回，境内加密存储。\n2. 身高、体重、年龄、性别：用于计算每日营养目标，属敏感个人信息，需你单独同意。\n3. 饮食记录与断食记录：核心功能所需，属敏感个人信息。\n4. 目标、作息、断食经验（问卷 3 题）：用于方案推荐。\n5. 昵称、头像：可选，用于个性化与社区展示。\n6. 设备信息与推送 token：用于推送送达与崩溃分析；不收集 IMEI/IMSI/MAC。\n7. 崩溃与性能日志：脱敏处理，留存 6 个月。\n8. 埋点行为数据：仅事件级行为统计，可在「设置-隐私」中关闭。\n我们不收集：位置信息、通讯录、蓝牙及 HealthKit/Health Connect 健康平台数据。\n\n二、敏感个人信息单独同意\n健康相关数据（身高体重、饮食/断食记录等）依据《个人信息保护法》第 29 条取得你的单独同意；拒绝不影响账号功能，营养目标将使用默认值；你可随时在「设置-隐私」中撤回。\n\n三、存储与安全\n全部数据存储于中国境内服务器；传输使用 TLS 1.2+ 加密；手机号与健康数据采用字段级加密存储；本地数据库全库加密。无任何数据出境。\n\n四、第三方 SDK\n我们使用微信登录、Sign in with Apple、聚合推送、内容安全、崩溃监控等境内 SDK；任何 SDK 均不接收你的健康数据原文。\n\n五、你的权利\n1. 查阅复制：「设置-隐私-导出我的数据」申请导出全量个人数据（JSON+CSV）。\n2. 删除：「设置-账号-删除账号」，申请后进入 7 天冷静期，冷静期内登录即撤销。\n3. 撤回同意：「设置-隐私」中可随时撤回健康数据授权与数据分析授权。\n\n六、未成年人\n本产品不面向 14 岁以下儿童。\n\n七、政策更新\n本政策发生重大变更时，我们将重新征得你的同意。\n\n八、联系我们\n如对本政策有任何疑问，可通过 App 内「设置-关于」与我们联系。',
 			'legal.userAgreement.title' => '用户协议',

@@ -10,15 +10,20 @@ library;
 import 'package:eatwise/core/llm/ondevice/nutrition_estimate_logic.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
+import 'package:eatwise/features/record/recognition/domain/nutrition_label_ocr_logic.dart'
+    show kKjPerKcal;
 import 'package:eatwise/features/record/recognition/domain/recognition_models.dart';
 
-/// 视觉版 system instruction（v5 营养约束逐字保留，加识别/命名/份量约束）。
+/// 视觉版 system instruction（v5 营养约束逐字保留，加识别/命名/份量/
+/// 包装标签提取约束）。
 ///
 /// 多行明细协议（真机反馈驱动）：组合餐拆成主要组成食物逐行输出；
 /// 估算克数按图中实际份量（常识锚点写进 prompt）；
 /// 命名约束（「只给类别词」反馈后加固）：最具体常见食物名，禁止类别词；
 /// 双语输出（USDA 库英文为主，英文精确匹配命中率显著更高）；
-/// few-shot 示例定死输出格式、命名粒度与组合餐拆分方式。
+/// few-shot 示例定死输出格式、命名粒度与组合餐拆分方式；
+/// 包装食品：营养表照抄（kJ 单位标记透出，Dart 层换算）+ 净含量直填克数
+/// + 品牌品名；散装食物：参照物（手/筷子/碗盘）比例估算克数。
 const String kPhotoRecognitionSystemPrompt =
     '你是食物拍照识别助手。用户给你一张餐食照片，你识别画面中的食物并逐条估算份量与营养。'
     '画面中每种主要食物输出一行；只有一种食物就只输出一行；'
@@ -35,8 +40,12 @@ const String kPhotoRecognitionSystemPrompt =
     '瘦肉蛋100-200千卡，肥肉菜品250-500千卡，含糖饮料35-50千卡。'
     '一般规律：新鲜水果蔬菜水分高，碳水化合物通常不超过25克/100克（干果除外）；'
     '可乐、果汁等纯饮料的脂肪和蛋白质为0。'
+    '散装食物估算克数时利用画面参照物判断大小（手、筷子、常见碗盘直径约11-13厘米），按参照物比例估算实际份量。'
+    '如果画面中是带包装的食品且包装上有可读的营养成分表：优先照抄标签上的每100克数值（能量如果是千焦，照抄数值并在数字后标注 kJ；是千卡则标注 kcal），不要自己换算；包装上有净含量（如 净含量：50克）时，估算克数直接填净含量数值；食物名用包装上的品牌加品名（如 清叶堂洋芋片）。'
     '示例：一碗白米饭 → 米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3；'
     '一包薯片 → 薯片 => potato chips => 60 => 536 => 7 => 53 => 32。'
+    '包装食品示例：一袋清叶堂洋芋片（营养表 每100克：能量2141千焦、蛋白质6.1克、碳水53.0克、脂肪30.7克；净含量50克）→\n'
+    '清叶堂洋芋片 => potato chips => 50 => 2141 kJ => 6.1 => 53.0 => 30.7。'
     '组合餐示例，一份火腿蛋炒饭（一碗）→ 三行：\n'
     '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3\n'
     '鸡蛋 => egg => 50 => 144 => 13.3 => 2.8 => 8.8\n'
@@ -96,6 +105,7 @@ final class ParsedPhotoItem {
     this.nameEn,
     this.grams,
     required this.values,
+    this.fromLabel = false,
   });
 
   /// 中文食物名（已去前缀/杂质）。
@@ -105,11 +115,17 @@ final class ParsedPhotoItem {
   final String? nameEn;
 
   /// 模型估算的实际克数（七段格式才有；兼容旧格式为 null → 服务层默认
-  /// 100g）。原始值未 clamp，合理性判定见 [isPhotoGramsSuspicious]。
+  /// 100g；包装食品有净含量时为净含量值）。原始值未 clamp，合理性判定
+  /// 见 [isPhotoGramsSuspicious]。
   final double? grams;
 
-  /// 模型估算的每 100g 营养（只作匹配参考/存疑判定/表单初值，不直接入账）。
+  /// 每 100g 营养（kJ 已在解析层换算 kcal）。散装=模型估算（只作匹配
+  /// 参考/存疑判定/表单初值，不直接入账）；包装=标签照抄值（ground
+  /// truth，sanity-clamp 只警告不覆盖，见 [fromLabel]）。
   final OnDeviceNutritionValues values;
+
+  /// 是否来自包装营养表照抄（热量段带单位标记）。
+  final bool fromLabel;
 }
 
 /// 克数合理区间（超出按可疑标低置信，值 clamp 回区间内）。
@@ -126,11 +142,14 @@ double clampPhotoGrams(double grams) {
   return grams.clamp(kPhotoGramsMin, kPhotoGramsMax);
 }
 
-/// 七段主格式（含估算克数）：`中文名 => 英文名 => 克数 => 4个营养数字`。
+/// 七段主格式（含估算克数）：`中文名 => 英文名 => 克数 => 热量[单位] => 3个宏量`。
+/// 热量段允许单位后缀（kJ/千焦 → 包装营养表照抄场景，Dart 层统一换算
+/// kcal，数值换算不放模型侧）；无单位 = 散装估算路径（fromLabel=false）。
 final RegExp _itemWithGramsRegex = RegExp(
   r'([^\s=>\d][^=>]*?)\s*=>\s*([A-Za-z][^=>]*?)\s*=>\s*'
-  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*'
-  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)',
+  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)(?:\s*(kJ|kcal|千焦|千卡))?\s*=>\s*'
+  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)',
+  caseSensitive: false,
 );
 
 /// 六段兼容格式（无克数）：`中文名 => 英文名 => 4个营养数字`
@@ -182,8 +201,10 @@ ParsedPhotoItem? _parseItemLine(String line) {
     return _buildItem(
       rawName: full.group(1)!,
       nameEn: full.group(2),
-      numberGroups: [for (var i = 3; i <= 7; i++) full.group(i)!],
-      gramsFromGroup: true,
+      gramsGroup: full.group(3),
+      energyGroup: full.group(4)!,
+      energyUnit: full.group(5),
+      macroGroups: <String>[full.group(6)!, full.group(7)!, full.group(8)!],
     );
   }
   final bilingual = _itemBilingualRegex.firstMatch(line);
@@ -191,8 +212,14 @@ ParsedPhotoItem? _parseItemLine(String line) {
     return _buildItem(
       rawName: bilingual.group(1)!,
       nameEn: bilingual.group(2),
-      numberGroups: [for (var i = 3; i <= 6; i++) bilingual.group(i)!],
-      gramsFromGroup: false,
+      gramsGroup: null,
+      energyGroup: bilingual.group(3)!,
+      energyUnit: null,
+      macroGroups: <String>[
+        bilingual.group(4)!,
+        bilingual.group(5)!,
+        bilingual.group(6)!,
+      ],
     );
   }
   final legacy = _itemLegacyRegex.firstMatch(line);
@@ -200,40 +227,58 @@ ParsedPhotoItem? _parseItemLine(String line) {
     return _buildItem(
       rawName: legacy.group(1)!,
       nameEn: null,
-      numberGroups: [for (var i = 2; i <= 5; i++) legacy.group(i)!],
-      gramsFromGroup: false,
+      gramsGroup: null,
+      energyGroup: legacy.group(2)!,
+      energyUnit: null,
+      macroGroups: <String>[
+        legacy.group(3)!,
+        legacy.group(4)!,
+        legacy.group(5)!,
+      ],
     );
   }
   return null;
 }
 
-/// 构造明细条目（统一名字清理与数字校验； gramsFromGroup=true 时
-/// numberGroups[0] 是克数，其余四个是每 100g 营养）。
+/// 构造明细条目（统一名字清理与数字校验）。热量段带单位（kJ/千焦）时
+/// 在 Dart 层按 1kcal=4.184kJ 换算（不信模型口算），并标记 fromLabel
+///（包装营养表照抄 = ground truth，sanity-clamp 只警告不覆盖）。
 ParsedPhotoItem? _buildItem({
   required String rawName,
   required String? nameEn,
-  required List<String> numberGroups,
-  required bool gramsFromGroup,
+  required String? gramsGroup,
+  required String energyGroup,
+  required String? energyUnit,
+  required List<String> macroGroups,
 }) {
   final name = rawName.replaceAll(_namePrefixRegex, '').trim();
   if (name.isEmpty || name.contains('无法识别')) return null;
-  final numbers = [
-    for (final group in numberGroups) double.tryParse(group) ?? double.nan,
+  final grams = gramsGroup == null ? null : double.tryParse(gramsGroup);
+  if (gramsGroup != null && (grams == null || !grams.isFinite)) return null;
+  final energyRaw = double.tryParse(energyGroup);
+  final macros = [
+    for (final group in macroGroups) double.tryParse(group) ?? double.nan,
   ];
-  if (numbers.any((v) => !v.isFinite)) return null;
-  final grams = gramsFromGroup ? numbers.first : null;
-  final nutrition = gramsFromGroup ? numbers.sublist(1) : numbers;
+  if (energyRaw == null || !energyRaw.isFinite) return null;
+  if (macros.any((v) => !v.isFinite)) return null;
+  final unit = (energyUnit ?? '').toLowerCase();
+  final fromLabel = unit.isNotEmpty;
+  // kJ/千焦 → kcal（Dart 层定值换算）；kcal/千卡/缺省照用。
+  final kcal = (unit == 'kj' || unit == '千焦')
+      ? double.parse((energyRaw / kKjPerKcal).toStringAsFixed(1))
+      : energyRaw;
   final en = nameEn?.trim() ?? '';
   return ParsedPhotoItem(
     name: name,
     nameEn: en.isEmpty ? null : en,
     grams: grams,
     values: OnDeviceNutritionValues(
-      kcal: nutrition[0],
-      proteinG: nutrition[1],
-      carbsG: nutrition[2],
-      fatG: nutrition[3],
+      kcal: kcal,
+      proteinG: macros[0],
+      carbsG: macros[1],
+      fatG: macros[2],
     ),
+    fromLabel: fromLabel,
   );
 }
 
@@ -316,6 +361,26 @@ Future<RecognizedMealItem> recognizedMealItemFromParsed(
   final dubious = isNutritionEstimateDubious(parsed.values);
   // 类别词兜底（prompt 已禁，命中即「不够具体」→ 必走请确认）。
   final tooGeneric = isGenericCategoryName(parsed.name);
+  // 包装标签照抄值是 ground truth：sanity-clamp 只警告不覆盖——不走
+  // dubious 降级，命中按匹配档置信，未命中 0.6（仍低于阈值，明细行
+  // 「请确认」徽标即警告通道；数值永不改写）。
+  if (parsed.fromLabel) {
+    final food = match?.food;
+    return RecognizedMealItem(
+      name: food?.nameZh ?? parsed.name,
+      nameEn: food?.nameEn ?? parsed.nameEn,
+      grams: grams,
+      per100g: NutritionSnapshot(
+        kcal: food?.kcalPer100g ?? parsed.values.kcal,
+        proteinG: food?.proteinPer100g ?? parsed.values.proteinG,
+        carbG: food?.carbPer100g ?? parsed.values.carbsG,
+        fatG: food?.fatPer100g ?? parsed.values.fatG,
+      ),
+      confidence: food == null ? 0.6 : (match!.exact ? 0.9 : 0.75),
+      food: food,
+      fromLabel: true,
+    );
+  }
   if (match != null) {
     final food = match.food;
     return RecognizedMealItem(

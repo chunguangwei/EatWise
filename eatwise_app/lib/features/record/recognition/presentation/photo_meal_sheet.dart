@@ -101,8 +101,11 @@ final class _MealRow {
 }
 
 class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
+  // 数据通路双保险：空白名称条目不进明细卡（解析层已拒绝空名，
+  // 此处兜底上游任何回归——宁可少一行，不渲染空白行）。
   late final List<_MealRow> _rows = [
-    for (final item in widget.items) _MealRow(item),
+    for (final item in widget.items)
+      if (item.name.trim().isNotEmpty) _MealRow(item),
   ];
 
   /// 入账在途（防连点）。
@@ -283,12 +286,19 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
             ],
           ),
           // 标记独立成行（Wrap 可换行）：不与名称抢宽度。
-          if (!item.isMatched || item.isLowConfidence)
+          if (!item.isMatched || item.isLowConfidence || item.fromLabel)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.s1),
               child: Wrap(
                 spacing: AppSpacing.s2,
                 children: <Widget>[
+                  if (item.fromLabel)
+                    Text(
+                      s.photoLabelValueTag,
+                      style: textStyles.textXs.copyWith(
+                        color: colors.brandPrimary,
+                      ),
+                    ),
                   if (!item.isMatched)
                     Text(
                       s.photoUnmatchedItemTag,

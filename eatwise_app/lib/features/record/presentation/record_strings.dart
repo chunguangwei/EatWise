@@ -146,6 +146,9 @@ final class RecordStrings {
   /// record.photo.unmatchedItemTag
   String get photoUnmatchedItemTag => _t.record.photo.unmatchedItemTag;
 
+  /// record.photo.labelValueTag
+  String get photoLabelValueTag => _t.record.photo.labelValueTag;
+
   /// record.voice.listening
   String get voiceListening => _t.record.voice.listening;
 

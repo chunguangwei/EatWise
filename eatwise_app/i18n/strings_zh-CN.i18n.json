@@ -155,7 +155,8 @@
       "mealConfirmTitle": "确认这餐明细",
       "logAll": "全部记录",
       "loggedItems": "已记录 ${count} 条",
-      "unmatchedItemTag": "库未收录，将自动新建"
+      "unmatchedItemTag": "库未收录，将自动新建",
+      "labelValueTag": "标签值"
     },
     "barcode": {
       "entry": "扫码记",

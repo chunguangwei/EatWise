@@ -307,6 +307,64 @@ void main() {
     await settleUi(tester);
   });
 
+  testWidgets('标签照抄条目：行内显「标签值」标记', (tester) async {
+    recognitionService.outcome = const RecognitionSuccess(<RecognizedMealItem>[
+      RecognizedMealItem(
+        name: '清叶堂洋芋片',
+        nameEn: 'potato chips',
+        grams: 50,
+        per100g: NutritionSnapshot(
+          kcal: 511.7,
+          proteinG: 6.1,
+          carbG: 53,
+          fatG: 30.7,
+        ),
+        confidence: 0.6,
+        fromLabel: true,
+      ),
+    ]);
+    await pumpPage(tester);
+    await pickPhotoAndRecognize(tester);
+
+    expect(inSheet(find.text('清叶堂洋芋片')), findsOneWidget);
+    expect(inSheet(find.text('标签值')), findsOneWidget);
+    // 净含量 50g 预填 + 标签值换算营养（511.7×0.5≈256 千卡）。
+    expect(inSheet(find.textContaining('热量 256 千卡')), findsOneWidget);
+    await settleUi(tester);
+  });
+
+  testWidgets('数据通路兜底：空白名称条目不渲染成行（宁缺不空）', (tester) async {
+    final rice = (await db.foodDao.getById('f-rice'))!;
+    recognitionService.outcome = RecognitionSuccess(<RecognizedMealItem>[
+      RecognizedMealItem(
+        name: rice.nameZh,
+        grams: 200,
+        per100g: const NutritionSnapshot(
+          kcal: 116,
+          proteinG: 2.6,
+          carbG: 25.9,
+          fatG: 0.3,
+        ),
+        confidence: 0.85,
+        food: rice,
+      ),
+      // 上游回归防御：空白名称条目应被弹层滤掉，不渲染空白行。
+      const RecognizedMealItem(
+        name: '  ',
+        grams: 60,
+        per100g: NutritionSnapshot(kcal: 100, proteinG: 5, carbG: 10, fatG: 2),
+        confidence: 0.4,
+      ),
+    ]);
+    await pumpPage(tester);
+    await pickPhotoAndRecognize(tester);
+
+    // 只剩一行：名称可见 + 仅一个删除按钮（空白行进不来）。
+    expect(inSheet(find.text('白米饭')), findsOneWidget);
+    expect(inSheet(find.byIcon(Icons.close)), findsNWidgets(1));
+    await settleUi(tester);
+  });
+
   testWidgets('全部删除后「全部记录」禁用，不入账', (tester) async {
     recognitionService.outcome = await comboOutcome();
     await pumpPage(tester);
