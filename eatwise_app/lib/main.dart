@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show SecurityContext;
 
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/app/router/app_router.dart';
@@ -7,6 +8,8 @@ import 'package:eatwise/core/analytics/page_stay_tracker.dart';
 import 'package:eatwise/core/llm/llm_config_store.dart';
 import 'package:eatwise/core/llm/ondevice/ondevice_model_manager.dart';
 import 'package:eatwise/core/llm/ondevice/ondevice_providers.dart';
+import 'package:eatwise/core/network/api_config.dart';
+import 'package:eatwise/core/network/cert_pinning.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/network/token_store.dart';
 import 'package:eatwise/core/notification/local_notification_service.dart';
@@ -67,6 +70,16 @@ Future<void> main() async {
   // M3/M7：本地数据库（drift，D-17；SQLCipher 加密接入点见规格-数据同步 §7.2）。
   final docsDir = await getApplicationDocumentsDirectory();
   final db = AppDatabase.openAt(docsDir.path);
+  // 生产自签名证书锁定（仅 API 指向 https://wcg.polin.tech 时启用，http 开发
+  // 地址跳过）；资产缺失/解析失败不阻断启动，回落系统 CA 默认校验。
+  SecurityContext? pinnedSecurityContext;
+  if (shouldPinCert(ApiConfig().baseUrl)) {
+    try {
+      pinnedSecurityContext = await loadPinnedSecurityContext();
+    } on Object {
+      // 防御：证书资产异常时不阻断启动，TLS 失败由既有错误映射呈现。
+    }
+  }
   // D-16：首次启动导入双语食物库种子（幂等，按版本号跳过）；
   // 资产缺失/解析失败不阻断启动，食物搜索降级为仅已导入数据。
   try {
@@ -102,6 +115,7 @@ Future<void> main() async {
       appDatabaseProvider.overrideWithValue(db),
       localNotificationServiceProvider.overrideWithValue(notificationService),
       tokenStoreProvider.overrideWithValue(SecureTokenStore()),
+      pinnedSecurityContextProvider.overrideWithValue(pinnedSecurityContext),
       authGateProvider.overrideWithValue(authGate),
       // refresh 失败清会话 → 强制回登录页。
       apiSessionClearedHandlerProvider.overrideWithValue(

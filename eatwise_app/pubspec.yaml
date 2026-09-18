@@ -93,6 +93,9 @@ flutter:
     # D-16 双语食物库种子（由 eatwise_data 管线生成同步），
     # 首次启动经 FoodSeedLoader 幂等灌入 drift Foods 表。
     - assets/foods/foods.seed.json
+    # 生产自签名证书（cert pinning，仅 https://wcg.polin.tech 启用），
+    # 源文件 eatwise_server/deploy/certs/cert.pem，轮换时同步替换。
+    - assets/certs/wcg.polin.tech.pem
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -1,6 +1,11 @@
-# 把 api.example.com 换成你的 API 域名（DNS A 记录已指向本机）。
-# Caddy 自动申请并续期 Let's Encrypt 证书，无需人工干预。
-api.example.com {
+# 端口方案：只监听 8443，不占用 80/443（留给主机上其他服务，也绕开部分机房对 80/443 的封锁）。
+# 证书方案：自签名证书（50 年有效，至 2076-09-05，SAN=DNS:wcg.polin.tech）+ 客户端证书锁定（pinning）。
+#   - cert.pem 可提交 git；key.pem 是私钥，禁止入库（已 gitignore），随部署包手工上传到主机。
+#   - App 内置 pinning 只认这张证书；浏览器访问管理控制台需手动确认信任（自签名无 CA 链）。
+#   - 证书挂载自 ./deploy/certs（compose 只读卷），到期换证需同步发新版 App 更新 pinning。
+wcg.polin.tech:8443 {
+	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
+
 	reverse_proxy server:3000
 
 	# 上传图片 ≤5MB（与服务端 MAX_UPLOAD_BYTES 对齐），超限直接 413。

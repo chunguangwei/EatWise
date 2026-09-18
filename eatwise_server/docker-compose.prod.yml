@@ -58,16 +58,17 @@ services:
       timeout: 5s
       retries: 5
 
-  # HTTPS 终结：自动签/续 Let's Encrypt，反代到 server。
+  # HTTPS 终结：官方镜像 + 自签名证书（deploy/certs/，50 年期），
+  # 客户端 pinning 只认这张证书；只监听 8443，不占用 80/443。
   caddy:
     image: caddy:2-alpine
     container_name: eatwise-prod-caddy
     restart: unless-stopped
     ports:
-      - '80:80'
-      - '443:443'
+      - '8443:8443'
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/certs:/etc/caddy/certs:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

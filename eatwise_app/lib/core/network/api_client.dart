@@ -1,7 +1,10 @@
+import 'dart:io' show SecurityContext;
+
 import 'package:dio/dio.dart';
 import 'package:eatwise/core/network/api_config.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/auth_interceptor.dart';
+import 'package:eatwise/core/network/cert_pinning.dart';
 import 'package:eatwise/core/network/token_store.dart';
 
 /// 通用请求头（契约 §1.4/§1.7）：
@@ -65,12 +68,15 @@ final class ErrorMappingInterceptor extends Interceptor {
 ///
 /// [localeTag]/[timezoneName] 由集成方注入（slang 当前语言 / tz.local）；
 /// [onSessionCleared] 在 refresh 失败清会话后回调（跳登录）。
+/// [pinnedSecurityContext] 非空时对主 Dio 与 refresh 裸 Dio 启用自签名
+/// 证书锁定（仅生产 https://wcg.polin.tech，见 cert_pinning.dart）。
 Dio createApiDio({
   ApiConfig? config,
   TokenStore? tokenStore,
   String Function()? localeTag,
   String Function()? timezoneName,
   void Function()? onSessionCleared,
+  SecurityContext? pinnedSecurityContext,
 }) {
   final resolvedConfig = config ?? ApiConfig();
   final dio = Dio(
@@ -81,6 +87,9 @@ Dio createApiDio({
       contentType: Headers.jsonContentType,
     ),
   );
+  if (pinnedSecurityContext != null) {
+    applyCertPinning(dio, pinnedSecurityContext);
+  }
   dio.interceptors.add(
     ApiHeadersInterceptor(
       localeTag: localeTag ?? () => 'zh-CN',
@@ -90,6 +99,9 @@ Dio createApiDio({
   if (tokenStore != null) {
     // 裸 Dio 仅用于 /auth/refresh（共享 BaseOptions，无拦截器防循环）。
     final refreshDio = Dio(dio.options);
+    if (pinnedSecurityContext != null) {
+      applyCertPinning(refreshDio, pinnedSecurityContext);
+    }
     final authInterceptor = AuthInterceptor(
       tokenStore: tokenStore,
       refreshDio: refreshDio,

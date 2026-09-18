@@ -8,3 +8,5 @@ coverage/
 data/
 # 打卡配图本地上传目录（MVP 本地磁盘存储，后续迁 CDN 后清理）
 /uploads/
+# 自签名证书私钥（禁止入库；cert.pem 公钥可提交）
+deploy/certs/key.pem

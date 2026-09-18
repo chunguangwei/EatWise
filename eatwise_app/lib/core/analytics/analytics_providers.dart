@@ -7,6 +7,7 @@ import 'package:eatwise/core/analytics/consent_store.dart';
 import 'package:eatwise/core/analytics/device_identity_store.dart';
 import 'package:eatwise/core/analytics/event_queue_store.dart';
 import 'package:eatwise/core/analytics/page_stay_tracker.dart';
+import 'package:eatwise/core/network/cert_pinning.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
@@ -72,9 +73,13 @@ final analyticsContextProvider = Provider<AnalyticsContext>((ref) {
 /// 上报通道：debug 并列 logging 通道（开发自测，§5.1-①）+ 自建采集网关
 /// （§1.3 主通道；裸 Dio 仅带 baseUrl，不走认证拦截——授权后未登录也可上报）。
 final analyticsClientsProvider = Provider<List<AnalyticsClient>>((ref) {
-  final transport = RemoteAnalyticsClient(
-    dio: Dio(BaseOptions(baseUrl: ref.watch(apiConfigProvider).baseUrl)),
-  );
+  final dio = Dio(BaseOptions(baseUrl: ref.watch(apiConfigProvider).baseUrl));
+  // 与 API 客户端同一生产自签名证书锁定（见 core/network/cert_pinning.dart）。
+  final pinnedContext = ref.watch(pinnedSecurityContextProvider);
+  if (pinnedContext != null) {
+    applyCertPinning(dio, pinnedContext);
+  }
+  final transport = RemoteAnalyticsClient(dio: dio);
   return <AnalyticsClient>[
     if (kDebugMode) const LoggingAnalyticsClient(),
     transport,
