@@ -1243,6 +1243,24 @@ class Translations$fasting$home$zh_CN {
 	/// zh-CN: '今天还没记录，记一笔后信号灯会亮起来'
 	String get signalEmpty => '今天还没记录，记一笔后信号灯会亮起来';
 
+	/// zh-CN: '今日还未记录 · 目标 ${kcal} 千卡'
+	String budgetEmpty({required Object kcal}) => '今日还未记录 · 目标 ${kcal} 千卡';
+
+	/// zh-CN: '已吃 ${eaten} 千卡 · 还可吃 ${left} 千卡'
+	String budgetNormal({required Object eaten, required Object left}) => '已吃 ${eaten} 千卡 · 还可吃 ${left} 千卡';
+
+	/// zh-CN: '已吃 ${eaten} 千卡 · 已超 ${over} 千卡'
+	String budgetOver({required Object eaten, required Object over}) => '已吃 ${eaten} 千卡 · 已超 ${over} 千卡';
+
+	/// zh-CN: ' · 运动 +${kcal}'
+	String budgetExercise({required Object kcal}) => ' · 运动 +${kcal}';
+
+	/// zh-CN: '第 ${week} 周 · 已减 ${lost} kg / 目标 ${goal} kg'
+	String planProgress({required Object week, required Object lost, required Object goal}) => '第 ${week} 周 · 已减 ${lost} kg / 目标 ${goal} kg';
+
+	/// zh-CN: '第 ${week} 周 · 距目标还差 ${gap} kg'
+	String planProgressBehind({required Object week, required Object gap}) => '第 ${week} 周 · 距目标还差 ${gap} kg';
+
 	late final Translations$fasting$home$greeting$zh_CN greeting = Translations$fasting$home$greeting$zh_CN.internal(_root);
 	late final Translations$fasting$home$endFastDialog$zh_CN endFastDialog = Translations$fasting$home$endFastDialog$zh_CN.internal(_root);
 }
@@ -3702,6 +3720,12 @@ extension on Translations {
 			'fasting.home.celebrationTitle' => '断食完成！身体悄悄做了次大扫除 ✨',
 			'fasting.home.celebrationBadge' => '断食完成 ✨',
 			'fasting.home.signalEmpty' => '今天还没记录，记一笔后信号灯会亮起来',
+			'fasting.home.budgetEmpty' => ({required Object kcal}) => '今日还未记录 · 目标 ${kcal} 千卡',
+			'fasting.home.budgetNormal' => ({required Object eaten, required Object left}) => '已吃 ${eaten} 千卡 · 还可吃 ${left} 千卡',
+			'fasting.home.budgetOver' => ({required Object eaten, required Object over}) => '已吃 ${eaten} 千卡 · 已超 ${over} 千卡',
+			'fasting.home.budgetExercise' => ({required Object kcal}) => ' · 运动 +${kcal}',
+			'fasting.home.planProgress' => ({required Object week, required Object lost, required Object goal}) => '第 ${week} 周 · 已减 ${lost} kg / 目标 ${goal} kg',
+			'fasting.home.planProgressBehind' => ({required Object week, required Object gap}) => '第 ${week} 周 · 距目标还差 ${gap} kg',
 			'fasting.home.greeting.morning' => '早上好',
 			'fasting.home.greeting.noon' => '中午好',
 			'fasting.home.greeting.afternoon' => '下午好',
@@ -3924,14 +3948,14 @@ extension on Translations {
 			'settings.health.fillWeight' => '填入今日体重记录',
 			'settings.health.weightFilled' => ({required Object kg}) => '已填入今日体重记录 ${kg} kg',
 			'settings.health.noData' => '今日暂无运动数据',
+			_ => null,
+		} ?? switch (path) {
 			'settings.theme.title' => '主题',
 			'settings.theme.system' => '跟随系统',
 			'settings.theme.light' => '浅色',
 			'settings.theme.dark' => '深色',
 			'settings.fastingPlan.title' => '断食方案',
 			'settings.fastingPlan.subtitle' => '查看或更换断食方案，新方案次日 0:00 生效',
-			_ => null,
-		} ?? switch (path) {
 			'settings.bodyProfile.title' => '身体档案',
 			'settings.bodyProfile.subtitle' => '身高体重等，用于计算精准营养目标',
 			'settings.bodyProfile.goalSection' => '减重目标（选填，仅减脂目标生效）',

@@ -17,6 +17,8 @@ import 'package:eatwise/features/fasting/presentation/fasting_celebration.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_ring.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
+import 'package:eatwise/features/fasting/presentation/plan_progress_bar.dart';
+import 'package:eatwise/features/fasting/presentation/today_budget_row.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart';
 import 'package:eatwise/features/streak/domain/streak_types.dart';
@@ -241,6 +243,11 @@ class _TimerBody extends ConsumerWidget {
           alignment: Alignment.centerLeft,
           child: StreakBanner(currentStreak: streak.currentStreak),
         ),
+        // 方案进度条（薄荷走查 P0：设了减重目标才露出，未设目标不渲染）。
+        const Padding(
+          padding: EdgeInsets.only(top: AppSpacing.s2),
+          child: PlanProgressBar(),
+        ),
         // M5 里程碑徽章滑入（3/7/30 首次解锁；reduced-motion 降级静态淡入）。
         // 徽章触达埋点（§3.5 badge_reach：徽章展示触发；组件级
         // ≥50%+500ms，§4.1；去重键含里程碑档位——新档位重计）。
@@ -376,6 +383,9 @@ class _TimerBody extends ConsumerWidget {
               ),
             ),
           ),
+        const SizedBox(height: AppSpacing.s3),
+        // 今日预算行（薄荷走查 P0：已吃/还可吃/运动消耗一行情要）。
+        const TodayBudgetRow(),
         const SizedBox(height: AppSpacing.s6),
         // 底部一行三色 mini signal-card（蛋白/碳水/热量，点按跳数据页）。
         MiniSignalCards(onTap: () => context.go('/data')),

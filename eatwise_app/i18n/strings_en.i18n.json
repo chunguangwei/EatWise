@@ -387,6 +387,12 @@
       "celebrationTitle": "Fast complete! Your body just did a quiet deep-clean ✨",
       "celebrationBadge": "Fast complete ✨",
       "signalEmpty": "Nothing logged today — log a bite and your signal lights will show up",
+      "budgetEmpty": "Nothing logged today · Target ${kcal} kcal",
+      "budgetNormal": "Eaten ${eaten} kcal · ${left} kcal left",
+      "budgetOver": "Eaten ${eaten} kcal · ${over} kcal over",
+      "budgetExercise": " · Exercise +${kcal}",
+      "planProgress": "Week ${week} · Lost ${lost} kg / Goal ${goal} kg",
+      "planProgressBehind": "Week ${week} · ${gap} kg to go",
       "greeting": {
         "morning": "Good morning",
         "noon": "Good noon",

@@ -765,6 +765,12 @@ class _Translations$fasting$home$en extends Translations$fasting$home$zh_CN {
 	@override String get celebrationTitle => 'Fast complete! Your body just did a quiet deep-clean ✨';
 	@override String get celebrationBadge => 'Fast complete ✨';
 	@override String get signalEmpty => 'Nothing logged today — log a bite and your signal lights will show up';
+	@override String budgetEmpty({required Object kcal}) => 'Nothing logged today · Target ${kcal} kcal';
+	@override String budgetNormal({required Object eaten, required Object left}) => 'Eaten ${eaten} kcal · ${left} kcal left';
+	@override String budgetOver({required Object eaten, required Object over}) => 'Eaten ${eaten} kcal · ${over} kcal over';
+	@override String budgetExercise({required Object kcal}) => ' · Exercise +${kcal}';
+	@override String planProgress({required Object week, required Object lost, required Object goal}) => 'Week ${week} · Lost ${lost} kg / Goal ${goal} kg';
+	@override String planProgressBehind({required Object week, required Object gap}) => 'Week ${week} · ${gap} kg to go';
 	@override late final _Translations$fasting$home$greeting$en greeting = _Translations$fasting$home$greeting$en._(_root);
 	@override late final _Translations$fasting$home$endFastDialog$en endFastDialog = _Translations$fasting$home$endFastDialog$en._(_root);
 }
@@ -2264,6 +2270,12 @@ extension on TranslationsEn {
 			'fasting.home.celebrationTitle' => 'Fast complete! Your body just did a quiet deep-clean ✨',
 			'fasting.home.celebrationBadge' => 'Fast complete ✨',
 			'fasting.home.signalEmpty' => 'Nothing logged today — log a bite and your signal lights will show up',
+			'fasting.home.budgetEmpty' => ({required Object kcal}) => 'Nothing logged today · Target ${kcal} kcal',
+			'fasting.home.budgetNormal' => ({required Object eaten, required Object left}) => 'Eaten ${eaten} kcal · ${left} kcal left',
+			'fasting.home.budgetOver' => ({required Object eaten, required Object over}) => 'Eaten ${eaten} kcal · ${over} kcal over',
+			'fasting.home.budgetExercise' => ({required Object kcal}) => ' · Exercise +${kcal}',
+			'fasting.home.planProgress' => ({required Object week, required Object lost, required Object goal}) => 'Week ${week} · Lost ${lost} kg / Goal ${goal} kg',
+			'fasting.home.planProgressBehind' => ({required Object week, required Object gap}) => 'Week ${week} · ${gap} kg to go',
 			'fasting.home.greeting.morning' => 'Good morning',
 			'fasting.home.greeting.noon' => 'Good noon',
 			'fasting.home.greeting.afternoon' => 'Good afternoon',
@@ -2486,14 +2498,14 @@ extension on TranslationsEn {
 			'settings.health.fillWeight' => 'Fill into today\'s weight log',
 			'settings.health.weightFilled' => ({required Object kg}) => 'Added to today\'s weight log: ${kg} kg',
 			'settings.health.noData' => 'No activity data yet today',
+			_ => null,
+		} ?? switch (path) {
 			'settings.theme.title' => 'Theme',
 			'settings.theme.system' => 'System',
 			'settings.theme.light' => 'Light',
 			'settings.theme.dark' => 'Dark',
 			'settings.fastingPlan.title' => 'Fasting plan',
 			'settings.fastingPlan.subtitle' => 'View or change your fasting plan — changes take effect at 00:00 the next day',
-			_ => null,
-		} ?? switch (path) {
 			'settings.bodyProfile.title' => 'Body profile',
 			'settings.bodyProfile.subtitle' => 'Height, weight & more — used for precise nutrition goals',
 			'settings.bodyProfile.goalSection' => 'Weight goal (optional; applies to fat-loss goal only)',
