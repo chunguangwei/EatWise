@@ -12,6 +12,7 @@ import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/presentation/record_page.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/recognition/data/ondevice_food_recognition_service.dart';
+import 'package:eatwise/features/record/recognition/domain/engine_availability.dart';
 import 'package:eatwise/features/record/recognition/domain/recognition_models.dart';
 import 'package:eatwise/features/record/recognition/presentation/photo_flow.dart';
 import 'package:flutter/material.dart';
@@ -77,6 +78,9 @@ void main() {
       ProviderScope(
         overrides: <Override>[
           recordRepositoryProvider.overrideWithValue(repository),
+          aiEngineAvailabilityFnProvider.overrideWithValue(
+            () async => AiEngineAvailability.ondeviceReady,
+          ),
           photoPickerGatewayProvider.overrideWithValue(photoGateway),
           foodRecognitionServiceProvider.overrideWithValue(recognitionService),
           speechGatewayProvider.overrideWithValue(FakeSpeechGateway()),
@@ -238,6 +242,9 @@ void main() {
       ProviderScope(
         overrides: <Override>[
           recordRepositoryProvider.overrideWithValue(repository),
+          aiEngineAvailabilityFnProvider.overrideWithValue(
+            () async => AiEngineAvailability.ondeviceReady,
+          ),
           photoPickerGatewayProvider.overrideWithValue(photoGateway),
           foodRecognitionServiceProvider.overrideWithValue(onDeviceService),
           speechGatewayProvider.overrideWithValue(FakeSpeechGateway()),

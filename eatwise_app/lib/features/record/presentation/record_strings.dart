@@ -149,6 +149,21 @@ final class RecordStrings {
   /// record.photo.labelValueTag
   String get photoLabelValueTag => _t.record.photo.labelValueTag;
 
+  /// record.photo.engineGuideTitle
+  String get engineGuideTitle => _t.record.photo.engineGuideTitle;
+
+  /// record.photo.engineGuideBody
+  String get engineGuideBody => _t.record.photo.engineGuideBody;
+
+  /// record.photo.engineGuideDownload
+  String get engineGuideDownload => _t.record.photo.engineGuideDownload;
+
+  /// record.photo.engineGuideConfigApi
+  String get engineGuideConfigApi => _t.record.photo.engineGuideConfigApi;
+
+  /// record.photo.engineGuideManual
+  String get engineGuideManual => _t.record.photo.engineGuideManual;
+
   /// record.voice.listening
   String get voiceListening => _t.record.voice.listening;
 

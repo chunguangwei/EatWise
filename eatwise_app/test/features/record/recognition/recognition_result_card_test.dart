@@ -9,6 +9,7 @@ import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/presentation/record_page.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
+import 'package:eatwise/features/record/recognition/domain/engine_availability.dart';
 import 'package:eatwise/features/record/recognition/domain/recognition_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -76,6 +77,9 @@ void main() {
       ProviderScope(
         overrides: <Override>[
           recordRepositoryProvider.overrideWithValue(repository),
+          aiEngineAvailabilityFnProvider.overrideWithValue(
+            () async => AiEngineAvailability.ondeviceReady,
+          ),
           photoPickerGatewayProvider.overrideWithValue(photoGateway),
           foodRecognitionServiceProvider.overrideWithValue(recognitionService),
           speechGatewayProvider.overrideWithValue(speechGateway),

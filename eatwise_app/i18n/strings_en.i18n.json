@@ -233,7 +233,12 @@
       "logAll": "Log all",
       "loggedItems": "Logged ${count} items",
       "unmatchedItemTag": "Not in library — will be created",
-      "labelValueTag": "From label"
+      "labelValueTag": "From label",
+      "engineGuideTitle": "AI recognition needs a model",
+      "engineGuideBody": "Download the on-device model (works offline, ~2.4GB, no network needed after download), or configure a cloud API with your own model service.",
+      "engineGuideDownload": "On-device model (recommended)",
+      "engineGuideConfigApi": "Configure cloud API",
+      "engineGuideManual": "Search manually for now"
     },
     "barcode": {
       "entry": "Scan",

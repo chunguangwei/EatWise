@@ -233,7 +233,12 @@
       "logAll": "全部记录",
       "loggedItems": "已记录 ${count} 条",
       "unmatchedItemTag": "库未收录，将自动新建",
-      "labelValueTag": "标签值"
+      "labelValueTag": "标签值",
+      "engineGuideTitle": "AI 识别需要一个模型",
+      "engineGuideBody": "下载本地模型（离线可用，约 2.4GB，下载后无需联网），或配置云端 API 使用你的模型服务。",
+      "engineGuideDownload": "下载本地模型（推荐）",
+      "engineGuideConfigApi": "配置云端 API",
+      "engineGuideManual": "先手动搜索"
     },
     "barcode": {
       "entry": "扫码记",

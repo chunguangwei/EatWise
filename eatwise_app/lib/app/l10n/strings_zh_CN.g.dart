@@ -845,6 +845,21 @@ class Translations$record$photo$zh_CN {
 
 	/// zh-CN: '标签值'
 	String get labelValueTag => '标签值';
+
+	/// zh-CN: 'AI 识别需要一个模型'
+	String get engineGuideTitle => 'AI 识别需要一个模型';
+
+	/// zh-CN: '下载本地模型（离线可用，约 2.4GB，下载后无需联网），或配置云端 API 使用你的模型服务。'
+	String get engineGuideBody => '下载本地模型（离线可用，约 2.4GB，下载后无需联网），或配置云端 API 使用你的模型服务。';
+
+	/// zh-CN: '下载本地模型（推荐）'
+	String get engineGuideDownload => '下载本地模型（推荐）';
+
+	/// zh-CN: '配置云端 API'
+	String get engineGuideConfigApi => '配置云端 API';
+
+	/// zh-CN: '先手动搜索'
+	String get engineGuideManual => '先手动搜索';
 }
 
 // Path: record.barcode
@@ -3869,6 +3884,11 @@ extension on Translations {
 			'record.photo.loggedItems' => ({required Object count}) => '已记录 ${count} 条',
 			'record.photo.unmatchedItemTag' => '库未收录，将自动新建',
 			'record.photo.labelValueTag' => '标签值',
+			'record.photo.engineGuideTitle' => 'AI 识别需要一个模型',
+			'record.photo.engineGuideBody' => '下载本地模型（离线可用，约 2.4GB，下载后无需联网），或配置云端 API 使用你的模型服务。',
+			'record.photo.engineGuideDownload' => '下载本地模型（推荐）',
+			'record.photo.engineGuideConfigApi' => '配置云端 API',
+			'record.photo.engineGuideManual' => '先手动搜索',
 			'record.barcode.entry' => '扫码记',
 			'record.barcode.title' => '扫描商品条码',
 			'record.barcode.torch' => '照明灯',
@@ -4213,13 +4233,13 @@ extension on Translations {
 			'streak.kBreak.mendFailed' => '补签失败，请稍后重试',
 			'streak.kBreak.exhausted' => '本月补签卡已用完，下月 1 日将发放 2 张新卡',
 			'streak.kBreak.unmendable' => '断签已超过 7 天，补签窗口已关闭。从今天开始新的连胜吧！',
+			_ => null,
+		} ?? switch (path) {
 			'streak.kBreak.dismiss' => '知道了，重新开始',
 			'streak.profile.title' => '连胜',
 			'streak.profile.current' => '当前连胜',
 			'streak.profile.longest' => '历史最长',
 			'streak.profile.daysUnit' => '天',
-			_ => null,
-		} ?? switch (path) {
 			'streak.profile.mendCards' => '补签卡',
 			'streak.profile.mendCardsValue' => ({required Object n}) => '${n} 张',
 			'streak.profile.mendEntry' => '去补签',

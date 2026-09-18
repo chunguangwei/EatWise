@@ -9,6 +9,7 @@ import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:eatwise/features/record/recognition/data/ondevice_food_recognition_service.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
 import 'package:eatwise/features/record/recognition/domain/recognition_models.dart';
+import 'package:eatwise/features/record/recognition/presentation/ai_engine_guide_card.dart';
 import 'package:eatwise/features/record/recognition/presentation/photo_meal_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,6 +33,8 @@ enum PhotoUnavailableAction {
 /// 取图用时申请权限（合规 §3）；识别**异步不阻塞**且进入结果卡前可取消，
 /// 取消不丢已输入内容；识别不可用走手动搜索一级兜底；
 /// 权限拒绝按《规格-全局 UI 四态》§4.3 弹降级说明卡（不阻断核心闭环）。
+/// 引擎可用性：入口与失败归因两处探测，无任何可用引擎（端侧未就绪且
+/// 未配云端 API）→ 引导卡（ai_engine_guide_card）替代「无法识别」。
 /// 拍照/相册来源选择底部面板（拍照识别 / 营养表 OCR 共用）。
 Future<PhotoSource?> showPhotoSourceSheet(
   BuildContext context,
@@ -61,6 +64,10 @@ Future<PhotoSource?> showPhotoSourceSheet(
 
 Future<void> startPhotoRecognition(BuildContext context, WidgetRef ref) async {
   final s = RecordStrings.of(context);
+  // 引擎可用性探测（入口前置）：端侧未就绪且未配云端 API → 引导卡
+  // （下载本地模型/配置云端 API/先手动搜索），不让用户拍完才发现死胡同。
+  if (await guideIfNoAiEngine(context, ref, s)) return;
+  if (!context.mounted) return;
   final source = await showPhotoSourceSheet(context, s);
   if (source == null || !context.mounted) return;
 
@@ -113,10 +120,15 @@ Future<void> startPhotoRecognition(BuildContext context, WidgetRef ref) async {
         case null: // 知道了/遮罩关闭：原地不动
       }
     case RecognitionUnavailable():
+      // 失败归因：引擎缺失/未就绪（区别于「识别不出内容」）→ 引导卡；
+      // 有引擎但失败（超时/坏图/引擎错误）保持 snackbar 兜底。
+      if (await guideIfNoAiEngine(context, ref, s)) return;
       // D-16 一级兜底：识别不可用 → 引导手动搜索（搜索框输入保留）。
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(s.photoUnavailable)));
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(s.photoUnavailable)));
+      }
   }
 }
 

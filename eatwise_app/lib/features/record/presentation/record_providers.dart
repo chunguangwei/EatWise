@@ -22,6 +22,7 @@ import 'package:eatwise/features/record/recognition/data/ondevice_food_recogniti
 import 'package:eatwise/features/record/recognition/data/ondevice_free_text_meal_service.dart';
 import 'package:eatwise/features/record/recognition/data/ondevice_label_ocr_service.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
+import 'package:eatwise/features/record/recognition/domain/engine_availability.dart';
 import 'package:eatwise/features/record/recognition/voice/speech_gateway.dart';
 import 'package:eatwise/features/record/recognition/voice/voice_text_parser.dart';
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
@@ -29,7 +30,9 @@ import 'package:eatwise/features/reports/data/remote_weight_log_sync.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart'
     show currentUserIdProvider;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 /// 记录同步远程端（M7 真实 REST 实现；测试 override 为 FakeRecordRemote）。
@@ -176,6 +179,49 @@ final StateProvider<bool> recordLowConfidenceProvider = StateProvider<bool>(
 /// 拍照/相册取图（生产 ImagePicker；测试 override 为 fake）。
 final Provider<PhotoPickerGateway> photoPickerGatewayProvider =
     Provider<PhotoPickerGateway>((ref) => ImagePickerPhotoGateway());
+
+/// AI 引擎引导卡「先手动搜索」会话内抑制位（内存态，不持久化：
+/// 用户明确选择手动路径后，本次会话各识别入口不再弹引导卡）。
+final StateProvider<bool> aiEngineGuideDismissedProvider = StateProvider<bool>(
+  (ref) => false,
+);
+
+/// 引擎可用性探测函数（默认实现绑 ref：端侧开关开且磁盘就绪，或用户
+/// 自配 API 配置完整；装配缺省/插件异常按不可用计，不误判为可用）。
+/// 测试 override 注入固定三态。
+final Provider<Future<AiEngineAvailability> Function()>
+aiEngineAvailabilityFnProvider = Provider((ref) {
+  return () async {
+    bool onDeviceReady;
+    try {
+      onDeviceReady =
+          ref.read(onDeviceAiEnabledProvider) &&
+          await ref.read(onDeviceModelManagerProvider).isReady();
+    } on Object {
+      onDeviceReady = false;
+    }
+    bool apiConfigured;
+    try {
+      final config = (await ref.read(llmConfigStoreProvider).read())
+          ?.effective();
+      apiConfigured = config != null && config.isComplete;
+    } on Object {
+      apiConfigured = false;
+    }
+    return aiEngineAvailabilityOf(
+      onDeviceReady: onDeviceReady,
+      userApiConfigured: apiConfigured,
+    );
+  };
+});
+
+/// 引导卡路由出口（默认深链 /settings/ai-model——端侧模型卡与自定义
+/// API 配置同页；测试 override 断言导航目标，不依赖 go_router 装配）。
+final Provider<void Function(BuildContext, AiEngineGuideTarget)>
+aiEngineGuideNavigatorProvider = Provider((ref) {
+  return (BuildContext context, AiEngineGuideTarget target) =>
+      context.push('/settings/ai-model');
+});
 
 /// 端侧识别能力是否可用（三服务共用判定：拍照识别/营养表 OCR/自由记）：
 /// 开关开且（快照明确 ready 或快照未出首帧——冷启动窗口期乐观，真实

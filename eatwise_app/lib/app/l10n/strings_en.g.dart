@@ -562,6 +562,11 @@ class _Translations$record$photo$en extends Translations$record$photo$zh_CN {
 	@override String loggedItems({required Object count}) => 'Logged ${count} items';
 	@override String get unmatchedItemTag => 'Not in library — will be created';
 	@override String get labelValueTag => 'From label';
+	@override String get engineGuideTitle => 'AI recognition needs a model';
+	@override String get engineGuideBody => 'Download the on-device model (works offline, ~2.4GB, no network needed after download), or configure a cloud API with your own model service.';
+	@override String get engineGuideDownload => 'On-device model (recommended)';
+	@override String get engineGuideConfigApi => 'Configure cloud API';
+	@override String get engineGuideManual => 'Search manually for now';
 }
 
 // Path: record.barcode
@@ -2272,6 +2277,11 @@ extension on TranslationsEn {
 			'record.photo.loggedItems' => ({required Object count}) => 'Logged ${count} items',
 			'record.photo.unmatchedItemTag' => 'Not in library — will be created',
 			'record.photo.labelValueTag' => 'From label',
+			'record.photo.engineGuideTitle' => 'AI recognition needs a model',
+			'record.photo.engineGuideBody' => 'Download the on-device model (works offline, ~2.4GB, no network needed after download), or configure a cloud API with your own model service.',
+			'record.photo.engineGuideDownload' => 'On-device model (recommended)',
+			'record.photo.engineGuideConfigApi' => 'Configure cloud API',
+			'record.photo.engineGuideManual' => 'Search manually for now',
 			'record.barcode.entry' => 'Scan',
 			'record.barcode.title' => 'Scan product barcode',
 			'record.barcode.torch' => 'Torch',
@@ -2616,13 +2626,13 @@ extension on TranslationsEn {
 			'streak.kBreak.mendFailed' => 'Couldn\'t use the Mend Card. Please try again later.',
 			'streak.kBreak.exhausted' => 'No Mend Cards left this month. You\'ll get 2 new ones on the 1st.',
 			'streak.kBreak.unmendable' => 'This miss is over 7 days old and can no longer be mended. Start a fresh streak today!',
+			_ => null,
+		} ?? switch (path) {
 			'streak.kBreak.dismiss' => 'Got it, start fresh',
 			'streak.profile.title' => 'Streak',
 			'streak.profile.current' => 'Current streak',
 			'streak.profile.longest' => 'Longest streak',
 			'streak.profile.daysUnit' => 'days',
-			_ => null,
-		} ?? switch (path) {
 			'streak.profile.mendCards' => 'Mend Cards',
 			'streak.profile.mendCardsValue' => ({required Object n}) => '${n} left',
 			'streak.profile.mendEntry' => 'Mend now',
