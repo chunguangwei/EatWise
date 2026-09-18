@@ -878,7 +878,8 @@
       "errorMemory": "设备内存不足，无法使用端侧模型",
       "retry": "重试",
       "oomDisabled": "设备内存不足，端侧估算已停用",
-      "statusFailed": "模型状态读取失败"
+      "statusFailed": "模型状态读取失败",
+      "errorResumeHint": "已下载 ${percent}%，重试将从断点继续"
     },
     "chain": {
       "title": "估算生效链路",

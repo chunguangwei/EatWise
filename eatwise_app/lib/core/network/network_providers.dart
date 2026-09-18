@@ -1,4 +1,4 @@
-import 'dart:io' show SecurityContext;
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
@@ -19,11 +19,12 @@ final Provider<TokenStore> tokenStoreProvider = Provider<TokenStore>((ref) {
   return InMemoryTokenStore();
 });
 
-/// 生产自签名证书锁定上下文（仅 https://wcg.polin.tech 启用）；
+/// 生产自签名证书锁定的 DER 字节（仅 https://wcg.polin.tech 启用）；
 /// 资产加载是异步的，由 main() 启动时 await 后 override 注入，缺省 null
 /// （http 开发地址/测试）保持系统 CA 默认校验。
-final Provider<SecurityContext?> pinnedSecurityContextProvider =
-    Provider<SecurityContext?>((ref) => null);
+final Provider<Uint8List?> pinnedCertDerProvider = Provider<Uint8List?>(
+  (ref) => null,
+);
 
 /// 已装配 dio 实例：请求头（Accept-Language 跟随 slang、X-Timezone）→
 /// 认证（401 refresh 重放）→ 信封解包 → 错误映射。
@@ -39,7 +40,7 @@ final Provider<Dio> apiDioProvider = Provider<Dio>((ref) {
     // D-07：IANA 时区名，服务端换算本地自然日。
     timezoneName: () => tz.local.name,
     onSessionCleared: () => ref.read(apiSessionClearedHandlerProvider)?.call(),
-    pinnedSecurityContext: ref.watch(pinnedSecurityContextProvider),
+    pinnedCertDer: ref.watch(pinnedCertDerProvider),
   );
 });
 

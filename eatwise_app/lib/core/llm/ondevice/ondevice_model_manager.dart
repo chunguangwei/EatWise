@@ -288,6 +288,17 @@ final class OnDeviceModelManager {
     _controller.add(next);
   }
 
+  /// error 快照（带 .part 实际进度）：失败时进度条不归零——已下载比例
+  /// 保留，UI 据此提示「重试将从断点继续」（观感上证明断点续传存在）。
+  Future<OnDeviceModelSnapshot> _errorSnap(OnDeviceModelException e) async {
+    final downloaded = await _fileSize(await _partFile());
+    return _snap(
+      OnDeviceModelStatus.error,
+      downloadedBytes: downloaded,
+      error: e,
+    );
+  }
+
   /// 构造快照（总量统一取 [_expectedBytes]，测试注入小值时进度百分比仍正确）。
   OnDeviceModelSnapshot _snap(
     OnDeviceModelStatus status, {
@@ -402,7 +413,7 @@ final class OnDeviceModelManager {
         requiredMB: requiredMB,
         actualMB: memMB,
       );
-      _emit(_snap(OnDeviceModelStatus.error, error: e));
+      _emit(await _errorSnap(e));
       throw e;
     }
     final dir = await _modelsDir();
@@ -414,7 +425,7 @@ final class OnDeviceModelManager {
         requiredBytes: required,
         freeBytes: freeBytes,
       );
-      _emit(_snap(OnDeviceModelStatus.error, error: e));
+      _emit(await _errorSnap(e));
       throw e;
     }
 
@@ -442,7 +453,7 @@ final class OnDeviceModelManager {
       }
       if (token.isCancelled) throw const OnDeviceDownloadCancelledException();
       final error = lastError ?? const OnDeviceDownloadException('所有下载源均失败');
-      _emit(_snap(OnDeviceModelStatus.error, error: error));
+      _emit(await _errorSnap(error));
       throw error;
     } on OnDeviceDownloadCancelledException {
       // 取消 → paused（.part 保留，下次 ensureModel 自动续传）
@@ -508,7 +519,12 @@ final class OnDeviceModelManager {
       throw const OnDeviceCorruptModelException('416 转正时魔数校验失败，已清除');
     }
     if (status >= 400 || status == 0) {
-      if (await target.exists() && resuming) await target.delete();
+      // 错误页/空响应写进了 target 必须清掉，无论是否续传：
+      // - resuming：target 是 .tail（本次响应的垃圾段），删；
+      // - 全新下载：target 是 .part，且 existing==0 → 其内容完全来自
+      //   本次失败响应（HTML 错误页），删除无损失；不删则下次重试把它
+      //   当断点续传，Range 追加后魔数校验才失败，白浪费一轮下载。
+      if (await target.exists()) await target.delete();
       throw OnDeviceDownloadException('下载失败 HTTP $status', statusCode: status);
     }
 

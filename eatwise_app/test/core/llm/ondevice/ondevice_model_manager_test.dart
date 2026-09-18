@@ -491,4 +491,73 @@ void main() {
     expect(seenRanges.last, 'bytes=$kept-');
     expect(await File(tailPath).length(), total - kept);
   });
+  group('错误页污染清理（HTTP >=400 必删 target）', () {
+    test('全新下载 404：垃圾错误页写入 .part → 必须清除（不留下次续传污染源）', () async {
+      // 双源都 404 且把 HTML 错误页写进 savePath（dio validateStatus 全放行
+      // 的真实行为）。
+      for (final url in [_ms, _hf]) {
+        http.on(url, (u, save, range, onProgress, token) async {
+          expect(range, isNull, reason: '全新下载不带 Range 头');
+          await File(save).writeAsString('<html>404 not found</html>');
+          return 404;
+        });
+      }
+
+      await expectLater(
+        manager.ensureModel(),
+        throwsA(isA<OnDeviceDownloadException>()),
+      );
+
+      // 修复前：垃圾 HTML 残留 .part，下次重试被当断点续传污染源。
+      expect(await (await partFile()).exists(), isFalse);
+      expect(manager.snapshot.status, OnDeviceModelStatus.error);
+    });
+
+    test('续传下载 404：垃圾写入 .tail 被删；已有断点 .part 原样保留', () async {
+      // 预置断点：.part 已有 512 字节（含魔数头部）。
+      await (await partFile()).create(recursive: true);
+      await _writeModelBytes((await partFile()).path, 512);
+      for (final url in [_ms, _hf]) {
+        http.on(url, (u, save, range, onProgress, token) async {
+          expect(range, 'bytes=512-', reason: '续传带 Range 头');
+          await File(save).writeAsString('<html>404 not found</html>');
+          return 404;
+        });
+      }
+
+      await expectLater(
+        manager.ensureModel(),
+        throwsA(isA<OnDeviceDownloadException>()),
+      );
+
+      expect(await (await tailFile()).exists(), isFalse, reason: '.tail 垃圾段已清');
+      final part = await partFile();
+      expect(await part.exists(), isTrue, reason: '已有断点不删');
+      expect(await part.length(), 512);
+    });
+  });
+
+  group('error 快照保留断点进度', () {
+    test('下载失败且 .part 已存 N 字节 → error 快照 downloadedBytes == N', () async {
+      const preset = 300;
+      await (await partFile()).create(recursive: true);
+      await _writeModelBytes((await partFile()).path, preset);
+      for (final url in [_ms, _hf]) {
+        http.on(url, (u, save, range, onProgress, token) async {
+          throw const OnDeviceDownloadException('网络中断', statusCode: 0);
+        });
+      }
+
+      await expectLater(
+        manager.ensureModel(),
+        throwsA(isA<OnDeviceDownloadException>()),
+      );
+
+      final snapshot = manager.snapshot;
+      expect(snapshot.status, OnDeviceModelStatus.error);
+      expect(snapshot.downloadedBytes, preset);
+      expect(snapshot.totalBytes, _expected);
+      expect(snapshot.progress, closeTo(preset / _expected, 0.001));
+    });
+  });
 }

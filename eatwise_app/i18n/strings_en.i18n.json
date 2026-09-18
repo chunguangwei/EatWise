@@ -879,7 +879,8 @@
       "errorMemory": "Not enough device memory for the on-device model",
       "retry": "Retry",
       "oomDisabled": "On-device estimates disabled — not enough device memory",
-      "statusFailed": "Failed to read model status"
+      "statusFailed": "Failed to read model status",
+      "errorResumeHint": "${percent}% downloaded — retry resumes from where it stopped"
     },
     "chain": {
       "title": "Estimate routing",

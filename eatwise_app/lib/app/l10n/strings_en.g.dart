@@ -1325,6 +1325,7 @@ class _Translations$settings$onDevice$en extends Translations$settings$onDevice$
 	@override String get retry => 'Retry';
 	@override String get oomDisabled => 'On-device estimates disabled — not enough device memory';
 	@override String get statusFailed => 'Failed to read model status';
+	@override String errorResumeHint({required Object percent}) => '${percent}% downloaded — retry resumes from where it stopped';
 }
 
 // Path: settings.chain
@@ -2772,6 +2773,7 @@ extension on TranslationsEn {
 			'settings.onDevice.retry' => 'Retry',
 			'settings.onDevice.oomDisabled' => 'On-device estimates disabled — not enough device memory',
 			'settings.onDevice.statusFailed' => 'Failed to read model status',
+			'settings.onDevice.errorResumeHint' => ({required Object percent}) => '${percent}% downloaded — retry resumes from where it stopped',
 			'settings.chain.title' => 'Estimate routing',
 			'settings.chain.onDevice' => 'On-device model',
 			'settings.chain.userApi' => 'Custom API',

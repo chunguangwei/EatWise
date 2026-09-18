@@ -297,6 +297,16 @@ class OnDeviceModelCard extends ConsumerWidget {
           _errorText(t, snapshot.error),
           style: textStyles.textSm.copyWith(color: colors.signalRed),
         ),
+        // 断点续传提示：有已下载进度才显示（从未下成功过不显示）。
+        if ((snapshot.progress ?? 0) > 0) ...<Widget>[
+          const SizedBox(height: AppSpacing.s1),
+          Text(
+            m.errorResumeHint(
+              percent: ((snapshot.progress ?? 0) * 100).round(),
+            ),
+            style: textStyles.textSm.copyWith(color: colors.textSecondary),
+          ),
+        ],
         const SizedBox(height: AppSpacing.s2),
         FilledButton.tonal(
           style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),

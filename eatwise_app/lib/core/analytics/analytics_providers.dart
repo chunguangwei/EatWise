@@ -75,9 +75,9 @@ final analyticsContextProvider = Provider<AnalyticsContext>((ref) {
 final analyticsClientsProvider = Provider<List<AnalyticsClient>>((ref) {
   final dio = Dio(BaseOptions(baseUrl: ref.watch(apiConfigProvider).baseUrl));
   // 与 API 客户端同一生产自签名证书锁定（见 core/network/cert_pinning.dart）。
-  final pinnedContext = ref.watch(pinnedSecurityContextProvider);
-  if (pinnedContext != null) {
-    applyCertPinning(dio, pinnedContext);
+  final pinnedDer = ref.watch(pinnedCertDerProvider);
+  if (pinnedDer != null) {
+    applyCertPinning(dio, pinnedDer);
   }
   final transport = RemoteAnalyticsClient(dio: dio);
   return <AnalyticsClient>[

@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 /// 「立即更新」跳转：Android 外部浏览器打开 APK 下载地址；
 /// iOS 打开 App Store 页（URL 占位〔假设〕，待上架后替换真实 App ID）。
+/// 当前 iOS 在 UpdateChecker 平台门处即不提示更新，本跳转实际仅 Android 可达。
 final class UpdateLauncher {
   const UpdateLauncher({Future<bool> Function(Uri url)? launch})
     : _launch = launch ?? _defaultLaunch;

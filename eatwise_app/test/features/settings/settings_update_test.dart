@@ -7,6 +7,7 @@ import 'package:eatwise/core/network/auth_interceptor.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/network/token_store.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
+import 'package:eatwise/core/update/update_checker.dart';
 import 'package:eatwise/core/update/update_providers.dart';
 import 'package:eatwise/core/update/update_throttle.dart';
 import 'package:eatwise/features/auth/application/auth_gate.dart';
@@ -62,6 +63,7 @@ void main() {
   Future<void> pumpSettings(
     WidgetTester tester, {
     String currentVersion = '1.0.0',
+    String? platform,
   }) async {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3;
@@ -105,6 +107,14 @@ void main() {
             currentAppVersionProvider.overrideWithValue(
               () async => currentVersion,
             ),
+            if (platform != null)
+              updateCheckerProvider.overrideWith(
+                (ref) => UpdateChecker(
+                  dio: ref.watch(apiDioProvider),
+                  currentVersion: ref.watch(currentAppVersionProvider),
+                  platform: platform,
+                ),
+              ),
             dataExportServiceProvider.overrideWithValue(_FakeExportService()),
             accountDeletionServiceProvider.overrideWithValue(
               _FakeDeletionService(),
@@ -201,6 +211,22 @@ void main() {
     await tapCheckUpdate(tester);
 
     expect(find.text('检查更新失败，请稍后重试'), findsOneWidget);
+
+    await unmount(tester);
+  });
+
+  testWidgets('iOS 平台：有更新也不弹窗（提示「已是最新」、不发请求）', (tester) async {
+    adapter.stub(
+      '/app/version/latest',
+      StubResponse.json(200, versionEnvelope()),
+    );
+    await pumpSettings(tester, currentVersion: '1.0.0', platform: 'ios');
+
+    await tapCheckUpdate(tester);
+
+    expect(find.text('发现新版本'), findsNothing);
+    expect(find.text('当前已是最新版本'), findsOneWidget);
+    expect(adapter.requestsTo('/app/version/latest'), 0);
 
     await unmount(tester);
   });

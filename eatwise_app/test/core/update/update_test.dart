@@ -161,6 +161,21 @@ void main() {
       );
       expect(checker.check(), throwsA(isA<DioException>()));
     });
+
+    test('iOS 平台门：有更新也不发请求，直接报已是最新（不提示更新）', () async {
+      adapter.stub(
+        '/app/version/latest',
+        StubResponse.json(200, versionPayload()),
+      );
+      final checker = UpdateChecker(
+        dio: dio,
+        currentVersion: () async => '1.0.0',
+        platform: 'ios',
+      );
+      final result = await checker.check();
+      expect(result.status, UpdateStatus.upToDate);
+      expect(adapter.requests, isEmpty);
+    });
   });
 
   group('节流（≥24h〔假设〕）与启动协调', () {
@@ -247,6 +262,38 @@ void main() {
         throttle: UpdateCheckThrottle(prefs3),
       );
       expect(await coordinator3.checkOnStartup(), isNull);
+    });
+
+    test('启动协调：iOS 平台有更新也静默（不请求、返回 null、不弹窗）', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final prefs = await SharedPreferences.getInstance();
+      final adapter = FakeHttpAdapter();
+      final dio = createApiDio(config: ApiConfig());
+      dio.httpClientAdapter = adapter;
+      adapter.stub(
+        '/app/version/latest',
+        StubResponse.json(
+          200,
+          StubResponse.envelope(<String, dynamic>{
+            'latestVersion': '1.2.0',
+            'minSupportedVersion': '1.0.0',
+            'releaseNotes': <String, String>{'zh': '', 'en': ''},
+            'apkUrl': null,
+            'publishedAt': null,
+            'source': 'github',
+          }),
+        ),
+      );
+      final coordinator = UpdateCheckCoordinator(
+        checker: UpdateChecker(
+          dio: dio,
+          currentVersion: () async => '1.0.0',
+          platform: 'ios',
+        ),
+        throttle: UpdateCheckThrottle(prefs),
+      );
+      expect(await coordinator.checkOnStartup(), isNull);
+      expect(adapter.requests, isEmpty);
     });
   });
 

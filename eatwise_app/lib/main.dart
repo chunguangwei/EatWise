@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io' show SecurityContext;
+import 'dart:typed_data';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/app/router/app_router.dart';
@@ -72,10 +72,10 @@ Future<void> main() async {
   final db = AppDatabase.openAt(docsDir.path);
   // 生产自签名证书锁定（仅 API 指向 https://wcg.polin.tech 时启用，http 开发
   // 地址跳过）；资产缺失/解析失败不阻断启动，回落系统 CA 默认校验。
-  SecurityContext? pinnedSecurityContext;
+  Uint8List? pinnedCertDer;
   if (shouldPinCert(ApiConfig().baseUrl)) {
     try {
-      pinnedSecurityContext = await loadPinnedSecurityContext();
+      pinnedCertDer = await loadPinnedCertDer();
     } on Object {
       // 防御：证书资产异常时不阻断启动，TLS 失败由既有错误映射呈现。
     }
@@ -115,7 +115,7 @@ Future<void> main() async {
       appDatabaseProvider.overrideWithValue(db),
       localNotificationServiceProvider.overrideWithValue(notificationService),
       tokenStoreProvider.overrideWithValue(SecureTokenStore()),
-      pinnedSecurityContextProvider.overrideWithValue(pinnedSecurityContext),
+      pinnedCertDerProvider.overrideWithValue(pinnedCertDer),
       authGateProvider.overrideWithValue(authGate),
       // refresh 失败清会话 → 强制回登录页。
       apiSessionClearedHandlerProvider.overrideWithValue(

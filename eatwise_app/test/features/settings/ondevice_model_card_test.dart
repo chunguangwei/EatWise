@@ -252,4 +252,32 @@ void main() {
     expect(find.textContaining('端侧估算已停用'), findsOneWidget);
     expect(find.byType(Switch), findsNothing);
   });
+  testWidgets('error 带断点进度 → 显示「已下载 X%，重试将从断点继续」', (tester) async {
+    await pumpCard(
+      tester,
+      _snap(
+        OnDeviceModelStatus.error,
+        downloaded: 512, // 1024 的 50%
+        error: const OnDeviceDownloadException('下载失败 HTTP 500'),
+      ),
+    );
+
+    expect(find.text('下载失败，请检查网络后重试'), findsOneWidget);
+    expect(find.text('已下载 50%，重试将从断点继续'), findsOneWidget);
+    expect(find.text('重试'), findsOneWidget);
+  });
+
+  testWidgets('error 无进度（从未下成功）→ 不显示续传提示', (tester) async {
+    await pumpCard(
+      tester,
+      _snap(
+        OnDeviceModelStatus.error,
+        error: const OnDeviceDownloadException('下载失败 HTTP 500'),
+      ),
+    );
+
+    expect(find.text('下载失败，请检查网络后重试'), findsOneWidget);
+    expect(find.textContaining('从断点继续'), findsNothing);
+    expect(find.text('重试'), findsOneWidget);
+  });
 }

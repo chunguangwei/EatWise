@@ -2324,6 +2324,9 @@ class Translations$settings$onDevice$zh_CN {
 
 	/// zh-CN: '模型状态读取失败'
 	String get statusFailed => '模型状态读取失败';
+
+	/// zh-CN: '已下载 ${percent}%，重试将从断点继续'
+	String errorResumeHint({required Object percent}) => '已下载 ${percent}%，重试将从断点继续';
 }
 
 // Path: settings.chain
@@ -4379,6 +4382,7 @@ extension on Translations {
 			'settings.onDevice.retry' => '重试',
 			'settings.onDevice.oomDisabled' => '设备内存不足，端侧估算已停用',
 			'settings.onDevice.statusFailed' => '模型状态读取失败',
+			'settings.onDevice.errorResumeHint' => ({required Object percent}) => '已下载 ${percent}%，重试将从断点继续',
 			'settings.chain.title' => '估算生效链路',
 			'settings.chain.onDevice' => '端侧小模型',
 			'settings.chain.userApi' => '自定义 API',
