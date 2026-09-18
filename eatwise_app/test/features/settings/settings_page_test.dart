@@ -311,6 +311,21 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('+8613****8000'), findsOneWidget);
+    // 成功拉取即写入本地缓存（离线兜底数据源）。
+    expect(prefs.getString(MaskedPhoneStore.key), '+8613****8000');
+
+    await unmount(tester);
+  });
+
+  testWidgets('手机号兜底：U1 失败但有本地缓存时显示缓存的脱敏号', (tester) async {
+    await prefs.setString(MaskedPhoneStore.key, '+8613****8000');
+    // U1 接口失败（断网）→ userMeProvider 回落 null。
+    adapter.stub('/users/me', StubResponse.networkError('offline'));
+    await pumpSettings(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('+8613****8000'), findsOneWidget);
+    expect(find.text('未登录'), findsNothing);
 
     await unmount(tester);
   });
@@ -333,6 +348,40 @@ void main() {
 
     expect(find.text('未登录'), findsOneWidget);
     expect(find.text(uuid), findsNothing);
+
+    await unmount(tester);
+  });
+
+  testWidgets('登出后清除手机号本地缓存', (tester) async {
+    adapter.stub(
+      '/users/me',
+      StubResponse.json(
+        200,
+        StubResponse.envelope(<String, Object?>{
+          'user': <String, Object?>{
+            'id': 'u-1',
+            'phone': '+8613****8000',
+            'deletionStatus': null,
+            'scheduledDeletionAt': null,
+          },
+        }),
+      ),
+    );
+    adapter.stub('/auth/logout', StubResponse.json(200, <String, Object?>{}));
+    await pumpSettings(tester);
+    await tester.pumpAndSettle();
+    // U1 成功已写入缓存。
+    expect(prefs.getString(MaskedPhoneStore.key), '+8613****8000');
+
+    await tester.tap(find.text('登出'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    // 确认弹窗按钮文案为「退出登录」（t.auth.logout，与行标题「登出」不同）。
+    await tester.tap(find.text('退出登录'));
+    await tester.pumpAndSettle();
+
+    expect(authGate.loggedIn, isFalse);
+    expect(prefs.getString(MaskedPhoneStore.key), isNull);
 
     await unmount(tester);
   });

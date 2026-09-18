@@ -44,6 +44,8 @@ class SettingsPage extends ConsumerWidget {
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final userMe = ref.watch(userMeProvider).value;
     final maskedPhone = userMe?.maskedPhone ?? '';
+    // 本地缓存兜底（U1 失败/离线时仍能看到账号标识）。
+    final cachedPhone = ref.watch(maskedPhoneStoreProvider)?.read() ?? '';
     final healthGranted = ref.watch(
       privacyConsentControllerProvider.select((s) => s.healthDataGranted),
     );
@@ -68,11 +70,13 @@ class SettingsPage extends ConsumerWidget {
               title: t.settings.group.account,
               children: <Widget>[
                 // 手机号脱敏展示（U1 userView 服务端掩码，合规 §6）；
-                // 接口失败/未登录时显示未登录占位（不回退展示原始 userId）。
+                // 兜底链：实时值 → 本地缓存（离线兜底）→ 未登录占位。
                 _SettingsTile(
                   title: t.settings.account.phone,
                   trailing: maskedPhone.isNotEmpty
                       ? maskedPhone
+                      : cachedPhone.isNotEmpty
+                      ? cachedPhone
                       : t.settings.account.notLoggedIn,
                 ),
                 // 冷静期内账号：状态行 + 撤销按钮（U6）。
@@ -239,6 +243,8 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
     if (confirmed != true || !context.mounted) return;
+    // 账号标识缓存随登出清除（下次 U1 成功后重新写入）。
+    await ref.read(maskedPhoneStoreProvider)?.clear();
     await ref.read(authControllerProvider.notifier).logout();
     if (context.mounted) {
       ScaffoldMessenger.of(
@@ -306,6 +312,8 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
     if (!context.mounted) return;
+    // 删除申请已受理：账号标识缓存一并清除。
+    await ref.read(maskedPhoneStoreProvider)?.clear();
     await ref.read(authControllerProvider.notifier).logout();
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
