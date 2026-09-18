@@ -4290,6 +4290,494 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
   }
 }
 
+class $ExerciseLogsTable extends ExerciseLogs
+    with TableInfo<$ExerciseLogsTable, ExerciseLog> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExerciseLogsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _localIdMeta = const VerificationMeta(
+    'localId',
+  );
+  @override
+  late final GeneratedColumn<String> localId = GeneratedColumn<String>(
+    'local_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _typeKeyMeta = const VerificationMeta(
+    'typeKey',
+  );
+  @override
+  late final GeneratedColumn<String> typeKey = GeneratedColumn<String>(
+    'type_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _durationMinMeta = const VerificationMeta(
+    'durationMin',
+  );
+  @override
+  late final GeneratedColumn<int> durationMin = GeneratedColumn<int>(
+    'duration_min',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kcalMeta = const VerificationMeta('kcal');
+  @override
+  late final GeneratedColumn<double> kcal = GeneratedColumn<double>(
+    'kcal',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _localDateMeta = const VerificationMeta(
+    'localDate',
+  );
+  @override
+  late final GeneratedColumn<String> localDate = GeneratedColumn<String>(
+    'local_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
+    'createdAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> createdAtUtc = GeneratedColumn<String>(
+    'created_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    localId,
+    userId,
+    typeKey,
+    durationMin,
+    kcal,
+    localDate,
+    createdAtUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'exercise_logs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExerciseLog> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('local_id')) {
+      context.handle(
+        _localIdMeta,
+        localId.isAcceptableOrUnknown(data['local_id']!, _localIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_localIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('type_key')) {
+      context.handle(
+        _typeKeyMeta,
+        typeKey.isAcceptableOrUnknown(data['type_key']!, _typeKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_typeKeyMeta);
+    }
+    if (data.containsKey('duration_min')) {
+      context.handle(
+        _durationMinMeta,
+        durationMin.isAcceptableOrUnknown(
+          data['duration_min']!,
+          _durationMinMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_durationMinMeta);
+    }
+    if (data.containsKey('kcal')) {
+      context.handle(
+        _kcalMeta,
+        kcal.isAcceptableOrUnknown(data['kcal']!, _kcalMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kcalMeta);
+    }
+    if (data.containsKey('local_date')) {
+      context.handle(
+        _localDateMeta,
+        localDate.isAcceptableOrUnknown(data['local_date']!, _localDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_localDateMeta);
+    }
+    if (data.containsKey('created_at_utc')) {
+      context.handle(
+        _createdAtUtcMeta,
+        createdAtUtc.isAcceptableOrUnknown(
+          data['created_at_utc']!,
+          _createdAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtUtcMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {localId};
+  @override
+  ExerciseLog map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExerciseLog(
+      localId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      typeKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type_key'],
+      )!,
+      durationMin: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_min'],
+      )!,
+      kcal: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}kcal'],
+      )!,
+      localDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_date'],
+      )!,
+      createdAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at_utc'],
+      )!,
+    );
+  }
+
+  @override
+  $ExerciseLogsTable createAlias(String alias) {
+    return $ExerciseLogsTable(attachedDatabase, alias);
+  }
+}
+
+class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
+  /// 本地主键（UUIDv4），客户端生成。
+  final String localId;
+
+  /// 归属用户；未登录为 `anonymous`（与 FoodEntries 同口径）。
+  final String userId;
+
+  /// 运动类型键（walk/jog/run/cycling/...，见 exercise_types.dart）。
+  final String typeKey;
+
+  /// 时长（分钟）。
+  final int durationMin;
+
+  /// 消耗快照（kcal；MET 估算或用户覆盖值）。
+  final double kcal;
+
+  /// 归属日（本地时区 yyyy-MM-dd，当日合计聚合键，D-07 口径）。
+  final String localDate;
+
+  /// 本地创建时间（UTC ISO8601）。
+  final String createdAtUtc;
+  const ExerciseLog({
+    required this.localId,
+    required this.userId,
+    required this.typeKey,
+    required this.durationMin,
+    required this.kcal,
+    required this.localDate,
+    required this.createdAtUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['local_id'] = Variable<String>(localId);
+    map['user_id'] = Variable<String>(userId);
+    map['type_key'] = Variable<String>(typeKey);
+    map['duration_min'] = Variable<int>(durationMin);
+    map['kcal'] = Variable<double>(kcal);
+    map['local_date'] = Variable<String>(localDate);
+    map['created_at_utc'] = Variable<String>(createdAtUtc);
+    return map;
+  }
+
+  ExerciseLogsCompanion toCompanion(bool nullToAbsent) {
+    return ExerciseLogsCompanion(
+      localId: Value(localId),
+      userId: Value(userId),
+      typeKey: Value(typeKey),
+      durationMin: Value(durationMin),
+      kcal: Value(kcal),
+      localDate: Value(localDate),
+      createdAtUtc: Value(createdAtUtc),
+    );
+  }
+
+  factory ExerciseLog.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExerciseLog(
+      localId: serializer.fromJson<String>(json['localId']),
+      userId: serializer.fromJson<String>(json['userId']),
+      typeKey: serializer.fromJson<String>(json['typeKey']),
+      durationMin: serializer.fromJson<int>(json['durationMin']),
+      kcal: serializer.fromJson<double>(json['kcal']),
+      localDate: serializer.fromJson<String>(json['localDate']),
+      createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'localId': serializer.toJson<String>(localId),
+      'userId': serializer.toJson<String>(userId),
+      'typeKey': serializer.toJson<String>(typeKey),
+      'durationMin': serializer.toJson<int>(durationMin),
+      'kcal': serializer.toJson<double>(kcal),
+      'localDate': serializer.toJson<String>(localDate),
+      'createdAtUtc': serializer.toJson<String>(createdAtUtc),
+    };
+  }
+
+  ExerciseLog copyWith({
+    String? localId,
+    String? userId,
+    String? typeKey,
+    int? durationMin,
+    double? kcal,
+    String? localDate,
+    String? createdAtUtc,
+  }) => ExerciseLog(
+    localId: localId ?? this.localId,
+    userId: userId ?? this.userId,
+    typeKey: typeKey ?? this.typeKey,
+    durationMin: durationMin ?? this.durationMin,
+    kcal: kcal ?? this.kcal,
+    localDate: localDate ?? this.localDate,
+    createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+  );
+  ExerciseLog copyWithCompanion(ExerciseLogsCompanion data) {
+    return ExerciseLog(
+      localId: data.localId.present ? data.localId.value : this.localId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      typeKey: data.typeKey.present ? data.typeKey.value : this.typeKey,
+      durationMin: data.durationMin.present
+          ? data.durationMin.value
+          : this.durationMin,
+      kcal: data.kcal.present ? data.kcal.value : this.kcal,
+      localDate: data.localDate.present ? data.localDate.value : this.localDate,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExerciseLog(')
+          ..write('localId: $localId, ')
+          ..write('userId: $userId, ')
+          ..write('typeKey: $typeKey, ')
+          ..write('durationMin: $durationMin, ')
+          ..write('kcal: $kcal, ')
+          ..write('localDate: $localDate, ')
+          ..write('createdAtUtc: $createdAtUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    localId,
+    userId,
+    typeKey,
+    durationMin,
+    kcal,
+    localDate,
+    createdAtUtc,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExerciseLog &&
+          other.localId == this.localId &&
+          other.userId == this.userId &&
+          other.typeKey == this.typeKey &&
+          other.durationMin == this.durationMin &&
+          other.kcal == this.kcal &&
+          other.localDate == this.localDate &&
+          other.createdAtUtc == this.createdAtUtc);
+}
+
+class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
+  final Value<String> localId;
+  final Value<String> userId;
+  final Value<String> typeKey;
+  final Value<int> durationMin;
+  final Value<double> kcal;
+  final Value<String> localDate;
+  final Value<String> createdAtUtc;
+  final Value<int> rowid;
+  const ExerciseLogsCompanion({
+    this.localId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.typeKey = const Value.absent(),
+    this.durationMin = const Value.absent(),
+    this.kcal = const Value.absent(),
+    this.localDate = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExerciseLogsCompanion.insert({
+    required String localId,
+    required String userId,
+    required String typeKey,
+    required int durationMin,
+    required double kcal,
+    required String localDate,
+    required String createdAtUtc,
+    this.rowid = const Value.absent(),
+  }) : localId = Value(localId),
+       userId = Value(userId),
+       typeKey = Value(typeKey),
+       durationMin = Value(durationMin),
+       kcal = Value(kcal),
+       localDate = Value(localDate),
+       createdAtUtc = Value(createdAtUtc);
+  static Insertable<ExerciseLog> custom({
+    Expression<String>? localId,
+    Expression<String>? userId,
+    Expression<String>? typeKey,
+    Expression<int>? durationMin,
+    Expression<double>? kcal,
+    Expression<String>? localDate,
+    Expression<String>? createdAtUtc,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (localId != null) 'local_id': localId,
+      if (userId != null) 'user_id': userId,
+      if (typeKey != null) 'type_key': typeKey,
+      if (durationMin != null) 'duration_min': durationMin,
+      if (kcal != null) 'kcal': kcal,
+      if (localDate != null) 'local_date': localDate,
+      if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExerciseLogsCompanion copyWith({
+    Value<String>? localId,
+    Value<String>? userId,
+    Value<String>? typeKey,
+    Value<int>? durationMin,
+    Value<double>? kcal,
+    Value<String>? localDate,
+    Value<String>? createdAtUtc,
+    Value<int>? rowid,
+  }) {
+    return ExerciseLogsCompanion(
+      localId: localId ?? this.localId,
+      userId: userId ?? this.userId,
+      typeKey: typeKey ?? this.typeKey,
+      durationMin: durationMin ?? this.durationMin,
+      kcal: kcal ?? this.kcal,
+      localDate: localDate ?? this.localDate,
+      createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (localId.present) {
+      map['local_id'] = Variable<String>(localId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (typeKey.present) {
+      map['type_key'] = Variable<String>(typeKey.value);
+    }
+    if (durationMin.present) {
+      map['duration_min'] = Variable<int>(durationMin.value);
+    }
+    if (kcal.present) {
+      map['kcal'] = Variable<double>(kcal.value);
+    }
+    if (localDate.present) {
+      map['local_date'] = Variable<String>(localDate.value);
+    }
+    if (createdAtUtc.present) {
+      map['created_at_utc'] = Variable<String>(createdAtUtc.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExerciseLogsCompanion(')
+          ..write('localId: $localId, ')
+          ..write('userId: $userId, ')
+          ..write('typeKey: $typeKey, ')
+          ..write('durationMin: $durationMin, ')
+          ..write('kcal: $kcal, ')
+          ..write('localDate: $localDate, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4299,12 +4787,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $DailyNutritionCachesTable(this);
   late final $FastingRecordsTable fastingRecords = $FastingRecordsTable(this);
   late final $WaterLogsTable waterLogs = $WaterLogsTable(this);
+  late final $ExerciseLogsTable exerciseLogs = $ExerciseLogsTable(this);
   late final FoodDao foodDao = FoodDao(this as AppDatabase);
   late final FoodEntryDao foodEntryDao = FoodEntryDao(this as AppDatabase);
   late final FastingRecordDao fastingRecordDao = FastingRecordDao(
     this as AppDatabase,
   );
   late final WaterLogDao waterLogDao = WaterLogDao(this as AppDatabase);
+  late final ExerciseLogDao exerciseLogDao = ExerciseLogDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4315,6 +4807,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     dailyNutritionCaches,
     fastingRecords,
     waterLogs,
+    exerciseLogs,
   ];
 }
 
@@ -6457,6 +6950,248 @@ typedef $$WaterLogsTableProcessedTableManager =
       WaterLog,
       PrefetchHooks Function()
     >;
+typedef $$ExerciseLogsTableCreateCompanionBuilder =
+    ExerciseLogsCompanion Function({
+      required String localId,
+      required String userId,
+      required String typeKey,
+      required int durationMin,
+      required double kcal,
+      required String localDate,
+      required String createdAtUtc,
+      Value<int> rowid,
+    });
+typedef $$ExerciseLogsTableUpdateCompanionBuilder =
+    ExerciseLogsCompanion Function({
+      Value<String> localId,
+      Value<String> userId,
+      Value<String> typeKey,
+      Value<int> durationMin,
+      Value<double> kcal,
+      Value<String> localDate,
+      Value<String> createdAtUtc,
+      Value<int> rowid,
+    });
+
+class $$ExerciseLogsTableFilterComposer
+    extends Composer<_$AppDatabase, $ExerciseLogsTable> {
+  $$ExerciseLogsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get localId => $composableBuilder(
+    column: $table.localId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get typeKey => $composableBuilder(
+    column: $table.typeKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationMin => $composableBuilder(
+    column: $table.durationMin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get kcal => $composableBuilder(
+    column: $table.kcal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localDate => $composableBuilder(
+    column: $table.localDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ExerciseLogsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ExerciseLogsTable> {
+  $$ExerciseLogsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get localId => $composableBuilder(
+    column: $table.localId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get typeKey => $composableBuilder(
+    column: $table.typeKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMin => $composableBuilder(
+    column: $table.durationMin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get kcal => $composableBuilder(
+    column: $table.kcal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get localDate => $composableBuilder(
+    column: $table.localDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ExerciseLogsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ExerciseLogsTable> {
+  $$ExerciseLogsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get localId =>
+      $composableBuilder(column: $table.localId, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get typeKey =>
+      $composableBuilder(column: $table.typeKey, builder: (column) => column);
+
+  GeneratedColumn<int> get durationMin => $composableBuilder(
+    column: $table.durationMin,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get kcal =>
+      $composableBuilder(column: $table.kcal, builder: (column) => column);
+
+  GeneratedColumn<String> get localDate =>
+      $composableBuilder(column: $table.localDate, builder: (column) => column);
+
+  GeneratedColumn<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => column,
+  );
+}
+
+class $$ExerciseLogsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ExerciseLogsTable,
+          ExerciseLog,
+          $$ExerciseLogsTableFilterComposer,
+          $$ExerciseLogsTableOrderingComposer,
+          $$ExerciseLogsTableAnnotationComposer,
+          $$ExerciseLogsTableCreateCompanionBuilder,
+          $$ExerciseLogsTableUpdateCompanionBuilder,
+          (
+            ExerciseLog,
+            BaseReferences<_$AppDatabase, $ExerciseLogsTable, ExerciseLog>,
+          ),
+          ExerciseLog,
+          PrefetchHooks Function()
+        > {
+  $$ExerciseLogsTableTableManager(_$AppDatabase db, $ExerciseLogsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ExerciseLogsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ExerciseLogsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ExerciseLogsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> localId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> typeKey = const Value.absent(),
+                Value<int> durationMin = const Value.absent(),
+                Value<double> kcal = const Value.absent(),
+                Value<String> localDate = const Value.absent(),
+                Value<String> createdAtUtc = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExerciseLogsCompanion(
+                localId: localId,
+                userId: userId,
+                typeKey: typeKey,
+                durationMin: durationMin,
+                kcal: kcal,
+                localDate: localDate,
+                createdAtUtc: createdAtUtc,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String localId,
+                required String userId,
+                required String typeKey,
+                required int durationMin,
+                required double kcal,
+                required String localDate,
+                required String createdAtUtc,
+                Value<int> rowid = const Value.absent(),
+              }) => ExerciseLogsCompanion.insert(
+                localId: localId,
+                userId: userId,
+                typeKey: typeKey,
+                durationMin: durationMin,
+                kcal: kcal,
+                localDate: localDate,
+                createdAtUtc: createdAtUtc,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ExerciseLogsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ExerciseLogsTable,
+      ExerciseLog,
+      $$ExerciseLogsTableFilterComposer,
+      $$ExerciseLogsTableOrderingComposer,
+      $$ExerciseLogsTableAnnotationComposer,
+      $$ExerciseLogsTableCreateCompanionBuilder,
+      $$ExerciseLogsTableUpdateCompanionBuilder,
+      (
+        ExerciseLog,
+        BaseReferences<_$AppDatabase, $ExerciseLogsTable, ExerciseLog>,
+      ),
+      ExerciseLog,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6471,4 +7206,6 @@ class $AppDatabaseManager {
       $$FastingRecordsTableTableManager(_db, _db.fastingRecords);
   $$WaterLogsTableTableManager get waterLogs =>
       $$WaterLogsTableTableManager(_db, _db.waterLogs);
+  $$ExerciseLogsTableTableManager get exerciseLogs =>
+      $$ExerciseLogsTableTableManager(_db, _db.exerciseLogs);
 }

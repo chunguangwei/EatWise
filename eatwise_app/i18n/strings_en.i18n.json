@@ -182,6 +182,7 @@
       "photo": "Photo",
       "voice": "Voice",
       "frequent": "Usual",
+      "exercise": "Exercise",
       "comingSoon": "Coming soon — search manually to log for now"
     },
     "pending": {
@@ -371,6 +372,34 @@
       "bodyFatLabel": "Body fat (%, optional)",
       "bodyFatInvalid": "Enter a body fat between 1% and 70%"
     },
+    "exercise": {
+      "title": "Log exercise",
+      "typeLabel": "Exercise type",
+      "durationLabel": "Duration (min)",
+      "kcalLabel": "Calories (kcal)",
+      "estimatedWeightHint": "Weight not set — estimated with 60 kg",
+      "durationInvalid": "Enter minutes greater than 0",
+      "kcalInvalid": "Enter calories greater than 0",
+      "todayList": "Today's exercise",
+      "minutesValue": "${min} min",
+      "kcalValue": "${kcal} kcal",
+      "deleteLabel": "Delete this exercise entry",
+      "deleted": "Deleted",
+      "types": {
+        "walk": "Walking",
+        "jog": "Jogging",
+        "run": "Running",
+        "cycling": "Cycling",
+        "swimming": "Swimming",
+        "jumpRope": "Jump rope",
+        "yoga": "Yoga",
+        "strength": "Strength training",
+        "elliptical": "Elliptical",
+        "hiking": "Hiking",
+        "badminton": "Badminton",
+        "hiit": "HIIT"
+      }
+    },
     "home": {
       "title": "Log",
       "logMeal": "Log a bite"
@@ -534,7 +563,8 @@
         "balance": "Intake − burn balance: ${kcal} kcal",
         "goalProgress": "${kcal} / ${goal} kcal",
         "stepsGoalProgress": "${steps} / ${goal} steps",
-        "goalRingLabel": "Today's burn goal progress: ${percent}%"
+        "goalRingLabel": "Today's burn goal progress: ${percent}%",
+        "manualGuide": "Log exercise manually to count toward burn"
       }
     },
     "signalCard": {

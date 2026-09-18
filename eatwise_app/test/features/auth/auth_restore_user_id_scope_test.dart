@@ -53,6 +53,12 @@ void main() {
 
   /// 冷启动装配：真实 currentUserIdProvider 链路（authController → restore），
   /// 不 override userId；dio 仅占位（restore 不发网络请求）。
+  ///
+  /// 时钟口径：测试环境 tz.local 为 UTC（未 setLocalLocation），写入侧
+  /// （RecordRepository 归属日）按 UTC 换算；读取侧「今天」默认取设备本地
+  /// DateTime.now()，在本地日 ≠ UTC 日的时间窗（如 UTC+8 的 00:00–08:00）
+  /// 两侧日期错位、查询落空。故数据页/报告页时钟钉到 UTC 基准与写入侧
+  /// 对齐（生产 main() 会 tz.setLocalLocation(设备时区)，天然同口径）。
   ProviderContainer makeColdStartContainer() {
     final container = ProviderContainer(
       overrides: <Override>[
@@ -61,6 +67,8 @@ void main() {
         recordRemoteProvider.overrideWithValue(FakeRecordRemote()),
         tokenStoreProvider.overrideWithValue(tokenStore),
         authGateProvider.overrideWithValue(authGate),
+        nutritionNowProvider.overrideWithValue(DateTime.now().toUtc()),
+        reportsNowProvider.overrideWithValue(DateTime.now().toUtc()),
         authControllerProvider.overrideWith((ref) {
           return AuthController(
             api: AuthApi(Dio()),

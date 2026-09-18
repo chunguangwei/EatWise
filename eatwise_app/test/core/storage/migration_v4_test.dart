@@ -96,7 +96,7 @@ void main() {
       final db = AppDatabase(NativeDatabase(dbFile));
       addTearDown(() async => db.close());
 
-      expect(db.schemaVersion, 8);
+      expect(db.schemaVersion, 9);
 
       // 历史行完整保留，新列走默认值（pending/无 serverId/无幂等键/非 tombstone）。
       final old = (await db.waterLogDao.getByLocalId('w-old'))!;
@@ -124,11 +124,11 @@ void main() {
       expect(newLog.clientRequestId, 'c-new');
       expect(newLog.syncState, WaterSyncState.pending);
 
-      // 升级后的 user_version 落为 8（重开不再重复迁移）。
+      // 升级后的 user_version 落为 9（重开不再重复迁移）。
       final versionRow = await db
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(versionRow.data['user_version'], 8);
+      expect(versionRow.data['user_version'], 9);
     },
   );
 }

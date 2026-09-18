@@ -7,7 +7,9 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/health/application/exercise_goals_controller.dart';
+import 'package:eatwise/features/health/application/exercise_log_providers.dart';
 import 'package:eatwise/features/health/application/health_sync_controller.dart';
+import 'package:eatwise/features/health/domain/exercise_types.dart';
 import 'package:eatwise/features/health/presentation/health_widgets.dart';
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart';
 import 'package:eatwise/features/nutrition/presentation/date_switcher.dart';
@@ -234,33 +236,62 @@ class _HintBanner extends StatelessWidget {
 
 /// 阶段 D：今日消耗卡接线（ready 时渲染 TodayBurnCard；结余 = 摄入 − 消耗，
 /// 当日无记录时只展示消耗与步数不出结余行）。
+///
+/// 消耗合并口径（手动记运动，无 GMS 设备兜底）：系统活动能量（如有）+
+/// 今日手动运动 kcal 合计。unsupported 设备步数展示「—」并附引导文案
+/// 「手动记运动可计入消耗」；off/denied 等状态下有手动运动时同样出卡。
 class _HealthBurnSection extends ConsumerWidget {
   const _HealthBurnSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = Translations.of(context);
     final state = ref.watch(healthSyncControllerProvider);
-    if (state.status != HealthSyncStatus.ready) {
-      return const SizedBox.shrink();
+    final manualKcal = ref.watch(todayExerciseKcalProvider).value ?? 0;
+    final unsupported = state.status == HealthSyncStatus.unsupported;
+    final hasManual = manualKcal > 0;
+
+    final int? steps;
+    final double? burnKcal;
+    final bool estimated;
+    if (state.status == HealthSyncStatus.ready) {
+      final today = state.today;
+      if (today == null ||
+          (today.steps == null &&
+              today.displayBurnKcal == null &&
+              !hasManual)) {
+        return const SizedBox.shrink();
+      }
+      steps = today.steps;
+      burnKcal = mergeBurnKcal(
+        systemKcal: today.displayBurnKcal,
+        manualKcal: manualKcal,
+      );
+      // 「按步数估算」标注仅在步数粗估真参与合并值时成立（纯手动运动
+      // 不加该标注——弹层内已注明 MET 估算口径）。
+      estimated = today.activeEnergyKcal == null && today.steps != null;
+    } else {
+      // 非 ready：仅 unsupported 或已有手动运动时出卡。
+      if (!unsupported && !hasManual) return const SizedBox.shrink();
+      steps = null; // unsupported 设备步数「—」。
+      burnKcal = mergeBurnKcal(manualKcal: manualKcal);
+      estimated = false;
     }
-    final today = state.today;
-    if (today == null ||
-        (today.steps == null && today.displayBurnKcal == null)) {
-      return const SizedBox.shrink();
-    }
+
     final intake = ref.watch(dayIntakeProvider);
     final goals = ref.watch(exerciseGoalsProvider);
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.s8),
       child: TodayBurnCard(
-        steps: today.steps,
-        burnKcal: today.displayBurnKcal,
-        estimated: today.activeEnergyKcal == null,
+        steps: steps,
+        burnKcal: burnKcal,
+        estimated: estimated,
         intakeKcal: (intake != null && intake.entryCount > 0)
             ? intake.kcal
             : null,
         burnGoalKcal: goals.burnGoalKcal,
         stepsGoal: goals.stepsGoal,
+        stepsGuide: unsupported ? t.nutrition.data.burn.manualGuide : null,
       ),
     );
   }

@@ -4,7 +4,9 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
+import 'package:eatwise/features/health/application/exercise_log_providers.dart';
 import 'package:eatwise/features/health/application/health_sync_controller.dart';
+import 'package:eatwise/features/health/domain/exercise_types.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,9 +14,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// 位置在双主按钮与 mini signal-card 之间。
 ///
 /// 数据全部复用既有 provider（[todayIntakeProvider] 当日聚合 +
-/// [nutritionGoalProvider] 目标 + [healthSyncControllerProvider] 活动能量），
-/// 不引入新存储。还可吃 = 目标 − 已吃，可为负（负值转「已超 Z」红色）；
-/// 运动数据 ready 且有活动能量时追加「 · 运动 +Z」（展示口径，不抵减
+/// [nutritionGoalProvider] 目标 + [healthSyncControllerProvider] 活动能量 +
+/// [todayExerciseKcalProvider] 手动运动合计），不引入新存储。还可吃 =
+/// 目标 − 已吃，可为负（负值转「已超 Z」红色）；运动消耗（系统活动能量 +
+/// 手动运动合计）>0 时追加「 · 运动 +Z」（展示口径，不抵减
 /// 还可吃——预算口径与信号卡一致，只按目标对比）。无记录走引导态一行。
 class TodayBudgetRow extends ConsumerWidget {
   const TodayBudgetRow({super.key});
@@ -29,9 +32,16 @@ class TodayBudgetRow extends ConsumerWidget {
     final goal = ref.watch(nutritionGoalProvider);
     final intake = ref.watch(todayIntakeProvider);
     final health = ref.watch(healthSyncControllerProvider);
-    final exerciseKcal = health.status == HealthSyncStatus.ready
+    // 「运动 +Z」= 系统活动能量（如有）+ 今日手动运动 kcal 合计（合并口径，
+    // 有系统数据时正常叠加；无 GMS 设备走手动兜底）。
+    final systemKcal = health.status == HealthSyncStatus.ready
         ? health.today?.activeEnergyKcal
         : null;
+    final manualKcal = ref.watch(todayExerciseKcalProvider).value;
+    final exerciseKcal = mergeBurnKcal(
+      systemKcal: systemKcal,
+      manualKcal: manualKcal,
+    );
 
     final String text;
     final Color textColor;

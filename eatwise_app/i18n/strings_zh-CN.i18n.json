@@ -182,6 +182,7 @@
       "photo": "拍照记",
       "voice": "语音记",
       "frequent": "常吃",
+      "exercise": "记运动",
       "comingSoon": "即将上线，先用手动搜索记一笔吧"
     },
     "pending": {
@@ -371,6 +372,34 @@
       "bodyFatLabel": "体脂率（%，可不填）",
       "bodyFatInvalid": "体脂率需在 1–70% 之间"
     },
+    "exercise": {
+      "title": "记运动",
+      "typeLabel": "运动类型",
+      "durationLabel": "时长（分钟）",
+      "kcalLabel": "消耗（千卡）",
+      "estimatedWeightHint": "未填体重，按 60 千克估算",
+      "durationInvalid": "请输入大于 0 的分钟数",
+      "kcalInvalid": "请输入大于 0 的千卡数",
+      "todayList": "今日运动",
+      "minutesValue": "${min} 分钟",
+      "kcalValue": "${kcal} 千卡",
+      "deleteLabel": "删除该条运动记录",
+      "deleted": "已删除",
+      "types": {
+        "walk": "走路",
+        "jog": "慢跑",
+        "run": "快跑",
+        "cycling": "骑车",
+        "swimming": "游泳",
+        "jumpRope": "跳绳",
+        "yoga": "瑜伽",
+        "strength": "力量训练",
+        "elliptical": "椭圆机",
+        "hiking": "爬山",
+        "badminton": "羽毛球",
+        "hiit": "HIIT"
+      }
+    },
     "home": {
       "title": "记录",
       "logMeal": "记一笔"
@@ -534,7 +563,8 @@
         "balance": "摄入 − 消耗结余：${kcal} kcal",
         "goalProgress": "${kcal} / ${goal} 千卡",
         "stepsGoalProgress": "${steps} / ${goal} 步",
-        "goalRingLabel": "今日消耗目标进度 ${percent}%"
+        "goalRingLabel": "今日消耗目标进度 ${percent}%",
+        "manualGuide": "手动记运动可计入消耗"
       }
     },
     "signalCard": {

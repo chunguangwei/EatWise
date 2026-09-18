@@ -241,6 +241,38 @@ class WaterLogs extends Table {
   Set<Column<Object>> get primaryKey => {localId};
 }
 
+/// ExerciseLog 手动记运动（无 GMS 设备手动兜底：鸿蒙等 Health Connect /
+/// HealthKit 不可用场景）。
+///
+/// 设备级数据：纯本地落库、不上行服务端（无同步字段，与饮食四态不同口径）。
+/// `typeKey` 为 `features/health/domain/exercise_types.dart` 的稳定键；
+/// `kcal` 为入账快照（MET 估算值或用户手改覆盖值）。
+class ExerciseLogs extends Table {
+  /// 本地主键（UUIDv4），客户端生成。
+  TextColumn get localId => text()();
+
+  /// 归属用户；未登录为 `anonymous`（与 FoodEntries 同口径）。
+  TextColumn get userId => text()();
+
+  /// 运动类型键（walk/jog/run/cycling/...，见 exercise_types.dart）。
+  TextColumn get typeKey => text()();
+
+  /// 时长（分钟）。
+  IntColumn get durationMin => integer()();
+
+  /// 消耗快照（kcal；MET 估算或用户覆盖值）。
+  RealColumn get kcal => real()();
+
+  /// 归属日（本地时区 yyyy-MM-dd，当日合计聚合键，D-07 口径）。
+  TextColumn get localDate => text()();
+
+  /// 本地创建时间（UTC ISO8601）。
+  TextColumn get createdAtUtc => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {localId};
+}
+
 /// DailyNutrition 聚合缓存（PRD 第五章：由 FoodEntry 聚合）。
 ///
 /// 正式口径由服务端派生（§2.6，D-12 一致性约束）；本表为客户端离线期间的

@@ -37,6 +37,9 @@ final class RecordStrings {
   /// record.entries.frequent
   String get entryFrequent => _t.record.entries.frequent;
 
+  /// record.entries.exercise
+  String get entryExercise => _t.record.entries.exercise;
+
   /// record.entries.comingSoon
   String get comingSoon => _t.record.entries.comingSoon;
 

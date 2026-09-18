@@ -107,6 +107,7 @@ class _Translations$record$en extends Translations$record$zh_CN {
 	@override late final _Translations$record$customFood$en customFood = _Translations$record$customFood$en._(_root);
 	@override late final _Translations$record$water$en water = _Translations$record$water$en._(_root);
 	@override late final _Translations$record$weight$en weight = _Translations$record$weight$en._(_root);
+	@override late final _Translations$record$exercise$en exercise = _Translations$record$exercise$en._(_root);
 	@override late final _Translations$record$home$en home = _Translations$record$home$en._(_root);
 	@override late final _Translations$record$empty$en empty = _Translations$record$empty$en._(_root);
 	@override late final _Translations$record$duringFast$en duringFast = _Translations$record$duringFast$en._(_root);
@@ -471,6 +472,7 @@ class _Translations$record$entries$en extends Translations$record$entries$zh_CN 
 	@override String get photo => 'Photo';
 	@override String get voice => 'Voice';
 	@override String get frequent => 'Usual';
+	@override String get exercise => 'Exercise';
 	@override String get comingSoon => 'Coming soon — search manually to log for now';
 }
 
@@ -717,6 +719,28 @@ class _Translations$record$weight$en extends Translations$record$weight$zh_CN {
 	@override String get unitJin => 'jin';
 	@override String get bodyFatLabel => 'Body fat (%, optional)';
 	@override String get bodyFatInvalid => 'Enter a body fat between 1% and 70%';
+}
+
+// Path: record.exercise
+class _Translations$record$exercise$en extends Translations$record$exercise$zh_CN {
+	_Translations$record$exercise$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Log exercise';
+	@override String get typeLabel => 'Exercise type';
+	@override String get durationLabel => 'Duration (min)';
+	@override String get kcalLabel => 'Calories (kcal)';
+	@override String get estimatedWeightHint => 'Weight not set — estimated with 60 kg';
+	@override String get durationInvalid => 'Enter minutes greater than 0';
+	@override String get kcalInvalid => 'Enter calories greater than 0';
+	@override String get todayList => 'Today\'s exercise';
+	@override String minutesValue({required Object min}) => '${min} min';
+	@override String kcalValue({required Object kcal}) => '${kcal} kcal';
+	@override String get deleteLabel => 'Delete this exercise entry';
+	@override String get deleted => 'Deleted';
+	@override late final _Translations$record$exercise$types$en types = _Translations$record$exercise$types$en._(_root);
 }
 
 // Path: record.home
@@ -1762,6 +1786,27 @@ class _Translations$record$customFood$correction$en extends Translations$record$
 	@override String get submit => 'Submit correction';
 }
 
+// Path: record.exercise.types
+class _Translations$record$exercise$types$en extends Translations$record$exercise$types$zh_CN {
+	_Translations$record$exercise$types$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get walk => 'Walking';
+	@override String get jog => 'Jogging';
+	@override String get run => 'Running';
+	@override String get cycling => 'Cycling';
+	@override String get swimming => 'Swimming';
+	@override String get jumpRope => 'Jump rope';
+	@override String get yoga => 'Yoga';
+	@override String get strength => 'Strength training';
+	@override String get elliptical => 'Elliptical';
+	@override String get hiking => 'Hiking';
+	@override String get badminton => 'Badminton';
+	@override String get hiit => 'HIIT';
+}
+
 // Path: fasting.home.greeting
 class _Translations$fasting$home$greeting$en extends Translations$fasting$home$greeting$zh_CN {
 	_Translations$fasting$home$greeting$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -1867,6 +1912,7 @@ class _Translations$nutrition$data$burn$en extends Translations$nutrition$data$b
 	@override String goalProgress({required Object kcal, required Object goal}) => '${kcal} / ${goal} kcal';
 	@override String stepsGoalProgress({required Object steps, required Object goal}) => '${steps} / ${goal} steps';
 	@override String goalRingLabel({required Object percent}) => 'Today\'s burn goal progress: ${percent}%';
+	@override String get manualGuide => 'Log exercise manually to count toward burn';
 }
 
 // Path: nutrition.signalCard.zone
@@ -2241,6 +2287,7 @@ extension on TranslationsEn {
 			'record.entries.photo' => 'Photo',
 			'record.entries.voice' => 'Voice',
 			'record.entries.frequent' => 'Usual',
+			'record.entries.exercise' => 'Exercise',
 			'record.entries.comingSoon' => 'Coming soon — search manually to log for now',
 			'record.pending.banner' => ({required Object count}) => '${count} record(s) still on the way — will sync when online',
 			'record.search.hint' => 'Search foods (Chinese or English)',
@@ -2397,6 +2444,30 @@ extension on TranslationsEn {
 			'record.weight.unitJin' => 'jin',
 			'record.weight.bodyFatLabel' => 'Body fat (%, optional)',
 			'record.weight.bodyFatInvalid' => 'Enter a body fat between 1% and 70%',
+			'record.exercise.title' => 'Log exercise',
+			'record.exercise.typeLabel' => 'Exercise type',
+			'record.exercise.durationLabel' => 'Duration (min)',
+			'record.exercise.kcalLabel' => 'Calories (kcal)',
+			'record.exercise.estimatedWeightHint' => 'Weight not set — estimated with 60 kg',
+			'record.exercise.durationInvalid' => 'Enter minutes greater than 0',
+			'record.exercise.kcalInvalid' => 'Enter calories greater than 0',
+			'record.exercise.todayList' => 'Today\'s exercise',
+			'record.exercise.minutesValue' => ({required Object min}) => '${min} min',
+			'record.exercise.kcalValue' => ({required Object kcal}) => '${kcal} kcal',
+			'record.exercise.deleteLabel' => 'Delete this exercise entry',
+			'record.exercise.deleted' => 'Deleted',
+			'record.exercise.types.walk' => 'Walking',
+			'record.exercise.types.jog' => 'Jogging',
+			'record.exercise.types.run' => 'Running',
+			'record.exercise.types.cycling' => 'Cycling',
+			'record.exercise.types.swimming' => 'Swimming',
+			'record.exercise.types.jumpRope' => 'Jump rope',
+			'record.exercise.types.yoga' => 'Yoga',
+			'record.exercise.types.strength' => 'Strength training',
+			'record.exercise.types.elliptical' => 'Elliptical',
+			'record.exercise.types.hiking' => 'Hiking',
+			'record.exercise.types.badminton' => 'Badminton',
+			'record.exercise.types.hiit' => 'HIIT',
 			'record.home.title' => 'Log',
 			'record.home.logMeal' => 'Log a bite',
 			'record.empty.title' => 'No food stories yet — tap the orange button to log your first bite?',
@@ -2511,6 +2582,7 @@ extension on TranslationsEn {
 			'nutrition.data.burn.goalProgress' => ({required Object kcal, required Object goal}) => '${kcal} / ${goal} kcal',
 			'nutrition.data.burn.stepsGoalProgress' => ({required Object steps, required Object goal}) => '${steps} / ${goal} steps',
 			'nutrition.data.burn.goalRingLabel' => ({required Object percent}) => 'Today\'s burn goal progress: ${percent}%',
+			'nutrition.data.burn.manualGuide' => 'Log exercise manually to count toward burn',
 			'nutrition.signalCard.zone.green' => 'On track',
 			'nutrition.signalCard.zone.yellow' => 'Heads-up',
 			'nutrition.signalCard.zone.red' => 'Warning',
@@ -2604,6 +2676,8 @@ extension on TranslationsEn {
 			'reports.monthly.avgFastingHoursMinutes' => ({required Object hours, required Object minutes}) => 'Avg. fast ${hours} h ${minutes} m',
 			'reports.monthly.kcalAvg' => ({required Object kcal, required Object target}) => 'Avg ${kcal} kcal · goal ${target} kcal',
 			'reports.monthly.macros' => ({required Object protein, required Object carbs, required Object fat}) => 'Protein ${protein}g · Carbs ${carbs}g · Fat ${fat}g',
+			_ => null,
+		} ?? switch (path) {
 			'reports.monthly.weightChange' => ({required Object value}) => 'Weight change ${value}',
 			'reports.monthly.empty' => 'No records this month yet',
 			'reports.monthly.emptyHint' => 'Log a meal or finish a fast and your monthly report will bloom.',
@@ -2630,8 +2704,6 @@ extension on TranslationsEn {
 			'streak.kBreak.mendFailed' => 'Couldn\'t use the Mend Card. Please try again later.',
 			'streak.kBreak.exhausted' => 'No Mend Cards left this month. You\'ll get 2 new ones on the 1st.',
 			'streak.kBreak.unmendable' => 'This miss is over 7 days old and can no longer be mended. Start a fresh streak today!',
-			_ => null,
-		} ?? switch (path) {
 			'streak.kBreak.dismiss' => 'Got it, start fresh',
 			'streak.profile.title' => 'Streak',
 			'streak.profile.current' => 'Current streak',

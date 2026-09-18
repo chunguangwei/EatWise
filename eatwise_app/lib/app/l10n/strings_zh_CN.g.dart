@@ -112,6 +112,7 @@ class Translations$record$zh_CN {
 	late final Translations$record$customFood$zh_CN customFood = Translations$record$customFood$zh_CN.internal(_root);
 	late final Translations$record$water$zh_CN water = Translations$record$water$zh_CN.internal(_root);
 	late final Translations$record$weight$zh_CN weight = Translations$record$weight$zh_CN.internal(_root);
+	late final Translations$record$exercise$zh_CN exercise = Translations$record$exercise$zh_CN.internal(_root);
 	late final Translations$record$home$zh_CN home = Translations$record$home$zh_CN.internal(_root);
 	late final Translations$record$empty$zh_CN empty = Translations$record$empty$zh_CN.internal(_root);
 	late final Translations$record$duringFast$zh_CN duringFast = Translations$record$duringFast$zh_CN.internal(_root);
@@ -681,6 +682,9 @@ class Translations$record$entries$zh_CN {
 	/// zh-CN: '常吃'
 	String get frequent => '常吃';
 
+	/// zh-CN: '记运动'
+	String get exercise => '记运动';
+
 	/// zh-CN: '即将上线，先用手动搜索记一笔吧'
 	String get comingSoon => '即将上线，先用手动搜索记一笔吧';
 }
@@ -1180,6 +1184,53 @@ class Translations$record$weight$zh_CN {
 
 	/// zh-CN: '体脂率需在 1–70% 之间'
 	String get bodyFatInvalid => '体脂率需在 1–70% 之间';
+}
+
+// Path: record.exercise
+class Translations$record$exercise$zh_CN {
+	Translations$record$exercise$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '记运动'
+	String get title => '记运动';
+
+	/// zh-CN: '运动类型'
+	String get typeLabel => '运动类型';
+
+	/// zh-CN: '时长（分钟）'
+	String get durationLabel => '时长（分钟）';
+
+	/// zh-CN: '消耗（千卡）'
+	String get kcalLabel => '消耗（千卡）';
+
+	/// zh-CN: '未填体重，按 60 千克估算'
+	String get estimatedWeightHint => '未填体重，按 60 千克估算';
+
+	/// zh-CN: '请输入大于 0 的分钟数'
+	String get durationInvalid => '请输入大于 0 的分钟数';
+
+	/// zh-CN: '请输入大于 0 的千卡数'
+	String get kcalInvalid => '请输入大于 0 的千卡数';
+
+	/// zh-CN: '今日运动'
+	String get todayList => '今日运动';
+
+	/// zh-CN: '${min} 分钟'
+	String minutesValue({required Object min}) => '${min} 分钟';
+
+	/// zh-CN: '${kcal} 千卡'
+	String kcalValue({required Object kcal}) => '${kcal} 千卡';
+
+	/// zh-CN: '删除该条运动记录'
+	String get deleteLabel => '删除该条运动记录';
+
+	/// zh-CN: '已删除'
+	String get deleted => '已删除';
+
+	late final Translations$record$exercise$types$zh_CN types = Translations$record$exercise$types$zh_CN.internal(_root);
 }
 
 // Path: record.home
@@ -3141,6 +3192,51 @@ class Translations$record$customFood$correction$zh_CN {
 	String get submit => '提交纠错';
 }
 
+// Path: record.exercise.types
+class Translations$record$exercise$types$zh_CN {
+	Translations$record$exercise$types$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '走路'
+	String get walk => '走路';
+
+	/// zh-CN: '慢跑'
+	String get jog => '慢跑';
+
+	/// zh-CN: '快跑'
+	String get run => '快跑';
+
+	/// zh-CN: '骑车'
+	String get cycling => '骑车';
+
+	/// zh-CN: '游泳'
+	String get swimming => '游泳';
+
+	/// zh-CN: '跳绳'
+	String get jumpRope => '跳绳';
+
+	/// zh-CN: '瑜伽'
+	String get yoga => '瑜伽';
+
+	/// zh-CN: '力量训练'
+	String get strength => '力量训练';
+
+	/// zh-CN: '椭圆机'
+	String get elliptical => '椭圆机';
+
+	/// zh-CN: '爬山'
+	String get hiking => '爬山';
+
+	/// zh-CN: '羽毛球'
+	String get badminton => '羽毛球';
+
+	/// zh-CN: 'HIIT'
+	String get hiit => 'HIIT';
+}
+
 // Path: fasting.home.greeting
 class Translations$fasting$home$greeting$zh_CN {
 	Translations$fasting$home$greeting$zh_CN.internal(this._root);
@@ -3334,6 +3430,9 @@ class Translations$nutrition$data$burn$zh_CN {
 
 	/// zh-CN: '今日消耗目标进度 ${percent}%'
 	String goalRingLabel({required Object percent}) => '今日消耗目标进度 ${percent}%';
+
+	/// zh-CN: '手动记运动可计入消耗'
+	String get manualGuide => '手动记运动可计入消耗';
 }
 
 // Path: nutrition.signalCard.zone
@@ -3856,6 +3955,7 @@ extension on Translations {
 			'record.entries.photo' => '拍照记',
 			'record.entries.voice' => '语音记',
 			'record.entries.frequent' => '常吃',
+			'record.entries.exercise' => '记运动',
 			'record.entries.comingSoon' => '即将上线，先用手动搜索记一笔吧',
 			'record.pending.banner' => ({required Object count}) => '还有 ${count} 条记录在路上，联网后自动同步',
 			'record.search.hint' => '搜索食物（中文或英文）',
@@ -4012,6 +4112,30 @@ extension on Translations {
 			'record.weight.unitJin' => '斤',
 			'record.weight.bodyFatLabel' => '体脂率（%，可不填）',
 			'record.weight.bodyFatInvalid' => '体脂率需在 1–70% 之间',
+			'record.exercise.title' => '记运动',
+			'record.exercise.typeLabel' => '运动类型',
+			'record.exercise.durationLabel' => '时长（分钟）',
+			'record.exercise.kcalLabel' => '消耗（千卡）',
+			'record.exercise.estimatedWeightHint' => '未填体重，按 60 千克估算',
+			'record.exercise.durationInvalid' => '请输入大于 0 的分钟数',
+			'record.exercise.kcalInvalid' => '请输入大于 0 的千卡数',
+			'record.exercise.todayList' => '今日运动',
+			'record.exercise.minutesValue' => ({required Object min}) => '${min} 分钟',
+			'record.exercise.kcalValue' => ({required Object kcal}) => '${kcal} 千卡',
+			'record.exercise.deleteLabel' => '删除该条运动记录',
+			'record.exercise.deleted' => '已删除',
+			'record.exercise.types.walk' => '走路',
+			'record.exercise.types.jog' => '慢跑',
+			'record.exercise.types.run' => '快跑',
+			'record.exercise.types.cycling' => '骑车',
+			'record.exercise.types.swimming' => '游泳',
+			'record.exercise.types.jumpRope' => '跳绳',
+			'record.exercise.types.yoga' => '瑜伽',
+			'record.exercise.types.strength' => '力量训练',
+			'record.exercise.types.elliptical' => '椭圆机',
+			'record.exercise.types.hiking' => '爬山',
+			'record.exercise.types.badminton' => '羽毛球',
+			'record.exercise.types.hiit' => 'HIIT',
 			'record.home.title' => '记录',
 			'record.home.logMeal' => '记一笔',
 			'record.empty.title' => '肚子的故事还没写呢，点橙色按钮记一笔？',
@@ -4126,6 +4250,7 @@ extension on Translations {
 			'nutrition.data.burn.goalProgress' => ({required Object kcal, required Object goal}) => '${kcal} / ${goal} 千卡',
 			'nutrition.data.burn.stepsGoalProgress' => ({required Object steps, required Object goal}) => '${steps} / ${goal} 步',
 			'nutrition.data.burn.goalRingLabel' => ({required Object percent}) => '今日消耗目标进度 ${percent}%',
+			'nutrition.data.burn.manualGuide' => '手动记运动可计入消耗',
 			'nutrition.signalCard.zone.green' => '达标',
 			'nutrition.signalCard.zone.yellow' => '适量提醒',
 			'nutrition.signalCard.zone.red' => '警示',
@@ -4219,6 +4344,8 @@ extension on Translations {
 			'reports.monthly.avgFastingHoursMinutes' => ({required Object hours, required Object minutes}) => '平均断食 ${hours} 小时 ${minutes} 分钟',
 			'reports.monthly.kcalAvg' => ({required Object kcal, required Object target}) => '月均热量 ${kcal} 千卡 · 目标 ${target} 千卡',
 			'reports.monthly.macros' => ({required Object protein, required Object carbs, required Object fat}) => '蛋白质 ${protein}g · 碳水 ${carbs}g · 脂肪 ${fat}g',
+			_ => null,
+		} ?? switch (path) {
 			'reports.monthly.weightChange' => ({required Object value}) => '体重变化 ${value}',
 			'reports.monthly.empty' => '本月暂无记录',
 			'reports.monthly.emptyHint' => '记一笔饮食或完成一次断食，月报就会长出来～',
@@ -4245,8 +4372,6 @@ extension on Translations {
 			'streak.kBreak.mendFailed' => '补签失败，请稍后重试',
 			'streak.kBreak.exhausted' => '本月补签卡已用完，下月 1 日将发放 2 张新卡',
 			'streak.kBreak.unmendable' => '断签已超过 7 天，补签窗口已关闭。从今天开始新的连胜吧！',
-			_ => null,
-		} ?? switch (path) {
 			'streak.kBreak.dismiss' => '知道了，重新开始',
 			'streak.profile.title' => '连胜',
 			'streak.profile.current' => '当前连胜',

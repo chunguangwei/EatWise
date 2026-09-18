@@ -13,6 +13,7 @@ import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
+import 'package:eatwise/features/health/presentation/exercise_log_sheet.dart';
 import 'package:eatwise/features/record/barcode/presentation/barcode_flow.dart';
 import 'package:eatwise/features/record/barcode/presentation/barcode_strings.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_sheet.dart';
@@ -31,12 +32,13 @@ import 'package:eatwise/features/record/recognition/presentation/voice_flow.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// M3 记录页（PRD M3：四入口 + 双语搜索 + 份量编辑 + 乐观更新 +
+/// M3 记录页（PRD M3：五入口 + 双语搜索 + 份量编辑 + 乐观更新 +
 /// D-11 撤销吐司 + D-20「待同步 N 条」入口）。
 ///
 /// 入口已接通：拍照识别（D-16 远端 stub + 手动搜索兜底）、
 /// 语音录入（系统 ASR + 自研解析）、常吃复用（本地高频聚合）、
-/// 扫码记（OFF 条码代理，未收录降级手动搜索/自定义食物）。
+/// 扫码记（OFF 条码代理，未收录降级手动搜索/自定义食物）、
+/// 记运动（无 GMS 设备手动兜底，设备级纯本地，见 features/health）。
 /// 不注册路由，由主代理统一集成到 Tab 结构。
 class RecordPage extends ConsumerStatefulWidget {
   const RecordPage({super.key});
@@ -354,7 +356,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                       ),
                     ),
                   ),
-                // 四入口（D-16 + 扫码扩充）：拍照识别 / 语音录入 / 常吃复用 / 扫码记。
+                // 五入口（D-16 + 扫码扩充 + 记运动）：拍照识别 / 语音录入 /
+                // 常吃复用 / 扫码记 / 记运动（无 GMS 设备手动兜底，设备级纯本地）。
                 // 入口标签 2–3 字，同排四卡（Expanded 均分）在 ≥320px 宽屏不拥挤，
                 // 故不放搜索框右侧图标（与三入口同排样式，层级一致）。
                 // 薄荷走查 P2：拍照记为最高频 AI 入口，主色描边 + 浅主色底
@@ -397,6 +400,16 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                         onTap: () => _onEntryTap(
                           'barcode',
                           () => unawaited(startBarcodeScan(context, ref)),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.s2),
+                      // 记运动（无 GMS 设备手动兜底；设备级纯本地不上行）。
+                      _EntryCard(
+                        icon: Icons.directions_run_outlined,
+                        label: s.entryExercise,
+                        onTap: () => _onEntryTap(
+                          'exercise',
+                          () => unawaited(startExerciseLog(context, ref)),
                         ),
                       ),
                     ],

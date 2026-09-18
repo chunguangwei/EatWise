@@ -54,12 +54,13 @@ class TodayBurnCard extends StatelessWidget {
     this.intakeKcal,
     this.burnGoalKcal,
     this.stepsGoal,
+    this.stepsGuide,
   });
 
-  /// 今日步数（null = 无数据）。
+  /// 今日步数（null = 无数据/设备不支持，展示「—」）。
   final int? steps;
 
-  /// 活动消耗（kcal；系统活动能量或步数粗估兜底）。
+  /// 活动消耗（kcal；系统活动能量或步数粗估兜底 + 手动运动合计的合并值）。
   final double? burnKcal;
 
   /// burnKcal 是否来自步数粗估（true 时标注「估算」）。
@@ -73,6 +74,9 @@ class TodayBurnCard extends StatelessWidget {
 
   /// 每日步数目标（步；null = 不展示步数进度行）。
   final int? stepsGoal;
+
+  /// 步数「—」时的引导文案（无 GMS 设备：「手动记运动可计入消耗」）。
+  final String? stepsGuide;
 
   @override
   Widget build(BuildContext context) {
@@ -135,6 +139,16 @@ class TodayBurnCard extends StatelessWidget {
                           steps: '${steps!}',
                           goal: '$stepGoal',
                         ),
+                        style: textStyles.textXs.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ],
+                    // 无 GMS 设备（步数「—」）→ 引导手动记运动计入消耗。
+                    if (steps == null && stepsGuide != null) ...<Widget>[
+                      const SizedBox(height: AppSpacing.s1),
+                      Text(
+                        stepsGuide!,
                         style: textStyles.textXs.copyWith(
                           color: colors.textSecondary,
                         ),
