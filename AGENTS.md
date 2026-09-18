@@ -8,7 +8,8 @@
 - **Android**：需 JDK 17+。系统 Java 版本不够时用 Android Studio 自带 JBR：
   `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`。
 - **国内网络**：Android 依赖下载慢/卡死时 `export USE_CN_MIRRORS=1`（阿里云镜像）。CI（海外 runner）严禁开启。
-- **iOS 真机**：Xcode → Settings → Accounts 需登录 Apple ID；项目签名团队 `L35RLT89XN`；部署目标 iOS 15.0。
+- **iOS 真机**：Xcode → Settings → Accounts 需登录 Apple ID；项目签名团队 `L35RLT89XN`（注：实际现行团队 CCTFP9X3SW "jing chang"，bundleId com.jingchang.eatwise）；部署目标 iOS 15.0。
+- **iOS 构建（2026-09-18 起 CocoaPods 回归）**：`open_filex` 无 SPM 支持，Pods 重新启用（仅此一个 pod）。Podfile 必须保持 `platform :ios, '15.0'` + post_install 强制 IPHONEOS_DEPLOYMENT_TARGET=15.0——低版本会造成 release 构建/签名静默失败（踩过）。新增只支持 CocoaPods 的插件时：pod install → 真机构建验证 → 提交 Podfile/Podfile.lock/pbxproj/workspace（Pods/ 目录本身 gitignored）。
 
 ## 客户端（eatwise_app/）
 
