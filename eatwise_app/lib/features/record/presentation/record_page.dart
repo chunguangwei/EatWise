@@ -352,6 +352,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                 // 四入口（D-16 + 扫码扩充）：拍照识别 / 语音录入 / 常吃复用 / 扫码记。
                 // 入口标签 2–3 字，同排四卡（Expanded 均分）在 ≥320px 宽屏不拥挤，
                 // 故不放搜索框右侧图标（与三入口同排样式，层级一致）。
+                // 薄荷走查 P2：拍照记为最高频 AI 入口，主色描边 + 浅主色底
+                // 提升视觉权重，其余三格保持原样。
                 Padding(
                   padding: const EdgeInsets.all(AppSpacing.s4),
                   child: Row(
@@ -359,6 +361,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                       _EntryCard(
                         icon: Icons.photo_camera_outlined,
                         label: s.entryPhoto,
+                        highlighted: true,
                         onTap: () => _onEntryTap(
                           'camera',
                           () => unawaited(startPhotoRecognition(context, ref)),
@@ -454,6 +457,14 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: <Widget>[
+                                    // 空态三件套（薄荷走查 P2）：图标 + 引导
+                                    // 文案 + 自定义食物 CTA。
+                                    Icon(
+                                      Icons.search_off_outlined,
+                                      size: 40,
+                                      color: colors.textSecondary,
+                                    ),
+                                    const SizedBox(height: AppSpacing.s2),
                                     Text(
                                       s.searchEmpty,
                                       style: textStyles.textSm.copyWith(
@@ -643,16 +654,21 @@ class _RecordPageState extends ConsumerState<RecordPage> {
 }
 
 /// 三入口占位卡片（≥44px 触控区，M8 基线）。
+///
+/// [highlighted]（薄荷走查 P2）：拍照记主入口专用——主色描边 + 浅主色
+/// 底 + 主色文字，与其余三格区分但同构（尺寸/圆角/阴影不变）。
 class _EntryCard extends StatelessWidget {
   const _EntryCard({
     required this.icon,
     required this.label,
     required this.onTap,
+    this.highlighted = false,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
@@ -665,7 +681,9 @@ class _EntryCard extends StatelessWidget {
         button: true,
         label: label,
         child: Material(
-          color: colors.bgSecondary,
+          color: highlighted
+              ? colors.brandPrimary.withValues(alpha: 0.08)
+              : colors.bgSecondary,
           borderRadius: radii.rLg,
           child: InkWell(
             borderRadius: radii.rLg,
@@ -675,13 +693,24 @@ class _EntryCard extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: radii.rLg,
                 boxShadow: shadows.shadowSm,
+                border: highlighted
+                    ? Border.all(color: colors.brandPrimary, width: 1.5)
+                    : null,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   Icon(icon, color: colors.brandPrimary),
                   const SizedBox(height: AppSpacing.s1),
-                  Text(label, style: textStyles.textSm),
+                  Text(
+                    label,
+                    style: highlighted
+                        ? textStyles.textSm.copyWith(
+                            color: colors.brandPrimary,
+                            fontWeight: FontWeight.w600,
+                          )
+                        : textStyles.textSm,
+                  ),
                 ],
               ),
             ),

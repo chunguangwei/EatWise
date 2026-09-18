@@ -40,15 +40,42 @@ class _FrequentFoodsSheet extends ConsumerWidget {
               child: frequent.when(
                 data: (foods) {
                   if (foods.isEmpty) {
+                    // 空态三件套（薄荷走查 P2）：图标 + 引导文案 +
+                    // 「去搜一搜」CTA（收起弹层回搜索框）。
                     return Padding(
                       padding: const EdgeInsets.symmetric(
                         vertical: AppSpacing.s4,
                       ),
-                      child: Text(
-                        s.frequentEmpty,
-                        style: textStyles.textSm.copyWith(
-                          color: colors.textSecondary,
-                        ),
+                      child: Column(
+                        children: <Widget>[
+                          Icon(
+                            Icons.favorite_border_outlined,
+                            size: 40,
+                            color: colors.textSecondary,
+                          ),
+                          const SizedBox(height: AppSpacing.s2),
+                          Text(
+                            s.frequentEmpty,
+                            style: textStyles.textSm.copyWith(
+                              color: colors.textSecondary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppSpacing.s2),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(44, 48),
+                              foregroundColor: colors.brandPrimary,
+                            ),
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: Text(
+                              s.frequentEmptyCta,
+                              style: textStyles.textBase.copyWith(
+                                color: colors.brandPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   }

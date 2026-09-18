@@ -8,6 +8,7 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
 /// 近 7 日趋势图（设计稿 §4.2-③：绿描线，区段间距 32）：
@@ -130,10 +131,11 @@ class _TrendEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     return SizedBox(
-      height: 120,
+      height: 160,
       width: double.infinity,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -144,6 +146,19 @@ class _TrendEmpty extends StatelessWidget {
             message,
             style: textStyles.textSm.copyWith(color: colors.textSecondary),
             textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.s3),
+          // 空态三件套（薄荷走查 P2）：图标 + 引导文案 + 去记录 CTA。
+          FilledButton(
+            onPressed: () => context.go('/record'),
+            style: FilledButton.styleFrom(
+              backgroundColor: colors.brandPrimary,
+              minimumSize: const Size(0, AppSpacing.s12),
+            ),
+            child: Text(
+              t.nutrition.data.trend.ctaRecord,
+              style: textStyles.textBase.copyWith(color: Colors.white),
+            ),
           ),
         ],
       ),

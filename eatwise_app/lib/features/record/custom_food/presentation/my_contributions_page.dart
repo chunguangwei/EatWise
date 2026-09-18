@@ -7,6 +7,7 @@ import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
 import 'package:eatwise/features/record/custom_food/presentation/contributions_controller.dart';
+import 'package:eatwise/features/record/custom_food/presentation/custom_food_sheet.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -160,6 +161,27 @@ class _MyContributionsPageState extends ConsumerState<MyContributionsPage> {
                   c.empty,
                   style: textStyles.textLg,
                   textAlign: TextAlign.center,
+                ),
+                // 空态三件套（薄荷走查 P2）：副文案 + 新建自定义食物 CTA。
+                const SizedBox(height: AppSpacing.s2),
+                Text(
+                  c.emptySubtitle,
+                  style: textStyles.textSm.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.s6),
+                FilledButton(
+                  onPressed: () => unawaited(startCustomFoodFlow(context, ref)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colors.brandPrimary,
+                    minimumSize: const Size.fromHeight(AppSpacing.s12),
+                  ),
+                  child: Text(
+                    c.emptyCta,
+                    style: textStyles.textBase.copyWith(color: Colors.white),
+                  ),
                 ),
               ],
             ),

@@ -91,7 +91,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('数据曲线正在热身，多记几天它就跑起来啦。'), findsOneWidget);
-    expect(find.text('去记录'), findsOneWidget);
+    // 当日空态 CTA + 趋势空态 CTA（薄荷走查 P2 补齐）各一个。
+    expect(find.text('去记录'), findsNWidgets(2));
 
     // 社区 Tab：真实打卡流（M5）——空流 → 空态 + CTA「发布打卡」进发布页
     await tester.tap(find.text('社区'));
@@ -141,7 +142,8 @@ void main() {
     await tester.tap(find.text('数据'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('去记录'));
+    // 两个「去记录」CTA（当日空态 + 趋势空态）同跳记录 Tab，点第一个。
+    await tester.tap(find.text('去记录').first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('拍照记'), findsOneWidget);

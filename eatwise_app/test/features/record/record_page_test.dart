@@ -8,6 +8,7 @@ import 'package:eatwise/core/analytics/consent_store.dart';
 import 'package:eatwise/core/analytics/device_identity_store.dart';
 import 'package:eatwise/core/analytics/event_queue_store.dart';
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
@@ -199,7 +200,39 @@ void main() {
     await tester.enterText(find.byType(TextField).first, '不存在的食物');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
+    // 空态三件套（薄荷走查 P2）：图标 + 引导文案 + 自定义食物 CTA。
+    expect(find.byIcon(Icons.search_off_outlined), findsOneWidget);
     expect(find.text('没找到？换个关键词试试'), findsOneWidget);
+    expect(find.text('找不到？添加自定义食物'), findsOneWidget);
+    await settleUi(tester);
+  });
+
+  testWidgets('薄荷走查 P2：拍照记入口主色描边高亮，其余三格原样', (tester) async {
+    await pumpPage(tester);
+
+    final colors = AppTheme.light().extension<AppColors>()!;
+
+    Container cardOf(String label) {
+      final inkWell = find.ancestor(
+        of: find.text(label),
+        matching: find.byType(InkWell),
+      );
+      return tester.widget<Container>(
+        find.descendant(of: inkWell.first, matching: find.byType(Container)),
+      );
+    }
+
+    // 拍照记：浅主色底 + 主色描边。
+    final photoCard = cardOf('拍照记');
+    final photoDecoration = photoCard.decoration! as BoxDecoration;
+    expect(photoDecoration.border, isNotNull);
+    expect((photoDecoration.border! as Border).top.color, colors.brandPrimary);
+
+    // 其余三格：无描边。
+    for (final label in <String>['语音记', '常吃', '扫码记']) {
+      final decoration = cardOf(label).decoration! as BoxDecoration;
+      expect(decoration.border, isNull);
+    }
     await settleUi(tester);
   });
 

@@ -185,6 +185,9 @@ final class RecordStrings {
   /// record.frequent.empty
   String get frequentEmpty => _t.record.frequent.empty;
 
+  /// record.frequent.emptyCta
+  String get frequentEmptyCta => _t.record.frequent.emptyCta;
+
   /// record.card.pleaseConfirm
   String get cardPleaseConfirm => _t.record.card.pleaseConfirm;
 

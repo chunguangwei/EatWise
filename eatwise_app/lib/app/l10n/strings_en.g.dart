@@ -594,6 +594,7 @@ class _Translations$record$frequent$en extends Translations$record$frequent$zh_C
 	// Translations
 	@override String get title => 'Frequently logged';
 	@override String get empty => 'Log a few more meals and your usuals will show up here';
+	@override String get emptyCta => 'Search instead';
 }
 
 // Path: record.card
@@ -1152,6 +1153,15 @@ class _Translations$settings$health$en extends Translations$settings$health$zh_C
 	@override String get fillWeight => 'Fill into today\'s weight log';
 	@override String weightFilled({required Object kg}) => 'Added to today\'s weight log: ${kg} kg';
 	@override String get noData => 'No activity data yet today';
+	@override String get burnGoal => 'Daily burn goal';
+	@override String burnGoalValue({required Object kcal}) => '${kcal} kcal';
+	@override String get stepsGoal => 'Daily steps goal';
+	@override String stepsGoalValue({required Object steps}) => '${steps} steps';
+	@override String get burnGoalDialogTitle => 'Set daily burn goal';
+	@override String get stepsGoalDialogTitle => 'Set daily steps goal';
+	@override String get burnGoalInputLabel => 'Goal (kcal, 50–5000)';
+	@override String get stepsGoalInputLabel => 'Goal (steps, 500–100000)';
+	@override String get goalInvalid => 'Enter a valid number within the range';
 }
 
 // Path: settings.theme
@@ -1687,6 +1697,8 @@ class _Translations$record$customFood$contributions$en extends Translations$reco
 	@override String get title => 'My contributions';
 	@override String get filterAll => 'All';
 	@override String get empty => 'No contributions yet';
+	@override String get emptySubtitle => 'Log foods you can\'t find and share them with everyone once approved';
+	@override String get emptyCta => 'Create a custom food';
 	@override String get statusPending => 'In review';
 	@override String get statusApproved => 'Approved';
 	@override String get statusRejected => 'Rejected';
@@ -1782,6 +1794,7 @@ class _Translations$nutrition$data$trend$en extends Translations$nutrition$data$
 	@override String get kcal => 'Calories';
 	@override String get fasting => 'Fasting';
 	@override String get empty => 'Log a few more days and your trend line starts moving';
+	@override String get ctaRecord => 'Log now';
 	@override String get hourUnit => 'h';
 }
 
@@ -1798,6 +1811,9 @@ class _Translations$nutrition$data$burn$en extends Translations$nutrition$data$b
 	@override String kcalValue({required Object kcal}) => '${kcal} kcal';
 	@override String estimatedValue({required Object kcal}) => '~${kcal} kcal (estimated from steps)';
 	@override String balance({required Object kcal}) => 'Intake − burn balance: ${kcal} kcal';
+	@override String goalProgress({required Object kcal, required Object goal}) => '${kcal} / ${goal} kcal';
+	@override String stepsGoalProgress({required Object steps, required Object goal}) => '${steps} / ${goal} steps';
+	@override String goalRingLabel({required Object percent}) => 'Today\'s burn goal progress: ${percent}%';
 }
 
 // Path: nutrition.signalCard.zone
@@ -2249,6 +2265,7 @@ extension on TranslationsEn {
 			'record.voice.understanding' => 'Understanding…',
 			'record.frequent.title' => 'Frequently logged',
 			'record.frequent.empty' => 'Log a few more meals and your usuals will show up here',
+			'record.frequent.emptyCta' => 'Search instead',
 			'record.card.pleaseConfirm' => 'Please confirm',
 			'record.customFood.cta' => 'Can\'t find it? Add a custom food',
 			'record.customFood.badge' => 'Custom',
@@ -2282,6 +2299,8 @@ extension on TranslationsEn {
 			'record.customFood.contributions.title' => 'My contributions',
 			'record.customFood.contributions.filterAll' => 'All',
 			'record.customFood.contributions.empty' => 'No contributions yet',
+			'record.customFood.contributions.emptySubtitle' => 'Log foods you can\'t find and share them with everyone once approved',
+			'record.customFood.contributions.emptyCta' => 'Create a custom food',
 			'record.customFood.contributions.statusPending' => 'In review',
 			'record.customFood.contributions.statusApproved' => 'Approved',
 			'record.customFood.contributions.statusRejected' => 'Rejected',
@@ -2411,6 +2430,7 @@ extension on TranslationsEn {
 			'nutrition.data.trend.kcal' => 'Calories',
 			'nutrition.data.trend.fasting' => 'Fasting',
 			'nutrition.data.trend.empty' => 'Log a few more days and your trend line starts moving',
+			'nutrition.data.trend.ctaRecord' => 'Log now',
 			'nutrition.data.trend.hourUnit' => 'h',
 			'nutrition.data.burn.title' => 'Today\'s burn',
 			'nutrition.data.burn.activeEnergy' => 'Active burn',
@@ -2418,6 +2438,9 @@ extension on TranslationsEn {
 			'nutrition.data.burn.kcalValue' => ({required Object kcal}) => '${kcal} kcal',
 			'nutrition.data.burn.estimatedValue' => ({required Object kcal}) => '~${kcal} kcal (estimated from steps)',
 			'nutrition.data.burn.balance' => ({required Object kcal}) => 'Intake − burn balance: ${kcal} kcal',
+			'nutrition.data.burn.goalProgress' => ({required Object kcal, required Object goal}) => '${kcal} / ${goal} kcal',
+			'nutrition.data.burn.stepsGoalProgress' => ({required Object steps, required Object goal}) => '${steps} / ${goal} steps',
+			'nutrition.data.burn.goalRingLabel' => ({required Object percent}) => 'Today\'s burn goal progress: ${percent}%',
 			'nutrition.signalCard.zone.green' => 'On track',
 			'nutrition.signalCard.zone.yellow' => 'Heads-up',
 			'nutrition.signalCard.zone.red' => 'Warning',
@@ -2554,6 +2577,8 @@ extension on TranslationsEn {
 			'settings.group.preferences' => 'Preferences',
 			'settings.group.reminders' => 'Reminders',
 			'settings.group.about' => 'About',
+			_ => null,
+		} ?? switch (path) {
 			'settings.account.cancelDeletion' => 'Cancel deletion',
 			'settings.account.changePassword' => 'Change password',
 			'settings.account.contributions' => 'My contributions',
@@ -2561,8 +2586,6 @@ extension on TranslationsEn {
 			'settings.account.deleteConfirmAction' => 'Confirm deletion',
 			'settings.account.deleteConfirmBody' => 'After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.',
 			'settings.account.deleteConfirmTitle' => 'Delete your account?',
-			_ => null,
-		} ?? switch (path) {
 			'settings.account.deleteRequested' => 'Deletion requested — your account enters a 7-day cooling-off period',
 			'settings.account.deleteScheduledBody' => ({required Object date}) => 'Deletion requested. Your account will be erased on ${date}; sign in before then to cancel.',
 			'settings.account.deletionCancelled' => 'Deletion cancelled — your account is back to normal',
@@ -2599,6 +2622,15 @@ extension on TranslationsEn {
 			'settings.health.fillWeight' => 'Fill into today\'s weight log',
 			'settings.health.weightFilled' => ({required Object kg}) => 'Added to today\'s weight log: ${kg} kg',
 			'settings.health.noData' => 'No activity data yet today',
+			'settings.health.burnGoal' => 'Daily burn goal',
+			'settings.health.burnGoalValue' => ({required Object kcal}) => '${kcal} kcal',
+			'settings.health.stepsGoal' => 'Daily steps goal',
+			'settings.health.stepsGoalValue' => ({required Object steps}) => '${steps} steps',
+			'settings.health.burnGoalDialogTitle' => 'Set daily burn goal',
+			'settings.health.stepsGoalDialogTitle' => 'Set daily steps goal',
+			'settings.health.burnGoalInputLabel' => 'Goal (kcal, 50–5000)',
+			'settings.health.stepsGoalInputLabel' => 'Goal (steps, 500–100000)',
+			'settings.health.goalInvalid' => 'Enter a valid number within the range',
 			'settings.theme.title' => 'Theme',
 			'settings.theme.system' => 'System',
 			'settings.theme.light' => 'Light',

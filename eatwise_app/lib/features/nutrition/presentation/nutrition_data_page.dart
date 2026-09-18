@@ -6,6 +6,7 @@ import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
+import 'package:eatwise/features/health/application/exercise_goals_controller.dart';
 import 'package:eatwise/features/health/application/health_sync_controller.dart';
 import 'package:eatwise/features/health/presentation/health_widgets.dart';
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart';
@@ -248,6 +249,7 @@ class _HealthBurnSection extends ConsumerWidget {
       return const SizedBox.shrink();
     }
     final intake = ref.watch(dayIntakeProvider);
+    final goals = ref.watch(exerciseGoalsProvider);
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.s8),
       child: TodayBurnCard(
@@ -257,6 +259,8 @@ class _HealthBurnSection extends ConsumerWidget {
         intakeKcal: (intake != null && intake.entryCount > 0)
             ? intake.kcal
             : null,
+        burnGoalKcal: goals.burnGoalKcal,
+        stepsGoal: goals.stepsGoal,
       ),
     );
   }

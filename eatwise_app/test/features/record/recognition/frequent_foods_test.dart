@@ -1,9 +1,15 @@
+import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/tables.dart';
+import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
+import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/recognition/data/frequent_foods.dart';
+import 'package:eatwise/features/record/recognition/presentation/frequent_flow.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -93,5 +99,44 @@ void main() {
     );
     expect(await query.topFrequent('anonymous'), isEmpty);
     expect((await query.topFrequent('someone-else')).single.id, 'f-rice');
+  });
+
+  testWidgets('常吃为空 → 空态三件套：图标 + 引导文案 + 去搜一搜 CTA', (tester) async {
+    await LocaleSettings.setLocale(AppLocale.zhCn);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          recordFrequentFoodsProvider.overrideWith(
+            (ref) => Future.value(<Food>[]),
+          ),
+        ],
+        child: TranslationProvider(
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => startFrequentPick(context),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byIcon(Icons.favorite_border_outlined), findsOneWidget);
+    expect(find.text('多记几笔，常吃榜就出来啦'), findsOneWidget);
+    expect(find.text('去搜一搜'), findsOneWidget);
+
+    // CTA 收起弹层回搜索框。
+    await tester.tap(find.text('去搜一搜'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('多记几笔，常吃榜就出来啦'), findsNothing);
   });
 }

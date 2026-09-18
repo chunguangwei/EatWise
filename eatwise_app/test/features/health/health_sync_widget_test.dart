@@ -184,6 +184,8 @@ void main() {
       double? burnKcal = 245,
       bool estimated = false,
       double? intakeKcal = 1500,
+      double? burnGoalKcal,
+      int? stepsGoal,
     }) async {
       await tester.pumpWidget(
         TranslationProvider(
@@ -195,6 +197,8 @@ void main() {
                 burnKcal: burnKcal,
                 estimated: estimated,
                 intakeKcal: intakeKcal,
+                burnGoalKcal: burnGoalKcal,
+                stepsGoal: stepsGoal,
               ),
             ),
           ),
@@ -226,6 +230,94 @@ void main() {
       await pumpCard(tester);
       expect(find.text("Today's burn"), findsOneWidget);
       expect(find.textContaining('+1255'), findsOneWidget);
+    });
+
+    testWidgets('薄荷走查 P2：消耗目标环（X/目标 Y）+ 步数进度行', (tester) async {
+      await pumpCard(tester, burnKcal: 100, burnGoalKcal: 200, stepsGoal: 5000);
+      // 环中心百分比 + 环下 X/目标 千卡。
+      expect(find.text('50%'), findsOneWidget);
+      expect(find.text('100 / 200 千卡'), findsOneWidget);
+      // 步数目标进度文本行。
+      expect(find.text('6200 / 5000 步'), findsOneWidget);
+    });
+
+    testWidgets('超目标：弧封顶 100%，文案展示真实 X/目标', (tester) async {
+      await pumpCard(tester, burnGoalKcal: 200);
+      expect(find.text('100%'), findsOneWidget);
+      expect(find.text('245 / 200 千卡'), findsOneWidget);
+    });
+
+    testWidgets('无目标参数 → 保持原布局（无环无进度行）', (tester) async {
+      await pumpCard(tester);
+      expect(
+        find.descendant(
+          of: find.byType(TodayBurnCard),
+          matching: find.byType(CustomPaint),
+        ),
+        findsNothing,
+      );
+      expect(find.textContaining('/'), findsNothing);
+    });
+
+    testWidgets('英文目标环渲染', (tester) async {
+      await LocaleSettings.setLocale(AppLocale.en);
+      await pumpCard(tester, burnKcal: 100, burnGoalKcal: 200, stepsGoal: 5000);
+      expect(find.text('100 / 200 kcal'), findsOneWidget);
+      expect(find.text('6200 / 5000 steps'), findsOneWidget);
+    });
+  });
+
+  group('每日目标设置（薄荷走查 P2）', () {
+    testWidgets('运动数据区块展示默认目标（200 千卡 / 5000 步）', (tester) async {
+      await pumpSection(tester);
+      expect(find.text('每日消耗目标'), findsOneWidget);
+      expect(find.text('200 千卡'), findsOneWidget);
+      expect(find.text('每日步数目标'), findsOneWidget);
+      expect(find.text('5000 步'), findsOneWidget);
+    });
+
+    testWidgets('修改步数目标：即时生效并持久化', (tester) async {
+      await pumpSection(tester);
+      await tester.tap(find.text('每日步数目标'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('设置每日步数目标'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '8000');
+      await tester.tap(find.text('确定'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('8000 步'), findsOneWidget);
+      expect(prefs.getInt('health.stepsGoal.v1'), 8000);
+    });
+
+    testWidgets('修改消耗目标：即时生效并持久化', (tester) async {
+      await pumpSection(tester);
+      await tester.tap(find.text('每日消耗目标'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), '350');
+      await tester.tap(find.text('确定'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('350 千卡'), findsOneWidget);
+      expect(prefs.getDouble('health.burnGoalKcal.v1'), 350);
+    });
+
+    testWidgets('越界输入：行内报错不落盘', (tester) async {
+      await pumpSection(tester);
+      await tester.tap(find.text('每日步数目标'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), '100');
+      await tester.tap(find.text('确定'));
+      await tester.pump();
+
+      expect(find.text('请输入范围内的有效数值'), findsOneWidget);
+      expect(prefs.getInt('health.stepsGoal.v1'), isNull);
+      // 关闭弹窗后仍是默认值。
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(find.text('5000 步'), findsOneWidget);
     });
   });
 }

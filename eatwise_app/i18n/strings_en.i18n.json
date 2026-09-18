@@ -274,7 +274,8 @@
     },
     "frequent": {
       "title": "Frequently logged",
-      "empty": "Log a few more meals and your usuals will show up here"
+      "empty": "Log a few more meals and your usuals will show up here",
+      "emptyCta": "Search instead"
     },
     "card": {
       "pleaseConfirm": "Please confirm"
@@ -313,6 +314,8 @@
         "title": "My contributions",
         "filterAll": "All",
         "empty": "No contributions yet",
+        "emptySubtitle": "Log foods you can't find and share them with everyone once approved",
+        "emptyCta": "Create a custom food",
         "statusPending": "In review",
         "statusApproved": "Approved",
         "statusRejected": "Rejected",
@@ -496,6 +499,7 @@
         "kcal": "Calories",
         "fasting": "Fasting",
         "empty": "Log a few more days and your trend line starts moving",
+        "ctaRecord": "Log now",
         "hourUnit": "h"
       },
       "burn": {
@@ -504,7 +508,10 @@
         "steps": "Steps",
         "kcalValue": "${kcal} kcal",
         "estimatedValue": "~${kcal} kcal (estimated from steps)",
-        "balance": "Intake − burn balance: ${kcal} kcal"
+        "balance": "Intake − burn balance: ${kcal} kcal",
+        "goalProgress": "${kcal} / ${goal} kcal",
+        "stepsGoalProgress": "${steps} / ${goal} steps",
+        "goalRingLabel": "Today's burn goal progress: ${percent}%"
       }
     },
     "signalCard": {
@@ -747,7 +754,16 @@
       "latestWeight": "Latest weight ${kg} kg",
       "fillWeight": "Fill into today's weight log",
       "weightFilled": "Added to today's weight log: ${kg} kg",
-      "noData": "No activity data yet today"
+      "noData": "No activity data yet today",
+      "burnGoal": "Daily burn goal",
+      "burnGoalValue": "${kcal} kcal",
+      "stepsGoal": "Daily steps goal",
+      "stepsGoalValue": "${steps} steps",
+      "burnGoalDialogTitle": "Set daily burn goal",
+      "stepsGoalDialogTitle": "Set daily steps goal",
+      "burnGoalInputLabel": "Goal (kcal, 50–5000)",
+      "stepsGoalInputLabel": "Goal (steps, 500–100000)",
+      "goalInvalid": "Enter a valid number within the range"
     },
     "theme": {
       "title": "Theme",

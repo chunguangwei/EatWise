@@ -161,7 +161,8 @@ void main() {
   testWidgets('当日无记录 → 空态引导去记录，不显示误导性信号灯（D-05）', (tester) async {
     await pumpPage(tester);
 
-    expect(find.text('去记录'), findsOneWidget);
+    // 当日空态 CTA + 趋势空态 CTA（薄荷走查 P2 补齐）各一个。
+    expect(find.text('去记录'), findsNWidgets(2));
     expect(find.text('数据曲线正在热身，多记几天它就跑起来啦。'), findsOneWidget);
     // 无信号灯图标、无专业数据区。
     expect(find.byIcon(Icons.check_circle), findsNothing);
@@ -189,8 +190,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('回到今天'), findsOneWidget);
-    // 昨天无记录 → 空态。
-    expect(find.text('去记录'), findsOneWidget);
+    // 昨天无记录 → 空态（当日空态 + 趋势空态各一个 CTA）。
+    expect(find.text('去记录'), findsNWidgets(2));
 
     await tester.tap(find.text('回到今天'));
     await tester.pump();

@@ -274,7 +274,8 @@
     },
     "frequent": {
       "title": "常吃的食物",
-      "empty": "多记几笔，常吃榜就出来啦"
+      "empty": "多记几笔，常吃榜就出来啦",
+      "emptyCta": "去搜一搜"
     },
     "card": {
       "pleaseConfirm": "请确认"
@@ -313,6 +314,8 @@
         "title": "我的贡献",
         "filterAll": "全部",
         "empty": "暂无贡献记录",
+        "emptySubtitle": "把搜不到的食物记下来，审核通过后分享给所有人",
+        "emptyCta": "新建自定义食物",
         "statusPending": "审核中",
         "statusApproved": "已通过",
         "statusRejected": "已拒绝",
@@ -496,6 +499,7 @@
         "kcal": "热量",
         "fasting": "断食时长",
         "empty": "记满几天，趋势曲线就跑起来啦",
+        "ctaRecord": "去记录",
         "hourUnit": "小时"
       },
       "burn": {
@@ -504,7 +508,10 @@
         "steps": "步数",
         "kcalValue": "${kcal} kcal",
         "estimatedValue": "约 ${kcal} kcal（按步数估算）",
-        "balance": "摄入 − 消耗结余：${kcal} kcal"
+        "balance": "摄入 − 消耗结余：${kcal} kcal",
+        "goalProgress": "${kcal} / ${goal} 千卡",
+        "stepsGoalProgress": "${steps} / ${goal} 步",
+        "goalRingLabel": "今日消耗目标进度 ${percent}%"
       }
     },
     "signalCard": {
@@ -746,7 +753,16 @@
       "latestWeight": "最新体重 ${kg} kg",
       "fillWeight": "填入今日体重记录",
       "weightFilled": "已填入今日体重记录 ${kg} kg",
-      "noData": "今日暂无运动数据"
+      "noData": "今日暂无运动数据",
+      "burnGoal": "每日消耗目标",
+      "burnGoalValue": "${kcal} 千卡",
+      "stepsGoal": "每日步数目标",
+      "stepsGoalValue": "${steps} 步",
+      "burnGoalDialogTitle": "设置每日消耗目标",
+      "stepsGoalDialogTitle": "设置每日步数目标",
+      "burnGoalInputLabel": "目标（千卡，50–5000）",
+      "stepsGoalInputLabel": "目标（步，500–100000）",
+      "goalInvalid": "请输入范围内的有效数值"
     },
     "theme": {
       "title": "主题",

@@ -196,9 +196,12 @@ void main() {
     expect(find.text('鸡蛋'), findsOneWidget);
   });
 
-  testWidgets('空态：无贡献记录显示占位文案', (tester) async {
+  testWidgets('空态：图标 + 主副文案 + 新建自定义食物 CTA', (tester) async {
     await pumpPage(tester);
+    expect(find.byIcon(Icons.inventory_2_outlined), findsOneWidget);
     expect(find.text('暂无贡献记录'), findsOneWidget);
+    expect(find.text('把搜不到的食物记下来，审核通过后分享给所有人'), findsOneWidget);
+    expect(find.text('新建自定义食物'), findsOneWidget);
     expect(find.text('我的贡献'), findsOneWidget);
   });
 

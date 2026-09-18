@@ -926,6 +926,9 @@ class Translations$record$frequent$zh_CN {
 
 	/// zh-CN: '多记几笔，常吃榜就出来啦'
 	String get empty => '多记几笔，常吃榜就出来啦';
+
+	/// zh-CN: '去搜一搜'
+	String get emptyCta => '去搜一搜';
 }
 
 // Path: record.card
@@ -1975,6 +1978,33 @@ class Translations$settings$health$zh_CN {
 
 	/// zh-CN: '今日暂无运动数据'
 	String get noData => '今日暂无运动数据';
+
+	/// zh-CN: '每日消耗目标'
+	String get burnGoal => '每日消耗目标';
+
+	/// zh-CN: '${kcal} 千卡'
+	String burnGoalValue({required Object kcal}) => '${kcal} 千卡';
+
+	/// zh-CN: '每日步数目标'
+	String get stepsGoal => '每日步数目标';
+
+	/// zh-CN: '${steps} 步'
+	String stepsGoalValue({required Object steps}) => '${steps} 步';
+
+	/// zh-CN: '设置每日消耗目标'
+	String get burnGoalDialogTitle => '设置每日消耗目标';
+
+	/// zh-CN: '设置每日步数目标'
+	String get stepsGoalDialogTitle => '设置每日步数目标';
+
+	/// zh-CN: '目标（千卡，50–5000）'
+	String get burnGoalInputLabel => '目标（千卡，50–5000）';
+
+	/// zh-CN: '目标（步，500–100000）'
+	String get stepsGoalInputLabel => '目标（步，500–100000）';
+
+	/// zh-CN: '请输入范围内的有效数值'
+	String get goalInvalid => '请输入范围内的有效数值';
 }
 
 // Path: settings.theme
@@ -2981,6 +3011,12 @@ class Translations$record$customFood$contributions$zh_CN {
 	/// zh-CN: '暂无贡献记录'
 	String get empty => '暂无贡献记录';
 
+	/// zh-CN: '把搜不到的食物记下来，审核通过后分享给所有人'
+	String get emptySubtitle => '把搜不到的食物记下来，审核通过后分享给所有人';
+
+	/// zh-CN: '新建自定义食物'
+	String get emptyCta => '新建自定义食物';
+
 	/// zh-CN: '审核中'
 	String get statusPending => '审核中';
 
@@ -3158,6 +3194,9 @@ class Translations$nutrition$data$trend$zh_CN {
 	/// zh-CN: '记满几天，趋势曲线就跑起来啦'
 	String get empty => '记满几天，趋势曲线就跑起来啦';
 
+	/// zh-CN: '去记录'
+	String get ctaRecord => '去记录';
+
 	/// zh-CN: '小时'
 	String get hourUnit => '小时';
 }
@@ -3187,6 +3226,15 @@ class Translations$nutrition$data$burn$zh_CN {
 
 	/// zh-CN: '摄入 − 消耗结余：${kcal} kcal'
 	String balance({required Object kcal}) => '摄入 − 消耗结余：${kcal} kcal';
+
+	/// zh-CN: '${kcal} / ${goal} 千卡'
+	String goalProgress({required Object kcal, required Object goal}) => '${kcal} / ${goal} 千卡';
+
+	/// zh-CN: '${steps} / ${goal} 步'
+	String stepsGoalProgress({required Object steps, required Object goal}) => '${steps} / ${goal} 步';
+
+	/// zh-CN: '今日消耗目标进度 ${percent}%'
+	String goalRingLabel({required Object percent}) => '今日消耗目标进度 ${percent}%';
 }
 
 // Path: nutrition.signalCard.zone
@@ -3786,6 +3834,7 @@ extension on Translations {
 			'record.voice.understanding' => '理解中…',
 			'record.frequent.title' => '常吃的食物',
 			'record.frequent.empty' => '多记几笔，常吃榜就出来啦',
+			'record.frequent.emptyCta' => '去搜一搜',
 			'record.card.pleaseConfirm' => '请确认',
 			'record.customFood.cta' => '找不到？添加自定义食物',
 			'record.customFood.badge' => '自定义',
@@ -3819,6 +3868,8 @@ extension on Translations {
 			'record.customFood.contributions.title' => '我的贡献',
 			'record.customFood.contributions.filterAll' => '全部',
 			'record.customFood.contributions.empty' => '暂无贡献记录',
+			'record.customFood.contributions.emptySubtitle' => '把搜不到的食物记下来，审核通过后分享给所有人',
+			'record.customFood.contributions.emptyCta' => '新建自定义食物',
 			'record.customFood.contributions.statusPending' => '审核中',
 			'record.customFood.contributions.statusApproved' => '已通过',
 			'record.customFood.contributions.statusRejected' => '已拒绝',
@@ -3948,6 +3999,7 @@ extension on Translations {
 			'nutrition.data.trend.kcal' => '热量',
 			'nutrition.data.trend.fasting' => '断食时长',
 			'nutrition.data.trend.empty' => '记满几天，趋势曲线就跑起来啦',
+			'nutrition.data.trend.ctaRecord' => '去记录',
 			'nutrition.data.trend.hourUnit' => '小时',
 			'nutrition.data.burn.title' => '今日消耗',
 			'nutrition.data.burn.activeEnergy' => '活动消耗',
@@ -3955,6 +4007,9 @@ extension on Translations {
 			'nutrition.data.burn.kcalValue' => ({required Object kcal}) => '${kcal} kcal',
 			'nutrition.data.burn.estimatedValue' => ({required Object kcal}) => '约 ${kcal} kcal（按步数估算）',
 			'nutrition.data.burn.balance' => ({required Object kcal}) => '摄入 − 消耗结余：${kcal} kcal',
+			'nutrition.data.burn.goalProgress' => ({required Object kcal, required Object goal}) => '${kcal} / ${goal} 千卡',
+			'nutrition.data.burn.stepsGoalProgress' => ({required Object steps, required Object goal}) => '${steps} / ${goal} 步',
+			'nutrition.data.burn.goalRingLabel' => ({required Object percent}) => '今日消耗目标进度 ${percent}%',
 			'nutrition.signalCard.zone.green' => '达标',
 			'nutrition.signalCard.zone.yellow' => '适量提醒',
 			'nutrition.signalCard.zone.red' => '警示',
@@ -4091,6 +4146,8 @@ extension on Translations {
 			'settings.group.preferences' => '偏好',
 			'settings.group.reminders' => '提醒',
 			'settings.group.about' => '关于',
+			_ => null,
+		} ?? switch (path) {
 			'settings.account.cancelDeletion' => '撤销删除',
 			'settings.account.changePassword' => '修改密码',
 			'settings.account.contributions' => '我的贡献',
@@ -4098,8 +4155,6 @@ extension on Translations {
 			'settings.account.deleteConfirmAction' => '确认删除',
 			'settings.account.deleteConfirmBody' => '删除后，你的手机号、基础资料、全部饮食/断食记录等个人数据将被物理删除，且不可恢复。申请后进入 7 天冷静期：冷静期内登录即视为撤销删除，第 7 天执行删除。',
 			'settings.account.deleteConfirmTitle' => '删除账号？',
-			_ => null,
-		} ?? switch (path) {
 			'settings.account.deleteRequested' => '删除申请已提交，账号进入 7 天冷静期',
 			'settings.account.deleteScheduledBody' => ({required Object date}) => '删除申请已提交。账号将于 ${date} 删除，此日期前重新登录即可撤销。',
 			'settings.account.deletionCancelled' => '已撤销删除申请，账号恢复正常',
@@ -4136,6 +4191,15 @@ extension on Translations {
 			'settings.health.fillWeight' => '填入今日体重记录',
 			'settings.health.weightFilled' => ({required Object kg}) => '已填入今日体重记录 ${kg} kg',
 			'settings.health.noData' => '今日暂无运动数据',
+			'settings.health.burnGoal' => '每日消耗目标',
+			'settings.health.burnGoalValue' => ({required Object kcal}) => '${kcal} 千卡',
+			'settings.health.stepsGoal' => '每日步数目标',
+			'settings.health.stepsGoalValue' => ({required Object steps}) => '${steps} 步',
+			'settings.health.burnGoalDialogTitle' => '设置每日消耗目标',
+			'settings.health.stepsGoalDialogTitle' => '设置每日步数目标',
+			'settings.health.burnGoalInputLabel' => '目标（千卡，50–5000）',
+			'settings.health.stepsGoalInputLabel' => '目标（步，500–100000）',
+			'settings.health.goalInvalid' => '请输入范围内的有效数值',
 			'settings.theme.title' => '主题',
 			'settings.theme.system' => '跟随系统',
 			'settings.theme.light' => '浅色',
