@@ -5,6 +5,7 @@ import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/analytics_service.dart';
 import 'package:eatwise/core/network/api_error_text.dart';
 import 'package:eatwise/core/network/api_exception.dart';
+import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
@@ -77,8 +78,34 @@ Future<void> startCustomFoodFlow(
   // 拒收/失败原因已在弹层内展示（服务端双语 message），不再弹 Toast。
 }
 
-/// 事后贡献入口（保存成功 Toast 的「分享给所有用户」动作）：
-/// 成功显示「已提交审核」并刷新搜索结果状态标签；拒收显示服务端双语原因。
+/// 数据纠错入口（薄荷走查 P3，食物详情页「数据有误？告诉我们」）：
+/// 复用自定义食物弹层的表单形态（预填当前名称/四项营养值，可改后提交），
+/// 以 correction 类型入众包审核池（管理台原值 vs 建议值对照审核）。
+/// 提交成功 Toast「已提交审核」；拒收/失败原因在弹层内展示（服务端双语）。
+Future<void> startFoodCorrectionFlow(
+  BuildContext context,
+  WidgetRef ref,
+  Food food,
+) async {
+  final cs = CustomFoodStrings.of(context);
+  final submitted = await showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheetContext) => Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+      ),
+      child: CustomFoodSheet(correctionTarget: food),
+    ),
+  );
+  if (submitted == true && context.mounted) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(cs.submittedReview)));
+  }
+}
+
+/// 事后贡献入口（保存成功 Toast 的「分享给所有用户」动作）：/// 成功显示「已提交审核」并刷新搜索结果状态标签；拒收显示服务端双语原因。
 Future<void> contributeCustomFood(
   BuildContext context,
   WidgetRef ref,
@@ -106,11 +133,17 @@ Future<void> contributeCustomFood(
 /// low 置信度/端侧 dubious 额外提示核对）；估算不可用（端侧与用户自配
 /// API 均不可用，503）降级手动填写，不阻断。
 /// [initialAlias]：扫码未收录承接场景预填的别名（条码号〔假设〕）。
+/// [correctionTarget]：纠错模式（薄荷走查 P3）——预填该食物当前名称与
+/// 每 100g 四营养，隐藏别名/AI 估算/拍营养表/共享勾选，保存提交
+/// /foods/:id/correction（建议值入众包审核池）。
 class CustomFoodSheet extends ConsumerStatefulWidget {
-  const CustomFoodSheet({super.key, this.initialAlias});
+  const CustomFoodSheet({super.key, this.initialAlias, this.correctionTarget});
 
   /// 预填别名（可选，扫码未收录时传入条码号）。
   final String? initialAlias;
+
+  /// 纠错目标食物（非空即纠错模式）。
+  final Food? correctionTarget;
 
   @override
   ConsumerState<CustomFoodSheet> createState() => _CustomFoodSheetState();
@@ -126,6 +159,23 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
   final TextEditingController _proteinController = TextEditingController();
   final TextEditingController _carbController = TextEditingController();
   final TextEditingController _fatController = TextEditingController();
+
+  /// 纠错模式（[CustomFoodSheet.correctionTarget] 非空）：预填当前值、
+  /// 精简表单（无别名/估算/OCR/共享勾选），保存走 /foods/:id/correction。
+  bool get _isCorrection => widget.correctionTarget != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final target = widget.correctionTarget;
+    if (target != null) {
+      _nameController.text = target.nameZh;
+      _kcalController.text = _formatNumber(target.kcalPer100g);
+      _proteinController.text = _formatNumber(target.proteinPer100g);
+      _carbController.text = _formatNumber(target.carbPer100g);
+      _fatController.text = _formatNumber(target.fatPer100g);
+    }
+  }
 
   /// 估算请求在途（按钮转 loading，防连点）。
   bool _estimating = false;
@@ -290,6 +340,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
   }
 
   /// 保存：校验 → 远端 /foods/custom（离线仅落本地 pending）→ 关弹层回填。
+  /// 纠错模式：校验 → /foods/:id/correction → 关弹层（成功 Toast 由入口函数弹）。
   Future<void> _onSave() async {
     if (_saving) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -312,6 +363,18 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
             ? CustomFoodSource.llmEstimate
             : CustomFoodSource.manual,
       );
+      // 纠错模式：建议值提交众包审核池，不动本地食物库。
+      final correctionTarget = widget.correctionTarget;
+      if (correctionTarget != null) {
+        await ref
+            .read(customFoodRepositoryProvider)
+            .submitCorrection(correctionTarget.id, draft);
+        if (mounted) {
+          FocusManager.instance.primaryFocus?.unfocus();
+          Navigator.of(context).pop(true);
+        }
+        return;
+      }
       var result = await ref.read(customFoodRepositoryProvider).save(draft);
       // 勾选共享且已上行：立即贡献（幂等）；拒收展示服务端双语原因，
       // 保存本身不受影响（食物仍落本地可搜可记）。
@@ -454,7 +517,20 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              Text(cs.title, style: textStyles.textLg),
+              Text(
+                _isCorrection ? cs.correctionTitle : cs.title,
+                style: textStyles.textLg,
+              ),
+              if (_isCorrection)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.s1),
+                  child: Text(
+                    cs.correctionSubtitle,
+                    style: textStyles.textXs.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ),
               const SizedBox(height: AppSpacing.s4),
               TextFormField(
                 controller: _nameController,
@@ -463,38 +539,43 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                 validator: (value) =>
                     (value ?? '').trim().isEmpty ? cs.nameRequired : null,
               ),
-              const SizedBox(height: AppSpacing.s3),
-              TextFormField(
-                controller: _aliasController,
-                style: textStyles.textBase,
-                decoration: _fieldDecoration(colors, radii, cs.aliasLabel),
-              ),
-              const SizedBox(height: AppSpacing.s3),
-              // AI 估算按钮（≥44px；在途转 loading 防连点）。
-              OutlinedButton.icon(
-                onPressed: _estimating ? null : () => unawaited(_onEstimate()),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(AppSpacing.s12),
-                  foregroundColor: colors.brandPrimary,
-                  side: BorderSide(color: colors.brandPrimary),
-                ),
-                icon: _estimating
-                    ? SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: colors.brandPrimary,
-                        ),
-                      )
-                    : const Icon(Icons.auto_awesome_outlined),
-                label: Text(
-                  _estimating ? cs.estimating : cs.estimate,
+              if (!_isCorrection) ...<Widget>[
+                const SizedBox(height: AppSpacing.s3),
+                TextFormField(
+                  controller: _aliasController,
                   style: textStyles.textBase,
+                  decoration: _fieldDecoration(colors, radii, cs.aliasLabel),
                 ),
-              ),
+                const SizedBox(height: AppSpacing.s3),
+                // AI 估算按钮（≥44px；在途转 loading 防连点）。
+                OutlinedButton.icon(
+                  onPressed: _estimating
+                      ? null
+                      : () => unawaited(_onEstimate()),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(AppSpacing.s12),
+                    foregroundColor: colors.brandPrimary,
+                    side: BorderSide(color: colors.brandPrimary),
+                  ),
+                  icon: _estimating
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: colors.brandPrimary,
+                          ),
+                        )
+                      : const Icon(Icons.auto_awesome_outlined),
+                  label: Text(
+                    _estimating ? cs.estimating : cs.estimate,
+                    style: textStyles.textBase,
+                  ),
+                ),
+              ],
               // 拍营养表（端侧 OCR 可用时才渲染；不可用隐藏不误导）。
-              if (ref.watch(nutritionLabelOcrServiceProvider) != null)
+              if (!_isCorrection &&
+                  ref.watch(nutritionLabelOcrServiceProvider) != null)
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.s2),
                   child: OutlinedButton.icon(
@@ -618,14 +699,15 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
               ),
               const SizedBox(height: AppSpacing.s3),
               // 贡献开关（默认不勾）：保存成功后提交共享候选审核。
-              CheckboxListTile(
-                value: _shareToAll,
-                onChanged: (value) =>
-                    setState(() => _shareToAll = value ?? false),
-                title: Text(cs.shareOptIn, style: textStyles.textSm),
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
-              ),
+              if (!_isCorrection)
+                CheckboxListTile(
+                  value: _shareToAll,
+                  onChanged: (value) =>
+                      setState(() => _shareToAll = value ?? false),
+                  title: Text(cs.shareOptIn, style: textStyles.textSm),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                ),
               const SizedBox(height: AppSpacing.s4),
               FilledButton(
                 onPressed: _saving ? null : () => unawaited(_onSave()),
@@ -633,7 +715,10 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                   backgroundColor: colors.brandPrimary,
                   minimumSize: const Size.fromHeight(AppSpacing.s12),
                 ),
-                child: Text(cs.saveAction, style: textStyles.textBase),
+                child: Text(
+                  _isCorrection ? cs.correctionSubmit : cs.saveAction,
+                  style: textStyles.textBase,
+                ),
               ),
             ],
           ),

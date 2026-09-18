@@ -238,4 +238,13 @@ final class _RejectingRemote implements CustomFoodRemote {
   }) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<String> submitCorrection(
+    String foodId,
+    CustomFoodDraft draft, {
+    required String clientRequestId,
+  }) {
+    throw UnimplementedError();
+  }
 }

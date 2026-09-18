@@ -91,6 +91,8 @@ class _Translations$record$en extends Translations$record$zh_CN {
 
 	// Translations
 	@override late final _Translations$record$page$en page = _Translations$record$page$en._(_root);
+	@override late final _Translations$record$meal$en meal = _Translations$record$meal$en._(_root);
+	@override late final _Translations$record$today$en today = _Translations$record$today$en._(_root);
 	@override late final _Translations$record$entries$en entries = _Translations$record$entries$en._(_root);
 	@override late final _Translations$record$pending$en pending = _Translations$record$pending$en._(_root);
 	@override late final _Translations$record$search$en search = _Translations$record$search$en._(_root);
@@ -431,6 +433,31 @@ class _Translations$record$page$en extends Translations$record$page$zh_CN {
 	@override String todayKcal({required Object kcal}) => '~${kcal} kcal today (to be calibrated)';
 }
 
+// Path: record.meal
+class _Translations$record$meal$en extends Translations$record$meal$zh_CN {
+	_Translations$record$meal$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get label => 'Meal';
+	@override String get breakfast => 'Breakfast';
+	@override String get lunch => 'Lunch';
+	@override String get dinner => 'Dinner';
+	@override String get snack => 'Snack';
+	@override String get other => 'Other';
+}
+
+// Path: record.today
+class _Translations$record$today$en extends Translations$record$today$zh_CN {
+	_Translations$record$today$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Today\'s log';
+}
+
 // Path: record.entries
 class _Translations$record$entries$en extends Translations$record$entries$zh_CN {
 	_Translations$record$entries$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -644,6 +671,7 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get badgeRejected => 'Not approved';
 	@override String get badgeCommunity => 'Community';
 	@override late final _Translations$record$customFood$contributions$en contributions = _Translations$record$customFood$contributions$en._(_root);
+	@override late final _Translations$record$customFood$correction$en correction = _Translations$record$customFood$correction$en._(_root);
 	@override String get photoOcr => 'Scan nutrition label';
 	@override String get photoOcrReading => 'Reading label…';
 	@override String get photoOcrFailed => 'Couldn\'t read the label — try another angle or fill in manually';
@@ -735,6 +763,7 @@ class _Translations$record$foodDetail$en extends Translations$record$foodDetail$
 	@override String get badgeYellow => 'Yellow · go easy';
 	@override String get badgeRed => 'Red · best avoided';
 	@override String get badgeBasis => 'Rated per 100 g against your daily nutrition goals';
+	@override String get reportIssue => 'Wrong data? Tell us';
 }
 
 // Path: common.action
@@ -913,6 +942,7 @@ class _Translations$reports$trend$en extends Translations$reports$trend$zh_CN {
 	@override String targetLine({required Object kg}) => 'Goal ${kg} kg';
 	@override String toGoal({required Object kg}) => '${kg} kg to goal';
 	@override String get goalReached => 'Weight goal reached';
+	@override String weightUnlock({required Object count}) => 'Log your weight ${count} more times to unlock your full curve';
 }
 
 // Path: reports.growth
@@ -1201,6 +1231,7 @@ class _Translations$settings$bodyProfile$en extends Translations$settings$bodyPr
 	@override String get save => 'Save';
 	@override String get saved => 'Body profile saved';
 	@override String goalUpdated({required Object kcal}) => 'Daily nutrition goal updated to ${kcal} kcal';
+	@override String completeness({required Object percent}) => 'Profile ${percent}% complete';
 	@override late final _Translations$settings$bodyProfile$bmi$en bmi = _Translations$settings$bodyProfile$bmi$en._(_root);
 }
 
@@ -1707,6 +1738,19 @@ class _Translations$record$customFood$contributions$en extends Translations$reco
 	@override String get loadFailed => 'Failed to load — please try again later';
 	@override String get kindBarcode => 'Barcode product';
 	@override String barcodeLabel({required Object code}) => 'Barcode ${code}';
+	@override String get kindCorrection => 'Correction';
+}
+
+// Path: record.customFood.correction
+class _Translations$record$customFood$correction$en extends Translations$record$customFood$correction$zh_CN {
+	_Translations$record$customFood$correction$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Correct food data';
+	@override String get subtitle => 'Changes go through review and apply to everyone once approved';
+	@override String get submit => 'Submit correction';
 }
 
 // Path: fasting.home.greeting
@@ -2178,6 +2222,13 @@ extension on TranslationsEn {
 			'record.page.confirm' => 'Log it',
 			'record.page.loggedToday' => ({required Object count}) => '${count} logged today',
 			'record.page.todayKcal' => ({required Object kcal}) => '~${kcal} kcal today (to be calibrated)',
+			'record.meal.label' => 'Meal',
+			'record.meal.breakfast' => 'Breakfast',
+			'record.meal.lunch' => 'Lunch',
+			'record.meal.dinner' => 'Dinner',
+			'record.meal.snack' => 'Snack',
+			'record.meal.other' => 'Other',
+			'record.today.title' => 'Today\'s log',
 			'record.entries.photo' => 'Photo',
 			'record.entries.voice' => 'Voice',
 			'record.entries.frequent' => 'Usual',
@@ -2309,6 +2360,10 @@ extension on TranslationsEn {
 			'record.customFood.contributions.loadFailed' => 'Failed to load — please try again later',
 			'record.customFood.contributions.kindBarcode' => 'Barcode product',
 			'record.customFood.contributions.barcodeLabel' => ({required Object code}) => 'Barcode ${code}',
+			'record.customFood.contributions.kindCorrection' => 'Correction',
+			'record.customFood.correction.title' => 'Correct food data',
+			'record.customFood.correction.subtitle' => 'Changes go through review and apply to everyone once approved',
+			'record.customFood.correction.submit' => 'Submit correction',
 			'record.customFood.photoOcr' => 'Scan nutrition label',
 			'record.customFood.photoOcrReading' => 'Reading label…',
 			'record.customFood.photoOcrFailed' => 'Couldn\'t read the label — try another angle or fill in manually',
@@ -2346,6 +2401,7 @@ extension on TranslationsEn {
 			'record.foodDetail.badgeYellow' => 'Yellow · go easy',
 			'record.foodDetail.badgeRed' => 'Red · best avoided',
 			'record.foodDetail.badgeBasis' => 'Rated per 100 g against your daily nutrition goals',
+			'record.foodDetail.reportIssue' => 'Wrong data? Tell us',
 			'common.appName' => 'EatWise',
 			'common.action.save' => 'Save',
 			'common.action.cancel' => 'Cancel',
@@ -2489,6 +2545,7 @@ extension on TranslationsEn {
 			'reports.trend.targetLine' => ({required Object kg}) => 'Goal ${kg} kg',
 			'reports.trend.toGoal' => ({required Object kg}) => '${kg} kg to goal',
 			'reports.trend.goalReached' => 'Weight goal reached',
+			'reports.trend.weightUnlock' => ({required Object count}) => 'Log your weight ${count} more times to unlock your full curve',
 			'reports.growth.title' => ({required Object days}) => '${days}-day journey',
 			'reports.growth.qualifiedDays' => 'Fasting goals hit',
 			'reports.growth.recordedDays' => 'Days logged',
@@ -2564,6 +2621,8 @@ extension on TranslationsEn {
 			'streak.profile.current' => 'Current streak',
 			'streak.profile.longest' => 'Longest streak',
 			'streak.profile.daysUnit' => 'days',
+			_ => null,
+		} ?? switch (path) {
 			'streak.profile.mendCards' => 'Mend Cards',
 			'streak.profile.mendCardsValue' => ({required Object n}) => '${n} left',
 			'streak.profile.mendEntry' => 'Mend now',
@@ -2577,8 +2636,6 @@ extension on TranslationsEn {
 			'settings.group.preferences' => 'Preferences',
 			'settings.group.reminders' => 'Reminders',
 			'settings.group.about' => 'About',
-			_ => null,
-		} ?? switch (path) {
 			'settings.account.cancelDeletion' => 'Cancel deletion',
 			'settings.account.changePassword' => 'Change password',
 			'settings.account.contributions' => 'My contributions',
@@ -2643,6 +2700,7 @@ extension on TranslationsEn {
 			'settings.bodyProfile.save' => 'Save',
 			'settings.bodyProfile.saved' => 'Body profile saved',
 			'settings.bodyProfile.goalUpdated' => ({required Object kcal}) => 'Daily nutrition goal updated to ${kcal} kcal',
+			'settings.bodyProfile.completeness' => ({required Object percent}) => 'Profile ${percent}% complete',
 			'settings.bodyProfile.bmi.title' => 'BMI',
 			'settings.bodyProfile.bmi.underweight' => 'Below range',
 			'settings.bodyProfile.bmi.normal' => 'Healthy',

@@ -254,6 +254,31 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('P3 体重曲线解锁钩子：<3 条盖遮罩文案，≥3 条正常显示曲线', (tester) async {
+    // 2 条记录 → 遮罩「再记录 1 次体重，解锁完整曲线」（曲线仍渲染在遮罩下）。
+    await WeightLogStore(prefs).save('2026-07-26', 65.0);
+    await WeightLogStore(prefs).save('2026-07-28', 64.4);
+    await pumpPage(tester);
+    await tester.tap(find.text('体重'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('再记录 1 次体重，解锁完整曲线'), findsOneWidget);
+    expect(findTrendPainter(), findsOneWidget);
+
+    // 补到 3 条 → 遮罩消失（计数经 reportWeightProvider 失效联动重算，
+    // 与体重录入链路 light_record_section 的失效口径一致）。
+    await WeightLogStore(prefs).save('2026-07-27', 64.7);
+    ProviderScope.containerOf(
+      tester.element(find.byType(ReportsPage)),
+    ).invalidate(reportWeightProvider);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('解锁完整曲线'), findsNothing);
+    expect(findTrendPainter(), findsOneWidget);
+
+    await unmount(tester);
+  });
+
   testWidgets('月报卡：月份切换（未来月不可达）+ 四项统计 + 切到空月走空态', (tester) async {
     await seedNutrition('2026-07-26', 2000, entries: 3);
     await seedNutrition('2026-07-28', 1600);

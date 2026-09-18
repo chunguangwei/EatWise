@@ -3,7 +3,7 @@ import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { err } from '../common/errors/business.exception';
 import { BarcodeService } from './barcode/barcode.service';
 import { FoodCandidateStatus } from '../common/store/data-store';
-import { ContributeFoodDto, CreateCustomFoodDto } from './food.dto';
+import { ContributeFoodDto, CreateCustomFoodDto, CreateFoodCorrectionDto } from './food.dto';
 import { FoodService } from './food.service';
 
 const CONTRIBUTION_STATUSES: FoodCandidateStatus[] = ['pending', 'approved', 'rejected'];
@@ -66,6 +66,21 @@ export class FoodController {
     @Body() dto: ContributeFoodDto,
   ) {
     return this.food.contributeCustomFood(user.userId, foodId, dto);
+  }
+
+  /**
+   * 已有共享食物的数据纠错（食物详情页「数据有误？」入口）：建议名称/每 100g 营养
+   * 入审核池（kind=correction），approve 后应用到共享食物行；幂等 clientRequestId；
+   * 同人同食物已有 pending 纠错幂等返回原候选。
+   */
+  @Post(':id/correction')
+  @HttpCode(200)
+  correct(
+    @CurrentUser() user: AuthUser,
+    @Param('id') foodId: string,
+    @Body() dto: CreateFoodCorrectionDto,
+  ) {
+    return this.food.createFoodCorrection(user.userId, foodId, dto);
   }
 
   /**

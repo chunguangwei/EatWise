@@ -46,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -81,6 +81,11 @@ class AppDatabase extends _$AppDatabase {
       // v7：FoodEntries 补断食期用餐标记（duringFast，阶段 C，纯本地属性）。
       if (from < 7) {
         await m.addColumn(foodEntries, foodEntries.duringFast);
+      }
+      // v8：FoodEntries 补餐次（mealType 可空，薄荷走查优化点 2，纯本地属性；
+      // 历史记录无餐次，展示归入「其他」组）。
+      if (from < 8) {
+        await m.addColumn(foodEntries, foodEntries.mealType);
       }
     },
   );

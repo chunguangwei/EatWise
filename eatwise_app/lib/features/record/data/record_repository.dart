@@ -7,6 +7,7 @@ import 'package:eatwise/core/storage/sync_status.dart';
 
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
+import 'package:eatwise/features/record/domain/meal_type.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -100,6 +101,10 @@ final class RecordRepository {
       source: Value(draft.source),
       note: Value(draft.note),
       duringFast: Value(draft.duringFast),
+      // 餐次（优化点 2）：未显式选择时按就餐时间本地小时智能预判。
+      mealType: Value(
+        draft.mealType ?? suggestMealType(_localHourOf(draft.mealUtc)),
+      ),
       createdAtUtc: Value(nowIso),
       updatedAtUtc: Value(nowIso),
     );
@@ -298,6 +303,11 @@ final class RecordRepository {
   String _localDateOf(DateTime utc) {
     final epochSec = utc.toUtc().millisecondsSinceEpoch ~/ 1000;
     return localDateOf(epochSec, location).toIsoString();
+  }
+
+  /// 就餐时间按设备时区换算的本地小时（餐次智能预判用，0–23）。
+  int _localHourOf(DateTime utc) {
+    return tz.TZDateTime.from(utc.toUtc(), location).hour;
   }
 
   /// UUIDv4（幂等键/本地主键用，§1.2/§2.2）。

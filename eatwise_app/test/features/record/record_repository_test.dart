@@ -272,6 +272,56 @@ void main() {
     });
   });
 
+  group('餐次（薄荷走查优化点 2，纯本地属性）', () {
+    test('显式选择餐次入账落库；缺省按就餐时间本地小时智能预判', () async {
+      final repository = repo();
+      // 显式选择 snack（哪怕就餐时间在中午）。
+      final chosen = await repository.addEntry(
+        RecordDraft(
+          foodId: 'f-rice',
+          amountG: 100,
+          mealUtc: DateTime.utc(2026, 7, 28, 4), // 上海 12:00
+          source: EntrySource.manual,
+          mealType: MealType.snack,
+        ),
+      );
+      expect(chosen.mealType, MealType.snack);
+
+      // 缺省：上海 12:00 → lunch。
+      final defaulted = await repository.addEntry(draft());
+      expect(defaulted.mealType, MealType.lunch);
+
+      // 缺省：UTC 2026-07-28 12:00 = 上海 20:00 → dinner（预判按本地时区）。
+      final dinner = await repository.addEntry(
+        RecordDraft(
+          foodId: 'f-rice',
+          amountG: 100,
+          mealUtc: DateTime.utc(2026, 7, 28, 12),
+          source: EntrySource.manual,
+        ),
+      );
+      expect(dinner.mealType, MealType.dinner);
+      await repository.dispose();
+    });
+
+    test('当日记录流（今日餐次分组列表数据源）：入账/撤销实时可见', () async {
+      final repository = repo();
+      final entry = await repository.addEntry(draft());
+      final entries = await db.foodEntryDao
+          .watchEntriesForDate('anonymous', '2026-07-28')
+          .first;
+      expect(entries.map((e) => e.localId), contains(entry.localId));
+
+      final undone = await repository.undo(entry.localId);
+      expect(undone, isTrue);
+      final afterUndo = await db.foodEntryDao
+          .watchEntriesForDate('anonymous', '2026-07-28')
+          .first;
+      expect(afterUndo, isEmpty);
+      await repository.dispose();
+    });
+  });
+
   group('断食期用餐标记（阶段 C，纯本地属性）', () {
     test('duringFast 入账落库 + 当日计数流；缺省 false', () async {
       final repository = repo();

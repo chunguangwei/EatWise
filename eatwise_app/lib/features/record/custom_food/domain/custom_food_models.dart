@@ -86,19 +86,25 @@ FoodContributionStatus foodContributionStatusFrom(String? raw) => switch (raw) {
   _ => FoodContributionStatus.pending,
 };
 
-/// 贡献类型（服务端 kind：普通自定义食物贡献 / 条码商品补录）。
+/// 贡献类型（服务端 kind：普通自定义食物贡献 / 条码商品补录 / 已有食物数据纠错）。
 enum FoodContributionKind {
   /// 普通自定义食物贡献（无条码）。
   custom,
 
   /// 扫码未命中补录（带条码 + 营养表佐证照片）。
   barcode,
+
+  /// 已有共享食物的数据纠错（食物详情页「数据有误？」入口，建议值在服务端
+  /// 候选 suggestion 字段；客户端精简视图不含建议值）。
+  correction,
 }
 
 /// 贡献类型字符串 → 枚举（未知/缺省按 custom 处理，不隐藏条目）。
-FoodContributionKind foodContributionKindFrom(String? raw) => raw == 'barcode'
-    ? FoodContributionKind.barcode
-    : FoodContributionKind.custom;
+FoodContributionKind foodContributionKindFrom(String? raw) => switch (raw) {
+  'barcode' => FoodContributionKind.barcode,
+  'correction' => FoodContributionKind.correction,
+  _ => FoodContributionKind.custom,
+};
 
 /// 我的贡献条目（GET /foods/contributions 精简视图；食物名由本地库按
 /// [foodId] 解析，解析不到时 UI 回退展示 [foodId]）。

@@ -12,6 +12,7 @@ import 'package:eatwise/features/onboarding/application/onboarding_controller.da
 import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
 import 'package:eatwise/features/settings/application/body_profile_service.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
+import 'package:eatwise/features/settings/domain/profile_completeness.dart';
 import 'package:eatwise/features/settings/presentation/bmi_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,6 +36,10 @@ class _BodyProfilePageState extends ConsumerState<BodyProfilePage> {
   bool _goalValid = true;
   bool _saving = false;
 
+  /// 用户是否已改动表单（完善度进度条口径：未改动按服务端/本地初值，
+  /// 改动后按当前表单值实时联动）。
+  bool _edited = false;
+
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
@@ -49,6 +54,18 @@ class _BodyProfilePageState extends ConsumerState<BodyProfilePage> {
     // 等 U1 就绪再建表单：本地无档案时可用服务端档案预填（失败/未登录
     // userMeProvider 回落 null，同样视为就绪）。
     final me = ref.watch(userMeProvider);
+    // 表单初值（本地档案优先，回落服务端档案）；完善度进度条与表单共用。
+    final initial = me.hasValue
+        ? ref.read(bodyProfileServiceProvider).initialProfile(me.value)
+        : OnboardingProfile.empty;
+    // 档案完善度（薄荷走查 P3）：未改动按初值，改动后随表单实时联动。
+    final effective = _edited
+        ? _profile.copyWith(
+            targetWeightKg: () => _targetWeightKg,
+            targetDate: () => _targetDate,
+          )
+        : initial;
+    final completeness = profileCompletenessPercent(effective);
 
     return Scaffold(
       appBar: AppBar(title: Text(t.settings.bodyProfile.title)),
@@ -65,6 +82,38 @@ class _BodyProfilePageState extends ConsumerState<BodyProfilePage> {
                       color: colors.textSecondary,
                     ),
                   ),
+                  // 完善度进度条（P3：游戏化补齐引导；100% 时 Offstage 隐藏
+                  // 不占位——保持 ListView 子树结构稳定，表单 State 不重建）。
+                  Offstage(
+                    offstage: completeness >= 100,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.s2),
+                      child: Row(
+                        children: <Widget>[
+                          Text(
+                            t.settings.bodyProfile.completeness(
+                              percent: completeness,
+                            ),
+                            style: textStyles.textSm.copyWith(
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.s3),
+                          Expanded(
+                            child: LinearProgressIndicator(
+                              value: completeness / 100,
+                              minHeight: 6,
+                              borderRadius: BorderRadius.circular(3),
+                              color: colors.brandPrimary,
+                              backgroundColor: colors.border.withValues(
+                                alpha: 0.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.s4),
                   // BMI 卡（P1）：随表单输入实时联动；缺身高/体重走补全引导。
                   BmiCard(
@@ -74,9 +123,6 @@ class _BodyProfilePageState extends ConsumerState<BodyProfilePage> {
                   const SizedBox(height: AppSpacing.s4),
                   Builder(
                     builder: (context) {
-                      final initial = ref
-                          .read(bodyProfileServiceProvider)
-                          .initialProfile(me.value);
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
@@ -88,6 +134,7 @@ class _BodyProfilePageState extends ConsumerState<BodyProfilePage> {
                               setState(() {
                                 _profile = profile;
                                 _valid = valid;
+                                _edited = true;
                               });
                             },
                           ),
@@ -107,6 +154,8 @@ class _BodyProfilePageState extends ConsumerState<BodyProfilePage> {
                             onChanged: (weightKg, date, valid) {
                               _targetWeightKg = weightKg;
                               _targetDate = date;
+                              // 目标字段变化同样驱动完善度进度条联动。
+                              setState(() => _edited = true);
                               if (valid != _goalValid) {
                                 setState(() => _goalValid = valid);
                               }

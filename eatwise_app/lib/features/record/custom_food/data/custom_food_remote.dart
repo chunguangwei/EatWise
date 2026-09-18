@@ -33,6 +33,16 @@ abstract interface class CustomFoodRemote {
     int page = 1,
     int pageSize = 20,
   });
+
+  /// 已有共享食物的数据纠错（POST /foods/:id/correction，幂等 clientRequestId；
+  /// 食物详情页「数据有误？」入口，返回候选状态 pending/approved/rejected；
+  /// 目标不存在/自定义食物 404，营养越界 400，机审拒收 400
+  /// FOOD_CONTRIBUTE_REJECTED）。
+  Future<String> submitCorrection(
+    String foodId,
+    CustomFoodDraft draft, {
+    required String clientRequestId,
+  });
 }
 
 /// 估算不可用（503 ESTIMATE_UNAVAILABLE / 超时 / 网络错误）的统一判定：
@@ -128,6 +138,32 @@ final class RemoteCustomFoodApi implements CustomFoodRemote {
       throw toApiException(e);
     }
   }
+
+  @override
+  Future<String> submitCorrection(
+    String foodId,
+    CustomFoodDraft draft, {
+    required String clientRequestId,
+  }) async {
+    try {
+      final response = await dio.post<Map<String, dynamic>>(
+        '/foods/$foodId/correction',
+        data: <String, dynamic>{
+          'clientRequestId': clientRequestId,
+          'nameZh': draft.nameZh,
+          'per100g': <String, dynamic>{
+            'kcal': draft.per100g.kcal,
+            'proteinG': draft.per100g.proteinG,
+            'carbG': draft.per100g.carbG,
+            'fatG': draft.per100g.fatG,
+          },
+        },
+      );
+      return response.data?['status'] as String? ?? 'pending';
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
 }
 
 /// Fake 远程端可注入模式：成功 / 离线。
@@ -174,6 +210,12 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
   final List<String> receivedContributionQueries = <String>[];
 
   int _serverSeq = 0;
+
+  /// 已收到的纠错请求（`foodId:clientRequestId`，断言上行用）。
+  final List<String> receivedCorrectionIds = <String>[];
+
+  /// 纠错幂等表（clientRequestId → 首次返回的状态）。
+  final Map<String, String> _correctionIdem = <String, String>{};
 
   @override
   Future<String> createCustom(
@@ -249,5 +291,22 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
       page: page,
       pageSize: pageSize,
     );
+  }
+
+  @override
+  Future<String> submitCorrection(
+    String foodId,
+    CustomFoodDraft draft, {
+    required String clientRequestId,
+  }) async {
+    if (mode == FakeCustomFoodMode.offline) {
+      throw const NetworkApiException();
+    }
+    // 幂等：同一 clientRequestId 重放返回首次结果（与服务端口径一致）。
+    final cached = _correctionIdem[clientRequestId];
+    if (cached != null) return cached;
+    receivedCorrectionIds.add('$foodId:$clientRequestId');
+    _correctionIdem[clientRequestId] = 'pending';
+    return 'pending';
   }
 }

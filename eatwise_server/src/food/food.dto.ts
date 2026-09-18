@@ -103,3 +103,30 @@ export class ReviewFoodCandidateDto {
   @MaxLength(200)
   reason?: string;
 }
+
+/**
+ * 已有共享食物的数据纠错（食物详情页「数据有误？」入口，幂等 clientRequestId）。
+ * 预填当前值由客户端完成：名称未改传缺省，四项营养值整体提交（区间同自定义食物防腐口径）。
+ * approve 后建议值应用到共享食物行（候选 kind=correction，建议值存 suggestion 供审核台与原值对照）。
+ */
+export class CreateFoodCorrectionDto {
+  @IsUUID('4')
+  clientRequestId: string;
+
+  /** 建议中文名（未改名缺省；trim 后 1-50 字，过机审） */
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  nameZh?: string;
+
+  /** 建议英文名（未改缺省） */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  nameEn?: string;
+
+  @ValidateNested()
+  @Type(() => Per100gDto)
+  per100g: Per100gDto;
+}

@@ -205,6 +205,18 @@ final Provider<double?> weightTargetProvider = Provider<double?>((ref) {
   }
 });
 
+/// 体重记录总条数（P3 体重曲线解锁钩子：按全量记录判定，与趋势窗口无关）。
+/// 依赖 [reportWeightProvider]：体重保存后该 Provider 失效，本计数随之重算。
+final Provider<int> weightRecordCountProvider = Provider<int>((ref) {
+  ref.watch(reportWeightProvider);
+  try {
+    return ref.watch(weightLogStoreProvider).recordCount();
+  } on Object {
+    // 存储未装配（测试/预览）时按 0 条处理（遮罩引导记录）。
+    return 0;
+  }
+});
+
 /// 归属日 → 断食时长（小时）。
 final Provider<Map<String, double>> fastingHoursByDateProvider =
     Provider<Map<String, double>>((ref) {

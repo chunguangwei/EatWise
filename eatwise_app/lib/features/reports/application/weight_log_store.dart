@@ -182,6 +182,9 @@ class WeightLogStore {
     };
   }
 
+  /// 全部记录条数（P3 体重曲线解锁钩子：趋势图遮罩按总条数判定，与窗口无关）。
+  int recordCount() => _loadAll().length;
+
   /// 读取 [fromDate]～[toDate]（含端点）的完整条目（含体脂/同步元数据）。
   Map<String, WeightLogEntry> loadEntries(String fromDate, String toDate) {
     final all = _loadAll();

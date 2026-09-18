@@ -327,6 +327,14 @@ class _ContributionCard extends ConsumerWidget {
               ],
             ),
           ],
+          // 纠错条目（P3「数据有误？」入口）：类型徽标。
+          if (item.kind == FoodContributionKind.correction) ...<Widget>[
+            const SizedBox(height: AppSpacing.s2),
+            _BarcodeKindBadge(
+              label: c.kindCorrection,
+              icon: Icons.fact_check_outlined,
+            ),
+          ],
           if (item.status == FoodContributionStatus.rejected &&
               (item.reason?.isNotEmpty ?? false)) ...<Widget>[
             const SizedBox(height: AppSpacing.s2),
@@ -354,11 +362,15 @@ class _ContributionCard extends ConsumerWidget {
   }
 }
 
-/// 条码补录类型徽标（扫码未命中贡献：条码图标 + 文字，与状态标签同构）。
+/// 条码补录类型徽标（扫码未命中贡献：条码图标 + 文字，与状态标签同构）；
+/// 纠错条目复用同构样式（[icon] 传入 fact_check）。
 class _BarcodeKindBadge extends StatelessWidget {
-  const _BarcodeKindBadge({required this.label});
+  const _BarcodeKindBadge({required this.label, this.icon = Icons.qr_code_2});
 
   final String label;
+
+  /// 徽标图标（默认条码；纠错条目传 Icons.fact_check_outlined）。
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -376,8 +388,9 @@ class _BarcodeKindBadge extends StatelessWidget {
         borderRadius: radii.rSm,
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(Icons.qr_code_2, size: 14, color: colors.brandPrimary),
+          Icon(icon, size: 14, color: colors.brandPrimary),
           const SizedBox(width: AppSpacing.s1),
           Text(
             label,

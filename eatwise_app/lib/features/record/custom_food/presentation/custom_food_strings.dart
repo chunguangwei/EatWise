@@ -102,6 +102,15 @@ final class CustomFoodStrings {
   /// record.customFood.submittedReview
   String get submittedReview => _t.record.customFood.submittedReview;
 
+  /// record.customFood.correction.title
+  String get correctionTitle => _t.record.customFood.correction.title;
+
+  /// record.customFood.correction.subtitle
+  String get correctionSubtitle => _t.record.customFood.correction.subtitle;
+
+  /// record.customFood.correction.submit
+  String get correctionSubmit => _t.record.customFood.correction.submit;
+
   /// record.customFood.badgePending
   String get badgePending => _t.record.customFood.badgePending;
 

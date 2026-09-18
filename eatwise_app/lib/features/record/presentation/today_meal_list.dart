@@ -1,0 +1,86 @@
+import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/theme/app_colors.dart';
+import 'package:eatwise/core/theme/app_spacing.dart';
+import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/record/domain/meal_type.dart';
+import 'package:eatwise/features/record/presentation/meal_type_chips.dart';
+import 'package:eatwise/features/record/presentation/record_providers.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// 「今日记录」餐次分组列表（薄荷走查优化点 2）：
+/// 早/午/晚/加餐分组标题 + 组内条目；无餐次的历史数据归入「其他」组。
+/// 在记录页搜索框为空且有今日记录时，替代搜索空态展示（对标薄荷记录页）。
+class TodayMealList extends ConsumerWidget {
+  const TodayMealList({required this.entries, super.key});
+
+  /// 今日有效记录（已按就餐时间升序）。
+  final List<FoodEntry> entries;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = Translations.of(context);
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final groups = groupByMealType(entries, (e) => e.mealType);
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
+      children: <Widget>[
+        Text(t.record.today.title, style: textStyles.textBase),
+        for (final group in groups) ...<Widget>[
+          const SizedBox(height: AppSpacing.s3),
+          Text(
+            MealTypeChips.labelOf(t, group.mealType),
+            style: textStyles.textSm.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.s1),
+          for (final entry in group.items) _EntryRow(entry: entry),
+        ],
+      ],
+    );
+  }
+}
+
+/// 单条记录行：食物名 + 份量/热量摘要。
+class _EntryRow extends ConsumerWidget {
+  const _EntryRow({required this.entry});
+
+  final FoodEntry entry;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = Translations.of(context);
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final isEn = LocaleSettings.currentLocale == AppLocale.en;
+    final food = ref.watch(entryFoodProvider(entry.foodId)).value;
+    // 食物行缺失（库下行未覆盖等异常）回退 foodId，不隐藏记录。
+    final name = food == null
+        ? entry.foodId
+        : (isEn ? food.nameEn : food.nameZh);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s1),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Text(
+              name,
+              style: textStyles.textBase.copyWith(color: colors.textPrimary),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.s2),
+          Text(
+            '${entry.amountG.round()} ${t.record.nutrition.gramUnit} · '
+            '${entry.kcal.round()} ${t.record.nutrition.kcalUnit}',
+            style: textStyles.textSm.copyWith(color: colors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}

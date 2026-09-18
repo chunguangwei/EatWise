@@ -96,6 +96,8 @@ class Translations$record$zh_CN {
 
 	// Translations
 	late final Translations$record$page$zh_CN page = Translations$record$page$zh_CN.internal(_root);
+	late final Translations$record$meal$zh_CN meal = Translations$record$meal$zh_CN.internal(_root);
+	late final Translations$record$today$zh_CN today = Translations$record$today$zh_CN.internal(_root);
 	late final Translations$record$entries$zh_CN entries = Translations$record$entries$zh_CN.internal(_root);
 	late final Translations$record$pending$zh_CN pending = Translations$record$pending$zh_CN.internal(_root);
 	late final Translations$record$search$zh_CN search = Translations$record$search$zh_CN.internal(_root);
@@ -614,6 +616,45 @@ class Translations$record$page$zh_CN {
 	String todayKcal({required Object kcal}) => '今日约 ${kcal} 千卡（待云端校准）';
 }
 
+// Path: record.meal
+class Translations$record$meal$zh_CN {
+	Translations$record$meal$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '餐次'
+	String get label => '餐次';
+
+	/// zh-CN: '早餐'
+	String get breakfast => '早餐';
+
+	/// zh-CN: '午餐'
+	String get lunch => '午餐';
+
+	/// zh-CN: '晚餐'
+	String get dinner => '晚餐';
+
+	/// zh-CN: '加餐'
+	String get snack => '加餐';
+
+	/// zh-CN: '其他'
+	String get other => '其他';
+}
+
+// Path: record.today
+class Translations$record$today$zh_CN {
+	Translations$record$today$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '今日记录'
+	String get title => '今日记录';
+}
+
 // Path: record.entries
 class Translations$record$entries$zh_CN {
 	Translations$record$entries$zh_CN.internal(this._root);
@@ -1039,6 +1080,7 @@ class Translations$record$customFood$zh_CN {
 	String get badgeCommunity => '社区';
 
 	late final Translations$record$customFood$contributions$zh_CN contributions = Translations$record$customFood$contributions$zh_CN.internal(_root);
+	late final Translations$record$customFood$correction$zh_CN correction = Translations$record$customFood$correction$zh_CN.internal(_root);
 
 	/// zh-CN: '拍营养表'
 	String get photoOcr => '拍营养表';
@@ -1204,6 +1246,9 @@ class Translations$record$foodDetail$zh_CN {
 
 	/// zh-CN: '按每 100 克对照你的每日营养目标判定'
 	String get badgeBasis => '按每 100 克对照你的每日营养目标判定';
+
+	/// zh-CN: '数据有误？告诉我们'
+	String get reportIssue => '数据有误？告诉我们';
 }
 
 // Path: common.action
@@ -1501,6 +1546,9 @@ class Translations$reports$trend$zh_CN {
 
 	/// zh-CN: '已达到目标体重'
 	String get goalReached => '已达到目标体重';
+
+	/// zh-CN: '再记录 ${count} 次体重，解锁完整曲线'
+	String weightUnlock({required Object count}) => '再记录 ${count} 次体重，解锁完整曲线';
 }
 
 // Path: reports.growth
@@ -2068,6 +2116,9 @@ class Translations$settings$bodyProfile$zh_CN {
 
 	/// zh-CN: '每日营养目标已更新为 ${kcal} kcal'
 	String goalUpdated({required Object kcal}) => '每日营养目标已更新为 ${kcal} kcal';
+
+	/// zh-CN: '档案完善度 ${percent}%'
+	String completeness({required Object percent}) => '档案完善度 ${percent}%';
 
 	late final Translations$settings$bodyProfile$bmi$zh_CN bmi = Translations$settings$bodyProfile$bmi$zh_CN.internal(_root);
 }
@@ -3040,6 +3091,27 @@ class Translations$record$customFood$contributions$zh_CN {
 
 	/// zh-CN: '条码 ${code}'
 	String barcodeLabel({required Object code}) => '条码 ${code}';
+
+	/// zh-CN: '纠错'
+	String get kindCorrection => '纠错';
+}
+
+// Path: record.customFood.correction
+class Translations$record$customFood$correction$zh_CN {
+	Translations$record$customFood$correction$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '数据纠错'
+	String get title => '数据纠错';
+
+	/// zh-CN: '改动会提交审核，通过后全用户生效'
+	String get subtitle => '改动会提交审核，通过后全用户生效';
+
+	/// zh-CN: '提交纠错'
+	String get submit => '提交纠错';
 }
 
 // Path: fasting.home.greeting
@@ -3747,6 +3819,13 @@ extension on Translations {
 			'record.page.confirm' => '确认记录',
 			'record.page.loggedToday' => ({required Object count}) => '今日已记 ${count} 笔',
 			'record.page.todayKcal' => ({required Object kcal}) => '今日约 ${kcal} 千卡（待云端校准）',
+			'record.meal.label' => '餐次',
+			'record.meal.breakfast' => '早餐',
+			'record.meal.lunch' => '午餐',
+			'record.meal.dinner' => '晚餐',
+			'record.meal.snack' => '加餐',
+			'record.meal.other' => '其他',
+			'record.today.title' => '今日记录',
 			'record.entries.photo' => '拍照记',
 			'record.entries.voice' => '语音记',
 			'record.entries.frequent' => '常吃',
@@ -3878,6 +3957,10 @@ extension on Translations {
 			'record.customFood.contributions.loadFailed' => '加载失败，请稍后重试',
 			'record.customFood.contributions.kindBarcode' => '条码商品',
 			'record.customFood.contributions.barcodeLabel' => ({required Object code}) => '条码 ${code}',
+			'record.customFood.contributions.kindCorrection' => '纠错',
+			'record.customFood.correction.title' => '数据纠错',
+			'record.customFood.correction.subtitle' => '改动会提交审核，通过后全用户生效',
+			'record.customFood.correction.submit' => '提交纠错',
 			'record.customFood.photoOcr' => '拍营养表',
 			'record.customFood.photoOcrReading' => '读表中…',
 			'record.customFood.photoOcrFailed' => '没读出来，换个角度拍或手动填写',
@@ -3915,6 +3998,7 @@ extension on Translations {
 			'record.foodDetail.badgeYellow' => '黄灯 · 适量少吃',
 			'record.foodDetail.badgeRed' => '红灯 · 尽量别吃',
 			'record.foodDetail.badgeBasis' => '按每 100 克对照你的每日营养目标判定',
+			'record.foodDetail.reportIssue' => '数据有误？告诉我们',
 			'common.appName' => 'EatWise',
 			'common.action.save' => '保存',
 			'common.action.cancel' => '取消',
@@ -4058,6 +4142,7 @@ extension on Translations {
 			'reports.trend.targetLine' => ({required Object kg}) => '目标 ${kg} 公斤',
 			'reports.trend.toGoal' => ({required Object kg}) => '距目标还有 ${kg} 公斤',
 			'reports.trend.goalReached' => '已达到目标体重',
+			'reports.trend.weightUnlock' => ({required Object count}) => '再记录 ${count} 次体重，解锁完整曲线',
 			'reports.growth.title' => ({required Object days}) => '${days} 天成长轨迹',
 			'reports.growth.qualifiedDays' => '断食达标',
 			'reports.growth.recordedDays' => '记录天数',
@@ -4133,6 +4218,8 @@ extension on Translations {
 			'streak.profile.current' => '当前连胜',
 			'streak.profile.longest' => '历史最长',
 			'streak.profile.daysUnit' => '天',
+			_ => null,
+		} ?? switch (path) {
 			'streak.profile.mendCards' => '补签卡',
 			'streak.profile.mendCardsValue' => ({required Object n}) => '${n} 张',
 			'streak.profile.mendEntry' => '去补签',
@@ -4146,8 +4233,6 @@ extension on Translations {
 			'settings.group.preferences' => '偏好',
 			'settings.group.reminders' => '提醒',
 			'settings.group.about' => '关于',
-			_ => null,
-		} ?? switch (path) {
 			'settings.account.cancelDeletion' => '撤销删除',
 			'settings.account.changePassword' => '修改密码',
 			'settings.account.contributions' => '我的贡献',
@@ -4212,6 +4297,7 @@ extension on Translations {
 			'settings.bodyProfile.save' => '保存',
 			'settings.bodyProfile.saved' => '身体档案已保存',
 			'settings.bodyProfile.goalUpdated' => ({required Object kcal}) => '每日营养目标已更新为 ${kcal} kcal',
+			'settings.bodyProfile.completeness' => ({required Object percent}) => '档案完善度 ${percent}%',
 			'settings.bodyProfile.bmi.title' => 'BMI',
 			'settings.bodyProfile.bmi.underweight' => '偏低',
 			'settings.bodyProfile.bmi.normal' => '标准',

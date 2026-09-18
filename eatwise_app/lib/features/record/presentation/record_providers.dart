@@ -132,6 +132,27 @@ final StreamProvider<int> recordPendingCountProvider = StreamProvider<int>((
   return ref.watch(recordRepositoryProvider).watchPendingCount();
 });
 
+/// 本次入账选择的餐次（薄荷走查优化点 2；null = 未手动选择，
+/// 确认时按当前时间智能预判，入账/关闭结果卡后复位）。
+final StateProvider<MealType?> recordMealTypeProvider =
+    StateProvider<MealType?>((ref) => null);
+
+/// 今日有效记录流（优化点 2：记录页「今日记录」餐次分组列表数据源）。
+final StreamProvider<List<FoodEntry>> todayEntriesProvider =
+    StreamProvider<List<FoodEntry>>((ref) {
+      final repo = ref.watch(recordRepositoryProvider);
+      return repo.db.foodEntryDao.watchEntriesForDate(
+        repo.userId,
+        localDateKey(DateTime.now()),
+      );
+    });
+
+/// 记录条目食物查询（今日记录列表行展示食物名用；按 foodId 缓存）。
+final FutureProviderFamily<Food?, String> entryFoodProvider =
+    FutureProvider.family<Food?, String>((ref, foodId) {
+      return ref.watch(recordRepositoryProvider).db.foodDao.getById(foodId);
+    });
+
 /// 今日聚合缓存流（本地预估，§2.6；角标注明「待云端校准」）。
 final StreamProvider<DailyNutritionCache?> recordTodayNutritionProvider =
     StreamProvider<DailyNutritionCache?>((ref) {

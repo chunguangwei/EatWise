@@ -235,6 +235,7 @@ describePg('PrismaStore（集成，真实 PostgreSQL）', () => {
       kind: 'custom',
       barcode: null,
       evidenceImageUrl: null,
+      suggestion: null,
       clientRequestId: randomUUID(),
       version: 1,
       createdAt: new Date(),
@@ -295,6 +296,7 @@ describePg('PrismaStore 饮水 / 候选 / 举报（集成，真实 PostgreSQL）
       kind: 'custom',
       barcode: null,
       evidenceImageUrl: null,
+      suggestion: null,
       clientRequestId: randomUUID(),
       version: 1,
       createdAt: now,
@@ -980,6 +982,7 @@ describePg('PrismaStore auth / 食物搜索 / 候选 / 晋升（集成，真实 
       kind: 'custom',
       barcode: null,
       evidenceImageUrl: null,
+      suggestion: null,
       clientRequestId: randomUUID(),
       version: 1,
       createdAt: now,
@@ -1300,6 +1303,37 @@ describePg('PrismaStore auth / 食物搜索 / 候选 / 晋升（集成，真实 
     await expect(store.promoteCustomFoodToShared('it-search-mine')).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
+  });
+
+  it('纠错候选：suggestion JSON 往返 + applyFoodCorrection 应用建议值到共享行', async () => {
+    const suggestion = {
+      nameZh: '海鲜A前缀（修正）',
+      nameEn: null,
+      per100g: { kcal: 120, proteinG: 6, carbG: 8, fatG: 2 },
+    };
+    const c = candidate({ foodId: 'it-search-a', kind: 'correction', suggestion });
+    await store.createFoodCandidate(c);
+
+    // suggestion JSON 列往返（审核台原值 vs 建议值对照数据源）。
+    const found = (await store.findFoodCandidateById(c.id))!;
+    expect(found.kind).toBe('correction');
+    expect(found.suggestion).toEqual(suggestion);
+
+    // approve 路径：建议名 + 四营养应用到共享行；建议名 null 的字段不动。
+    await store.applyFoodCorrection('it-search-a', found.suggestion!);
+    expect(await store.findFoodById('it-search-a')).toMatchObject({
+      nameZh: '海鲜A前缀（修正）',
+      nameEn: 'Itsea A', // 建议 nameEn=null → 保持原值
+      kcalPer100g: 120,
+      proteinPer100g: 6,
+      carbsPer100g: 8,
+      fatPer100g: 2,
+    });
+    // 自定义行/不存在 → NOT_FOUND（与内存驱动同口径）。
+    await expect(store.applyFoodCorrection('it-search-other', suggestion)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    await prisma.foodCandidate.deleteMany({ where: { id: c.id } }); // 测试痕迹清理
   });
 });
 

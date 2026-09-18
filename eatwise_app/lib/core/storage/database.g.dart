@@ -1061,6 +1061,15 @@ class $FoodEntriesTable extends FoodEntries
     ),
     defaultValue: const Constant(false),
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<MealType?, String> mealType =
+      GeneratedColumn<String>(
+        'meal_type',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<MealType?>($FoodEntriesTable.$convertermealTypen);
   static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
     'createdAtUtc',
   );
@@ -1107,6 +1116,7 @@ class $FoodEntriesTable extends FoodEntries
     source,
     note,
     duringFast,
+    mealType,
     createdAtUtc,
     updatedAtUtc,
   ];
@@ -1402,6 +1412,12 @@ class $FoodEntriesTable extends FoodEntries
         DriftSqlType.bool,
         data['${effectivePrefix}during_fast'],
       )!,
+      mealType: $FoodEntriesTable.$convertermealTypen.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}meal_type'],
+        ),
+      ),
       createdAtUtc: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at_utc'],
@@ -1422,6 +1438,10 @@ class $FoodEntriesTable extends FoodEntries
       const EnumNameConverter<SyncStatus>(SyncStatus.values);
   static JsonTypeConverter2<EntrySource, String, String> $convertersource =
       const EnumNameConverter<EntrySource>(EntrySource.values);
+  static JsonTypeConverter2<MealType, String, String> $convertermealType =
+      const EnumNameConverter<MealType>(MealType.values);
+  static JsonTypeConverter2<MealType?, String?, String?> $convertermealTypen =
+      JsonTypeConverter2.asNullable($convertermealType);
 }
 
 class FoodEntry extends DataClass implements Insertable<FoodEntry> {
@@ -1492,6 +1512,10 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
   /// 为 true；仅本地属性，不上行服务端。
   final bool duringFast;
 
+  /// 餐次（薄荷走查优化点 2；可空——v8 前历史记录无餐次归入「其他」组）。
+  /// 仅本地属性，不上行服务端（与 duringFast 同口径）。
+  final MealType? mealType;
+
   /// 本地创建时间（UTC ISO8601）。
   final String createdAtUtc;
 
@@ -1520,6 +1544,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
     required this.source,
     this.note,
     required this.duringFast,
+    this.mealType,
     required this.createdAtUtc,
     required this.updatedAtUtc,
   });
@@ -1566,6 +1591,11 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
       map['note'] = Variable<String>(note);
     }
     map['during_fast'] = Variable<bool>(duringFast);
+    if (!nullToAbsent || mealType != null) {
+      map['meal_type'] = Variable<String>(
+        $FoodEntriesTable.$convertermealTypen.toSql(mealType),
+      );
+    }
     map['created_at_utc'] = Variable<String>(createdAtUtc);
     map['updated_at_utc'] = Variable<String>(updatedAtUtc);
     return map;
@@ -1603,6 +1633,9 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
       source: Value(source),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
       duringFast: Value(duringFast),
+      mealType: mealType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mealType),
       createdAtUtc: Value(createdAtUtc),
       updatedAtUtc: Value(updatedAtUtc),
     );
@@ -1640,6 +1673,9 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
       ),
       note: serializer.fromJson<String?>(json['note']),
       duringFast: serializer.fromJson<bool>(json['duringFast']),
+      mealType: $FoodEntriesTable.$convertermealTypen.fromJson(
+        serializer.fromJson<String?>(json['mealType']),
+      ),
       createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
       updatedAtUtc: serializer.fromJson<String>(json['updatedAtUtc']),
     );
@@ -1674,6 +1710,9 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
       ),
       'note': serializer.toJson<String?>(note),
       'duringFast': serializer.toJson<bool>(duringFast),
+      'mealType': serializer.toJson<String?>(
+        $FoodEntriesTable.$convertermealTypen.toJson(mealType),
+      ),
       'createdAtUtc': serializer.toJson<String>(createdAtUtc),
       'updatedAtUtc': serializer.toJson<String>(updatedAtUtc),
     };
@@ -1702,6 +1741,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
     EntrySource? source,
     Value<String?> note = const Value.absent(),
     bool? duringFast,
+    Value<MealType?> mealType = const Value.absent(),
     String? createdAtUtc,
     String? updatedAtUtc,
   }) => FoodEntry(
@@ -1731,6 +1771,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
     source: source ?? this.source,
     note: note.present ? note.value : this.note,
     duringFast: duringFast ?? this.duringFast,
+    mealType: mealType.present ? mealType.value : this.mealType,
     createdAtUtc: createdAtUtc ?? this.createdAtUtc,
     updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
   );
@@ -1774,6 +1815,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
       duringFast: data.duringFast.present
           ? data.duringFast.value
           : this.duringFast,
+      mealType: data.mealType.present ? data.mealType.value : this.mealType,
       createdAtUtc: data.createdAtUtc.present
           ? data.createdAtUtc.value
           : this.createdAtUtc,
@@ -1808,6 +1850,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
           ..write('source: $source, ')
           ..write('note: $note, ')
           ..write('duringFast: $duringFast, ')
+          ..write('mealType: $mealType, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('updatedAtUtc: $updatedAtUtc')
           ..write(')'))
@@ -1838,6 +1881,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
     source,
     note,
     duringFast,
+    mealType,
     createdAtUtc,
     updatedAtUtc,
   ]);
@@ -1867,6 +1911,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
           other.source == this.source &&
           other.note == this.note &&
           other.duringFast == this.duringFast &&
+          other.mealType == this.mealType &&
           other.createdAtUtc == this.createdAtUtc &&
           other.updatedAtUtc == this.updatedAtUtc);
 }
@@ -1894,6 +1939,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
   final Value<EntrySource> source;
   final Value<String?> note;
   final Value<bool> duringFast;
+  final Value<MealType?> mealType;
   final Value<String> createdAtUtc;
   final Value<String> updatedAtUtc;
   final Value<int> rowid;
@@ -1920,6 +1966,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
     this.source = const Value.absent(),
     this.note = const Value.absent(),
     this.duringFast = const Value.absent(),
+    this.mealType = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.updatedAtUtc = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1947,6 +1994,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
     required EntrySource source,
     this.note = const Value.absent(),
     this.duringFast = const Value.absent(),
+    this.mealType = const Value.absent(),
     required String createdAtUtc,
     required String updatedAtUtc,
     this.rowid = const Value.absent(),
@@ -1988,6 +2036,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
     Expression<String>? source,
     Expression<String>? note,
     Expression<bool>? duringFast,
+    Expression<String>? mealType,
     Expression<String>? createdAtUtc,
     Expression<String>? updatedAtUtc,
     Expression<int>? rowid,
@@ -2015,6 +2064,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
       if (source != null) 'source': source,
       if (note != null) 'note': note,
       if (duringFast != null) 'during_fast': duringFast,
+      if (mealType != null) 'meal_type': mealType,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
       if (updatedAtUtc != null) 'updated_at_utc': updatedAtUtc,
       if (rowid != null) 'rowid': rowid,
@@ -2044,6 +2094,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
     Value<EntrySource>? source,
     Value<String?>? note,
     Value<bool>? duringFast,
+    Value<MealType?>? mealType,
     Value<String>? createdAtUtc,
     Value<String>? updatedAtUtc,
     Value<int>? rowid,
@@ -2071,6 +2122,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
       source: source ?? this.source,
       note: note ?? this.note,
       duringFast: duringFast ?? this.duringFast,
+      mealType: mealType ?? this.mealType,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
       updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
       rowid: rowid ?? this.rowid,
@@ -2150,6 +2202,11 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
     if (duringFast.present) {
       map['during_fast'] = Variable<bool>(duringFast.value);
     }
+    if (mealType.present) {
+      map['meal_type'] = Variable<String>(
+        $FoodEntriesTable.$convertermealTypen.toSql(mealType.value),
+      );
+    }
     if (createdAtUtc.present) {
       map['created_at_utc'] = Variable<String>(createdAtUtc.value);
     }
@@ -2187,6 +2244,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
           ..write('source: $source, ')
           ..write('note: $note, ')
           ..write('duringFast: $duringFast, ')
+          ..write('mealType: $mealType, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('updatedAtUtc: $updatedAtUtc, ')
           ..write('rowid: $rowid')
@@ -4740,6 +4798,7 @@ typedef $$FoodEntriesTableCreateCompanionBuilder =
       required EntrySource source,
       Value<String?> note,
       Value<bool> duringFast,
+      Value<MealType?> mealType,
       required String createdAtUtc,
       required String updatedAtUtc,
       Value<int> rowid,
@@ -4768,6 +4827,7 @@ typedef $$FoodEntriesTableUpdateCompanionBuilder =
       Value<EntrySource> source,
       Value<String?> note,
       Value<bool> duringFast,
+      Value<MealType?> mealType,
       Value<String> createdAtUtc,
       Value<String> updatedAtUtc,
       Value<int> rowid,
@@ -4910,6 +4970,12 @@ class $$FoodEntriesTableFilterComposer
     column: $table.duringFast,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnWithTypeConverterFilters<MealType?, MealType, String> get mealType =>
+      $composableBuilder(
+        column: $table.mealType,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
 
   ColumnFilters<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
@@ -5059,6 +5125,11 @@ class $$FoodEntriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get mealType => $composableBuilder(
+    column: $table.mealType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
     builder: (column) => ColumnOrderings(column),
@@ -5182,6 +5253,9 @@ class $$FoodEntriesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumnWithTypeConverter<MealType?, String> get mealType =>
+      $composableBuilder(column: $table.mealType, builder: (column) => column);
+
   GeneratedColumn<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
     builder: (column) => column,
@@ -5266,6 +5340,7 @@ class $$FoodEntriesTableTableManager
                 Value<EntrySource> source = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<bool> duringFast = const Value.absent(),
+                Value<MealType?> mealType = const Value.absent(),
                 Value<String> createdAtUtc = const Value.absent(),
                 Value<String> updatedAtUtc = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -5292,6 +5367,7 @@ class $$FoodEntriesTableTableManager
                 source: source,
                 note: note,
                 duringFast: duringFast,
+                mealType: mealType,
                 createdAtUtc: createdAtUtc,
                 updatedAtUtc: updatedAtUtc,
                 rowid: rowid,
@@ -5320,6 +5396,7 @@ class $$FoodEntriesTableTableManager
                 required EntrySource source,
                 Value<String?> note = const Value.absent(),
                 Value<bool> duringFast = const Value.absent(),
+                Value<MealType?> mealType = const Value.absent(),
                 required String createdAtUtc,
                 required String updatedAtUtc,
                 Value<int> rowid = const Value.absent(),
@@ -5346,6 +5423,7 @@ class $$FoodEntriesTableTableManager
                 source: source,
                 note: note,
                 duringFast: duringFast,
+                mealType: mealType,
                 createdAtUtc: createdAtUtc,
                 updatedAtUtc: updatedAtUtc,
                 rowid: rowid,

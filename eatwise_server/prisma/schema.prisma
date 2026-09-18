@@ -172,9 +172,10 @@ model FoodCandidate {
   userId          String // 贡献者（= 自定义食物创建者）
   status          String   @default("pending") // pending / approved / rejected
   reason          String? // 审核拒绝原因
-  kind            String   @default("custom") // custom（自定义食物贡献）/ barcode（条码商品补录贡献）
+  kind            String   @default("custom") // custom（自定义食物贡献）/ barcode（条码商品补录贡献）/ correction（已有食物数据纠错）
   barcode         String? // kind=barcode 时必填（8-14 位数字）
   evidenceImageUrl String? // kind=barcode 时必填：包装营养表佐证照片（/v1/uploads/xxx 或 CDN URL），审核「对答案」依据
+  suggestion      Json? // kind=correction 时非空：纠错建议值 {nameZh?, nameEn?, per100g}，审核台与原值对照，approve 后应用
   clientRequestId String // 贡献幂等键
   version         Int      @default(1)
   createdAt       DateTime @default(now())

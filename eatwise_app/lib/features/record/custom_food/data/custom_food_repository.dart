@@ -122,8 +122,15 @@ final class CustomFoodRepository {
     }
   }
 
-  /// 联网后重试 pending 自定义食物（幂等键复用，重复上行不产生重复条目）。
-  /// 返回本轮上行成功条数。
+  /// 已有共享食物的数据纠错（薄荷走查 P3，食物详情页「数据有误？」入口）：
+  /// 直调 /foods/:id/correction（幂等 clientRequestId），成功返回候选状态。
+  /// 不写本地库（目标为共享食物，审核状态由「我的贡献」列表下行展示）；
+  /// 网络/业务错误原样上抛，由 UI 提示（表单保留可重试）。
+  Future<String> submitCorrection(String foodId, CustomFoodDraft draft) {
+    return remote.submitCorrection(foodId, draft, clientRequestId: _uuid());
+  }
+
+  /// 联网后重试 pending 自定义食物（幂等键复用，重复上行不产生重复条目）。  /// 返回本轮上行成功条数。
   ///
   /// 上行成功后以服务端返回的 id 重映射本地食物行，并同事务级联更新
   /// food_entries.foodId 引用——离线期间用临时 id（custom-*）记账的记录

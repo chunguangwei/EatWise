@@ -167,6 +167,17 @@
       "loggedToday": "${count} logged today",
       "todayKcal": "~${kcal} kcal today (to be calibrated)"
     },
+    "meal": {
+      "label": "Meal",
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snack",
+      "other": "Other"
+    },
+    "today": {
+      "title": "Today's log"
+    },
     "entries": {
       "photo": "Photo",
       "voice": "Voice",
@@ -323,7 +334,13 @@
         "submittedAt": "Submitted on ${date}",
         "loadFailed": "Failed to load — please try again later",
         "kindBarcode": "Barcode product",
-        "barcodeLabel": "Barcode ${code}"
+        "barcodeLabel": "Barcode ${code}",
+        "kindCorrection": "Correction"
+      },
+      "correction": {
+        "title": "Correct food data",
+        "subtitle": "Changes go through review and apply to everyone once approved",
+        "submit": "Submit correction"
       },
       "photoOcr": "Scan nutrition label",
       "photoOcrReading": "Reading label…",
@@ -373,7 +390,8 @@
       "badgeGreen": "Green · enjoy freely",
       "badgeYellow": "Yellow · go easy",
       "badgeRed": "Red · best avoided",
-      "badgeBasis": "Rated per 100 g against your daily nutrition goals"
+      "badgeBasis": "Rated per 100 g against your daily nutrition goals",
+      "reportIssue": "Wrong data? Tell us"
     }
   },
   "common": {
@@ -586,7 +604,8 @@
       "ctaWeight": "Log weight",
       "targetLine": "Goal ${kg} kg",
       "toGoal": "${kg} kg to goal",
-      "goalReached": "Weight goal reached"
+      "goalReached": "Weight goal reached",
+      "weightUnlock": "Log your weight ${count} more times to unlock your full curve"
     },
     "growth": {
       "title": "${days}-day journey",
@@ -782,6 +801,7 @@
       "save": "Save",
       "saved": "Body profile saved",
       "goalUpdated": "Daily nutrition goal updated to ${kcal} kcal",
+      "completeness": "Profile ${percent}% complete",
       "bmi": {
         "title": "BMI",
         "underweight": "Below range",

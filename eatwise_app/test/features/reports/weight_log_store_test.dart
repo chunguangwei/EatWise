@@ -34,6 +34,14 @@ void main() {
     });
   });
 
+  test('recordCount：全量条数（同日覆写不重复计数；P3 解锁钩子口径）', () async {
+    expect(store.recordCount(), 0);
+    await store.save('2026-07-27', 65.5);
+    await store.save('2026-07-28', 65.0);
+    await store.save('2026-07-28', 64.8); // 同日覆写
+    expect(store.recordCount(), 2);
+  });
+
   test('内存兜底实现与 SharedPreferences 实现行为一致', () async {
     final memory = WeightLogStore.inMemory();
     await memory.save('2026-07-29', 65.4);

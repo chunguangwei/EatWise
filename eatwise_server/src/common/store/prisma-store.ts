@@ -11,6 +11,7 @@ import {
   FoodCandidateEntity,
   FoodCandidateKind,
   FoodCandidateStatus,
+  FoodCorrectionSuggestion,
   FoodEntity,
   FoodEntryEntity,
   IdempotencyRecord,
@@ -534,6 +535,9 @@ export class PrismaStore extends StoreDriver {
           kind: candidate.kind,
           barcode: candidate.barcode,
           evidenceImageUrl: candidate.evidenceImageUrl,
+          ...(candidate.suggestion
+            ? { suggestion: candidate.suggestion as unknown as Prisma.InputJsonValue }
+            : {}),
           clientRequestId: candidate.clientRequestId,
           version: candidate.version,
         },
@@ -995,6 +999,26 @@ export class PrismaStore extends StoreDriver {
       if (updated.count === 0) throw err.notFound();
     } catch (e) {
       throw this.fail('promoteCustomFoodToShared', e);
+    }
+  }
+
+  /** 纠错晋升（kind=correction approve）：建议名（非 null 才改）+ 每 100g 四营养覆写共享行 */
+  async applyFoodCorrection(foodId: string, suggestion: FoodCorrectionSuggestion): Promise<void> {
+    try {
+      const updated = await this.prisma.food.updateMany({
+        where: { id: foodId, isCustom: false },
+        data: {
+          ...(suggestion.nameZh ? { nameZh: suggestion.nameZh } : {}),
+          ...(suggestion.nameEn ? { nameEn: suggestion.nameEn } : {}),
+          kcalPer100g: suggestion.per100g.kcal,
+          proteinPer100g: suggestion.per100g.proteinG,
+          carbsPer100g: suggestion.per100g.carbG,
+          fatPer100g: suggestion.per100g.fatG,
+        },
+      });
+      if (updated.count === 0) throw err.notFound();
+    } catch (e) {
+      throw this.fail('applyFoodCorrection', e);
     }
   }
 
@@ -1602,10 +1626,31 @@ function toFoodCandidateEntity(c: Prisma.FoodCandidateGetPayload<object>): FoodC
     kind: c.kind as FoodCandidateKind,
     barcode: c.barcode,
     evidenceImageUrl: c.evidenceImageUrl,
+    suggestion: toFoodCorrectionSuggestion(c.suggestion),
     clientRequestId: c.clientRequestId,
     version: c.version,
     createdAt: c.createdAt,
     updatedAt: c.updatedAt,
+  };
+}
+
+/** JSON 列 → 纠错建议值（结构不完整按无建议处理，不阻断审核队列读取） */
+function toFoodCorrectionSuggestion(raw: Prisma.JsonValue | null): FoodCorrectionSuggestion | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const obj = raw as Record<string, unknown>;
+  const per100g = obj.per100g as Record<string, unknown> | undefined;
+  if (!per100g || typeof per100g !== 'object') return null;
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
+  return {
+    nameZh: str(obj.nameZh),
+    nameEn: str(obj.nameEn),
+    per100g: {
+      kcal: num(per100g.kcal),
+      proteinG: num(per100g.proteinG),
+      carbG: num(per100g.carbG),
+      fatG: num(per100g.fatG),
+    },
   };
 }
 

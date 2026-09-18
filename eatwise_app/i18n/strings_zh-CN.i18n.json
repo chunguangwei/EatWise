@@ -167,6 +167,17 @@
       "loggedToday": "今日已记 ${count} 笔",
       "todayKcal": "今日约 ${kcal} 千卡（待云端校准）"
     },
+    "meal": {
+      "label": "餐次",
+      "breakfast": "早餐",
+      "lunch": "午餐",
+      "dinner": "晚餐",
+      "snack": "加餐",
+      "other": "其他"
+    },
+    "today": {
+      "title": "今日记录"
+    },
     "entries": {
       "photo": "拍照记",
       "voice": "语音记",
@@ -323,7 +334,13 @@
         "submittedAt": "提交于 ${date}",
         "loadFailed": "加载失败，请稍后重试",
         "kindBarcode": "条码商品",
-        "barcodeLabel": "条码 ${code}"
+        "barcodeLabel": "条码 ${code}",
+        "kindCorrection": "纠错"
+      },
+      "correction": {
+        "title": "数据纠错",
+        "subtitle": "改动会提交审核，通过后全用户生效",
+        "submit": "提交纠错"
       },
       "photoOcr": "拍营养表",
       "photoOcrReading": "读表中…",
@@ -373,7 +390,8 @@
       "badgeGreen": "绿灯 · 放心吃",
       "badgeYellow": "黄灯 · 适量少吃",
       "badgeRed": "红灯 · 尽量别吃",
-      "badgeBasis": "按每 100 克对照你的每日营养目标判定"
+      "badgeBasis": "按每 100 克对照你的每日营养目标判定",
+      "reportIssue": "数据有误？告诉我们"
     }
   },
   "common": {
@@ -586,7 +604,8 @@
       "ctaWeight": "记体重",
       "targetLine": "目标 ${kg} 公斤",
       "toGoal": "距目标还有 ${kg} 公斤",
-      "goalReached": "已达到目标体重"
+      "goalReached": "已达到目标体重",
+      "weightUnlock": "再记录 ${count} 次体重，解锁完整曲线"
     },
     "growth": {
       "title": "${days} 天成长轨迹",
@@ -781,6 +800,7 @@
       "save": "保存",
       "saved": "身体档案已保存",
       "goalUpdated": "每日营养目标已更新为 ${kcal} kcal",
+      "completeness": "档案完善度 ${percent}%",
       "bmi": {
         "title": "BMI",
         "underweight": "偏低",

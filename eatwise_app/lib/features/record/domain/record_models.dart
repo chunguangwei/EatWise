@@ -44,6 +44,7 @@ final class RecordDraft {
     required this.source,
     this.note,
     this.duringFast = false,
+    this.mealType,
   });
 
   /// 食物库条目 ID。
@@ -64,6 +65,10 @@ final class RecordDraft {
   /// 断食期用餐标记（阶段 C：入账时断食计时进行中为 true；纯本地属性，
   /// 不上行服务端）。
   final bool duringFast;
+
+  /// 餐次（薄荷走查优化点 2；null 时仓储按就餐时间本地小时智能预判）。
+  /// 纯本地属性，不上行服务端（与 duringFast 同口径）。
+  final MealType? mealType;
 }
 
 /// 上行结果（对齐《规格-数据同步与四态持久化》§2.3 逐条 ack/nack）。

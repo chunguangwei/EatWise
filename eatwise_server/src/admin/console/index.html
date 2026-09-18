@@ -36,6 +36,7 @@
   .badge.rejected { background: #fdeae5; color: #c24a2a; }
   .badge.reported { background: #f3e8fd; color: #7a3fc2; }
   .badge.barcode { background: #e0edfd; color: #2456a8; }
+  .badge.correction { background: #fdeede; color: #a8620a; }
   .evidence-img { max-width: 150px; max-height: 110px; border: 1px solid #e3e8e6; border-radius: 6px; cursor: zoom-in; display: block; margin-top: 4px; }
   .msg { margin-top: 12px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; white-space: pre-wrap; word-break: break-all; }
   .msg.ok { display: block; background: #e6f7ef; color: #176b4b; }
@@ -239,7 +240,7 @@ function fmtNutrition(p) {
 }
 
 var STATUS_LABEL = { pending: '待审核', approved: '已通过', rejected: '已拒绝' };
-var KIND_LABEL = { custom: '自定义', barcode: '条码' };
+var KIND_LABEL = { custom: '自定义', barcode: '条码', correction: '纠错' };
 
 /** 佐证照片地址：本机 local 驱动返回 /v1/uploads 相对路径，需拼当前 origin 才能直接引图 */
 function absUrl(u) {
@@ -278,6 +279,32 @@ async function loadCandidates(append) {
   }
 }
 
+/** 名称单元格：纠错候选（kind=correction）原值 vs 建议名对照 */
+function fmtNameCell(c) {
+  var html = '<strong>' + esc(c.nameZh || '(未知名称)') + '</strong>' +
+    (c.nameEn ? '<br><span class="muted">' + esc(c.nameEn) + '</span>' : '');
+  if (c.kind === 'correction' && c.suggestion) {
+    if (c.suggestion.nameZh || c.suggestion.nameEn) {
+      html += '<br><span class="badge correction">建议名</span> <strong>' +
+        esc(c.suggestion.nameZh || c.nameZh || '') + '</strong>' +
+        (c.suggestion.nameEn ? '<br><span class="muted">' + esc(c.suggestion.nameEn) + '</span>' : '');
+    }
+    html += '<br><span class="muted">数据纠错</span>';
+  } else {
+    html += '<br><span class="muted">' + (KIND_LABEL[c.kind] || '自定义') + '贡献</span>';
+  }
+  return html;
+}
+
+/** 营养单元格：纠错候选原值 vs 建议值对照（其余类型仅当前值） */
+function fmtNutritionCell(c) {
+  var html = fmtNutrition(c.per100g);
+  if (c.kind === 'correction' && c.suggestion && c.suggestion.per100g) {
+    html += '<br><span class="badge correction">建议值</span><br>' + fmtNutrition(c.suggestion.per100g);
+  }
+  return html;
+}
+
 function renderRows(items, append) {
   var tbody = document.getElementById('candidateRows');
   if (!append) tbody.innerHTML = '';
@@ -288,10 +315,8 @@ function renderRows(items, append) {
         '<button class="btn danger" onclick="review(\'' + c.id + '\',\'reject\')">拒绝</button>'
       : '<span class="muted">' + (c.reason ? '原因：' + esc(c.reason) : '—') + '</span>';
     tr.innerHTML =
-      '<td><strong>' + esc(c.nameZh || '(未知名称)') + '</strong>' +
-        (c.nameEn ? '<br><span class="muted">' + esc(c.nameEn) + '</span>' : '') +
-        '<br><span class="muted">' + (KIND_LABEL[c.kind] || '自定义') + '贡献</span></td>' +
-      '<td>' + fmtNutrition(c.per100g) + '</td>' +
+      '<td>' + fmtNameCell(c) + '</td>' +
+      '<td>' + fmtNutritionCell(c) + '</td>' +
       '<td>' + fmtEvidence(c) + '</td>' +
       '<td><span class="muted">' + esc(c.userId) + '</span></td>' +
       '<td><span class="muted">' + fmtTime(c.createdAt) + '</span></td>' +

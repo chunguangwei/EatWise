@@ -113,8 +113,19 @@ export interface AdminUserEntity {
 
 export type FoodCandidateStatus = 'pending' | 'approved' | 'rejected';
 
-/** 候选类型：custom = 自定义食物贡献；barcode = 条码商品补录贡献（必须带营养表佐证照片） */
-export type FoodCandidateKind = 'custom' | 'barcode';
+/** 候选类型：custom = 自定义食物贡献；barcode = 条码商品补录贡献（必须带营养表佐证照片）；
+ * correction = 已有共享食物的数据纠错（建议值存 suggestion，approve 后应用到共享食物行） */
+export type FoodCandidateKind = 'custom' | 'barcode' | 'correction';
+
+/** 纠错建议值（kind=correction 时非空）：用户提交的修正名称/每 100g 营养，审核台与原值对照展示 */
+export interface FoodCorrectionSuggestion {
+  /** 建议中文名（未改名为 null） */
+  nameZh: string | null;
+  /** 建议英文名（未改为 null） */
+  nameEn: string | null;
+  /** 建议每 100g 营养（区间校验同 food.rules 防腐口径） */
+  per100g: { kcal: number; proteinG: number; carbG: number; fatG: number };
+}
 
 /** 共享食物候选（食物库扩充第三层：用户自定义食物经审核晋升为共享库，先审后发 D-17） */
 export interface FoodCandidateEntity {
@@ -131,6 +142,8 @@ export interface FoodCandidateEntity {
   barcode: string | null;
   /** kind=barcode 时非空：包装营养表佐证照片（/v1/uploads/xxx 或 CDN URL），审核「对答案」依据 */
   evidenceImageUrl: string | null;
+  /** kind=correction 时非空：纠错建议值（原值即 foodId 指向共享食物行的当前值） */
+  suggestion: FoodCorrectionSuggestion | null;
   clientRequestId: string;
   version: number;
   createdAt: Date;

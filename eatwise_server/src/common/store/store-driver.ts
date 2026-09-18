@@ -7,6 +7,7 @@ import {
   FastingRecordEntity,
   FoodCandidateEntity,
   FoodCandidateStatus,
+  FoodCorrectionSuggestion,
   FoodEntity,
   FoodEntryEntity,
   IdempotencyRecord,
@@ -286,6 +287,12 @@ export abstract class StoreDriver {
    * 目标不存在或非自定义行 → NOT_FOUND；候选状态仍由调用方走 updateFoodCandidateStatus。
    */
   abstract promoteCustomFoodToShared(foodId: string, barcode?: string | null): Promise<void>;
+
+  /**
+   * 纠错晋升（kind=correction approve）：把建议值应用到共享食物行——
+   * 建议名（非 null 才改）+ 每 100g 四营养整体覆写；目标不是共享行（不存在或自定义）→ NOT_FOUND。
+   */
+  abstract applyFoodCorrection(foodId: string, suggestion: FoodCorrectionSuggestion): Promise<void>;
 
   /** 审核晋升/删除时物理移除个人库条目 */
   abstract deleteCustomFood(id: string): Promise<void>;
@@ -905,6 +912,19 @@ export class MemoryStoreDriver extends StoreDriver {
       createdByUserId: custom.userId,
       barcode: barcode ?? null,
     });
+    return Promise.resolve();
+  }
+
+  /** 与 food.service.reviewFoodCandidate correction approve 分支同口径：建议值覆写共享行 */
+  applyFoodCorrection(foodId: string, suggestion: FoodCorrectionSuggestion): Promise<void> {
+    const food = this.store.foods.get(foodId);
+    if (!food) return Promise.reject(err.notFound());
+    if (suggestion.nameZh) food.nameZh = suggestion.nameZh;
+    if (suggestion.nameEn) food.nameEn = suggestion.nameEn;
+    food.kcalPer100g = suggestion.per100g.kcal;
+    food.proteinPer100g = suggestion.per100g.proteinG;
+    food.carbsPer100g = suggestion.per100g.carbG;
+    food.fatPer100g = suggestion.per100g.fatG;
     return Promise.resolve();
   }
 

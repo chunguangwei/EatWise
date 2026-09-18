@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_client.dart';
 import 'package:eatwise/core/analytics/analytics_context.dart';
@@ -8,6 +9,8 @@ import 'package:eatwise/core/analytics/consent_store.dart';
 import 'package:eatwise/core/analytics/device_identity_store.dart';
 import 'package:eatwise/core/analytics/event_queue_store.dart';
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/storage/sync_status.dart';
+import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
@@ -204,6 +207,58 @@ void main() {
     expect(find.byIcon(Icons.search_off_outlined), findsOneWidget);
     expect(find.text('没找到？换个关键词试试'), findsOneWidget);
     expect(find.text('找不到？添加自定义食物'), findsOneWidget);
+    await settleUi(tester);
+  });
+
+  testWidgets('今日记录列表：搜索框为空且有记录时按餐次分组展示（无餐次归「其他」）', (tester) async {
+    final today = localDateKey(DateTime.now());
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    Future<void> seedEntry(String id, String foodId, MealType? mealType) {
+      return db.foodEntryDao.insertEntry(
+        FoodEntriesCompanion(
+          localId: Value(id),
+          userId: const Value('anonymous'),
+          clientRequestId: Value('req-$id'),
+          syncStatus: const Value(SyncStatus.synced),
+          datetimeUtc: Value(nowIso),
+          localDate: Value(today),
+          foodId: Value(foodId),
+          amountG: const Value(100),
+          kcal: const Value(116),
+          proteinG: const Value(2.6),
+          carbG: const Value(25.9),
+          fatG: const Value(0.3),
+          source: const Value(EntrySource.manual),
+          mealType: Value(mealType),
+          createdAtUtc: Value(nowIso),
+          updatedAtUtc: Value(nowIso),
+        ),
+      );
+    }
+
+    await seedEntry('e1', 'f-rice', MealType.breakfast);
+    await seedEntry('e2', 'f-egg', MealType.snack);
+    await seedEntry('e3', 'f-chicken', null); // 历史无餐次 → 其他
+    await pumpPage(tester);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('今日记录'), findsOneWidget);
+    expect(find.text('早餐'), findsOneWidget);
+    expect(find.text('加餐'), findsOneWidget);
+    expect(find.text('其他'), findsOneWidget);
+    expect(find.text('白米饭'), findsOneWidget);
+    expect(find.text('鸡蛋'), findsOneWidget);
+    expect(find.text('鸡胸肉'), findsOneWidget);
+    // 午餐/晚餐组无记录 → 不渲染组标题。
+    expect(find.text('午餐'), findsNothing);
+    expect(find.text('晚餐'), findsNothing);
+
+    // 输入搜索词 → 分组列表让位给搜索空态。
+    await tester.enterText(find.byType(TextField).first, '不存在的食物');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('没找到？换个关键词试试'), findsOneWidget);
     await settleUi(tester);
   });
 

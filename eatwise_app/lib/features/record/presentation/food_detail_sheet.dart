@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
@@ -9,10 +10,12 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_rule_config.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
+import 'package:eatwise/features/record/custom_food/presentation/custom_food_sheet.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
 import 'package:eatwise/features/record/domain/food_signal.dart';
 import 'package:eatwise/features/record/domain/macro_energy.dart';
 import 'package:eatwise/features/record/domain/nrv_reference.dart';
+import 'package:eatwise/features/record/presentation/meal_type_chips.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:eatwise/features/record/recognition/domain/nutrition_label_ocr_logic.dart'
     show kKjPerKcal;
@@ -298,6 +301,9 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
                       ),
                     ],
                     const SizedBox(height: AppSpacing.s2),
+                    // 餐次选择（优化点 2：默认按当前时间智能预判，可点选修改）。
+                    const MealTypeChips(),
+                    const SizedBox(height: AppSpacing.s2),
                     // 其余明细折叠区（次级信息，默认收起）。
                     ExpansionTile(
                       title: Text(
@@ -335,6 +341,27 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
                             text: t.record.foodDetail.aliases(names: aliasText),
                           ),
                       ],
+                    ),
+                    // 「数据有误？」纠错入口（薄荷走查 P3：低权重文本按钮，
+                    // 复用众包审核链路——建议值入审核池，管理台原值 vs 建议值）。
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: colors.textSecondary,
+                          minimumSize: const Size(44, 44),
+                          padding: EdgeInsets.zero,
+                        ),
+                        onPressed: () => unawaited(
+                          startFoodCorrectionFlow(context, ref, food),
+                        ),
+                        child: Text(
+                          t.record.foodDetail.reportIssue,
+                          style: textStyles.textXs.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),

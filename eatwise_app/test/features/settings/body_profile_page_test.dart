@@ -9,6 +9,8 @@ import 'package:eatwise/features/auth/application/auth_controller.dart';
 import 'package:eatwise/features/auth/application/auth_gate.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/auth/data/auth_api.dart';
+import 'package:eatwise/features/fasting/domain/fasting_types.dart';
+import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
@@ -703,5 +705,64 @@ void main() {
     );
     await tester.pump();
     expect(find.text(hint), findsNothing);
+  });
+
+  testWidgets('P3 完善度进度条：空档案 0% → 随填写联动；7 项填齐不渲染', (tester) async {
+    await pumpPage(tester, loggedIn: false);
+
+    // 空档案：0%（<100% 渲染进度条）。
+    expect(find.text('档案完善度 0%'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+    // 填 性别/出生年/身高/体重/活动水平 5 项 → 71%。
+    await tester.tap(find.text('男'));
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.birthYear')),
+      '1990',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.heightCm')),
+      '176',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.weightKg')),
+      '75',
+    );
+    await tester.pump();
+    await tapVisible(tester, const ValueKey<String>('profile.activity.light'));
+    // 进度条在 ListView 顶部，滚回再断言（懒构建出屏即卸载）。
+    await tester.drag(find.byType(ListView), const Offset(0, 800));
+    await tester.pump();
+    expect(find.text('档案完善度 71%'), findsOneWidget);
+
+    // 再填目标体重 + 快捷 8 周日期 → 7/7 = 100%，进度条不再渲染。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal.targetWeight')),
+      '70',
+    );
+    await tester.pump();
+    await tapVisible(tester, const ValueKey<String>('goal.quickWeeks.8'));
+    await tester.drag(find.byType(ListView), const Offset(0, 800));
+    await tester.pump();
+    expect(find.textContaining('档案完善度'), findsNothing);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+  });
+
+  testWidgets('P3 完善度进度条：本地已有完整档案进页即不渲染', (tester) async {
+    store.saveProfile(
+      const OnboardingProfile(
+        sex: ProfileSex.female,
+        birthYear: 1998,
+        heightCm: 162,
+        weightKg: 55,
+        activityLevel: ActivityLevel.sedentary,
+        targetWeightKg: 50,
+        targetDate: LocalDate(2026, 12, 1),
+      ),
+    );
+    await pumpPage(tester, loggedIn: false);
+    expect(find.textContaining('档案完善度'), findsNothing);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
   });
 }

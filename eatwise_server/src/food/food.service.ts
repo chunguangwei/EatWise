@@ -4,6 +4,7 @@ import {
   CustomFoodEntity,
   FoodCandidateEntity,
   FoodCandidateStatus,
+  FoodCorrectionSuggestion,
   FoodEntity,
 } from '../common/store/data-store';
 import { FoodSearchHit, STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
@@ -11,7 +12,12 @@ import { newId, payloadHash } from '../common/utils/id.util';
 import { clampPageLimit, parseOffsetCursor } from '../common/utils/pagination.util';
 import { ContentModerationService } from '../social/moderation/content-moderation.service';
 import { BARCODE_PATTERN, BarcodeFoodView } from './barcode/barcode.service';
-import { ContributeFoodDto, CreateCustomFoodDto, ReviewFoodCandidateDto } from './food.dto';
+import {
+  ContributeFoodDto,
+  CreateCustomFoodDto,
+  CreateFoodCorrectionDto,
+  ReviewFoodCandidateDto,
+} from './food.dto';
 import { isPer100gInRange } from './food.rules';
 
 /**
@@ -173,6 +179,84 @@ export class FoodService {
       kind: barcode ? 'barcode' : 'custom',
       barcode,
       evidenceImageUrl,
+      suggestion: null,
+      clientRequestId: dto.clientRequestId,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await this.driver.createFoodCandidate(candidate);
+
+    const response = await this.candidateView(candidate);
+    await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response);
+    return response;
+  }
+
+  /**
+   * 已有共享食物的数据纠错（食物详情页「数据有误？」入口，与贡献同池审核）：
+   * - 目标必须是共享库食物（自定义食物不存在于共享库 → 404，不泄露存在性）；
+   * - 幂等：clientRequestId 重放返回首次结果（不同体 409）；
+   * - 同人同食物已有 pending 纠错 → 直接返回该候选（重复提交不堆队列；改值需等审核落定）；
+   * - 建议中文名过机审：rejected → 拒收 FOOD_CONTRIBUTE_REJECTED；
+   * - 候选 kind=correction，建议值存 suggestion；approve 后应用到共享食物行。
+   */
+  async createFoodCorrection(userId: string, foodId: string, dto: CreateFoodCorrectionDto) {
+    const endpoint = 'foods/correction';
+    const nameZh = dto.nameZh?.trim() || null;
+    const nameEn = dto.nameEn?.trim() || null;
+    if (nameZh && nameZh.length > 50) {
+      throw err.validation({ nameZh: 'trimmed length must be 1-50' });
+    }
+    if (!isPer100gInRange(dto.per100g)) {
+      throw err.validation({ per100g: 'out of range (kcal 0-900, macros 0-100)' });
+    }
+    const hash = payloadHash({ foodId, nameZh, nameEn, per100g: dto.per100g });
+    const hit = await this.driver.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
+    if (hit) {
+      if (hit.payloadHash !== hash) throw err.payloadMismatch();
+      return hit.responseBody;
+    }
+
+    const food = await this.driver.findFoodById(foodId);
+    if (!food) throw err.notFound();
+
+    // 同人同食物已有 pending 纠错：幂等返回原候选（不同建议值不覆盖，避免审核目标漂移）
+    const mine = await this.driver.findFoodCandidatesByUser(userId, 'pending');
+    const dup = mine.find((c) => c.kind === 'correction' && c.foodId === foodId);
+    if (dup) {
+      const response = await this.candidateView(dup);
+      await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response);
+      return response;
+    }
+
+    if (nameZh) {
+      const verdict = await this.moderation.moderate(nameZh, []);
+      if (verdict.verdict === 'rejected') {
+        throw err.foodContributeRejected(verdict.reason);
+      }
+    }
+
+    const suggestion: FoodCorrectionSuggestion = {
+      nameZh: nameZh && nameZh !== food.nameZh ? nameZh : null,
+      nameEn: nameEn && nameEn !== food.nameEn ? nameEn : null,
+      per100g: {
+        kcal: dto.per100g.kcal,
+        proteinG: dto.per100g.proteinG,
+        carbG: dto.per100g.carbG,
+        fatG: dto.per100g.fatG,
+      },
+    };
+    const now = new Date();
+    const candidate: FoodCandidateEntity = {
+      id: `fc_${newId().slice(0, 8)}`,
+      foodId,
+      userId,
+      status: 'pending',
+      reason: null,
+      kind: 'correction',
+      barcode: null,
+      evidenceImageUrl: null,
+      suggestion,
       clientRequestId: dto.clientRequestId,
       version: 1,
       createdAt: now,
@@ -266,6 +350,8 @@ export class FoodService {
    * approve → 自定义食物晋升为共享食物（原 id 不变，isCustom=false 入共享库，全用户 K1 可见，
    * source='community'，createdByUserId 保留溯源）；reject → 状态 rejected + reason，
    * 创建者仍可见自己的自定义食物。
+   * kind=correction（数据纠错）approve → 建议值应用到共享食物行（建议名非空才改名，
+   * 每 100g 四营养整体覆写），id 与既有 FoodEntry 引用不变。
    */
   async reviewFoodCandidate(candidateId: string, dto: ReviewFoodCandidateDto) {
     const candidate = await this.driver.findFoodCandidateById(candidateId);
@@ -276,6 +362,16 @@ export class FoodService {
 
     if (dto.action === 'reject') {
       await this.driver.updateFoodCandidateStatus(candidateId, 'rejected', dto.reason);
+      return this.candidateView(await this.mustGetCandidate(candidateId));
+    }
+
+    if (candidate.kind === 'correction') {
+      // 数据纠错：目标共享行存在且建议值完整才应用；异常态 → 404（不动候选状态，审核可重试）
+      if (!candidate.suggestion || !(await this.driver.findFoodById(candidate.foodId))) {
+        throw err.notFound();
+      }
+      await this.driver.applyFoodCorrection(candidate.foodId, candidate.suggestion);
+      await this.driver.updateFoodCandidateStatus(candidateId, 'approved');
       return this.candidateView(await this.mustGetCandidate(candidateId));
     }
 
@@ -312,6 +408,8 @@ export class FoodService {
       kind: c.kind,
       barcode: c.barcode,
       evidenceImageUrl: c.evidenceImageUrl,
+      // kind=correction：建议值（审核台与 per100g 原值对照展示）；其余类型为 null
+      suggestion: c.suggestion,
       nameZh: food?.nameZh ?? null,
       nameEn: food?.nameEn ?? null,
       // 管理端审核台展示用（每 100g 营养）；食物已被删除等异常态为 null

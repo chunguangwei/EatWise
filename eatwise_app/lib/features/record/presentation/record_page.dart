@@ -21,8 +21,10 @@ import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/presentation/food_detail_sheet.dart';
 import 'package:eatwise/features/record/presentation/light_record_section.dart';
+import 'package:eatwise/features/record/presentation/meal_type_chips.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
+import 'package:eatwise/features/record/presentation/today_meal_list.dart';
 import 'package:eatwise/features/record/recognition/presentation/frequent_flow.dart';
 import 'package:eatwise/features/record/recognition/presentation/photo_flow.dart';
 import 'package:eatwise/features/record/recognition/presentation/voice_flow.dart';
@@ -169,6 +171,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
         source: entrySource,
         // 阶段 C：断食计时进行中的用餐打「断食期用餐」本地标记（不上行）。
         duringFast: ref.read(isFastingInProgressProvider),
+        // 餐次（优化点 2）：chips 未手动选择时为 null，仓储按当前时间智能预判。
+        mealType: ref.read(recordMealTypeProvider),
       ),
     );
     // 确认记录成功（§3.3 record_flow_success，核心事件 §1.5 立即上报；
@@ -208,6 +212,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     ref.read(recordSearchQueryProvider.notifier).state = '';
     ref.read(recordEntrySourceProvider.notifier).state = EntrySource.manual;
     ref.read(recordLowConfidenceProvider.notifier).state = false;
+    ref.read(recordMealTypeProvider.notifier).state = null;
     _searchController.clear();
     // 连续入账：新吐司顶替旧的（不排队），与饮水流一致（D-11）。
     messenger.hideCurrentSnackBar();
@@ -444,6 +449,19 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                 Expanded(
                   child: results.when(
                     data: (foods) {
+                      // 优化点 2：搜索框为空且今日有记录 → 「今日记录」
+                      // 餐次分组列表（对标薄荷记录页，替代空查询下的
+                      // 前 20 条库内浏览列表）；无今日记录时保持原行为。
+                      final queryEmpty = ref
+                          .watch(recordSearchQueryProvider)
+                          .trim()
+                          .isEmpty;
+                      final todayEntries =
+                          ref.watch(todayEntriesProvider).value ??
+                          const <FoodEntry>[];
+                      if (queryEmpty && todayEntries.isNotEmpty) {
+                        return TodayMealList(entries: todayEntries);
+                      }
                       if (foods.isEmpty) {
                         // 空态可滚动（走查 Y1）：键盘顶起高度不足时
                         // 可滚而不溢出（BOTTOM OVERFLOWED）。
@@ -565,8 +583,12 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                   ),
                 ),
                 // 今日聚合（本地预估，§2.6 注明待云端校准；键盘顶起时
-                // 收起此行给主流程让位，走查 Y1）。
-                if (today != null && today.entryCount > 0 && !keyboardVisible)
+                // 收起此行给主流程让位，走查 Y1；结果卡展开时同样让位——
+                // 优化点 2 餐次 chips 行加高结果卡后，小屏二者并存会溢出）。
+                if (today != null &&
+                    today.entryCount > 0 &&
+                    !keyboardVisible &&
+                    selected == null)
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.s4,
@@ -623,6 +645,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                           EntrySource.manual;
                       ref.read(recordLowConfidenceProvider.notifier).state =
                           false;
+                      ref.read(recordMealTypeProvider.notifier).state = null;
                     },
                     shadows: shadows,
                   ),
@@ -838,6 +861,9 @@ class _SelectedFoodCard extends ConsumerWidget {
                 ),
               ],
             ),
+          const SizedBox(height: AppSpacing.s2),
+          // 餐次选择（优化点 2：默认按当前时间智能预判，可点选修改）。
+          const MealTypeChips(),
           const SizedBox(height: AppSpacing.s3),
           FilledButton(
             onPressed: onConfirm,

@@ -5,6 +5,10 @@ import 'package:eatwise/core/storage/sync_status.dart';
 /// barcode 为包装食品扫码扩充入口）。
 enum EntrySource { photo, voice, frequent, manual, barcode }
 
+/// 餐次（薄荷走查优化点 2：记录页按早/午/晚/加餐分组展示）。
+/// 可空：v8 前的历史记录无餐次，展示归入「其他」组。
+enum MealType { breakfast, lunch, dinner, snack }
+
 /// FoodEntry 单条饮食记录（PRD 第五章 + 《规格-数据同步与四态持久化》§1.2）。
 ///
 /// 时间戳全部 UTC ISO8601 存储（D-07），渲染按设备本地时区换算；
@@ -77,6 +81,10 @@ class FoodEntries extends Table {
   /// 断食期用餐标记（阶段 C）：入账时断食计时进行中（fasting/fastingExtended）
   /// 为 true；仅本地属性，不上行服务端。
   BoolColumn get duringFast => boolean().withDefault(const Constant(false))();
+
+  /// 餐次（薄荷走查优化点 2；可空——v8 前历史记录无餐次归入「其他」组）。
+  /// 仅本地属性，不上行服务端（与 duringFast 同口径）。
+  TextColumn get mealType => textEnum<MealType>().nullable()();
 
   /// 本地创建时间（UTC ISO8601）。
   TextColumn get createdAtUtc => text()();

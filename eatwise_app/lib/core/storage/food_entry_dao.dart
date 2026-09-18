@@ -108,6 +108,22 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
         .get();
   }
 
+  /// 某日有效记录流（薄荷走查优化点 2：记录页「今日记录」餐次分组列表，
+  /// 排除 tombstone，按就餐时间升序）。
+  Stream<List<FoodEntry>> watchEntriesForDate(String userId, String localDate) {
+    return (select(foodEntries)
+          ..where(
+            (e) =>
+                e.userId.equals(userId) &
+                e.localDate.equals(localDate) &
+                e.deleted.equals(false),
+          )
+          ..orderBy(<OrderingTerm Function(FoodEntries)>[
+            (e) => OrderingTerm.asc(e.datetimeUtc),
+          ]))
+        .watch();
+  }
+
   /// 某日「断食期用餐」记录条数流（阶段 C：记录页今日聚合行标记用，
   /// 排除 tombstone）。
   Stream<int> watchDuringFastCount(String userId, String localDate) {

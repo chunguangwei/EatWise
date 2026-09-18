@@ -5,6 +5,7 @@ import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/reports/application/reports_controller.dart';
+import 'package:eatwise/features/reports/domain/weight_curve_unlock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -38,6 +39,10 @@ class ReportTrendSection extends ConsumerWidget {
         : null;
     final lastWeightIndex = values.lastIndexWhere((v) => v != null);
     final latestWeight = lastWeightIndex >= 0 ? values[lastWeightIndex] : null;
+    // P3 体重曲线解锁钩子：记录 <3 条时图表盖半透明遮罩引导继续记录。
+    final weightUnlockRemaining = dimension == ReportDimension.weight
+        ? weightRecordsToUnlock(ref.watch(weightRecordCountProvider))
+        : 0;
 
     final end = ref.watch(reportsNowProvider);
     final locale = Localizations.localeOf(context).toString();
@@ -151,21 +156,43 @@ class ReportTrendSection extends ConsumerWidget {
             SizedBox(
               height: 160,
               width: double.infinity,
-              child: CustomPaint(
-                painter: ReportTrendPainter(
-                  values: values,
-                  labels: labels,
-                  lineColor: colors.brandPrimary,
-                  labelColor: colors.textSecondary,
-                  labelStyle: textStyles.textXs,
-                  unit: unit,
-                  fractionDigits: dimension == ReportDimension.kcal ? 0 : 1,
-                  targetValue: targetKg,
-                  targetColor: colors.brandAccent,
-                  targetLabel: targetKg == null
-                      ? null
-                      : trend.targetLine(kg: targetKg.toStringAsFixed(1)),
-                ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: <Widget>[
+                  CustomPaint(
+                    painter: ReportTrendPainter(
+                      values: values,
+                      labels: labels,
+                      lineColor: colors.brandPrimary,
+                      labelColor: colors.textSecondary,
+                      labelStyle: textStyles.textXs,
+                      unit: unit,
+                      fractionDigits: dimension == ReportDimension.kcal ? 0 : 1,
+                      targetValue: targetKg,
+                      targetColor: colors.brandAccent,
+                      targetLabel: targetKg == null
+                          ? null
+                          : trend.targetLine(kg: targetKg.toStringAsFixed(1)),
+                    ),
+                  ),
+                  // 解锁钩子遮罩（半透明，曲线隐约可见但数值不可读）。
+                  if (weightUnlockRemaining > 0)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: colors.bgPrimary.withValues(alpha: 0.72),
+                        borderRadius: radii.rMd,
+                      ),
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.all(AppSpacing.s4),
+                      child: Text(
+                        trend.weightUnlock(count: weightUnlockRemaining),
+                        style: textStyles.textSm.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                ],
               ),
             ),
             // 当前体重与目标差值（最新一条记录 vs 目标）。
