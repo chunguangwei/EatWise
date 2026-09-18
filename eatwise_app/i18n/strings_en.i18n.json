@@ -182,8 +182,11 @@
       "protein": "Protein",
       "carb": "Carbs",
       "fat": "Fat",
+      "sodium": "Sodium",
       "kcalUnit": "kcal",
-      "gramUnit": "g"
+      "kjUnit": "kJ",
+      "gramUnit": "g",
+      "mgUnit": "mg"
     },
     "toast": {
       "recorded": "Logged",
@@ -343,6 +346,10 @@
     },
     "foodDetail": {
       "per100g": "per 100 g",
+      "kcalKj": "kcal / ${kj} kJ · per 100 g",
+      "walkSteps": "About ${steps} steps to walk off",
+      "nutrientColumn": "Nutrient",
+      "nrvColumn": "NRV%",
       "macrosTitle": "Calorie breakdown by macros",
       "energyShareNote": "Rings show calorie share: 1 g of fat provides 9 kcal — 2.25× that of carbs or protein (4 kcal each)",
       "moreTitle": "Nutrition per 100 g",
@@ -590,6 +597,25 @@
       },
       "empty": "Almost there — log a meal or finish a fast to unlock your weekly report."
     },
+    "weeklySummary": {
+      "title": "Last-week recap",
+      "chipQualified": "${days}d on target",
+      "chipRecorded": "${days}d logged",
+      "chipAvgKcal": "avg ${kcal} · goal ${target} kcal",
+      "chipWeight": "weight ${kg} kg",
+      "fastingPlain": "You hit your fasting goal on ${days} of 7 days last week",
+      "fastingMore": "You hit your fasting goal on ${days} of 7 days last week, ${delta} more than the week before",
+      "fastingLess": "You hit your fasting goal on ${days} of 7 days last week, ${delta} fewer than the week before",
+      "fastingSame": "You hit your fasting goal on ${days} of 7 days last week, the same as the week before",
+      "intakeWithin": "average intake was ${kcal} kcal a day, within your target range",
+      "intakeAbove": "average intake was ${kcal} kcal a day, ${percent}% above target",
+      "intakeBelow": "average intake was ${kcal} kcal a day, ${percent}% below target",
+      "weightUp": "weight went up ${kg} kg over the week",
+      "weightDown": "weight came down ${kg} kg over the week",
+      "weightSame": "your weight held steady over the week",
+      "disclaimer": "For healthy-lifestyle reference only",
+      "empty": "Log a few days first — see you here next week"
+    },
     "monthly": {
       "prevMonth": "Previous month",
       "nextMonth": "Next month",
@@ -727,7 +753,15 @@
       "goalSection": "Weight goal (optional; applies to fat-loss goal only)",
       "save": "Save",
       "saved": "Body profile saved",
-      "goalUpdated": "Daily nutrition goal updated to ${kcal} kcal"
+      "goalUpdated": "Daily nutrition goal updated to ${kcal} kcal",
+      "bmi": {
+        "title": "BMI",
+        "underweight": "Below range",
+        "normal": "Healthy",
+        "overweight": "Above range",
+        "obese": "Obese",
+        "missing": "Add your height and weight to see your BMI"
+      }
     },
     "reminders": {
       "notifications": "Notification settings",

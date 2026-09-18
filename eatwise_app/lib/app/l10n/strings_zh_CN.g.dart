@@ -193,6 +193,7 @@ class Translations$reports$zh_CN {
 	late final Translations$reports$trend$zh_CN trend = Translations$reports$trend$zh_CN.internal(_root);
 	late final Translations$reports$growth$zh_CN growth = Translations$reports$growth$zh_CN.internal(_root);
 	late final Translations$reports$weekly$zh_CN weekly = Translations$reports$weekly$zh_CN.internal(_root);
+	late final Translations$reports$weeklySummary$zh_CN weeklySummary = Translations$reports$weeklySummary$zh_CN.internal(_root);
 	late final Translations$reports$monthly$zh_CN monthly = Translations$reports$monthly$zh_CN.internal(_root);
 }
 
@@ -675,11 +676,20 @@ class Translations$record$nutrition$zh_CN {
 	/// zh-CN: '脂肪'
 	String get fat => '脂肪';
 
+	/// zh-CN: '钠'
+	String get sodium => '钠';
+
 	/// zh-CN: '千卡'
 	String get kcalUnit => '千卡';
 
+	/// zh-CN: '千焦'
+	String get kjUnit => '千焦';
+
 	/// zh-CN: '克'
 	String get gramUnit => '克';
+
+	/// zh-CN: '毫克'
+	String get mgUnit => '毫克';
 }
 
 // Path: record.toast
@@ -1117,6 +1127,18 @@ class Translations$record$foodDetail$zh_CN {
 	/// zh-CN: '每 100 克'
 	String get per100g => '每 100 克';
 
+	/// zh-CN: '千卡 / ${kj} 千焦 · 每 100 克'
+	String kcalKj({required Object kj}) => '千卡 / ${kj} 千焦 · 每 100 克';
+
+	/// zh-CN: '大约需走 ${steps} 步'
+	String walkSteps({required Object steps}) => '大约需走 ${steps} 步';
+
+	/// zh-CN: '营养素'
+	String get nutrientColumn => '营养素';
+
+	/// zh-CN: 'NRV%'
+	String get nrvColumn => 'NRV%';
+
 	/// zh-CN: '三大营养素供能比例'
 	String get macrosTitle => '三大营养素供能比例';
 
@@ -1510,6 +1532,66 @@ class Translations$reports$weekly$zh_CN {
 
 	/// zh-CN: '周报还差一点点数据，记一笔或完成一次断食就生成啦'
 	String get empty => '周报还差一点点数据，记一笔或完成一次断食就生成啦';
+}
+
+// Path: reports.weeklySummary
+class Translations$reports$weeklySummary$zh_CN {
+	Translations$reports$weeklySummary$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '上周小结'
+	String get title => '上周小结';
+
+	/// zh-CN: '达标 ${days} 天'
+	String chipQualified({required Object days}) => '达标 ${days} 天';
+
+	/// zh-CN: '记录 ${days} 天'
+	String chipRecorded({required Object days}) => '记录 ${days} 天';
+
+	/// zh-CN: '平均 ${kcal} · 目标 ${target} 千卡'
+	String chipAvgKcal({required Object kcal, required Object target}) => '平均 ${kcal} · 目标 ${target} 千卡';
+
+	/// zh-CN: '体重 ${kg} 公斤'
+	String chipWeight({required Object kg}) => '体重 ${kg} 公斤';
+
+	/// zh-CN: '上周断食达标 ${days} 天'
+	String fastingPlain({required Object days}) => '上周断食达标 ${days} 天';
+
+	/// zh-CN: '上周断食达标 ${days} 天，比前周多 ${delta} 天'
+	String fastingMore({required Object days, required Object delta}) => '上周断食达标 ${days} 天，比前周多 ${delta} 天';
+
+	/// zh-CN: '上周断食达标 ${days} 天，比前周少 ${delta} 天'
+	String fastingLess({required Object days, required Object delta}) => '上周断食达标 ${days} 天，比前周少 ${delta} 天';
+
+	/// zh-CN: '上周断食达标 ${days} 天，与前周持平'
+	String fastingSame({required Object days}) => '上周断食达标 ${days} 天，与前周持平';
+
+	/// zh-CN: '平均每日摄入 ${kcal} 千卡，在目标范围内'
+	String intakeWithin({required Object kcal}) => '平均每日摄入 ${kcal} 千卡，在目标范围内';
+
+	/// zh-CN: '平均每日摄入 ${kcal} 千卡，比目标高 ${percent}%'
+	String intakeAbove({required Object kcal, required Object percent}) => '平均每日摄入 ${kcal} 千卡，比目标高 ${percent}%';
+
+	/// zh-CN: '平均每日摄入 ${kcal} 千卡，比目标低 ${percent}%'
+	String intakeBelow({required Object kcal, required Object percent}) => '平均每日摄入 ${kcal} 千卡，比目标低 ${percent}%';
+
+	/// zh-CN: '体重上升 ${kg} 公斤'
+	String weightUp({required Object kg}) => '体重上升 ${kg} 公斤';
+
+	/// zh-CN: '体重下降 ${kg} 公斤'
+	String weightDown({required Object kg}) => '体重下降 ${kg} 公斤';
+
+	/// zh-CN: '体重基本持平'
+	String get weightSame => '体重基本持平';
+
+	/// zh-CN: '仅供健康生活方式参考'
+	String get disclaimer => '仅供健康生活方式参考';
+
+	/// zh-CN: '先记录几天，下周这时见'
+	String get empty => '先记录几天，下周这时见';
 }
 
 // Path: reports.monthly
@@ -1920,6 +2002,8 @@ class Translations$settings$bodyProfile$zh_CN {
 
 	/// zh-CN: '每日营养目标已更新为 ${kcal} kcal'
 	String goalUpdated({required Object kcal}) => '每日营养目标已更新为 ${kcal} kcal';
+
+	late final Translations$settings$bodyProfile$bmi$zh_CN bmi = Translations$settings$bodyProfile$bmi$zh_CN.internal(_root);
 }
 
 // Path: settings.reminders
@@ -3206,6 +3290,33 @@ class Translations$streak$milestone$shareCard$zh_CN {
 	String get shareFailed => '分享失败，请稍后重试';
 }
 
+// Path: settings.bodyProfile.bmi
+class Translations$settings$bodyProfile$bmi$zh_CN {
+	Translations$settings$bodyProfile$bmi$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: 'BMI'
+	String get title => 'BMI';
+
+	/// zh-CN: '偏低'
+	String get underweight => '偏低';
+
+	/// zh-CN: '标准'
+	String get normal => '标准';
+
+	/// zh-CN: '偏高'
+	String get overweight => '偏高';
+
+	/// zh-CN: '肥胖'
+	String get obese => '肥胖';
+
+	/// zh-CN: '补全身高体重后展示 BMI'
+	String get missing => '补全身高体重后展示 BMI';
+}
+
 // Path: settings.aiModel.providers
 class Translations$settings$aiModel$providers$zh_CN {
 	Translations$settings$aiModel$providers$zh_CN.internal(this._root);
@@ -3555,8 +3666,11 @@ extension on Translations {
 			'record.nutrition.protein' => '蛋白质',
 			'record.nutrition.carb' => '碳水',
 			'record.nutrition.fat' => '脂肪',
+			'record.nutrition.sodium' => '钠',
 			'record.nutrition.kcalUnit' => '千卡',
+			'record.nutrition.kjUnit' => '千焦',
 			'record.nutrition.gramUnit' => '克',
+			'record.nutrition.mgUnit' => '毫克',
 			'record.toast.recorded' => '已记录',
 			'record.toast.undo' => '撤销',
 			'record.toast.undone' => '已撤销',
@@ -3686,6 +3800,10 @@ extension on Translations {
 			'record.empty.title' => '肚子的故事还没写呢，点橙色按钮记一笔？',
 			'record.duringFast.badge' => '断食期用餐',
 			'record.foodDetail.per100g' => '每 100 克',
+			'record.foodDetail.kcalKj' => ({required Object kj}) => '千卡 / ${kj} 千焦 · 每 100 克',
+			'record.foodDetail.walkSteps' => ({required Object steps}) => '大约需走 ${steps} 步',
+			'record.foodDetail.nutrientColumn' => '营养素',
+			'record.foodDetail.nrvColumn' => 'NRV%',
 			'record.foodDetail.macrosTitle' => '三大营养素供能比例',
 			'record.foodDetail.energyShareNote' => '圆环按供能占比绘制：1 克脂肪供能 9 千卡，是碳水和蛋白质（各 4 千卡）的 2.25 倍',
 			'record.foodDetail.moreTitle' => '每 100 克营养明细',
@@ -3853,6 +3971,23 @@ extension on Translations {
 			'reports.weekly.cheer.mixed' => '有起有落很正常，稳住节奏，下周继续～',
 			'reports.weekly.cheer.start' => '先动起来就很棒，数据会陪你一起进步。',
 			'reports.weekly.empty' => '周报还差一点点数据，记一笔或完成一次断食就生成啦',
+			'reports.weeklySummary.title' => '上周小结',
+			'reports.weeklySummary.chipQualified' => ({required Object days}) => '达标 ${days} 天',
+			'reports.weeklySummary.chipRecorded' => ({required Object days}) => '记录 ${days} 天',
+			'reports.weeklySummary.chipAvgKcal' => ({required Object kcal, required Object target}) => '平均 ${kcal} · 目标 ${target} 千卡',
+			'reports.weeklySummary.chipWeight' => ({required Object kg}) => '体重 ${kg} 公斤',
+			'reports.weeklySummary.fastingPlain' => ({required Object days}) => '上周断食达标 ${days} 天',
+			'reports.weeklySummary.fastingMore' => ({required Object days, required Object delta}) => '上周断食达标 ${days} 天，比前周多 ${delta} 天',
+			'reports.weeklySummary.fastingLess' => ({required Object days, required Object delta}) => '上周断食达标 ${days} 天，比前周少 ${delta} 天',
+			'reports.weeklySummary.fastingSame' => ({required Object days}) => '上周断食达标 ${days} 天，与前周持平',
+			'reports.weeklySummary.intakeWithin' => ({required Object kcal}) => '平均每日摄入 ${kcal} 千卡，在目标范围内',
+			'reports.weeklySummary.intakeAbove' => ({required Object kcal, required Object percent}) => '平均每日摄入 ${kcal} 千卡，比目标高 ${percent}%',
+			'reports.weeklySummary.intakeBelow' => ({required Object kcal, required Object percent}) => '平均每日摄入 ${kcal} 千卡，比目标低 ${percent}%',
+			'reports.weeklySummary.weightUp' => ({required Object kg}) => '体重上升 ${kg} 公斤',
+			'reports.weeklySummary.weightDown' => ({required Object kg}) => '体重下降 ${kg} 公斤',
+			'reports.weeklySummary.weightSame' => '体重基本持平',
+			'reports.weeklySummary.disclaimer' => '仅供健康生活方式参考',
+			'reports.weeklySummary.empty' => '先记录几天，下周这时见',
 			'reports.monthly.prevMonth' => '上一月',
 			'reports.monthly.nextMonth' => '下一月',
 			'reports.monthly.qualified' => ({required Object days}) => '断食达标 ${days} 天',
@@ -3924,6 +4059,8 @@ extension on Translations {
 			'settings.privacy.exportData' => '导出我的数据',
 			'settings.privacy.exportSuccess' => ({required Object path}) => '数据已导出：${path}',
 			'settings.privacy.healthData' => '健康数据授权',
+			_ => null,
+		} ?? switch (path) {
 			'settings.privacy.healthDataSubtitle' => '身高体重、饮食/断食记录等敏感个人信息处理',
 			'settings.privacy.healthDataRevoked' => '已撤回健康数据授权，营养目标将使用默认值',
 			'settings.privacy.analytics' => '数据分析授权',
@@ -3948,8 +4085,6 @@ extension on Translations {
 			'settings.health.fillWeight' => '填入今日体重记录',
 			'settings.health.weightFilled' => ({required Object kg}) => '已填入今日体重记录 ${kg} kg',
 			'settings.health.noData' => '今日暂无运动数据',
-			_ => null,
-		} ?? switch (path) {
 			'settings.theme.title' => '主题',
 			'settings.theme.system' => '跟随系统',
 			'settings.theme.light' => '浅色',
@@ -3962,6 +4097,12 @@ extension on Translations {
 			'settings.bodyProfile.save' => '保存',
 			'settings.bodyProfile.saved' => '身体档案已保存',
 			'settings.bodyProfile.goalUpdated' => ({required Object kcal}) => '每日营养目标已更新为 ${kcal} kcal',
+			'settings.bodyProfile.bmi.title' => 'BMI',
+			'settings.bodyProfile.bmi.underweight' => '偏低',
+			'settings.bodyProfile.bmi.normal' => '标准',
+			'settings.bodyProfile.bmi.overweight' => '偏高',
+			'settings.bodyProfile.bmi.obese' => '肥胖',
+			'settings.bodyProfile.bmi.missing' => '补全身高体重后展示 BMI',
 			'settings.reminders.notifications' => '通知设置',
 			'settings.reminders.notificationsSubtitle' => '前往系统设置管理通知权限',
 			'settings.about.version' => '版本',

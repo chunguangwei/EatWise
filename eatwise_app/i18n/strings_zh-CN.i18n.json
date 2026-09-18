@@ -182,8 +182,11 @@
       "protein": "蛋白质",
       "carb": "碳水",
       "fat": "脂肪",
+      "sodium": "钠",
       "kcalUnit": "千卡",
-      "gramUnit": "克"
+      "kjUnit": "千焦",
+      "gramUnit": "克",
+      "mgUnit": "毫克"
     },
     "toast": {
       "recorded": "已记录",
@@ -343,6 +346,10 @@
     },
     "foodDetail": {
       "per100g": "每 100 克",
+      "kcalKj": "千卡 / ${kj} 千焦 · 每 100 克",
+      "walkSteps": "大约需走 ${steps} 步",
+      "nutrientColumn": "营养素",
+      "nrvColumn": "NRV%",
       "macrosTitle": "三大营养素供能比例",
       "energyShareNote": "圆环按供能占比绘制：1 克脂肪供能 9 千卡，是碳水和蛋白质（各 4 千卡）的 2.25 倍",
       "moreTitle": "每 100 克营养明细",
@@ -589,6 +596,25 @@
       },
       "empty": "周报还差一点点数据，记一笔或完成一次断食就生成啦"
     },
+    "weeklySummary": {
+      "title": "上周小结",
+      "chipQualified": "达标 ${days} 天",
+      "chipRecorded": "记录 ${days} 天",
+      "chipAvgKcal": "平均 ${kcal} · 目标 ${target} 千卡",
+      "chipWeight": "体重 ${kg} 公斤",
+      "fastingPlain": "上周断食达标 ${days} 天",
+      "fastingMore": "上周断食达标 ${days} 天，比前周多 ${delta} 天",
+      "fastingLess": "上周断食达标 ${days} 天，比前周少 ${delta} 天",
+      "fastingSame": "上周断食达标 ${days} 天，与前周持平",
+      "intakeWithin": "平均每日摄入 ${kcal} 千卡，在目标范围内",
+      "intakeAbove": "平均每日摄入 ${kcal} 千卡，比目标高 ${percent}%",
+      "intakeBelow": "平均每日摄入 ${kcal} 千卡，比目标低 ${percent}%",
+      "weightUp": "体重上升 ${kg} 公斤",
+      "weightDown": "体重下降 ${kg} 公斤",
+      "weightSame": "体重基本持平",
+      "disclaimer": "仅供健康生活方式参考",
+      "empty": "先记录几天，下周这时见"
+    },
     "monthly": {
       "prevMonth": "上一月",
       "nextMonth": "下一月",
@@ -726,7 +752,15 @@
       "goalSection": "减重目标（选填，仅减脂目标生效）",
       "save": "保存",
       "saved": "身体档案已保存",
-      "goalUpdated": "每日营养目标已更新为 ${kcal} kcal"
+      "goalUpdated": "每日营养目标已更新为 ${kcal} kcal",
+      "bmi": {
+        "title": "BMI",
+        "underweight": "偏低",
+        "normal": "标准",
+        "overweight": "偏高",
+        "obese": "肥胖",
+        "missing": "补全身高体重后展示 BMI"
+      }
     },
     "reminders": {
       "notifications": "通知设置",

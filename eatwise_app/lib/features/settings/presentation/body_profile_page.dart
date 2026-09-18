@@ -12,6 +12,7 @@ import 'package:eatwise/features/onboarding/application/onboarding_controller.da
 import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
 import 'package:eatwise/features/settings/application/body_profile_service.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
+import 'package:eatwise/features/settings/presentation/bmi_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -65,6 +66,12 @@ class _BodyProfilePageState extends ConsumerState<BodyProfilePage> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.s4),
+                  // BMI 卡（P1）：随表单输入实时联动；缺身高/体重走补全引导。
+                  BmiCard(
+                    heightCm: _profile.heightCm,
+                    weightKg: _profile.weightKg,
+                  ),
+                  const SizedBox(height: AppSpacing.s4),
                   Builder(
                     builder: (context) {
                       final initial = ref
@@ -77,10 +84,11 @@ class _BodyProfilePageState extends ConsumerState<BodyProfilePage> {
                             currentYear: currentYear,
                             initial: initial,
                             onChanged: (profile, valid) {
-                              _profile = profile;
-                              if (valid != _valid) {
-                                setState(() => _valid = valid);
-                              }
+                              // 总是 setState：BMI 卡随输入实时刷新。
+                              setState(() {
+                                _profile = profile;
+                                _valid = valid;
+                              });
                             },
                           ),
                           const SizedBox(height: AppSpacing.s4),

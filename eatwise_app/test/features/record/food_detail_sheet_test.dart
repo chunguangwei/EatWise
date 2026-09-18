@@ -72,9 +72,10 @@ void main() {
     expect(find.text('绿灯 · 放心吃'), findsOneWidget);
     expect(find.text('按每 100 克对照你的每日营养目标判定'), findsOneWidget);
 
-    // 显著热量卡。
+    // 显著热量卡：千卡/千焦并列 + 「大约需走 N 步」（每 100g 口径）。
     expect(find.text('116'), findsOneWidget);
-    expect(find.text('千卡 / 每 100 克'), findsOneWidget);
+    expect(find.text('千卡 / 485 千焦 · 每 100 克'), findsOneWidget);
+    expect(find.text('大约需走 4292 步'), findsOneWidget);
 
     // 三圆环：供能占比（白米饭 蛋白质 9% / 碳水 89% / 脂肪 2%）+ 人话注释。
     expect(find.text('三大营养素供能比例'), findsOneWidget);
@@ -88,7 +89,7 @@ void main() {
     expect(find.textContaining('供能 10 千卡'), findsNothing);
   });
 
-  testWidgets('折叠区展开：三大营养素明细 + 别名', (tester) async {
+  testWidgets('折叠区展开：NRV% 表 + 三大营养素明细 + 别名', (tester) async {
     await pumpSheet(tester, onConfirm: (_) {});
     await tester.ensureVisible(find.text('每 100 克营养明细'));
     await tester.pump();
@@ -96,24 +97,37 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
+    // NRV% 表：表头 + 能量行（kJ）+ 三大营养素行（无钠数据不出钠行）。
+    expect(find.text('营养素'), findsOneWidget);
+    expect(find.text('NRV%'), findsOneWidget);
+    expect(find.text('485 千焦'), findsOneWidget); // 116 kcal × 4.184
+    expect(find.text('6%'), findsOneWidget); // 能量 NRV
+    expect(find.text('4%'), findsOneWidget); // 蛋白质 2.6/60
+    expect(find.text('1%'), findsOneWidget); // 脂肪 0.3/60
+    expect(find.text('钠'), findsNothing);
+
     expect(find.text('蛋白质 2.6 克 · 供能 10 千卡'), findsOneWidget);
     expect(find.text('碳水 25.9 克 · 供能 104 千卡'), findsOneWidget);
     expect(find.text('脂肪 0.3 克 · 供能 3 千卡'), findsOneWidget);
     expect(find.text('别名：米饭、白饭'), findsOneWidget);
   });
 
-  testWidgets('份量输入实时预览 + 确认回调带出份量', (tester) async {
+  testWidgets('份量输入实时预览 + 「大约需走 N 步」联动 + 确认回调带出份量', (tester) async {
     String? confirmed;
     await pumpSheet(tester, onConfirm: (text) => confirmed = text);
 
-    // 初始无预览。
+    // 初始无预览；步数按每 100g 口径。
     expect(find.text('热量 232 千卡'), findsNothing);
+    expect(find.text('大约需走 4292 步'), findsOneWidget);
     await tester.ensureVisible(find.byType(TextField));
     await tester.pump();
     await tester.enterText(find.byType(TextField), '200');
     await tester.pump();
     expect(find.text('热量 232 千卡'), findsOneWidget);
     expect(find.text('蛋白质 5.2 克'), findsOneWidget);
+    // 200g → 232 kcal × 37 ≈ 8584 步（随份量联动）。
+    expect(find.text('大约需走 8584 步'), findsOneWidget);
+    expect(find.text('大约需走 4292 步'), findsNothing);
 
     await tester.tap(find.text('确认记录'));
     await tester.pump();

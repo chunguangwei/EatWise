@@ -49,4 +49,14 @@ void main() {
     );
     expect(r.protein.share + r.carb.share + r.fat.share, closeTo(1, 1e-9));
   });
+
+  test('千卡 → 步数：37 步/kcal（薄荷口径估算，待背书）', () {
+    // 薄荷反推锚点：149 kcal ≈ 5546 步（37.2 步/kcal 取整 37）。
+    expect(stepsFromKcal(149), 5513);
+    expect(stepsFromKcal(116), 4292);
+    expect(stepsFromKcal(0), 0);
+    expect(stepsFromKcal(-5), 0);
+    // 小份量四舍五入。
+    expect(stepsFromKcal(0.5), 19);
+  });
 }

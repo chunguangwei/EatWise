@@ -429,4 +429,40 @@ void main() {
     expect(goal.weeklyRateKg, isNull);
     expect(store.loadProfile()!.hasWeightGoal, isFalse);
   });
+
+  testWidgets('BMI 卡：缺身高体重走补全引导，填齐后实时显示数值+徽标', (tester) async {
+    await pumpPage(tester, loggedIn: false);
+
+    // 空档案 → 引导文案，无 BMI 数值。
+    expect(find.text('补全身高体重后展示 BMI'), findsOneWidget);
+    expect(find.text('标准'), findsNothing);
+
+    // 只填身高 → 仍是引导。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.heightCm')),
+      '176',
+    );
+    await tester.pump();
+    expect(find.text('补全身高体重后展示 BMI'), findsOneWidget);
+
+    // 填齐 → BMI 24.2（75 / 1.76²），偏高徽标。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.weightKg')),
+      '75',
+    );
+    await tester.pump();
+    expect(find.text('补全身高体重后展示 BMI'), findsNothing);
+    expect(find.text('24.2'), findsOneWidget);
+    expect(find.text('偏高'), findsOneWidget);
+
+    // 改体重 → 实时联动到标准区间（60 / 1.76² ≈ 19.4）。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.weightKg')),
+      '60',
+    );
+    await tester.pump();
+    expect(find.text('19.4'), findsOneWidget);
+    expect(find.text('标准'), findsOneWidget);
+    expect(find.text('偏高'), findsNothing);
+  });
 }

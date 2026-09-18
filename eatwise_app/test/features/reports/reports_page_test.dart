@@ -126,6 +126,10 @@ void main() {
   testWidgets('全无数据：趋势/成长轨迹/周报各自走引导空态，无空坐标轴', (tester) async {
     await pumpPage(tester);
 
+    // 上周小结卡（页顶）：0 记录 → 引导文案。
+    expect(find.text('上周小结'), findsOneWidget);
+    expect(find.text('先记录几天，下周这时见'), findsOneWidget);
+
     // 趋势空态（默认热量维度 → CTA 去记录）。
     expect(find.text('数据曲线正在热身，多记几天它就跑起来啦'), findsOneWidget);
     expect(find.text('去记录'), findsWidgets);
@@ -182,6 +186,16 @@ void main() {
     await WeightLogStore(prefs).save('2026-07-28', 64.4);
     await pumpPage(tester);
 
+    // 上周小结卡（上周 7/20～7/26）：达标 1 天（7/26）、记录 1 天（7/26，
+    // 2000 kcal = 目标 → 范围内）；体重仅 7/26 一条落在上周 → 无体重句。
+    expect(find.text('上周小结'), findsOneWidget);
+    expect(find.text('达标 1 天'), findsOneWidget);
+    expect(find.text('记录 1 天'), findsOneWidget);
+    expect(find.text('平均 2000 · 目标 2000 千卡'), findsOneWidget);
+    expect(find.text('上周断食达标 1 天；平均每日摄入 2000 千卡，在目标范围内。'), findsOneWidget);
+    expect(find.text('仅供健康生活方式参考'), findsOneWidget);
+    expect(find.text('先记录几天，下周这时见'), findsNothing);
+
     // 折线渲染，无趋势空态。
     expect(findTrendPainter(), findsOneWidget);
     expect(find.text('数据曲线正在热身，多记几天它就跑起来啦'), findsNothing);
@@ -192,6 +206,9 @@ void main() {
     expect(find.text('2 天'), findsOneWidget); // 7/26、7/28
     expect(find.text('15.0 小时'), findsOneWidget); // (16+14)/2
     expect(find.text('-0.6 公斤'), findsOneWidget); // 体重 Δ
+    // 周报卡在首屏外（上周小结卡占位），滚动露出。
+    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    await tester.pump();
     // 周报（本周 7/27～7/28）：记录 2 条，绿占比 75%（热量 80% 黄）。
     expect(find.text('记录 2 条'), findsOneWidget);
     expect(find.text('绿灯占比 75%'), findsOneWidget);
@@ -286,6 +303,13 @@ void main() {
   testWidgets('英文渲染：维度/范围/周报双语', (tester) async {
     await LocaleSettings.setLocale(AppLocale.en);
     await pumpPage(tester);
+
+    // 上周小结卡（页顶）英文空态。
+    expect(find.text('Last-week recap'), findsOneWidget);
+    expect(
+      find.text('Log a few days first — see you here next week'),
+      findsOneWidget,
+    );
 
     expect(find.text('Growth trends'), findsOneWidget);
     expect(find.text('Weight'), findsOneWidget);

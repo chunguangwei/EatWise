@@ -55,6 +55,14 @@ const double carbKcalPerGram = 4;
 /// 脂肪供能系数（kcal/g，D-04 §2.1）。
 const double fatKcalPerGram = 9;
 
+/// 千卡 → 步数换算系数（步/kcal，薄荷走查 P1「大约需走 N 步」）。
+/// 薄荷口径反推：149 kcal → 5546 步 ≈ 37.2 步/kcal，取整 37。
+/// 属估算假设，数值改动必须先过营养/运动学背书。
+const double stepsPerKcal = 37;
+
+/// 千卡 → 「大约需走 N 步」（四舍五入到整数步；负值按 0 计）。
+int stepsFromKcal(double kcal) => kcal <= 0 ? 0 : (kcal * stepsPerKcal).round();
+
 /// 重量 → 供能 → 占比。总供能为 0（如三项皆 0）时所有 share 返回 0，
 /// 调用方据此走「无供能数据」展示，不做除零。
 MacroEnergyBreakdown computeMacroEnergyBreakdown({

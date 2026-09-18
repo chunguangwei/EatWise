@@ -7,11 +7,13 @@ import 'package:eatwise/features/reports/presentation/growth_card.dart';
 import 'package:eatwise/features/reports/presentation/monthly_report_card.dart';
 import 'package:eatwise/features/reports/presentation/trend_section.dart';
 import 'package:eatwise/features/reports/presentation/weekly_report_card.dart';
+import 'package:eatwise/features/reports/presentation/weekly_summary_card.dart';
 import 'package:flutter/material.dart';
 
 /// M6 数据趋势与深度报告页（/data/reports，数据 Tab 二级页，PRD M6）：
-/// 趋势图（体重/热量/断食时长 × 7/30 天）→ 成长轨迹卡 → 本周报告卡 →
-/// 月报卡（轻量版，本地生成）。空数据各区块独立走引导空态，不渲染空坐标轴。
+/// 上周小结卡（P1，页顶）→ 趋势图（体重/热量/断食时长 × 7/30 天）→
+/// 成长轨迹卡 → 本周报告卡 → 月报卡（轻量版，本地生成）。
+/// 空数据各区块独立走引导空态，不渲染空坐标轴。
 class ReportsPage extends StatelessWidget {
   const ReportsPage({super.key});
 
@@ -33,6 +35,8 @@ class ReportsPage extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.s4),
             children: const <Widget>[
+              WeeklySummaryCard(),
+              SizedBox(height: AppSpacing.s6),
               ReportTrendSection(),
               SizedBox(height: AppSpacing.s6),
               GrowthSummaryCard(),

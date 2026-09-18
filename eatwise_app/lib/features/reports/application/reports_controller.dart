@@ -12,6 +12,7 @@ import 'package:eatwise/features/onboarding/application/onboarding_controller.da
 import 'package:eatwise/features/reports/application/monthly_report.dart';
 import 'package:eatwise/features/reports/application/report_aggregation.dart';
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
+import 'package:eatwise/features/reports/domain/weekly_summary.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart'
     show userMeProvider;
 import 'package:eatwise/features/streak/application/streak_controller.dart'
@@ -300,6 +301,42 @@ final FutureProvider<WeeklyReportStats> weeklyReportProvider =
             if (r.qualified) r.attributionDate,
         },
         goal: ref.watch(nutritionGoalProvider),
+      );
+    });
+
+/// 上周小结（P1：上一个完整自然周；断食环比需多取前周，独立于趋势窗口）。
+final FutureProvider<WeeklySummary> weeklySummaryProvider =
+    FutureProvider<WeeklySummary>((ref) async {
+      final now = dateOnly(ref.watch(reportsNowProvider));
+      final thisMonday = now.subtract(Duration(days: now.weekday - 1));
+      final lastMonday = thisMonday.subtract(const Duration(days: 7));
+      final lastSunday = thisMonday.subtract(const Duration(days: 1));
+      final prevMonday = lastMonday.subtract(const Duration(days: 7));
+      final source = ref.watch(reportsDataSourceProvider);
+      final caches = await source.nutritionRange(
+        localDateOf(lastMonday),
+        localDateOf(lastSunday),
+      );
+      final fasts = await source.fastingRange(
+        localDateOf(prevMonday),
+        localDateOf(lastSunday),
+      );
+      final weights = await source.weightRange(
+        localDateOf(lastMonday),
+        localDateOf(lastSunday),
+      );
+      return computeWeeklySummary(
+        now: now,
+        kcalByDate: <String, double>{
+          for (final c in caches)
+            if (c.entryCount > 0) c.date: c.kcal,
+        },
+        qualifiedDates: <String>{
+          for (final r in fasts)
+            if (r.qualified) r.attributionDate,
+        },
+        weightByDate: weights,
+        targetKcal: ref.watch(nutritionGoalProvider).targetKcal,
       );
     });
 

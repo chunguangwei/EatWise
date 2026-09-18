@@ -12,7 +12,10 @@ import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
 import 'package:eatwise/features/record/domain/food_signal.dart';
 import 'package:eatwise/features/record/domain/macro_energy.dart';
+import 'package:eatwise/features/record/domain/nrv_reference.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
+import 'package:eatwise/features/record/recognition/domain/nutrition_label_ocr_logic.dart'
+    show kKjPerKcal;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -108,6 +111,8 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     // 份量预览（按输入份量 × 每 100g 值换算，与记录页结果卡同格式）。
     final amount = double.tryParse(_amountController.text);
     final preview = amount != null && amount > 0 ? amount / 100 : null;
+    // 「大约需走 N 步」随选中份量实时联动；未输入份量时按每 100g 展示。
+    final walkSteps = stepsFromKcal(food.kcalPer100g * (preview ?? 1));
 
     return SafeArea(
       child: Padding(
@@ -165,7 +170,7 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.s3),
-                    // 显著热量卡（用户最关心，薄荷分层第一位）。
+                    // 显著热量卡（用户最关心，薄荷分层第一位）：千卡/千焦并列。
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(AppSpacing.s4),
@@ -173,20 +178,35 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
                         color: colors.bgSecondary,
                         borderRadius: radii.rLg,
                       ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text(
-                            '${food.kcalPer100g.round()}',
-                            style: textStyles.textTimer.copyWith(
-                              color: colors.brandAccent,
-                            ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: <Widget>[
+                              Text(
+                                '${food.kcalPer100g.round()}',
+                                style: textStyles.textTimer.copyWith(
+                                  color: colors.brandAccent,
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.s2),
+                              Text(
+                                t.record.foodDetail.kcalKj(
+                                  kj: (food.kcalPer100g * kKjPerKcal).round(),
+                                ),
+                                style: textStyles.textSm.copyWith(
+                                  color: colors.textSecondary,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: AppSpacing.s2),
+                          const SizedBox(height: AppSpacing.s1),
+                          // 「大约需走 N 步」（薄荷口径估算，随份量联动）。
                           Text(
-                            '${s.kcalUnit} / ${t.record.foodDetail.per100g}',
-                            style: textStyles.textSm.copyWith(
+                            t.record.foodDetail.walkSteps(steps: walkSteps),
+                            style: textStyles.textXs.copyWith(
                               color: colors.textSecondary,
                             ),
                           ),
@@ -289,6 +309,16 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
                         bottom: AppSpacing.s2,
                       ),
                       children: <Widget>[
+                        // NRV% 表（GB 28050 国标 NRV 值；只有库里有的营养素出行）。
+                        _NrvTable(
+                          rows: computeNrvRows(
+                            kcalPer100g: food.kcalPer100g,
+                            proteinPer100g: food.proteinPer100g,
+                            carbPer100g: food.carbPer100g,
+                            fatPer100g: food.fatPer100g,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.s2),
                         for (final row in <(String, MacroEnergy)>[
                           (s.nutritionProtein, breakdown.protein),
                           (s.nutritionCarb, breakdown.carb),
@@ -540,6 +570,88 @@ class _DetailRow extends StatelessWidget {
           style: textStyles.textSm.copyWith(color: colors.textSecondary),
         ),
       ),
+    );
+  }
+}
+
+/// NRV% 明细表（薄荷走查 P1：营养素 | 每 100 克 | NRV% 三列；
+/// NRV 国标值见 domain/nrv_reference.dart，只有库里有的营养素出行）。
+class _NrvTable extends StatelessWidget {
+  const _NrvTable({required this.rows});
+
+  final List<NrvRow> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Translations.of(context);
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final headerStyle = textStyles.textXs.copyWith(color: colors.textSecondary);
+    final cellStyle = textStyles.textSm.copyWith(color: colors.textSecondary);
+
+    String labelOf(NrvNutrient nutrient) => switch (nutrient) {
+      NrvNutrient.energy => t.record.nutrition.kcal,
+      NrvNutrient.protein => t.record.nutrition.protein,
+      NrvNutrient.carb => t.record.nutrition.carb,
+      NrvNutrient.fat => t.record.nutrition.fat,
+      NrvNutrient.sodium => t.record.nutrition.sodium,
+    };
+
+    String amountOf(NrvRow row) => switch (row.nutrient) {
+      NrvNutrient.energy =>
+        '${row.amount.round()} ${t.record.nutrition.kjUnit}',
+      NrvNutrient.sodium =>
+        '${row.amount.round()} ${t.record.nutrition.mgUnit}',
+      _ => '${row.amount.toStringAsFixed(1)} ${t.record.nutrition.gramUnit}',
+    };
+
+    Widget cell(
+      String text,
+      TextStyle style, {
+      int flex = 1,
+      bool end = false,
+    }) {
+      return Expanded(
+        flex: flex,
+        child: Text(
+          text,
+          style: style,
+          textAlign: end ? TextAlign.end : TextAlign.start,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
+    }
+
+    return Column(
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.s1),
+          child: Row(
+            children: <Widget>[
+              cell(t.record.foodDetail.nutrientColumn, headerStyle, flex: 3),
+              cell(
+                t.record.foodDetail.per100g,
+                headerStyle,
+                flex: 2,
+                end: true,
+              ),
+              cell(t.record.foodDetail.nrvColumn, headerStyle, end: true),
+            ],
+          ),
+        ),
+        for (final row in rows)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.s1),
+            child: Row(
+              children: <Widget>[
+                cell(labelOf(row.nutrient), cellStyle, flex: 3),
+                cell(amountOf(row), cellStyle, flex: 2, end: true),
+                cell('${row.nrvPercent.round()}%', cellStyle, end: true),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

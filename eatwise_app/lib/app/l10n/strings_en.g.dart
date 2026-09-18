@@ -180,6 +180,7 @@ class _Translations$reports$en extends Translations$reports$zh_CN {
 	@override late final _Translations$reports$trend$en trend = _Translations$reports$trend$en._(_root);
 	@override late final _Translations$reports$growth$en growth = _Translations$reports$growth$en._(_root);
 	@override late final _Translations$reports$weekly$en weekly = _Translations$reports$weekly$en._(_root);
+	@override late final _Translations$reports$weeklySummary$en weeklySummary = _Translations$reports$weeklySummary$en._(_root);
 	@override late final _Translations$reports$monthly$en monthly = _Translations$reports$monthly$en._(_root);
 }
 
@@ -479,8 +480,11 @@ class _Translations$record$nutrition$en extends Translations$record$nutrition$zh
 	@override String get protein => 'Protein';
 	@override String get carb => 'Carbs';
 	@override String get fat => 'Fat';
+	@override String get sodium => 'Sodium';
 	@override String get kcalUnit => 'kcal';
+	@override String get kjUnit => 'kJ';
 	@override String get gramUnit => 'g';
+	@override String get mgUnit => 'mg';
 }
 
 // Path: record.toast
@@ -705,6 +709,10 @@ class _Translations$record$foodDetail$en extends Translations$record$foodDetail$
 
 	// Translations
 	@override String get per100g => 'per 100 g';
+	@override String kcalKj({required Object kj}) => 'kcal / ${kj} kJ · per 100 g';
+	@override String walkSteps({required Object steps}) => 'About ${steps} steps to walk off';
+	@override String get nutrientColumn => 'Nutrient';
+	@override String get nrvColumn => 'NRV%';
 	@override String get macrosTitle => 'Calorie breakdown by macros';
 	@override String get energyShareNote => 'Rings show calorie share: 1 g of fat provides 9 kcal — 2.25× that of carbs or protein (4 kcal each)';
 	@override String get moreTitle => 'Nutrition per 100 g';
@@ -932,6 +940,32 @@ class _Translations$reports$weekly$en extends Translations$reports$weekly$zh_CN 
 	@override String get empty => 'Almost there — log a meal or finish a fast to unlock your weekly report.';
 }
 
+// Path: reports.weeklySummary
+class _Translations$reports$weeklySummary$en extends Translations$reports$weeklySummary$zh_CN {
+	_Translations$reports$weeklySummary$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Last-week recap';
+	@override String chipQualified({required Object days}) => '${days}d on target';
+	@override String chipRecorded({required Object days}) => '${days}d logged';
+	@override String chipAvgKcal({required Object kcal, required Object target}) => 'avg ${kcal} · goal ${target} kcal';
+	@override String chipWeight({required Object kg}) => 'weight ${kg} kg';
+	@override String fastingPlain({required Object days}) => 'You hit your fasting goal on ${days} of 7 days last week';
+	@override String fastingMore({required Object days, required Object delta}) => 'You hit your fasting goal on ${days} of 7 days last week, ${delta} more than the week before';
+	@override String fastingLess({required Object days, required Object delta}) => 'You hit your fasting goal on ${days} of 7 days last week, ${delta} fewer than the week before';
+	@override String fastingSame({required Object days}) => 'You hit your fasting goal on ${days} of 7 days last week, the same as the week before';
+	@override String intakeWithin({required Object kcal}) => 'average intake was ${kcal} kcal a day, within your target range';
+	@override String intakeAbove({required Object kcal, required Object percent}) => 'average intake was ${kcal} kcal a day, ${percent}% above target';
+	@override String intakeBelow({required Object kcal, required Object percent}) => 'average intake was ${kcal} kcal a day, ${percent}% below target';
+	@override String weightUp({required Object kg}) => 'weight went up ${kg} kg over the week';
+	@override String weightDown({required Object kg}) => 'weight came down ${kg} kg over the week';
+	@override String get weightSame => 'your weight held steady over the week';
+	@override String get disclaimer => 'For healthy-lifestyle reference only';
+	@override String get empty => 'Log a few days first — see you here next week';
+}
+
 // Path: reports.monthly
 class _Translations$reports$monthly$en extends Translations$reports$monthly$zh_CN {
 	_Translations$reports$monthly$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -1145,6 +1179,7 @@ class _Translations$settings$bodyProfile$en extends Translations$settings$bodyPr
 	@override String get save => 'Save';
 	@override String get saved => 'Body profile saved';
 	@override String goalUpdated({required Object kcal}) => 'Daily nutrition goal updated to ${kcal} kcal';
+	@override late final _Translations$settings$bodyProfile$bmi$en bmi = _Translations$settings$bodyProfile$bmi$en._(_root);
 }
 
 // Path: settings.reminders
@@ -1844,6 +1879,21 @@ class _Translations$streak$milestone$shareCard$en extends Translations$streak$mi
 	@override String get shareFailed => 'Couldn\'t share right now. Please try again later.';
 }
 
+// Path: settings.bodyProfile.bmi
+class _Translations$settings$bodyProfile$bmi$en extends Translations$settings$bodyProfile$bmi$zh_CN {
+	_Translations$settings$bodyProfile$bmi$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'BMI';
+	@override String get underweight => 'Below range';
+	@override String get normal => 'Healthy';
+	@override String get overweight => 'Above range';
+	@override String get obese => 'Obese';
+	@override String get missing => 'Add your height and weight to see your BMI';
+}
+
 // Path: settings.aiModel.providers
 class _Translations$settings$aiModel$providers$en extends Translations$settings$aiModel$providers$zh_CN {
 	_Translations$settings$aiModel$providers$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -2105,8 +2155,11 @@ extension on TranslationsEn {
 			'record.nutrition.protein' => 'Protein',
 			'record.nutrition.carb' => 'Carbs',
 			'record.nutrition.fat' => 'Fat',
+			'record.nutrition.sodium' => 'Sodium',
 			'record.nutrition.kcalUnit' => 'kcal',
+			'record.nutrition.kjUnit' => 'kJ',
 			'record.nutrition.gramUnit' => 'g',
+			'record.nutrition.mgUnit' => 'mg',
 			'record.toast.recorded' => 'Logged',
 			'record.toast.undo' => 'Undo',
 			'record.toast.undone' => 'Undone',
@@ -2236,6 +2289,10 @@ extension on TranslationsEn {
 			'record.empty.title' => 'No food stories yet — tap the orange button to log your first bite?',
 			'record.duringFast.badge' => 'During fast',
 			'record.foodDetail.per100g' => 'per 100 g',
+			'record.foodDetail.kcalKj' => ({required Object kj}) => 'kcal / ${kj} kJ · per 100 g',
+			'record.foodDetail.walkSteps' => ({required Object steps}) => 'About ${steps} steps to walk off',
+			'record.foodDetail.nutrientColumn' => 'Nutrient',
+			'record.foodDetail.nrvColumn' => 'NRV%',
 			'record.foodDetail.macrosTitle' => 'Calorie breakdown by macros',
 			'record.foodDetail.energyShareNote' => 'Rings show calorie share: 1 g of fat provides 9 kcal — 2.25× that of carbs or protein (4 kcal each)',
 			'record.foodDetail.moreTitle' => 'Nutrition per 100 g',
@@ -2403,6 +2460,23 @@ extension on TranslationsEn {
 			'reports.weekly.cheer.mixed' => 'Ups and downs are normal. Keep the rhythm next week~',
 			'reports.weekly.cheer.start' => 'Starting is what counts — your data will grow with you.',
 			'reports.weekly.empty' => 'Almost there — log a meal or finish a fast to unlock your weekly report.',
+			'reports.weeklySummary.title' => 'Last-week recap',
+			'reports.weeklySummary.chipQualified' => ({required Object days}) => '${days}d on target',
+			'reports.weeklySummary.chipRecorded' => ({required Object days}) => '${days}d logged',
+			'reports.weeklySummary.chipAvgKcal' => ({required Object kcal, required Object target}) => 'avg ${kcal} · goal ${target} kcal',
+			'reports.weeklySummary.chipWeight' => ({required Object kg}) => 'weight ${kg} kg',
+			'reports.weeklySummary.fastingPlain' => ({required Object days}) => 'You hit your fasting goal on ${days} of 7 days last week',
+			'reports.weeklySummary.fastingMore' => ({required Object days, required Object delta}) => 'You hit your fasting goal on ${days} of 7 days last week, ${delta} more than the week before',
+			'reports.weeklySummary.fastingLess' => ({required Object days, required Object delta}) => 'You hit your fasting goal on ${days} of 7 days last week, ${delta} fewer than the week before',
+			'reports.weeklySummary.fastingSame' => ({required Object days}) => 'You hit your fasting goal on ${days} of 7 days last week, the same as the week before',
+			'reports.weeklySummary.intakeWithin' => ({required Object kcal}) => 'average intake was ${kcal} kcal a day, within your target range',
+			'reports.weeklySummary.intakeAbove' => ({required Object kcal, required Object percent}) => 'average intake was ${kcal} kcal a day, ${percent}% above target',
+			'reports.weeklySummary.intakeBelow' => ({required Object kcal, required Object percent}) => 'average intake was ${kcal} kcal a day, ${percent}% below target',
+			'reports.weeklySummary.weightUp' => ({required Object kg}) => 'weight went up ${kg} kg over the week',
+			'reports.weeklySummary.weightDown' => ({required Object kg}) => 'weight came down ${kg} kg over the week',
+			'reports.weeklySummary.weightSame' => 'your weight held steady over the week',
+			'reports.weeklySummary.disclaimer' => 'For healthy-lifestyle reference only',
+			'reports.weeklySummary.empty' => 'Log a few days first — see you here next week',
 			'reports.monthly.prevMonth' => 'Previous month',
 			'reports.monthly.nextMonth' => 'Next month',
 			'reports.monthly.qualified' => ({required Object days}) => '${days} fasting days on target',
@@ -2474,6 +2548,8 @@ extension on TranslationsEn {
 			'settings.privacy.exportData' => 'Export my data',
 			'settings.privacy.exportSuccess' => ({required Object path}) => 'Data exported: ${path}',
 			'settings.privacy.healthData' => 'Health data consent',
+			_ => null,
+		} ?? switch (path) {
 			'settings.privacy.healthDataSubtitle' => 'Processing of sensitive personal info such as height/weight and meal/fasting records',
 			'settings.privacy.healthDataRevoked' => 'Health data consent withdrawn — nutrition targets will use defaults',
 			'settings.privacy.analytics' => 'Analytics consent',
@@ -2498,8 +2574,6 @@ extension on TranslationsEn {
 			'settings.health.fillWeight' => 'Fill into today\'s weight log',
 			'settings.health.weightFilled' => ({required Object kg}) => 'Added to today\'s weight log: ${kg} kg',
 			'settings.health.noData' => 'No activity data yet today',
-			_ => null,
-		} ?? switch (path) {
 			'settings.theme.title' => 'Theme',
 			'settings.theme.system' => 'System',
 			'settings.theme.light' => 'Light',
@@ -2512,6 +2586,12 @@ extension on TranslationsEn {
 			'settings.bodyProfile.save' => 'Save',
 			'settings.bodyProfile.saved' => 'Body profile saved',
 			'settings.bodyProfile.goalUpdated' => ({required Object kcal}) => 'Daily nutrition goal updated to ${kcal} kcal',
+			'settings.bodyProfile.bmi.title' => 'BMI',
+			'settings.bodyProfile.bmi.underweight' => 'Below range',
+			'settings.bodyProfile.bmi.normal' => 'Healthy',
+			'settings.bodyProfile.bmi.overweight' => 'Above range',
+			'settings.bodyProfile.bmi.obese' => 'Obese',
+			'settings.bodyProfile.bmi.missing' => 'Add your height and weight to see your BMI',
 			'settings.reminders.notifications' => 'Notification settings',
 			'settings.reminders.notificationsSubtitle' => 'Manage notification permission in system settings',
 			'settings.about.version' => 'Version',
