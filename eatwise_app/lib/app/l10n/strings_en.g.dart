@@ -1127,6 +1127,7 @@ class _Translations$settings$account$en extends Translations$settings$account$zh
 	final TranslationsEn _root; // ignore: unused_field
 
 	// Translations
+	@override String get account => 'Account';
 	@override String get cancelDeletion => 'Cancel deletion';
 	@override String get changePassword => 'Change password';
 	@override String get contributions => 'My contributions';
@@ -1140,7 +1141,6 @@ class _Translations$settings$account$en extends Translations$settings$account$zh
 	@override String deletionScheduled({required Object days}) => 'Deletion scheduled in ${days} day(s) — you can cancel before then';
 	@override String get logout => 'Sign out';
 	@override String get notLoggedIn => 'Not signed in';
-	@override String get phone => 'Phone number';
 }
 
 // Path: settings.privacy
@@ -1179,7 +1179,7 @@ class _Translations$settings$health$en extends Translations$settings$health$zh_C
 	@override String get statusConnecting => 'Reading…';
 	@override String get statusReady => 'Authorized';
 	@override String get statusDenied => 'Not authorized — enable it in the system health settings and retry';
-	@override String get statusUnsupported => 'Not supported on this device (Android requires Health Connect)';
+	@override String get statusUnsupported => 'System health data unavailable on this device (Health Connect not found)';
 	@override String get statusError => 'Read failed — please try again later';
 	@override String get revoked => 'Activity data sync off — system permission revoked';
 	@override String steps({required Object steps}) => 'Steps ${steps}';
@@ -2647,6 +2647,7 @@ extension on TranslationsEn {
 			'settings.group.preferences' => 'Preferences',
 			'settings.group.reminders' => 'Reminders',
 			'settings.group.about' => 'About',
+			'settings.account.account' => 'Account',
 			'settings.account.cancelDeletion' => 'Cancel deletion',
 			'settings.account.changePassword' => 'Change password',
 			'settings.account.contributions' => 'My contributions',
@@ -2660,7 +2661,6 @@ extension on TranslationsEn {
 			'settings.account.deletionScheduled' => ({required Object days}) => 'Deletion scheduled in ${days} day(s) — you can cancel before then',
 			'settings.account.logout' => 'Sign out',
 			'settings.account.notLoggedIn' => 'Not signed in',
-			'settings.account.phone' => 'Phone number',
 			'settings.privacy.privacyPolicy' => 'Privacy Policy',
 			'settings.privacy.userAgreement' => 'Terms of Service',
 			'settings.privacy.exportData' => 'Export my data',
@@ -2681,7 +2681,7 @@ extension on TranslationsEn {
 			'settings.health.statusConnecting' => 'Reading…',
 			'settings.health.statusReady' => 'Authorized',
 			'settings.health.statusDenied' => 'Not authorized — enable it in the system health settings and retry',
-			'settings.health.statusUnsupported' => 'Not supported on this device (Android requires Health Connect)',
+			'settings.health.statusUnsupported' => 'System health data unavailable on this device (Health Connect not found)',
 			'settings.health.statusError' => 'Read failed — please try again later',
 			'settings.health.revoked' => 'Activity data sync off — system permission revoked',
 			'settings.health.steps' => ({required Object steps}) => 'Steps ${steps}',

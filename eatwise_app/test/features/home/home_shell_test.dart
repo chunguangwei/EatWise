@@ -109,7 +109,8 @@ void main() {
     await tester.pump();
     await tester.pumpAndSettle(const Duration(milliseconds: 100));
     expect(find.text('设置'), findsOneWidget);
-    expect(find.text('账号'), findsOneWidget);
+    // 组标题「账号」+ 账号标识行标题「账号」（D-13 v2）两处同文案。
+    expect(find.text('账号'), findsNWidgets(2));
     expect(find.text('隐私'), findsOneWidget);
     // 账号组扩充后偏好组在首屏外：滚动至可见再断言（ListView 懒构建）
     await tester.scrollUntilVisible(

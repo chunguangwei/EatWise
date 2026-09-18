@@ -115,6 +115,11 @@ export class PatchUserDto {
   @IsObject()
   accessibilityPrefs?: Record<string, unknown>;
 
+  /** D-21 用户级偏好同步包（locale/theme/weightUnit/运动目标 + syncedAt） */
+  @IsOptional()
+  @IsObject()
+  settingsPrefs?: Record<string, unknown>;
+
   /** 引导状态回写（客户端 onboarding 完成/跳过时上报；枚举校验防脏数据） */
   @IsOptional()
   @IsIn(['none', 'completed', 'skipped'])

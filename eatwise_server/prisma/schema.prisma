@@ -32,6 +32,7 @@ model User {
   timezone            String    @default("Asia/Shanghai") // IANA，D-07
   themePref           String    @default("system")
   accessibilityPrefs  Json?
+  settingsPrefs       Json? // D-21 用户级偏好同步包（locale/theme/weightUnit/运动目标等 + syncedAt）
   onboardingStatus    String    @default("none") // none / skipped / completed
   exportStatus        String?
   deletionStatus      String? // null / pending（D-18，7 天冷静期〔假设〕）

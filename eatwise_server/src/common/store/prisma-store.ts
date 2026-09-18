@@ -610,6 +610,31 @@ export class PrismaStore extends StoreDriver {
     }
   }
 
+  /** 管理端用户列表（与内存同口径：排除 tombstone，keyword 三字段不敏感子串，最新在前） */
+  async listUsers(keyword?: string): Promise<UserEntity[]> {
+    const k = keyword?.trim();
+    try {
+      const rows = await this.prisma.user.findMany({
+        where: {
+          deletedAt: null,
+          ...(k
+            ? {
+                OR: [
+                  { username: { contains: k, mode: 'insensitive' as const } },
+                  { phone: { contains: k } },
+                  { nickname: { contains: k, mode: 'insensitive' as const } },
+                ],
+              }
+            : {}),
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      });
+      return rows.map(toUserEntity);
+    } catch (e) {
+      throw this.fail('listUsers', e);
+    }
+  }
+
   async findUserByPhone(phone: string): Promise<UserEntity | null> {
     try {
       const user = await this.prisma.user.findFirst({ where: { phone, deletedAt: null } });
@@ -652,6 +677,7 @@ export class PrismaStore extends StoreDriver {
           themePref: partial.themePref ?? 'system',
           accessibilityPrefs: (partial.accessibilityPrefs ??
             Prisma.DbNull) as Prisma.InputJsonValue,
+          settingsPrefs: (partial.settingsPrefs ?? Prisma.DbNull) as Prisma.InputJsonValue,
           onboardingStatus: partial.onboardingStatus ?? 'none',
           deletionStatus: partial.deletionStatus ?? null,
           scheduledDeletionAt: partial.scheduledDeletionAt ?? null,
@@ -1481,6 +1507,7 @@ function toUserEntity(u: Prisma.UserGetPayload<object>): UserEntity {
     timezone: u.timezone,
     themePref: u.themePref,
     accessibilityPrefs: (u.accessibilityPrefs as Record<string, unknown> | null) ?? null,
+    settingsPrefs: (u.settingsPrefs as Record<string, unknown> | null) ?? null,
     onboardingStatus: u.onboardingStatus,
     deletionStatus: u.deletionStatus,
     scheduledDeletionAt: u.scheduledDeletionAt,

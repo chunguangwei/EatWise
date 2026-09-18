@@ -103,6 +103,14 @@ describe('用户权利（U1/U3/U5/U6，合规 §4.2/§4.3）', () => {
       expect(user.phone).toBe('138****8000');
       expect(JSON.stringify(user)).not.toContain('13800138000');
     });
+
+    it('GET users/me 视图返回 username（D-13 v2 账号密码主路径）', async () => {
+      const uid = store.createUser({ username: 'wcg', passwordHash: 'hash' }).id;
+      const { user } = await users.getMe(uid);
+      expect(user.username).toBe('wcg');
+      expect(user.phone).toBeNull();
+      expect(JSON.stringify(user)).not.toContain('hash'); // passwordHash 不外泄
+    });
   });
 
   describe('U3 数据导出', () => {

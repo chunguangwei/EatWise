@@ -162,6 +162,8 @@ describe('App (e2e)', () => {
       .set('Authorization', `Bearer ${res.body.data.accessToken}`)
       .expect(200);
     expect(me.body.data.user.id).toBe(res.body.data.user.id);
+    // username 小写归一化后随 U1 视图返回（D-13 v2 账号密码主路径）
+    expect(me.body.data.user.username).toBe(username);
     // 大小写不敏感的唯一性：同一用户名再注册 → 409
     const dup = await request(server)
       .post('/v1/auth/register')

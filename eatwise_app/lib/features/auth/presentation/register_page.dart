@@ -8,6 +8,7 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/auth/presentation/auth_error.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
+import 'package:eatwise/features/settings/application/settings_prefs_sync.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -118,6 +119,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       unawaited(ref.read(recordSyncEngineProvider).syncNow());
     } on Object {
       // 防御：同步引擎未装配（如测试环境仅注入认证栈）时跳过。
+    }
+    // D-21：注册即登录，下行用户级偏好（失败静默）。
+    try {
+      unawaited(ref.read(settingsPrefsSyncProvider).pull());
+    } on Object {
+      // 防御：偏好同步未装配时跳过。
     }
   }
 

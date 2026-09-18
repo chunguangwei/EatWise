@@ -25,6 +25,8 @@ export interface UserEntity {
   timezone: string;
   themePref: string;
   accessibilityPrefs: Record<string, unknown> | null;
+  /** D-21 用户级偏好同步包（locale/theme/weightUnit/运动目标 + syncedAt，缺键跳过） */
+  settingsPrefs: Record<string, unknown> | null;
   onboardingStatus: string;
   deletionStatus: string | null;
   /** U5 删除冷静期截止时刻（deletionStatus=pending 时非空，到期硬删/匿名化，合规 §4.3） */
@@ -390,6 +392,7 @@ export class DataStore {
       timezone: 'Asia/Shanghai',
       themePref: 'system',
       accessibilityPrefs: null,
+      settingsPrefs: null,
       onboardingStatus: 'none',
       deletionStatus: null,
       scheduledDeletionAt: null,

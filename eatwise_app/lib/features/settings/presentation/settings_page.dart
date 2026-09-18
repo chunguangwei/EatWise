@@ -31,9 +31,10 @@ final appVersionLabelProvider = FutureProvider<String>((ref) async {
 /// 设置页（替换 我的 Tab 占位，M7 + 合规 D-18 落地）。
 ///
 /// 分组卡片列表（设计稿卡片规范，行触控区 ≥44px）：
-/// 账号（脱敏手机号/登出/删除账号冷静期 + 冷静期内状态与撤销）、隐私
-/// （协议/导出/健康数据授权/数据分析授权）、偏好（语言/主题即时生效）、
-/// 提醒（跳系统通知设置）、关于（版本/免责声明常驻入口，§5.1）。
+/// 账号（账号标识（username/脱敏手机号）/登出/删除账号冷静期 + 冷静期内
+/// 状态与撤销）、隐私（协议/导出/健康数据授权/数据分析授权）、偏好
+/// （语言/主题即时生效）、提醒（跳系统通知设置）、关于（版本/免责声明
+/// 常驻入口，§5.1）。
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
 
@@ -43,9 +44,13 @@ class SettingsPage extends ConsumerWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final userMe = ref.watch(userMeProvider).value;
-    final maskedPhone = userMe?.maskedPhone ?? '';
+    // 账号标识（D-13 v2）：username 主路径优先，其次脱敏手机号。
+    final identity = userMe == null
+        ? ''
+        : (userMe.username.isNotEmpty ? userMe.username : userMe.maskedPhone);
     // 本地缓存兜底（U1 失败/离线时仍能看到账号标识）。
-    final cachedPhone = ref.watch(maskedPhoneStoreProvider)?.read() ?? '';
+    final cachedIdentity =
+        ref.watch(accountIdentityStoreProvider)?.read() ?? '';
     final healthGranted = ref.watch(
       privacyConsentControllerProvider.select((s) => s.healthDataGranted),
     );
@@ -69,14 +74,15 @@ class SettingsPage extends ConsumerWidget {
             _SettingsGroup(
               title: t.settings.group.account,
               children: <Widget>[
-                // 手机号脱敏展示（U1 userView 服务端掩码，合规 §6）；
-                // 兜底链：实时值 → 本地缓存（离线兜底）→ 未登录占位。
+                // 账号标识展示（D-13 v2：username 主路径优先，其次 U1
+                // 脱敏手机号，合规 §6）；兜底链：实时值 → 本地缓存
+                // （离线兜底）→ 未登录占位。
                 _SettingsTile(
-                  title: t.settings.account.phone,
-                  trailing: maskedPhone.isNotEmpty
-                      ? maskedPhone
-                      : cachedPhone.isNotEmpty
-                      ? cachedPhone
+                  title: t.settings.account.account,
+                  trailing: identity.isNotEmpty
+                      ? identity
+                      : cachedIdentity.isNotEmpty
+                      ? cachedIdentity
                       : t.settings.account.notLoggedIn,
                 ),
                 // 冷静期内账号：状态行 + 撤销按钮（U6）。
@@ -244,7 +250,7 @@ class SettingsPage extends ConsumerWidget {
     );
     if (confirmed != true || !context.mounted) return;
     // 账号标识缓存随登出清除（下次 U1 成功后重新写入）。
-    await ref.read(maskedPhoneStoreProvider)?.clear();
+    await ref.read(accountIdentityStoreProvider)?.clear();
     await ref.read(authControllerProvider.notifier).logout();
     if (context.mounted) {
       ScaffoldMessenger.of(
@@ -313,7 +319,7 @@ class SettingsPage extends ConsumerWidget {
     );
     if (!context.mounted) return;
     // 删除申请已受理：账号标识缓存一并清除。
-    await ref.read(maskedPhoneStoreProvider)?.clear();
+    await ref.read(accountIdentityStoreProvider)?.clear();
     await ref.read(authControllerProvider.notifier).logout();
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

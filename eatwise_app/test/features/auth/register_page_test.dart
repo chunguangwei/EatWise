@@ -194,7 +194,9 @@ void main() {
       expect(authGate.loggedIn, isTrue);
       expect(await tokenStore.accessToken, 'at-new');
       expect(await tokenStore.refreshToken, 'rt-new');
-      final body = adapter.requestBodies.single as Map<dynamic, dynamic>;
+      final body = adapter.requestBodies
+          .whereType<Map<dynamic, dynamic>>()
+          .singleWhere((b) => b.containsKey('username'));
       expect(body['username'], 'new_user');
       expect(body['password'], 'passw0rd');
     });

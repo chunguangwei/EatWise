@@ -30,10 +30,12 @@ final class NutritionTargetsView {
   }
 }
 
-/// 当前用户视图（U1 GET /users/me 子集：手机号已脱敏，合规 §6）。
+/// 当前用户视图（U1 GET /users/me 子集：账号标识 username（D-13 v2
+/// 主路径）+ 脱敏手机号，合规 §6）。
 final class UserMeView {
   const UserMeView({
     required this.id,
+    required this.username,
     required this.maskedPhone,
     this.deletionStatus,
     this.scheduledDeletionAt,
@@ -46,12 +48,16 @@ final class UserMeView {
     this.targetWeightKg,
     this.targetDate,
     this.onboardingStatus,
+    this.settingsPrefs,
     this.nutritionTargets,
   });
 
   final String id;
 
-  /// 脱敏手机号（服务端掩码返回，如 +8613****8000）。
+  /// 账号密码登录用户名（D-13 v2 主路径；手机号账号为 ''）。
+  final String username;
+
+  /// 脱敏手机号（服务端掩码返回，如 +8613****8000；username 账号为 ''）。
   final String maskedPhone;
 
   /// 删除预约状态（pending 为冷静期内）。
@@ -87,6 +93,10 @@ final class UserMeView {
   /// 引导状态（none/completed/skipped）。
   final String? onboardingStatus;
 
+  /// D-21 用户级偏好同步包（locale/theme/weightUnit/运动目标 + syncedAt；
+  /// 未同步过为 null）。
+  final Map<String, dynamic>? settingsPrefs;
+
   /// 服务端按档案计算的营养目标快照（缺基础信息时 fallback=true）。
   final NutritionTargetsView? nutritionTargets;
 
@@ -97,6 +107,7 @@ final class UserMeView {
     final scheduled = json['scheduledDeletionAt'] as String?;
     return UserMeView(
       id: json['id'] as String? ?? '',
+      username: json['username'] as String? ?? '',
       maskedPhone: json['phone'] as String? ?? '',
       deletionStatus: json['deletionStatus'] as String?,
       scheduledDeletionAt: scheduled != null
@@ -111,6 +122,9 @@ final class UserMeView {
       targetWeightKg: (json['targetWeightKg'] as num?)?.toDouble(),
       targetDate: json['targetDate'] as String?,
       onboardingStatus: json['onboardingStatus'] as String?,
+      settingsPrefs: json['settingsPrefs'] is Map<String, dynamic>
+          ? json['settingsPrefs'] as Map<String, dynamic>
+          : null,
       nutritionTargets: nutritionTargets != null
           ? NutritionTargetsView.fromJson(nutritionTargets)
           : null,

@@ -701,7 +701,7 @@
 
 | 端点 | 说明 |
 |------|------|
-| `GET /v1/app/version/latest?platform=android\|ios` | 返回 `{latestVersion, minSupportedVersion, releaseNotes{zh,en}, apkUrl, publishedAt, source}`。数据源：GitHub Releases（env `GITHUB_RELEASE_TOKEN`，私有仓库必需）→ 失败降级 env 静态配置（`APP_LATEST_VERSION`/`APP_APK_URL`）；按平台缓存 5 分钟；`minSupportedVersion` 取 `APP_MIN_SUPPORTED_VERSION`（默认 1.0.0，低于此版本客户端强制更新）。公开端点（@Public）。 |
+| `GET /v1/app/version/latest?platform=android\|ios` | 返回 `{latestVersion, minSupportedVersion, releaseNotes{zh,en}, apkUrl, publishedAt, source}`。数据源：GitHub Releases（env `GITHUB_RELEASE_TOKEN`，私有仓库必需）→ 失败降级 env 静态配置（`APP_LATEST_VERSION`/`APP_APK_URL`）；按平台缓存 5 分钟；`minSupportedVersion` 取 `APP_MIN_SUPPORTED_VERSION`（默认 1.0.0，低于此版本客户端强制更新）。公开端点（@Public）。iOS 的 `apkUrl` 恒为 null；客户端侧 iOS 不弹更新提醒（未上架 App Store，平台门在 `UpdateChecker`，2026-09-18），上架后恢复为跳 App Store。 |
 
 ### B.2 用户权利（合规落地）
 

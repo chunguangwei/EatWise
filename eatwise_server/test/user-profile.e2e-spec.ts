@@ -92,6 +92,34 @@ describe('User profile patch validation (e2e)', () => {
     expect(me.body.data.user.onboardingStatus).toBe('skipped');
   });
 
+  it('D-21 settingsPrefs 偏好同步包：PATCH 落库 + getMe 回显，对象外类型 → 400', async () => {
+    const prefs = {
+      locale: 'zh-CN',
+      theme: 'system',
+      weightUnit: 'jin',
+      burnGoalKcal: 500,
+      stepsGoal: 8000,
+      syncedAt: '2026-09-18T08:00:00.000Z',
+    };
+    const res = await patch({ settingsPrefs: prefs }).expect(200);
+    expect(res.body.data.user.settingsPrefs).toEqual(prefs);
+
+    // 字段级 LWW：只改部分键时整个 JSON 包整体替换（客户端约定整包推送）
+    const next = { ...prefs, theme: 'dark', syncedAt: '2026-09-18T09:00:00.000Z' };
+    const me = await request(server)
+      .get('/v1/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(me.body.data.user.settingsPrefs).toEqual(prefs);
+
+    const res2 = await patch({ settingsPrefs: next }).expect(200);
+    expect(res2.body.data.user.settingsPrefs).toEqual(next);
+
+    // 非对象类型 → DTO 校验拒绝
+    expect((await patch({ settingsPrefs: 'dark' })).status).toBe(400);
+    expect((await patch({ settingsPrefs: 42 })).status).toBe(400);
+  });
+
   it('阶段 B 减重目标：targetWeightKg/targetDate 合法 → 200 落库并以日期口径回显', async () => {
     const future = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
     const res = await patch({ targetWeightKg: 62.5, targetDate: future }).expect(200);

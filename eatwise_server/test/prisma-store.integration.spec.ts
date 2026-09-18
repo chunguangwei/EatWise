@@ -200,6 +200,47 @@ describePg('PrismaStore（集成，真实 PostgreSQL）', () => {
     expect(afterDelete.conflictType).toBe('deleted_vs_modified');
   });
 
+  it('listUsers：keyword 三字段不敏感匹配 + 排除 tombstone + 最新在前', async () => {
+    const tag = randomUUID().slice(0, 8);
+    const u3phone = `+8613900${String(parseInt(tag, 16) % 1_000_000).padStart(6, '0')}`;
+    const [u1, u2, u3, gone] = await Promise.all([
+      prisma.user.create({
+        data: { username: `itlu-${tag}-a`, createdAt: new Date('2026-09-01T00:00:00Z') },
+      }),
+      prisma.user.create({
+        data: { nickname: `ITLU ${tag} 昵称`, createdAt: new Date('2026-09-02T00:00:00Z') },
+      }),
+      prisma.user.create({
+        data: { phone: u3phone, createdAt: new Date('2026-09-03T00:00:00Z') },
+      }),
+      prisma.user.create({
+        data: {
+          username: `itlu-${tag}-gone`,
+          deletedAt: new Date(),
+          createdAt: new Date('2026-09-04T00:00:00Z'),
+        },
+      }),
+    ]);
+    const ids = [u1.id, u2.id, u3.id, gone.id];
+    try {
+      // 全量（排除 tombstone）：u3/u2/u1 最新在前，gone 不出现
+      const all = await store.listUsers();
+      const mine = all.filter((u) => ids.includes(u.id));
+      expect(mine.map((u) => u.id)).toEqual([u3.id, u2.id, u1.id]);
+
+      // username 匹配（大小写不敏感）
+      expect((await store.listUsers(`ITLU-${tag}-A`)).map((u) => u.id)).toEqual([u1.id]);
+      // nickname 匹配（大小写不敏感）
+      expect((await store.listUsers(`itlu ${tag}`)).map((u) => u.id)).toEqual([u2.id]);
+      // phone 匹配
+      expect((await store.listUsers(u3.phone!.slice(-6))).map((u) => u.id)).toEqual([u3.id]);
+      // 无命中
+      expect(await store.listUsers(`zzz-${tag}-zzz`)).toHaveLength(0);
+    } finally {
+      await prisma.user.deleteMany({ where: { id: { in: ids } } });
+    }
+  });
+
   it('U3 导出聚合 + U5 清除（物理删除 + 帖子匿名化）', async () => {
     await store.pushFoodEntries(userId, [
       {
@@ -494,6 +535,13 @@ describePg('PrismaStore 全量 CRUD 基座（集成，真实 PostgreSQL）', () 
     expect(patched.nickname).toBe('小测'); // 未给字段不动
     expect(patched.version).toBe(2);
     expect(patched.updatedAt.getTime()).toBeGreaterThanOrEqual(created.updatedAt.getTime());
+
+    // D-21 settingsPrefs：JSON 包真实落库并回读
+    const prefs = { locale: 'zh-CN', theme: 'dark', syncedAt: '2026-09-18T08:00:00.000Z' };
+    const prefsPatched = await store.updateUserProfile(created.id, { settingsPrefs: prefs });
+    expect(prefsPatched.settingsPrefs).toEqual(prefs);
+    const reloaded = await store.findUserById(created.id);
+    expect(reloaded!.settingsPrefs).toEqual(prefs);
 
     // 软删后：findUserById 原始读取仍在（调用方自判），findUserByUsername 仍占位，
     // updateUserProfile/updateUserDeletion → NOT_FOUND

@@ -65,6 +65,7 @@
   <div class="tabs">
     <button id="tabReview" class="active" onclick="switchTab('review')">食物审核</button>
     <button id="tabPosts" onclick="switchTab('posts')">打卡审核</button>
+    <button id="tabUsers" onclick="switchTab('users')">用户</button>
   </div>
 
   <!-- 食物审核 -->
@@ -105,6 +106,30 @@
     <div id="postEmpty" class="empty" style="display:none">暂无数据</div>
     <div style="margin-top:12px; text-align:center">
       <button id="postMoreBtn" class="btn ghost" style="display:none" onclick="loadPosts(true)">加载更多</button>
+    </div>
+  </section>
+
+  <!-- 用户 -->
+  <section id="panelUsers" class="panel" style="display:none">
+    <div class="filters">
+      <input id="userKeyword" type="text" placeholder="用户名 / 手机号 / 昵称"
+        style="padding:6px 12px;border:1px solid #d5ddd9;border-radius:999px;font-size:13px;width:240px"
+        onkeydown="if(event.key==='Enter')searchUsers()">
+      <button class="btn" onclick="searchUsers()">搜索</button>
+      <button class="btn ghost" onclick="resetUserSearch()">重置</button>
+    </div>
+    <div id="usersMsg" class="msg"></div>
+    <table>
+      <thead><tr>
+        <th>用户名</th><th>昵称</th><th>手机号</th><th>目标</th><th>新手引导</th><th>删除状态</th><th>注册时间</th>
+      </tr></thead>
+      <tbody id="userRows"></tbody>
+    </table>
+    <div id="userEmpty" class="empty" style="display:none">暂无数据</div>
+    <div style="margin-top:12px; display:flex; align-items:center; justify-content:center; gap:10px">
+      <button id="userPrevBtn" class="btn ghost" onclick="loadUsers(userState.page - 1)">上一页</button>
+      <span id="userPageInfo" class="muted"></span>
+      <button id="userNextBtn" class="btn ghost" onclick="loadUsers(userState.page + 1)">下一页</button>
     </div>
   </section>
 </main>
@@ -214,10 +239,13 @@ async function api(path, opts) {
 function switchTab(name) {
   document.getElementById('tabReview').className = name === 'review' ? 'active' : '';
   document.getElementById('tabPosts').className = name === 'posts' ? 'active' : '';
+  document.getElementById('tabUsers').className = name === 'users' ? 'active' : '';
   document.getElementById('panelReview').style.display = name === 'review' ? '' : 'none';
   document.getElementById('panelPosts').style.display = name === 'posts' ? '' : 'none';
+  document.getElementById('panelUsers').style.display = name === 'users' ? '' : 'none';
   if (name === 'review') loadCandidates(false);
   if (name === 'posts') loadPosts(false);
+  if (name === 'users') loadUsers(1);
 }
 
 function setStatus(s) {
@@ -420,6 +448,62 @@ async function reviewPost(id, action) {
     flash('postsMsg', e.message, false);
     loadPosts(false);
   }
+}
+
+/* ===== 用户 ===== */
+
+var userState = { keyword: '', page: 1, pageSize: 20, total: 0 };
+var GOAL_LABEL = { fat_loss: '减脂', health_metric: '指标管理', routine: '规律饮食', trial: '体验' };
+var ONBOARDING_LABEL = { none: '未完成', skipped: '已跳过', completed: '已完成' };
+
+function searchUsers() {
+  userState.keyword = document.getElementById('userKeyword').value.trim();
+  loadUsers(1);
+}
+
+function resetUserSearch() {
+  document.getElementById('userKeyword').value = '';
+  userState.keyword = '';
+  loadUsers(1);
+}
+
+async function loadUsers(page) {
+  try {
+    var url = '/admin/users?page=' + page + '&pageSize=' + userState.pageSize;
+    if (userState.keyword) url += '&keyword=' + encodeURIComponent(userState.keyword);
+    var data = await api(url);
+    userState.page = data.page;
+    userState.total = data.total;
+    renderUserRows(data.items);
+    var maxPage = Math.max(1, Math.ceil(data.total / data.pageSize));
+    document.getElementById('userPageInfo').textContent =
+      '第 ' + data.page + ' / ' + maxPage + ' 页 · 共 ' + data.total + ' 人';
+    document.getElementById('userPrevBtn').disabled = data.page <= 1;
+    document.getElementById('userNextBtn').disabled = data.page >= maxPage;
+    document.getElementById('userEmpty').style.display = data.items.length === 0 ? '' : 'none';
+  } catch (e) {
+    flash('usersMsg', e.message, false);
+  }
+}
+
+function renderUserRows(items) {
+  var tbody = document.getElementById('userRows');
+  tbody.innerHTML = '';
+  items.forEach(function (u) {
+    var tr = document.createElement('tr');
+    var deletion = u.deletionStatus === 'pending'
+      ? '<span class="badge pending">冷静期</span>'
+      : '<span class="muted">—</span>';
+    tr.innerHTML =
+      '<td>' + (u.username ? esc(u.username) : '<span class="muted">—</span>') + '</td>' +
+      '<td>' + (u.nickname ? esc(u.nickname) : '<span class="muted">—</span>') + '</td>' +
+      '<td>' + (u.phone ? esc(u.phone) : '<span class="muted">—</span>') + '</td>' +
+      '<td>' + (GOAL_LABEL[u.goal] || (u.goal ? esc(u.goal) : '<span class="muted">—</span>')) + '</td>' +
+      '<td>' + (ONBOARDING_LABEL[u.onboardingStatus] || esc(u.onboardingStatus)) + '</td>' +
+      '<td>' + deletion + '</td>' +
+      '<td><span class="muted">' + fmtTime(u.createdAt) + '</span></td>';
+    tbody.appendChild(tr);
+  });
 }
 
 refreshMe().then(function () { loadCandidates(false); });

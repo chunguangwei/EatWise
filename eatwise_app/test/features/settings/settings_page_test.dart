@@ -27,7 +27,7 @@ import '../../core/network/fake_http_adapter.dart';
 
 /// 设置页（M7 + 合规 D-18）：分组渲染、语言/主题切换即时生效、
 /// 健康数据授权撤回、数据分析授权接 ConsentStore、U3 导出 / U5 删除 /
-/// U6 撤销 / U1 脱敏手机号、双语。
+/// U6 撤销 / U1 账号标识（D-13 v2：username 优先，其次脱敏手机号）、双语。
 void main() {
   late SharedPreferences prefs;
   late FakeHttpAdapter adapter;
@@ -154,7 +154,8 @@ void main() {
     await pumpSettings(tester);
 
     expect(find.text('设置'), findsOneWidget);
-    expect(find.text('账号'), findsOneWidget);
+    // 组标题「账号」+ 账号标识行标题「账号」（D-13 v2）两处同文案。
+    expect(find.text('账号'), findsNWidgets(2));
     expect(find.text('隐私'), findsOneWidget);
     expect(find.text('删除账号'), findsOneWidget);
     expect(find.text('身体档案'), findsOneWidget); // 阶段 A 新增入口（账号组）
@@ -292,7 +293,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('账号区显示 U1 脱敏手机号', (tester) async {
+  testWidgets('账号区显示 U1 脱敏手机号（phone 账号）', (tester) async {
     adapter.stub(
       '/users/me',
       StubResponse.json(
@@ -300,6 +301,7 @@ void main() {
         StubResponse.envelope(<String, Object?>{
           'user': <String, Object?>{
             'id': 'u-1',
+            'username': null,
             'phone': '+8613****8000',
             'deletionStatus': null,
             'scheduledDeletionAt': null,
@@ -312,13 +314,40 @@ void main() {
 
     expect(find.text('+8613****8000'), findsOneWidget);
     // 成功拉取即写入本地缓存（离线兜底数据源）。
-    expect(prefs.getString(MaskedPhoneStore.key), '+8613****8000');
+    expect(prefs.getString(AccountIdentityStore.key), '+8613****8000');
 
     await unmount(tester);
   });
 
-  testWidgets('手机号兜底：U1 失败但有本地缓存时显示缓存的脱敏号', (tester) async {
-    await prefs.setString(MaskedPhoneStore.key, '+8613****8000');
+  testWidgets('账号区显示 username（D-13 v2 账号密码主路径优先）', (tester) async {
+    adapter.stub(
+      '/users/me',
+      StubResponse.json(
+        200,
+        StubResponse.envelope(<String, Object?>{
+          'user': <String, Object?>{
+            'id': 'u-2',
+            'username': 'wcg',
+            'phone': null,
+            'deletionStatus': null,
+            'scheduledDeletionAt': null,
+          },
+        }),
+      ),
+    );
+    await pumpSettings(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('wcg'), findsOneWidget);
+    expect(find.text('未登录'), findsNothing);
+    // 缓存内容为实际显示值（username 优先于脱敏手机号）。
+    expect(prefs.getString(AccountIdentityStore.key), 'wcg');
+
+    await unmount(tester);
+  });
+
+  testWidgets('账号标识兜底：U1 失败但有本地缓存时显示缓存标识', (tester) async {
+    await prefs.setString(AccountIdentityStore.key, '+8613****8000');
     // U1 接口失败（断网）→ userMeProvider 回落 null。
     adapter.stub('/users/me', StubResponse.networkError('offline'));
     await pumpSettings(tester);
@@ -330,7 +359,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('手机号兜底：U1 失败且本地有 userId 时显示未登录占位（不回退展示原始 userId）', (
+  testWidgets('账号标识兜底：U1 失败且本地有 userId 时显示未登录占位（不回退展示原始 userId）', (
     tester,
   ) async {
     const uuid = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
@@ -352,7 +381,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('登出后清除手机号本地缓存', (tester) async {
+  testWidgets('登出后清除账号标识本地缓存', (tester) async {
     adapter.stub(
       '/users/me',
       StubResponse.json(
@@ -371,7 +400,7 @@ void main() {
     await pumpSettings(tester);
     await tester.pumpAndSettle();
     // U1 成功已写入缓存。
-    expect(prefs.getString(MaskedPhoneStore.key), '+8613****8000');
+    expect(prefs.getString(AccountIdentityStore.key), '+8613****8000');
 
     await tester.tap(find.text('登出'));
     await tester.pump();
@@ -381,7 +410,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(authGate.loggedIn, isFalse);
-    expect(prefs.getString(MaskedPhoneStore.key), isNull);
+    expect(prefs.getString(AccountIdentityStore.key), isNull);
 
     await unmount(tester);
   });
@@ -461,7 +490,8 @@ void main() {
     await pumpSettings(tester);
 
     expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('Account'), findsOneWidget);
+    // 组标题 Account + 账号标识行标题 Account 两处同文案。
+    expect(find.text('Account'), findsNWidgets(2));
     expect(find.text('Privacy'), findsOneWidget);
     expect(find.text('Export my data'), findsOneWidget);
 

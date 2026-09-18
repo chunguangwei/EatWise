@@ -181,36 +181,40 @@ final userApiProvider = Provider<UserApi>((ref) {
   return UserApi(ref.watch(apiDioProvider));
 });
 
-/// 脱敏手机号本地缓存（设置页账号区兜底：U1 失败/离线时仍可显示
-/// 最近一次成功拉取的账号标识；登出/删除账号时由设置页清除）。
-final class MaskedPhoneStore {
-  MaskedPhoneStore(this._prefs);
+/// 账号标识本地缓存（设置页账号区兜底：U1 失败/离线时仍可显示最近一次
+/// 成功拉取的账号标识——username（D-13 v2 主路径）或脱敏手机号；
+/// 登出/删除账号时由设置页清除）。
+final class AccountIdentityStore {
+  AccountIdentityStore(this._prefs);
 
+  /// 键名沿用 v1 手机号缓存键（内容为账号标识，避免迁移）。
   static const String key = 'settings.cachedMaskedPhone';
 
   final SharedPreferences _prefs;
 
   String? read() => _prefs.getString(key);
 
-  Future<void> save(String maskedPhone) => _prefs.setString(key, maskedPhone);
+  Future<void> save(String identity) => _prefs.setString(key, identity);
 
   Future<void> clear() => _prefs.remove(key);
 }
 
 /// SharedPreferences 未注入（测试/预览）时降级 null，缓存链路静默失效。
-final maskedPhoneStoreProvider = Provider<MaskedPhoneStore?>((ref) {
+final accountIdentityStoreProvider = Provider<AccountIdentityStore?>((ref) {
   final prefs = _tryPrefs(ref);
-  return prefs == null ? null : MaskedPhoneStore(prefs);
+  return prefs == null ? null : AccountIdentityStore(prefs);
 });
 
-/// 当前用户视图（设置页账号区：脱敏手机号 + 删除预约状态）；
+/// 当前用户视图（设置页账号区：账号标识 + 删除预约状态）；
 /// 未登录/离线/接口失败回落 null（UI 降级显示）。
 final userMeProvider = FutureProvider<UserMeView?>((ref) async {
   try {
     final me = await ref.watch(userApiProvider).getMe();
-    // 账号标识本地兜底：成功拉取即缓存脱敏手机号（已掩码，合规 §6）。
-    if (me.maskedPhone.isNotEmpty) {
-      await ref.read(maskedPhoneStoreProvider)?.save(me.maskedPhone);
+    // 账号标识本地兜底：成功拉取即缓存显示值（username 优先，其次
+    // 脱敏手机号——已掩码，合规 §6）。
+    final identity = me.username.isNotEmpty ? me.username : me.maskedPhone;
+    if (identity.isNotEmpty) {
+      await ref.read(accountIdentityStoreProvider)?.save(identity);
     }
     return me;
   } on Object {

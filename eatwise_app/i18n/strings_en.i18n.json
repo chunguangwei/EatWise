@@ -732,6 +732,7 @@
       "about": "About"
     },
     "account": {
+      "account": "Account",
       "cancelDeletion": "Cancel deletion",
       "changePassword": "Change password",
       "contributions": "My contributions",
@@ -744,8 +745,7 @@
       "deletionCancelled": "Deletion cancelled — your account is back to normal",
       "deletionScheduled": "Deletion scheduled in ${days} day(s) — you can cancel before then",
       "logout": "Sign out",
-      "notLoggedIn": "Not signed in",
-      "phone": "Phone number"
+      "notLoggedIn": "Not signed in"
     },
     "privacy": {
       "privacyPolicy": "Privacy Policy",
@@ -770,7 +770,7 @@
       "statusConnecting": "Reading…",
       "statusReady": "Authorized",
       "statusDenied": "Not authorized — enable it in the system health settings and retry",
-      "statusUnsupported": "Not supported on this device (Android requires Health Connect)",
+      "statusUnsupported": "System health data unavailable on this device (Health Connect not found)",
       "statusError": "Read failed — please try again later",
       "revoked": "Activity data sync off — system permission revoked",
       "steps": "Steps ${steps}",

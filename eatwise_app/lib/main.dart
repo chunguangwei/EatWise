@@ -34,6 +34,7 @@ import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
+import 'package:eatwise/features/settings/application/settings_prefs_sync.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -141,6 +142,8 @@ Future<void> main() async {
   if (authGate.loggedIn) {
     // §2.1：App 启动触发一轮同步（先上行 pending 再增量下行）。
     unawaited(container.read(recordSyncEngineProvider).syncNow());
+    // D-21：恢复会话后下行用户级偏好（远端新才覆盖本地，失败静默）。
+    unawaited(container.read(settingsPrefsSyncProvider).pull());
   }
   // 冷启动引擎预热（真机反馈：重启后端侧开关持久化为开但没人触发
   // 预热，首拍仍吃视觉重建数秒）——等首个模型快照落地后「开关开 +

@@ -1895,6 +1895,9 @@ class Translations$settings$account$zh_CN {
 
 	// Translations
 
+	/// zh-CN: '账号'
+	String get account => '账号';
+
 	/// zh-CN: '撤销删除'
 	String get cancelDeletion => '撤销删除';
 
@@ -1933,9 +1936,6 @@ class Translations$settings$account$zh_CN {
 
 	/// zh-CN: '未登录'
 	String get notLoggedIn => '未登录';
-
-	/// zh-CN: '手机号'
-	String get phone => '手机号';
 }
 
 // Path: settings.privacy
@@ -2015,8 +2015,8 @@ class Translations$settings$health$zh_CN {
 	/// zh-CN: '未授权，可在系统健康设置中开启后重试'
 	String get statusDenied => '未授权，可在系统健康设置中开启后重试';
 
-	/// zh-CN: '当前设备不支持（Android 需安装 Health Connect）'
-	String get statusUnsupported => '当前设备不支持（Android 需安装 Health Connect）';
+	/// zh-CN: '当前设备不支持系统健康数据（未检测到 Health Connect / 健康服务）'
+	String get statusUnsupported => '当前设备不支持系统健康数据（未检测到 Health Connect / 健康服务）';
 
 	/// zh-CN: '读取失败，请稍后重试'
 	String get statusError => '读取失败，请稍后重试';
@@ -4256,6 +4256,7 @@ extension on Translations {
 			'settings.group.preferences' => '偏好',
 			'settings.group.reminders' => '提醒',
 			'settings.group.about' => '关于',
+			'settings.account.account' => '账号',
 			'settings.account.cancelDeletion' => '撤销删除',
 			'settings.account.changePassword' => '修改密码',
 			'settings.account.contributions' => '我的贡献',
@@ -4269,7 +4270,6 @@ extension on Translations {
 			'settings.account.deletionScheduled' => ({required Object days}) => '删除已预约，${days} 日后执行，到期前可撤销',
 			'settings.account.logout' => '登出',
 			'settings.account.notLoggedIn' => '未登录',
-			'settings.account.phone' => '手机号',
 			'settings.privacy.privacyPolicy' => '隐私政策',
 			'settings.privacy.userAgreement' => '用户协议',
 			'settings.privacy.exportData' => '导出我的数据',
@@ -4290,7 +4290,7 @@ extension on Translations {
 			'settings.health.statusConnecting' => '读取中…',
 			'settings.health.statusReady' => '已授权',
 			'settings.health.statusDenied' => '未授权，可在系统健康设置中开启后重试',
-			'settings.health.statusUnsupported' => '当前设备不支持（Android 需安装 Health Connect）',
+			'settings.health.statusUnsupported' => '当前设备不支持系统健康数据（未检测到 Health Connect / 健康服务）',
 			'settings.health.statusError' => '读取失败，请稍后重试',
 			'settings.health.revoked' => '已关闭运动数据同步，系统授权已撤销',
 			'settings.health.steps' => ({required Object steps}) => '步数 ${steps}',

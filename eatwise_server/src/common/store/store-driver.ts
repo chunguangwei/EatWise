@@ -165,6 +165,13 @@ export abstract class StoreDriver {
 
   abstract findUserById(userId: string): Promise<UserEntity | null>;
 
+  /**
+   * 管理端用户列表：排除 deletedAt tombstone；keyword 缺省返回全部，给定则
+   * username/phone/nickname 大小写不敏感子串匹配；按 (createdAt 降序, id 降序) 最新在前。
+   * 分页/脱敏视图由调用方（AdminUsersService）完成。
+   */
+  abstract listUsers(keyword?: string): Promise<UserEntity[]>;
+
   /** 按手机号定位，排除已软删用户 */
   abstract findUserByPhone(phone: string): Promise<UserEntity | null>;
 
@@ -397,6 +404,7 @@ export type UserProfilePatch = Partial<
     | 'locale'
     | 'themePref'
     | 'accessibilityPrefs'
+    | 'settingsPrefs'
     | 'onboardingStatus'
   >
 >;
@@ -660,6 +668,21 @@ export class MemoryStoreDriver extends StoreDriver {
 
   findUserById(userId: string): Promise<UserEntity | null> {
     return Promise.resolve(this.store.users.get(userId) ?? null);
+  }
+
+  listUsers(keyword?: string): Promise<UserEntity[]> {
+    const k = keyword?.trim().toLowerCase();
+    const rows = [...this.store.users.values()]
+      .filter((u) => !u.deletedAt)
+      .filter(
+        (u) =>
+          !k ||
+          u.username?.toLowerCase().includes(k) ||
+          u.phone?.toLowerCase().includes(k) ||
+          u.nickname?.toLowerCase().includes(k),
+      )
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id));
+    return Promise.resolve(rows);
   }
 
   findUserByPhone(phone: string): Promise<UserEntity | null> {

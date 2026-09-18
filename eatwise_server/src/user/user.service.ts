@@ -22,6 +22,7 @@ const PATCHABLE = [
   'locale',
   'themePref',
   'accessibilityPrefs',
+  'settingsPrefs',
   'onboardingStatus',
 ] as const;
 
@@ -125,6 +126,7 @@ export class UserService {
   private userView(u: UserEntity) {
     return {
       id: u.id,
+      username: u.username, // D-13 v2：账号密码为主路径，客户端账号标识优先展示
       phone: maskPhone(u.phone), // 对外响应脱敏（合规 §6），明文仅出现在 U3 本人导出包
       nickname: u.nickname,
       avatarUrl: null,
@@ -141,6 +143,7 @@ export class UserService {
       timezone: u.timezone,
       themePref: u.themePref,
       accessibilityPrefs: u.accessibilityPrefs,
+      settingsPrefs: u.settingsPrefs,
       onboardingStatus: u.onboardingStatus,
       deletionStatus: u.deletionStatus,
       scheduledDeletionAt: u.scheduledDeletionAt?.toISOString() ?? null,
