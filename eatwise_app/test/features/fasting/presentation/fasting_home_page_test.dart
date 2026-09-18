@@ -74,6 +74,7 @@ void main() {
   Future<void> pumpHome(
     WidgetTester tester, {
     bool reduceMotion = false,
+    double? textScaler,
   }) async {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3;
@@ -99,6 +100,12 @@ void main() {
     if (reduceMotion) {
       app = MediaQuery(
         data: const MediaQueryData(disableAnimations: true),
+        child: app,
+      );
+    }
+    if (textScaler != null) {
+      app = MediaQuery(
+        data: MediaQueryData(textScaler: TextScaler.linear(textScaler)),
         child: app,
       );
     }
@@ -325,5 +332,54 @@ void main() {
     expect(find.text('RECORD_STUB'), findsOneWidget);
 
     await unmount(tester);
+  });
+
+  testWidgets('大字体回归：390×844 + textScaler 1.3 无溢出（真机 iPhone 13 反馈）', (
+    tester,
+  ) async {
+    // 视口 1170×2532@3 = 390×844 逻辑尺寸（iPhone 13），系统大字体 1.3。
+    await pumpHome(tester, textScaler: 1.3);
+
+    // 倒计时经 FittedBox(scaleDown) 收缩在环内径内，不产生 overflow 异常。
+    expect(find.byType(CountdownText), findsOneWidget);
+    expect(find.text('04:00:00'), findsOneWidget);
+    final boxWidth = tester.getSize(find.byType(CountdownText)).width;
+    expect(boxWidth, lessThanOrEqualTo(CountdownText.maxWidth));
+
+    await unmount(tester);
+  });
+
+  testWidgets('大字体回归：textScaler 1.5 亦无溢出', (tester) async {
+    await pumpHome(tester, textScaler: 1.5);
+
+    expect(find.byType(CountdownText), findsOneWidget);
+    final boxWidth = tester.getSize(find.byType(CountdownText)).width;
+    expect(boxWidth, lessThanOrEqualTo(CountdownText.maxWidth));
+
+    await unmount(tester);
+  });
+
+  testWidgets('超长时间：>99h 三位小时（123:45:56）scaleDown 不溢出', (tester) async {
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(1.3)),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const Scaffold(
+            body: Center(
+              child: CountdownText(seconds: 123 * 3600 + 45 * 60 + 56),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('123:45:56'), findsOneWidget);
+    final boxWidth = tester.getSize(find.byType(CountdownText)).width;
+    expect(boxWidth, lessThanOrEqualTo(CountdownText.maxWidth));
   });
 }

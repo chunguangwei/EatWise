@@ -274,10 +274,7 @@ class _TimerBody extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Text(
-                      _formatCountdown(snapshot.countdownSec),
-                      style: textStyles.textTimer,
-                    ),
+                    CountdownText(seconds: snapshot.countdownSec),
                     const SizedBox(height: AppSpacing.s1),
                     Text(
                       _stateText(t, timer.state),
@@ -573,5 +570,36 @@ class _TimerBody extends ConsumerWidget {
     final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
     final s = (seconds % 60).toString().padLeft(2, '0');
     return '$h:$m:$s';
+  }
+}
+
+/// 环内倒计时数字（真机反馈：390pt + 系统大字体下 48pt 数字超出 220px
+/// 环界）。宽度按环内径（220 − 2×12 描边，再留视觉余量）约束，
+/// FittedBox(scaleDown) 保证 textScaler 放大与超长时间（>99h 三位小时）
+/// 都只缩小不溢出。
+class CountdownText extends StatelessWidget {
+  const CountdownText({required this.seconds, super.key});
+
+  /// 倒计时秒数（锚点 − now，HH:MM:SS 渲染，小时可超两位）。
+  final int seconds;
+
+  /// 可渲染最大宽度（220 环 − 24 描边 − 12 视觉余量）。
+  static const double maxWidth = 184;
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    return SizedBox(
+      width: maxWidth,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          _TimerBody._formatCountdown(seconds),
+          style: textStyles.textTimer,
+          maxLines: 1,
+          softWrap: false,
+        ),
+      ),
+    );
   }
 }
