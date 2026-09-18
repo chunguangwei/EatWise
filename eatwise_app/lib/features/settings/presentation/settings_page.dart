@@ -403,6 +403,7 @@ class SettingsPage extends ConsumerWidget {
       context,
       result,
       launcher: ref.read(updateLauncherProvider),
+      downloader: ref.read(updateDownloaderProvider),
     );
   }
 

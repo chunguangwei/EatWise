@@ -315,8 +315,17 @@ class Translations$update$zh_CN {
 	/// zh-CN: '检查更新失败，请稍后重试'
 	String get checkFailed => '检查更新失败，请稍后重试';
 
-	/// zh-CN: '无法打开下载地址，请稍后重试'
-	String get downloadFailed => '无法打开下载地址，请稍后重试';
+	/// zh-CN: '下载中 ${percent}%'
+	String downloading({required Object percent}) => '下载中 ${percent}%';
+
+	/// zh-CN: '下载中…'
+	String get downloadingNoProgress => '下载中…';
+
+	/// zh-CN: '下载失败，请检查网络后重试'
+	String get downloadFailed => '下载失败，请检查网络后重试';
+
+	/// zh-CN: '重试'
+	String get retry => '重试';
 }
 
 // Path: notify.channel
@@ -4518,7 +4527,10 @@ extension on Translations {
 			'update.later' => '以后再说',
 			'update.upToDate' => '当前已是最新版本',
 			'update.checkFailed' => '检查更新失败，请稍后重试',
-			'update.downloadFailed' => '无法打开下载地址，请稍后重试',
+			'update.downloading' => ({required Object percent}) => '下载中 ${percent}%',
+			'update.downloadingNoProgress' => '下载中…',
+			'update.downloadFailed' => '下载失败，请检查网络后重试',
+			'update.retry' => '重试',
 			_ => null,
 		};
 	}

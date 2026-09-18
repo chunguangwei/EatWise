@@ -1,5 +1,8 @@
+import 'package:dio/dio.dart';
+import 'package:eatwise/core/network/cert_pinning.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/update/update_checker.dart';
+import 'package:eatwise/core/update/update_downloader.dart';
 import 'package:eatwise/core/update/update_launcher.dart';
 import 'package:eatwise/core/update/update_models.dart';
 import 'package:eatwise/core/update/update_throttle.dart';
@@ -23,6 +26,17 @@ final updateCheckerProvider = Provider<UpdateChecker>((ref) {
 /// 更新跳转器（测试注入假 launch）。
 final updateLauncherProvider = Provider<UpdateLauncher>((ref) {
   return const UpdateLauncher();
+});
+
+/// APK 下载器：裸 Dio 仅挂证书锁定（与 analytics 同口径，自托管自签名
+/// 证书不经全局 API 装配——apkUrl 为绝对地址且无信封/认证拦截）。
+final updateDownloaderProvider = Provider<UpdateDownloader>((ref) {
+  final dio = Dio();
+  final pinnedDer = ref.watch(pinnedCertDerProvider);
+  if (pinnedDer != null) {
+    applyCertPinning(dio, pinnedDer);
+  }
+  return UpdateDownloader(dio: dio);
 });
 
 /// 启动检查节流（SharedPreferences，间隔 ≥24h〔假设〕）。

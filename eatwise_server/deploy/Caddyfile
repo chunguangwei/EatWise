@@ -6,7 +6,18 @@
 wcg.polin.tech:8443 {
 	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
 
-	reverse_proxy server:3000
+	# APK 自托管目录（GitHub 私有仓 release asset 匿名 404，安卓更新下载必须走自己）。
+	# 宿主机 ./downloads 只读挂到 /srv/downloads（compose），发版时 scp APK 进去。
+	# handle 块互斥：/downloads/* 命中即静态直出，不再走下方反代；
+	# 其余路径（/v1/*、/admin 等）落入默认 handle，行为不变。
+	handle /downloads/* {
+		root * /srv/downloads
+		file_server
+	}
+
+	handle {
+		reverse_proxy server:3000
+	}
 
 	# 上传图片 ≤5MB（与服务端 MAX_UPLOAD_BYTES 对齐），超限直接 413。
 	request_body {

@@ -10,3 +10,5 @@ data/
 /uploads/
 # 自签名证书私钥（禁止入库；cert.pem 公钥可提交）
 deploy/certs/key.pem
+# APK 自托管目录（发版二进制产物，不入库）
+/downloads/

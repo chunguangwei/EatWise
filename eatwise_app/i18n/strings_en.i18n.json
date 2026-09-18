@@ -1047,6 +1047,9 @@
     "later": "Later",
     "upToDate": "You're on the latest version",
     "checkFailed": "Couldn't check for updates. Try again later.",
-    "downloadFailed": "Couldn't open the download link. Try again later."
+    "downloading": "Downloading ${percent}%",
+    "downloadingNoProgress": "Downloading…",
+    "downloadFailed": "Download failed. Check your connection and try again.",
+    "retry": "Retry"
   }
 }

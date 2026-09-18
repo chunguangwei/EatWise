@@ -20,6 +20,9 @@
     <uses-permission android:name="android.permission.health.READ_WEIGHT"/>
     <!-- health README：步数读取要求声明 Activity Recognition（Health Connect 授权契约内读取，未单独弹窗） -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
+    <!-- 应用内更新（D-15）：App 内下载 APK 后调起系统安装器，
+         触发系统「是否允许安装未知来源应用」流程，仅用于本 App 自更新 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <application
         android:label="EatWise"
         android:name="${applicationName}"
@@ -111,7 +114,7 @@
         <intent>
             <action android:name="android.speech.RecognitionService"/>
         </intent>
-        <!-- 应用内更新：url_launcher 外部浏览器打开 APK 下载页（API 30+ 包可见性） -->
+        <!-- 应用内更新 iOS 兜底等：https 外部链接跳转（url_launcher，API 30+ 包可见性） -->
         <intent>
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="https"/>

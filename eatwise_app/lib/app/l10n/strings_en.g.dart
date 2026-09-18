@@ -276,7 +276,10 @@ class _Translations$update$en extends Translations$update$zh_CN {
 	@override String get later => 'Later';
 	@override String get upToDate => 'You\'re on the latest version';
 	@override String get checkFailed => 'Couldn\'t check for updates. Try again later.';
-	@override String get downloadFailed => 'Couldn\'t open the download link. Try again later.';
+	@override String downloading({required Object percent}) => 'Downloading ${percent}%';
+	@override String get downloadingNoProgress => 'Downloading…';
+	@override String get downloadFailed => 'Download failed. Check your connection and try again.';
+	@override String get retry => 'Retry';
 }
 
 // Path: notify.channel
@@ -2909,7 +2912,10 @@ extension on TranslationsEn {
 			'update.later' => 'Later',
 			'update.upToDate' => 'You\'re on the latest version',
 			'update.checkFailed' => 'Couldn\'t check for updates. Try again later.',
-			'update.downloadFailed' => 'Couldn\'t open the download link. Try again later.',
+			'update.downloading' => ({required Object percent}) => 'Downloading ${percent}%',
+			'update.downloadingNoProgress' => 'Downloading…',
+			'update.downloadFailed' => 'Download failed. Check your connection and try again.',
+			'update.retry' => 'Retry',
 			_ => null,
 		};
 	}

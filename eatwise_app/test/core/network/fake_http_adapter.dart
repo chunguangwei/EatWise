@@ -75,6 +75,11 @@ final class StubResponse {
   factory StubResponse.networkError(Object error) =>
       StubResponse._(null, null, error);
 
+  /// 原始字节响应（下载场景）：application/octet-stream 且带 content-length，
+  /// 供 onReceiveProgress 拿到真实 total。
+  factory StubResponse.rawBytes(int statusCode, List<int> bytes) =>
+      StubResponse._(statusCode, bytes, null);
+
   final int? statusCode;
   final Object? body;
   final Object? throwError;
@@ -111,6 +116,17 @@ final class StubResponse {
         requestOptions: options,
         type: DioExceptionType.connectionError,
         error: throwError,
+      );
+    }
+    final b = body;
+    if (b is List<int>) {
+      return ResponseBody.fromBytes(
+        b,
+        statusCode!,
+        headers: <String, List<String>>{
+          Headers.contentTypeHeader: <String>['application/octet-stream'],
+          Headers.contentLengthHeader: <String>['${b.length}'],
+        },
       );
     }
     return ResponseBody.fromString(

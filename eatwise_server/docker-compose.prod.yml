@@ -69,6 +69,8 @@ services:
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./deploy/certs:/etc/caddy/certs:ro
+      # APK 自托管目录（Caddyfile /downloads/* 静态直出；发版 scp APK 到此目录）
+      - ./downloads:/srv/downloads:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

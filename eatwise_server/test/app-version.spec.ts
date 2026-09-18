@@ -81,6 +81,33 @@ describe('AppVersionService（GitHub Releases 代理 + 降级兜底 + 缓存）'
     });
   });
 
+  it('GitHub 成功且已配 APP_APK_URL：apkUrl 用自托管地址，版本/notes 仍取 GitHub', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, releasePayload));
+    const service = new AppVersionService(
+      new ConfigService({ APP_APK_URL: 'https://wcg.polin.tech:8443/downloads/eatwise-v1.2.0.apk' }),
+    );
+    const view = await service.getLatest('android');
+    expect(view.source).toBe('github');
+    expect(view.apkUrl).toBe('https://wcg.polin.tech:8443/downloads/eatwise-v1.2.0.apk');
+    expect(view.latestVersion).toBe('1.2.0');
+    expect(view.releaseNotes.zh).toBe('- 新增更新检查');
+    expect(view.publishedAt).toBe('2026-07-29T00:00:00Z');
+  });
+
+  it('GitHub 成功但未配 APP_APK_URL：apkUrl 维持 release asset 地址', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, releasePayload));
+    const service = new AppVersionService(new ConfigService());
+    const view = await service.getLatest('android');
+    expect(view.apkUrl).toBe('https://github.com/x/app-release.apk');
+  });
+
+  it('GitHub 成功且 APP_APK_URL 为空串：视为未配，维持 release asset 地址', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, releasePayload));
+    const service = new AppVersionService(new ConfigService({ APP_APK_URL: '' }));
+    const view = await service.getLatest('android');
+    expect(view.apkUrl).toBe('https://github.com/x/app-release.apk');
+  });
+
   it('携带 GITHUB_RELEASE_TOKEN 时请求带 Authorization 头', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, releasePayload));
     const service = new AppVersionService(new ConfigService({ GITHUB_RELEASE_TOKEN: 'tok-1' }));

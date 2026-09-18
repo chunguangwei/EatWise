@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/network/api_client.dart';
@@ -5,6 +7,7 @@ import 'package:eatwise/core/network/api_config.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/core/update/update_checker.dart';
 import 'package:eatwise/core/update/update_dialog.dart';
+import 'package:eatwise/core/update/update_downloader.dart';
 import 'package:eatwise/core/update/update_launcher.dart';
 import 'package:eatwise/core/update/update_models.dart';
 import 'package:eatwise/core/update/update_providers.dart';
@@ -338,6 +341,74 @@ void main() {
     });
   });
 
+  group('UpdateDownloader（App 内下载 + 调起安装器）', () {
+    const apkUrl = 'https://example.com/app.apk';
+    final apkBytes = List<int>.generate(64, (i) => i);
+
+    late FakeHttpAdapter adapter;
+    late Dio dio;
+    late Directory tempDir;
+
+    setUp(() {
+      adapter = FakeHttpAdapter();
+      dio = Dio();
+      dio.httpClientAdapter = adapter;
+      tempDir = Directory.systemTemp.createTempSync('update_dl_test');
+    });
+
+    tearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+
+    UpdateDownloader downloader({
+      required Future<bool> Function(String) open,
+    }) =>
+        UpdateDownloader(dio: dio, openApk: open, tempDir: () async => tempDir);
+
+    test('成功：流式下载到临时目录、进度回调递增且末次满量、调起 open', () async {
+      adapter.stub(apkUrl, StubResponse.rawBytes(200, apkBytes));
+      final progress = <(int, int)>[];
+      final opened = <String>[];
+      final ok =
+          await downloader(
+            open: (path) async {
+              opened.add(path);
+              return true;
+            },
+          ).downloadAndInstall(
+            apkUrl,
+            onProgress: (received, total) => progress.add((received, total)),
+          );
+      expect(ok, isTrue);
+      expect(opened.single, endsWith(UpdateDownloader.apkFileName));
+      expect(progress, isNotEmpty);
+      expect(progress.last, (apkBytes.length, apkBytes.length));
+      final saved = File('${tempDir.path}/eatwise-update.apk');
+      expect(saved.readAsBytesSync(), apkBytes);
+    });
+
+    test('下载失败（网络错误）：返回 false 且不调起 open（可重试）', () async {
+      adapter.stub(apkUrl, StubResponse.networkError('offline'));
+      var openCalled = false;
+      final ok = await downloader(
+        open: (path) async {
+          openCalled = true;
+          return true;
+        },
+      ).downloadAndInstall(apkUrl);
+      expect(ok, isFalse);
+      expect(openCalled, isFalse);
+    });
+
+    test('调起安装器失败（用户取消/无权限）：返回 false', () async {
+      adapter.stub(apkUrl, StubResponse.rawBytes(200, apkBytes));
+      final ok = await downloader(
+        open: (path) async => false,
+      ).downloadAndInstall(apkUrl);
+      expect(ok, isFalse);
+    });
+  });
+
   group('更新弹窗（双语三态）', () {
     const info = AppVersionInfo(
       latestVersion: '1.2.0',
@@ -349,7 +420,11 @@ void main() {
       source: 'github',
     );
 
-    Widget harness(UpdateCheckResult result, {UpdateLauncher? launcher}) {
+    Widget harness(
+      UpdateCheckResult result, {
+      UpdateLauncher? launcher,
+      UpdateDownloader? downloader,
+    }) {
       return TranslationProvider(
         child: MaterialApp(
           theme: AppTheme.light(),
@@ -357,10 +432,43 @@ void main() {
             body: UpdateDialog(
               result: result,
               launcher: launcher ?? const UpdateLauncher(),
+              downloader: downloader,
             ),
           ),
         ),
       );
+    }
+
+    /// 假下载器：dio 走 FakeHttpAdapter（stub apkUrl），openApk 记录调起。
+    UpdateDownloader fakeDownloader({
+      required FakeHttpAdapter adapter,
+      required Directory tempDir,
+      required Future<bool> Function(String path) open,
+    }) {
+      final dio = Dio()..httpClientAdapter = adapter;
+      return UpdateDownloader(
+        dio: dio,
+        openApk: open,
+        tempDir: () async => tempDir,
+      );
+    }
+
+    Directory makeTempDir() {
+      final dir = Directory.systemTemp.createTempSync('update_dialog_test');
+      addTearDown(() {
+        if (dir.existsSync()) dir.deleteSync(recursive: true);
+      });
+      return dir;
+    }
+
+    /// 点击按钮触发下载并等下载结束：下载含真实文件 IO，整个触发 + 等待
+    /// 放 runAsync（真实事件循环）内——fake 时钟区内注册的 IO 回调不会触发。
+    Future<void> tapAndWaitDownload(WidgetTester tester, String label) async {
+      await tester.runAsync(() async {
+        await tester.tap(find.text(label));
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+      });
+      await tester.pumpAndSettle(); // 收尾：结果帧 + 关窗动画
     }
 
     testWidgets('可选更新：标题/版本号/中文 notes/两个按钮', (tester) async {
@@ -391,8 +499,21 @@ void main() {
       expect(popScope.canPop, isFalse);
     });
 
-    testWidgets('点「立即更新」调 launcher 并关闭弹窗（可选更新）', (tester) async {
-      final opened = <Uri>[];
+    testWidgets('点「立即更新」App 内下载完成调起安装并关闭弹窗（可选更新）', (tester) async {
+      final adapter = FakeHttpAdapter()
+        ..stub(
+          'https://example.com/app.apk',
+          StubResponse.rawBytes(200, <int>[1, 2, 3, 4]),
+        );
+      final opened = <String>[];
+      final downloader = fakeDownloader(
+        adapter: adapter,
+        tempDir: makeTempDir(),
+        open: (path) async {
+          opened.add(path);
+          return true;
+        },
+      );
       await tester.pumpWidget(
         TranslationProvider(
           child: MaterialApp(
@@ -405,12 +526,7 @@ void main() {
                     status: UpdateStatus.available,
                     info: info,
                   ),
-                  launcher: UpdateLauncher(
-                    launch: (uri) async {
-                      opened.add(uri);
-                      return true;
-                    },
-                  ),
+                  downloader: downloader,
                   platform: 'android',
                 ),
                 child: const Text('open'),
@@ -423,13 +539,78 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('发现新版本'), findsOneWidget);
 
-      await tester.tap(find.text('立即更新'));
-      await tester.pumpAndSettle();
-      expect(opened.single.toString(), 'https://example.com/app.apk');
+      await tapAndWaitDownload(tester, '立即更新');
+      expect(opened.single, endsWith(UpdateDownloader.apkFileName));
       expect(find.text('发现新版本'), findsNothing); // 已关闭
     });
 
-    testWidgets('强制更新跳转后弹窗保持（未升级不放行）', (tester) async {
+    testWidgets('下载失败给重试：错误提示 + 「重试」，重试成功后调起安装', (tester) async {
+      final adapter = FakeHttpAdapter()
+        ..stub(
+          'https://example.com/app.apk',
+          StubResponse.networkError('offline'),
+        )
+        ..stub(
+          'https://example.com/app.apk',
+          StubResponse.rawBytes(200, <int>[1, 2, 3, 4]),
+        );
+      final opened = <String>[];
+      final downloader = fakeDownloader(
+        adapter: adapter,
+        tempDir: makeTempDir(),
+        open: (path) async {
+          opened.add(path);
+          return true;
+        },
+      );
+      await tester.pumpWidget(
+        TranslationProvider(
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: Builder(
+              builder: (context) => FilledButton(
+                onPressed: () => showUpdateDialog(
+                  context,
+                  const UpdateCheckResult(
+                    status: UpdateStatus.available,
+                    info: info,
+                  ),
+                  downloader: downloader,
+                  platform: 'android',
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      // 首次下载失败：错误提示 + 「重试」按钮，弹窗保持。
+      await tapAndWaitDownload(tester, '立即更新');
+      expect(find.text('下载失败，请检查网络后重试'), findsOneWidget);
+      expect(find.text('重试'), findsOneWidget);
+      expect(find.text('发现新版本'), findsOneWidget);
+      expect(opened, isEmpty);
+
+      // 重试成功：调起安装并关闭弹窗。
+      await tapAndWaitDownload(tester, '重试');
+      expect(opened.single, endsWith(UpdateDownloader.apkFileName));
+      expect(find.text('发现新版本'), findsNothing);
+    });
+
+    testWidgets('强制更新调起安装后弹窗保持（未升级不放行）', (tester) async {
+      final adapter = FakeHttpAdapter()
+        ..stub(
+          'https://example.com/app.apk',
+          StubResponse.rawBytes(200, <int>[1, 2, 3, 4]),
+        );
+      final downloader = fakeDownloader(
+        adapter: adapter,
+        tempDir: makeTempDir(),
+        open: (path) async => true,
+      );
       await tester.pumpWidget(
         TranslationProvider(
           child: MaterialApp(
@@ -442,7 +623,7 @@ void main() {
                     status: UpdateStatus.forced,
                     info: info,
                   ),
-                  launcher: UpdateLauncher(launch: (uri) async => true),
+                  downloader: downloader,
                   platform: 'android',
                 ),
                 child: const Text('open'),
@@ -453,8 +634,7 @@ void main() {
       );
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('立即更新'));
-      await tester.pumpAndSettle();
+      await tapAndWaitDownload(tester, '立即更新');
       expect(find.text('发现新版本'), findsOneWidget); // 未关闭
     });
 

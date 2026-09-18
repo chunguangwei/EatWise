@@ -249,6 +249,7 @@ class _EatWiseAppState extends State<EatWiseApp> {
           dialogContext,
           result,
           launcher: container.read(updateLauncherProvider),
+          downloader: container.read(updateDownloaderProvider),
         ),
       );
     } on Object {

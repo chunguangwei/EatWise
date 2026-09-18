@@ -44,7 +44,9 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
  *
  * 数据源优先级：
  * 1. GitHub API `releases/latest`（token 从 env `GITHUB_RELEASE_TOKEN` 读；
- *    不设则匿名请求——私有仓库会 404）；
+ *    不设则匿名请求——私有仓库会 404）；版本号/更新说明/发布时间以此为准，
+ *    但 android 的 apkUrl 优先取 env `APP_APK_URL`（自托管地址，非空才覆盖）——
+ *    私有仓 release asset 的 browser_download_url 匿名访问 404，客户端拿不到 APK；
  * 2. 失败时降级 env 静态配置兜底（`APP_LATEST_VERSION`/`APP_APK_URL` 等，
  *    〔假设〕发版流水线/运维同步维护该配置）。
  *
@@ -77,11 +79,18 @@ export class AppVersionService {
       const notes = release.body ?? '';
       const apkAsset =
         platform === 'android' ? release.assets.find((a) => a.name.endsWith('.apk')) : undefined;
+      // 私有仓 asset 匿名 404：android 优先用 env 自托管地址覆盖下载链接
+      // （版本号/说明/发布时间仍来自 GitHub）。
+      const selfHostedApkUrl = this.config.get<string>('APP_APK_URL');
+      const apkUrl =
+        platform === 'android' && selfHostedApkUrl
+          ? selfHostedApkUrl
+          : (apkAsset?.browser_download_url ?? null);
       return {
         latestVersion: version,
         minSupportedVersion,
         releaseNotes: { zh: notes, en: notes },
-        apkUrl: apkAsset?.browser_download_url ?? null,
+        apkUrl,
         publishedAt: release.published_at,
         source: 'github',
       };

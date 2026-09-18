@@ -1046,6 +1046,9 @@
     "later": "以后再说",
     "upToDate": "当前已是最新版本",
     "checkFailed": "检查更新失败，请稍后重试",
-    "downloadFailed": "无法打开下载地址，请稍后重试"
+    "downloading": "下载中 ${percent}%",
+    "downloadingNoProgress": "下载中…",
+    "downloadFailed": "下载失败，请检查网络后重试",
+    "retry": "重试"
   }
 }
