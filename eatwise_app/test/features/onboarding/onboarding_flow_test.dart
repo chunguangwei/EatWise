@@ -88,7 +88,7 @@ void main() {
   }
 
   /// 阶段 A：3 题后先进档案采集页；本组用例不采集，直接整页跳过
-  /// （维持兜底行为）。
+  /// （维持兜底行为；Q1=减脂时跳过档案会先落减重目标页，由用例自行再跳过）。
   Future<void> skipProfile(WidgetTester tester) async {
     await tester.tap(
       find.byKey(const ValueKey<String>('onboarding.profile.skip')),
@@ -111,9 +111,15 @@ void main() {
 
     await answerAndNext(tester, 'beginner');
 
-    // 阶段 A：3 题后先进档案采集页，跳过 → 推荐页（兜底行为不变）
+    // 阶段 A：3 题后先进档案采集页，跳过 → 目标页（Q1=减脂必经，
+    // 目标页再跳过）→ 推荐页（兜底行为不变）
     expect(find.text('了解你的身体，目标更精准'), findsOneWidget);
     await skipProfile(tester);
+    expect(find.text('定个减重小目标'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.goal.skip')),
+    );
+    await pumpFrames(tester);
 
     // 推荐页：主方案卡（14:10）+ 备选卡（16:8）+ 推荐理由
     expect(find.text('为你推荐的方案'), findsOneWidget);

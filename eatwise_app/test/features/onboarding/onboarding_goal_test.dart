@@ -17,8 +17,9 @@ import 'package:visibility_detector/visibility_detector.dart';
 import '../fasting/presentation/fasting_presentation_test_helper.dart';
 import '../fasting/tz_test_helper.dart';
 
-/// 阶段 B：onboarding 减重目标页 + 进食障碍筛查 —— 条件出现（仅减脂+有体重）/
-/// 缺口法预览与落盘 / 安全夹取提示 / 筛查「是」温和化 + 强化免责提示。
+/// 阶段 B：onboarding 减重目标页 + 进食障碍筛查 —— Q1=减脂必经（保存或
+/// 跳过档案页、有无当前体重都进入）/ 缺口法预览与落盘 / 安全夹取提示 /
+/// 筛查「是」温和化 + 强化免责提示。
 void main() {
   // 固定时钟：2026-07-28 15:00（Asia/Shanghai）= 07:00 UTC → 本地日 2026-07-28。
   final fixedNowUtc =
@@ -137,7 +138,7 @@ void main() {
     await reachProfilePage(tester);
     await fillProfileAndSave(tester);
 
-    // 目标页出现（仅减脂+有体重）。
+    // 目标页出现（Q1=减脂必经）。
     expect(find.text('定个减重小目标'), findsOneWidget);
 
     // 70→60 kg / 4 周：原始 2.5 kg/周 → 夹取 1.0（clamped）。
@@ -272,6 +273,73 @@ void main() {
     expect(goal.weightLossClamped, isFalse);
     expect(goal.targetKcal, 1360);
     expect(sync.completedCalls.single.profile!.targetWeightKg, isNull);
+  });
+
+  testWidgets('档案页整页跳过 + Q1=减脂 → 同样进目标页（可再跳过到推荐页）', (tester) async {
+    await pumpApp(tester);
+    await reachProfilePage(tester);
+
+    // 产品决策：跳过档案的减脂用户也要经过减重目标页。
+    await tapVisible(tester, const ValueKey<String>('onboarding.profile.skip'));
+    expect(find.text('定个减重小目标'), findsOneWidget);
+
+    // 目标页本身可跳过，不想填的用户仍有退路。
+    await tapVisible(tester, const ValueKey<String>('onboarding.goal.skip'));
+    expect(find.text('为你推荐的方案'), findsOneWidget);
+  });
+
+  testWidgets('档案页整页跳过 + Q1=非减脂 → 直达推荐页，不出现目标页', (tester) async {
+    await pumpApp(tester);
+    await reachProfilePage(tester, q1: 'improveHealth');
+
+    await tapVisible(tester, const ValueKey<String>('onboarding.profile.skip'));
+    expect(find.text('定个减重小目标'), findsNothing);
+    expect(find.text('为你推荐的方案'), findsOneWidget);
+  });
+
+  testWidgets('保存但未填体重 + Q1=减脂 → 目标页正常渲染，目标可保存落盘；'
+      '推荐页因缺当前体重不出现缺口法预览', (tester) async {
+    final (:store, :sync) = await pumpApp(tester);
+    await reachProfilePage(tester);
+
+    // 单项可留空（D-18）：全部留空直接保存，减脂用户仍进目标页。
+    await tapVisible(tester, const ValueKey<String>('onboarding.profile.save'));
+    expect(find.text('定个减重小目标'), findsOneWidget);
+
+    // 缺当前体重不影响目标收集：目标体重 + 目标日期照常保存。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal.targetWeight')),
+      '60',
+    );
+    await pumpFrames(tester);
+    await tester.tap(find.byKey(const ValueKey<String>('goal.quickWeeks.4')));
+    await pumpFrames(tester);
+    expect(find.text('2026年8月25日'), findsOneWidget); // 日期预览
+    await tapVisible(tester, const ValueKey<String>('onboarding.goal.save'));
+
+    expect(find.text('为你推荐的方案'), findsOneWidget);
+    final profile = store.loadProfile()!;
+    expect(profile.weightKg, isNull);
+    expect(profile.targetWeightKg, 60);
+    expect(profile.targetDate?.toIsoString(), '2026-08-25');
+    // 缺当前体重 → 缺口法不生效，无减重预览卡（回落固定折算/兜底）。
+    expect(
+      find.byKey(
+        const ValueKey<String>('onboarding.recommendation.weightLoss'),
+      ),
+      findsNothing,
+    );
+
+    // 一键启动仍可用：兜底营养目标，无缺口法字段。
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.recommendation.start')),
+    );
+    await pumpFrames(tester);
+    expect(find.text('断食计时'), findsOneWidget);
+    final goal = store.loadNutritionGoal()!;
+    expect(goal.usedFallback, isTrue);
+    expect(goal.weeklyRateKg, isNull);
+    expect(sync.completedCalls.single.profile!.targetWeightKg, 60);
   });
 }
 

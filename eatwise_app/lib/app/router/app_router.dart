@@ -217,7 +217,7 @@ GoRouter createAppRouter({
         path: '/onboarding/profile',
         builder: (context, state) => const OnboardingProfileScreen(),
       ),
-      // 阶段 B：减重目标页（档案页之后；仅 Q1=减脂且填了体重时进入，可跳过）。
+      // 阶段 B：减重目标页（档案页之后；Q1=减脂必经——保存或跳过档案均进入，可跳过）。
       GoRoute(
         path: '/onboarding/goal',
         builder: (context, state) => const OnboardingGoalScreen(),

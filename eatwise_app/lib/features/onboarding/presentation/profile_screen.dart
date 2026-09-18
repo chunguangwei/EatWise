@@ -12,8 +12,9 @@ import 'package:go_router/go_router.dart';
 
 /// 档案采集页（阶段 A：第 3 题之后、推荐页之前；D-18 敏感信息，
 /// 整页可跳过、单项可留空——跳过/留空走 §1.6 兜底并在推荐后提示补全）。
-/// 阶段 B：顶部进食障碍筛查题（是 → 强制温和目标），保存后若 Q1=减脂
-/// 且填了体重 → 先进减重目标页，再到推荐页。
+/// 阶段 B：顶部进食障碍筛查题（是 → 强制温和目标）。产品决策：Q1=减脂
+/// 的用户首次注册必经减重目标页——保存（含未填体重）与整页跳过都
+/// 导航到目标页（目标页本身可跳过，仍有退路）；非减脂直达推荐页。
 class OnboardingProfileScreen extends ConsumerStatefulWidget {
   const OnboardingProfileScreen({super.key});
 
@@ -54,9 +55,17 @@ class _OnboardingProfileScreenState
         title: Text(t.onboarding.profile.title),
         actions: <Widget>[
           // 整页跳过（D-18）：维持兜底行为，文案明示将使用默认估算。
+          // 产品决策：Q1=减脂即使跳过档案也先经减重目标页（目标页可再跳过）。
           TextButton(
             key: const ValueKey<String>('onboarding.profile.skip'),
-            onPressed: () => context.go('/onboarding/recommendation'),
+            onPressed: () {
+              final goal = ref.read(onboardingControllerProvider).answers.goal;
+              context.go(
+                goal == GoalAnswer.loseWeight
+                    ? '/onboarding/goal'
+                    : '/onboarding/recommendation',
+              );
+            },
             child: Text(t.onboarding.profile.skip),
           ),
         ],
@@ -95,13 +104,14 @@ class _OnboardingProfileScreenState
                         eatingDisorderScreening: () => _screening,
                       );
                       controller.saveProfile(profile);
-                      // 阶段 B：仅 Q1=减脂且填了体重才进目标页，否则直达推荐页。
+                      // 产品决策：Q1=减脂一律进目标页（未填体重也进——
+                      // 目标页只收集目标体重+目标日期，不依赖当前体重）；
+                      // 非减脂直达推荐页。
                       final goal = ref
                           .read(onboardingControllerProvider)
                           .answers
                           .goal;
-                      if (goal == GoalAnswer.loseWeight &&
-                          profile.weightKg != null) {
+                      if (goal == GoalAnswer.loseWeight) {
                         context.go('/onboarding/goal');
                       } else {
                         context.go('/onboarding/recommendation');

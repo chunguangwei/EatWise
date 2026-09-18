@@ -268,7 +268,7 @@ final class SharedPreferencesOnboardingStore implements OnboardingStore {
 
   @override
   void saveProfile(OnboardingProfile profile) {
-    if (profile.isEmpty) {
+    if (!profile.hasAnyData) {
       _prefs.remove(_keyProfile); // 空档案按未采集处理（走兜底）
       return;
     }
@@ -336,5 +336,5 @@ final class InMemoryOnboardingStore implements OnboardingStore {
 
   @override
   void saveProfile(OnboardingProfile profile) =>
-      _profile = profile.isEmpty ? null : profile;
+      _profile = profile.hasAnyData ? profile : null;
 }

@@ -175,6 +175,9 @@ void main() {
     );
     await pumpFrames(tester);
     await tapVisible(tester, const ValueKey<String>('onboarding.profile.save'));
+    // Q1=减脂必经目标页（未填体重也进）；跳过目标 → 推荐页。
+    expect(find.text('定个减重小目标'), findsOneWidget);
+    await tapVisible(tester, const ValueKey<String>('onboarding.goal.skip'));
     expect(find.text('为你推荐的方案'), findsOneWidget);
 
     await startAndLandHome(tester);

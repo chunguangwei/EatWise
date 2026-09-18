@@ -87,7 +87,13 @@ final class OnboardingProfile {
       weightKg == null &&
       activityLevel == null;
 
-  /// 是否填了减重目标（目标页展示条件之一：还需 Q1=减脂且有体重）。
+  /// 是否含任何可持久化内容（身体字段或减重目标；筛查作答不算）。
+  /// 存档层判空用：目标页允许在身体字段全空时只保存减重目标
+  /// （Q1=减脂未填体重的用户也会经目标页，不能只按 [isEmpty] 丢弃）。
+  bool get hasAnyData =>
+      !isEmpty || targetWeightKg != null || targetDate != null;
+
+  /// 是否填了减重目标（缺口法生效还需 Q1=减脂且有当前体重）。
   bool get hasWeightGoal => targetWeightKg != null && targetDate != null;
 
   /// 转 TDEE 计算输入（§1.1）：不透露/缺失的性别 → null（兜底 2000 kcal）；
