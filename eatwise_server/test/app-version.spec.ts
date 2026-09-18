@@ -84,7 +84,9 @@ describe('AppVersionService（GitHub Releases 代理 + 降级兜底 + 缓存）'
   it('GitHub 成功且已配 APP_APK_URL：apkUrl 用自托管地址，版本/notes 仍取 GitHub', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, releasePayload));
     const service = new AppVersionService(
-      new ConfigService({ APP_APK_URL: 'https://wcg.polin.tech:8443/downloads/eatwise-v1.2.0.apk' }),
+      new ConfigService({
+        APP_APK_URL: 'https://wcg.polin.tech:8443/downloads/eatwise-v1.2.0.apk',
+      }),
     );
     const view = await service.getLatest('android');
     expect(view.source).toBe('github');

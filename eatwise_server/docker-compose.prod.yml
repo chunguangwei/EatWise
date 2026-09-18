@@ -58,6 +58,21 @@ services:
       timeout: 5s
       retries: 5
 
+  # 一次性任务：开机自动从 GitHub 最新 release 拉 APK 到 downloads/
+  # （固定名 eatwise-latest.apk，只保留最新一个包，发版无需手工 scp）。
+  # 复用 server 的 build 阶段镜像（含 scripts/，避免额外拉镜像）；
+  # 任何失败退出码恒 0，不阻断启动链，维持现状文件。
+  apk-sync:
+    build:
+      context: .
+      target: build
+    container_name: eatwise-prod-apk-sync
+    env_file: .env.prod
+    volumes:
+      - ./downloads:/downloads
+    command: npm run apk:sync
+    restart: 'no'
+
   # HTTPS 终结：官方镜像 + 自签名证书（deploy/certs/，50 年期），
   # 客户端 pinning 只认这张证书；只监听 8443，不占用 80/443。
   caddy:
@@ -69,12 +84,14 @@ services:
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./deploy/certs:/etc/caddy/certs:ro
-      # APK 自托管目录（Caddyfile /downloads/* 静态直出；发版 scp APK 到此目录）
+      # APK 自托管目录（Caddyfile /downloads/* 静态直出；apk-sync 开机自动填充）
       - ./downloads:/srv/downloads:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
       - server
+      # 只等启动不等完成（下载 ~200MB 较慢；脚本跑完容器自然退出）
+      - apk-sync
 
 volumes:
   pgdata:
