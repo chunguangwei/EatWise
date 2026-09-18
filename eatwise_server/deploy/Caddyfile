@@ -10,7 +10,7 @@ wcg.polin.tech:8443 {
 	# 宿主机 ./downloads 只读挂到 /srv/downloads（compose），发版时 scp APK 进去。
 	# handle 块互斥：/downloads/* 命中即静态直出，不再走下方反代；
 	# 其余路径（/v1/*、/admin 等）落入默认 handle，行为不变。
-	handle /downloads/* {
+	handle_path /downloads/* {
 		root * /srv/downloads
 		file_server
 	}
