@@ -42,8 +42,8 @@ class SettingsPage extends ConsumerWidget {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
-    final authState = ref.watch(authControllerProvider);
     final userMe = ref.watch(userMeProvider).value;
+    final maskedPhone = userMe?.maskedPhone ?? '';
     final healthGranted = ref.watch(
       privacyConsentControllerProvider.select((s) => s.healthDataGranted),
     );
@@ -68,13 +68,12 @@ class SettingsPage extends ConsumerWidget {
               title: t.settings.group.account,
               children: <Widget>[
                 // 手机号脱敏展示（U1 userView 服务端掩码，合规 §6）；
-                // 离线/未登录降级为本地 userId 或未登录占位。
+                // 接口失败/未登录时显示未登录占位（不回退展示原始 userId）。
                 _SettingsTile(
                   title: t.settings.account.phone,
-                  trailing:
-                      userMe?.maskedPhone ??
-                      authState.userId ??
-                      t.settings.account.notLoggedIn,
+                  trailing: maskedPhone.isNotEmpty
+                      ? maskedPhone
+                      : t.settings.account.notLoggedIn,
                 ),
                 // 冷静期内账号：状态行 + 撤销按钮（U6）。
                 if (userMe?.deletionStatus == 'pending')
@@ -584,10 +583,20 @@ class _SettingsTile extends StatelessWidget {
               ),
               ?trailingWidget,
               if (trailing != null)
-                Text(
-                  trailing!,
-                  style: textStyles.textSm.copyWith(
-                    color: colors.textSecondary,
+                // 长值（如脱敏手机号）限宽省略，不再把标题挤成竖排；
+                // 短值保持原样贴右（标题 Expanded 吸收剩余空间）。
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.sizeOf(context).width * 0.5,
+                  ),
+                  child: Text(
+                    trailing!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: textStyles.textSm.copyWith(
+                      color: colors.textSecondary,
+                    ),
                   ),
                 ),
               if (onTap != null && trailingWidget == null)

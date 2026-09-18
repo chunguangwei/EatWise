@@ -315,6 +315,28 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('手机号兜底：U1 失败且本地有 userId 时显示未登录占位（不回退展示原始 userId）', (
+    tester,
+  ) async {
+    const uuid = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+    await tokenStore.saveTokens(
+      accessToken: 'a-test',
+      refreshToken: 'r-test',
+      userId: uuid,
+    );
+    // U1 接口失败（断网）→ userMeProvider 回落 null。
+    adapter.stub('/users/me', StubResponse.networkError('offline'));
+    final container = await pumpSettings(tester);
+    // 恢复会话：authState.userId 有值（旧逻辑会把它当手机号行兜底上屏）。
+    await container.read(authControllerProvider.notifier).restore();
+    await tester.pumpAndSettle();
+
+    expect(find.text('未登录'), findsOneWidget);
+    expect(find.text(uuid), findsNothing);
+
+    await unmount(tester);
+  });
+
   testWidgets('冷静期内账号：显示删除预约状态，撤销（U6）后提示并刷新', (tester) async {
     Map<String, Object?> meEnvelope(String? status) {
       return StubResponse.envelope(<String, Object?>{
