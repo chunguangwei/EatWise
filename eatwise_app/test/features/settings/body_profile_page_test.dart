@@ -465,4 +465,243 @@ void main() {
     expect(find.text('标准'), findsOneWidget);
     expect(find.text('偏高'), findsNothing);
   });
+
+  testWidgets('设置页表单：切斤后预填换算为斤数，保存按 kg 上送并持久化偏好', (tester) async {
+    // 服务端档案 75kg（预填）。
+    adapter.stub(
+      '/users/me',
+      StubResponse.json(
+        200,
+        StubResponse.envelope(<String, dynamic>{
+          'user': <String, dynamic>{
+            'id': 'u1',
+            'phone': '+8613****8000',
+            'gender': 'male',
+            'birthYear': 1990,
+            'heightCm': 176.0,
+            'weightKg': 75.0,
+            'activityLevel': 'light',
+          },
+          'nutritionTargets': <String, dynamic>{
+            'kcal': 2390,
+            'proteinG': 149,
+            'carbsG': 269,
+            'fatG': 80,
+            'fallback': false,
+          },
+        }),
+      ),
+    );
+    await pumpPage(tester, loggedIn: true);
+
+    TextField weightField() => tester.widget<TextField>(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('profile.weightKg')),
+        matching: find.byType(TextField),
+      ),
+    );
+    // kg 预填；切斤 → 显示换算后的斤数（75kg → 150 斤）。
+    // 页面上体重/目标两处单位切换，按 key 限定档案区。
+    expect(weightField().controller!.text, '75');
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('profile.weightUnit')),
+        matching: find.text('斤'),
+      ),
+    );
+    await tester.pump();
+    expect(weightField().controller!.text, '150');
+    expect(find.text('体重（斤）'), findsOneWidget);
+
+    // 按斤填 170 → 保存上送 85 kg。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.weightKg')),
+      '170',
+    );
+    await tester.pump();
+    await tapVisible(
+      tester,
+      const ValueKey<String>('settings.bodyProfile.save'),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1));
+
+    final patchIndex = adapter.requests.indexWhere(
+      (r) => r.path == '/users/me' && r.method == 'PATCH',
+    );
+    final patch = adapter.requestBodies[patchIndex] as Map<String, dynamic>;
+    expect(patch['weightKg'], 85);
+    // 本地档案同样按 kg 落盘。
+    expect(store.loadProfile()!.weightKg, 85);
+    // 单位偏好持久化（三处输入共用同一键）。
+    expect(prefs.getString('profile.weightUnit'), 'jin');
+  });
+
+  testWidgets('目标体重：斤模式填 100 斤 → PATCH targetWeightKg=50（按 kg 存储），'
+      '与档案区共用单位偏好实时联动', (tester) async {
+    // 服务端档案带 fat_loss 目标（缺口法前提）+ 75kg 预填。
+    adapter.stub(
+      '/users/me',
+      StubResponse.json(
+        200,
+        StubResponse.envelope(<String, dynamic>{
+          'user': <String, dynamic>{
+            'id': 'u1',
+            'phone': '+8613****8000',
+            'gender': 'male',
+            'birthYear': 1990,
+            'heightCm': 176.0,
+            'weightKg': 75.0,
+            'activityLevel': 'light',
+            'goal': 'fat_loss',
+          },
+          'nutritionTargets': <String, dynamic>{
+            'kcal': 1900,
+            'proteinG': 119,
+            'carbsG': 214,
+            'fatG': 63,
+            'fallback': false,
+          },
+        }),
+      ),
+    );
+    await pumpPage(tester, loggedIn: true);
+
+    TextField fieldOf(Key key) => tester.widget<TextField>(
+      find.descendant(of: find.byKey(key), matching: find.byType(TextField)),
+    );
+
+    // 目标区默认公斤：先填 60，切斤后换算显示 120（旧单位换算重填）。
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey<String>('goal.weightUnit')),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal.targetWeight')),
+      '60',
+    );
+    await tester.pump();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('goal.weightUnit')),
+        matching: find.text('斤'),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('目标体重（斤）'), findsOneWidget);
+    expect(
+      // WeightGoalFields 的 key 直接挂在 TextField 上（非包裹容器）。
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey<String>('goal.targetWeight')),
+          )
+          .controller!
+          .text,
+      '120',
+    );
+    // 偏好共用实时联动：档案区体重字段同步切斤（预填 75kg → 150 斤）。
+    // ListView 懒构建：档案区在上方，先滚回可见再取值。
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey<String>('profile.weightKg')),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+    expect(
+      fieldOf(const ValueKey<String>('profile.weightKg')).controller!.text,
+      '150',
+    );
+
+    // 非法：700 斤 = 350 kg 越域（按 kg 口径校验）→ 错误文案 + 保存禁用。
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey<String>('goal.targetWeight')),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal.targetWeight')),
+      '700',
+    );
+    await tester.pump();
+    expect(find.text('请输入 50–600 之间的体重（斤）'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey<String>('settings.bodyProfile.save')),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const ValueKey<String>('settings.bodyProfile.save')),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    // 100 斤 → 合法；快捷 8 周（2026-09-22）→ 保存。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal.targetWeight')),
+      '100',
+    );
+    await tester.pump();
+    expect(find.text('请输入 50–600 之间的体重（斤）'), findsNothing);
+    await tapVisible(tester, const ValueKey<String>('goal.quickWeeks.8'));
+    await tapVisible(
+      tester,
+      const ValueKey<String>('settings.bodyProfile.save'),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1));
+
+    // PATCH 与本地档案均按 kg 存储（100 斤 → 50 kg）；档案区体重 150 斤 → 75kg。
+    final patchIndex = adapter.requests.indexWhere(
+      (r) => r.path == '/users/me' && r.method == 'PATCH',
+    );
+    final patch = adapter.requestBodies[patchIndex] as Map<String, dynamic>;
+    expect(patch['targetWeightKg'], 50);
+    expect(patch['weightKg'], 75);
+    expect(store.loadProfile()!.targetWeightKg, 50);
+    expect(prefs.getString('profile.weightUnit'), 'jin');
+  });
+
+  testWidgets('BMI > 35：卡内追加「体重单位是公斤」提示行，回落后消失', (tester) async {
+    await pumpPage(tester, loggedIn: false);
+    const hint = '体重单位是公斤，如果你是按斤填的，请改一下体重';
+
+    // 160cm / 200kg → BMI 78.1 > 35（典型「按斤填」异常）→ 提示行。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.heightCm')),
+      '160',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.weightKg')),
+      '200',
+    );
+    await tester.pump();
+    expect(find.text('78.1'), findsOneWidget);
+    expect(find.text(hint), findsOneWidget);
+
+    // 边界：BMI 恰好 35.0（160cm / 89.6kg）不触发。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.weightKg')),
+      '89.6',
+    );
+    await tester.pump();
+    expect(find.text('35.0'), findsOneWidget);
+    expect(find.text(hint), findsNothing);
+
+    // 回到正常体重 → 提示行消失。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.weightKg')),
+      '60',
+    );
+    await tester.pump();
+    expect(find.text(hint), findsNothing);
+  });
 }

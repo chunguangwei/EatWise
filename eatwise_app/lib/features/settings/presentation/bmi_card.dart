@@ -12,6 +12,9 @@ import 'package:flutter/material.dart';
 ///
 /// 颜色语义：徽标标准=绿、其余=黄（橙色系无 token，黄色最接近）；区间条
 /// 肥胖段用红色——红色只表警告语义（§3.3），肥胖段正是需要警示的区间。
+///
+/// 存量异常兜底：BMI > 35 时追加「体重单位是公斤」提示行——早期用户可能
+/// 按斤填了体重（如 170 斤填成 170 kg），BMI 会虚高到非人生理区间。
 class BmiCard extends StatelessWidget {
   const BmiCard({super.key, this.heightCm, this.weightKg});
 
@@ -224,6 +227,28 @@ class _BmiBody extends StatelessWidget {
             ],
           ),
         ),
+        // 存量异常兜底：BMI > 35 大概率是「按斤填了体重」（输入处已有单位
+        // 切换，这行仅作存量数据提醒）。
+        if (bmi > 35) ...<Widget>[
+          const SizedBox(height: AppSpacing.s2),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Icon(
+                Icons.warning_amber_rounded,
+                size: 16,
+                color: colors.signalYellow,
+              ),
+              const SizedBox(width: AppSpacing.s1),
+              Expanded(
+                child: Text(
+                  bmiT.unitHint,
+                  style: textStyles.textXs.copyWith(color: colors.signalYellow),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

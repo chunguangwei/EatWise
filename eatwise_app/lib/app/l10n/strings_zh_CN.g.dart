@@ -507,11 +507,26 @@ class Translations$onboarding$profile$zh_CN {
 	/// zh-CN: '体重（kg）'
 	String get weightLabel => '体重（kg）';
 
+	/// zh-CN: '体重（斤）'
+	String get weightLabelJin => '体重（斤）';
+
 	/// zh-CN: '如 60'
 	String get weightHint => '如 60';
 
+	/// zh-CN: '如 120'
+	String get weightHintJin => '如 120';
+
 	/// zh-CN: '请输入 25–300 之间的体重'
 	String get weightInvalid => '请输入 25–300 之间的体重';
+
+	/// zh-CN: '请输入 50–600 之间的体重（斤）'
+	String get weightInvalidJin => '请输入 50–600 之间的体重（斤）';
+
+	/// zh-CN: '公斤'
+	String get weightUnitKg => '公斤';
+
+	/// zh-CN: '斤'
+	String get weightUnitJin => '斤';
 
 	/// zh-CN: '日常活动量'
 	String get activityLabel => '日常活动量';
@@ -544,11 +559,20 @@ class Translations$onboarding$goal$zh_CN {
 	/// zh-CN: '目标体重（kg）'
 	String get targetWeightLabel => '目标体重（kg）';
 
+	/// zh-CN: '目标体重（斤）'
+	String get targetWeightLabelJin => '目标体重（斤）';
+
 	/// zh-CN: '如 55'
 	String get targetWeightHint => '如 55';
 
+	/// zh-CN: '如 110'
+	String get targetWeightHintJin => '如 110';
+
 	/// zh-CN: '请输入 25–300 之间的体重'
 	String get targetWeightInvalid => '请输入 25–300 之间的体重';
+
+	/// zh-CN: '请输入 50–600 之间的体重（斤）'
+	String get targetWeightInvalidJin => '请输入 50–600 之间的体重（斤）';
 
 	/// zh-CN: '希望在哪天达成？'
 	String get targetDateLabel => '希望在哪天达成？';
@@ -1067,8 +1091,20 @@ class Translations$record$weight$zh_CN {
 	/// zh-CN: '体重（千克）'
 	String get inputLabel => '体重（千克）';
 
+	/// zh-CN: '体重（斤）'
+	String get inputLabelJin => '体重（斤）';
+
 	/// zh-CN: '请输入 20 到 300 之间的数'
 	String get invalid => '请输入 20 到 300 之间的数';
+
+	/// zh-CN: '请输入 40 到 600 之间的数（斤）'
+	String get invalidJin => '请输入 40 到 600 之间的数（斤）';
+
+	/// zh-CN: '千克'
+	String get unitKg => '千克';
+
+	/// zh-CN: '斤'
+	String get unitJin => '斤';
 
 	/// zh-CN: '体脂率（%，可不填）'
 	String get bodyFatLabel => '体脂率（%，可不填）';
@@ -3315,6 +3351,9 @@ class Translations$settings$bodyProfile$bmi$zh_CN {
 
 	/// zh-CN: '补全身高体重后展示 BMI'
 	String get missing => '补全身高体重后展示 BMI';
+
+	/// zh-CN: '体重单位是公斤，如果你是按斤填的，请改一下体重'
+	String get unitHint => '体重单位是公斤，如果你是按斤填的，请改一下体重';
 }
 
 // Path: settings.aiModel.providers
@@ -3623,8 +3662,13 @@ extension on Translations {
 			'onboarding.profile.heightHint' => '如 168',
 			'onboarding.profile.heightInvalid' => '请输入 100–250 之间的身高',
 			'onboarding.profile.weightLabel' => '体重（kg）',
+			'onboarding.profile.weightLabelJin' => '体重（斤）',
 			'onboarding.profile.weightHint' => '如 60',
+			'onboarding.profile.weightHintJin' => '如 120',
 			'onboarding.profile.weightInvalid' => '请输入 25–300 之间的体重',
+			'onboarding.profile.weightInvalidJin' => '请输入 50–600 之间的体重（斤）',
+			'onboarding.profile.weightUnitKg' => '公斤',
+			'onboarding.profile.weightUnitJin' => '斤',
 			'onboarding.profile.activityLabel' => '日常活动量',
 			'onboarding.profile.activity.sedentary' => '大部分时间是坐着的（办公室/居家，几乎不运动）',
 			'onboarding.profile.activity.light' => '每周轻度运动 1–3 次（散步、瑜伽等）',
@@ -3640,8 +3684,11 @@ extension on Translations {
 			'onboarding.goal.title' => '定个减重小目标',
 			'onboarding.goal.subtitle' => '填上目标体重和日期，就能按安全节奏算出每天的热量目标；也可以跳过，先按默认折算。',
 			'onboarding.goal.targetWeightLabel' => '目标体重（kg）',
+			'onboarding.goal.targetWeightLabelJin' => '目标体重（斤）',
 			'onboarding.goal.targetWeightHint' => '如 55',
+			'onboarding.goal.targetWeightHintJin' => '如 110',
 			'onboarding.goal.targetWeightInvalid' => '请输入 25–300 之间的体重',
+			'onboarding.goal.targetWeightInvalidJin' => '请输入 50–600 之间的体重（斤）',
 			'onboarding.goal.targetDateLabel' => '希望在哪天达成？',
 			'onboarding.goal.quickWeeks' => ({required Object weeks}) => '${weeks} 周后',
 			'onboarding.goal.customDate' => '自选日期',
@@ -3792,7 +3839,11 @@ extension on Translations {
 			'record.weight.current' => ({required Object kg}) => '${kg} 千克',
 			'record.weight.dialogTitle' => '记录今日体重',
 			'record.weight.inputLabel' => '体重（千克）',
+			'record.weight.inputLabelJin' => '体重（斤）',
 			'record.weight.invalid' => '请输入 20 到 300 之间的数',
+			'record.weight.invalidJin' => '请输入 40 到 600 之间的数（斤）',
+			'record.weight.unitKg' => '千克',
+			'record.weight.unitJin' => '斤',
 			'record.weight.bodyFatLabel' => '体脂率（%，可不填）',
 			'record.weight.bodyFatInvalid' => '体脂率需在 1–70% 之间',
 			'record.home.title' => '记录',
@@ -4047,6 +4098,8 @@ extension on Translations {
 			'settings.account.deleteConfirmAction' => '确认删除',
 			'settings.account.deleteConfirmBody' => '删除后，你的手机号、基础资料、全部饮食/断食记录等个人数据将被物理删除，且不可恢复。申请后进入 7 天冷静期：冷静期内登录即视为撤销删除，第 7 天执行删除。',
 			'settings.account.deleteConfirmTitle' => '删除账号？',
+			_ => null,
+		} ?? switch (path) {
 			'settings.account.deleteRequested' => '删除申请已提交，账号进入 7 天冷静期',
 			'settings.account.deleteScheduledBody' => ({required Object date}) => '删除申请已提交。账号将于 ${date} 删除，此日期前重新登录即可撤销。',
 			'settings.account.deletionCancelled' => '已撤销删除申请，账号恢复正常',
@@ -4059,8 +4112,6 @@ extension on Translations {
 			'settings.privacy.exportData' => '导出我的数据',
 			'settings.privacy.exportSuccess' => ({required Object path}) => '数据已导出：${path}',
 			'settings.privacy.healthData' => '健康数据授权',
-			_ => null,
-		} ?? switch (path) {
 			'settings.privacy.healthDataSubtitle' => '身高体重、饮食/断食记录等敏感个人信息处理',
 			'settings.privacy.healthDataRevoked' => '已撤回健康数据授权，营养目标将使用默认值',
 			'settings.privacy.analytics' => '数据分析授权',
@@ -4103,6 +4154,7 @@ extension on Translations {
 			'settings.bodyProfile.bmi.overweight' => '偏高',
 			'settings.bodyProfile.bmi.obese' => '肥胖',
 			'settings.bodyProfile.bmi.missing' => '补全身高体重后展示 BMI',
+			'settings.bodyProfile.bmi.unitHint' => '体重单位是公斤，如果你是按斤填的，请改一下体重',
 			'settings.reminders.notifications' => '通知设置',
 			'settings.reminders.notificationsSubtitle' => '前往系统设置管理通知权限',
 			'settings.about.version' => '版本',

@@ -213,8 +213,20 @@ final class RecordStrings {
   /// record.weight.inputLabel
   String get weightInputLabel => _t.record.weight.inputLabel;
 
+  /// record.weight.inputLabelJin
+  String get weightInputLabelJin => _t.record.weight.inputLabelJin;
+
   /// record.weight.invalid
   String get weightInvalid => _t.record.weight.invalid;
+
+  /// record.weight.invalidJin
+  String get weightInvalidJin => _t.record.weight.invalidJin;
+
+  /// record.weight.unitKg
+  String get weightUnitKg => _t.record.weight.unitKg;
+
+  /// record.weight.unitJin
+  String get weightUnitJin => _t.record.weight.unitJin;
 
   /// record.weight.bodyFatLabel
   String get bodyFatLabel => _t.record.weight.bodyFatLabel;

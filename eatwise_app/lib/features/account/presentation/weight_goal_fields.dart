@@ -2,18 +2,24 @@ import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/account/application/weight_unit_controller.dart';
+import 'package:eatwise/features/account/domain/weight_unit.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/fasting/domain/weight_loss_plan.dart';
 import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 减重目标字段组（阶段 B：onboarding 目标页与「我的-身体档案」共用控件）。
 ///
 /// 目标体重 + 目标日期（快捷 4/8/12 周 + 自定义日期）；均可留空/清空，
-/// 非空体重做取值域校验（25–300，[isValidWeightKg]），非法输入通过
+/// 非空体重做取值域校验（25–300 kg，[isValidWeightKg]），非法输入通过
 /// [onChanged] 上报 isValid=false 由父级禁用提交。
-class WeightGoalFields extends StatefulWidget {
+///
+/// 目标体重与身体档案/记录弹窗同款「公斤/斤」切换（共用 weightUnitProvider
+/// 偏好）——存储与校验一律 kg（斤 ÷2）。
+class WeightGoalFields extends ConsumerStatefulWidget {
   const WeightGoalFields({
     super.key,
     required this.today,
@@ -36,10 +42,11 @@ class WeightGoalFields extends StatefulWidget {
   onChanged;
 
   @override
-  State<WeightGoalFields> createState() => _WeightGoalFieldsState();
+  ConsumerState<WeightGoalFields> createState() => _WeightGoalFieldsState();
 }
 
-class _WeightGoalFieldsState extends State<WeightGoalFields> {
+class _WeightGoalFieldsState extends ConsumerState<WeightGoalFields> {
+  late WeightUnit _unit;
   late final TextEditingController _weightController;
   late LocalDate? _date = widget.initialDate;
 
@@ -53,11 +60,11 @@ class _WeightGoalFieldsState extends State<WeightGoalFields> {
   @override
   void initState() {
     super.initState();
+    _unit = ref.read(weightUnitProvider);
+    // 存储值一律 kg：选斤时预填换算后的斤数（1 位小数）。
     final w = widget.initialWeightKg;
     _weightController = TextEditingController(
-      text: w == null
-          ? ''
-          : (w == w.roundToDouble() ? w.toInt().toString() : '$w'),
+      text: w == null ? '' : formatWeightForUnit(w, _unit),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => _emit());
   }
@@ -68,20 +75,49 @@ class _WeightGoalFieldsState extends State<WeightGoalFields> {
     super.dispose();
   }
 
+  /// 当前输入换算为存储单位 kg（选斤时 ÷2；非法/留空返回 null）。
   double? get _weightKg {
     final raw = _weightController.text.trim();
     if (raw.isEmpty) return null;
-    return double.tryParse(raw);
+    final value = double.tryParse(raw);
+    if (value == null) return null;
+    return _unit == WeightUnit.jin ? jinToKg(value) : value;
   }
 
   String? _weightError(Translations t) {
     final raw = _weightController.text.trim();
     if (raw.isEmpty) return null;
-    final kg = double.tryParse(raw);
+    // 校验按存储单位 kg（25–300）：斤输入先换算再判定。
+    final kg = _weightKg;
     if (kg == null || !isValidWeightKg(kg)) {
-      return t.onboarding.goal.targetWeightInvalid;
+      return _unit == WeightUnit.jin
+          ? t.onboarding.goal.targetWeightInvalidJin
+          : t.onboarding.goal.targetWeightInvalid;
     }
     return null;
+  }
+
+  /// 切换公斤/斤：写偏好（weightUnitProvider 为单一事实源，本控件与同页
+  /// 其他体重输入经 listen 同步换算，三处输入共用）。
+  void _onUnitChanged(WeightUnit unit) {
+    if (unit == _unit) return;
+    ref.read(weightUnitProvider.notifier).setUnit(unit);
+  }
+
+  /// 应用新单位：已输入的数值按旧单位换算成 kg 后以新单位重填
+  /// （非法输入保留原文，交由校验提示）。
+  void _applyUnit(WeightUnit unit) {
+    if (unit == _unit) return;
+    // 输入值按旧单位解释：旧单位是斤则先 ÷2 回到 kg，再以新单位重填。
+    final parsed = double.tryParse(_weightController.text.trim());
+    final kg = parsed == null
+        ? null
+        : (_unit == WeightUnit.jin ? jinToKg(parsed) : parsed);
+    setState(() => _unit = unit);
+    if (kg != null) {
+      _weightController.text = formatWeightForUnit(kg, unit);
+    }
+    _emit();
   }
 
   void _emit() {
@@ -115,6 +151,11 @@ class _WeightGoalFieldsState extends State<WeightGoalFields> {
 
   @override
   Widget build(BuildContext context) {
+    // 单位偏好为单一事实源：同页其他体重输入切换时此处同步换算。
+    ref.listen<WeightUnit>(
+      weightUnitProvider,
+      (prev, next) => _applyUnit(next),
+    );
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
@@ -122,9 +163,33 @@ class _WeightGoalFieldsState extends State<WeightGoalFields> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text(
-          t.onboarding.goal.targetWeightLabel,
-          style: textStyles.textSm.copyWith(color: colors.textSecondary),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                _unit == WeightUnit.jin
+                    ? t.onboarding.goal.targetWeightLabelJin
+                    : t.onboarding.goal.targetWeightLabel,
+                style: textStyles.textSm.copyWith(color: colors.textSecondary),
+              ),
+            ),
+            SegmentedButton<WeightUnit>(
+              key: const ValueKey<String>('goal.weightUnit'),
+              segments: <ButtonSegment<WeightUnit>>[
+                ButtonSegment<WeightUnit>(
+                  value: WeightUnit.kg,
+                  label: Text(t.onboarding.profile.weightUnitKg),
+                ),
+                ButtonSegment<WeightUnit>(
+                  value: WeightUnit.jin,
+                  label: Text(t.onboarding.profile.weightUnitJin),
+                ),
+              ],
+              selected: <WeightUnit>{_unit},
+              onSelectionChanged: (selection) =>
+                  _onUnitChanged(selection.first),
+            ),
+          ],
         ),
         const SizedBox(height: AppSpacing.s1),
         TextField(
@@ -141,7 +206,9 @@ class _WeightGoalFieldsState extends State<WeightGoalFields> {
           },
           style: textStyles.textBase,
           decoration: InputDecoration(
-            hintText: t.onboarding.goal.targetWeightHint,
+            hintText: _unit == WeightUnit.jin
+                ? t.onboarding.goal.targetWeightHintJin
+                : t.onboarding.goal.targetWeightHint,
             errorText: _weightError(t),
             filled: true,
             fillColor: colors.bgSecondary,

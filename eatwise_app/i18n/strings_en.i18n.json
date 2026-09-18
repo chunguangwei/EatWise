@@ -117,8 +117,13 @@
       "heightHint": "e.g. 168",
       "heightInvalid": "Enter a height between 100 and 250 cm",
       "weightLabel": "Weight (kg)",
+      "weightLabelJin": "Weight (jin)",
       "weightHint": "e.g. 60",
+      "weightHintJin": "e.g. 120",
       "weightInvalid": "Enter a weight between 25 and 300 kg",
+      "weightInvalidJin": "Enter a weight between 50 and 600 jin",
+      "weightUnitKg": "kg",
+      "weightUnitJin": "jin",
       "activityLabel": "Daily activity level",
       "activity": {
         "sedentary": "Mostly sitting (office/home, barely any exercise)",
@@ -142,8 +147,11 @@
       "title": "Set a weight goal",
       "subtitle": "With a target weight and date, we can work out a safe daily calorie goal — or skip and use the default estimate.",
       "targetWeightLabel": "Target weight (kg)",
+      "targetWeightLabelJin": "Target weight (jin)",
       "targetWeightHint": "e.g. 55",
+      "targetWeightHintJin": "e.g. 110",
       "targetWeightInvalid": "Enter a weight between 25 and 300 kg",
+      "targetWeightInvalidJin": "Enter a weight between 50 and 600 jin",
       "targetDateLabel": "When do you want to reach it?",
       "quickWeeks": "In ${weeks} weeks",
       "customDate": "Pick a date",
@@ -330,7 +338,11 @@
       "current": "${kg} kg",
       "dialogTitle": "Log today's weight",
       "inputLabel": "Weight (kg)",
+      "inputLabelJin": "Weight (jin)",
       "invalid": "Enter a value between 20 and 300",
+      "invalidJin": "Enter a value between 40 and 600 jin",
+      "unitKg": "kg",
+      "unitJin": "jin",
       "bodyFatLabel": "Body fat (%, optional)",
       "bodyFatInvalid": "Enter a body fat between 1% and 70%"
     },
@@ -760,7 +772,8 @@
         "normal": "Healthy",
         "overweight": "Above range",
         "obese": "Obese",
-        "missing": "Add your height and weight to see your BMI"
+        "missing": "Add your height and weight to see your BMI",
+        "unitHint": "Weight is in kilograms — if you entered it in jin, please correct your weight"
       }
     },
     "reminders": {

@@ -240,6 +240,61 @@ void main() {
     );
   });
 
+  testWidgets('档案页：切斤填 170 → 存 85 kg（斤→kg 换算，按 kg 口径校验）', (tester) async {
+    final (:store, :sync) = await pumpApp(tester);
+    await reachProfilePage(tester);
+
+    // 切到「斤」（单位切换在体重字段标签行，先滚动到可见再点）。
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey<String>('profile.weightUnit')),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await pumpFrames(tester);
+    await tester.tap(find.text('斤'));
+    await pumpFrames(tester);
+    expect(find.text('体重（斤）'), findsOneWidget);
+
+    // 斤模式超区间：700 斤 = 350 kg 越域（按存储单位 kg 校验）→
+    // 错误文案 + 保存禁用。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.weightKg')),
+      '700',
+    );
+    await pumpFrames(tester);
+    expect(find.text('请输入 50–600 之间的体重（斤）'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey<String>('onboarding.profile.save')),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await pumpFrames(tester);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const ValueKey<String>('onboarding.profile.save')),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    // 170 斤 → 合法；保存后档案按 kg 落盘（85）。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('profile.weightKg')),
+      '170',
+    );
+    await pumpFrames(tester);
+    expect(find.text('请输入 50–600 之间的体重（斤）'), findsNothing);
+    await tapVisible(tester, const ValueKey<String>('onboarding.profile.save'));
+
+    // Q1=减脂且填了体重 → 目标页；跳过 → 推荐页。
+    expect(find.text('定个减重小目标'), findsOneWidget);
+    await tapVisible(tester, const ValueKey<String>('onboarding.goal.skip'));
+    expect(find.text('为你推荐的方案'), findsOneWidget);
+    expect(store.loadProfile()!.weightKg, 85);
+    expect(sync.completedCalls, isEmpty); // 尚未一键启动，不回写服务端
+  });
+
   testWidgets('问卷跳过 → 回写服务端 onboardingStatus=skipped', (tester) async {
     final (:store, :sync) = await pumpApp(tester);
     expect(store, isNotNull);

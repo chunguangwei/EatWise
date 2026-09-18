@@ -186,6 +186,72 @@ void main() {
     await settleUi(tester);
   });
 
+  testWidgets('体重：斤模式 —— 输入按斤、存储换算 kg、偏好持久化、预填回显斤数', (tester) async {
+    await LocaleSettings.setLocale(AppLocale.zhCn);
+    await pumpSection(tester);
+
+    await tester.tap(find.text('体重'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 默认公斤；切到「斤」。
+    expect(find.text('体重（千克）'), findsOneWidget);
+    await tester.tap(find.text('斤'));
+    await tester.pump();
+    expect(find.text('体重（斤）'), findsOneWidget);
+
+    // 斤模式超区间（700 斤 = 350 kg > 300）→ 按 kg 口径校验报错，不落库。
+    await tester.enterText(find.byType(TextField).first, '700');
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    expect(find.text('请输入 40 到 600 之间的数（斤）'), findsOneWidget);
+    expect(weightStore.loadRange(todayKey(), todayKey()), isEmpty);
+
+    // 131 斤 → 存 65.5 kg；卡片仍按 kg 展示。
+    await tester.enterText(find.byType(TextField).first, '131');
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('65.5 千克'), findsOneWidget);
+    expect(weightStore.loadRange(todayKey(), todayKey())[todayKey()], 65.5);
+
+    // 偏好持久化：三处输入共用同一键。
+    expect(prefs.getString('profile.weightUnit'), 'jin');
+
+    // 重开弹窗：仍是斤模式，已有 kg 值回显为斤数。
+    await tester.tap(find.text('体重'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('体重（斤）'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+      '131',
+    );
+
+    // 斤模式修改：170 斤 → 存 85 kg。
+    await tester.enterText(find.byType(TextField).first, '170');
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(weightStore.loadRange(todayKey(), todayKey())[todayKey()], 85.0);
+    expect(find.text('85.0 千克'), findsOneWidget);
+
+    // 切回公斤：已输入的斤数换算回 kg 显示。
+    await tester.tap(find.text('体重'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('千克'));
+    await tester.pump();
+    expect(find.text('体重（千克）'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+      '85',
+    );
+    expect(prefs.getString('profile.weightUnit'), 'kg');
+
+    await settleUi(tester);
+  });
+
   testWidgets('双语：英文环境饮水 / 体重文案与校验（英文）', (tester) async {
     await LocaleSettings.setLocale(AppLocale.en);
     await pumpSection(tester);

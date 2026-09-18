@@ -3,10 +3,13 @@ import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/account/application/weight_unit_controller.dart';
+import 'package:eatwise/features/account/domain/weight_unit.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 身体档案表单（阶段 A：onboarding 档案页与「我的-身体档案」共用控件）。
 ///
@@ -14,7 +17,10 @@ import 'package:flutter/services.dart';
 /// （[isValidBirthYear]/[isValidHeightCm]/[isValidWeightKg]，纯函数在
 /// onboarding/domain/onboarding_profile.dart），非法输入即时提示并
 /// 通过 [onChanged] 上报 isValid=false 由父级禁用提交。
-class BodyProfileForm extends StatefulWidget {
+///
+/// 体重支持「公斤/斤」切换（真机走查防呆：国内用户常按斤填写）——内部
+/// 取值与校验一律 kg（斤 ÷2），单位偏好持久化后三处体重输入共用。
+class BodyProfileForm extends ConsumerStatefulWidget {
   const BodyProfileForm({
     super.key,
     required this.currentYear,
@@ -32,12 +38,13 @@ class BodyProfileForm extends StatefulWidget {
   final void Function(OnboardingProfile profile, bool isValid) onChanged;
 
   @override
-  State<BodyProfileForm> createState() => _BodyProfileFormState();
+  ConsumerState<BodyProfileForm> createState() => _BodyProfileFormState();
 }
 
-class _BodyProfileFormState extends State<BodyProfileForm> {
+class _BodyProfileFormState extends ConsumerState<BodyProfileForm> {
   late ProfileSex? _sex = widget.initial.sex;
   late ActivityLevel? _activityLevel = widget.initial.activityLevel;
+  late WeightUnit _unit;
   late final TextEditingController _birthYearController;
   late final TextEditingController _heightController;
   late final TextEditingController _weightController;
@@ -45,6 +52,7 @@ class _BodyProfileFormState extends State<BodyProfileForm> {
   @override
   void initState() {
     super.initState();
+    _unit = ref.read(weightUnitProvider);
     String numText(num? v) =>
         v == null ? '' : (v == v.roundToDouble() ? v.toInt().toString() : '$v');
     _birthYearController = TextEditingController(
@@ -53,8 +61,11 @@ class _BodyProfileFormState extends State<BodyProfileForm> {
     _heightController = TextEditingController(
       text: numText(widget.initial.heightCm),
     );
+    // 存储值一律 kg：选斤时预填换算后的斤数（1 位小数）。
     _weightController = TextEditingController(
-      text: numText(widget.initial.weightKg),
+      text: widget.initial.weightKg == null
+          ? ''
+          : formatWeightForUnit(widget.initial.weightKg!, _unit),
     );
     // 初始值合法（来自已持久化档案），直接上报一次供父级初始化。
     WidgetsBinding.instance.addPostFrameCallback((_) => _emit());
@@ -80,10 +91,13 @@ class _BodyProfileFormState extends State<BodyProfileForm> {
     return double.tryParse(raw);
   }
 
+  /// 当前输入换算为存储单位 kg（选斤时 ÷2；非法/留空返回 null）。
   double? get _weightKg {
     final raw = _weightController.text.trim();
     if (raw.isEmpty) return null;
-    return double.tryParse(raw);
+    final value = double.tryParse(raw);
+    if (value == null) return null;
+    return _unit == WeightUnit.jin ? jinToKg(value) : value;
   }
 
   String? _birthYearError(Translations t) {
@@ -112,11 +126,37 @@ class _BodyProfileFormState extends State<BodyProfileForm> {
   String? _weightError(Translations t) {
     final raw = _weightController.text.trim();
     if (raw.isEmpty) return null;
-    final kg = double.tryParse(raw);
+    // 校验按存储单位 kg（25–300）：斤输入先换算再判定。
+    final kg = _weightKg;
     if (kg == null || !isValidWeightKg(kg)) {
-      return t.onboarding.profile.weightInvalid;
+      return _unit == WeightUnit.jin
+          ? t.onboarding.profile.weightInvalidJin
+          : t.onboarding.profile.weightInvalid;
     }
     return null;
+  }
+
+  /// 切换公斤/斤：写偏好（weightUnitProvider 为单一事实源，本控件与同页
+  /// 其他体重输入经 listen 同步换算，三处输入共用）。
+  void _onUnitChanged(WeightUnit unit) {
+    if (unit == _unit) return;
+    ref.read(weightUnitProvider.notifier).setUnit(unit);
+  }
+
+  /// 应用新单位：已输入的数值按旧单位换算成 kg 后以新单位重填
+  /// （非法输入保留原文，交由校验提示）。
+  void _applyUnit(WeightUnit unit) {
+    if (unit == _unit) return;
+    // 输入值按旧单位解释：旧单位是斤则先 ÷2 回到 kg，再以新单位重填。
+    final parsed = double.tryParse(_weightController.text.trim());
+    final kg = parsed == null
+        ? null
+        : (_unit == WeightUnit.jin ? jinToKg(parsed) : parsed);
+    setState(() => _unit = unit);
+    if (kg != null) {
+      _weightController.text = formatWeightForUnit(kg, unit);
+    }
+    _emit();
   }
 
   void _emit() {
@@ -139,6 +179,11 @@ class _BodyProfileFormState extends State<BodyProfileForm> {
 
   @override
   Widget build(BuildContext context) {
+    // 单位偏好为单一事实源：同页其他体重输入切换时此处同步换算。
+    ref.listen<WeightUnit>(
+      weightUnitProvider,
+      (prev, next) => _applyUnit(next),
+    );
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
@@ -200,12 +245,31 @@ class _BodyProfileFormState extends State<BodyProfileForm> {
         const SizedBox(height: AppSpacing.s3),
         _ProfileField(
           key: const ValueKey<String>('profile.weightKg'),
-          label: t.onboarding.profile.weightLabel,
-          hint: t.onboarding.profile.weightHint,
+          label: _unit == WeightUnit.jin
+              ? t.onboarding.profile.weightLabelJin
+              : t.onboarding.profile.weightLabel,
+          hint: _unit == WeightUnit.jin
+              ? t.onboarding.profile.weightHintJin
+              : t.onboarding.profile.weightHint,
           controller: _weightController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           errorText: _weightError(t),
           onChanged: _onFieldChanged,
+          labelTrailing: SegmentedButton<WeightUnit>(
+            key: const ValueKey<String>('profile.weightUnit'),
+            segments: <ButtonSegment<WeightUnit>>[
+              ButtonSegment<WeightUnit>(
+                value: WeightUnit.kg,
+                label: Text(t.onboarding.profile.weightUnitKg),
+              ),
+              ButtonSegment<WeightUnit>(
+                value: WeightUnit.jin,
+                label: Text(t.onboarding.profile.weightUnitJin),
+              ),
+            ],
+            selected: <WeightUnit>{_unit},
+            onSelectionChanged: (selection) => _onUnitChanged(selection.first),
+          ),
         ),
         const SizedBox(height: AppSpacing.s4),
         Text(
@@ -257,6 +321,7 @@ class _ProfileField extends StatelessWidget {
     required this.onChanged,
     this.inputFormatters,
     this.errorText,
+    this.labelTrailing,
   });
 
   final String label;
@@ -267,17 +332,29 @@ class _ProfileField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final String? errorText;
 
+  /// 标签行右侧挂件（如体重单位切换）。
+  final Widget? labelTrailing;
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final labelText = Text(
+      label,
+      style: textStyles.textSm.copyWith(color: colors.textSecondary),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
-          label,
-          style: textStyles.textSm.copyWith(color: colors.textSecondary),
-        ),
+        if (labelTrailing == null)
+          labelText
+        else
+          Row(
+            children: <Widget>[
+              Expanded(child: labelText),
+              labelTrailing!,
+            ],
+          ),
         const SizedBox(height: AppSpacing.s1),
         TextField(
           controller: controller,

@@ -117,8 +117,13 @@
       "heightHint": "如 168",
       "heightInvalid": "请输入 100–250 之间的身高",
       "weightLabel": "体重（kg）",
+      "weightLabelJin": "体重（斤）",
       "weightHint": "如 60",
+      "weightHintJin": "如 120",
       "weightInvalid": "请输入 25–300 之间的体重",
+      "weightInvalidJin": "请输入 50–600 之间的体重（斤）",
+      "weightUnitKg": "公斤",
+      "weightUnitJin": "斤",
       "activityLabel": "日常活动量",
       "activity": {
         "sedentary": "大部分时间是坐着的（办公室/居家，几乎不运动）",
@@ -142,8 +147,11 @@
       "title": "定个减重小目标",
       "subtitle": "填上目标体重和日期，就能按安全节奏算出每天的热量目标；也可以跳过，先按默认折算。",
       "targetWeightLabel": "目标体重（kg）",
+      "targetWeightLabelJin": "目标体重（斤）",
       "targetWeightHint": "如 55",
+      "targetWeightHintJin": "如 110",
       "targetWeightInvalid": "请输入 25–300 之间的体重",
+      "targetWeightInvalidJin": "请输入 50–600 之间的体重（斤）",
       "targetDateLabel": "希望在哪天达成？",
       "quickWeeks": "${weeks} 周后",
       "customDate": "自选日期",
@@ -330,7 +338,11 @@
       "current": "${kg} 千克",
       "dialogTitle": "记录今日体重",
       "inputLabel": "体重（千克）",
+      "inputLabelJin": "体重（斤）",
       "invalid": "请输入 20 到 300 之间的数",
+      "invalidJin": "请输入 40 到 600 之间的数（斤）",
+      "unitKg": "千克",
+      "unitJin": "斤",
       "bodyFatLabel": "体脂率（%，可不填）",
       "bodyFatInvalid": "体脂率需在 1–70% 之间"
     },
@@ -759,7 +771,8 @@
         "normal": "标准",
         "overweight": "偏高",
         "obese": "肥胖",
-        "missing": "补全身高体重后展示 BMI"
+        "missing": "补全身高体重后展示 BMI",
+        "unitHint": "体重单位是公斤，如果你是按斤填的，请改一下体重"
       }
     },
     "reminders": {

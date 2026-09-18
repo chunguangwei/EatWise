@@ -8,6 +8,8 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/account/application/weight_unit_controller.dart';
+import 'package:eatwise/features/account/domain/weight_unit.dart';
 import 'package:eatwise/features/record/data/water_log_repository.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
@@ -348,8 +350,8 @@ class _WeightCard extends ConsumerWidget {
   }
 }
 
-/// 体重录入对话框：48px 数字输入（kg，一位小数）+ 可空体脂率（%）+ 校验 +
-/// 同日覆写（阶段 C：落库 pending，登录态后台上行）。
+/// 体重录入对话框：48px 数字输入（公斤/斤可切换，存储统一 kg 一位小数）+
+/// 可空体脂率（%）+ 校验 + 同日覆写（阶段 C：落库 pending，登录态后台上行）。
 class _WeightDialog extends ConsumerStatefulWidget {
   const _WeightDialog({this.current});
 
@@ -361,9 +363,8 @@ class _WeightDialog extends ConsumerStatefulWidget {
 }
 
 class _WeightDialogState extends ConsumerState<_WeightDialog> {
-  late final TextEditingController _controller = TextEditingController(
-    text: widget.current?.kg.toStringAsFixed(1) ?? '',
-  );
+  late WeightUnit _unit;
+  late final TextEditingController _controller;
   late final TextEditingController _bodyFatController = TextEditingController(
     text: widget.current?.bodyFatPct?.toStringAsFixed(1) ?? '',
   );
@@ -371,7 +372,7 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
   /// 校验错误文案（null 为无错误）。
   String? _error;
 
-  /// 合理体重区间（kg，〔假设〕20–300 防误输）。
+  /// 合理体重区间（kg 存储口径，〔假设〕20–300 防误输；斤输入换算后判定）。
   static const double _minKg = 20;
   static const double _maxKg = 300;
 
@@ -380,18 +381,65 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
   static const double _maxBodyFat = 70;
 
   @override
+  void initState() {
+    super.initState();
+    _unit = ref.read(weightUnitProvider);
+    // 预填：kg 保持一位小数既有形态；选斤时换算成斤数（1 位小数）。
+    final currentKg = widget.current?.kg;
+    _controller = TextEditingController(
+      text: currentKg == null
+          ? ''
+          : _unit == WeightUnit.jin
+          ? formatWeightForUnit(currentKg, WeightUnit.jin)
+          : currentKg.toStringAsFixed(1),
+    );
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     _bodyFatController.dispose();
     super.dispose();
   }
 
-  /// 保存：校验 → 写 M6 WeightLogStore（同日覆写，pending）→ 触发一轮
-  /// 同步（登录态上行）→ 刷新记录页与 M6 趋势。
+  /// 切换公斤/斤：写偏好（weightUnitProvider 为单一事实源，本控件经
+  /// listen 同步换算，与档案表单/目标字段共用）。
+  void _onUnitChanged(WeightUnit unit) {
+    if (unit == _unit) return;
+    ref.read(weightUnitProvider.notifier).setUnit(unit);
+  }
+
+  /// 应用新单位：已输入的数值按旧单位换算成 kg 后以新单位重填
+  /// （非法输入保留原文，交由保存时校验提示）。
+  void _applyUnit(WeightUnit unit) {
+    if (unit == _unit) return;
+    // 输入值按旧单位解释：旧单位是斤则先 ÷2 回到 kg，再以新单位重填。
+    final parsed = double.tryParse(_controller.text.trim());
+    final kg = parsed == null
+        ? null
+        : (_unit == WeightUnit.jin ? jinToKg(parsed) : parsed);
+    setState(() {
+      _unit = unit;
+      _error = null;
+    });
+    if (kg != null) {
+      _controller.text = formatWeightForUnit(kg, unit);
+    }
+  }
+
+  /// 保存：校验（按存储单位 kg，斤输入先换算）→ 写 M6 WeightLogStore
+  ///（同日覆写，pending）→ 触发一轮同步（登录态上行）→ 刷新记录页与 M6 趋势。
   Future<void> _save(RecordStrings s) async {
     final value = double.tryParse(_controller.text.trim());
-    if (value == null || value < _minKg || value > _maxKg) {
-      setState(() => _error = s.weightInvalid);
+    final kgValue = value == null
+        ? null
+        : (_unit == WeightUnit.jin ? jinToKg(value) : value);
+    if (kgValue == null || kgValue < _minKg || kgValue > _maxKg) {
+      setState(
+        () => _error = _unit == WeightUnit.jin
+            ? s.weightInvalidJin
+            : s.weightInvalid,
+      );
       return;
     }
     // 体脂率可空：留空即不采集（同日覆写时清除旧值）；非空须落在合理区间。
@@ -406,7 +454,7 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
       bodyFatPct = (parsed * 10).round() / 10;
     }
     // 统一一位小数存储（i18n 规格：存储层统一 kg，展示保留 1 位小数）。
-    final kg = (value * 10).round() / 10;
+    final kg = (kgValue * 10).round() / 10;
     await ref
         .read(weightLogStoreProvider)
         .save(localDateKey(DateTime.now()), kg, bodyFatPct: bodyFatPct);
@@ -425,6 +473,11 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
 
   @override
   Widget build(BuildContext context) {
+    // 单位偏好为单一事实源：他处切换时此处同步换算。
+    ref.listen<WeightUnit>(
+      weightUnitProvider,
+      (prev, next) => _applyUnit(next),
+    );
     final s = RecordStrings.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
@@ -436,6 +489,27 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
+          // 公斤/斤切换（真机走查防呆：国内用户常按斤填写；存储统一 kg）。
+          Align(
+            alignment: Alignment.centerRight,
+            child: SegmentedButton<WeightUnit>(
+              key: const ValueKey<String>('record.weight.unit'),
+              segments: <ButtonSegment<WeightUnit>>[
+                ButtonSegment<WeightUnit>(
+                  value: WeightUnit.kg,
+                  label: Text(s.weightUnitKg),
+                ),
+                ButtonSegment<WeightUnit>(
+                  value: WeightUnit.jin,
+                  label: Text(s.weightUnitJin),
+                ),
+              ],
+              selected: <WeightUnit>{_unit},
+              onSelectionChanged: (selection) =>
+                  _onUnitChanged(selection.first),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s2),
           TextField(
             controller: _controller,
             autofocus: true,
@@ -443,7 +517,9 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
             style: textStyles.textBase,
             onSubmitted: (_) => unawaited(_save(s)),
             decoration: InputDecoration(
-              labelText: s.weightInputLabel,
+              labelText: _unit == WeightUnit.jin
+                  ? s.weightInputLabelJin
+                  : s.weightInputLabel,
               errorText: _error,
               filled: true,
               fillColor: colors.bgSecondary,

@@ -381,8 +381,13 @@ class _Translations$onboarding$profile$en extends Translations$onboarding$profil
 	@override String get heightHint => 'e.g. 168';
 	@override String get heightInvalid => 'Enter a height between 100 and 250 cm';
 	@override String get weightLabel => 'Weight (kg)';
+	@override String get weightLabelJin => 'Weight (jin)';
 	@override String get weightHint => 'e.g. 60';
+	@override String get weightHintJin => 'e.g. 120';
 	@override String get weightInvalid => 'Enter a weight between 25 and 300 kg';
+	@override String get weightInvalidJin => 'Enter a weight between 50 and 600 jin';
+	@override String get weightUnitKg => 'kg';
+	@override String get weightUnitJin => 'jin';
 	@override String get activityLabel => 'Daily activity level';
 	@override late final _Translations$onboarding$profile$activity$en activity = _Translations$onboarding$profile$activity$en._(_root);
 	@override String get save => 'Save & continue';
@@ -400,8 +405,11 @@ class _Translations$onboarding$goal$en extends Translations$onboarding$goal$zh_C
 	@override String get title => 'Set a weight goal';
 	@override String get subtitle => 'With a target weight and date, we can work out a safe daily calorie goal — or skip and use the default estimate.';
 	@override String get targetWeightLabel => 'Target weight (kg)';
+	@override String get targetWeightLabelJin => 'Target weight (jin)';
 	@override String get targetWeightHint => 'e.g. 55';
+	@override String get targetWeightHintJin => 'e.g. 110';
 	@override String get targetWeightInvalid => 'Enter a weight between 25 and 300 kg';
+	@override String get targetWeightInvalidJin => 'Enter a weight between 50 and 600 jin';
 	@override String get targetDateLabel => 'When do you want to reach it?';
 	@override String quickWeeks({required Object weeks}) => 'In ${weeks} weeks';
 	@override String get customDate => 'Pick a date';
@@ -665,7 +673,11 @@ class _Translations$record$weight$en extends Translations$record$weight$zh_CN {
 	@override String current({required Object kg}) => '${kg} kg';
 	@override String get dialogTitle => 'Log today\'s weight';
 	@override String get inputLabel => 'Weight (kg)';
+	@override String get inputLabelJin => 'Weight (jin)';
 	@override String get invalid => 'Enter a value between 20 and 300';
+	@override String get invalidJin => 'Enter a value between 40 and 600 jin';
+	@override String get unitKg => 'kg';
+	@override String get unitJin => 'jin';
 	@override String get bodyFatLabel => 'Body fat (%, optional)';
 	@override String get bodyFatInvalid => 'Enter a body fat between 1% and 70%';
 }
@@ -1892,6 +1904,7 @@ class _Translations$settings$bodyProfile$bmi$en extends Translations$settings$bo
 	@override String get overweight => 'Above range';
 	@override String get obese => 'Obese';
 	@override String get missing => 'Add your height and weight to see your BMI';
+	@override String get unitHint => 'Weight is in kilograms — if you entered it in jin, please correct your weight';
 }
 
 // Path: settings.aiModel.providers
@@ -2112,8 +2125,13 @@ extension on TranslationsEn {
 			'onboarding.profile.heightHint' => 'e.g. 168',
 			'onboarding.profile.heightInvalid' => 'Enter a height between 100 and 250 cm',
 			'onboarding.profile.weightLabel' => 'Weight (kg)',
+			'onboarding.profile.weightLabelJin' => 'Weight (jin)',
 			'onboarding.profile.weightHint' => 'e.g. 60',
+			'onboarding.profile.weightHintJin' => 'e.g. 120',
 			'onboarding.profile.weightInvalid' => 'Enter a weight between 25 and 300 kg',
+			'onboarding.profile.weightInvalidJin' => 'Enter a weight between 50 and 600 jin',
+			'onboarding.profile.weightUnitKg' => 'kg',
+			'onboarding.profile.weightUnitJin' => 'jin',
 			'onboarding.profile.activityLabel' => 'Daily activity level',
 			'onboarding.profile.activity.sedentary' => 'Mostly sitting (office/home, barely any exercise)',
 			'onboarding.profile.activity.light' => 'Light exercise 1–3 times a week (walking, yoga, etc.)',
@@ -2129,8 +2147,11 @@ extension on TranslationsEn {
 			'onboarding.goal.title' => 'Set a weight goal',
 			'onboarding.goal.subtitle' => 'With a target weight and date, we can work out a safe daily calorie goal — or skip and use the default estimate.',
 			'onboarding.goal.targetWeightLabel' => 'Target weight (kg)',
+			'onboarding.goal.targetWeightLabelJin' => 'Target weight (jin)',
 			'onboarding.goal.targetWeightHint' => 'e.g. 55',
+			'onboarding.goal.targetWeightHintJin' => 'e.g. 110',
 			'onboarding.goal.targetWeightInvalid' => 'Enter a weight between 25 and 300 kg',
+			'onboarding.goal.targetWeightInvalidJin' => 'Enter a weight between 50 and 600 jin',
 			'onboarding.goal.targetDateLabel' => 'When do you want to reach it?',
 			'onboarding.goal.quickWeeks' => ({required Object weeks}) => 'In ${weeks} weeks',
 			'onboarding.goal.customDate' => 'Pick a date',
@@ -2281,7 +2302,11 @@ extension on TranslationsEn {
 			'record.weight.current' => ({required Object kg}) => '${kg} kg',
 			'record.weight.dialogTitle' => 'Log today\'s weight',
 			'record.weight.inputLabel' => 'Weight (kg)',
+			'record.weight.inputLabelJin' => 'Weight (jin)',
 			'record.weight.invalid' => 'Enter a value between 20 and 300',
+			'record.weight.invalidJin' => 'Enter a value between 40 and 600 jin',
+			'record.weight.unitKg' => 'kg',
+			'record.weight.unitJin' => 'jin',
 			'record.weight.bodyFatLabel' => 'Body fat (%, optional)',
 			'record.weight.bodyFatInvalid' => 'Enter a body fat between 1% and 70%',
 			'record.home.title' => 'Log',
@@ -2536,6 +2561,8 @@ extension on TranslationsEn {
 			'settings.account.deleteConfirmAction' => 'Confirm deletion',
 			'settings.account.deleteConfirmBody' => 'After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.',
 			'settings.account.deleteConfirmTitle' => 'Delete your account?',
+			_ => null,
+		} ?? switch (path) {
 			'settings.account.deleteRequested' => 'Deletion requested — your account enters a 7-day cooling-off period',
 			'settings.account.deleteScheduledBody' => ({required Object date}) => 'Deletion requested. Your account will be erased on ${date}; sign in before then to cancel.',
 			'settings.account.deletionCancelled' => 'Deletion cancelled — your account is back to normal',
@@ -2548,8 +2575,6 @@ extension on TranslationsEn {
 			'settings.privacy.exportData' => 'Export my data',
 			'settings.privacy.exportSuccess' => ({required Object path}) => 'Data exported: ${path}',
 			'settings.privacy.healthData' => 'Health data consent',
-			_ => null,
-		} ?? switch (path) {
 			'settings.privacy.healthDataSubtitle' => 'Processing of sensitive personal info such as height/weight and meal/fasting records',
 			'settings.privacy.healthDataRevoked' => 'Health data consent withdrawn — nutrition targets will use defaults',
 			'settings.privacy.analytics' => 'Analytics consent',
@@ -2592,6 +2617,7 @@ extension on TranslationsEn {
 			'settings.bodyProfile.bmi.overweight' => 'Above range',
 			'settings.bodyProfile.bmi.obese' => 'Obese',
 			'settings.bodyProfile.bmi.missing' => 'Add your height and weight to see your BMI',
+			'settings.bodyProfile.bmi.unitHint' => 'Weight is in kilograms — if you entered it in jin, please correct your weight',
 			'settings.reminders.notifications' => 'Notification settings',
 			'settings.reminders.notificationsSubtitle' => 'Manage notification permission in system settings',
 			'settings.about.version' => 'Version',
