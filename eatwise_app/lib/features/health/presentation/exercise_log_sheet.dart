@@ -120,8 +120,8 @@ Future<void> _undoSaved(
   }
 }
 
-/// 记运动弹层：类型 chips 单选 + 时长输入 + 实时预估 kcal（可编辑覆盖）
-/// + 今日运动列表（可删）。
+/// 记运动弹层：类型 chips 单选 + 时长输入（走路可按步数录入，自动换算
+/// 距离与热量）+ 实时预估 kcal（可编辑覆盖）+ 今日运动列表（可删）。
 class _ExerciseLogSheet extends ConsumerStatefulWidget {
   const _ExerciseLogSheet();
 
@@ -132,6 +132,7 @@ class _ExerciseLogSheet extends ConsumerStatefulWidget {
 class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
   ExerciseType _type = exerciseTypes.first;
   final TextEditingController _durationController = TextEditingController();
+  final TextEditingController _stepsController = TextEditingController();
   final TextEditingController _kcalController = TextEditingController();
 
   /// kcal 被用户手改后为 true（不再随类型/时长联动重算）。
@@ -151,13 +152,25 @@ class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
   @override
   void dispose() {
     _durationController.dispose();
+    _stepsController.dispose();
     _kcalController.dispose();
     super.dispose();
   }
 
-  /// 类型/时长变化 → 未手改时实时重算预估 kcal。
+  /// 类型/时长/步数变化 → 未手改时实时重算预估 kcal。
+  /// 走路填了步数 → 按步数口径（体重 × 距离 × 1.036，距离按 0.75m 步幅
+  /// 折算，〔待营养背书〕）；否则走 MET × 体重 × 时长。
   void _recomputeEstimate() {
     if (_kcalOverridden) return;
+    final steps = int.tryParse(_stepsController.text.trim());
+    if (_type.key == 'walk' && steps != null && steps > 0) {
+      final estimate = estimateKcalFromStepsWalk(
+        steps: steps,
+        weightKg: _effectiveWeightKg,
+      );
+      _kcalController.text = estimate > 0 ? '${estimate.round()}' : '';
+      return;
+    }
     final minutes = int.tryParse(_durationController.text.trim());
     final estimate = estimateExerciseKcal(
       met: _type.met,
@@ -168,8 +181,11 @@ class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
   }
 
   Future<void> _save(Translations t) async {
-    final minutes = int.tryParse(_durationController.text.trim());
-    if (minutes == null || minutes <= 0) {
+    final steps = int.tryParse(_stepsController.text.trim());
+    final bySteps = _type.key == 'walk' && steps != null && steps > 0;
+    // 走路按步数录入时长可留空（无时长口径，落 0）；其余时长必填。
+    final minutes = int.tryParse(_durationController.text.trim()) ?? 0;
+    if (!bySteps && minutes <= 0) {
       setState(() => _error = t.record.exercise.durationInvalid);
       return;
     }
@@ -180,7 +196,12 @@ class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
     }
     final saved = await ref
         .read(exerciseLogRepositoryProvider)
-        .add(typeKey: _type.key, durationMin: minutes, kcal: kcal);
+        .add(
+          typeKey: _type.key,
+          durationMin: minutes,
+          kcal: kcal,
+          steps: bySteps ? steps : null,
+        );
     if (mounted) Navigator.of(context).pop(saved);
   }
 
@@ -299,6 +320,30 @@ class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
                 ),
               ),
               const SizedBox(height: AppSpacing.s2),
+              // 走路专属：步数录入（填了则按步数估算距离与热量，时长可留空）。
+              if (_type.key == 'walk') ...<Widget>[
+                TextField(
+                  key: const ValueKey<String>('exercise.steps'),
+                  controller: _stepsController,
+                  keyboardType: TextInputType.number,
+                  style: textStyles.textBase,
+                  onChanged: (_) {
+                    setState(() => _error = null);
+                    _recomputeEstimate();
+                  },
+                  decoration: InputDecoration(
+                    labelText: t.record.exercise.stepsLabel,
+                    helperText: t.record.exercise.stepsEstimateHint,
+                    filled: true,
+                    fillColor: colors.bgSecondary,
+                    border: OutlineInputBorder(
+                      borderRadius: radii.rMd,
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s2),
+              ],
               // 预估消耗（可编辑覆盖）。
               TextField(
                 key: const ValueKey<String>('exercise.kcal'),
@@ -373,13 +418,22 @@ class _TodayExerciseTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final colors = Theme.of(context).extension<AppColors>()!;
+    // 展示项组装：类型名 + 步数（如有）+ 时长（>0 才显示，截图汇总/步数
+    // 录入无时长口径，不再出「0 分钟」）+ kcal。
+    final parts = <String>[exerciseTypeName(t, log.typeKey)];
+    final steps = log.steps;
+    if (steps != null && steps > 0) {
+      parts.add(t.record.exercise.stepsValue(steps: steps));
+    }
+    if (log.durationMin > 0) {
+      parts.add(t.record.exercise.minutesValue(min: log.durationMin));
+    }
+    parts.add(t.record.exercise.kcalValue(kcal: log.kcal.round()));
     return Row(
       children: <Widget>[
         Expanded(
           child: Text(
-            '${exerciseTypeName(t, log.typeKey)} · '
-            '${t.record.exercise.minutesValue(min: log.durationMin)} · '
-            '${t.record.exercise.kcalValue(kcal: log.kcal.round())}',
+            parts.join(' · '),
             style: textStyles.textSm.copyWith(color: colors.textPrimary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,

@@ -212,7 +212,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
 
-    expect(find.text('已记录 2 条'), findsOneWidget);
+    // 薯片未命中自动新建+送审后，toast 带待审核条数。
+    expect(find.text('已记录 2 条（1 条待审核）'), findsOneWidget);
     final entries = await repository.entriesForDate(DateTime.now().toUtc());
     expect(entries, hasLength(2));
     expect(entries.every((e) => e.source == EntrySource.photo), isTrue);
@@ -366,6 +367,98 @@ void main() {
     // 只剩一行：名称可见 + 仅一个删除按钮（空白行进不来）。
     expect(inSheet(find.text('白米饭')), findsOneWidget);
     expect(inSheet(find.byIcon(Icons.close)), findsNWidgets(1));
+    await settleUi(tester);
+  });
+
+  testWidgets('模糊匹配：未命中行显示相似食物，点「用这个」换库内条目直接入账', (tester) async {
+    // 「鸡胸沙拉」库未收录，但前缀递减能搜到「鸡胸肉」（种子库）。
+    recognitionService.outcome = const RecognitionSuccess(<RecognizedMealItem>[
+      RecognizedMealItem(
+        name: '鸡胸沙拉',
+        nameEn: 'chicken salad',
+        grams: 150,
+        per100g: NutritionSnapshot(kcal: 200, proteinG: 20, carbG: 5, fatG: 10),
+        confidence: 0.4, // 未命中必低置信
+      ),
+    ]);
+    await pumpPage(tester);
+    await pickPhotoAndRecognize(tester);
+    // 等模糊搜索（打开即对未命中行自动查）。
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(inSheet(find.text('库中已有相似食物：')), findsOneWidget);
+    expect(inSheet(find.textContaining('鸡胸肉')), findsWidgets);
+
+    // 点「用这个」→ 行替换为库内条目：名称/库内营养/未收录标记消失。
+    await tester.tap(inSheet(find.text('用这个')));
+    await tester.pump();
+    expect(inSheet(find.text('库未收录，将自动新建')), findsNothing);
+    expect(inSheet(find.text('鸡胸肉')), findsWidgets);
+    // 库内精准营养：133 kcal/100g × 150g = 200 千卡。
+    expect(inSheet(find.textContaining('热量 200 千卡')), findsOneWidget);
+
+    // 全部记录 → 直接用库内条目入账，不建自定义食物、不送审。
+    recordRemote.mode = FakeRemoteMode.offline;
+    await tester.tap(inSheet(find.text('全部记录')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    final entries = await repository.entriesForDate(DateTime.now().toUtc());
+    expect(entries, hasLength(1));
+    expect(entries.single.foodId, 'f-chicken');
+    expect(entries.single.amountG, 150);
+    expect(entries.single.source, EntrySource.photo);
+    expect(await db.foodDao.searchFoods('鸡胸沙拉'), isEmpty);
+    expect(customRemote.receivedContributeIds, isEmpty);
+    await settleUi(tester);
+  });
+
+  testWidgets('无相近结果：退化为自动新建+送审，toast 提示待审核；'
+      '模型幻觉值按克数正确缩放（无换算 bug）', (tester) async {
+    // 「牛肉炒时蔬」库未收录且前缀递减也搜不到（种子库无「牛」）；
+    // per100g 脂肪 150g（物理不可能，sanity-clamp 应已标请确认）。
+    recognitionService.outcome = const RecognitionSuccess(<RecognizedMealItem>[
+      RecognizedMealItem(
+        name: '牛肉炒时蔬',
+        nameEn: 'beef veggie stir-fry',
+        grams: 300,
+        per100g: NutritionSnapshot(
+          kcal: 150,
+          proteinG: 20,
+          carbG: 10,
+          fatG: 150,
+        ),
+        confidence: 0.5, // sanity-clamp 命中 → 必走请确认
+      ),
+    ]);
+    await pumpPage(tester);
+    await pickPhotoAndRecognize(tester);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // 无相似候选区；幻觉脂肪按 300g 正确缩放为 450.0（换算口径回归，
+    // 不是展示 bug——sanity-clamp 已标「请确认」）。
+    expect(inSheet(find.text('库中已有相似食物：')), findsNothing);
+    expect(inSheet(find.textContaining('脂肪 450.0 克')), findsOneWidget);
+    expect(inSheet(find.text('请确认')), findsOneWidget);
+
+    // 全部记录 → 自动新建自定义食物（模型估值入库）+ 提交众包审核。
+    recordRemote.mode = FakeRemoteMode.offline;
+    await tester.tap(inSheet(find.text('全部记录')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+
+    final saved = await db.foodDao.searchFoods('牛肉炒时蔬');
+    expect(saved, hasLength(1));
+    expect(saved.single.isCustom, isTrue);
+    expect(saved.single.fatPer100g, 150);
+    expect(customRemote.receivedContributeIds, isNotEmpty);
+    // toast：N 条（M 条待审核）。
+    expect(find.text('已记录 1 条（1 条待审核）'), findsOneWidget);
+    final entries = await repository.entriesForDate(DateTime.now().toUtc());
+    expect(entries.single.foodId, saved.single.id);
     await settleUi(tester);
   });
 

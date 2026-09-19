@@ -56,12 +56,17 @@ void main() {
   });
 
   group('mapExerciseTypeKey', () {
-    test('英文枚举与中文别名命中 12 键', () {
+    test('英文枚举与中文别名命中 17 键', () {
       expect(mapExerciseTypeKey('walk'), 'walk');
       expect(mapExerciseTypeKey('Jump Rope'), 'jumpRope');
       expect(mapExerciseTypeKey('骑行'), 'cycling');
       expect(mapExerciseTypeKey('羽毛球'), 'badminton');
       expect(mapExerciseTypeKey('登山'), 'hiking');
+      expect(mapExerciseTypeKey('basketball'), 'basketball');
+      expect(mapExerciseTypeKey('足球'), 'soccer');
+      expect(mapExerciseTypeKey('乒乓球'), 'tableTennis');
+      expect(mapExerciseTypeKey('tennis'), 'tennis');
+      expect(mapExerciseTypeKey('健身操'), 'dance');
     });
 
     test('映射不上 / 空 → other', () {
@@ -73,7 +78,7 @@ void main() {
   });
 
   group('draftFromSummaryScreenshot（〔待营养背书〕估算口径）', () {
-    test('活动热量 >0 → 直接用截图值（非估算）', () {
+    test('活动热量 >0 → 直接用截图值（非估算），步数随草稿落库', () {
       final draft = draftFromSummaryScreenshot(
         const ExerciseScreenshotData(
           kind: ExerciseScreenshotKind.summary,
@@ -86,6 +91,7 @@ void main() {
       expect(draft.durationMin, 0);
       expect(draft.kcal, 320);
       expect(draft.estimated, isFalse);
+      expect(draft.steps, 8245); // 识别有步数 → 必须随记录持久化
     });
 
     test('只有步数+距离 → 体重 × 距离 × 1.036（60kg × 5km = 310.8）', () {
@@ -99,6 +105,7 @@ void main() {
       )!;
       expect(draft.kcal, moreOrLessEquals(310.8, epsilon: 1e-9));
       expect(draft.estimated, isTrue);
+      expect(draft.steps, 6200);
     });
 
     test('只有步数没有距离 → 步数 × 0.75m 步幅估距离再折算'

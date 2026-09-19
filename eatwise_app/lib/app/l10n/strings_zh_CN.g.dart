@@ -943,6 +943,15 @@ class Translations$record$photo$zh_CN {
 
 	/// zh-CN: '先手动搜索'
 	String get engineGuideManual => '先手动搜索';
+
+	/// zh-CN: '库中已有相似食物：'
+	String get similarFoodsTitle => '库中已有相似食物：';
+
+	/// zh-CN: '用这个'
+	String get useThisFood => '用这个';
+
+	/// zh-CN: '已记录 ${count} 条（${pending} 条待审核）'
+	String loggedWithPending({required Object count, required Object pending}) => '已记录 ${count} 条（${pending} 条待审核）';
 }
 
 // Path: record.barcode
@@ -1317,6 +1326,15 @@ class Translations$record$exercise$zh_CN {
 
 	/// zh-CN: '${kcal} 千卡'
 	String kcalValue({required Object kcal}) => '${kcal} 千卡';
+
+	/// zh-CN: '步数（步）'
+	String get stepsLabel => '步数（步）';
+
+	/// zh-CN: '填步数则按步数自动估算距离与热量，时长可留空'
+	String get stepsEstimateHint => '填步数则按步数自动估算距离与热量，时长可留空';
+
+	/// zh-CN: '${steps} 步'
+	String stepsValue({required Object steps}) => '${steps} 步';
 
 	/// zh-CN: '删除该条运动记录'
 	String get deleteLabel => '删除该条运动记录';
@@ -1916,8 +1934,8 @@ class Translations$streak$milestone$zh_CN {
 
 	// Translations
 
-	/// zh-CN: '连续 ${days} 天！你已经超过了 80% 的伙伴 🎉'
-	String title({required Object days}) => '连续 ${days} 天！你已经超过了 80% 的伙伴 🎉';
+	/// zh-CN: '连续 ${days} 天！这个节奏太稳了，继续保持 🎉'
+	String title({required Object days}) => '连续 ${days} 天！这个节奏太稳了，继续保持 🎉';
 
 	/// zh-CN: '${days} 天连胜'
 	String badgeLabel({required Object days}) => '${days} 天连胜';
@@ -3382,6 +3400,21 @@ class Translations$record$exercise$types$zh_CN {
 	/// zh-CN: '羽毛球'
 	String get badminton => '羽毛球';
 
+	/// zh-CN: '篮球'
+	String get basketball => '篮球';
+
+	/// zh-CN: '足球'
+	String get soccer => '足球';
+
+	/// zh-CN: '乒乓球'
+	String get tableTennis => '乒乓球';
+
+	/// zh-CN: '网球'
+	String get tennis => '网球';
+
+	/// zh-CN: '健身操/舞蹈'
+	String get dance => '健身操/舞蹈';
+
 	/// zh-CN: 'HIIT'
 	String get hiit => 'HIIT';
 
@@ -4153,6 +4186,9 @@ extension on Translations {
 			'record.photo.engineGuideDownload' => '下载本地模型（推荐）',
 			'record.photo.engineGuideConfigApi' => '配置云端 API',
 			'record.photo.engineGuideManual' => '先手动搜索',
+			'record.photo.similarFoodsTitle' => '库中已有相似食物：',
+			'record.photo.useThisFood' => '用这个',
+			'record.photo.loggedWithPending' => ({required Object count, required Object pending}) => '已记录 ${count} 条（${pending} 条待审核）',
 			'record.barcode.entry' => '扫码记',
 			'record.barcode.title' => '扫描商品条码',
 			'record.barcode.torch' => '照明灯',
@@ -4282,6 +4318,9 @@ extension on Translations {
 			'record.exercise.todayList' => '今日运动',
 			'record.exercise.minutesValue' => ({required Object min}) => '${min} 分钟',
 			'record.exercise.kcalValue' => ({required Object kcal}) => '${kcal} 千卡',
+			'record.exercise.stepsLabel' => '步数（步）',
+			'record.exercise.stepsEstimateHint' => '填步数则按步数自动估算距离与热量，时长可留空',
+			'record.exercise.stepsValue' => ({required Object steps}) => '${steps} 步',
 			'record.exercise.deleteLabel' => '删除该条运动记录',
 			'record.exercise.deleted' => '已删除',
 			'record.exercise.screenshot.entryCamera' => '拍照识别',
@@ -4309,6 +4348,11 @@ extension on Translations {
 			'record.exercise.types.elliptical' => '椭圆机',
 			'record.exercise.types.hiking' => '爬山',
 			'record.exercise.types.badminton' => '羽毛球',
+			'record.exercise.types.basketball' => '篮球',
+			'record.exercise.types.soccer' => '足球',
+			'record.exercise.types.tableTennis' => '乒乓球',
+			'record.exercise.types.tennis' => '网球',
+			'record.exercise.types.dance' => '健身操/舞蹈',
 			'record.exercise.types.hiit' => 'HIIT',
 			'record.exercise.types.summary' => '活动统计',
 			'record.home.title' => '记录',
@@ -4485,6 +4529,8 @@ extension on Translations {
 			'reports.growth.kgUnit' => '公斤',
 			'reports.growth.noValue' => '—',
 			'reports.growth.empty' => '还没有足迹，先记一笔或完成一次断食吧',
+			_ => null,
+		} ?? switch (path) {
 			'reports.weekly.title' => '本周报告',
 			'reports.weekly.range' => ({required Object start, required Object end}) => '${start} – ${end}',
 			'reports.weekly.qualified' => ({required Object days}) => '达标 ${days} 天',
@@ -4496,8 +4542,6 @@ extension on Translations {
 			'reports.weekly.empty' => '周报还差一点点数据，记一笔或完成一次断食就生成啦',
 			'reports.weeklySummary.title' => '上周小结',
 			'reports.weeklySummary.chipQualified' => ({required Object days}) => '达标 ${days} 天',
-			_ => null,
-		} ?? switch (path) {
 			'reports.weeklySummary.chipRecorded' => ({required Object days}) => '记录 ${days} 天',
 			'reports.weeklySummary.chipAvgKcal' => ({required Object kcal, required Object target}) => '平均 ${kcal} · 目标 ${target} 千卡',
 			'reports.weeklySummary.chipWeight' => ({required Object kg}) => '体重 ${kg} 公斤',
@@ -4526,7 +4570,7 @@ extension on Translations {
 			'reports.monthly.emptyHint' => '记一笔饮食或完成一次断食，月报就会长出来～',
 			'streak.home.streakDays' => ({required Object days}) => '连续 ${days} 天 🔥',
 			'streak.home.startHint' => '完成今天断食，开启第 1 天',
-			'streak.milestone.title' => ({required Object days}) => '连续 ${days} 天！你已经超过了 80% 的伙伴 🎉',
+			'streak.milestone.title' => ({required Object days}) => '连续 ${days} 天！这个节奏太稳了，继续保持 🎉',
 			'streak.milestone.badgeLabel' => ({required Object days}) => '${days} 天连胜',
 			'streak.milestone.share' => '分享',
 			'streak.milestone.accept' => '收下啦',

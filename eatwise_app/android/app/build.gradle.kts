@@ -29,11 +29,33 @@ android {
         versionName = flutter.versionName
     }
 
+    // CI 显式签名：CI_KEYSTORE_PATH 存在时用它建独立 signing config。
+    // 背景：CI runner 上 debug 默认 keystore 查找不可靠（曾每次发版签名
+    // 随机漂移），显式指定路径后产物签名才可复现。本地构建不设置该环境
+    // 变量，仍回落 debug 签名。
+    val ciKeystorePath = System.getenv("CI_KEYSTORE_PATH")
+
+    signingConfigs {
+        if (ciKeystorePath != null) {
+            create("ciRelease") {
+                storeFile = file(ciKeystorePath)
+                storePassword = System.getenv("CI_KEYSTORE_PASSWORD") ?: "android"
+                keyAlias = System.getenv("CI_KEY_ALIAS") ?: "androiddebugkey"
+                keyPassword = System.getenv("CI_KEY_PASSWORD") ?: "android"
+            }
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig =
+                if (ciKeystorePath != null) {
+                    signingConfigs.getByName("ciRelease")
+                } else {
+                    signingConfigs.getByName("debug")
+                }
         }
     }
 }

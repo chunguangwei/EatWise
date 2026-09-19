@@ -238,7 +238,8 @@ class _HintBanner extends StatelessWidget {
 /// 当日无记录时只展示消耗与步数不出结余行）。
 ///
 /// 消耗合并口径（手动记运动，无 GMS 设备兜底）：系统活动能量（如有）+
-/// 今日手动运动 kcal 合计。unsupported 设备步数展示「—」并附引导文案
+/// 今日手动运动 kcal 合计；步数同样合并（系统步数 + 手动/截图落库步数，
+/// `mergeSteps`）。unsupported 设备无步数时展示「—」并附引导文案
 /// 「手动记运动可计入消耗」；off/denied 等状态下有手动运动时同样出卡。
 class _HealthBurnSection extends ConsumerWidget {
   const _HealthBurnSection();
@@ -248,32 +249,32 @@ class _HealthBurnSection extends ConsumerWidget {
     final t = Translations.of(context);
     final state = ref.watch(healthSyncControllerProvider);
     final manualKcal = ref.watch(todayExerciseKcalProvider).value ?? 0;
+    final manualSteps = ref.watch(todayExerciseStepsProvider).value ?? 0;
     final unsupported = state.status == HealthSyncStatus.unsupported;
-    final hasManual = manualKcal > 0;
+    final hasManual = manualKcal > 0 || manualSteps > 0;
 
     final int? steps;
     final double? burnKcal;
     final bool estimated;
     if (state.status == HealthSyncStatus.ready) {
       final today = state.today;
+      steps = mergeSteps(systemSteps: today?.steps, manualSteps: manualSteps);
       if (today == null ||
-          (today.steps == null &&
-              today.displayBurnKcal == null &&
-              !hasManual)) {
+          (steps == null && today.displayBurnKcal == null && !hasManual)) {
         return const SizedBox.shrink();
       }
-      steps = today.steps;
       burnKcal = mergeBurnKcal(
         systemKcal: today.displayBurnKcal,
         manualKcal: manualKcal,
       );
-      // 「按步数估算」标注仅在步数粗估真参与合并值时成立（纯手动运动
-      // 不加该标注——弹层内已注明 MET 估算口径）。
+      // 「按步数估算」标注仅在系统步数粗估真参与合并值时成立（手动/截图
+      // 步数走的是 1.036 口径，弹层内已注明估算，不叠标）。
       estimated = today.activeEnergyKcal == null && today.steps != null;
     } else {
-      // 非 ready：仅 unsupported 或已有手动运动时出卡。
+      // 非 ready：仅 unsupported 或已有手动运动/步数时出卡。
       if (!unsupported && !hasManual) return const SizedBox.shrink();
-      steps = null; // unsupported 设备步数「—」。
+      // 无系统步数：有手动/截图步数则展示，否则「—」。
+      steps = mergeSteps(manualSteps: manualSteps);
       burnKcal = mergeBurnKcal(manualKcal: manualKcal);
       estimated = false;
     }
@@ -291,7 +292,9 @@ class _HealthBurnSection extends ConsumerWidget {
             : null,
         burnGoalKcal: goals.burnGoalKcal,
         stepsGoal: goals.stepsGoal,
-        stepsGuide: unsupported ? t.nutrition.data.burn.manualGuide : null,
+        stepsGuide: unsupported && steps == null
+            ? t.nutrition.data.burn.manualGuide
+            : null,
       ),
     );
   }

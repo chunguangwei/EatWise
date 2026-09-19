@@ -105,4 +105,31 @@ void main() {
 
     expect(await repo.delete('ghost'), isFalse);
   });
+
+  test('步数快照：随记录落库，当日合计流聚合（步数持久化）', () async {
+    final log = await repo.add(
+      typeKey: 'walk',
+      durationMin: 0,
+      kcal: 68,
+      steps: 1466,
+    );
+    expect(log.steps, 1466);
+
+    // 无步数记录不计入步数合计；步数 ≤ 0 拒绝。
+    await repo.add(typeKey: 'jog', durationMin: 30, kcal: 210);
+    expect(
+      () => repo.add(typeKey: 'walk', durationMin: 0, kcal: 50, steps: 0),
+      throwsArgumentError,
+    );
+
+    final seen = <int>[];
+    final sub = repo.watchTotalStepsForDate('2026-09-19').listen(seen.add);
+    await pumpEventQueue();
+    expect(seen, <int>[1466]);
+    await sub.cancel();
+
+    // 删除后步数合计回落。
+    expect(await repo.delete(log.localId), isTrue);
+    expect(await repo.watchTotalStepsForDate('2026-09-19').first, 0);
+  });
 }

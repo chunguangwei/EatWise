@@ -55,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -105,6 +105,11 @@ class AppDatabase extends _$AppDatabase {
       // 建表（含 source 列），仅 v9 老库需补列（同 v3→v4 口径）。
       if (from >= 9 && from < 10) {
         await m.addColumn(exerciseLogs, exerciseLogs.source);
+      }
+      // v11：ExerciseLogs 补步数快照（steps 可空：走路按步数录入 / 截图
+      // 活动统计导入；步数持久化，数据页展示合并）。from<9 建表已含。
+      if (from >= 9 && from < 11) {
+        await m.addColumn(exerciseLogs, exerciseLogs.steps);
       }
     },
   );

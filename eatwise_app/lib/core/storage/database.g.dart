@@ -4356,6 +4356,15 @@ class $ExerciseLogsTable extends ExerciseLogs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _stepsMeta = const VerificationMeta('steps');
+  @override
+  late final GeneratedColumn<int> steps = GeneratedColumn<int>(
+    'steps',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _localDateMeta = const VerificationMeta(
     'localDate',
   );
@@ -4386,6 +4395,7 @@ class $ExerciseLogsTable extends ExerciseLogs
     durationMin,
     kcal,
     source,
+    steps,
     localDate,
     createdAtUtc,
   ];
@@ -4450,6 +4460,12 @@ class $ExerciseLogsTable extends ExerciseLogs
         source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
       );
     }
+    if (data.containsKey('steps')) {
+      context.handle(
+        _stepsMeta,
+        steps.isAcceptableOrUnknown(data['steps']!, _stepsMeta),
+      );
+    }
     if (data.containsKey('local_date')) {
       context.handle(
         _localDateMeta,
@@ -4502,6 +4518,10 @@ class $ExerciseLogsTable extends ExerciseLogs
         DriftSqlType.string,
         data['${effectivePrefix}source'],
       ),
+      steps: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}steps'],
+      ),
       localDate: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}local_date'],
@@ -4538,6 +4558,10 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
   /// 来源标记：null = 手动录入；'screenshot' = 截图识别导入。
   final String? source;
 
+  /// 步数快照（可空）：走路按步数录入 / 截图活动统计导入时落库；
+  /// 数据页「步数」展示 = 系统步数（如有）+ 本列当日合计。
+  final int? steps;
+
   /// 归属日（本地时区 yyyy-MM-dd，当日合计聚合键，D-07 口径）。
   final String localDate;
 
@@ -4550,6 +4574,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
     required this.durationMin,
     required this.kcal,
     this.source,
+    this.steps,
     required this.localDate,
     required this.createdAtUtc,
   });
@@ -4563,6 +4588,9 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
     map['kcal'] = Variable<double>(kcal);
     if (!nullToAbsent || source != null) {
       map['source'] = Variable<String>(source);
+    }
+    if (!nullToAbsent || steps != null) {
+      map['steps'] = Variable<int>(steps);
     }
     map['local_date'] = Variable<String>(localDate);
     map['created_at_utc'] = Variable<String>(createdAtUtc);
@@ -4579,6 +4607,9 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
       source: source == null && nullToAbsent
           ? const Value.absent()
           : Value(source),
+      steps: steps == null && nullToAbsent
+          ? const Value.absent()
+          : Value(steps),
       localDate: Value(localDate),
       createdAtUtc: Value(createdAtUtc),
     );
@@ -4596,6 +4627,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
       durationMin: serializer.fromJson<int>(json['durationMin']),
       kcal: serializer.fromJson<double>(json['kcal']),
       source: serializer.fromJson<String?>(json['source']),
+      steps: serializer.fromJson<int?>(json['steps']),
       localDate: serializer.fromJson<String>(json['localDate']),
       createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
     );
@@ -4610,6 +4642,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
       'durationMin': serializer.toJson<int>(durationMin),
       'kcal': serializer.toJson<double>(kcal),
       'source': serializer.toJson<String?>(source),
+      'steps': serializer.toJson<int?>(steps),
       'localDate': serializer.toJson<String>(localDate),
       'createdAtUtc': serializer.toJson<String>(createdAtUtc),
     };
@@ -4622,6 +4655,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
     int? durationMin,
     double? kcal,
     Value<String?> source = const Value.absent(),
+    Value<int?> steps = const Value.absent(),
     String? localDate,
     String? createdAtUtc,
   }) => ExerciseLog(
@@ -4631,6 +4665,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
     durationMin: durationMin ?? this.durationMin,
     kcal: kcal ?? this.kcal,
     source: source.present ? source.value : this.source,
+    steps: steps.present ? steps.value : this.steps,
     localDate: localDate ?? this.localDate,
     createdAtUtc: createdAtUtc ?? this.createdAtUtc,
   );
@@ -4644,6 +4679,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
           : this.durationMin,
       kcal: data.kcal.present ? data.kcal.value : this.kcal,
       source: data.source.present ? data.source.value : this.source,
+      steps: data.steps.present ? data.steps.value : this.steps,
       localDate: data.localDate.present ? data.localDate.value : this.localDate,
       createdAtUtc: data.createdAtUtc.present
           ? data.createdAtUtc.value
@@ -4660,6 +4696,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
           ..write('durationMin: $durationMin, ')
           ..write('kcal: $kcal, ')
           ..write('source: $source, ')
+          ..write('steps: $steps, ')
           ..write('localDate: $localDate, ')
           ..write('createdAtUtc: $createdAtUtc')
           ..write(')'))
@@ -4674,6 +4711,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
     durationMin,
     kcal,
     source,
+    steps,
     localDate,
     createdAtUtc,
   );
@@ -4687,6 +4725,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
           other.durationMin == this.durationMin &&
           other.kcal == this.kcal &&
           other.source == this.source &&
+          other.steps == this.steps &&
           other.localDate == this.localDate &&
           other.createdAtUtc == this.createdAtUtc);
 }
@@ -4698,6 +4737,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
   final Value<int> durationMin;
   final Value<double> kcal;
   final Value<String?> source;
+  final Value<int?> steps;
   final Value<String> localDate;
   final Value<String> createdAtUtc;
   final Value<int> rowid;
@@ -4708,6 +4748,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
     this.durationMin = const Value.absent(),
     this.kcal = const Value.absent(),
     this.source = const Value.absent(),
+    this.steps = const Value.absent(),
     this.localDate = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -4719,6 +4760,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
     required int durationMin,
     required double kcal,
     this.source = const Value.absent(),
+    this.steps = const Value.absent(),
     required String localDate,
     required String createdAtUtc,
     this.rowid = const Value.absent(),
@@ -4736,6 +4778,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
     Expression<int>? durationMin,
     Expression<double>? kcal,
     Expression<String>? source,
+    Expression<int>? steps,
     Expression<String>? localDate,
     Expression<String>? createdAtUtc,
     Expression<int>? rowid,
@@ -4747,6 +4790,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
       if (durationMin != null) 'duration_min': durationMin,
       if (kcal != null) 'kcal': kcal,
       if (source != null) 'source': source,
+      if (steps != null) 'steps': steps,
       if (localDate != null) 'local_date': localDate,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
       if (rowid != null) 'rowid': rowid,
@@ -4760,6 +4804,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
     Value<int>? durationMin,
     Value<double>? kcal,
     Value<String?>? source,
+    Value<int?>? steps,
     Value<String>? localDate,
     Value<String>? createdAtUtc,
     Value<int>? rowid,
@@ -4771,6 +4816,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
       durationMin: durationMin ?? this.durationMin,
       kcal: kcal ?? this.kcal,
       source: source ?? this.source,
+      steps: steps ?? this.steps,
       localDate: localDate ?? this.localDate,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
       rowid: rowid ?? this.rowid,
@@ -4798,6 +4844,9 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
     if (source.present) {
       map['source'] = Variable<String>(source.value);
     }
+    if (steps.present) {
+      map['steps'] = Variable<int>(steps.value);
+    }
     if (localDate.present) {
       map['local_date'] = Variable<String>(localDate.value);
     }
@@ -4819,6 +4868,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
           ..write('durationMin: $durationMin, ')
           ..write('kcal: $kcal, ')
           ..write('source: $source, ')
+          ..write('steps: $steps, ')
           ..write('localDate: $localDate, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('rowid: $rowid')
@@ -7007,6 +7057,7 @@ typedef $$ExerciseLogsTableCreateCompanionBuilder =
       required int durationMin,
       required double kcal,
       Value<String?> source,
+      Value<int?> steps,
       required String localDate,
       required String createdAtUtc,
       Value<int> rowid,
@@ -7019,6 +7070,7 @@ typedef $$ExerciseLogsTableUpdateCompanionBuilder =
       Value<int> durationMin,
       Value<double> kcal,
       Value<String?> source,
+      Value<int?> steps,
       Value<String> localDate,
       Value<String> createdAtUtc,
       Value<int> rowid,
@@ -7060,6 +7112,11 @@ class $$ExerciseLogsTableFilterComposer
 
   ColumnFilters<String> get source => $composableBuilder(
     column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get steps => $composableBuilder(
+    column: $table.steps,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7113,6 +7170,11 @@ class $$ExerciseLogsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get steps => $composableBuilder(
+    column: $table.steps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get localDate => $composableBuilder(
     column: $table.localDate,
     builder: (column) => ColumnOrderings(column),
@@ -7152,6 +7214,9 @@ class $$ExerciseLogsTableAnnotationComposer
 
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<int> get steps =>
+      $composableBuilder(column: $table.steps, builder: (column) => column);
 
   GeneratedColumn<String> get localDate =>
       $composableBuilder(column: $table.localDate, builder: (column) => column);
@@ -7199,6 +7264,7 @@ class $$ExerciseLogsTableTableManager
                 Value<int> durationMin = const Value.absent(),
                 Value<double> kcal = const Value.absent(),
                 Value<String?> source = const Value.absent(),
+                Value<int?> steps = const Value.absent(),
                 Value<String> localDate = const Value.absent(),
                 Value<String> createdAtUtc = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -7209,6 +7275,7 @@ class $$ExerciseLogsTableTableManager
                 durationMin: durationMin,
                 kcal: kcal,
                 source: source,
+                steps: steps,
                 localDate: localDate,
                 createdAtUtc: createdAtUtc,
                 rowid: rowid,
@@ -7221,6 +7288,7 @@ class $$ExerciseLogsTableTableManager
                 required int durationMin,
                 required double kcal,
                 Value<String?> source = const Value.absent(),
+                Value<int?> steps = const Value.absent(),
                 required String localDate,
                 required String createdAtUtc,
                 Value<int> rowid = const Value.absent(),
@@ -7231,6 +7299,7 @@ class $$ExerciseLogsTableTableManager
                 durationMin: durationMin,
                 kcal: kcal,
                 source: source,
+                steps: steps,
                 localDate: localDate,
                 createdAtUtc: createdAtUtc,
                 rowid: rowid,

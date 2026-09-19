@@ -10,6 +10,7 @@ library;
 
 import 'dart:async';
 
+import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
@@ -21,6 +22,7 @@ import 'package:eatwise/features/record/custom_food/presentation/custom_food_pro
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
+import 'package:eatwise/features/record/recognition/domain/photo_recognition_logic.dart';
 import 'package:eatwise/features/record/recognition/domain/recognition_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,10 +30,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 明细确认弹层结果（关闭时带回）。
 final class PhotoMealResult {
-  const PhotoMealResult({this.loggedCount = 0, this.retake = false});
+  const PhotoMealResult({
+    this.loggedCount = 0,
+    this.retake = false,
+    this.pendingReviewCount = 0,
+  });
 
   /// 已入账条数（0 = 未入账直接关闭/取消）。
   final int loggedCount;
+
+  /// 其中已提交众包审核的条数（库未命中自动新建条目；UI 据此提示
+  /// 「M 条待审核」）。
+  final int pendingReviewCount;
 
   /// 用户点了「重新拍摄」（调用方重新走入口流程）。
   final bool retake;
@@ -90,7 +100,8 @@ final class _MealRow {
   _MealRow(this.item)
     : gramsController = TextEditingController(text: _formatGrams(item.grams));
 
-  final RecognizedMealItem item;
+  /// 当前条目（点选「相似食物」后替换为库内条目，不再走新建/送审）。
+  RecognizedMealItem item;
   final TextEditingController gramsController;
 
   /// 克数整数化初值（200.0 → "200"，153.5 → "153.5"）。
@@ -111,6 +122,53 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
 
   /// 入账在途（防连点）。
   bool _saving = false;
+
+  /// 各未命中行的相似食物候选（本地 drift 模糊搜索；空 = 无相近结果，
+  /// 退化为自动新建+送审）。
+  final Map<_MealRow, List<Food>> _similar = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // 打开即对未命中行做模糊搜索（本地库，前缀递减查询序列）。
+    for (final row in _rows) {
+      if (!row.item.isMatched) unawaited(_findSimilar(row));
+    }
+  }
+
+  /// 未命中行模糊搜索：递减前缀逐个查，首个非空结果取前 3 条。
+  Future<void> _findSimilar(_MealRow row) async {
+    final repo = ref.read(recordRepositoryProvider);
+    for (final query in fuzzyQueryCandidates(row.item.name)) {
+      final hits = await repo.searchFoods(query, limit: 3);
+      if (hits.isNotEmpty) {
+        if (mounted) setState(() => _similar[row] = hits);
+        return;
+      }
+    }
+    // 全空：_similar 不写入，行维持「自动新建+送审」退化路径。
+  }
+
+  /// 点选相似食物：替换为库内条目（营养用库内精准值，克重保留 AI 估算
+  /// 可编辑），此后该行与命中条目同口径（直接入账，不走新建/送审）。
+  void _useSimilarFood(_MealRow row, Food food) {
+    setState(() {
+      row.item = RecognizedMealItem(
+        name: food.nameZh,
+        nameEn: food.nameEn,
+        grams: row.item.grams,
+        per100g: NutritionSnapshot(
+          kcal: food.kcalPer100g,
+          proteinG: food.proteinPer100g,
+          carbG: food.carbPer100g,
+          fatG: food.fatPer100g,
+        ),
+        confidence: 0.9, // 用户亲选库内条目，高置信
+        food: food,
+      );
+      _similar.remove(row);
+    });
+  }
 
   @override
   void dispose() {
@@ -142,7 +200,10 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
   }
 
   /// 「全部记录」：逐条入账；库未命中条目先自动建自定义食物
-  /// （模型估值 + llmEstimate 口径；离线落本地 pending）再入账。
+  /// （模型估值 + llmEstimate 口径）再入账，并**提交众包审核**
+  /// （乐观入账带「审核中」标记：approve 转正、reject 级联软删+同步清理，
+  /// v1.12.0 既有链路）。离线/贡献失败不阻断入账（食物仍落个人库，
+  /// 联网后 retryPending 上行）。
   Future<void> _logAll() async {
     if (_saving || _rows.isEmpty) return;
     setState(() => _saving = true);
@@ -151,6 +212,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
     // 阶段 C：断食计时进行中的用餐打「断食期用餐」本地标记（不上行）。
     final duringFast = ref.read(isFastingInProgressProvider);
     var logged = 0;
+    var pendingReview = 0;
     try {
       for (final row in List<_MealRow>.of(_rows)) {
         var food = row.item.food;
@@ -165,6 +227,15 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
             ),
           );
           food = saved.food;
+          // 送审（离线/失败静默：不阻断入账，日志留痕）。
+          if (saved.uploaded) {
+            try {
+              await customRepo.contribute(food.id);
+              pendingReview++;
+            } on Object catch (e) {
+              debugPrint('[PhotoMeal] 送审失败（食物已落个人库，不影响入账）：$e');
+            }
+          }
         }
         await repo.addEntry(
           RecordDraft(
@@ -180,7 +251,12 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
       if (mounted) {
         // 提交成功后收起键盘（Y5），避免弹层关闭后键盘滞留。
         FocusManager.instance.primaryFocus?.unfocus();
-        Navigator.of(context).pop(PhotoMealResult(loggedCount: logged));
+        Navigator.of(context).pop(
+          PhotoMealResult(
+            loggedCount: logged,
+            pendingReviewCount: pendingReview,
+          ),
+        );
       }
     } on Object {
       // 入账失败（如自定义食物 4xx）：留在弹层内，用户可重试/删条目。
@@ -359,6 +435,44 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
               ),
             ],
           ),
+          // 相似食物候选区（仅未命中且模糊搜索有结果时）：
+          // 点选即用库内条目替换（免新建/送审），否则维持自动新建+送审。
+          if (!item.isMatched &&
+              (_similar[row]?.isNotEmpty ?? false)) ...<Widget>[
+            const SizedBox(height: AppSpacing.s2),
+            Text(
+              s.photoSimilarFoodsTitle,
+              style: textStyles.textXs.copyWith(color: colors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.s1),
+            for (final candidate in _similar[row]!)
+              InkWell(
+                borderRadius: radii.rSm,
+                onTap: () => _useSimilarFood(row, candidate),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.s1),
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          '${candidate.nameZh} · '
+                          '${candidate.kcalPer100g.round()} ${s.kcalUnit}/100${s.gramUnit}',
+                          style: textStyles.textSm,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        s.photoUseThisFood,
+                        style: textStyles.textSm.copyWith(
+                          color: colors.brandPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         ],
       ),
     );

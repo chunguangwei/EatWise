@@ -137,6 +137,55 @@ void main() {
     await settleUi(tester);
   });
 
+  testWidgets('弹层：走路按步数录入 —— 自动换算热量，时长可留空，步数落库', (tester) async {
+    await pumpEntry(tester);
+    await openSheet(tester);
+
+    // 默认走路 → 步数字段可见；1466 步 60kg ≈ 68 kcal（1.036 口径）。
+    expect(
+      find.byKey(const ValueKey<String>('exercise.steps')),
+      findsOneWidget,
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('exercise.steps')),
+      '1466',
+    );
+    await tester.pump();
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey<String>('exercise.kcal')),
+          )
+          .controller!
+          .text,
+      '68',
+    );
+
+    // 时长留空直接保存（步数口径无时长要求）→ 步数随记录落库。
+    await tester.tap(find.byKey(const ValueKey<String>('exercise.save')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    final saved = (await repo.logsForDate(todayKey())).single;
+    expect(saved.typeKey, 'walk');
+    expect(saved.steps, 1466);
+    expect(saved.durationMin, 0);
+    expect(saved.kcal, 68);
+
+    // 重开弹层：今日列表显示「走路 · 1466 步 · 68 千卡」（不出「0 分钟」）。
+    await tester.tap(find.text('OPEN'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('走路 · 1466 步 · 68 千卡'), findsOneWidget);
+    expect(find.textContaining('0 分钟'), findsNothing);
+
+    // 切到慢跑 → 步数字段隐藏（仅走路可录步数）。
+    await tester.tap(find.text('慢跑'));
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('exercise.steps')), findsNothing);
+
+    await settleUi(tester);
+  });
+
   testWidgets('弹层：kcal 手改覆盖后不再随类型联动；校验非法时长', (tester) async {
     await pumpEntry(tester);
     await openSheet(tester);

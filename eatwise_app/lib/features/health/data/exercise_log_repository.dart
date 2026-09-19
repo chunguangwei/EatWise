@@ -43,12 +43,16 @@ final class ExerciseLogRepository {
     required int durationMin,
     required double kcal,
     String? source,
+    int? steps,
   }) async {
     if (durationMin < 0) {
       throw ArgumentError.value(durationMin, 'durationMin', '时长不能为负');
     }
     if (kcal <= 0) {
       throw ArgumentError.value(kcal, 'kcal', '消耗必须大于 0');
+    }
+    if (steps != null && steps <= 0) {
+      throw ArgumentError.value(steps, 'steps', '步数必须大于 0');
     }
     final nowUtc = _clock().toUtc();
     final nowIso = nowUtc.toIso8601String();
@@ -61,6 +65,7 @@ final class ExerciseLogRepository {
         durationMin: Value(durationMin),
         kcal: Value(kcal),
         source: Value(source),
+        steps: Value(steps),
         localDate: Value(localDateKey(nowUtc)),
         createdAtUtc: Value(nowIso),
       ),
@@ -83,6 +88,11 @@ final class ExerciseLogRepository {
   /// 某日运动消耗合计流（kcal；首页预算行 / 数据页消耗卡）。
   Stream<double> watchTotalKcalForDate(String localDate) {
     return db.exerciseLogDao.watchTotalKcalForDate(userId, localDate);
+  }
+
+  /// 某日步数合计流（数据页「步数」展示合并：系统步数 + 本合计）。
+  Stream<int> watchTotalStepsForDate(String localDate) {
+    return db.exerciseLogDao.watchTotalStepsForDate(userId, localDate);
   }
 
   /// 某日运动消耗合计（一次性读取）。

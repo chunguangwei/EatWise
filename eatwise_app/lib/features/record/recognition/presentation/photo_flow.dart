@@ -98,7 +98,16 @@ Future<void> startPhotoRecognition(BuildContext context, WidgetRef ref) async {
         unawaited(startPhotoRecognition(context, ref));
       } else if (result.loggedCount > 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(s.photoLoggedItems(result.loggedCount))),
+          SnackBar(
+            content: Text(
+              result.pendingReviewCount > 0
+                  ? s.photoLoggedWithPending(
+                      result.loggedCount,
+                      result.pendingReviewCount,
+                    )
+                  : s.photoLoggedItems(result.loggedCount),
+            ),
+          ),
         );
       }
     case RecognitionSuccess():

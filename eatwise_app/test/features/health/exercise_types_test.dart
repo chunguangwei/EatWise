@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// 手动记运动领域纯函数测试：MET 系数表 / kcal 估算 / 系统+手动合并口径。
 void main() {
   group('MET 系数表', () {
-    test('12 种常见运动齐备，MET 均为正', () {
-      expect(exerciseTypes, hasLength(12));
+    test('17 种常见运动齐备（含篮球/足球/乒乓球/网球/健身操补齐项），MET 均为正', () {
+      expect(exerciseTypes, hasLength(17));
       expect(exerciseTypes.map((e) => e.key), <String>[
         'walk',
         'jog',
@@ -18,6 +18,11 @@ void main() {
         'elliptical',
         'hiking',
         'badminton',
+        'basketball',
+        'soccer',
+        'tableTennis',
+        'tennis',
+        'dance',
         'hiit',
       ]);
       for (final type in exerciseTypes) {
@@ -73,6 +78,44 @@ void main() {
       expect(mergeBurnKcal(), isNull);
       expect(mergeBurnKcal(systemKcal: 0, manualKcal: 0), isNull);
       expect(mergeBurnKcal(systemKcal: null, manualKcal: null), isNull);
+    });
+  });
+
+  group('estimateKcalFromStepsWalk（步数 → 步行消耗，〔待营养背书〕）', () {
+    test(
+      '1466 步 60kg：距离 1466 × 0.75m = 1.0995km → 60 × 1.0995 × 1.036 ≈ 68.3',
+      () {
+        expect(
+          estimateKcalFromStepsWalk(steps: 1466, weightKg: 60),
+          moreOrLessEquals(60 * 1.0995 * 1.036, epsilon: 1e-9),
+        );
+      },
+    );
+
+    test('带截图距离时优先用距离（60kg × 1.10km × 1.036 = 68.376）', () {
+      expect(
+        estimateKcalFromStepsWalk(steps: 1466, weightKg: 60, distanceKm: 1.10),
+        moreOrLessEquals(68.376, epsilon: 1e-9),
+      );
+    });
+
+    test('非法输入（步数/体重 ≤ 0）返回 0', () {
+      expect(estimateKcalFromStepsWalk(steps: 0, weightKg: 60), 0);
+      expect(estimateKcalFromStepsWalk(steps: 1000, weightKg: 0), 0);
+    });
+  });
+
+  group('mergeSteps（系统步数 + 手动/截图步数合计）', () {
+    test('系统 + 手动叠加 / 仅手动（unsupported）/ 仅系统', () {
+      expect(mergeSteps(systemSteps: 6200, manualSteps: 1466), 7666);
+      expect(mergeSteps(manualSteps: 1466), 1466);
+      expect(mergeSteps(systemSteps: 6200), 6200);
+    });
+
+    test('两者皆无或皆为 0 → null（UI 走「—」）', () {
+      expect(mergeSteps(), isNull);
+      expect(mergeSteps(systemSteps: 0, manualSteps: 0), isNull);
+      expect(mergeSteps(systemSteps: null, manualSteps: null), isNull);
     });
   });
 }

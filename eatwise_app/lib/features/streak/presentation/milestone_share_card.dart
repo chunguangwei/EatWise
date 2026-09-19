@@ -14,7 +14,8 @@ import 'package:flutter/rendering.dart';
 ///   等比缩放，导出按宽度回算 pixelRatio 恒得 1080px 宽 PNG；
 /// - 云白底 + 轻盈绿主视觉（60%）+ 暖阳橙仅点缀；
 /// - 大数字连胜天数（Inter Bold 回退链）+ 中英双语里程碑文案
-///   （「超过了 80% 的伙伴」分位为〔假设〕占位，待真实分位数据替换）；
+///   （自我鼓励口径，无用户间比较——原「超过了 80% 的伙伴」为无真实
+///   数据支撑的虚假分位，2026-09-19 走查移除）；
 /// - Logo 近似：无 Logo 素材，用「叶片 + 时钟弧」CustomPaint 简笔
 ///   （§2.5：主体轻盈绿一笔弧、弧线收尾暖阳橙点，象征进食—断食循环）。
 ///
@@ -52,7 +53,7 @@ class MilestoneShareCard extends StatelessWidget {
   /// 分享日期（yyyy-MM-dd，由调用方按设备时区格式化）。
   final String date;
 
-  /// 主语种里程碑文案（中文，如「连续 7 天！你已经超过了 80% 的伙伴 🎉」）。
+  /// 主语种里程碑文案（中文，如「连续 7 天！这个节奏太稳了，继续保持 🎉」）。
   final String primaryTitle;
 
   /// 副语种里程碑文案（英文，双语出海物料要求）。
@@ -120,7 +121,7 @@ class MilestoneShareCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 48),
-                // 中英双语里程碑文案（品牌语气；80% 分位〔假设〕占位）。
+                // 中英双语里程碑文案（品牌语气，自我鼓励口径无虚假分位）。
                 Center(
                   child: Text(
                     primaryTitle,

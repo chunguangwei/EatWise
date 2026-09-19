@@ -76,4 +76,17 @@ class ExerciseLogDao extends DatabaseAccessor<AppDatabase>
       );
     return query.map((row) => row.read(sum) ?? 0).watchSingle();
   }
+
+  /// 某日步数合计流（数据页「步数」展示合并：系统步数 + 本合计；
+  /// 无记录为 0）。
+  Stream<int> watchTotalStepsForDate(String userId, String localDate) {
+    final sum = exerciseLogs.steps.sum();
+    final query = selectOnly(exerciseLogs)
+      ..addColumns(<Expression<Object>>[sum])
+      ..where(
+        exerciseLogs.userId.equals(userId) &
+            exerciseLogs.localDate.equals(localDate),
+      );
+    return query.map((row) => row.read(sum) ?? 0).watchSingle();
+  }
 }

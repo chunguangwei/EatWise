@@ -239,7 +239,10 @@
       "engineGuideBody": "Download the on-device model (works offline, ~2.4GB, no network needed after download), or configure a cloud API with your own model service.",
       "engineGuideDownload": "On-device model (recommended)",
       "engineGuideConfigApi": "Configure cloud API",
-      "engineGuideManual": "Search manually for now"
+      "engineGuideManual": "Search manually for now",
+      "similarFoodsTitle": "Similar foods in library:",
+      "useThisFood": "Use this",
+      "loggedWithPending": "Logged ${count} items (${pending} pending review)"
     },
     "barcode": {
       "entry": "Scan",
@@ -391,6 +394,9 @@
       "todayList": "Today's exercise",
       "minutesValue": "${min} min",
       "kcalValue": "${kcal} kcal",
+      "stepsLabel": "Steps",
+      "stepsEstimateHint": "Enter steps to auto-estimate distance & calories — duration can stay empty",
+      "stepsValue": "${steps} steps",
       "deleteLabel": "Delete this exercise entry",
       "deleted": "Deleted",
       "screenshot": {
@@ -421,6 +427,11 @@
         "elliptical": "Elliptical",
         "hiking": "Hiking",
         "badminton": "Badminton",
+        "basketball": "Basketball",
+        "soccer": "Soccer",
+        "tableTennis": "Table tennis",
+        "tennis": "Tennis",
+        "dance": "Aerobics / Dance",
         "hiit": "HIIT",
         "summary": "Activity summary"
       }
@@ -734,7 +745,7 @@
       "startHint": "Finish today's fast to start day 1"
     },
     "milestone": {
-      "title": "${days}-day streak! You've outlasted 80% of the community 🎉",
+      "title": "${days}-day streak! What a steady rhythm — keep it up 🎉",
       "badgeLabel": "${days}-day streak",
       "share": "Share",
       "accept": "Keep it",

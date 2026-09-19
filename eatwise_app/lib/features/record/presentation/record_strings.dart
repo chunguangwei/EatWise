@@ -152,6 +152,16 @@ final class RecordStrings {
   /// record.photo.labelValueTag
   String get photoLabelValueTag => _t.record.photo.labelValueTag;
 
+  /// record.photo.similarFoodsTitle
+  String get photoSimilarFoodsTitle => _t.record.photo.similarFoodsTitle;
+
+  /// record.photo.useThisFood
+  String get photoUseThisFood => _t.record.photo.useThisFood;
+
+  /// record.photo.loggedWithPending
+  String photoLoggedWithPending(int count, int pending) =>
+      _t.record.photo.loggedWithPending(count: count, pending: pending);
+
   /// record.photo.engineGuideTitle
   String get engineGuideTitle => _t.record.photo.engineGuideTitle;
 

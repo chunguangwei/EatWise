@@ -602,6 +602,9 @@ class _Translations$record$photo$en extends Translations$record$photo$zh_CN {
 	@override String get engineGuideDownload => 'On-device model (recommended)';
 	@override String get engineGuideConfigApi => 'Configure cloud API';
 	@override String get engineGuideManual => 'Search manually for now';
+	@override String get similarFoodsTitle => 'Similar foods in library:';
+	@override String get useThisFood => 'Use this';
+	@override String loggedWithPending({required Object count, required Object pending}) => 'Logged ${count} items (${pending} pending review)';
 }
 
 // Path: record.barcode
@@ -776,6 +779,9 @@ class _Translations$record$exercise$en extends Translations$record$exercise$zh_C
 	@override String get todayList => 'Today\'s exercise';
 	@override String minutesValue({required Object min}) => '${min} min';
 	@override String kcalValue({required Object kcal}) => '${kcal} kcal';
+	@override String get stepsLabel => 'Steps';
+	@override String get stepsEstimateHint => 'Enter steps to auto-estimate distance & calories — duration can stay empty';
+	@override String stepsValue({required Object steps}) => '${steps} steps';
 	@override String get deleteLabel => 'Delete this exercise entry';
 	@override String get deleted => 'Deleted';
 	@override late final _Translations$record$exercise$screenshot$en screenshot = _Translations$record$exercise$screenshot$en._(_root);
@@ -1118,7 +1124,7 @@ class _Translations$streak$milestone$en extends Translations$streak$milestone$zh
 	final TranslationsEn _root; // ignore: unused_field
 
 	// Translations
-	@override String title({required Object days}) => '${days}-day streak! You\'ve outlasted 80% of the community 🎉';
+	@override String title({required Object days}) => '${days}-day streak! What a steady rhythm — keep it up 🎉';
 	@override String badgeLabel({required Object days}) => '${days}-day streak';
 	@override String get share => 'Share';
 	@override String get accept => 'Keep it';
@@ -1867,6 +1873,11 @@ class _Translations$record$exercise$types$en extends Translations$record$exercis
 	@override String get elliptical => 'Elliptical';
 	@override String get hiking => 'Hiking';
 	@override String get badminton => 'Badminton';
+	@override String get basketball => 'Basketball';
+	@override String get soccer => 'Soccer';
+	@override String get tableTennis => 'Table tennis';
+	@override String get tennis => 'Tennis';
+	@override String get dance => 'Aerobics / Dance';
 	@override String get hiit => 'HIIT';
 	@override String get summary => 'Activity summary';
 }
@@ -2397,6 +2408,9 @@ extension on TranslationsEn {
 			'record.photo.engineGuideDownload' => 'On-device model (recommended)',
 			'record.photo.engineGuideConfigApi' => 'Configure cloud API',
 			'record.photo.engineGuideManual' => 'Search manually for now',
+			'record.photo.similarFoodsTitle' => 'Similar foods in library:',
+			'record.photo.useThisFood' => 'Use this',
+			'record.photo.loggedWithPending' => ({required Object count, required Object pending}) => 'Logged ${count} items (${pending} pending review)',
 			'record.barcode.entry' => 'Scan',
 			'record.barcode.title' => 'Scan product barcode',
 			'record.barcode.torch' => 'Torch',
@@ -2526,6 +2540,9 @@ extension on TranslationsEn {
 			'record.exercise.todayList' => 'Today\'s exercise',
 			'record.exercise.minutesValue' => ({required Object min}) => '${min} min',
 			'record.exercise.kcalValue' => ({required Object kcal}) => '${kcal} kcal',
+			'record.exercise.stepsLabel' => 'Steps',
+			'record.exercise.stepsEstimateHint' => 'Enter steps to auto-estimate distance & calories — duration can stay empty',
+			'record.exercise.stepsValue' => ({required Object steps}) => '${steps} steps',
 			'record.exercise.deleteLabel' => 'Delete this exercise entry',
 			'record.exercise.deleted' => 'Deleted',
 			'record.exercise.screenshot.entryCamera' => 'Scan photo',
@@ -2553,6 +2570,11 @@ extension on TranslationsEn {
 			'record.exercise.types.elliptical' => 'Elliptical',
 			'record.exercise.types.hiking' => 'Hiking',
 			'record.exercise.types.badminton' => 'Badminton',
+			'record.exercise.types.basketball' => 'Basketball',
+			'record.exercise.types.soccer' => 'Soccer',
+			'record.exercise.types.tableTennis' => 'Table tennis',
+			'record.exercise.types.tennis' => 'Tennis',
+			'record.exercise.types.dance' => 'Aerobics / Dance',
 			'record.exercise.types.hiit' => 'HIIT',
 			'record.exercise.types.summary' => 'Activity summary',
 			'record.home.title' => 'Log',
@@ -2729,6 +2751,8 @@ extension on TranslationsEn {
 			'reports.growth.kgUnit' => 'kg',
 			'reports.growth.noValue' => '—',
 			'reports.growth.empty' => 'No footprints yet — log a meal or finish a fast to start.',
+			_ => null,
+		} ?? switch (path) {
 			'reports.weekly.title' => 'This week',
 			'reports.weekly.range' => ({required Object start, required Object end}) => '${start} – ${end}',
 			'reports.weekly.qualified' => ({required Object days}) => '${days} days on target',
@@ -2740,8 +2764,6 @@ extension on TranslationsEn {
 			'reports.weekly.empty' => 'Almost there — log a meal or finish a fast to unlock your weekly report.',
 			'reports.weeklySummary.title' => 'Last-week recap',
 			'reports.weeklySummary.chipQualified' => ({required Object days}) => '${days}d on target',
-			_ => null,
-		} ?? switch (path) {
 			'reports.weeklySummary.chipRecorded' => ({required Object days}) => '${days}d logged',
 			'reports.weeklySummary.chipAvgKcal' => ({required Object kcal, required Object target}) => 'avg ${kcal} · goal ${target} kcal',
 			'reports.weeklySummary.chipWeight' => ({required Object kg}) => 'weight ${kg} kg',
@@ -2770,7 +2792,7 @@ extension on TranslationsEn {
 			'reports.monthly.emptyHint' => 'Log a meal or finish a fast and your monthly report will bloom.',
 			'streak.home.streakDays' => ({required Object days}) => '${days}-day streak 🔥',
 			'streak.home.startHint' => 'Finish today\'s fast to start day 1',
-			'streak.milestone.title' => ({required Object days}) => '${days}-day streak! You\'ve outlasted 80% of the community 🎉',
+			'streak.milestone.title' => ({required Object days}) => '${days}-day streak! What a steady rhythm — keep it up 🎉',
 			'streak.milestone.badgeLabel' => ({required Object days}) => '${days}-day streak',
 			'streak.milestone.share' => 'Share',
 			'streak.milestone.accept' => 'Keep it',

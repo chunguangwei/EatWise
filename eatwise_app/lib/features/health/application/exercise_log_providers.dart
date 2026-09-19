@@ -37,6 +37,20 @@ final StreamProvider<double> todayExerciseKcalProvider = StreamProvider<double>(
   },
 );
 
+/// 今日手动/截图落库步数合计流（数据页「步数」展示 = 系统步数（如有）
+/// + 本合计；数据库未装配时降级 0，与 [todayExerciseKcalProvider] 同口径）。
+final StreamProvider<int> todayExerciseStepsProvider = StreamProvider<int>((
+  ref,
+) {
+  try {
+    return ref
+        .watch(exerciseLogRepositoryProvider)
+        .watchTotalStepsForDate(localDateKey(DateTime.now()));
+  } on Object {
+    return Stream<int>.value(0);
+  }
+});
+
 /// 今日手动运动记录流（记运动弹层今日列表 / 数据页展示用）。
 final StreamProvider<List<ExerciseLog>> todayExerciseLogsProvider =
     StreamProvider<List<ExerciseLog>>((ref) {

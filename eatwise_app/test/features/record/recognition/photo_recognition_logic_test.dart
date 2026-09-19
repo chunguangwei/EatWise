@@ -348,6 +348,31 @@ void main() {
     });
   });
 
+  group('fuzzyQueryCandidates（相似食物模糊查询序列）', () {
+    test('CJK 前缀递减（≥2 字止）', () {
+      expect(fuzzyQueryCandidates('牛肉炒时蔬'), <String>[
+        '牛肉炒时蔬',
+        '牛肉炒时',
+        '牛肉炒',
+        '牛肉',
+      ]);
+    });
+
+    test('空格分词：全名 → 逐级去尾 token', () {
+      expect(fuzzyQueryCandidates('potato chips snack'), <String>[
+        'potato chips snack',
+        'potato chips',
+        'potato',
+      ]);
+    });
+
+    test('两字名不递减；单字/空名返回空', () {
+      expect(fuzzyQueryCandidates('米饭'), <String>['米饭']);
+      expect(fuzzyQueryCandidates('饭'), isEmpty);
+      expect(fuzzyQueryCandidates('  '), isEmpty);
+    });
+  });
+
   group('cleanRecognitionDetail', () {
     test('换行/制表/连续空白压缩为单个空格并去首尾空白', () {
       expect(

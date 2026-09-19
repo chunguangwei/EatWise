@@ -239,7 +239,10 @@
       "engineGuideBody": "下载本地模型（离线可用，约 2.4GB，下载后无需联网），或配置云端 API 使用你的模型服务。",
       "engineGuideDownload": "下载本地模型（推荐）",
       "engineGuideConfigApi": "配置云端 API",
-      "engineGuideManual": "先手动搜索"
+      "engineGuideManual": "先手动搜索",
+      "similarFoodsTitle": "库中已有相似食物：",
+      "useThisFood": "用这个",
+      "loggedWithPending": "已记录 ${count} 条（${pending} 条待审核）"
     },
     "barcode": {
       "entry": "扫码记",
@@ -391,6 +394,9 @@
       "todayList": "今日运动",
       "minutesValue": "${min} 分钟",
       "kcalValue": "${kcal} 千卡",
+      "stepsLabel": "步数（步）",
+      "stepsEstimateHint": "填步数则按步数自动估算距离与热量，时长可留空",
+      "stepsValue": "${steps} 步",
       "deleteLabel": "删除该条运动记录",
       "deleted": "已删除",
       "screenshot": {
@@ -421,6 +427,11 @@
         "elliptical": "椭圆机",
         "hiking": "爬山",
         "badminton": "羽毛球",
+        "basketball": "篮球",
+        "soccer": "足球",
+        "tableTennis": "乒乓球",
+        "tennis": "网球",
+        "dance": "健身操/舞蹈",
         "hiit": "HIIT",
         "summary": "活动统计"
       }
@@ -733,7 +744,7 @@
       "startHint": "完成今天断食，开启第 1 天"
     },
     "milestone": {
-      "title": "连续 ${days} 天！你已经超过了 80% 的伙伴 🎉",
+      "title": "连续 ${days} 天！这个节奏太稳了，继续保持 🎉",
       "badgeLabel": "${days} 天连胜",
       "share": "分享",
       "accept": "收下啦",

@@ -104,10 +104,10 @@ void main() {
       // 大数字连胜天数。
       expect(find.text('7'), findsOneWidget);
       expect(find.text('天'), findsOneWidget);
-      // 中英双语里程碑文案（80% 分位〔假设〕占位）。
-      expect(find.text('连续 7 天！你已经超过了 80% 的伙伴 🎉'), findsOneWidget);
+      // 中英双语里程碑文案（自我鼓励口径，无虚假分位）。
+      expect(find.text('连续 7 天！这个节奏太稳了，继续保持 🎉'), findsOneWidget);
       expect(
-        find.text("7-day streak! You've outlasted 80% of the community 🎉"),
+        find.text('7-day streak! What a steady rhythm — keep it up 🎉'),
         findsOneWidget,
       );
       // 日期 + App 名 + 口号。

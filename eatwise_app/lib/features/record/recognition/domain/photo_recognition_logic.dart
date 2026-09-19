@@ -415,3 +415,32 @@ Future<RecognizedMealItem> recognizedMealItemFromParsed(
     confidence: 0.4,
   );
 }
+
+/// 识别名模糊查询序列（库未收录时在确认弹层找「相似食物」用）：
+/// 全名 → 逐字去尾（≥2 字止，如「牛肉炒时蔬」→ 牛肉炒时 → 牛肉炒 → 牛肉）；
+/// 含空格/连字符的先按分词取前段（如「potato chips」→ potato chips → potato；
+/// 「清叶堂洋芋片」品牌前缀场景则后段递减由调用方再试——本函数只生成
+/// 前缀递减序列，保持简单可测）。去重保序，不含空串。
+List<String> fuzzyQueryCandidates(String name) {
+  final trimmed = name.trim();
+  if (trimmed.isEmpty) return const <String>[];
+  final queries = <String>[];
+  void add(String q) {
+    final t = q.trim();
+    if (t.isNotEmpty && !queries.contains(t)) queries.add(t);
+  }
+
+  // 空格/连字符分词：全名 + 逐级去尾 token（英文/含品牌场景）。
+  final tokens = trimmed.split(RegExp(r'[\s\-／/]+'));
+  if (tokens.length > 1) {
+    for (var i = tokens.length; i >= 1; i--) {
+      add(tokens.sublist(0, i).join(' '));
+    }
+    return queries;
+  }
+  // CJK 前缀递减（≥2 字止）。
+  for (var len = trimmed.length; len >= 2; len--) {
+    add(trimmed.substring(0, len));
+  }
+  return queries;
+}

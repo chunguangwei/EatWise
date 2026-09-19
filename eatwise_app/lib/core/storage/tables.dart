@@ -266,6 +266,10 @@ class ExerciseLogs extends Table {
   /// 来源标记：null = 手动录入；'screenshot' = 截图识别导入。
   TextColumn get source => text().nullable()();
 
+  /// 步数快照（可空）：走路按步数录入 / 截图活动统计导入时落库；
+  /// 数据页「步数」展示 = 系统步数（如有）+ 本列当日合计。
+  IntColumn get steps => integer().nullable()();
+
   /// 归属日（本地时区 yyyy-MM-dd，当日合计聚合键，D-07 口径）。
   TextColumn get localDate => text()();
 

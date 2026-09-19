@@ -13,19 +13,18 @@ import 'dart:convert';
 
 import 'package:eatwise/features/health/domain/exercise_types.dart';
 
-/// 步行净耗能系数（kcal/kg/km，〔待营养背书〕常识中间值）。
-const double kWalkKcalPerKgPerKm = 1.036;
-
-/// 平均步幅（米/步，〔待营养背书〕；距离缺失时由步数估距离）。
-const double kAverageStepLengthM = 0.75;
+/// 步行步数估算常量与函数已迁至 exercise_types.dart（手动录入/截图导入
+/// 共用）；此处 re-export 保持既有 import 不破。
+export 'package:eatwise/features/health/domain/exercise_types.dart'
+    show kWalkKcalPerKgPerKm, kAverageStepLengthM, estimateKcalFromStepsWalk;
 
 /// 视觉版 system instruction：两类截图的严格 JSON 输出协议。
 ///
 /// 设计要点：先给截图分类（summary / workout）再列字段schema，降低
 /// 字段串台；明确「没有的字段不要输出」（比 null 占位更稳，小模型对
 /// null 常 hallucinate 成 0）；数值不带单位（解析层不做单位猜测）；
-/// 运动类型限定 12 键枚举 + other 兜底（映射不放模型侧自由发挥）；
-/// 「无法识别」单行协议与拍照识别一致（上层 parse_failed 透出）。
+/// 运动类型限定 exercise_types 17 键枚举 + other 兜底（映射不放模型侧
+/// 自由发挥）；「无法识别」单行协议与拍照识别一致（上层 parse_failed 透出）。
 const String kExerciseScreenshotSystemPrompt =
     '你是运动健康截图数据提取助手。用户给你一张运动健康类 App 的截图，你提取其中的结构化数据。'
     '截图有两类：'
@@ -37,7 +36,8 @@ const String kExerciseScreenshotSystemPrompt =
     '活动统计给 steps（步数，整数）、distanceKm（距离，公里，数字）、'
     'floorsClimbedM（爬楼或爬升，米，数字）、activeCaloriesKcal（活动热量，千卡，数字）；'
     '单次运动给 exerciseType（运动类型，英文小写，从 walk、jog、run、cycling、swimming、'
-    'jump_rope、yoga、strength、elliptical、hiking、badminton、hiit 中选，都不像就给 other）、'
+    'jump_rope、yoga、strength、elliptical、hiking、badminton、basketball、soccer、'
+    'table_tennis、tennis、dance、hiit 中选，都不像就给 other）、'
     'durationMinutes（时长，分钟，整数）、burnKcal（消耗，千卡，数字）。'
     '截图里没有的字段不要输出；数字只写数值，不要带单位；'
     '不是运动数据截图或看不清时，只输出：无法识别。';
@@ -143,6 +143,21 @@ const Map<String, String> _typeKeyAliases = <String, String>{
   '徒步': 'hiking',
   'badminton': 'badminton',
   '羽毛球': 'badminton',
+  'basketball': 'basketball',
+  '篮球': 'basketball',
+  'soccer': 'soccer',
+  'football': 'soccer',
+  '足球': 'soccer',
+  'table_tennis': 'tableTennis',
+  'table tennis': 'tableTennis',
+  'ping pong': 'tableTennis',
+  '乒乓球': 'tableTennis',
+  'tennis': 'tennis',
+  '网球': 'tennis',
+  'dance': 'dance',
+  'aerobics': 'dance',
+  '健身操': 'dance',
+  '舞蹈': 'dance',
   'hiit': 'hiit',
   '高强度间歇': 'hiit',
 };
@@ -209,6 +224,7 @@ final class ExerciseLogDraft {
     required this.durationMin,
     this.kcal,
     this.estimated = false,
+    this.steps,
   });
 
   /// 运动类型键；summary 汇总导入固定为 'summary'（活动统计）。
@@ -222,32 +238,43 @@ final class ExerciseLogDraft {
 
   /// kcal 是否为估算值（true 时 UI 标注估算口径）。
   final bool estimated;
+
+  /// 步数快照（summary 有步数时随草稿落库——步数持久化，数据页展示合并）。
+  final int? steps;
 }
 
 /// 汇总截图 → 草稿：活动热量 >0 直接入账（截图 ground truth）；否则只有
 /// 步数时按 `体重 × 距离 × 1.036` 估算（距离缺失按 `步数 × 0.75m` 估距离，
 /// 〔待营养背书〕）；两者皆无 → null（无可入账数据）。
 ///
-/// 爬楼米数不折算 kcal（口径不一，仅展示；见库注释）。
+/// 步数（>0）始终随草稿落库（与 kcal 来源无关），修复「识别有步数但不
+/// 记录」。爬楼米数不折算 kcal（口径不一，仅展示；见库注释）。
 ExerciseLogDraft? draftFromSummaryScreenshot(
   ExerciseScreenshotData data, {
   required double weightKg,
 }) {
   if (data.kind != ExerciseScreenshotKind.summary) return null;
+  final steps = (data.steps != null && data.steps! > 0) ? data.steps : null;
   final active = data.activeCaloriesKcal;
   if (active != null && active > 0) {
-    return ExerciseLogDraft(typeKey: 'summary', durationMin: 0, kcal: active);
-  }
-  final steps = data.steps;
-  if (steps != null && steps > 0 && weightKg > 0) {
-    final distanceKm = (data.distanceKm != null && data.distanceKm! > 0)
-        ? data.distanceKm!
-        : steps * kAverageStepLengthM / 1000;
     return ExerciseLogDraft(
       typeKey: 'summary',
       durationMin: 0,
-      kcal: weightKg * distanceKm * kWalkKcalPerKgPerKm,
+      kcal: active,
+      steps: steps,
+    );
+  }
+  if (steps != null && weightKg > 0) {
+    return ExerciseLogDraft(
+      typeKey: 'summary',
+      durationMin: 0,
+      kcal: estimateKcalFromStepsWalk(
+        steps: steps,
+        weightKg: weightKg,
+        distanceKm: data.distanceKm,
+      ),
       estimated: true,
+      steps: steps,
     );
   }
   return null;

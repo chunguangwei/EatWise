@@ -397,9 +397,13 @@ class _ExerciseScreenshotConfirmSheetState
     }
     final String typeKey;
     final int durationMin;
+    final int? steps;
     if (_isSummary) {
       typeKey = 'summary';
       durationMin = 0;
+      // 步数随记录落库（步数持久化：数据页展示 = 系统步数 + 当日合计）。
+      final parsedSteps = int.tryParse(_stepsController.text.trim());
+      steps = (parsedSteps != null && parsedSteps > 0) ? parsedSteps : null;
     } else {
       final type = _selectedType;
       if (type == null) {
@@ -413,6 +417,7 @@ class _ExerciseScreenshotConfirmSheetState
       }
       typeKey = type.key;
       durationMin = minutes;
+      steps = null;
     }
     _saving = true;
     try {
@@ -423,6 +428,7 @@ class _ExerciseScreenshotConfirmSheetState
             durationMin: durationMin,
             kcal: kcal,
             source: ExerciseLogRepository.sourceScreenshot,
+            steps: steps,
           );
       if (mounted) Navigator.of(context).pop(saved);
     } finally {
