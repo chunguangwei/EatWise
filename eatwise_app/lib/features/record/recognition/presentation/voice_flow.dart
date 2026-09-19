@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:app_settings/app_settings.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/llm/ondevice/ondevice_model_manager.dart';
 import 'package:eatwise/core/llm/ondevice/ondevice_providers.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
@@ -17,6 +18,27 @@ import 'package:eatwise/features/record/recognition/voice/speech_gateway.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// 端侧 ASR 引擎预热（视觉+音频同开）：只在用户明确表现出要用语音的
+/// 路径上触发（语音入口端侧分支 / 逃生舱触发时），且模型已下载才执行；
+/// 已加载时幂等跳过。失败静默（转写路径会重试并有自己的降级）。
+/// 注意内存/电量：不在 App 启动等无明确意图处调用（冷启动预热另有
+/// prewarmOnDeviceEngineOnStartup 按开关口径控制）。
+void prewarmOnDeviceAsrEngine(WidgetRef ref) {
+  final manager = ref.read(onDeviceModelManagerProvider);
+  // 就绪判定优先读快照流（语义等价于 manager.snapshot——provider 就是
+  // 其 refresh 后的状态流；测试可用 Stream.value 注入，免磁盘 IO）。
+  final snapshot = ref.read(onDeviceModelSnapshotProvider).valueOrNull;
+  unawaited(
+    prewarmOnDeviceEngine(
+      modelPath: manager.modelPath,
+      isModelReady: () =>
+          (snapshot ?? manager.snapshot).status == OnDeviceModelStatus.ready,
+      gateway: ref.read(onDeviceLlmGatewayProvider),
+      enableAudio: true,
+    ),
+  );
+}
 
 /// 语音录入入口流程（PRD M3 / D-16：系统 ASR + 端侧文本明细推理优先，
 /// 回落自研轻量词典解析，不引入独立 NLP 服务）。
@@ -60,6 +82,8 @@ Future<void> startVoiceInput(BuildContext context, WidgetRef ref) async {
       await _showVoiceDeniedCard(context, s);
       return;
     }
+    // 预热：面板打开前后台加载引擎（视觉+音频），用户点录音时引擎已热。
+    prewarmOnDeviceAsrEngine(ref);
     transcript = await showModalBottomSheet<VoiceTranscript>(
       context: context,
       isDismissible: false,
@@ -285,13 +309,18 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
           if (mounted) setState(() => _text = text);
         },
         onError: (error) {
-          if (mounted) setState(() => _error = error);
+          if (!mounted) return;
+          setState(() => _error = error);
+          // 致命错误才预热（良性「没听清」重说即可，不值得加载 2GB 引擎）。
+          const benign = <String>{'error_no_match', 'error_speech_timeout'};
+          if (!benign.contains(error)) _prewarmOnce();
         },
       ),
     );
     _noResultTimer = Timer(kNoResultHintDelay, () {
       if (mounted && _text.isEmpty && _error == null && !_typing) {
         setState(() => _noResultHint = true);
+        _prewarmOnce(); // 静默兜底触发 = 用户大概率要点逃生舱，提前热引擎
       }
     });
   }
@@ -306,6 +335,17 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
       return benign.contains(error) ? s.voiceNoSpeechHint : s.voiceErrorGeneric;
     }
     return _noResultHint ? s.voiceNoSpeechHint : null;
+  }
+
+  /// 逃生舱触发后已预热过一次（避免 onError/定时器重复触发预热）。
+  bool _prewarmed = false;
+
+  /// 逃生舱触发时后台预热端侧引擎（用户即将点「用离线小模型识别」，意图
+  /// 明确；只在端侧就绪时预热，已预热过幂等跳过）。
+  void _prewarmOnce() {
+    if (_prewarmed || !_onDeviceAsrReady) return;
+    _prewarmed = true;
+    prewarmOnDeviceAsrEngine(ref);
   }
 
   /// 逃生舱条件：致命 ASR 错误（非 error_no_match/error_speech_timeout
@@ -324,6 +364,22 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
   /// 返回值——下游管线（_handleTranscript）对两条路径完全同构。
   /// 端侧面板取消 → 整个语音流程静默结束（用户可重新点语音记）。
   Future<void> _switchToOnDevice() async {
+    // 模型未下载/未启用 → 与拍照记入口同款引导卡（下载本地模型带进度
+    // /配置云端 API/先手动搜索），修复「没提示下载小模型」：此前按钮
+    // 仅在端侧就绪时出现，首次用户（开关默认关）根本看不到它。
+    if (!_onDeviceAsrReady) {
+      await widget.gateway.cancel();
+      if (!mounted) return;
+      await showAiEngineGuideWithActions(
+        context,
+        ref,
+        RecordStrings.of(context),
+      );
+      if (!mounted) return;
+      // 引导结束即关闭听写面板：下载/配置在设置页完成，手动搜索已对焦。
+      Navigator.of(context).pop();
+      return;
+    }
     // 端侧录音走 record 插件的麦克风权限（与系统 ASR 初始化时的申请
     // 同口径确认一次；拒绝则静默关闭，键盘输入永远可用）。
     final recorder = ref.read(audioRecorderGatewayProvider);
@@ -421,9 +477,12 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
                 _statusText(s)!,
                 style: textStyles.textSm.copyWith(color: _statusColor(colors)),
               ),
-              // 逃生舱：致命错误/静默超时 + 端侧 ASR 就绪 → 一键切离线模型
-              //（良性「没听清」不给按钮，重说即可；端侧未就绪保持现状）。
-              if (_escapeTriggered && _onDeviceAsrReady) ...<Widget>[
+              // 逃生舱：致命错误/静默超时 → 一键切离线模型；模型未就绪
+              // 时点击走「下载本地模型」引导卡（与拍照记入口同款 gating），
+              // 已选过「先手动搜索」的会话不再打扰（不显示按钮）。
+              if (_escapeTriggered &&
+                  (_onDeviceAsrReady ||
+                      !ref.watch(aiEngineGuideDismissedProvider))) ...<Widget>[
                 const SizedBox(height: AppSpacing.s2),
                 SizedBox(
                   height: 48,

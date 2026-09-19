@@ -209,6 +209,9 @@ final class RecordStrings {
   /// record.voice.useOnDeviceAsr
   String get voiceUseOnDeviceAsr => _t.record.voice.useOnDeviceAsr;
 
+  /// record.voice.loadingModel
+  String get voiceLoadingModel => _t.record.voice.loadingModel;
+
   /// record.voice.noSpeechHint
   String get voiceNoSpeechHint => _t.record.voice.noSpeechHint;
 

@@ -11,6 +11,7 @@ import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
+import 'package:eatwise/features/record/recognition/data/ondevice_asr_service.dart';
 import 'package:eatwise/features/record/recognition/domain/ondevice_asr_logic.dart';
 import 'package:eatwise/features/record/recognition/presentation/voice_flow.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +32,10 @@ class OnDeviceRecordingSheet extends ConsumerStatefulWidget {
 class _OnDeviceRecordingSheetState
     extends ConsumerState<OnDeviceRecordingSheet> {
   _Stage _stage = _Stage.idle;
+
+  /// 转写阶段是否处于「模型加载中」（分阶段文案；引擎热时为 false →
+  /// 直接「转写中…」）。
+  bool _loadingModel = false;
   String _text = '';
   bool _typing = false;
   final TextEditingController _typeController = TextEditingController();
@@ -59,14 +64,27 @@ class _OnDeviceRecordingSheetState
           setState(() => _stage = _Stage.failed);
           return;
         }
-        setState(() => _stage = _Stage.transcribing);
+        setState(() {
+          _stage = _Stage.transcribing;
+          _loadingModel = false;
+        });
         final wav = wrapPcm16AsWav(pcm);
         final isZh = LocaleSettings.currentLocale.languageCode == 'zh';
         final service = ref.read(onDeviceAsrServiceProvider);
         final text = service == null
             ? null
             : await service
-                  .transcribe(wav, isZh: isZh)
+                  .transcribe(
+                    wav,
+                    isZh: isZh,
+                    onStatus: (status) {
+                      if (!mounted || _cancelRequested) return;
+                      setState(
+                        () => _loadingModel =
+                            status == OnDeviceAsrStatus.loadingModel,
+                      );
+                    },
+                  )
                   .timeout(
                     kFreeTextInferenceTimeout, // 与自由记推理同款 60s 上限
                     onTimeout: () => null,
@@ -189,7 +207,9 @@ class _OnDeviceRecordingSheetState
                   : Icon(recording ? Icons.stop : Icons.mic),
               label: Text(
                 busy
-                    ? s.voiceTranscribingNow
+                    ? (_loadingModel
+                          ? s.voiceLoadingModel
+                          : s.voiceTranscribingNow)
                     : recording
                     ? s.voiceRecordingNow
                     : s.voiceTapToStart,
@@ -237,7 +257,8 @@ class _OnDeviceRecordingSheetState
     return switch (_stage) {
       _Stage.idle => s.voiceTapToStart,
       _Stage.recording => s.voiceRecordingNow,
-      _Stage.transcribing => s.voiceTranscribingNow,
+      _Stage.transcribing =>
+        _loadingModel ? s.voiceLoadingModel : s.voiceTranscribingNow,
       _Stage.done => _text,
       _Stage.failed => s.voiceTranscribeFailed,
     };

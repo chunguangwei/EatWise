@@ -56,11 +56,20 @@ Future<void> prewarmOnDeviceEngine({
   required Future<String> Function() modelPath,
   required bool Function() isModelReady,
   required OnDeviceLlmGateway gateway,
+  bool enableAudio = false,
 }) async {
   if (!isModelReady()) return;
   try {
-    if (!gateway.isLoaded || !gateway.visionEnabled) {
-      await gateway.load(await modelPath(), enableVision: true);
+    if (!gateway.isLoaded ||
+        !gateway.visionEnabled ||
+        (enableAudio && !gateway.audioEnabled)) {
+      // [enableAudio]：语音路径预热（端侧 ASR）；视觉+音频同开，与
+      // transcribe 的加载契约一致，预热后首次转写零等待。
+      await gateway.load(
+        await modelPath(),
+        enableVision: true,
+        enableAudio: enableAudio,
+      );
     }
   } on Object {
     // 静默：使用路径会重试加载并走各自降级（OOM 永久禁用等）。

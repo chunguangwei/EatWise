@@ -1,8 +1,7 @@
-import 'dart:typed_data';
-
 import 'package:eatwise/core/llm/ondevice/ondevice_llm_gateway.dart';
 import 'package:eatwise/features/record/recognition/data/ondevice_asr_service.dart';
 import 'package:eatwise/features/record/recognition/domain/ondevice_asr_logic.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 端侧 ASR 转写服务单测（网关 Fake，不触碰真实引擎）。
@@ -12,6 +11,22 @@ import 'package:flutter_test/flutter_test.dart';
 ///（enableAudio: true + enableVision: true 共热引擎）、音频未加载拦截。
 void main() {
   final wavBytes = Uint8List.fromList(<int>[82, 73, 70, 70, 1, 2, 3, 4]);
+
+  /// debugPrint 捕获（防静默回归：失败路径必须留日志）。
+  final logs = <String>[];
+  late void Function(String?, {int? wrapWidth}) originalDebugPrint;
+
+  setUp(() {
+    logs.clear();
+    originalDebugPrint = debugPrint;
+    debugPrint = (message, {wrapWidth}) {
+      if (message != null) logs.add(message);
+    };
+  });
+
+  tearDown(() {
+    debugPrint = originalDebugPrint;
+  });
 
   OnDeviceAsrService makeService(_FakeGateway gateway) {
     return OnDeviceAsrService(
@@ -76,6 +91,37 @@ void main() {
       expect(gateway.loadCalls, 1); // 不再重试加载
     });
 
+    test('onStatus 阶段回调：需加载 → loadingModel → transcribing', () async {
+      final gateway = _FakeGateway()..audioResponse = '一碗米饭';
+      final service = makeService(gateway);
+      final statuses = <OnDeviceAsrStatus>[];
+
+      await service.transcribe(wavBytes, isZh: true, onStatus: statuses.add);
+
+      expect(statuses, <OnDeviceAsrStatus>[
+        OnDeviceAsrStatus.loadingModel,
+        OnDeviceAsrStatus.transcribing,
+      ]);
+    });
+
+    test('onStatus 阶段回调：已热引擎只发 transcribing', () async {
+      final gateway = _FakeGateway(loaded: true, audio: true, vision: true)
+        ..audioResponse = '一碗米饭';
+      final service = makeService(gateway);
+      final statuses = <OnDeviceAsrStatus>[];
+
+      await service.transcribe(wavBytes, isZh: true, onStatus: statuses.add);
+
+      expect(statuses, <OnDeviceAsrStatus>[OnDeviceAsrStatus.transcribing]);
+    });
+
+    test('onStatus 为 null 时正常工作（回调可选）', () async {
+      final gateway = _FakeGateway()..audioResponse = '一碗米饭';
+      final service = makeService(gateway);
+
+      expect(await service.transcribe(wavBytes, isZh: true), '一碗米饭');
+    });
+
     test('音频能力加载契约：视觉+音频同开（与拍照识别共热引擎）', () async {
       final gateway = _FakeGateway()..audioResponse = '一碗米饭';
       final service = makeService(gateway);
@@ -104,6 +150,40 @@ void main() {
 
       // 网关拦截抛 engine 异常 → 服务映射 null（降级）
       expect(await service.transcribe(wavBytes, isZh: true), isNull);
+    });
+
+    test('失败路径留日志：引擎错误/空结果/OOM 均有 debugPrint（防静默）', () async {
+      // 引擎错误 → 带类型与消息的日志。
+      final gateway = _FakeGateway()
+        ..inferError = const OnDeviceLlmEngineException('音频塔加载失败');
+      final service = makeService(gateway);
+      await service.transcribe(wavBytes, isZh: true);
+      expect(
+        logs.any(
+          (l) => l.contains('[OnDeviceAsr] 转写失败') && l.contains('音频塔加载失败'),
+        ),
+        isTrue,
+        reason: '引擎失败必须写日志（真机「小模型不生效」排查依赖）',
+      );
+
+      // 清洗后为空 → 空结果日志。
+      logs.clear();
+      gateway.inferError = null;
+      gateway.audioResponse = '「」';
+      await service.transcribe(wavBytes, isZh: true);
+      expect(logs.any((l) => l.contains('[OnDeviceAsr] 转写结果为空')), isTrue);
+
+      // OOM → 永久禁用日志 + 后续短路日志（换新实例：原网关已加载，
+      // 加载失败路径需要未加载状态）。
+      logs.clear();
+      final oomGateway = _FakeGateway()
+        ..loadError = const OnDeviceLlmMemoryException('引擎加载内存不足');
+      final oomService = makeService(oomGateway);
+      await oomService.transcribe(wavBytes, isZh: true);
+      expect(logs.any((l) => l.contains('[OnDeviceAsr] 转写失败：引擎内存不足')), isTrue);
+      logs.clear();
+      await oomService.transcribe(wavBytes, isZh: true);
+      expect(logs.any((l) => l.contains('已永久禁用')), isTrue);
     });
   });
 }

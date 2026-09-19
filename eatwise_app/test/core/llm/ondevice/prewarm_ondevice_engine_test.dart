@@ -61,6 +61,64 @@ void main() {
     });
   });
 
+  group('enableAudio 参数（语音路径预热）', () {
+    test('enableAudio: true → 视觉+音频同开加载', () async {
+      final gateway = _FakeGateway();
+
+      await prewarmOnDeviceEngine(
+        modelPath: () async => '/fake/gemma4-e2b.litertlm',
+        isModelReady: () => true,
+        gateway: gateway,
+        enableAudio: true,
+      );
+
+      expect(gateway.loadCalls, 1);
+      expect(gateway.lastEnableVision, isTrue);
+      expect(gateway.lastEnableAudio, isTrue);
+    });
+
+    test('默认（不带 enableAudio）→ 保持视觉-only（向后兼容）', () async {
+      final gateway = _FakeGateway();
+
+      await prewarmOnDeviceEngine(
+        modelPath: () async => '/fake/gemma4-e2b.litertlm',
+        isModelReady: () => true,
+        gateway: gateway,
+      );
+
+      expect(gateway.loadCalls, 1);
+      expect(gateway.lastEnableVision, isTrue);
+      expect(gateway.lastEnableAudio, isFalse);
+    });
+
+    test('已带视觉+音频加载 → enableAudio 也幂等跳过', () async {
+      final gateway = _FakeGateway(loaded: true, vision: true, audio: true);
+
+      await prewarmOnDeviceEngine(
+        modelPath: () async => '/fake/gemma4-e2b.litertlm',
+        isModelReady: () => true,
+        gateway: gateway,
+        enableAudio: true,
+      );
+
+      expect(gateway.loadCalls, 0);
+    });
+
+    test('已带视觉但无音频 + enableAudio → 补载（能力组合不齐）', () async {
+      final gateway = _FakeGateway(loaded: true, vision: true);
+
+      await prewarmOnDeviceEngine(
+        modelPath: () async => '/fake/gemma4-e2b.litertlm',
+        isModelReady: () => true,
+        gateway: gateway,
+        enableAudio: true,
+      );
+
+      expect(gateway.loadCalls, 1);
+      expect(gateway.lastEnableAudio, isTrue);
+    });
+  });
+
   group('prewarmOnDeviceEngineOnStartup（冷启动预热编排）', () {
     test('快照 ready + 开关开 → 触发视觉预热（重启后首拍即热）', () async {
       final gateway = _FakeGateway();
@@ -134,14 +192,16 @@ void main() {
 
 /// 推理网关 Fake（仅本测试需要的加载面）。
 final class _FakeGateway implements OnDeviceLlmGateway {
-  _FakeGateway({this.loaded = false, this.vision = false});
+  _FakeGateway({this.loaded = false, this.vision = false, this.audio = false});
 
   bool loaded;
   bool vision;
+  bool audio;
 
   Object? loadError;
   int loadCalls = 0;
   bool? lastEnableVision;
+  bool? lastEnableAudio;
 
   @override
   bool get isLoaded => loaded;
@@ -150,7 +210,7 @@ final class _FakeGateway implements OnDeviceLlmGateway {
   bool get visionEnabled => loaded && vision;
 
   @override
-  bool get audioEnabled => false; // 本用例不走音频
+  bool get audioEnabled => loaded && audio;
 
   @override
   Future<void> load(
@@ -160,10 +220,12 @@ final class _FakeGateway implements OnDeviceLlmGateway {
   }) async {
     loadCalls++;
     lastEnableVision = enableVision;
+    lastEnableAudio = enableAudio;
     final error = loadError;
     if (error != null) throw error;
     loaded = true;
     vision = enableVision;
+    audio = enableAudio;
   }
 
   @override

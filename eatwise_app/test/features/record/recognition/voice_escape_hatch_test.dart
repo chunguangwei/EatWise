@@ -9,6 +9,7 @@ import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/presentation/record_page.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/recognition/data/ondevice_asr_service.dart';
+import 'package:eatwise/features/record/recognition/domain/engine_availability.dart';
 import 'package:eatwise/features/record/recognition/presentation/ondevice_recording_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,7 +21,8 @@ import 'recognition_test_fakes.dart';
 
 /// 听写面板逃生舱 widget 测试：致命 ASR 错误 / 6s 静默兜底 + 端侧 ASR
 /// 就绪 → 「用离线小模型识别」按钮，点了取消系统听写并进端侧录音面板；
-/// 端侧未就绪 / 良性错误（没听清）→ 不出现按钮（现状保持）。
+/// 端侧未就绪 → 按钮出现，点击走「下载本地模型」引导卡（首次用户
+/// 不再死胡同）；引导被会话抑制 / 良性错误（没听清）→ 不出现按钮。
 void main() {
   late AppDatabase db;
   late RecordRepository repository;
@@ -66,11 +68,24 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
   }
 
-  Future<void> pumpPage(WidgetTester tester, {required bool asrReady}) async {
+  /// 导航目标记录（override 路由出口，不依赖 go_router 装配）。
+  late List<AiEngineGuideTarget> navigated;
+
+  Future<void> pumpPage(
+    WidgetTester tester, {
+    required bool asrReady,
+    bool guideDismissed = false,
+  }) async {
+    navigated = <AiEngineGuideTarget>[];
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
           recordRepositoryProvider.overrideWithValue(repository),
+          aiEngineGuideNavigatorProvider.overrideWithValue((context, target) {
+            navigated.add(target);
+          }),
+          if (guideDismissed)
+            aiEngineGuideDismissedProvider.overrideWith((ref) => true),
           speechGatewayProvider.overrideWithValue(speechGateway),
           audioRecorderGatewayProvider.overrideWithValue(recorderGateway),
           onDeviceAsrServiceProvider.overrideWithValue(
@@ -122,8 +137,37 @@ void main() {
     await settleUi(tester);
   });
 
-  testWidgets('致命错误 + 端侧未就绪 → 不出现按钮（现状保持）', (tester) async {
+  testWidgets('致命错误 + 端侧未就绪 → 按钮出现，点击走「下载本地模型」引导卡', (tester) async {
     await pumpPage(tester, asrReady: false);
+    await openListeningSheet(tester);
+
+    speechGateway.onError!('error_network');
+    await tester.pump();
+
+    // 修复「没提示下载小模型」：未就绪也显示逃生舱按钮。
+    expect(find.text('用离线小模型识别'), findsOneWidget);
+
+    await tester.tap(find.text('用离线小模型识别'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 引擎引导卡（与拍照记入口同款）：下载/配置/手动搜索三出口。
+    expect(find.text('AI 识别需要一个模型'), findsOneWidget);
+    expect(find.text('下载本地模型（推荐）'), findsOneWidget);
+    expect(find.text('配置云端 API'), findsOneWidget);
+    expect(find.text('先手动搜索'), findsOneWidget);
+
+    // 点「下载本地模型（推荐）」→ 深链端侧模型卡，听写面板关闭。
+    await tester.tap(find.text('下载本地模型（推荐）'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(navigated, <AiEngineGuideTarget>[AiEngineGuideTarget.onDeviceModel]);
+    expect(find.text('正在听… 说说吃了什么，如「一碗米饭」'), findsNothing);
+    await settleUi(tester);
+  });
+
+  testWidgets('致命错误 + 端侧未就绪 + 引导被会话抑制 → 不出现按钮', (tester) async {
+    await pumpPage(tester, asrReady: false, guideDismissed: true);
     await openListeningSheet(tester);
 
     speechGateway.onError!('error_network');

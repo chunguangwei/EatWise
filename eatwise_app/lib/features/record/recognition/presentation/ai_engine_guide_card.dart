@@ -76,8 +76,20 @@ Future<bool> guideIfNoAiEngine(
   if (availability != AiEngineAvailability.none || !context.mounted) {
     return false;
   }
+  await showAiEngineGuideWithActions(context, ref, s);
+  return true;
+}
+
+/// 无条件展示引导卡并处理出口（探测/抑制由调用方负责——语音逃生舱
+/// 「用离线小模型识别」按钮语义：无论云端 API 是否已配，端侧模型才是
+/// ASR 唯一路径，未就绪时必须给「下载本地模型（推荐）」出口）。
+Future<void> showAiEngineGuideWithActions(
+  BuildContext context,
+  WidgetRef ref,
+  RecordStrings s,
+) async {
   final action = await showAiEngineGuideCard(context, s);
-  if (!context.mounted) return true;
+  if (!context.mounted) return;
   switch (action) {
     case AiEngineGuideAction.downloadModel:
       ref
@@ -94,5 +106,4 @@ Future<bool> guideIfNoAiEngine(
       ref.read(recordSearchPrefillProvider.notifier).state = '';
     case null: // 遮罩关闭：原地不动（不抑制，下次入口再引导）
   }
-  return true;
 }

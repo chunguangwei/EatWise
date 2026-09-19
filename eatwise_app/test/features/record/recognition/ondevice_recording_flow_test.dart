@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
@@ -12,6 +14,7 @@ import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/presentation/record_page.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/recognition/data/ondevice_asr_service.dart';
+import 'package:eatwise/features/record/recognition/presentation/ondevice_recording_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -36,6 +39,8 @@ void main() {
     await initRecordTestTimeZones();
   });
 
+  late OnDeviceModelManager modelManager;
+
   setUp(() async {
     await LocaleSettings.setLocale(AppLocale.zhCn);
     db = AppDatabase.memory();
@@ -48,7 +53,14 @@ void main() {
     speechGateway = FakeSpeechGateway()..available = false; // 模拟无 GMS 设备
     recorderGateway = FakeAudioRecorderGateway();
     gateway = _FakeGateway()..audioResponse = '一碗米饭';
+    // 轻量模型管理器（临时目录）：prewarm 的 modelPath 可解析；
+    // 就绪判定走快照流 override（见 pumpPage），不做磁盘 refresh。
+    modelManager = OnDeviceModelManager(
+      docsDir: () async => Directory.systemTemp,
+      expectedBytes: 64,
+    );
     addTearDown(() async {
+      await modelManager.dispose();
       await repository.dispose();
       await db.close();
     });
@@ -98,6 +110,8 @@ void main() {
           ),
           speechGatewayProvider.overrideWithValue(speechGateway),
           audioRecorderGatewayProvider.overrideWithValue(recorderGateway),
+          onDeviceModelManagerProvider.overrideWithValue(modelManager),
+          onDeviceLlmGatewayProvider.overrideWithValue(gateway),
           onDeviceAsrServiceProvider.overrideWithValue(
             OnDeviceAsrService(
               gateway: gateway,
@@ -200,6 +214,112 @@ void main() {
     await settleUi(tester);
   });
 
+  testWidgets('预热：面板打开即后台加载引擎（视觉+音频，录音时零等待）', (tester) async {
+    await pumpPage(tester, onDeviceReady: true);
+
+    await tester.tap(find.text('语音记'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 用户还没点录音，预热已触发一次视觉+音频加载。
+    expect(gateway.loadCalls, 1);
+    expect(gateway.lastEnableAudio, isTrue);
+    expect(gateway.lastEnableVision, isTrue);
+
+    // 录音 → 停止 → 转写：引擎已热，不再重复加载。
+    await tester.tap(find.widgetWithText(OutlinedButton, '点一下开始说话'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(OutlinedButton, '正在录音… 再点一下停止'));
+    await tester.pump();
+    await tester.pump();
+    expect(gateway.loadCalls, 1, reason: '预热后转写不应再触发加载');
+    await settleUi(tester);
+  });
+
+  testWidgets('首次转写分阶段文案：加载中（可取消）→ 转写中 → 完成', (tester) async {
+    // 磁盘无模型 → 预热空转，首次转写才触发引擎加载（挂起可控）。
+    gateway.hangLoad = true;
+    gateway.hangInfer = true;
+    await pumpPage(tester, onDeviceReady: true);
+    // 预热会挂 load：先放行预热这次（不让它占用测试的挂起）。
+    gateway.hangLoad = false;
+    gateway.hangInfer = false;
+
+    await tester.tap(find.text('语音记'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(gateway.loadCalls, 1); // 预热已完成
+
+    // 卸载模拟冷引擎 → 挂起后续加载与推理，验证分阶段。
+    await gateway.unload();
+    gateway.hangLoad = true;
+    gateway.hangInfer = true;
+
+    await tester.tap(find.widgetWithText(OutlinedButton, '点一下开始说话'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(OutlinedButton, '正在录音… 再点一下停止'));
+    await tester.pump();
+
+    // 阶段一：模型加载中（状态区 + 主按钮各一处）。
+    expect(find.text('正在加载离线模型，首次较慢…'), findsNWidgets(2));
+
+    // 放行加载 → 阶段二：转写中。
+    gateway.completeLoad();
+    await tester.pump();
+    expect(find.text('转写中…'), findsNWidgets(2));
+
+    // 放行推理 → 完成回填。
+    gateway.completeInfer('一碗米饭');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    final field = tester.widget<TextField>(find.byType(TextField).last);
+    expect(field.controller!.text, '一碗米饭');
+    await settleUi(tester);
+  });
+
+  testWidgets('加载中取消：面板关闭，过期结果不回填（不出现残留文本）', (tester) async {
+    gateway.hangLoad = false;
+    await pumpPage(tester, onDeviceReady: true);
+
+    await tester.tap(find.text('语音记'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    await gateway.unload();
+    gateway.hangLoad = true;
+    gateway.hangInfer = true;
+
+    await tester.tap(find.widgetWithText(OutlinedButton, '点一下开始说话'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(OutlinedButton, '正在录音… 再点一下停止'));
+    await tester.pump();
+    expect(find.text('正在加载离线模型，首次较慢…'), findsNWidgets(2));
+
+    // 加载中点取消 → 面板关闭（引擎加载无法中断，但 UI 退出且不回填）。
+    await tester.tap(
+      find.descendant(
+        of: find.byType(OnDeviceRecordingSheet),
+        matching: find.text('取消'),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('正在加载离线模型，首次较慢…'), findsNothing);
+    expect(find.text('语音记'), findsOneWidget);
+
+    // 随后引擎加载/推理完成 → 过期结果被丢弃，不残留转写文本/结果卡。
+    gateway.completeLoad();
+    await tester.pump(); // 让推理 completer 先创建（再放行，否则落空挂起）
+    gateway.completeInfer('一碗米饭');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('一碗米饭'), findsNothing);
+    expect(find.text('确认记录'), findsNothing);
+    await settleUi(tester);
+  });
+
   testWidgets('转写失败 → 面板错误态，可再录（不静默退出）', (tester) async {
     await pumpPage(tester, onDeviceReady: true, transcribeFails: true);
 
@@ -224,13 +344,20 @@ void main() {
   });
 }
 
-/// 推理网关 Fake（音频路径）。
+/// 推理网关 Fake（音频路径；可挂起 load/infer 验证分阶段与取消）。
 final class _FakeGateway implements OnDeviceLlmGateway {
   String audioResponse = '';
-  int loadCalls = 0;
   bool loaded = false;
   bool vision = false;
   bool audio = false;
+  bool hangLoad = false;
+  bool hangInfer = false;
+  int loadCalls = 0;
+  bool? lastEnableVision;
+  bool? lastEnableAudio;
+
+  Completer<void>? _loadCompleter;
+  Completer<String>? _inferCompleter;
 
   @override
   bool get isLoaded => loaded;
@@ -248,10 +375,19 @@ final class _FakeGateway implements OnDeviceLlmGateway {
     bool enableAudio = false,
   }) async {
     loadCalls++;
+    lastEnableVision = enableVision;
+    lastEnableAudio = enableAudio;
+    if (hangLoad) {
+      final completer = Completer<void>();
+      _loadCompleter = completer;
+      await completer.future;
+    }
     loaded = true;
     vision = enableVision;
     audio = enableAudio;
   }
+
+  void completeLoad() => _loadCompleter?.complete();
 
   @override
   Future<String> infer(
@@ -291,8 +427,15 @@ final class _FakeGateway implements OnDeviceLlmGateway {
     double? topP,
     int seed = 42,
   }) async {
+    if (hangInfer) {
+      final completer = Completer<String>();
+      _inferCompleter = completer;
+      return completer.future;
+    }
     return audioResponse;
   }
+
+  void completeInfer(String response) => _inferCompleter?.complete(response);
 
   @override
   Future<void> unload() async {

@@ -293,7 +293,8 @@
       "recordingNow": "Recording… tap again to stop",
       "transcribingNow": "Transcribing…",
       "transcribeFailed": "Couldn't transcribe — record again or type with the keyboard icon",
-      "useOnDeviceAsr": "Use offline model"
+      "useOnDeviceAsr": "Use offline model",
+      "loadingModel": "Loading offline model (first launch is slower)…"
     },
     "frequent": {
       "title": "Frequently logged",
