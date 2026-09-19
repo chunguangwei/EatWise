@@ -385,6 +385,9 @@ export abstract class StoreDriver {
   abstract createAdminUser(
     partial: Omit<AdminUserEntity, 'id' | 'createdAt'>,
   ): Promise<AdminUserEntity>;
+
+  /** 更新管理员密码哈希（改密；管理员 JWT 无状态，已签发令牌在有效期内仍可用） */
+  abstract updateAdminPassword(id: string, passwordHash: string): Promise<void>;
 }
 
 /** U2 可更新资料字段（与 user.service PATCHABLE 对齐） */
@@ -1169,6 +1172,13 @@ export class MemoryStoreDriver extends StoreDriver {
 
   createAdminUser(partial: Omit<AdminUserEntity, 'id' | 'createdAt'>): Promise<AdminUserEntity> {
     return Promise.resolve(this.store.createAdminUser(partial));
+  }
+
+  updateAdminPassword(id: string, passwordHash: string): Promise<void> {
+    const admin = this.store.adminUsers.get(id);
+    if (!admin) throw err.notFound();
+    admin.passwordHash = passwordHash;
+    return Promise.resolve();
   }
 
   private mustGetUser(userId: string): UserEntity {

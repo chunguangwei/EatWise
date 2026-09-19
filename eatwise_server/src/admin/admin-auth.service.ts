@@ -5,6 +5,7 @@ import * as bcrypt from 'bcryptjs';
 import { err } from '../common/errors/business.exception';
 import { AdminUserEntity } from '../common/store/data-store';
 import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
+import type { AdminRequestContext } from './admin-auth.guard';
 
 export const ADMIN_JWT_TTL_SEC = 12 * 3600; // 12h〔假设〕
 
@@ -89,6 +90,23 @@ export class AdminAuthService implements OnApplicationBootstrap {
     }
     const accessToken = await this.signAdminToken(admin);
     return { accessToken, expiresIn: ADMIN_JWT_TTL_SEC, admin: this.publicAdmin(admin) };
+  }
+
+  /**
+   * 修改当前管理员密码（需管理员 JWT 登录态，admin/reviewer 均可改自己的）。
+   * x-admin-token 兜底身份无账号可改 → ADMIN_TOKEN_NO_PASSWORD；
+   * 账号异常 / 旧密码错误 一律同报 tokenInvalid，不泄露细节；旧密码试探复用登录同款限流。
+   * 管理员 JWT 无状态：改密后已签发令牌在 12h 有效期内仍可用。
+   */
+  async changePassword(ctx: AdminRequestContext, oldPassword: string, newPassword: string) {
+    if (!ctx.id) throw err.adminTokenNoPassword();
+    this.checkRateLimit(ctx.username);
+    const admin = await this.driver.findAdminById(ctx.id);
+    if (!admin || admin.disabled || !(await bcrypt.compare(oldPassword, admin.passwordHash))) {
+      throw err.tokenInvalid();
+    }
+    await this.driver.updateAdminPassword(admin.id, await bcrypt.hash(newPassword, 10));
+    return { changed: true };
   }
 
   async signAdminToken(admin: AdminUserEntity): Promise<string> {

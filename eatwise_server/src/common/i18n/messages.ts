@@ -18,6 +18,7 @@ const zh: Record<string, string> = {
   AUTH_REFRESH_REUSED: '检测到令牌异常使用，已全部登出',
   AUTH_CODE_INVALID: '验证码错误或已过期',
   SMS_CHANNEL_UNAVAILABLE: '短信通道未开通，请使用账号密码登录',
+  ADMIN_TOKEN_NO_PASSWORD: '访问令牌身份不支持修改密码，请使用管理员账号登录',
   AUTH_USERNAME_TAKEN: '该用户名已被占用',
   AUTH_INVALID_CREDENTIALS: '用户名或密码错误',
   AUTH_PASSWORD_TOO_WEAK: '密码需 8-64 位且同时包含字母和数字',
@@ -48,7 +49,10 @@ const en: Record<string, string> = {
   AUTH_TOKEN_INVALID: 'Invalid session, please sign in again',
   AUTH_REFRESH_REUSED: 'Token reuse detected, all sessions signed out',
   AUTH_CODE_INVALID: 'Incorrect or expired verification code',
-  SMS_CHANNEL_UNAVAILABLE: 'SMS channel is not available, please sign in with username and password',
+  SMS_CHANNEL_UNAVAILABLE:
+    'SMS channel is not available, please sign in with username and password',
+  ADMIN_TOKEN_NO_PASSWORD:
+    'Access-token identity cannot change password; please sign in with an admin account',
   AUTH_USERNAME_TAKEN: 'This username is already taken',
   AUTH_INVALID_CREDENTIALS: 'Incorrect username or password',
   AUTH_PASSWORD_TOO_WEAK: 'Password must be 8-64 characters and contain both letters and digits',

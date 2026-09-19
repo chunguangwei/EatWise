@@ -1478,6 +1478,14 @@ export class PrismaStore extends StoreDriver {
     }
   }
 
+  async updateAdminPassword(id: string, passwordHash: string): Promise<void> {
+    try {
+      await this.prisma.adminUser.update({ where: { id }, data: { passwordHash } });
+    } catch (e) {
+      throw this.fail('updateAdminPassword', e);
+    }
+  }
+
   /** 驱动层异常 → 业务异常（Prisma 错误类型不外泄给 Service；已是业务异常则原样抛） */
   private fail(op: string, e: unknown): never {
     if (e instanceof BusinessException) throw e;

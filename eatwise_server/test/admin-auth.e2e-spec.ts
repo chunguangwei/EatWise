@@ -8,6 +8,9 @@ import { DataStore } from '../src/common/store/data-store';
 const ADMIN_TOKEN = 'test-admin-token';
 const ROOT = { username: 'root', password: 'root-pass-123' };
 const REVIEWER = { username: 'reviewer1', password: 'rev-pass-123' };
+const PWADMIN = { username: 'pwadmin', password: 'old-pass-1234' };
+const PWADMIN2 = { username: 'pwadmin2', password: 'old-pass-1234' };
+const PWADMIN3 = { username: 'pwadmin3', password: 'old-pass-1234' };
 
 /**
  * e2e：管理员账号体系（/v1/admin/auth/* + AdminAuthGuard + @AdminRole 角色门）。
@@ -49,6 +52,15 @@ describe('Admin auth & roles (e2e)', () => {
       role: 'admin',
       disabled: true,
     });
+    // 改密用例专用账号（独立用户名，避免与登录限流按用户名计数相互干扰）
+    for (const acc of [PWADMIN, PWADMIN2, PWADMIN3]) {
+      store.createAdminUser({
+        username: acc.username,
+        passwordHash: bcrypt.hashSync(acc.password, 10),
+        role: 'admin',
+        disabled: false,
+      });
+    }
   });
 
   afterAll(async () => {
@@ -176,6 +188,83 @@ describe('Admin auth & roles (e2e)', () => {
       await request(server)
         .get('/v1/admin/food-candidates')
         .set('x-admin-token', 'wrong')
+        .expect(401);
+    });
+  });
+
+  describe('POST /v1/admin/auth/password（修改自己的密码）', () => {
+    const NEW_PASSWORD = 'new-pass-5678';
+
+    it('改密成功：旧密码失效、新密码可登录，已签发 JWT 仍有效', async () => {
+      const login = await request(server).post('/v1/admin/auth/login').send(PWADMIN).expect(200);
+      const jwt = login.body.data.accessToken as string;
+
+      const res = await request(server)
+        .post('/v1/admin/auth/password')
+        .set('authorization', `Bearer ${jwt}`)
+        .send({ oldPassword: PWADMIN.password, newPassword: NEW_PASSWORD })
+        .expect(200);
+      expect(res.body.data).toEqual({ changed: true });
+
+      // JWT 无状态：改密后旧令牌在有效期内仍可用
+      await request(server)
+        .get('/v1/admin/auth/me')
+        .set('authorization', `Bearer ${jwt}`)
+        .expect(200);
+      // 旧密码已失效，新密码可登录
+      await request(server)
+        .post('/v1/admin/auth/login')
+        .send({ username: PWADMIN.username, password: PWADMIN.password })
+        .expect(401);
+      await request(server)
+        .post('/v1/admin/auth/login')
+        .send({ username: PWADMIN.username, password: NEW_PASSWORD })
+        .expect(200);
+    });
+
+    it('旧密码错误 → 401 AUTH_TOKEN_INVALID，密码不变', async () => {
+      const login = await request(server)
+        .post('/v1/admin/auth/login')
+        .send({ username: PWADMIN2.username, password: PWADMIN2.password })
+        .expect(200);
+      const jwt = login.body.data.accessToken as string;
+      const before = store.findAdminByUsername(PWADMIN2.username)!.passwordHash;
+
+      const res = await request(server)
+        .post('/v1/admin/auth/password')
+        .set('authorization', `Bearer ${jwt}`)
+        .send({ oldPassword: 'wrong-old-pass', newPassword: 'another-pass-99' })
+        .expect(401);
+      expect(res.body.error.code).toBe('AUTH_TOKEN_INVALID');
+      expect(store.findAdminByUsername(PWADMIN2.username)!.passwordHash).toBe(before);
+    });
+
+    it('弱密码（<10 位）→ 400 VALIDATION_ERROR', async () => {
+      const login = await request(server)
+        .post('/v1/admin/auth/login')
+        .send({ username: PWADMIN3.username, password: PWADMIN3.password })
+        .expect(200);
+      const res = await request(server)
+        .post('/v1/admin/auth/password')
+        .set('authorization', `Bearer ${login.body.data.accessToken}`)
+        .send({ oldPassword: PWADMIN3.password, newPassword: 'short' })
+        .expect(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('x-admin-token 兜底身份 → 403 ADMIN_TOKEN_NO_PASSWORD', async () => {
+      const res = await request(server)
+        .post('/v1/admin/auth/password')
+        .set('x-admin-token', ADMIN_TOKEN)
+        .send({ oldPassword: 'whatever', newPassword: 'new-pass-0000' })
+        .expect(403);
+      expect(res.body.error.code).toBe('ADMIN_TOKEN_NO_PASSWORD');
+    });
+
+    it('未登录 → 401', async () => {
+      await request(server)
+        .post('/v1/admin/auth/password')
+        .send({ oldPassword: 'whatever', newPassword: 'new-pass-0000' })
         .expect(401);
     });
   });

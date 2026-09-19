@@ -48,6 +48,7 @@
   <h1>明食 <span class="dot">·</span> EatWise 管理控制台</h1>
   <div class="token-box">
     <span id="whoami" class="muted" style="display:none"></span>
+    <a href="javascript:void(0)" id="pwdLink" style="display:none;font-size:12px;color:#5a6b63" onclick="togglePwdForm()">修改密码</a>
     <button id="logoutBtn" class="btn ghost" style="display:none" onclick="logout()">退出登录</button>
     <span id="loginForm">
       <input id="userInput" type="text" placeholder="用户名" autocomplete="username" style="width:110px">
@@ -60,6 +61,13 @@
       <button class="btn" onclick="saveToken()">保存</button>
     </span>
   </div>
+  <span id="pwdForm" style="display:none; margin-left:auto; align-items:center; gap:8px;">
+    <input id="oldPwdInput" type="password" placeholder="旧密码" autocomplete="current-password"
+      style="width:110px; padding:7px 10px; border:1px solid #cfd8d4; border-radius:6px; font-size:13px;">
+    <input id="newPwdInput" type="password" placeholder="新密码（≥10 位）" autocomplete="new-password"
+      style="width:150px; padding:7px 10px; border:1px solid #cfd8d4; border-radius:6px; font-size:13px;">
+    <button class="btn" onclick="changePassword()">确认修改</button>
+  </span>
 </header>
 <main>
   <div class="tabs">
@@ -158,9 +166,33 @@ function renderAuthBox() {
   document.getElementById('loginForm').style.display = loggedIn ? 'none' : '';
   document.getElementById('whoami').style.display = loggedIn ? '' : 'none';
   document.getElementById('logoutBtn').style.display = loggedIn ? '' : 'none';
+  // 修改密码入口仅账号登录态可见（token 兜底身份无账号，服务端也会拒绝）
+  document.getElementById('pwdLink').style.display = loggedIn && me.id ? '' : 'none';
+  if (!loggedIn) document.getElementById('pwdForm').style.display = 'none';
   if (loggedIn) {
     document.getElementById('whoami').textContent =
       '当前：' + me.username + '（' + (ROLE_LABEL[me.role] || me.role) + '）';
+  }
+}
+
+function togglePwdForm() {
+  var el = document.getElementById('pwdForm');
+  el.style.display = el.style.display === 'none' ? 'inline-flex' : 'none';
+}
+
+async function changePassword() {
+  var oldPassword = document.getElementById('oldPwdInput').value;
+  var newPassword = document.getElementById('newPwdInput').value;
+  if (!oldPassword || !newPassword) { flash('reviewMsg', '请输入旧密码和新密码', false); return; }
+  if (newPassword.length < 10) { flash('reviewMsg', '新密码至少 10 位', false); return; }
+  try {
+    await api('/admin/auth/password', { method: 'POST', body: { oldPassword: oldPassword, newPassword: newPassword } });
+    document.getElementById('oldPwdInput').value = '';
+    document.getElementById('newPwdInput').value = '';
+    document.getElementById('pwdForm').style.display = 'none';
+    flash('reviewMsg', '密码已修改，当前登录态仍有效（下次登录请用新密码）', true);
+  } catch (e) {
+    flash('reviewMsg', '修改失败：' + e.message, false);
   }
 }
 
