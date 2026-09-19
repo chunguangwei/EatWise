@@ -72,10 +72,7 @@ describe('Mobile moderation & user role (e2e)', () => {
     await request(server).get('/v1/moderation/food-candidates').expect(401);
 
     const user = await login(nextPhone());
-    await request(server)
-      .get('/v1/moderation/food-candidates')
-      .set(auth(user.token))
-      .expect(403);
+    await request(server).get('/v1/moderation/food-candidates').set(auth(user.token)).expect(403);
     await request(server)
       .post('/v1/moderation/food-candidates/fc_x/review')
       .set(auth(user.token))
@@ -253,10 +250,7 @@ describe('Mobile moderation & user role (e2e)', () => {
     expect(rejected.body.data.reviewedBy).toBe(admin.userId);
 
     // 级联清理：sync/pull 下行 tombstone
-    const pull = await request(server)
-      .get('/v1/sync/pull')
-      .set(auth(owner.token))
-      .expect(200);
+    const pull = await request(server).get('/v1/sync/pull').set(auth(owner.token)).expect(200);
     const tombstone = (pull.body.data.changes as Array<Record<string, unknown>>).find(
       (c) => (c.tombstone as { id?: string } | undefined)?.id === entryId,
     );
@@ -279,19 +273,13 @@ describe('Mobile moderation & user role (e2e)', () => {
       .set('x-admin-token', ADMIN)
       .send({ role: 'admin' })
       .expect(200);
-    await request(server)
-      .get('/v1/moderation/food-candidates')
-      .set(auth(admin.token))
-      .expect(200);
+    await request(server).get('/v1/moderation/food-candidates').set(auth(admin.token)).expect(200);
 
     await request(server)
       .patch(`/v1/admin/users/${admin.userId}/role`)
       .set('x-admin-token', ADMIN)
       .send({ role: 'user' })
       .expect(200);
-    await request(server)
-      .get('/v1/moderation/food-candidates')
-      .set(auth(admin.token))
-      .expect(403);
+    await request(server).get('/v1/moderation/food-candidates').set(auth(admin.token)).expect(403);
   });
 });

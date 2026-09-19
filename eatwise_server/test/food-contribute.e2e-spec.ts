@@ -550,10 +550,7 @@ describe('Food contribute & admin review (e2e)', () => {
         .set('x-admin-token', ADMIN)
         .send({ action: 'reject', reason: '营养数据存疑' })
         .expect(200);
-      const pull = await request(server)
-        .get('/v1/sync/pull')
-        .set(auth(owner))
-        .expect(200);
+      const pull = await request(server).get('/v1/sync/pull').set(auth(owner)).expect(200);
       const tombstone = (pull.body.data.changes as Array<Record<string, unknown>>).find(
         (c) => (c.tombstone as { id?: string } | undefined)?.id === serverEntryId,
       );

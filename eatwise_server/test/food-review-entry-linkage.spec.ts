@@ -128,9 +128,9 @@ describe('乐观入账与审核联动（候选驳回级联清除记录）', () =
     const kept = activeEntries()[0];
     expect(kept.nutritionSnapshot.kcal).toBe(200); // 快照口径：晋升后不回溯重算
 
-    await expect(
-      food.reviewFoodCandidate(candidate.id, { action: 'approve' }),
-    ).rejects.toThrow(expect.objectContaining({ code: 'CONFLICT' }) as unknown as Error);
+    await expect(food.reviewFoodCandidate(candidate.id, { action: 'approve' })).rejects.toThrow(
+      expect.objectContaining({ code: 'CONFLICT' }) as unknown as Error,
+    );
     await expect(
       food.reviewFoodCandidate(candidate.id, { action: 'reject', reason: '事后驳回' }),
     ).rejects.toThrow(expect.objectContaining({ code: 'CONFLICT' }) as unknown as Error);

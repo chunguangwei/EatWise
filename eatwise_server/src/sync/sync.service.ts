@@ -402,10 +402,13 @@ export class SyncService {
    * 审核驳回再由 reject 路径级联清除）——此前只查共享库，自定义食物的记录
    * 上行必 4xx，客户端 T7 回滚静默删除（「不报错就没了」根因）。
    */
-  private async snapshotOf(userId: string, foodId: string, grams: number): Promise<NutritionSnapshot> {
+  private async snapshotOf(
+    userId: string,
+    foodId: string,
+    grams: number,
+  ): Promise<NutritionSnapshot> {
     const food =
-      (await this.driver.findFoodById(foodId)) ??
-      (await this.driver.findCustomFoodById(foodId));
+      (await this.driver.findFoodById(foodId)) ?? (await this.driver.findCustomFoodById(foodId));
     if (!food || ('userId' in food && food.userId !== userId)) {
       throw err.validation({ foodId: 'unknown food' });
     }

@@ -1,608 +1,1043 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>明食 · EatWise 管理控制台</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f4f6f5; color: #24302b; }
-  header { background: #fff; border-bottom: 1px solid #e3e8e6; padding: 14px 24px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  header h1 { font-size: 17px; font-weight: 600; }
-  header h1 .dot { color: #3DBE8B; }
-  .token-box { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-  .token-box input { width: 260px; padding: 7px 10px; border: 1px solid #cfd8d4; border-radius: 6px; font-size: 13px; }
-  main { max-width: 980px; margin: 24px auto; padding: 0 16px; }
-  .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
-  .tabs button { padding: 8px 18px; border: none; background: #e7ecea; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 14px; color: #5a6b63; }
-  .tabs button.active { background: #fff; color: #24302b; font-weight: 600; box-shadow: 0 -1px 0 #3DBE8B inset; }
-  .panel { background: #fff; border-radius: 0 8px 8px 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
-  .btn { padding: 7px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; background: #3DBE8B; color: #fff; }
-  .btn:hover { background: #34a97b; }
-  .btn.ghost { background: #eef2f0; color: #3c4a44; }
-  .btn.danger { background: #e2603f; }
-  .btn:disabled { opacity: .5; cursor: default; }
-  .filters { display: flex; gap: 6px; margin-bottom: 14px; }
-  .filters button { padding: 5px 12px; border: 1px solid #d5ddd9; background: #fff; border-radius: 999px; cursor: pointer; font-size: 13px; color: #5a6b63; }
-  .filters button.active { border-color: #3DBE8B; color: #1f8f63; background: #eafaf3; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid #eef1ef; vertical-align: top; }
-  th { color: #7a8a83; font-weight: 500; white-space: nowrap; }
-  .muted { color: #8b9a94; font-size: 12px; }
-  .empty { text-align: center; color: #8b9a94; padding: 32px 0; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
-  .badge.pending { background: #fff4e0; color: #a86a12; }
-  .badge.approved { background: #e6f7ef; color: #1f8f63; }
-  .badge.rejected { background: #fdeae5; color: #c24a2a; }
-  .badge.reported { background: #f3e8fd; color: #7a3fc2; }
-  .badge.barcode { background: #e0edfd; color: #2456a8; }
-  .badge.correction { background: #fdeede; color: #a8620a; }
-  .evidence-img { max-width: 150px; max-height: 110px; border: 1px solid #e3e8e6; border-radius: 6px; cursor: zoom-in; display: block; margin-top: 4px; }
-  .msg { margin-top: 12px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; white-space: pre-wrap; word-break: break-all; }
-  .msg.ok { display: block; background: #e6f7ef; color: #176b4b; }
-  .msg.fail { display: block; background: #fdeae5; color: #a03c1f; }
-</style>
-</head>
-<body>
-<header>
-  <h1>明食 <span class="dot">·</span> EatWise 管理控制台</h1>
-  <div class="token-box">
-    <span id="whoami" class="muted" style="display:none"></span>
-    <a href="javascript:void(0)" id="pwdLink" style="display:none;font-size:12px;color:#5a6b63" onclick="togglePwdForm()">修改密码</a>
-    <button id="logoutBtn" class="btn ghost" style="display:none" onclick="logout()">退出登录</button>
-    <span id="loginForm">
-      <input id="userInput" type="text" placeholder="用户名" autocomplete="username" style="width:110px">
-      <input id="passInput" type="password" placeholder="密码" autocomplete="current-password" style="width:110px">
-      <button class="btn" onclick="login()">登录</button>
-    </span>
-    <a href="javascript:void(0)" onclick="toggleTokenForm()" style="font-size:12px;color:#5a6b63">使用访问令牌</a>
-    <span id="tokenForm" style="display:none">
-      <input id="tokenInput" type="password" placeholder="x-admin-token（本机记忆）" autocomplete="off">
-      <button class="btn" onclick="saveToken()">保存</button>
-    </span>
-  </div>
-  <span id="pwdForm" style="display:none; margin-left:auto; align-items:center; gap:8px;">
-    <input id="oldPwdInput" type="password" placeholder="旧密码" autocomplete="current-password"
-      style="width:110px; padding:7px 10px; border:1px solid #cfd8d4; border-radius:6px; font-size:13px;">
-    <input id="newPwdInput" type="password" placeholder="新密码（≥10 位）" autocomplete="new-password"
-      style="width:150px; padding:7px 10px; border:1px solid #cfd8d4; border-radius:6px; font-size:13px;">
-    <button class="btn" onclick="changePassword()">确认修改</button>
-  </span>
-</header>
-<main>
-  <div class="tabs">
-    <button id="tabReview" class="active" onclick="switchTab('review')">食物审核</button>
-    <button id="tabPosts" onclick="switchTab('posts')">打卡审核</button>
-    <button id="tabUsers" onclick="switchTab('users')">用户</button>
-  </div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>明食 · EatWise 管理控制台</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        background: #f4f6f5;
+        color: #24302b;
+      }
+      header {
+        background: #fff;
+        border-bottom: 1px solid #e3e8e6;
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      header h1 {
+        font-size: 17px;
+        font-weight: 600;
+      }
+      header h1 .dot {
+        color: #3dbe8b;
+      }
+      .token-box {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .token-box input {
+        width: 260px;
+        padding: 7px 10px;
+        border: 1px solid #cfd8d4;
+        border-radius: 6px;
+        font-size: 13px;
+      }
+      main {
+        max-width: 980px;
+        margin: 24px auto;
+        padding: 0 16px;
+      }
+      .tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 16px;
+      }
+      .tabs button {
+        padding: 8px 18px;
+        border: none;
+        background: #e7ecea;
+        border-radius: 8px 8px 0 0;
+        cursor: pointer;
+        font-size: 14px;
+        color: #5a6b63;
+      }
+      .tabs button.active {
+        background: #fff;
+        color: #24302b;
+        font-weight: 600;
+        box-shadow: 0 -1px 0 #3dbe8b inset;
+      }
+      .panel {
+        background: #fff;
+        border-radius: 0 8px 8px 8px;
+        padding: 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+      .btn {
+        padding: 7px 14px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        background: #3dbe8b;
+        color: #fff;
+      }
+      .btn:hover {
+        background: #34a97b;
+      }
+      .btn.ghost {
+        background: #eef2f0;
+        color: #3c4a44;
+      }
+      .btn.danger {
+        background: #e2603f;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .filters {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+      .filters button {
+        padding: 5px 12px;
+        border: 1px solid #d5ddd9;
+        background: #fff;
+        border-radius: 999px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #5a6b63;
+      }
+      .filters button.active {
+        border-color: #3dbe8b;
+        color: #1f8f63;
+        background: #eafaf3;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 9px 8px;
+        border-bottom: 1px solid #eef1ef;
+        vertical-align: top;
+      }
+      th {
+        color: #7a8a83;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .muted {
+        color: #8b9a94;
+        font-size: 12px;
+      }
+      .empty {
+        text-align: center;
+        color: #8b9a94;
+        padding: 32px 0;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+      }
+      .badge.pending {
+        background: #fff4e0;
+        color: #a86a12;
+      }
+      .badge.approved {
+        background: #e6f7ef;
+        color: #1f8f63;
+      }
+      .badge.rejected {
+        background: #fdeae5;
+        color: #c24a2a;
+      }
+      .badge.reported {
+        background: #f3e8fd;
+        color: #7a3fc2;
+      }
+      .badge.barcode {
+        background: #e0edfd;
+        color: #2456a8;
+      }
+      .badge.correction {
+        background: #fdeede;
+        color: #a8620a;
+      }
+      .evidence-img {
+        max-width: 150px;
+        max-height: 110px;
+        border: 1px solid #e3e8e6;
+        border-radius: 6px;
+        cursor: zoom-in;
+        display: block;
+        margin-top: 4px;
+      }
+      .msg {
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        display: none;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      .msg.ok {
+        display: block;
+        background: #e6f7ef;
+        color: #176b4b;
+      }
+      .msg.fail {
+        display: block;
+        background: #fdeae5;
+        color: #a03c1f;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>明食 <span class="dot">·</span> EatWise 管理控制台</h1>
+      <div class="token-box">
+        <span id="whoami" class="muted" style="display: none"></span>
+        <a
+          href="javascript:void(0)"
+          id="pwdLink"
+          style="display: none; font-size: 12px; color: #5a6b63"
+          onclick="togglePwdForm()"
+          >修改密码</a
+        >
+        <button id="logoutBtn" class="btn ghost" style="display: none" onclick="logout()">
+          退出登录
+        </button>
+        <span id="loginForm">
+          <input
+            id="userInput"
+            type="text"
+            placeholder="用户名"
+            autocomplete="username"
+            style="width: 110px"
+          />
+          <input
+            id="passInput"
+            type="password"
+            placeholder="密码"
+            autocomplete="current-password"
+            style="width: 110px"
+          />
+          <button class="btn" onclick="login()">登录</button>
+        </span>
+        <a
+          href="javascript:void(0)"
+          onclick="toggleTokenForm()"
+          style="font-size: 12px; color: #5a6b63"
+          >使用访问令牌</a
+        >
+        <span id="tokenForm" style="display: none">
+          <input
+            id="tokenInput"
+            type="password"
+            placeholder="x-admin-token（本机记忆）"
+            autocomplete="off"
+          />
+          <button class="btn" onclick="saveToken()">保存</button>
+        </span>
+      </div>
+      <span id="pwdForm" style="display: none; margin-left: auto; align-items: center; gap: 8px">
+        <input
+          id="oldPwdInput"
+          type="password"
+          placeholder="旧密码"
+          autocomplete="current-password"
+          style="
+            width: 110px;
+            padding: 7px 10px;
+            border: 1px solid #cfd8d4;
+            border-radius: 6px;
+            font-size: 13px;
+          "
+        />
+        <input
+          id="newPwdInput"
+          type="password"
+          placeholder="新密码（≥10 位）"
+          autocomplete="new-password"
+          style="
+            width: 150px;
+            padding: 7px 10px;
+            border: 1px solid #cfd8d4;
+            border-radius: 6px;
+            font-size: 13px;
+          "
+        />
+        <button class="btn" onclick="changePassword()">确认修改</button>
+      </span>
+    </header>
+    <main>
+      <div class="tabs">
+        <button id="tabReview" class="active" onclick="switchTab('review')">食物审核</button>
+        <button id="tabPosts" onclick="switchTab('posts')">打卡审核</button>
+        <button id="tabUsers" onclick="switchTab('users')">用户</button>
+      </div>
 
-  <!-- 食物审核 -->
-  <section id="panelReview" class="panel">
-    <div class="filters" id="statusFilters">
-      <button data-status="pending" class="active" onclick="setStatus('pending')">待审核</button>
-      <button data-status="approved" onclick="setStatus('approved')">已通过</button>
-      <button data-status="rejected" onclick="setStatus('rejected')">已拒绝</button>
-    </div>
-    <div id="reviewMsg" class="msg"></div>
-    <table>
-      <thead><tr>
-        <th>菜名</th><th>营养 /100g</th><th>条码 / 佐证照片</th><th>贡献者</th><th>提交时间</th><th>状态</th><th>操作</th>
-      </tr></thead>
-      <tbody id="candidateRows"></tbody>
-    </table>
-    <div id="candidateEmpty" class="empty" style="display:none">暂无数据</div>
-    <div style="margin-top:12px; text-align:center">
-      <button id="moreBtn" class="btn ghost" style="display:none" onclick="loadCandidates(true)">加载更多</button>
-    </div>
-  </section>
+      <!-- 食物审核 -->
+      <section id="panelReview" class="panel">
+        <div class="filters" id="statusFilters">
+          <button data-status="pending" class="active" onclick="setStatus('pending')">
+            待审核
+          </button>
+          <button data-status="approved" onclick="setStatus('approved')">已通过</button>
+          <button data-status="rejected" onclick="setStatus('rejected')">已拒绝</button>
+        </div>
+        <div id="reviewMsg" class="msg"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>菜名</th>
+              <th>营养 /100g</th>
+              <th>条码 / 佐证照片</th>
+              <th>贡献者</th>
+              <th>提交时间</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="candidateRows"></tbody>
+        </table>
+        <div id="candidateEmpty" class="empty" style="display: none">暂无数据</div>
+        <div style="margin-top: 12px; text-align: center">
+          <button
+            id="moreBtn"
+            class="btn ghost"
+            style="display: none"
+            onclick="loadCandidates(true)"
+          >
+            加载更多
+          </button>
+        </div>
+      </section>
 
-  <!-- 打卡审核 -->
-  <section id="panelPosts" class="panel" style="display:none">
-    <div class="filters" id="postStatusFilters">
-      <button data-status="pending" class="active" onclick="setPostStatus('pending')">待审核</button>
-      <button data-status="approved" onclick="setPostStatus('approved')">已上架</button>
-      <button data-status="rejected" onclick="setPostStatus('rejected')">已拒绝</button>
-      <button data-status="reported" onclick="setPostStatus('reported')">被举报</button>
-    </div>
-    <div id="postsMsg" class="msg"></div>
-    <table>
-      <thead><tr>
-        <th>作者</th><th>时间</th><th>内容摘要</th><th>状态</th><th>举报数</th><th>操作</th>
-      </tr></thead>
-      <tbody id="postRows"></tbody>
-    </table>
-    <div id="postEmpty" class="empty" style="display:none">暂无数据</div>
-    <div style="margin-top:12px; text-align:center">
-      <button id="postMoreBtn" class="btn ghost" style="display:none" onclick="loadPosts(true)">加载更多</button>
-    </div>
-  </section>
+      <!-- 打卡审核 -->
+      <section id="panelPosts" class="panel" style="display: none">
+        <div class="filters" id="postStatusFilters">
+          <button data-status="pending" class="active" onclick="setPostStatus('pending')">
+            待审核
+          </button>
+          <button data-status="approved" onclick="setPostStatus('approved')">已上架</button>
+          <button data-status="rejected" onclick="setPostStatus('rejected')">已拒绝</button>
+          <button data-status="reported" onclick="setPostStatus('reported')">被举报</button>
+        </div>
+        <div id="postsMsg" class="msg"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>作者</th>
+              <th>时间</th>
+              <th>内容摘要</th>
+              <th>状态</th>
+              <th>举报数</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="postRows"></tbody>
+        </table>
+        <div id="postEmpty" class="empty" style="display: none">暂无数据</div>
+        <div style="margin-top: 12px; text-align: center">
+          <button
+            id="postMoreBtn"
+            class="btn ghost"
+            style="display: none"
+            onclick="loadPosts(true)"
+          >
+            加载更多
+          </button>
+        </div>
+      </section>
 
-  <!-- 用户 -->
-  <section id="panelUsers" class="panel" style="display:none">
-    <div class="filters">
-      <input id="userKeyword" type="text" placeholder="用户名 / 手机号 / 昵称"
-        style="padding:6px 12px;border:1px solid #d5ddd9;border-radius:999px;font-size:13px;width:240px"
-        onkeydown="if(event.key==='Enter')searchUsers()">
-      <button class="btn" onclick="searchUsers()">搜索</button>
-      <button class="btn ghost" onclick="resetUserSearch()">重置</button>
-    </div>
-    <div id="usersMsg" class="msg"></div>
-    <table>
-      <thead><tr>
-        <th>用户名</th><th>昵称</th><th>手机号</th><th>目标</th><th>角色</th><th>新手引导</th><th>删除状态</th><th>注册时间</th>
-      </tr></thead>
-      <tbody id="userRows"></tbody>
-    </table>
-    <div id="userEmpty" class="empty" style="display:none">暂无数据</div>
-    <div style="margin-top:12px; display:flex; align-items:center; justify-content:center; gap:10px">
-      <button id="userPrevBtn" class="btn ghost" onclick="loadUsers(userState.page - 1)">上一页</button>
-      <span id="userPageInfo" class="muted"></span>
-      <button id="userNextBtn" class="btn ghost" onclick="loadUsers(userState.page + 1)">下一页</button>
-    </div>
-  </section>
-</main>
+      <!-- 用户 -->
+      <section id="panelUsers" class="panel" style="display: none">
+        <div class="filters">
+          <input
+            id="userKeyword"
+            type="text"
+            placeholder="用户名 / 手机号 / 昵称"
+            style="
+              padding: 6px 12px;
+              border: 1px solid #d5ddd9;
+              border-radius: 999px;
+              font-size: 13px;
+              width: 240px;
+            "
+            onkeydown="if (event.key === 'Enter') searchUsers();"
+          />
+          <button class="btn" onclick="searchUsers()">搜索</button>
+          <button class="btn ghost" onclick="resetUserSearch()">重置</button>
+        </div>
+        <div id="usersMsg" class="msg"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>用户名</th>
+              <th>昵称</th>
+              <th>手机号</th>
+              <th>目标</th>
+              <th>角色</th>
+              <th>新手引导</th>
+              <th>删除状态</th>
+              <th>注册时间</th>
+            </tr>
+          </thead>
+          <tbody id="userRows"></tbody>
+        </table>
+        <div id="userEmpty" class="empty" style="display: none">暂无数据</div>
+        <div
+          style="
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+          "
+        >
+          <button id="userPrevBtn" class="btn ghost" onclick="loadUsers(userState.page - 1)">
+            上一页
+          </button>
+          <span id="userPageInfo" class="muted"></span>
+          <button id="userNextBtn" class="btn ghost" onclick="loadUsers(userState.page + 1)">
+            下一页
+          </button>
+        </div>
+      </section>
+    </main>
 
-<script>
-var TOKEN_KEY = 'eatwise-admin-token';
-var JWT_KEY = 'eatwise-admin-jwt';
-var state = { status: 'pending', cursor: null, hasMore: false };
-var postState = { status: 'pending', cursor: null, hasMore: false };
-var me = null; // 当前管理员 {id, username, role}；null = 未登录（仅 token 兜底或匿名）
+    <script>
+      var TOKEN_KEY = 'eatwise-admin-token';
+      var JWT_KEY = 'eatwise-admin-jwt';
+      var state = { status: 'pending', cursor: null, hasMore: false };
+      var postState = { status: 'pending', cursor: null, hasMore: false };
+      var me = null; // 当前管理员 {id, username, role}；null = 未登录（仅 token 兜底或匿名）
 
-function jwt() { return localStorage.getItem(JWT_KEY) || ''; }
-function token() { return document.getElementById('tokenInput').value.trim(); }
-function saveToken() { localStorage.setItem(TOKEN_KEY, token()); flash('reviewMsg', 'Token 已保存（localStorage）', true); }
-document.getElementById('tokenInput').value = localStorage.getItem(TOKEN_KEY) || '';
+      function jwt() {
+        return localStorage.getItem(JWT_KEY) || '';
+      }
+      function token() {
+        return document.getElementById('tokenInput').value.trim();
+      }
+      function saveToken() {
+        localStorage.setItem(TOKEN_KEY, token());
+        flash('reviewMsg', 'Token 已保存（localStorage）', true);
+      }
+      document.getElementById('tokenInput').value = localStorage.getItem(TOKEN_KEY) || '';
 
-function toggleTokenForm() {
-  var el = document.getElementById('tokenForm');
-  el.style.display = el.style.display === 'none' ? '' : 'none';
-}
+      function toggleTokenForm() {
+        var el = document.getElementById('tokenForm');
+        el.style.display = el.style.display === 'none' ? '' : 'none';
+      }
 
-var ROLE_LABEL = { admin: '管理员', reviewer: '审核员' };
+      var ROLE_LABEL = { admin: '管理员', reviewer: '审核员' };
 
-function renderAuthBox() {
-  var loggedIn = !!me;
-  document.getElementById('loginForm').style.display = loggedIn ? 'none' : '';
-  document.getElementById('whoami').style.display = loggedIn ? '' : 'none';
-  document.getElementById('logoutBtn').style.display = loggedIn ? '' : 'none';
-  // 修改密码入口仅账号登录态可见（token 兜底身份无账号，服务端也会拒绝）
-  document.getElementById('pwdLink').style.display = loggedIn && me.id ? '' : 'none';
-  if (!loggedIn) document.getElementById('pwdForm').style.display = 'none';
-  if (loggedIn) {
-    document.getElementById('whoami').textContent =
-      '当前：' + me.username + '（' + (ROLE_LABEL[me.role] || me.role) + '）';
-  }
-}
+      function renderAuthBox() {
+        var loggedIn = !!me;
+        document.getElementById('loginForm').style.display = loggedIn ? 'none' : '';
+        document.getElementById('whoami').style.display = loggedIn ? '' : 'none';
+        document.getElementById('logoutBtn').style.display = loggedIn ? '' : 'none';
+        // 修改密码入口仅账号登录态可见（token 兜底身份无账号，服务端也会拒绝）
+        document.getElementById('pwdLink').style.display = loggedIn && me.id ? '' : 'none';
+        if (!loggedIn) document.getElementById('pwdForm').style.display = 'none';
+        if (loggedIn) {
+          document.getElementById('whoami').textContent =
+            '当前：' + me.username + '（' + (ROLE_LABEL[me.role] || me.role) + '）';
+        }
+      }
 
-function togglePwdForm() {
-  var el = document.getElementById('pwdForm');
-  el.style.display = el.style.display === 'none' ? 'inline-flex' : 'none';
-}
+      function togglePwdForm() {
+        var el = document.getElementById('pwdForm');
+        el.style.display = el.style.display === 'none' ? 'inline-flex' : 'none';
+      }
 
-async function changePassword() {
-  var oldPassword = document.getElementById('oldPwdInput').value;
-  var newPassword = document.getElementById('newPwdInput').value;
-  if (!oldPassword || !newPassword) { flash('reviewMsg', '请输入旧密码和新密码', false); return; }
-  if (newPassword.length < 10) { flash('reviewMsg', '新密码至少 10 位', false); return; }
-  try {
-    await api('/admin/auth/password', { method: 'POST', body: { oldPassword: oldPassword, newPassword: newPassword } });
-    document.getElementById('oldPwdInput').value = '';
-    document.getElementById('newPwdInput').value = '';
-    document.getElementById('pwdForm').style.display = 'none';
-    flash('reviewMsg', '密码已修改，当前登录态仍有效（下次登录请用新密码）', true);
-  } catch (e) {
-    flash('reviewMsg', '修改失败：' + e.message, false);
-  }
-}
+      async function changePassword() {
+        var oldPassword = document.getElementById('oldPwdInput').value;
+        var newPassword = document.getElementById('newPwdInput').value;
+        if (!oldPassword || !newPassword) {
+          flash('reviewMsg', '请输入旧密码和新密码', false);
+          return;
+        }
+        if (newPassword.length < 10) {
+          flash('reviewMsg', '新密码至少 10 位', false);
+          return;
+        }
+        try {
+          await api('/admin/auth/password', {
+            method: 'POST',
+            body: { oldPassword: oldPassword, newPassword: newPassword },
+          });
+          document.getElementById('oldPwdInput').value = '';
+          document.getElementById('newPwdInput').value = '';
+          document.getElementById('pwdForm').style.display = 'none';
+          flash('reviewMsg', '密码已修改，当前登录态仍有效（下次登录请用新密码）', true);
+        } catch (e) {
+          flash('reviewMsg', '修改失败：' + e.message, false);
+        }
+      }
 
-function clearAuth() {
-  localStorage.removeItem(JWT_KEY);
-  me = null;
-  renderAuthBox();
-}
+      function clearAuth() {
+        localStorage.removeItem(JWT_KEY);
+        me = null;
+        renderAuthBox();
+      }
 
-async function login() {
-  var username = document.getElementById('userInput').value.trim();
-  var password = document.getElementById('passInput').value;
-  if (!username || !password) { flash('reviewMsg', '请输入用户名和密码', false); return; }
-  try {
-    var data = await api('/admin/auth/login', { method: 'POST', body: { username: username, password: password } });
-    localStorage.setItem(JWT_KEY, data.accessToken);
-    me = data.admin;
-    document.getElementById('passInput').value = '';
-    renderAuthBox();
-    flash('reviewMsg', '登录成功：' + me.username + '（' + (ROLE_LABEL[me.role] || me.role) + '）', true);
-    loadCandidates(false);
-  } catch (e) {
-    flash('reviewMsg', '登录失败：' + e.message, false);
-  }
-}
+      async function login() {
+        var username = document.getElementById('userInput').value.trim();
+        var password = document.getElementById('passInput').value;
+        if (!username || !password) {
+          flash('reviewMsg', '请输入用户名和密码', false);
+          return;
+        }
+        try {
+          var data = await api('/admin/auth/login', {
+            method: 'POST',
+            body: { username: username, password: password },
+          });
+          localStorage.setItem(JWT_KEY, data.accessToken);
+          me = data.admin;
+          document.getElementById('passInput').value = '';
+          renderAuthBox();
+          flash(
+            'reviewMsg',
+            '登录成功：' + me.username + '（' + (ROLE_LABEL[me.role] || me.role) + '）',
+            true,
+          );
+          loadCandidates(false);
+        } catch (e) {
+          flash('reviewMsg', '登录失败：' + e.message, false);
+        }
+      }
 
-function logout() {
-  clearAuth();
-  flash('reviewMsg', '已退出登录', true);
-}
+      function logout() {
+        clearAuth();
+        flash('reviewMsg', '已退出登录', true);
+      }
 
-/** 启动时校验已存 JWT 并拉取当前管理员信息；失效则清理回登录态 */
-async function refreshMe() {
-  if (!jwt()) { renderAuthBox(); return; }
-  try {
-    me = await api('/admin/auth/me');
-  } catch (e) {
-    clearAuth();
-  }
-  renderAuthBox();
-}
+      /** 启动时校验已存 JWT 并拉取当前管理员信息；失效则清理回登录态 */
+      async function refreshMe() {
+        if (!jwt()) {
+          renderAuthBox();
+          return;
+        }
+        try {
+          me = await api('/admin/auth/me');
+        } catch (e) {
+          clearAuth();
+        }
+        renderAuthBox();
+      }
 
-function flash(id, text, ok) {
-  var el = document.getElementById(id);
-  el.textContent = text;
-  el.className = 'msg ' + (ok ? 'ok' : 'fail');
-}
+      function flash(id, text, ok) {
+        var el = document.getElementById(id);
+        el.textContent = text;
+        el.className = 'msg ' + (ok ? 'ok' : 'fail');
+      }
 
-async function api(path, opts) {
-  opts = opts || {};
-  var headers = { 'content-type': 'application/json' };
-  if (jwt()) headers['authorization'] = 'Bearer ' + jwt(); // 管理员 JWT 优先
-  var t = token();
-  if (t) headers['x-admin-token'] = t; // 兼容过渡：访问令牌兜底
-  var res = await fetch('/v1' + path, {
-    method: opts.method || 'GET',
-    headers: headers,
-    body: opts.body ? JSON.stringify(opts.body) : undefined
-  });
-  var body = await res.json().catch(function () { return {}; });
-  if (!res.ok) {
-    var e = (body && body.error) || {};
-    var msg = e.message || ('HTTP ' + res.status);
-    if (res.status === 401) {
-      msg = '登录态无效或已过期（401）';
-      if (jwt() && path !== '/admin/auth/login') clearAuth(); // JWT 失效回登录态
-    }
-    if (res.status === 403) msg = '当前角色无权限（403）';
-    if (res.status === 404) msg = '管理端未开启或资源不存在（404）';
-    if (res.status === 429) msg = '尝试过于频繁，请稍后再试（429）';
-    throw new Error(msg);
-  }
-  return body.data;
-}
+      async function api(path, opts) {
+        opts = opts || {};
+        var headers = { 'content-type': 'application/json' };
+        if (jwt()) headers['authorization'] = 'Bearer ' + jwt(); // 管理员 JWT 优先
+        var t = token();
+        if (t) headers['x-admin-token'] = t; // 兼容过渡：访问令牌兜底
+        var res = await fetch('/v1' + path, {
+          method: opts.method || 'GET',
+          headers: headers,
+          body: opts.body ? JSON.stringify(opts.body) : undefined,
+        });
+        var body = await res.json().catch(function () {
+          return {};
+        });
+        if (!res.ok) {
+          var e = (body && body.error) || {};
+          var msg = e.message || 'HTTP ' + res.status;
+          if (res.status === 401) {
+            msg = '登录态无效或已过期（401）';
+            if (jwt() && path !== '/admin/auth/login') clearAuth(); // JWT 失效回登录态
+          }
+          if (res.status === 403) msg = '当前角色无权限（403）';
+          if (res.status === 404) msg = '管理端未开启或资源不存在（404）';
+          if (res.status === 429) msg = '尝试过于频繁，请稍后再试（429）';
+          throw new Error(msg);
+        }
+        return body.data;
+      }
 
-function switchTab(name) {
-  document.getElementById('tabReview').className = name === 'review' ? 'active' : '';
-  document.getElementById('tabPosts').className = name === 'posts' ? 'active' : '';
-  document.getElementById('tabUsers').className = name === 'users' ? 'active' : '';
-  document.getElementById('panelReview').style.display = name === 'review' ? '' : 'none';
-  document.getElementById('panelPosts').style.display = name === 'posts' ? '' : 'none';
-  document.getElementById('panelUsers').style.display = name === 'users' ? '' : 'none';
-  if (name === 'review') loadCandidates(false);
-  if (name === 'posts') loadPosts(false);
-  if (name === 'users') loadUsers(1);
-}
+      function switchTab(name) {
+        document.getElementById('tabReview').className = name === 'review' ? 'active' : '';
+        document.getElementById('tabPosts').className = name === 'posts' ? 'active' : '';
+        document.getElementById('tabUsers').className = name === 'users' ? 'active' : '';
+        document.getElementById('panelReview').style.display = name === 'review' ? '' : 'none';
+        document.getElementById('panelPosts').style.display = name === 'posts' ? '' : 'none';
+        document.getElementById('panelUsers').style.display = name === 'users' ? '' : 'none';
+        if (name === 'review') loadCandidates(false);
+        if (name === 'posts') loadPosts(false);
+        if (name === 'users') loadUsers(1);
+      }
 
-function setStatus(s) {
-  state.status = s;
-  var btns = document.querySelectorAll('#statusFilters button');
-  for (var i = 0; i < btns.length; i++) btns[i].className = btns[i].dataset.status === s ? 'active' : '';
-  loadCandidates(false);
-}
+      function setStatus(s) {
+        state.status = s;
+        var btns = document.querySelectorAll('#statusFilters button');
+        for (var i = 0; i < btns.length; i++)
+          btns[i].className = btns[i].dataset.status === s ? 'active' : '';
+        loadCandidates(false);
+      }
 
-function esc(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-  });
-}
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
 
-function fmtTime(iso) { return iso ? new Date(iso).toLocaleString('zh-CN', { hour12: false }) : '-'; }
-function fmtNutrition(p) {
-  if (!p) return '<span class="muted">-</span>';
-  return '热量 ' + p.kcal + ' kcal<br><span class="muted">蛋白 ' + p.proteinG + 'g · 碳水 ' + p.carbG + 'g · 脂肪 ' + p.fatG + 'g</span>';
-}
+      function fmtTime(iso) {
+        return iso ? new Date(iso).toLocaleString('zh-CN', { hour12: false }) : '-';
+      }
+      function fmtNutrition(p) {
+        if (!p) return '<span class="muted">-</span>';
+        return (
+          '热量 ' +
+          p.kcal +
+          ' kcal<br><span class="muted">蛋白 ' +
+          p.proteinG +
+          'g · 碳水 ' +
+          p.carbG +
+          'g · 脂肪 ' +
+          p.fatG +
+          'g</span>'
+        );
+      }
 
-var STATUS_LABEL = { pending: '待审核', approved: '已通过', rejected: '已拒绝' };
-var KIND_LABEL = { custom: '自定义', barcode: '条码', correction: '纠错' };
+      var STATUS_LABEL = { pending: '待审核', approved: '已通过', rejected: '已拒绝' };
+      var KIND_LABEL = { custom: '自定义', barcode: '条码', correction: '纠错' };
 
-/** 佐证照片地址：本机 local 驱动返回 /v1/uploads 相对路径，需拼当前 origin 才能直接引图 */
-function absUrl(u) {
-  if (!u) return '';
-  return u.charAt(0) === '/' ? location.origin + u : u;
-}
+      /** 佐证照片地址：本机 local 驱动返回 /v1/uploads 相对路径，需拼当前 origin 才能直接引图 */
+      function absUrl(u) {
+        if (!u) return '';
+        return u.charAt(0) === '/' ? location.origin + u : u;
+      }
 
-/** 条码贡献审核单元格：条码 + 包装营养表佐证照片（点击新开页放大「对答案」） */
-function fmtEvidence(c) {
-  if (c.kind !== 'barcode') return '<span class="muted">—</span>';
-  var html = '<span class="badge barcode">条码</span> <strong>' + esc(c.barcode || '') + '</strong>';
-  if (c.evidenceImageUrl) {
-    var u = absUrl(c.evidenceImageUrl);
-    html += '<a href="' + esc(u) + '" target="_blank" rel="noopener">' +
-      '<img class="evidence-img" src="' + esc(u) + '" alt="营养表佐证照片" loading="lazy"></a>';
-  } else {
-    html += '<br><span class="muted">（无佐证照片）</span>';
-  }
-  return html;
-}
+      /** 条码贡献审核单元格：条码 + 包装营养表佐证照片（点击新开页放大「对答案」） */
+      function fmtEvidence(c) {
+        if (c.kind !== 'barcode') return '<span class="muted">—</span>';
+        var html =
+          '<span class="badge barcode">条码</span> <strong>' + esc(c.barcode || '') + '</strong>';
+        if (c.evidenceImageUrl) {
+          var u = absUrl(c.evidenceImageUrl);
+          html +=
+            '<a href="' +
+            esc(u) +
+            '" target="_blank" rel="noopener">' +
+            '<img class="evidence-img" src="' +
+            esc(u) +
+            '" alt="营养表佐证照片" loading="lazy"></a>';
+        } else {
+          html += '<br><span class="muted">（无佐证照片）</span>';
+        }
+        return html;
+      }
 
-async function loadCandidates(append) {
-  if (!append) { state.cursor = null; document.getElementById('candidateRows').innerHTML = ''; }
-  try {
-    var url = '/admin/food-candidates?status=' + state.status + '&limit=20';
-    if (append && state.cursor) url += '&cursor=' + encodeURIComponent(state.cursor);
-    var data = await api(url);
-    state.cursor = data.pageInfo.nextCursor;
-    state.hasMore = data.pageInfo.hasMore;
-    renderRows(data.items, append);
-    document.getElementById('moreBtn').style.display = state.hasMore ? '' : 'none';
-    var rows = document.getElementById('candidateRows').children.length;
-    document.getElementById('candidateEmpty').style.display = rows === 0 ? '' : 'none';
-  } catch (e) {
-    flash('reviewMsg', e.message, false);
-  }
-}
+      async function loadCandidates(append) {
+        if (!append) {
+          state.cursor = null;
+          document.getElementById('candidateRows').innerHTML = '';
+        }
+        try {
+          var url = '/admin/food-candidates?status=' + state.status + '&limit=20';
+          if (append && state.cursor) url += '&cursor=' + encodeURIComponent(state.cursor);
+          var data = await api(url);
+          state.cursor = data.pageInfo.nextCursor;
+          state.hasMore = data.pageInfo.hasMore;
+          renderRows(data.items, append);
+          document.getElementById('moreBtn').style.display = state.hasMore ? '' : 'none';
+          var rows = document.getElementById('candidateRows').children.length;
+          document.getElementById('candidateEmpty').style.display = rows === 0 ? '' : 'none';
+        } catch (e) {
+          flash('reviewMsg', e.message, false);
+        }
+      }
 
-/** 名称单元格：纠错候选（kind=correction）原值 vs 建议名对照 */
-function fmtNameCell(c) {
-  var html = '<strong>' + esc(c.nameZh || '(未知名称)') + '</strong>' +
-    (c.nameEn ? '<br><span class="muted">' + esc(c.nameEn) + '</span>' : '');
-  if (c.kind === 'correction' && c.suggestion) {
-    if (c.suggestion.nameZh || c.suggestion.nameEn) {
-      html += '<br><span class="badge correction">建议名</span> <strong>' +
-        esc(c.suggestion.nameZh || c.nameZh || '') + '</strong>' +
-        (c.suggestion.nameEn ? '<br><span class="muted">' + esc(c.suggestion.nameEn) + '</span>' : '');
-    }
-    html += '<br><span class="muted">数据纠错</span>';
-  } else {
-    html += '<br><span class="muted">' + (KIND_LABEL[c.kind] || '自定义') + '贡献</span>';
-  }
-  return html;
-}
+      /** 名称单元格：纠错候选（kind=correction）原值 vs 建议名对照 */
+      function fmtNameCell(c) {
+        var html =
+          '<strong>' +
+          esc(c.nameZh || '(未知名称)') +
+          '</strong>' +
+          (c.nameEn ? '<br><span class="muted">' + esc(c.nameEn) + '</span>' : '');
+        if (c.kind === 'correction' && c.suggestion) {
+          if (c.suggestion.nameZh || c.suggestion.nameEn) {
+            html +=
+              '<br><span class="badge correction">建议名</span> <strong>' +
+              esc(c.suggestion.nameZh || c.nameZh || '') +
+              '</strong>' +
+              (c.suggestion.nameEn
+                ? '<br><span class="muted">' + esc(c.suggestion.nameEn) + '</span>'
+                : '');
+          }
+          html += '<br><span class="muted">数据纠错</span>';
+        } else {
+          html += '<br><span class="muted">' + (KIND_LABEL[c.kind] || '自定义') + '贡献</span>';
+        }
+        return html;
+      }
 
-/** 营养单元格：纠错候选原值 vs 建议值对照（其余类型仅当前值） */
-function fmtNutritionCell(c) {
-  var html = fmtNutrition(c.per100g);
-  if (c.kind === 'correction' && c.suggestion && c.suggestion.per100g) {
-    html += '<br><span class="badge correction">建议值</span><br>' + fmtNutrition(c.suggestion.per100g);
-  }
-  return html;
-}
+      /** 营养单元格：纠错候选原值 vs 建议值对照（其余类型仅当前值） */
+      function fmtNutritionCell(c) {
+        var html = fmtNutrition(c.per100g);
+        if (c.kind === 'correction' && c.suggestion && c.suggestion.per100g) {
+          html +=
+            '<br><span class="badge correction">建议值</span><br>' +
+            fmtNutrition(c.suggestion.per100g);
+        }
+        return html;
+      }
 
-function renderRows(items, append) {
-  var tbody = document.getElementById('candidateRows');
-  if (!append) tbody.innerHTML = '';
-  items.forEach(function (c) {
-    var tr = document.createElement('tr');
-    var actions = c.status === 'pending'
-      ? '<button class="btn" onclick="review(\'' + c.id + '\',\'approve\')">通过</button> ' +
-        '<button class="btn danger" onclick="review(\'' + c.id + '\',\'reject\')">拒绝</button>'
-      : '<span class="muted">' + (c.reason ? '原因：' + esc(c.reason) : '—') + '</span>';
-    tr.innerHTML =
-      '<td>' + fmtNameCell(c) + '</td>' +
-      '<td>' + fmtNutritionCell(c) + '</td>' +
-      '<td>' + fmtEvidence(c) + '</td>' +
-      '<td><span class="muted">' + esc(c.userId) + '</span></td>' +
-      '<td><span class="muted">' + fmtTime(c.createdAt) + '</span></td>' +
-      '<td><span class="badge ' + c.status + '">' + STATUS_LABEL[c.status] + '</span></td>' +
-      '<td style="white-space:nowrap">' + actions + '</td>';
-    // 角色下拉（一般用户/管理员；非 admin 身份只读禁用）
-    var roleCell = tr.querySelector('.roleCell');
-    var select = document.createElement('select');
-    select.setAttribute('data-prev', u.role || 'user');
-    ['user', 'admin'].forEach(function (r) {
-      var opt = document.createElement('option');
-      opt.value = r;
-      opt.textContent = USER_ROLE_LABEL[r];
-      select.appendChild(opt);
-    });
-    select.value = u.role || 'user';
-    select.disabled = !canSetUserRole();
-    select.onchange = function () { setUserRole(u.id, select.value, select); };
-    roleCell.appendChild(select);
-    tbody.appendChild(tr);
-  });
-}
+      function renderRows(items, append) {
+        var tbody = document.getElementById('candidateRows');
+        if (!append) tbody.innerHTML = '';
+        items.forEach(function (c) {
+          var tr = document.createElement('tr');
+          var actions =
+            c.status === 'pending'
+              ? '<button class="btn" onclick="review(\'' +
+                c.id +
+                "','approve')\">通过</button> " +
+                '<button class="btn danger" onclick="review(\'' +
+                c.id +
+                "','reject')\">拒绝</button>"
+              : '<span class="muted">' + (c.reason ? '原因：' + esc(c.reason) : '—') + '</span>';
+          tr.innerHTML =
+            '<td>' +
+            fmtNameCell(c) +
+            '</td>' +
+            '<td>' +
+            fmtNutritionCell(c) +
+            '</td>' +
+            '<td>' +
+            fmtEvidence(c) +
+            '</td>' +
+            '<td><span class="muted">' +
+            esc(c.userId) +
+            '</span></td>' +
+            '<td><span class="muted">' +
+            fmtTime(c.createdAt) +
+            '</span></td>' +
+            '<td><span class="badge ' +
+            c.status +
+            '">' +
+            STATUS_LABEL[c.status] +
+            '</span></td>' +
+            '<td style="white-space:nowrap">' +
+            actions +
+            '</td>';
+          // 角色下拉（一般用户/管理员；非 admin 身份只读禁用）
+          var roleCell = tr.querySelector('.roleCell');
+          var select = document.createElement('select');
+          select.setAttribute('data-prev', u.role || 'user');
+          ['user', 'admin'].forEach(function (r) {
+            var opt = document.createElement('option');
+            opt.value = r;
+            opt.textContent = USER_ROLE_LABEL[r];
+            select.appendChild(opt);
+          });
+          select.value = u.role || 'user';
+          select.disabled = !canSetUserRole();
+          select.onchange = function () {
+            setUserRole(u.id, select.value, select);
+          };
+          roleCell.appendChild(select);
+          tbody.appendChild(tr);
+        });
+      }
 
-async function review(id, action) {
-  var body = { action: action };
-  if (action === 'reject') {
-    var reason = window.prompt('请输入拒绝原因（会展示给贡献者）：');
-    if (reason === null) return;
-    body.reason = reason;
-  }
-  try {
-    await api('/admin/food-candidates/' + encodeURIComponent(id) + '/review', { method: 'POST', body: body });
-    flash('reviewMsg', action === 'approve' ? '已通过，晋升共享食物库' : '已拒绝', true);
-    loadCandidates(false);
-  } catch (e) {
-    flash('reviewMsg', e.message, false);
-    loadCandidates(false);
-  }
-}
+      async function review(id, action) {
+        var body = { action: action };
+        if (action === 'reject') {
+          var reason = window.prompt('请输入拒绝原因（会展示给贡献者）：');
+          if (reason === null) return;
+          body.reason = reason;
+        }
+        try {
+          await api('/admin/food-candidates/' + encodeURIComponent(id) + '/review', {
+            method: 'POST',
+            body: body,
+          });
+          flash('reviewMsg', action === 'approve' ? '已通过，晋升共享食物库' : '已拒绝', true);
+          loadCandidates(false);
+        } catch (e) {
+          flash('reviewMsg', e.message, false);
+          loadCandidates(false);
+        }
+      }
 
-/* ===== 打卡审核 ===== */
+      /* ===== 打卡审核 ===== */
 
-var POST_STATUS_LABEL = { pending: '待审核', approved: '已上架', rejected: '已拒绝' };
+      var POST_STATUS_LABEL = { pending: '待审核', approved: '已上架', rejected: '已拒绝' };
 
-function setPostStatus(s) {
-  postState.status = s;
-  var btns = document.querySelectorAll('#postStatusFilters button');
-  for (var i = 0; i < btns.length; i++) btns[i].className = btns[i].dataset.status === s ? 'active' : '';
-  loadPosts(false);
-}
+      function setPostStatus(s) {
+        postState.status = s;
+        var btns = document.querySelectorAll('#postStatusFilters button');
+        for (var i = 0; i < btns.length; i++)
+          btns[i].className = btns[i].dataset.status === s ? 'active' : '';
+        loadPosts(false);
+      }
 
-async function loadPosts(append) {
-  if (!append) { postState.cursor = null; document.getElementById('postRows').innerHTML = ''; }
-  try {
-    var url = '/admin/posts?status=' + postState.status + '&limit=20';
-    if (append && postState.cursor) url += '&cursor=' + encodeURIComponent(postState.cursor);
-    var data = await api(url);
-    postState.cursor = data.pageInfo.nextCursor;
-    postState.hasMore = data.pageInfo.hasMore;
-    renderPostRows(data.items, append);
-    document.getElementById('postMoreBtn').style.display = postState.hasMore ? '' : 'none';
-    var rows = document.getElementById('postRows').children.length;
-    document.getElementById('postEmpty').style.display = rows === 0 ? '' : 'none';
-  } catch (e) {
-    flash('postsMsg', e.message, false);
-  }
-}
+      async function loadPosts(append) {
+        if (!append) {
+          postState.cursor = null;
+          document.getElementById('postRows').innerHTML = '';
+        }
+        try {
+          var url = '/admin/posts?status=' + postState.status + '&limit=20';
+          if (append && postState.cursor) url += '&cursor=' + encodeURIComponent(postState.cursor);
+          var data = await api(url);
+          postState.cursor = data.pageInfo.nextCursor;
+          postState.hasMore = data.pageInfo.hasMore;
+          renderPostRows(data.items, append);
+          document.getElementById('postMoreBtn').style.display = postState.hasMore ? '' : 'none';
+          var rows = document.getElementById('postRows').children.length;
+          document.getElementById('postEmpty').style.display = rows === 0 ? '' : 'none';
+        } catch (e) {
+          flash('postsMsg', e.message, false);
+        }
+      }
 
-function renderPostRows(items, append) {
-  var tbody = document.getElementById('postRows');
-  if (!append) tbody.innerHTML = '';
-  items.forEach(function (p) {
-    var tr = document.createElement('tr');
-    // 被举报待处理（rejected + reportCount>0）单独标记，便于区分机审拒绝
-    var badge = (p.auditStatus === 'rejected' && p.reportCount > 0)
-      ? '<span class="badge reported">被举报</span>'
-      : '<span class="badge ' + p.auditStatus + '">' + POST_STATUS_LABEL[p.auditStatus] + '</span>';
-    var actions;
-    if (p.auditStatus === 'pending') {
-      actions = '<button class="btn" onclick="reviewPost(\'' + p.id + '\',\'approve\')">上架</button> ' +
-        '<button class="btn danger" onclick="reviewPost(\'' + p.id + '\',\'reject\')">下架</button>';
-    } else if (p.auditStatus === 'approved') {
-      actions = '<button class="btn danger" onclick="reviewPost(\'' + p.id + '\',\'reject\')">下架</button>';
-    } else {
-      actions = '<button class="btn" onclick="reviewPost(\'' + p.id + '\',\'approve\')">上架</button>';
-    }
-    if (p.auditReason && p.auditReason.zh) {
-      actions += '<br><span class="muted">原因：' + esc(p.auditReason.zh) + '</span>';
-    }
-    var text = p.text.length > 60 ? p.text.slice(0, 60) + '…' : p.text;
-    tr.innerHTML =
-      '<td><span class="muted">' + esc(p.author.nickname || p.author.id) + '</span></td>' +
-      '<td><span class="muted">' + fmtTime(p.createdAt) + '</span></td>' +
-      '<td>' + esc(text) +
-        (p.imageUrls && p.imageUrls.length ? '<br><span class="muted">图片 ' + p.imageUrls.length + ' 张</span>' : '') + '</td>' +
-      '<td>' + badge + '</td>' +
-      '<td>' + (p.reportCount > 0 ? '<strong>' + p.reportCount + '</strong><br><span class="muted">' + fmtTime(p.reportedAt) + '</span>' : '<span class="muted">0</span>') + '</td>' +
-      '<td style="white-space:nowrap">' + actions + '</td>';
-    // 角色下拉（一般用户/管理员；非 admin 身份只读禁用）
-    var roleCell = tr.querySelector('.roleCell');
-    var select = document.createElement('select');
-    select.setAttribute('data-prev', u.role || 'user');
-    ['user', 'admin'].forEach(function (r) {
-      var opt = document.createElement('option');
-      opt.value = r;
-      opt.textContent = USER_ROLE_LABEL[r];
-      select.appendChild(opt);
-    });
-    select.value = u.role || 'user';
-    select.disabled = !canSetUserRole();
-    select.onchange = function () { setUserRole(u.id, select.value, select); };
-    roleCell.appendChild(select);
-    tbody.appendChild(tr);
-  });
-}
+      function renderPostRows(items, append) {
+        var tbody = document.getElementById('postRows');
+        if (!append) tbody.innerHTML = '';
+        items.forEach(function (p) {
+          var tr = document.createElement('tr');
+          // 被举报待处理（rejected + reportCount>0）单独标记，便于区分机审拒绝
+          var badge =
+            p.auditStatus === 'rejected' && p.reportCount > 0
+              ? '<span class="badge reported">被举报</span>'
+              : '<span class="badge ' +
+                p.auditStatus +
+                '">' +
+                POST_STATUS_LABEL[p.auditStatus] +
+                '</span>';
+          var actions;
+          if (p.auditStatus === 'pending') {
+            actions =
+              '<button class="btn" onclick="reviewPost(\'' +
+              p.id +
+              "','approve')\">上架</button> " +
+              '<button class="btn danger" onclick="reviewPost(\'' +
+              p.id +
+              "','reject')\">下架</button>";
+          } else if (p.auditStatus === 'approved') {
+            actions =
+              '<button class="btn danger" onclick="reviewPost(\'' +
+              p.id +
+              "','reject')\">下架</button>";
+          } else {
+            actions =
+              '<button class="btn" onclick="reviewPost(\'' + p.id + "','approve')\">上架</button>";
+          }
+          if (p.auditReason && p.auditReason.zh) {
+            actions += '<br><span class="muted">原因：' + esc(p.auditReason.zh) + '</span>';
+          }
+          var text = p.text.length > 60 ? p.text.slice(0, 60) + '…' : p.text;
+          tr.innerHTML =
+            '<td><span class="muted">' +
+            esc(p.author.nickname || p.author.id) +
+            '</span></td>' +
+            '<td><span class="muted">' +
+            fmtTime(p.createdAt) +
+            '</span></td>' +
+            '<td>' +
+            esc(text) +
+            (p.imageUrls && p.imageUrls.length
+              ? '<br><span class="muted">图片 ' + p.imageUrls.length + ' 张</span>'
+              : '') +
+            '</td>' +
+            '<td>' +
+            badge +
+            '</td>' +
+            '<td>' +
+            (p.reportCount > 0
+              ? '<strong>' +
+                p.reportCount +
+                '</strong><br><span class="muted">' +
+                fmtTime(p.reportedAt) +
+                '</span>'
+              : '<span class="muted">0</span>') +
+            '</td>' +
+            '<td style="white-space:nowrap">' +
+            actions +
+            '</td>';
+          // 角色下拉（一般用户/管理员；非 admin 身份只读禁用）
+          var roleCell = tr.querySelector('.roleCell');
+          var select = document.createElement('select');
+          select.setAttribute('data-prev', u.role || 'user');
+          ['user', 'admin'].forEach(function (r) {
+            var opt = document.createElement('option');
+            opt.value = r;
+            opt.textContent = USER_ROLE_LABEL[r];
+            select.appendChild(opt);
+          });
+          select.value = u.role || 'user';
+          select.disabled = !canSetUserRole();
+          select.onchange = function () {
+            setUserRole(u.id, select.value, select);
+          };
+          roleCell.appendChild(select);
+          tbody.appendChild(tr);
+        });
+      }
 
-async function reviewPost(id, action) {
-  var body = { action: action };
-  if (action === 'reject') {
-    var reason = window.prompt('请输入下架原因（会展示给作者）：');
-    if (reason === null) return;
-    body.reason = reason;
-  }
-  try {
-    await api('/admin/posts/' + encodeURIComponent(id) + '/review', { method: 'POST', body: body });
-    flash('postsMsg', action === 'approve' ? '已上架' : '已下架', true);
-    loadPosts(false);
-  } catch (e) {
-    flash('postsMsg', e.message, false);
-    loadPosts(false);
-  }
-}
+      async function reviewPost(id, action) {
+        var body = { action: action };
+        if (action === 'reject') {
+          var reason = window.prompt('请输入下架原因（会展示给作者）：');
+          if (reason === null) return;
+          body.reason = reason;
+        }
+        try {
+          await api('/admin/posts/' + encodeURIComponent(id) + '/review', {
+            method: 'POST',
+            body: body,
+          });
+          flash('postsMsg', action === 'approve' ? '已上架' : '已下架', true);
+          loadPosts(false);
+        } catch (e) {
+          flash('postsMsg', e.message, false);
+          loadPosts(false);
+        }
+      }
 
-/* ===== 用户 ===== */
+      /* ===== 用户 ===== */
 
-var userState = { keyword: '', page: 1, pageSize: 20, total: 0 };
-var GOAL_LABEL = { fat_loss: '减脂', health_metric: '指标管理', routine: '规律饮食', trial: '体验' };
-var USER_ROLE_LABEL = { user: '一般用户', admin: '管理员' };
+      var userState = { keyword: '', page: 1, pageSize: 20, total: 0 };
+      var GOAL_LABEL = {
+        fat_loss: '减脂',
+        health_metric: '指标管理',
+        routine: '规律饮食',
+        trial: '体验',
+      };
+      var USER_ROLE_LABEL = { user: '一般用户', admin: '管理员' };
 
-/** 当前控制台身份可否设置角色（管理员 JWT 且 role=admin，或 x-admin-token 兜底视为 admin） */
-function canSetUserRole() {
-  return (me && me.role === 'admin') || (!me && !!token());
-}
+      /** 当前控制台身份可否设置角色（管理员 JWT 且 role=admin，或 x-admin-token 兜底视为 admin） */
+      function canSetUserRole() {
+        return (me && me.role === 'admin') || (!me && !!token());
+      }
 
-async function setUserRole(userId, role, selectEl) {
-  var prev = selectEl.getAttribute('data-prev');
-  selectEl.disabled = true;
-  try {
-    await api('/admin/users/' + encodeURIComponent(userId) + '/role', { method: 'PATCH', body: { role: role } });
-    selectEl.setAttribute('data-prev', role);
-    flash('usersMsg', '已设置为「' + (USER_ROLE_LABEL[role] || role) + '」', true);
-  } catch (e) {
-    selectEl.value = prev; // 失败回退原值
-    flash('usersMsg', e.message, false);
-  } finally {
-    selectEl.disabled = !canSetUserRole();
-  }
-}
-var ONBOARDING_LABEL = { none: '未完成', skipped: '已跳过', completed: '已完成' };
+      async function setUserRole(userId, role, selectEl) {
+        var prev = selectEl.getAttribute('data-prev');
+        selectEl.disabled = true;
+        try {
+          await api('/admin/users/' + encodeURIComponent(userId) + '/role', {
+            method: 'PATCH',
+            body: { role: role },
+          });
+          selectEl.setAttribute('data-prev', role);
+          flash('usersMsg', '已设置为「' + (USER_ROLE_LABEL[role] || role) + '」', true);
+        } catch (e) {
+          selectEl.value = prev; // 失败回退原值
+          flash('usersMsg', e.message, false);
+        } finally {
+          selectEl.disabled = !canSetUserRole();
+        }
+      }
+      var ONBOARDING_LABEL = { none: '未完成', skipped: '已跳过', completed: '已完成' };
 
-function searchUsers() {
-  userState.keyword = document.getElementById('userKeyword').value.trim();
-  loadUsers(1);
-}
+      function searchUsers() {
+        userState.keyword = document.getElementById('userKeyword').value.trim();
+        loadUsers(1);
+      }
 
-function resetUserSearch() {
-  document.getElementById('userKeyword').value = '';
-  userState.keyword = '';
-  loadUsers(1);
-}
+      function resetUserSearch() {
+        document.getElementById('userKeyword').value = '';
+        userState.keyword = '';
+        loadUsers(1);
+      }
 
-async function loadUsers(page) {
-  try {
-    var url = '/admin/users?page=' + page + '&pageSize=' + userState.pageSize;
-    if (userState.keyword) url += '&keyword=' + encodeURIComponent(userState.keyword);
-    var data = await api(url);
-    userState.page = data.page;
-    userState.total = data.total;
-    renderUserRows(data.items);
-    var maxPage = Math.max(1, Math.ceil(data.total / data.pageSize));
-    document.getElementById('userPageInfo').textContent =
-      '第 ' + data.page + ' / ' + maxPage + ' 页 · 共 ' + data.total + ' 人';
-    document.getElementById('userPrevBtn').disabled = data.page <= 1;
-    document.getElementById('userNextBtn').disabled = data.page >= maxPage;
-    document.getElementById('userEmpty').style.display = data.items.length === 0 ? '' : 'none';
-  } catch (e) {
-    flash('usersMsg', e.message, false);
-  }
-}
+      async function loadUsers(page) {
+        try {
+          var url = '/admin/users?page=' + page + '&pageSize=' + userState.pageSize;
+          if (userState.keyword) url += '&keyword=' + encodeURIComponent(userState.keyword);
+          var data = await api(url);
+          userState.page = data.page;
+          userState.total = data.total;
+          renderUserRows(data.items);
+          var maxPage = Math.max(1, Math.ceil(data.total / data.pageSize));
+          document.getElementById('userPageInfo').textContent =
+            '第 ' + data.page + ' / ' + maxPage + ' 页 · 共 ' + data.total + ' 人';
+          document.getElementById('userPrevBtn').disabled = data.page <= 1;
+          document.getElementById('userNextBtn').disabled = data.page >= maxPage;
+          document.getElementById('userEmpty').style.display =
+            data.items.length === 0 ? '' : 'none';
+        } catch (e) {
+          flash('usersMsg', e.message, false);
+        }
+      }
 
-function renderUserRows(items) {
-  var tbody = document.getElementById('userRows');
-  tbody.innerHTML = '';
-  items.forEach(function (u) {
-    var tr = document.createElement('tr');
-    var deletion = u.deletionStatus === 'pending'
-      ? '<span class="badge pending">冷静期</span>'
-      : '<span class="muted">—</span>';
-    tr.innerHTML =
-      '<td>' + (u.username ? esc(u.username) : '<span class="muted">—</span>') + '</td>' +
-      '<td>' + (u.nickname ? esc(u.nickname) : '<span class="muted">—</span>') + '</td>' +
-      '<td>' + (u.phone ? esc(u.phone) : '<span class="muted">—</span>') + '</td>' +
-      '<td>' + (GOAL_LABEL[u.goal] || (u.goal ? esc(u.goal) : '<span class="muted">—</span>')) + '</td>' +
-      '<td class="roleCell"></td>' +
-      '<td>' + (ONBOARDING_LABEL[u.onboardingStatus] || esc(u.onboardingStatus)) + '</td>' +
-      '<td>' + deletion + '</td>' +
-      '<td><span class="muted">' + fmtTime(u.createdAt) + '</span></td>';
-    // 角色下拉（一般用户/管理员；非 admin 身份只读禁用）
-    var roleCell = tr.querySelector('.roleCell');
-    var select = document.createElement('select');
-    select.setAttribute('data-prev', u.role || 'user');
-    ['user', 'admin'].forEach(function (r) {
-      var opt = document.createElement('option');
-      opt.value = r;
-      opt.textContent = USER_ROLE_LABEL[r];
-      select.appendChild(opt);
-    });
-    select.value = u.role || 'user';
-    select.disabled = !canSetUserRole();
-    select.onchange = function () { setUserRole(u.id, select.value, select); };
-    roleCell.appendChild(select);
-    tbody.appendChild(tr);
-  });
-}
+      function renderUserRows(items) {
+        var tbody = document.getElementById('userRows');
+        tbody.innerHTML = '';
+        items.forEach(function (u) {
+          var tr = document.createElement('tr');
+          var deletion =
+            u.deletionStatus === 'pending'
+              ? '<span class="badge pending">冷静期</span>'
+              : '<span class="muted">—</span>';
+          tr.innerHTML =
+            '<td>' +
+            (u.username ? esc(u.username) : '<span class="muted">—</span>') +
+            '</td>' +
+            '<td>' +
+            (u.nickname ? esc(u.nickname) : '<span class="muted">—</span>') +
+            '</td>' +
+            '<td>' +
+            (u.phone ? esc(u.phone) : '<span class="muted">—</span>') +
+            '</td>' +
+            '<td>' +
+            (GOAL_LABEL[u.goal] || (u.goal ? esc(u.goal) : '<span class="muted">—</span>')) +
+            '</td>' +
+            '<td class="roleCell"></td>' +
+            '<td>' +
+            (ONBOARDING_LABEL[u.onboardingStatus] || esc(u.onboardingStatus)) +
+            '</td>' +
+            '<td>' +
+            deletion +
+            '</td>' +
+            '<td><span class="muted">' +
+            fmtTime(u.createdAt) +
+            '</span></td>';
+          // 角色下拉（一般用户/管理员；非 admin 身份只读禁用）
+          var roleCell = tr.querySelector('.roleCell');
+          var select = document.createElement('select');
+          select.setAttribute('data-prev', u.role || 'user');
+          ['user', 'admin'].forEach(function (r) {
+            var opt = document.createElement('option');
+            opt.value = r;
+            opt.textContent = USER_ROLE_LABEL[r];
+            select.appendChild(opt);
+          });
+          select.value = u.role || 'user';
+          select.disabled = !canSetUserRole();
+          select.onchange = function () {
+            setUserRole(u.id, select.value, select);
+          };
+          roleCell.appendChild(select);
+          tbody.appendChild(tr);
+        });
+      }
 
-refreshMe().then(function () { loadCandidates(false); });
-</script>
-</body>
+      refreshMe().then(function () {
+        loadCandidates(false);
+      });
+    </script>
+  </body>
 </html>

@@ -78,7 +78,11 @@ describe('用户角色与审核留痕', () => {
     expect(candidate.reviewedBy).toBeNull();
 
     const reviewer = store.createUser({ phone: '+8613800138001', role: 'admin' });
-    const approved = (await food.reviewFoodCandidate(candidate.id, { action: 'approve' }, reviewer.id)) as {
+    const approved = (await food.reviewFoodCandidate(
+      candidate.id,
+      { action: 'approve' },
+      reviewer.id,
+    )) as {
       status: string;
       reviewedBy: string | null;
     };
