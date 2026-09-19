@@ -1,7 +1,8 @@
 # EatWise 发版流水线
 # 触发：打 v* 标签（如 git tag v1.0.0 && git push origin v1.0.0）。
-# 产物：Android APK（debug 签名，内部测试/灰度用）附到 GitHub Release。
-# 注意：正式发布需配置 release keystore（见文末 TODO）；iOS 分发需 Apple
+# 产物：Android APK（release 构建，签名=CI secret KEYSTORE_BASE64 里的
+# debug.keystore，与本地开发机同源，保证覆盖安装一致）附到 GitHub Release。
+# 注意：正式发布上架需换正式 keystore（见 TODO）；iOS 分发需 Apple
 # Developer 证书与 App Store Connect，本流水线暂不产出 iOS 包。
 name: release
 
@@ -41,14 +42,25 @@ jobs:
           dart run slang
           dart run build_runner build --delete-conflicting-outputs
 
-      # TODO(发布): 配置 release keystore（CI secrets: KEYSTORE_BASE64 /
-      # KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD）后改为 --release 构建。
+      # 签名一致性：release 构建默认回落 debug 签名（Flutter 模板
+      # signingConfigs.debug），把本仓库 secret 里的 debug.keystore（与本地
+      # 开发机同一把）写到 runner 默认路径，CI 产物才能覆盖安装本地装的版本。
+      # TODO(发布): 上架前换正式 keystore（CI secrets: KEYSTORE_BASE64 换正式
+      # 库），届时老用户需卸载重装或走应用商店签名。
+      - name: 写入签名 keystore（与本地开发机同源）
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p "$HOME/.android"
+          echo "$KEYSTORE_BASE64" | base64 -d > "$HOME/.android/debug.keystore"
+          chmod 600 "$HOME/.android/debug.keystore"
+
       # API_BASE_URL 取仓库 Actions 变量（Settings → Secrets and variables →
       # Actions → Variables），未配置时回退为 localhost（仅模拟器可用）。
-      - name: 构建 APK（debug 签名，内部测试用）
+      - name: 构建 APK（release；签名=上面的 keystore）
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL || 'http://localhost:3000/v1' }}
-        run: flutter build apk --debug --dart-define=API_BASE_URL="$API_BASE_URL"
+        run: flutter build apk --release --dart-define=API_BASE_URL="$API_BASE_URL"
 
       - name: 读取版本号
         id: ver
@@ -61,7 +73,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${GITHUB_REF_NAME}"
-          cp build/app/outputs/flutter-apk/app-debug.apk "eatwise-${TAG}.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "eatwise-${TAG}.apk"
           gh release create "$TAG" "eatwise-${TAG}.apk" \
             --title "EatWise $TAG" \
             --generate-notes \
