@@ -55,6 +55,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$social$zh_CN social = Translations$social$zh_CN.internal(_root);
 	late final Translations$auth$zh_CN auth = Translations$auth$zh_CN.internal(_root);
 	late final Translations$update$zh_CN update = Translations$update$zh_CN.internal(_root);
+	late final Translations$moderation$zh_CN moderation = Translations$moderation$zh_CN.internal(_root);
 }
 
 // Path: notify
@@ -327,6 +328,75 @@ class Translations$update$zh_CN {
 
 	/// zh-CN: '重试'
 	String get retry => '重试';
+}
+
+// Path: moderation
+class Translations$moderation$zh_CN {
+	Translations$moderation$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '审批中心'
+	String get title => '审批中心';
+
+	/// zh-CN: '审核用户贡献的食品'
+	String get subtitle => '审核用户贡献的食品';
+
+	/// zh-CN: '暂无待审批的食品候选'
+	String get empty => '暂无待审批的食品候选';
+
+	/// zh-CN: '通过'
+	String get approve => '通过';
+
+	/// zh-CN: '驳回'
+	String get reject => '驳回';
+
+	/// zh-CN: '通过后该食品将进入共享食物库，所有用户都能搜到。确认通过？'
+	String get approveConfirm => '通过后该食品将进入共享食物库，所有用户都能搜到。确认通过？';
+
+	/// zh-CN: '驳回该候选'
+	String get rejectConfirmTitle => '驳回该候选';
+
+	/// zh-CN: '驳回后提交者的相关记录将被移除。'
+	String get rejectConfirmBody => '驳回后提交者的相关记录将被移除。';
+
+	/// zh-CN: '驳回原因（可选）'
+	String get reasonHint => '驳回原因（可选）';
+
+	/// zh-CN: '已通过'
+	String get approved => '已通过';
+
+	/// zh-CN: '已驳回'
+	String get rejected => '已驳回';
+
+	/// zh-CN: '自定义食品'
+	String get kindCustom => '自定义食品';
+
+	/// zh-CN: '条码商品'
+	String get kindBarcode => '条码商品';
+
+	/// zh-CN: '数据纠错'
+	String get kindCorrection => '数据纠错';
+
+	/// zh-CN: '条码：${code}'
+	String barcodeLabel({required Object code}) => '条码：${code}';
+
+	/// zh-CN: '提交于 ${date}'
+	String submittedAt({required Object date}) => '提交于 ${date}';
+
+	/// zh-CN: '建议值'
+	String get suggestionTitle => '建议值';
+
+	/// zh-CN: '当前值'
+	String get currentTitle => '当前值';
+
+	/// zh-CN: '每100克：${kcal} 千卡 · 蛋白 ${protein}g · 碳水 ${carb}g · 脂肪 ${fat}g'
+	String per100gSummary({required Object kcal, required Object protein, required Object carb, required Object fat}) => '每100克：${kcal} 千卡 · 蛋白 ${protein}g · 碳水 ${carb}g · 脂肪 ${fat}g';
+
+	/// zh-CN: '加载失败，下拉重试'
+	String get loadFailed => '加载失败，下拉重试';
 }
 
 // Path: notify.channel
@@ -1121,6 +1191,9 @@ class Translations$record$customFood$zh_CN {
 
 	/// zh-CN: '社区'
 	String get badgeCommunity => '社区';
+
+	/// zh-CN: '你提交的食品「${name}」未通过审核，相关记录已移除'
+	String reviewRejectedNotice({required Object name}) => '你提交的食品「${name}」未通过审核，相关记录已移除';
 
 	late final Translations$record$customFood$contributions$zh_CN contributions = Translations$record$customFood$contributions$zh_CN.internal(_root);
 	late final Translations$record$customFood$correction$zh_CN correction = Translations$record$customFood$correction$zh_CN.internal(_root);
@@ -1982,6 +2055,9 @@ class Translations$settings$account$zh_CN {
 
 	/// zh-CN: '我的贡献'
 	String get contributions => '我的贡献';
+
+	/// zh-CN: '审批中心'
+	String get moderation => '审批中心';
 
 	/// zh-CN: '删除账号'
 	String get deleteAccount => '删除账号';
@@ -4151,6 +4227,7 @@ extension on Translations {
 			'record.customFood.badgeApproved' => '已共享',
 			'record.customFood.badgeRejected' => '未通过',
 			'record.customFood.badgeCommunity' => '社区',
+			'record.customFood.reviewRejectedNotice' => ({required Object name}) => '你提交的食品「${name}」未通过审核，相关记录已移除',
 			'record.customFood.contributions.title' => '我的贡献',
 			'record.customFood.contributions.filterAll' => '全部',
 			'record.customFood.contributions.empty' => '暂无贡献记录',
@@ -4413,9 +4490,9 @@ extension on Translations {
 			'reports.weeklySummary.chipQualified' => ({required Object days}) => '达标 ${days} 天',
 			'reports.weeklySummary.chipRecorded' => ({required Object days}) => '记录 ${days} 天',
 			'reports.weeklySummary.chipAvgKcal' => ({required Object kcal, required Object target}) => '平均 ${kcal} · 目标 ${target} 千卡',
-			'reports.weeklySummary.chipWeight' => ({required Object kg}) => '体重 ${kg} 公斤',
 			_ => null,
 		} ?? switch (path) {
+			'reports.weeklySummary.chipWeight' => ({required Object kg}) => '体重 ${kg} 公斤',
 			'reports.weeklySummary.fastingPlain' => ({required Object days}) => '上周断食达标 ${days} 天',
 			'reports.weeklySummary.fastingMore' => ({required Object days, required Object delta}) => '上周断食达标 ${days} 天，比前周多 ${delta} 天',
 			'reports.weeklySummary.fastingLess' => ({required Object days, required Object delta}) => '上周断食达标 ${days} 天，比前周少 ${delta} 天',
@@ -4484,6 +4561,7 @@ extension on Translations {
 			'settings.account.cancelDeletion' => '撤销删除',
 			'settings.account.changePassword' => '修改密码',
 			'settings.account.contributions' => '我的贡献',
+			'settings.account.moderation' => '审批中心',
 			'settings.account.deleteAccount' => '删除账号',
 			'settings.account.deleteConfirmAction' => '确认删除',
 			'settings.account.deleteConfirmBody' => '删除后，你的手机号、基础资料、全部饮食/断食记录等个人数据将被物理删除，且不可恢复。申请后进入 7 天冷静期：冷静期内登录即视为撤销删除，第 7 天执行删除。',
@@ -4746,6 +4824,26 @@ extension on Translations {
 			'update.downloadingNoProgress' => '下载中…',
 			'update.downloadFailed' => '下载失败，请检查网络后重试',
 			'update.retry' => '重试',
+			'moderation.title' => '审批中心',
+			'moderation.subtitle' => '审核用户贡献的食品',
+			'moderation.empty' => '暂无待审批的食品候选',
+			'moderation.approve' => '通过',
+			'moderation.reject' => '驳回',
+			'moderation.approveConfirm' => '通过后该食品将进入共享食物库，所有用户都能搜到。确认通过？',
+			'moderation.rejectConfirmTitle' => '驳回该候选',
+			'moderation.rejectConfirmBody' => '驳回后提交者的相关记录将被移除。',
+			'moderation.reasonHint' => '驳回原因（可选）',
+			'moderation.approved' => '已通过',
+			'moderation.rejected' => '已驳回',
+			'moderation.kindCustom' => '自定义食品',
+			'moderation.kindBarcode' => '条码商品',
+			'moderation.kindCorrection' => '数据纠错',
+			'moderation.barcodeLabel' => ({required Object code}) => '条码：${code}',
+			'moderation.submittedAt' => ({required Object date}) => '提交于 ${date}',
+			'moderation.suggestionTitle' => '建议值',
+			'moderation.currentTitle' => '当前值',
+			'moderation.per100gSummary' => ({required Object kcal, required Object protein, required Object carb, required Object fat}) => '每100克：${kcal} 千卡 · 蛋白 ${protein}g · 碳水 ${carb}g · 脂肪 ${fat}g',
+			'moderation.loadFailed' => '加载失败，下拉重试',
 			_ => null,
 		};
 	}

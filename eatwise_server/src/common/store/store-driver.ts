@@ -16,6 +16,7 @@ import {
   RefreshTokenEntity,
   StreakEntity,
   UserEntity,
+  UserRoleName,
   WaterLogEntity,
   WeightLogEntity,
 } from './data-store';
@@ -150,10 +151,12 @@ export abstract class StoreDriver {
   ): Promise<FoodCandidateEntity | null>;
 
   /** 审核落库：pending → approved/rejected，version+1；候选不存在抛 NOT_FOUND */
+  /** 审核落库（pending → approved/rejected，version+1）；reviewedBy 审核留痕（管理员账号 id 或移动端审批用户 id），缺省不动 */
   abstract updateFoodCandidateStatus(
     id: string,
     status: FoodCandidateStatus,
     reason?: string,
+    reviewedBy?: string | null,
   ): Promise<void>;
 
   // ===== 社区举报计数（M5：举报即下架，reported 队列按 reportCount/reportedAt 排序）=====
@@ -193,6 +196,9 @@ export abstract class StoreDriver {
 
   /** 修改密码落库（changePassword）：直存新哈希，version+1、updatedAt=now；不存在/已删 → NOT_FOUND */
   abstract updateUserPasswordHash(userId: string, passwordHash: string): Promise<UserEntity>;
+
+  /** 管理台设置用户角色（user/admin），version+1、updatedAt=now；不存在/已删 → NOT_FOUND */
+  abstract updateUserRole(userId: string, role: UserRoleName): Promise<UserEntity>;
 
   // ===== 会话令牌（refresh_tokens，主键 tokenHash）=====
 
@@ -318,6 +324,13 @@ export abstract class StoreDriver {
 
   /** 按 id upsert */
   abstract saveFoodEntry(entry: FoodEntryEntity): Promise<void>;
+
+  /**
+   * 按食物级联软删（候选驳回联动）：该用户引用 foodId 的未删记录全部置
+   * tombstone（version+1，updatedAt 取服务端时钟，sync/pull 随增量下行通知客户端）。
+   * 返回受影响条数；重复调用对已删记录幂等（不再变动）。
+   */
+  abstract softDeleteFoodEntriesByFood(userId: string, foodId: string): Promise<number>;
 
   // ===== Streak（streaks，业务键 userId @unique）=====
 
@@ -646,12 +659,14 @@ export class MemoryStoreDriver extends StoreDriver {
     id: string,
     status: FoodCandidateStatus,
     reason?: string,
+    reviewedBy?: string | null,
   ): Promise<void> {
     const candidate = this.store.foodCandidates.get(id);
     if (!candidate) return Promise.reject(err.notFound());
     candidate.status = status;
     if (status === 'rejected') candidate.reason = reason?.trim() || null;
     else if (reason !== undefined) candidate.reason = reason.trim() || null;
+    if (reviewedBy !== undefined) candidate.reviewedBy = reviewedBy;
     candidate.version += 1;
     candidate.updatedAt = new Date();
     return Promise.resolve();
@@ -728,6 +743,14 @@ export class MemoryStoreDriver extends StoreDriver {
   updateUserPasswordHash(userId: string, passwordHash: string): Promise<UserEntity> {
     const user = this.mustGetUser(userId);
     user.passwordHash = passwordHash;
+    user.version += 1;
+    user.updatedAt = new Date();
+    return Promise.resolve(user);
+  }
+
+  updateUserRole(userId: string, role: UserRoleName): Promise<UserEntity> {
+    const user = this.mustGetUser(userId);
+    user.role = role;
     user.version += 1;
     user.updatedAt = new Date();
     return Promise.resolve(user);
@@ -980,6 +1003,19 @@ export class MemoryStoreDriver extends StoreDriver {
   saveFoodEntry(entry: FoodEntryEntity): Promise<void> {
     this.store.foodEntries.set(entry.id, entry);
     return Promise.resolve();
+  }
+
+  softDeleteFoodEntriesByFood(userId: string, foodId: string): Promise<number> {
+    const now = new Date();
+    let affected = 0;
+    for (const entry of this.store.foodEntries.values()) {
+      if (entry.userId !== userId || entry.foodId !== foodId || entry.deletedAt) continue;
+      entry.deletedAt = now;
+      entry.version += 1;
+      entry.updatedAt = now;
+      affected += 1;
+    }
+    return Promise.resolve(affected);
   }
 
   // ===== Streak =====

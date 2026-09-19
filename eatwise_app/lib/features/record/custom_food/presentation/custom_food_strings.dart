@@ -123,6 +123,10 @@ final class CustomFoodStrings {
   /// record.customFood.badgeCommunity
   String get badgeCommunity => _t.record.customFood.badgeCommunity;
 
+  /// record.customFood.reviewRejectedNotice（驳回一次性提示：相关记录已移除）
+  String reviewRejectedNotice(String name) =>
+      _t.record.customFood.reviewRejectedNotice(name: name);
+
   /// 搜索结果行状态标签（K2 众包；null = 不显示标签）：
   /// 自定义食物按贡献状态分「自定义/审核中/已共享/未通过」；
   /// 非自定义但下行标记 approved 的为他人贡献的社区食物（「社区」）。

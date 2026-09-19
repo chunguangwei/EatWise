@@ -171,7 +171,7 @@ export class SyncService {
     if (p.grams != null) entry.grams = p.grams;
     if (p.inputMethod) entry.inputMethod = p.inputMethod;
     if (p.foodId || p.grams != null)
-      entry.nutritionSnapshot = await this.snapshotOf(entry.foodId, entry.grams);
+      entry.nutritionSnapshot = await this.snapshotOf(userId, entry.foodId, entry.grams);
     entry.version += 1;
     entry.updatedAt = new Date(); // LWW 仲裁基准 = 服务端时钟（客户端时间戳不采信，防腐层）
     await this.driver.saveFoodEntry(entry);
@@ -386,7 +386,7 @@ export class SyncService {
       grams: dto.grams,
       inputMethod: dto.inputMethod,
       photoUrl: dto.photoUrl ?? null,
-      nutritionSnapshot: await this.snapshotOf(dto.foodId, dto.grams),
+      nutritionSnapshot: await this.snapshotOf(userId, dto.foodId, dto.grams),
       version: 1,
       createdAt: now,
       updatedAt: now,
@@ -396,10 +396,19 @@ export class SyncService {
     return entry;
   }
 
-  /** 营养快照：服务端按食物库每 100g 值 × grams/100 换算（快照防食物库更新回溯改历史） */
-  private async snapshotOf(foodId: string, grams: number): Promise<NutritionSnapshot> {
-    const food = await this.driver.findFoodById(foodId);
-    if (!food) throw err.validation({ foodId: 'unknown food' });
+  /**
+   * 营养快照：服务端按食物库每 100g 值 × grams/100 换算（快照防食物库更新回溯改历史）。
+   * 共享库未命中时回落本人自定义食物（乐观入账口径：未入库食品先记先同步，
+   * 审核驳回再由 reject 路径级联清除）——此前只查共享库，自定义食物的记录
+   * 上行必 4xx，客户端 T7 回滚静默删除（「不报错就没了」根因）。
+   */
+  private async snapshotOf(userId: string, foodId: string, grams: number): Promise<NutritionSnapshot> {
+    const food =
+      (await this.driver.findFoodById(foodId)) ??
+      (await this.driver.findCustomFoodById(foodId));
+    if (!food || ('userId' in food && food.userId !== userId)) {
+      throw err.validation({ foodId: 'unknown food' });
+    }
     const f = grams / 100;
     return {
       kcal: round1(food.kcalPer100g * f),

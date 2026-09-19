@@ -1,8 +1,10 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
+import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
 import 'package:eatwise/features/record/domain/meal_type.dart';
 import 'package:eatwise/features/record/presentation/meal_type_chips.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
@@ -52,20 +54,25 @@ class _EntryRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
+    final cs = CustomFoodStrings.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
     final isEn = LocaleSettings.currentLocale == AppLocale.en;
     final food = ref.watch(entryFoodProvider(entry.foodId)).value;
     // 食物行缺失（库下行未覆盖等异常）回退 foodId，不隐藏记录。
     final name = food == null
         ? entry.foodId
         : (isEn ? food.nameEn : food.nameZh);
+    // 乐观入账（未入库食品先记）：该食物贡献审核中 → 条目带「审核中」标记。
+    final underReview =
+        food?.isCustom == true && food?.contributionStatus == 'pending';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.s1),
       child: Row(
         children: <Widget>[
-          Expanded(
+          Flexible(
             child: Text(
               name,
               style: textStyles.textBase.copyWith(color: colors.textPrimary),
@@ -73,6 +80,22 @@ class _EntryRow extends ConsumerWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (underReview)
+            Container(
+              margin: const EdgeInsets.only(left: AppSpacing.s2),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s2,
+                vertical: AppSpacing.s1,
+              ),
+              decoration: BoxDecoration(
+                color: colors.brandAccent,
+                borderRadius: radii.rSm,
+              ),
+              child: Text(
+                cs.badgePending,
+                style: textStyles.textXs.copyWith(color: colors.bgPrimary),
+              ),
+            ),
           const SizedBox(width: AppSpacing.s2),
           Text(
             '${entry.amountG.round()} ${t.record.nutrition.gramUnit} · '

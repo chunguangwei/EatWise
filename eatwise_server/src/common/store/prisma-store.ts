@@ -21,6 +21,7 @@ import {
   RefreshTokenEntity,
   StreakEntity,
   UserEntity,
+  UserRoleName,
   WaterLogEntity,
   WeightLogEntity,
 } from './data-store';
@@ -568,6 +569,7 @@ export class PrismaStore extends StoreDriver {
     id: string,
     status: FoodCandidateStatus,
     reason?: string,
+    reviewedBy?: string | null,
   ): Promise<void> {
     const trimmed = reason === undefined ? undefined : reason.trim() || null;
     try {
@@ -576,6 +578,7 @@ export class PrismaStore extends StoreDriver {
         data: {
           status,
           ...(trimmed === undefined ? {} : { reason: trimmed }),
+          ...(reviewedBy === undefined ? {} : { reviewedBy }),
           version: { increment: 1 },
         },
       });
@@ -679,6 +682,7 @@ export class PrismaStore extends StoreDriver {
             Prisma.DbNull) as Prisma.InputJsonValue,
           settingsPrefs: (partial.settingsPrefs ?? Prisma.DbNull) as Prisma.InputJsonValue,
           onboardingStatus: partial.onboardingStatus ?? 'none',
+          role: partial.role ?? 'user',
           deletionStatus: partial.deletionStatus ?? null,
           scheduledDeletionAt: partial.scheduledDeletionAt ?? null,
           createdAt: partial.createdAt ?? now,
@@ -746,6 +750,21 @@ export class PrismaStore extends StoreDriver {
       return toUserEntity(user!);
     } catch (e) {
       throw this.fail('updateUserPasswordHash', e);
+    }
+  }
+
+  /** 管理台设置用户角色（user/admin，version+1、updatedAt=服务端时钟）；不存在/已删 → NOT_FOUND */
+  async updateUserRole(userId: string, role: UserRoleName): Promise<UserEntity> {
+    try {
+      const updated = await this.prisma.user.updateMany({
+        where: { id: userId, deletedAt: null },
+        data: { role, version: { increment: 1 }, updatedAt: new Date() },
+      });
+      if (updated.count === 0) throw err.notFound();
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
+      return toUserEntity(user!);
+    } catch (e) {
+      throw this.fail('updateUserRole', e);
     }
   }
 
@@ -1169,6 +1188,21 @@ export class PrismaStore extends StoreDriver {
     }
   }
 
+  /** 候选驳回级联软删（version 自增 + deletedAt；@updatedAt 自动刷新供 sync/pull 增量下行） */
+  async softDeleteFoodEntriesByFood(userId: string, foodId: string): Promise<number> {
+    try {
+      const result = await this.prisma.foodEntry.updateMany({
+        where: { userId, foodId, deletedAt: null },
+        // updatedAt 显式赋值：sync/pull 增量游标依赖它（@updatedAt 在 updateMany
+        // 下的行为依版本而定，显式写保证 tombstone 一定能下行）。
+        data: { deletedAt: new Date(), updatedAt: new Date(), version: { increment: 1 } },
+      });
+      return result.count;
+    } catch (e) {
+      throw this.fail('softDeleteFoodEntriesByFood', e);
+    }
+  }
+
   // ===== Streak =====
 
   async findStreakByUser(userId: string): Promise<StreakEntity | null> {
@@ -1517,6 +1551,7 @@ function toUserEntity(u: Prisma.UserGetPayload<object>): UserEntity {
     accessibilityPrefs: (u.accessibilityPrefs as Record<string, unknown> | null) ?? null,
     settingsPrefs: (u.settingsPrefs as Record<string, unknown> | null) ?? null,
     onboardingStatus: u.onboardingStatus,
+    role: (u.role as UserRoleName) ?? 'user',
     deletionStatus: u.deletionStatus,
     scheduledDeletionAt: u.scheduledDeletionAt,
     version: u.version,
@@ -1662,6 +1697,7 @@ function toFoodCandidateEntity(c: Prisma.FoodCandidateGetPayload<object>): FoodC
     barcode: c.barcode,
     evidenceImageUrl: c.evidenceImageUrl,
     suggestion: toFoodCorrectionSuggestion(c.suggestion),
+    reviewedBy: c.reviewedBy,
     clientRequestId: c.clientRequestId,
     version: c.version,
     createdAt: c.createdAt,

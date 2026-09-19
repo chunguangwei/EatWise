@@ -222,6 +222,7 @@ describe('用户权利（U1/U3/U5/U6，合规 §4.2/§4.3）', () => {
         barcode: null,
         evidenceImageUrl: null,
         suggestion: null,
+        reviewedBy: null,
         clientRequestId: 'cr-fc-1',
         version: 1,
         createdAt: now,

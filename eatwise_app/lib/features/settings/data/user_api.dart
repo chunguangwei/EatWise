@@ -48,6 +48,7 @@ final class UserMeView {
     this.targetWeightKg,
     this.targetDate,
     this.onboardingStatus,
+    this.role = 'user',
     this.settingsPrefs,
     this.nutritionTargets,
   });
@@ -93,6 +94,9 @@ final class UserMeView {
   /// 引导状态（none/completed/skipped）。
   final String? onboardingStatus;
 
+  /// 用户角色（user/admin；admin 显示审批中心入口。缺省按 user 门控关闭）。
+  final String role;
+
   /// D-21 用户级偏好同步包（locale/theme/weightUnit/运动目标 + syncedAt；
   /// 未同步过为 null）。
   final Map<String, dynamic>? settingsPrefs;
@@ -122,6 +126,7 @@ final class UserMeView {
       targetWeightKg: (json['targetWeightKg'] as num?)?.toDouble(),
       targetDate: json['targetDate'] as String?,
       onboardingStatus: json['onboardingStatus'] as String?,
+      role: json['role'] as String? ?? 'user',
       settingsPrefs: json['settingsPrefs'] is Map<String, dynamic>
           ? json['settingsPrefs'] as Map<String, dynamic>
           : null,

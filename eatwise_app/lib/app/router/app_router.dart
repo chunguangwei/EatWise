@@ -9,6 +9,7 @@ import 'package:eatwise/features/home/presentation/home_shell.dart';
 import 'package:eatwise/features/legal/application/privacy_gate.dart';
 import 'package:eatwise/features/legal/presentation/legal_pages.dart';
 import 'package:eatwise/features/legal/presentation/privacy_consent_page.dart';
+import 'package:eatwise/features/moderation/presentation/moderation_page.dart';
 import 'package:eatwise/features/nutrition/presentation/nutrition_data_page.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
 import 'package:eatwise/features/onboarding/presentation/goal_screen.dart';
@@ -198,6 +199,12 @@ GoRouter createAppRouter({
               GoRoute(
                 path: '/profile/contributions',
                 builder: (context, state) => const MyContributionsPage(),
+              ),
+              // 审批中心（role=admin 用户，设置页账号组入口门控；服务端
+              // UserAdminGuard 兜底 403，直接深链普通用户拿不到数据）。
+              GoRoute(
+                path: '/moderation/food-candidates',
+                builder: (context, state) => const ModerationPage(),
               ),
             ],
           ),

@@ -332,6 +332,7 @@
       "badgeApproved": "Shared",
       "badgeRejected": "Not approved",
       "badgeCommunity": "Community",
+      "reviewRejectedNotice": "Your submitted food \"${name}\" was not approved; related records have been removed",
       "contributions": {
         "title": "My contributions",
         "filterAll": "All",
@@ -788,6 +789,7 @@
       "cancelDeletion": "Cancel deletion",
       "changePassword": "Change password",
       "contributions": "My contributions",
+      "moderation": "Review Center",
       "deleteAccount": "Delete account",
       "deleteConfirmAction": "Confirm deletion",
       "deleteConfirmBody": "After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.",
@@ -1103,5 +1105,27 @@
     "downloadingNoProgress": "Downloading…",
     "downloadFailed": "Download failed. Check your connection and try again.",
     "retry": "Retry"
+  },
+  "moderation": {
+    "title": "Review Center",
+    "subtitle": "Review food contributions from users",
+    "empty": "No pending food candidates",
+    "approve": "Approve",
+    "reject": "Reject",
+    "approveConfirm": "Once approved, this food enters the shared library and becomes searchable for everyone. Approve it?",
+    "rejectConfirmTitle": "Reject this candidate",
+    "rejectConfirmBody": "The submitter's related records will be removed after rejection.",
+    "reasonHint": "Reason (optional)",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "kindCustom": "Custom food",
+    "kindBarcode": "Barcode product",
+    "kindCorrection": "Data correction",
+    "barcodeLabel": "Barcode: ${code}",
+    "submittedAt": "Submitted ${date}",
+    "suggestionTitle": "Suggested",
+    "currentTitle": "Current",
+    "per100gSummary": "Per 100 g: ${kcal} kcal · protein ${protein} g · carbs ${carb} g · fat ${fat} g",
+    "loadFailed": "Failed to load — pull to retry"
   }
 }

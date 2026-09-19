@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { UserEntity } from '../common/store/data-store';
+import { UserEntity, UserRoleName } from '../common/store/data-store';
 import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { maskPhone } from '../common/utils/phone.util';
 
@@ -10,6 +10,7 @@ export interface AdminUserView {
   nickname: string | null;
   phone: string | null; // 脱敏（maskPhone），严禁明文
   goal: string | null;
+  role: UserRoleName; // user / admin（移动端审批中心入口；PATCH :id/role 设置）
   onboardingStatus: string;
   deletionStatus: string | null;
   createdAt: string;
@@ -37,6 +38,12 @@ export class AdminUsersService {
     };
   }
 
+  /** 设置用户角色（管理台用户列表；仅 admin 可调，幂等：重复设置同值返回当前态） */
+  async setUserRole(userId: string, role: UserRoleName) {
+    const user = await this.driver.updateUserRole(userId, role);
+    return this.view(user);
+  }
+
   private view(u: UserEntity): AdminUserView {
     return {
       id: u.id,
@@ -44,6 +51,7 @@ export class AdminUsersService {
       nickname: u.nickname,
       phone: maskPhone(u.phone), // 脱敏后出层，明文不出 Service
       goal: u.goal,
+      role: u.role,
       onboardingStatus: u.onboardingStatus,
       deletionStatus: u.deletionStatus,
       createdAt: u.createdAt.toISOString(),

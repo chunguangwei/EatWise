@@ -332,6 +332,7 @@
       "badgeApproved": "已共享",
       "badgeRejected": "未通过",
       "badgeCommunity": "社区",
+      "reviewRejectedNotice": "你提交的食品「${name}」未通过审核，相关记录已移除",
       "contributions": {
         "title": "我的贡献",
         "filterAll": "全部",
@@ -787,6 +788,7 @@
       "cancelDeletion": "撤销删除",
       "changePassword": "修改密码",
       "contributions": "我的贡献",
+      "moderation": "审批中心",
       "deleteAccount": "删除账号",
       "deleteConfirmAction": "确认删除",
       "deleteConfirmBody": "删除后，你的手机号、基础资料、全部饮食/断食记录等个人数据将被物理删除，且不可恢复。申请后进入 7 天冷静期：冷静期内登录即视为撤销删除，第 7 天执行删除。",
@@ -1102,5 +1104,27 @@
     "downloadingNoProgress": "下载中…",
     "downloadFailed": "下载失败，请检查网络后重试",
     "retry": "重试"
+  },
+  "moderation": {
+    "title": "审批中心",
+    "subtitle": "审核用户贡献的食品",
+    "empty": "暂无待审批的食品候选",
+    "approve": "通过",
+    "reject": "驳回",
+    "approveConfirm": "通过后该食品将进入共享食物库，所有用户都能搜到。确认通过？",
+    "rejectConfirmTitle": "驳回该候选",
+    "rejectConfirmBody": "驳回后提交者的相关记录将被移除。",
+    "reasonHint": "驳回原因（可选）",
+    "approved": "已通过",
+    "rejected": "已驳回",
+    "kindCustom": "自定义食品",
+    "kindBarcode": "条码商品",
+    "kindCorrection": "数据纠错",
+    "barcodeLabel": "条码：${code}",
+    "submittedAt": "提交于 ${date}",
+    "suggestionTitle": "建议值",
+    "currentTitle": "当前值",
+    "per100gSummary": "每100克：${kcal} 千卡 · 蛋白 ${protein}g · 碳水 ${carb}g · 脂肪 ${fat}g",
+    "loadFailed": "加载失败，下拉重试"
   }
 }

@@ -97,7 +97,8 @@ final FutureProvider<List<Food>> recordFoodSearchProvider =
       }
     });
 
-/// 记录同步引擎（启动/登录成功后 syncNow：先上行 pending 再增量下行）。
+/// 记录同步引擎（启动/登录成功后 syncNow：先上行 pending 再增量下行，
+/// 下行后拉「我的贡献」应用审核状态迁移）。
 final Provider<RecordSyncEngine> recordSyncEngineProvider =
     Provider<RecordSyncEngine>((ref) {
       return RecordSyncEngine(
@@ -107,6 +108,7 @@ final Provider<RecordSyncEngine> recordSyncEngineProvider =
         customFoodSync: ref.watch(customFoodRepositoryProvider),
         weightSync: ref.watch(weightLogSyncProvider),
         weightStore: ref.watch(weightLogStoreProvider),
+        contributionReviewSync: ref.watch(contributionReviewSyncProvider),
       );
     });
 

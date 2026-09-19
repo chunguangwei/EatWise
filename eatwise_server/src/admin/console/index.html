@@ -129,7 +129,7 @@
     <div id="usersMsg" class="msg"></div>
     <table>
       <thead><tr>
-        <th>用户名</th><th>昵称</th><th>手机号</th><th>目标</th><th>新手引导</th><th>删除状态</th><th>注册时间</th>
+        <th>用户名</th><th>昵称</th><th>手机号</th><th>目标</th><th>角色</th><th>新手引导</th><th>删除状态</th><th>注册时间</th>
       </tr></thead>
       <tbody id="userRows"></tbody>
     </table>
@@ -382,6 +382,20 @@ function renderRows(items, append) {
       '<td><span class="muted">' + fmtTime(c.createdAt) + '</span></td>' +
       '<td><span class="badge ' + c.status + '">' + STATUS_LABEL[c.status] + '</span></td>' +
       '<td style="white-space:nowrap">' + actions + '</td>';
+    // 角色下拉（一般用户/管理员；非 admin 身份只读禁用）
+    var roleCell = tr.querySelector('.roleCell');
+    var select = document.createElement('select');
+    select.setAttribute('data-prev', u.role || 'user');
+    ['user', 'admin'].forEach(function (r) {
+      var opt = document.createElement('option');
+      opt.value = r;
+      opt.textContent = USER_ROLE_LABEL[r];
+      select.appendChild(opt);
+    });
+    select.value = u.role || 'user';
+    select.disabled = !canSetUserRole();
+    select.onchange = function () { setUserRole(u.id, select.value, select); };
+    roleCell.appendChild(select);
     tbody.appendChild(tr);
   });
 }
@@ -461,6 +475,20 @@ function renderPostRows(items, append) {
       '<td>' + badge + '</td>' +
       '<td>' + (p.reportCount > 0 ? '<strong>' + p.reportCount + '</strong><br><span class="muted">' + fmtTime(p.reportedAt) + '</span>' : '<span class="muted">0</span>') + '</td>' +
       '<td style="white-space:nowrap">' + actions + '</td>';
+    // 角色下拉（一般用户/管理员；非 admin 身份只读禁用）
+    var roleCell = tr.querySelector('.roleCell');
+    var select = document.createElement('select');
+    select.setAttribute('data-prev', u.role || 'user');
+    ['user', 'admin'].forEach(function (r) {
+      var opt = document.createElement('option');
+      opt.value = r;
+      opt.textContent = USER_ROLE_LABEL[r];
+      select.appendChild(opt);
+    });
+    select.value = u.role || 'user';
+    select.disabled = !canSetUserRole();
+    select.onchange = function () { setUserRole(u.id, select.value, select); };
+    roleCell.appendChild(select);
     tbody.appendChild(tr);
   });
 }
@@ -486,6 +514,27 @@ async function reviewPost(id, action) {
 
 var userState = { keyword: '', page: 1, pageSize: 20, total: 0 };
 var GOAL_LABEL = { fat_loss: '减脂', health_metric: '指标管理', routine: '规律饮食', trial: '体验' };
+var USER_ROLE_LABEL = { user: '一般用户', admin: '管理员' };
+
+/** 当前控制台身份可否设置角色（管理员 JWT 且 role=admin，或 x-admin-token 兜底视为 admin） */
+function canSetUserRole() {
+  return (me && me.role === 'admin') || (!me && !!token());
+}
+
+async function setUserRole(userId, role, selectEl) {
+  var prev = selectEl.getAttribute('data-prev');
+  selectEl.disabled = true;
+  try {
+    await api('/admin/users/' + encodeURIComponent(userId) + '/role', { method: 'PATCH', body: { role: role } });
+    selectEl.setAttribute('data-prev', role);
+    flash('usersMsg', '已设置为「' + (USER_ROLE_LABEL[role] || role) + '」', true);
+  } catch (e) {
+    selectEl.value = prev; // 失败回退原值
+    flash('usersMsg', e.message, false);
+  } finally {
+    selectEl.disabled = !canSetUserRole();
+  }
+}
 var ONBOARDING_LABEL = { none: '未完成', skipped: '已跳过', completed: '已完成' };
 
 function searchUsers() {
@@ -531,9 +580,24 @@ function renderUserRows(items) {
       '<td>' + (u.nickname ? esc(u.nickname) : '<span class="muted">—</span>') + '</td>' +
       '<td>' + (u.phone ? esc(u.phone) : '<span class="muted">—</span>') + '</td>' +
       '<td>' + (GOAL_LABEL[u.goal] || (u.goal ? esc(u.goal) : '<span class="muted">—</span>')) + '</td>' +
+      '<td class="roleCell"></td>' +
       '<td>' + (ONBOARDING_LABEL[u.onboardingStatus] || esc(u.onboardingStatus)) + '</td>' +
       '<td>' + deletion + '</td>' +
       '<td><span class="muted">' + fmtTime(u.createdAt) + '</span></td>';
+    // 角色下拉（一般用户/管理员；非 admin 身份只读禁用）
+    var roleCell = tr.querySelector('.roleCell');
+    var select = document.createElement('select');
+    select.setAttribute('data-prev', u.role || 'user');
+    ['user', 'admin'].forEach(function (r) {
+      var opt = document.createElement('option');
+      opt.value = r;
+      opt.textContent = USER_ROLE_LABEL[r];
+      select.appendChild(opt);
+    });
+    select.value = u.role || 'user';
+    select.disabled = !canSetUserRole();
+    select.onchange = function () { setUserRole(u.id, select.value, select); };
+    roleCell.appendChild(select);
     tbody.appendChild(tr);
   });
 }

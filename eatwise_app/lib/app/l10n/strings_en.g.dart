@@ -54,6 +54,7 @@ class TranslationsEn extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$social$en social = _Translations$social$en._(_root);
 	@override late final _Translations$auth$en auth = _Translations$auth$en._(_root);
 	@override late final _Translations$update$en update = _Translations$update$en._(_root);
+	@override late final _Translations$moderation$en moderation = _Translations$moderation$en._(_root);
 }
 
 // Path: notify
@@ -281,6 +282,35 @@ class _Translations$update$en extends Translations$update$zh_CN {
 	@override String get downloadingNoProgress => 'Downloading…';
 	@override String get downloadFailed => 'Download failed. Check your connection and try again.';
 	@override String get retry => 'Retry';
+}
+
+// Path: moderation
+class _Translations$moderation$en extends Translations$moderation$zh_CN {
+	_Translations$moderation$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Review Center';
+	@override String get subtitle => 'Review food contributions from users';
+	@override String get empty => 'No pending food candidates';
+	@override String get approve => 'Approve';
+	@override String get reject => 'Reject';
+	@override String get approveConfirm => 'Once approved, this food enters the shared library and becomes searchable for everyone. Approve it?';
+	@override String get rejectConfirmTitle => 'Reject this candidate';
+	@override String get rejectConfirmBody => 'The submitter\'s related records will be removed after rejection.';
+	@override String get reasonHint => 'Reason (optional)';
+	@override String get approved => 'Approved';
+	@override String get rejected => 'Rejected';
+	@override String get kindCustom => 'Custom food';
+	@override String get kindBarcode => 'Barcode product';
+	@override String get kindCorrection => 'Data correction';
+	@override String barcodeLabel({required Object code}) => 'Barcode: ${code}';
+	@override String submittedAt({required Object date}) => 'Submitted ${date}';
+	@override String get suggestionTitle => 'Suggested';
+	@override String get currentTitle => 'Current';
+	@override String per100gSummary({required Object kcal, required Object protein, required Object carb, required Object fat}) => 'Per 100 g: ${kcal} kcal · protein ${protein} g · carbs ${carb} g · fat ${fat} g';
+	@override String get loadFailed => 'Failed to load — pull to retry';
 }
 
 // Path: notify.channel
@@ -685,6 +715,7 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get badgeApproved => 'Shared';
 	@override String get badgeRejected => 'Not approved';
 	@override String get badgeCommunity => 'Community';
+	@override String reviewRejectedNotice({required Object name}) => 'Your submitted food "${name}" was not approved; related records have been removed';
 	@override late final _Translations$record$customFood$contributions$en contributions = _Translations$record$customFood$contributions$en._(_root);
 	@override late final _Translations$record$customFood$correction$en correction = _Translations$record$customFood$correction$en._(_root);
 	@override String get photoOcr => 'Scan nutrition label';
@@ -1164,6 +1195,7 @@ class _Translations$settings$account$en extends Translations$settings$account$zh
 	@override String get cancelDeletion => 'Cancel deletion';
 	@override String get changePassword => 'Change password';
 	@override String get contributions => 'My contributions';
+	@override String get moderation => 'Review Center';
 	@override String get deleteAccount => 'Delete account';
 	@override String get deleteConfirmAction => 'Confirm deletion';
 	@override String get deleteConfirmBody => 'After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.';
@@ -2443,6 +2475,7 @@ extension on TranslationsEn {
 			'record.customFood.badgeApproved' => 'Shared',
 			'record.customFood.badgeRejected' => 'Not approved',
 			'record.customFood.badgeCommunity' => 'Community',
+			'record.customFood.reviewRejectedNotice' => ({required Object name}) => 'Your submitted food "${name}" was not approved; related records have been removed',
 			'record.customFood.contributions.title' => 'My contributions',
 			'record.customFood.contributions.filterAll' => 'All',
 			'record.customFood.contributions.empty' => 'No contributions yet',
@@ -2705,9 +2738,9 @@ extension on TranslationsEn {
 			'reports.weeklySummary.chipQualified' => ({required Object days}) => '${days}d on target',
 			'reports.weeklySummary.chipRecorded' => ({required Object days}) => '${days}d logged',
 			'reports.weeklySummary.chipAvgKcal' => ({required Object kcal, required Object target}) => 'avg ${kcal} · goal ${target} kcal',
-			'reports.weeklySummary.chipWeight' => ({required Object kg}) => 'weight ${kg} kg',
 			_ => null,
 		} ?? switch (path) {
+			'reports.weeklySummary.chipWeight' => ({required Object kg}) => 'weight ${kg} kg',
 			'reports.weeklySummary.fastingPlain' => ({required Object days}) => 'You hit your fasting goal on ${days} of 7 days last week',
 			'reports.weeklySummary.fastingMore' => ({required Object days, required Object delta}) => 'You hit your fasting goal on ${days} of 7 days last week, ${delta} more than the week before',
 			'reports.weeklySummary.fastingLess' => ({required Object days, required Object delta}) => 'You hit your fasting goal on ${days} of 7 days last week, ${delta} fewer than the week before',
@@ -2776,6 +2809,7 @@ extension on TranslationsEn {
 			'settings.account.cancelDeletion' => 'Cancel deletion',
 			'settings.account.changePassword' => 'Change password',
 			'settings.account.contributions' => 'My contributions',
+			'settings.account.moderation' => 'Review Center',
 			'settings.account.deleteAccount' => 'Delete account',
 			'settings.account.deleteConfirmAction' => 'Confirm deletion',
 			'settings.account.deleteConfirmBody' => 'After deletion, your phone number, profile, and all meal/fasting records will be permanently erased and cannot be recovered. Your request starts a 7-day cooling-off period: signing in during this period cancels the deletion, and your data is erased on day 7.',
@@ -3038,6 +3072,26 @@ extension on TranslationsEn {
 			'update.downloadingNoProgress' => 'Downloading…',
 			'update.downloadFailed' => 'Download failed. Check your connection and try again.',
 			'update.retry' => 'Retry',
+			'moderation.title' => 'Review Center',
+			'moderation.subtitle' => 'Review food contributions from users',
+			'moderation.empty' => 'No pending food candidates',
+			'moderation.approve' => 'Approve',
+			'moderation.reject' => 'Reject',
+			'moderation.approveConfirm' => 'Once approved, this food enters the shared library and becomes searchable for everyone. Approve it?',
+			'moderation.rejectConfirmTitle' => 'Reject this candidate',
+			'moderation.rejectConfirmBody' => 'The submitter\'s related records will be removed after rejection.',
+			'moderation.reasonHint' => 'Reason (optional)',
+			'moderation.approved' => 'Approved',
+			'moderation.rejected' => 'Rejected',
+			'moderation.kindCustom' => 'Custom food',
+			'moderation.kindBarcode' => 'Barcode product',
+			'moderation.kindCorrection' => 'Data correction',
+			'moderation.barcodeLabel' => ({required Object code}) => 'Barcode: ${code}',
+			'moderation.submittedAt' => ({required Object date}) => 'Submitted ${date}',
+			'moderation.suggestionTitle' => 'Suggested',
+			'moderation.currentTitle' => 'Current',
+			'moderation.per100gSummary' => ({required Object kcal, required Object protein, required Object carb, required Object fat}) => 'Per 100 g: ${kcal} kcal · protein ${protein} g · carbs ${carb} g · fat ${fat} g',
+			'moderation.loadFailed' => 'Failed to load — pull to retry',
 			_ => null,
 		};
 	}

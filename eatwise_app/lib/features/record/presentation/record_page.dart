@@ -16,6 +16,7 @@ import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.d
 import 'package:eatwise/features/health/presentation/exercise_log_sheet.dart';
 import 'package:eatwise/features/record/barcode/presentation/barcode_flow.dart';
 import 'package:eatwise/features/record/barcode/presentation/barcode_strings.dart';
+import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_sheet.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
@@ -75,7 +76,32 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     // 记录流程起点（§3.3 record_flow_start：进入记录页即触发一次）。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _flowId ??= _analytics.startRecordFlow();
+      // 进入记录页：拉取「我的贡献」审核状态（不依赖推送），随后 drain
+      // 待提示驳回通知（同步在途/历史积压两条路径都覆盖）。
+      final reviewSync = ref.read(contributionReviewSyncProvider);
+      unawaited(
+        reviewSync
+            .syncNow()
+            .catchError((Object _) => const <String>[])
+            .then((_) => _drainRejectedNotices()),
+      );
     });
+  }
+
+  /// 驳回一次性提示：取走待提示队列逐条 snackbar（「未通过审核，
+  /// 相关记录已移除」），取走即清空不重复打扰。
+  Future<void> _drainRejectedNotices() async {
+    final names = await ref
+        .read(contributionStatusStoreProvider)
+        .drainNotices();
+    if (!mounted || names.isEmpty) return;
+    final cs = CustomFoodStrings.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    for (final name in names) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(cs.reviewRejectedNotice(name))),
+      );
+    }
   }
 
   @override
@@ -277,6 +303,11 @@ class _RecordPageState extends ConsumerState<RecordPage> {
         ref.read(recordSearchQueryProvider.notifier).state = next;
       }
       _searchFocusNode.requestFocus();
+    });
+    // 记录同步（启动/前台/登录）发现驳回并入队通知时，页在打开状态
+    // 也要即时提示。
+    ref.listen<int>(contributionNoticeTickProvider, (previous, next) {
+      if (next != previous) unawaited(_drainRejectedNotices());
     });
     final s = RecordStrings.of(context);
     final cs = CustomFoodStrings.of(context);

@@ -145,6 +145,7 @@ export class UserService {
       accessibilityPrefs: u.accessibilityPrefs,
       settingsPrefs: u.settingsPrefs,
       onboardingStatus: u.onboardingStatus,
+      role: u.role, // 用户角色（移动端审批中心入口门控；本人不可改，管理台设置）
       deletionStatus: u.deletionStatus,
       scheduledDeletionAt: u.scheduledDeletionAt?.toISOString() ?? null,
       version: u.version,

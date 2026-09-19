@@ -108,6 +108,17 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
         .get();
   }
 
+  /// 指定食物的全部有效记录（候选驳回联动清理用，排除 tombstone）。
+  Future<List<FoodEntry>> entriesForFood(String userId, String foodId) {
+    return (select(foodEntries)..where(
+          (e) =>
+              e.userId.equals(userId) &
+              e.foodId.equals(foodId) &
+              e.deleted.equals(false),
+        ))
+        .get();
+  }
+
   /// 某日有效记录流（薄荷走查优化点 2：记录页「今日记录」餐次分组列表，
   /// 排除 tombstone，按就餐时间升序）。
   Stream<List<FoodEntry>> watchEntriesForDate(String userId, String localDate) {

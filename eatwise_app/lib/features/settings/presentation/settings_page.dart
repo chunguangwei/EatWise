@@ -112,6 +112,14 @@ class SettingsPage extends ConsumerWidget {
                   title: t.settings.account.contributions,
                   onTap: () => context.push('/profile/contributions'),
                 ),
+                // 审批中心（用户角色 admin 可见；普通用户完全隐藏，
+                // 服务端 UserAdminGuard 再兜底 403）。
+                if (userMe?.role == 'admin')
+                  _SettingsTile(
+                    title: t.settings.account.moderation,
+                    subtitle: t.moderation.subtitle,
+                    onTap: () => context.push('/moderation/food-candidates'),
+                  ),
                 _SettingsTile(
                   title: t.settings.account.logout,
                   onTap: () => _confirmLogout(context, ref),

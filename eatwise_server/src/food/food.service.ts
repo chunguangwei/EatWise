@@ -180,6 +180,7 @@ export class FoodService {
       barcode,
       evidenceImageUrl,
       suggestion: null,
+      reviewedBy: null,
       clientRequestId: dto.clientRequestId,
       version: 1,
       createdAt: now,
@@ -257,6 +258,7 @@ export class FoodService {
       barcode: null,
       evidenceImageUrl: null,
       suggestion,
+      reviewedBy: null,
       clientRequestId: dto.clientRequestId,
       version: 1,
       createdAt: now,
@@ -350,19 +352,40 @@ export class FoodService {
    * approve → 自定义食物晋升为共享食物（原 id 不变，isCustom=false 入共享库，全用户 K1 可见，
    * source='community'，createdByUserId 保留溯源）；reject → 状态 rejected + reason，
    * 创建者仍可见自己的自定义食物。
+   * reject 幂等：已 rejected 重复驳回直接返回当前状态（不报错、reason 不覆写）；
+   * 首次驳回（kind != correction）级联软删贡献者引用该食物的饮食记录——配合客户端
+   * 乐观入账（未入库食品先记），驳回后 sync/pull 下行 tombstone 清除相关记录，
+   * 客户端再按「我的贡献」状态迁移补本地清理与提示。kind=correction 不动记录
+   * （目标食物仍在共享库，驳回仅表示建议值不采纳）。
    * kind=correction（数据纠错）approve → 建议值应用到共享食物行（建议名非空才改名，
-   * 每 100g 四营养整体覆写），id 与既有 FoodEntry 引用不变。
+   * 每 100g 四营养整体覆写），id 与既有 FoodEntry 引用不变（条目营养为入账快照，不回溯）。
+   * [reviewedBy] 审核留痕：管理端为管理员账号 id（x-admin-token 兜底为 null），
+   * 移动端审批中心为用户 id。
    */
-  async reviewFoodCandidate(candidateId: string, dto: ReviewFoodCandidateDto) {
+  async reviewFoodCandidate(
+    candidateId: string,
+    dto: ReviewFoodCandidateDto,
+    reviewedBy?: string | null,
+  ) {
     const candidate = await this.driver.findFoodCandidateById(candidateId);
     if (!candidate) throw err.notFound();
-    if (candidate.status !== 'pending') {
-      throw err.conflict({ status: candidate.status });
-    }
 
     if (dto.action === 'reject') {
-      await this.driver.updateFoodCandidateStatus(candidateId, 'rejected', dto.reason);
+      // 幂等驳回：重复驳回返回当前状态（首次 reason 不覆写）
+      if (candidate.status === 'rejected') return this.candidateView(candidate);
+      if (candidate.status !== 'pending') {
+        throw err.conflict({ status: candidate.status });
+      }
+      await this.driver.updateFoodCandidateStatus(candidateId, 'rejected', dto.reason, reviewedBy);
+      if (candidate.kind !== 'correction') {
+        // 乐观入账联动：清除贡献者引用该食物的记录（软删，随 sync/pull 下行）
+        await this.driver.softDeleteFoodEntriesByFood(candidate.userId, candidate.foodId);
+      }
       return this.candidateView(await this.mustGetCandidate(candidateId));
+    }
+
+    if (candidate.status !== 'pending') {
+      throw err.conflict({ status: candidate.status });
     }
 
     if (candidate.kind === 'correction') {
@@ -371,7 +394,7 @@ export class FoodService {
         throw err.notFound();
       }
       await this.driver.applyFoodCorrection(candidate.foodId, candidate.suggestion);
-      await this.driver.updateFoodCandidateStatus(candidateId, 'approved');
+      await this.driver.updateFoodCandidateStatus(candidateId, 'approved', undefined, reviewedBy);
       return this.candidateView(await this.mustGetCandidate(candidateId));
     }
 
@@ -383,7 +406,7 @@ export class FoodService {
       candidate.foodId,
       candidate.kind === 'barcode' ? candidate.barcode : null,
     );
-    await this.driver.updateFoodCandidateStatus(candidateId, 'approved');
+    await this.driver.updateFoodCandidateStatus(candidateId, 'approved', undefined, reviewedBy);
     return this.candidateView(await this.mustGetCandidate(candidateId));
   }
 
@@ -410,6 +433,8 @@ export class FoodService {
       evidenceImageUrl: c.evidenceImageUrl,
       // kind=correction：建议值（审核台与 per100g 原值对照展示）；其余类型为 null
       suggestion: c.suggestion,
+      // 审核留痕（终审执行者；未审核为 null）
+      reviewedBy: c.reviewedBy,
       nameZh: food?.nameZh ?? null,
       nameEn: food?.nameEn ?? null,
       // 管理端审核台展示用（每 100g 营养）；食物已被删除等异常态为 null

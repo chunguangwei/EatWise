@@ -3,6 +3,9 @@ import { newId } from '../utils/id.util';
 
 // ===== 实体类型（与 prisma/schema.prisma 对齐）=====
 
+/** 用户角色：user（默认）/ admin（移动端审批中心可见，由管理台设置） */
+export type UserRoleName = 'user' | 'admin';
+
 export interface UserEntity {
   id: string;
   phone: string | null;
@@ -28,6 +31,8 @@ export interface UserEntity {
   /** D-21 用户级偏好同步包（locale/theme/weightUnit/运动目标 + syncedAt，缺键跳过） */
   settingsPrefs: Record<string, unknown> | null;
   onboardingStatus: string;
+  /** 用户角色（默认 user；admin 由管理台 PATCH /admin/users/:id/role 设置，本人不可改） */
+  role: UserRoleName;
   deletionStatus: string | null;
   /** U5 删除冷静期截止时刻（deletionStatus=pending 时非空，到期硬删/匿名化，合规 §4.3） */
   scheduledDeletionAt: Date | null;
@@ -146,6 +151,8 @@ export interface FoodCandidateEntity {
   evidenceImageUrl: string | null;
   /** kind=correction 时非空：纠错建议值（原值即 foodId 指向共享食物行的当前值） */
   suggestion: FoodCorrectionSuggestion | null;
+  /** 审核留痕：执行终审的管理员账号 id（管理端 JWT）或用户 id（移动端审批中心）；未审核为 null */
+  reviewedBy: string | null;
   clientRequestId: string;
   version: number;
   createdAt: Date;
@@ -394,6 +401,7 @@ export class DataStore {
       accessibilityPrefs: null,
       settingsPrefs: null,
       onboardingStatus: 'none',
+      role: 'user',
       deletionStatus: null,
       scheduledDeletionAt: null,
       version: 1,

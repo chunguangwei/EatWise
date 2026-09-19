@@ -509,6 +509,65 @@ describe('Food contribute & admin review (e2e)', () => {
         .send({ action: 'approve' })
         .expect(404);
     });
+
+    it('乐观入账联动：自定义食物记录上行成功；reject 级联软删（pull 下行 tombstone）；重复驳回幂等 200', async () => {
+      const owner = await login(nextPhone());
+      const foodId = await createCustom(owner, '乐观入账biangbiang面');
+
+      // 乐观入账：记录引用个人库自定义食物，上行 applied（不再 4xx 静默丢失）
+      const pushed = await request(server)
+        .post('/v1/sync/push')
+        .set(auth(owner))
+        .send({
+          ops: [
+            {
+              clientRequestId: nextUuid(),
+              entity: 'foodEntry',
+              op: 'create',
+              payload: {
+                eatenAt: '2026-09-19T04:10:00.000Z',
+                foodId,
+                grams: 200,
+                inputMethod: 'manual',
+              },
+            },
+          ],
+        })
+        .expect(200);
+      expect(pushed.body.data.results[0].status).toBe('applied');
+      const serverEntryId = pushed.body.data.results[0].serverEntry.id as string;
+
+      const contributed = await request(server)
+        .post(`/v1/foods/custom/${foodId}/contribute`)
+        .set(auth(owner))
+        .send({ clientRequestId: nextUuid() })
+        .expect(200);
+      const candidateId = contributed.body.data.id as string;
+
+      // 驳回：该食物相关记录级联软删，sync/pull 下行 tombstone
+      await request(server)
+        .post(`/v1/admin/food-candidates/${candidateId}/review`)
+        .set('x-admin-token', ADMIN)
+        .send({ action: 'reject', reason: '营养数据存疑' })
+        .expect(200);
+      const pull = await request(server)
+        .get('/v1/sync/pull')
+        .set(auth(owner))
+        .expect(200);
+      const tombstone = (pull.body.data.changes as Array<Record<string, unknown>>).find(
+        (c) => (c.tombstone as { id?: string } | undefined)?.id === serverEntryId,
+      );
+      expect(tombstone).toBeDefined();
+
+      // 重复驳回幂等：200 返回 rejected，不报错
+      const again = await request(server)
+        .post(`/v1/admin/food-candidates/${candidateId}/review`)
+        .set('x-admin-token', ADMIN)
+        .send({ action: 'reject', reason: '重复驳回' })
+        .expect(200);
+      expect(again.body.data.status).toBe('rejected');
+      expect(again.body.data.reason).toBe('营养数据存疑'); // 首次 reason 不覆写
+    });
   });
 });
 

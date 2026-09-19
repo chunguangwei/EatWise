@@ -2,11 +2,15 @@ import 'package:eatwise/core/llm/llm_config_store.dart';
 import 'package:eatwise/core/llm/ondevice/ondevice_providers.dart';
 import 'package:eatwise/core/llm/user_llm_client.dart';
 import 'package:eatwise/core/network/network_providers.dart';
+import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/record/custom_food/application/contribution_review.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
 import 'package:eatwise/features/record/custom_food/domain/food_estimate_orchestrator.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
+import 'package:eatwise/features/streak/application/streak_controller.dart'
+    show currentUserIdProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 自定义食物远程端（生产 REST；测试 override 为 FakeCustomFoodRemote）。
@@ -56,5 +60,37 @@ final Provider<FoodEstimateOrchestrator> foodEstimateOrchestratorProvider =
         userClient: ref.watch(userEstimateSourceProvider),
         onDeviceEnabled: () => ref.read(onDeviceAiEnabledProvider),
         onDeviceSource: () => ref.read(onDeviceEstimateSourceProvider),
+      );
+    });
+
+/// 驳回通知 tick（有新通知入队即 +1；记录页 listen 后 drain 展示）。
+final StateProvider<int> contributionNoticeTickProvider = StateProvider<int>(
+  (ref) => 0,
+);
+
+/// 贡献审核状态存储（按当前用户命名空间；prefs 未装配时降级内存）。
+final Provider<ContributionStatusStore> contributionStatusStoreProvider =
+    Provider<ContributionStatusStore>((ref) {
+      try {
+        return ContributionStatusStore(
+          ref.watch(sharedPreferencesProvider),
+          userId: ref.watch(currentUserIdProvider),
+        );
+      } on Object {
+        return ContributionStatusStore.inMemory();
+      }
+    });
+
+/// 贡献审核状态同步（记录同步/进入记录页时拉取「我的贡献」diff 状态迁移：
+/// approved 转正去标记；rejected 清记录 + 一次性提示）。
+final Provider<ContributionReviewSync> contributionReviewSyncProvider =
+    Provider<ContributionReviewSync>((ref) {
+      return ContributionReviewSync(
+        db: ref.watch(recordRepositoryProvider).db,
+        remote: ref.watch(customFoodRemoteProvider),
+        store: ref.watch(contributionStatusStoreProvider),
+        userId: ref.watch(currentUserIdProvider),
+        onNoticesAdded: () =>
+            ref.read(contributionNoticeTickProvider.notifier).state++,
       );
     });

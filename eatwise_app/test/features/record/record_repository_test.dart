@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/core/storage/tables.dart';
@@ -351,6 +352,63 @@ void main() {
           .watchDuringFastCount('anonymous', '2026-07-28')
           .first;
       expect(afterUndo, 0);
+      await repository.dispose();
+    });
+  });
+  group('乐观入账守卫（未入库食品先记）', () {
+    test('引用未上行自定义食物的记录不上行、不 T7 回滚，保持 pending 待食物先行', () async {
+      // 离线保存的自定义食物（customSyncPending=true，本地临时 id）。
+      await db.foodDao.upsertAll(<FoodsCompanion>[
+        const FoodsCompanion(
+          id: Value('custom-local-1'),
+          nameZh: Value('离线私房菜'),
+          nameEn: Value('Offline Dish'),
+          kcalPer100g: Value(200),
+          proteinPer100g: Value(8),
+          carbPer100g: Value(30),
+          fatPer100g: Value(5),
+          isCustom: Value(true),
+          customSyncPending: Value(true),
+          customClientRequestId: Value('req-1'),
+        ),
+      ]);
+      remote.mode = FakeRemoteMode.offline;
+      final repository = repo();
+      final entry = await repository.addEntry(draft(foodId: 'custom-local-1'));
+      expect(entry.syncStatus, SyncStatus.pending);
+
+      // 联网重试：食物仍未上行 → 记录保持 pending，远程零请求（不放行吃 4xx）。
+      remote.mode = FakeRemoteMode.success;
+      await repository.retryPending();
+      expect(remote.pushCount, 0);
+      final kept = await db.foodEntryDao.getByLocalId(entry.localId);
+      expect(kept, isNotNull);
+      expect(kept?.syncStatus, SyncStatus.pending);
+      await repository.dispose();
+    });
+
+    test('食物上行后（customSyncPending=false）记录正常上行 synced', () async {
+      await db.foodDao.upsertAll(<FoodsCompanion>[
+        const FoodsCompanion(
+          id: Value('cf-synced-1'),
+          nameZh: Value('已上行私房菜'),
+          nameEn: Value('Synced Dish'),
+          kcalPer100g: Value(200),
+          proteinPer100g: Value(8),
+          carbPer100g: Value(30),
+          fatPer100g: Value(5),
+          isCustom: Value(true),
+        ),
+      ]);
+      remote.mode = FakeRemoteMode.offline;
+      final repository = repo();
+      final entry = await repository.addEntry(draft(foodId: 'cf-synced-1'));
+
+      remote.mode = FakeRemoteMode.success;
+      await repository.retryPending();
+      final syncedEntry = await db.foodEntryDao.getByLocalId(entry.localId);
+      expect(syncedEntry?.syncStatus, SyncStatus.synced);
+      expect(syncedEntry?.serverId, isNotNull);
       await repository.dispose();
     });
   });
