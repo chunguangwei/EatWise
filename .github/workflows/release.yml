@@ -54,6 +54,11 @@ jobs:
           mkdir -p "$HOME/.android"
           echo "$KEYSTORE_BASE64" | base64 -d > "$HOME/.android/debug.keystore"
           chmod 600 "$HOME/.android/debug.keystore"
+          # 自检：打出文件摘要与证书指纹，与本地开发机比对防签名漂移
+          # （debug key 指纹非敏感信息）。本地基线见复工手册。
+          sha256sum "$HOME/.android/debug.keystore"
+          keytool -list -v -keystore "$HOME/.android/debug.keystore" \
+            -storepass android -alias androiddebugkey | grep -i "SHA256:"
 
       # API_BASE_URL 取仓库 Actions 变量（Settings → Secrets and variables →
       # Actions → Variables），未配置时回退为 localhost（仅模拟器可用）。

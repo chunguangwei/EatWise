@@ -655,6 +655,7 @@ class _Translations$record$voice$en extends Translations$record$voice$zh_CN {
 	@override String get recordingNow => 'Recording… tap again to stop';
 	@override String get transcribingNow => 'Transcribing…';
 	@override String get transcribeFailed => 'Couldn\'t transcribe — record again or type with the keyboard icon';
+	@override String get useOnDeviceAsr => 'Use offline model';
 }
 
 // Path: record.frequent
@@ -2442,6 +2443,7 @@ extension on TranslationsEn {
 			'record.voice.recordingNow' => 'Recording… tap again to stop',
 			'record.voice.transcribingNow' => 'Transcribing…',
 			'record.voice.transcribeFailed' => 'Couldn\'t transcribe — record again or type with the keyboard icon',
+			'record.voice.useOnDeviceAsr' => 'Use offline model',
 			'record.frequent.title' => 'Frequently logged',
 			'record.frequent.empty' => 'Log a few more meals and your usuals will show up here',
 			'record.frequent.emptyCta' => 'Search instead',
@@ -2737,9 +2739,9 @@ extension on TranslationsEn {
 			'reports.weeklySummary.title' => 'Last-week recap',
 			'reports.weeklySummary.chipQualified' => ({required Object days}) => '${days}d on target',
 			'reports.weeklySummary.chipRecorded' => ({required Object days}) => '${days}d logged',
-			'reports.weeklySummary.chipAvgKcal' => ({required Object kcal, required Object target}) => 'avg ${kcal} · goal ${target} kcal',
 			_ => null,
 		} ?? switch (path) {
+			'reports.weeklySummary.chipAvgKcal' => ({required Object kcal, required Object target}) => 'avg ${kcal} · goal ${target} kcal',
 			'reports.weeklySummary.chipWeight' => ({required Object kg}) => 'weight ${kg} kg',
 			'reports.weeklySummary.fastingPlain' => ({required Object days}) => 'You hit your fasting goal on ${days} of 7 days last week',
 			'reports.weeklySummary.fastingMore' => ({required Object days, required Object delta}) => 'You hit your fasting goal on ${days} of 7 days last week, ${delta} more than the week before',

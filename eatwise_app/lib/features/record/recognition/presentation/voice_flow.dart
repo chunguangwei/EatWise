@@ -308,6 +308,44 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
     return _noResultHint ? s.voiceNoSpeechHint : null;
   }
 
+  /// 逃生舱条件：致命 ASR 错误（非 error_no_match/error_speech_timeout
+  /// 良性桶）或 6s 静默兜底已触发；良性错误不给按钮（没听清重说即可）。
+  bool get _escapeTriggered {
+    final error = _error;
+    const benign = <String>{'error_no_match', 'error_speech_timeout'};
+    return (error != null && !benign.contains(error)) || _noResultHint;
+  }
+
+  /// 端侧 ASR 就绪（提供方非空 = 端侧开关开且模型就绪/快照乐观窗口）。
+  bool get _onDeviceAsrReady => ref.watch(onDeviceAsrServiceProvider) != null;
+
+  /// 切到端侧录音转写：先取消系统听写（独立于端侧面板状态，cancel 只
+  /// 作用于系统 ASR 网关，不吞端侧面板），再把端侧转写结果透传为面板
+  /// 返回值——下游管线（_handleTranscript）对两条路径完全同构。
+  /// 端侧面板取消 → 整个语音流程静默结束（用户可重新点语音记）。
+  Future<void> _switchToOnDevice() async {
+    // 端侧录音走 record 插件的麦克风权限（与系统 ASR 初始化时的申请
+    // 同口径确认一次；拒绝则静默关闭，键盘输入永远可用）。
+    final recorder = ref.read(audioRecorderGatewayProvider);
+    await widget.gateway.cancel();
+    if (!mounted) return;
+    final permitted = await recorder.ensurePermission();
+    if (!mounted) return;
+    if (!permitted) {
+      Navigator.of(context).pop();
+      return;
+    }
+    final transcript = await showModalBottomSheet<VoiceTranscript>(
+      context: context,
+      isDismissible: false,
+      builder: (_) => const OnDeviceRecordingSheet(),
+    );
+    if (!mounted) return;
+    // null（端侧面板取消）也关闭本面板：系统听写已取消，面板留在原地
+    // 只剩错误态没有意义。
+    Navigator.of(context).pop(transcript);
+  }
+
   /// 提示配色：良性（没听清/超时）弱化，识别不可用用警示红。
   Color _statusColor(AppColors colors) {
     final error = _error;
@@ -383,6 +421,26 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
                 _statusText(s)!,
                 style: textStyles.textSm.copyWith(color: _statusColor(colors)),
               ),
+              // 逃生舱：致命错误/静默超时 + 端侧 ASR 就绪 → 一键切离线模型
+              //（良性「没听清」不给按钮，重说即可；端侧未就绪保持现状）。
+              if (_escapeTriggered && _onDeviceAsrReady) ...<Widget>[
+                const SizedBox(height: AppSpacing.s2),
+                SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: () => unawaited(_switchToOnDevice()),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.brandPrimary,
+                      side: BorderSide(color: colors.brandPrimary),
+                    ),
+                    icon: const Icon(Icons.offline_bolt_outlined),
+                    label: Text(
+                      s.voiceUseOnDeviceAsr,
+                      style: textStyles.textBase,
+                    ),
+                  ),
+                ),
+              ],
             ],
             const SizedBox(height: AppSpacing.s4),
             Row(

@@ -206,6 +206,9 @@ final class RecordStrings {
   /// record.voice.transcribeFailed
   String get voiceTranscribeFailed => _t.record.voice.transcribeFailed;
 
+  /// record.voice.useOnDeviceAsr
+  String get voiceUseOnDeviceAsr => _t.record.voice.useOnDeviceAsr;
+
   /// record.voice.noSpeechHint
   String get voiceNoSpeechHint => _t.record.voice.noSpeechHint;
 

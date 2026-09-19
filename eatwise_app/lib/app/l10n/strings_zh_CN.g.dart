@@ -1065,6 +1065,9 @@ class Translations$record$voice$zh_CN {
 
 	/// zh-CN: '没转写出来，再录一次，或点右边键盘图标打字'
 	String get transcribeFailed => '没转写出来，再录一次，或点右边键盘图标打字';
+
+	/// zh-CN: '用离线小模型识别'
+	String get useOnDeviceAsr => '用离线小模型识别';
 }
 
 // Path: record.frequent
@@ -4194,6 +4197,7 @@ extension on Translations {
 			'record.voice.recordingNow' => '正在录音… 再点一下停止',
 			'record.voice.transcribingNow' => '转写中…',
 			'record.voice.transcribeFailed' => '没转写出来，再录一次，或点右边键盘图标打字',
+			'record.voice.useOnDeviceAsr' => '用离线小模型识别',
 			'record.frequent.title' => '常吃的食物',
 			'record.frequent.empty' => '多记几笔，常吃榜就出来啦',
 			'record.frequent.emptyCta' => '去搜一搜',
@@ -4489,9 +4493,9 @@ extension on Translations {
 			'reports.weeklySummary.title' => '上周小结',
 			'reports.weeklySummary.chipQualified' => ({required Object days}) => '达标 ${days} 天',
 			'reports.weeklySummary.chipRecorded' => ({required Object days}) => '记录 ${days} 天',
-			'reports.weeklySummary.chipAvgKcal' => ({required Object kcal, required Object target}) => '平均 ${kcal} · 目标 ${target} 千卡',
 			_ => null,
 		} ?? switch (path) {
+			'reports.weeklySummary.chipAvgKcal' => ({required Object kcal, required Object target}) => '平均 ${kcal} · 目标 ${target} 千卡',
 			'reports.weeklySummary.chipWeight' => ({required Object kg}) => '体重 ${kg} 公斤',
 			'reports.weeklySummary.fastingPlain' => ({required Object days}) => '上周断食达标 ${days} 天',
 			'reports.weeklySummary.fastingMore' => ({required Object days, required Object delta}) => '上周断食达标 ${days} 天，比前周多 ${delta} 天',

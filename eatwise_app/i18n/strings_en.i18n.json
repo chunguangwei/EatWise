@@ -292,7 +292,8 @@
       "errorGeneric": "Voice recognition unavailable — tap the keyboard icon to type instead",
       "recordingNow": "Recording… tap again to stop",
       "transcribingNow": "Transcribing…",
-      "transcribeFailed": "Couldn't transcribe — record again or type with the keyboard icon"
+      "transcribeFailed": "Couldn't transcribe — record again or type with the keyboard icon",
+      "useOnDeviceAsr": "Use offline model"
     },
     "frequent": {
       "title": "Frequently logged",
