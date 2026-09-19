@@ -287,7 +287,9 @@
       "noMatch": "Couldn't catch the food — try rephrasing or search manually",
       "typeInput": "Type instead",
       "typeHint": "Say it in one line, e.g. \"beef noodle soup and an egg for lunch\"",
-      "understanding": "Understanding…"
+      "understanding": "Understanding…",
+      "noSpeechHint": "Didn't catch that — try again, or tap the keyboard icon to type",
+      "errorGeneric": "Voice recognition unavailable — tap the keyboard icon to type instead"
     },
     "frequent": {
       "title": "Frequently logged",

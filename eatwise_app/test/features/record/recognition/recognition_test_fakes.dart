@@ -36,6 +36,7 @@ final class FakeFoodRecognitionService implements FoodRecognitionService {
 final class FakeSpeechGateway implements SpeechGateway {
   bool available = true;
   void Function(String text)? onText;
+  void Function(String error)? onError;
   bool cancelled = false;
 
   @override
@@ -44,9 +45,11 @@ final class FakeSpeechGateway implements SpeechGateway {
   @override
   Future<void> start({
     required void Function(String text) onText,
+    void Function(String error)? onError,
     required String localeId,
   }) async {
     this.onText = onText;
+    this.onError = onError;
   }
 
   @override

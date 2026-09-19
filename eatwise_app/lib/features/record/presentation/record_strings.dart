@@ -197,6 +197,12 @@ final class RecordStrings {
   /// record.voice.understanding
   String get voiceUnderstanding => _t.record.voice.understanding;
 
+  /// record.voice.noSpeechHint
+  String get voiceNoSpeechHint => _t.record.voice.noSpeechHint;
+
+  /// record.voice.errorGeneric
+  String get voiceErrorGeneric => _t.record.voice.errorGeneric;
+
   /// record.frequent.title
   String get frequentTitle => _t.record.frequent.title;
 

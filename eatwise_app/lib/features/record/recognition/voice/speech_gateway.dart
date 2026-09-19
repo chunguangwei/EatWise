@@ -10,8 +10,12 @@ abstract interface class SpeechGateway {
 
   /// 开始听写；[onText] 回传实时部分结果与最终结果。
   /// [localeId] 如 zh_CN / en_US（D-15 跟随 App 语言）。
+  /// [onError] 回传系统 ASR 错误（errorMsg 如 error_no_match /
+  /// error_speech_timeout / error_network，由 UI 决定如何提示）——
+  /// 无 GMS 等 ROM 上 listen 可能静默无结果，错误必须透传，不能干等。
   Future<void> start({
     required void Function(String text) onText,
+    void Function(String error)? onError,
     required String localeId,
   });
 
@@ -29,10 +33,16 @@ final class SpeechToTextGateway implements SpeechGateway {
 
   final SpeechToText _speech;
 
+  /// 最近一次 start() 传入的错误回调。speech_to_text 7.x 的 onError
+  /// 挂在 initialize() 上而非 listen()，故先存字段、initialize 时注册。
+  void Function(String error)? _onError;
+
   @override
   Future<bool> initialize() async {
     try {
-      return await _speech.initialize();
+      return await _speech.initialize(
+        onError: (error) => _onError?.call(error.errorMsg),
+      );
     } on Object {
       // 平台通道缺失（如无 Google 服务的 ROM）→ 视为不可用，走降级。
       return false;
@@ -42,8 +52,10 @@ final class SpeechToTextGateway implements SpeechGateway {
   @override
   Future<void> start({
     required void Function(String text) onText,
+    void Function(String error)? onError,
     required String localeId,
   }) {
+    _onError = onError;
     return _speech.listen(
       onResult: (result) => onText(result.recognizedWords),
       listenOptions: SpeechListenOptions(

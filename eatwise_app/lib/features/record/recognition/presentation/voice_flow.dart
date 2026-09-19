@@ -214,12 +214,24 @@ class _VoiceListeningSheet extends ConsumerStatefulWidget {
 class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
   String _text = '';
 
+  /// 系统 ASR 错误（errorMsg 原值，如 error_no_match / error_network）。
+  /// 无 GMS ROM 上 listen 可能不出结果只报错，必须显式呈现。
+  String? _error;
+
+  /// 听写开始后长时间无任何回传（静默失败兜底提示）。
+  bool _noResultHint = false;
+  Timer? _noResultTimer;
+
+  /// 无任何识别结果多久后给出提示（错误回调优先，此为静默失败兜底）。
+  static const Duration kNoResultHintDelay = Duration(seconds: 6);
+
   /// 键盘输入模式（纯文本自由记入口：听写面板内一键切换，最小 UI 改动）。
   bool _typing = false;
   final TextEditingController _typeController = TextEditingController();
 
   @override
   void dispose() {
+    _noResultTimer?.cancel();
     _typeController.dispose();
     super.dispose();
   }
@@ -233,8 +245,38 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
         onText: (text) {
           if (mounted) setState(() => _text = text);
         },
+        onError: (error) {
+          if (mounted) setState(() => _error = error);
+        },
       ),
     );
+    _noResultTimer = Timer(kNoResultHintDelay, () {
+      if (mounted && _text.isEmpty && _error == null && !_typing) {
+        setState(() => _noResultHint = true);
+      }
+    });
+  }
+
+  /// 听写状态下的提示文案：ASR 错误优先，其次静默超时兜底。
+  /// error_no_match / error_speech_timeout 属「没听清」良性错误，与其余
+  /// 「识别不可用」分桶提示；两桶都引导键盘切换（永远可用）。
+  String? _statusText(RecordStrings s) {
+    final error = _error;
+    if (error != null) {
+      const benign = <String>{'error_no_match', 'error_speech_timeout'};
+      return benign.contains(error) ? s.voiceNoSpeechHint : s.voiceErrorGeneric;
+    }
+    return _noResultHint ? s.voiceNoSpeechHint : null;
+  }
+
+  /// 提示配色：良性（没听清/超时）弱化，识别不可用用警示红。
+  Color _statusColor(AppColors colors) {
+    final error = _error;
+    final benign =
+        error == null ||
+        error == 'error_no_match' ||
+        error == 'error_speech_timeout';
+    return benign ? colors.textSecondary : colors.signalRed;
   }
 
   @override
@@ -295,6 +337,14 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
                 ),
               ],
             ),
+            // 听写异常/静默超时提示（键盘切换入口就在右上角，永远可降级）。
+            if (!_typing && _statusText(s) != null) ...<Widget>[
+              const SizedBox(height: AppSpacing.s2),
+              Text(
+                _statusText(s)!,
+                style: textStyles.textSm.copyWith(color: _statusColor(colors)),
+              ),
+            ],
             const SizedBox(height: AppSpacing.s4),
             Row(
               children: <Widget>[

@@ -620,6 +620,8 @@ class _Translations$record$voice$en extends Translations$record$voice$zh_CN {
 	@override String get typeInput => 'Type instead';
 	@override String get typeHint => 'Say it in one line, e.g. "beef noodle soup and an egg for lunch"';
 	@override String get understanding => 'Understanding…';
+	@override String get noSpeechHint => 'Didn\'t catch that — try again, or tap the keyboard icon to type';
+	@override String get errorGeneric => 'Voice recognition unavailable — tap the keyboard icon to type instead';
 }
 
 // Path: record.frequent
@@ -2400,6 +2402,8 @@ extension on TranslationsEn {
 			'record.voice.typeInput' => 'Type instead',
 			'record.voice.typeHint' => 'Say it in one line, e.g. "beef noodle soup and an egg for lunch"',
 			'record.voice.understanding' => 'Understanding…',
+			'record.voice.noSpeechHint' => 'Didn\'t catch that — try again, or tap the keyboard icon to type',
+			'record.voice.errorGeneric' => 'Voice recognition unavailable — tap the keyboard icon to type instead',
 			'record.frequent.title' => 'Frequently logged',
 			'record.frequent.empty' => 'Log a few more meals and your usuals will show up here',
 			'record.frequent.emptyCta' => 'Search instead',
@@ -2699,10 +2703,10 @@ extension on TranslationsEn {
 			'reports.weeklySummary.fastingPlain' => ({required Object days}) => 'You hit your fasting goal on ${days} of 7 days last week',
 			'reports.weeklySummary.fastingMore' => ({required Object days, required Object delta}) => 'You hit your fasting goal on ${days} of 7 days last week, ${delta} more than the week before',
 			'reports.weeklySummary.fastingLess' => ({required Object days, required Object delta}) => 'You hit your fasting goal on ${days} of 7 days last week, ${delta} fewer than the week before',
-			'reports.weeklySummary.fastingSame' => ({required Object days}) => 'You hit your fasting goal on ${days} of 7 days last week, the same as the week before',
-			'reports.weeklySummary.intakeWithin' => ({required Object kcal}) => 'average intake was ${kcal} kcal a day, within your target range',
 			_ => null,
 		} ?? switch (path) {
+			'reports.weeklySummary.fastingSame' => ({required Object days}) => 'You hit your fasting goal on ${days} of 7 days last week, the same as the week before',
+			'reports.weeklySummary.intakeWithin' => ({required Object kcal}) => 'average intake was ${kcal} kcal a day, within your target range',
 			'reports.weeklySummary.intakeAbove' => ({required Object kcal, required Object percent}) => 'average intake was ${kcal} kcal a day, ${percent}% above target',
 			'reports.weeklySummary.intakeBelow' => ({required Object kcal, required Object percent}) => 'average intake was ${kcal} kcal a day, ${percent}% below target',
 			'reports.weeklySummary.weightUp' => ({required Object kg}) => 'weight went up ${kg} kg over the week',

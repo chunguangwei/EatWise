@@ -124,4 +124,41 @@ void main() {
     expect(foods, hasLength(601));
     expect(foods.map((f) => f.id), contains('f-birdnest'));
   });
+
+  testWidgets('ASR 错误透传：识别不可用时给出可降级的提示', (tester) async {
+    await pumpPage(tester);
+
+    await tester.tap(find.text('语音记'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    speechGateway.onError!('error_network');
+    await tester.pump();
+
+    expect(find.text('语音识别不可用，点右边键盘图标打字输入'), findsOneWidget);
+    await settleUi(tester);
+  });
+
+  testWidgets('良性错误分桶：没听清提示重说而非报错', (tester) async {
+    await pumpPage(tester);
+
+    await tester.tap(find.text('语音记'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    speechGateway.onError!('error_no_match');
+    await tester.pump();
+
+    expect(find.text('没听清，请再说一次，或点右边键盘图标打字'), findsOneWidget);
+    await settleUi(tester);
+  });
+
+  testWidgets('静默失败兜底：6 秒无任何回传给出提示', (tester) async {
+    await pumpPage(tester);
+
+    await tester.tap(find.text('语音记'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 6));
+
+    expect(find.text('没听清，请再说一次，或点右边键盘图标打字'), findsOneWidget);
+    await settleUi(tester);
+  });
 }
