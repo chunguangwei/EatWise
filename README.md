@@ -71,9 +71,9 @@ python3 eatwise_data/scripts/build_seed.py       # 生成 foods.seed.json + 校�
 
 ## 发版与更新
 
-- **发版**：`git tag v1.x.x && git push origin v1.x.x` → release 流水线自动构建 APK 并创建 GitHub Release。
-- **App 内更新提醒**：客户端经服务端 `/v1/app/version/latest` 检查更新（服务端代理 GitHub Releases，token 配置在服务端 env `GITHUB_RELEASE_TOKEN`），有更新弹窗提示，支持强制更新（`APP_MIN_SUPPORTED_VERSION`）。
-- 当前 APK 为 debug 签名（内部测试）；正式分发前需配置 release keystore（release.yml 内已留 TODO）。
+- **发版**：`git tag v1.x.x && git push origin v1.x.x` → release 流水线自动构建 APK（显式签名 + 指纹断言防漂移）并创建 GitHub Release（notes 取自提交摘要）。
+- **App 内更新提醒**：安卓客户端直连 GitHub `releases/latest` 检查更新，弹窗展示更新日志，端内下载（断点续传/重试/保活，VPS 托管兜底）；iOS 走 App Store，不发更新提示。
+- 当前 APK 为 debug 签名（内部测试，CI 与本机同一把 key）；正式分发前需配置 release keystore（release.yml 内已留 TODO）。
 
 ## 环境与构建注意事项（踩坑记录）
 
@@ -85,9 +85,9 @@ python3 eatwise_data/scripts/build_seed.py       # 生成 foods.seed.json + 校�
 
 ## 当前状态
 
-- **功能**：M1–M6 全部落地（新手引导/断食计时/快捷记录/营养信号灯/streak 与社区/趋势报告），账号同步、无障碍贯穿、隐私合规基础、双端构建与 CI 门禁齐备；AI 估算两级链路：端侧小模型 → 用户自配模型（设置 → AI 模型，OpenAI 兼容端点如局域网 Ollama），两级都不可用提示手动填写，无服务端兜底（规格见 `docs/specs/规格-用户自定义LLM估算-v1.0.md`）。
-- **测试**：App 508 条全绿；服务端 137 单测 + 70 e2e 全绿（Prisma 集成测试 CI 真跑）。
-- **发版**：最新 v1.0.9（GitHub Releases）。
+- **功能**：M1–M6 全部落地（新手引导/断食计时/快捷记录/营养信号灯/streak 与社区/趋势报告），账号同步、无障碍贯穿、隐私合规基础、双端构建与 CI 门禁齐备；AI 估算两级链路：端侧小模型 → 用户自配模型（设置 → AI 模型，OpenAI 兼容端点如局域网 Ollama），两级都不可用提示手动填写，无服务端兜底（规格见 `docs/specs/规格-用户自定义LLM估算-v1.0.md`）；端侧能力含拍照识别（未收录食品模糊匹配+送审乐观入账）、端侧语音转写（系统 ASR 不可用兜底）；步数随运动记录落库。
+- **测试**：App 1151 条全绿；服务端 216 单测 + 127 e2e 全绿（Prisma 集成测试 CI 真跑）。
+- **发版**：最新 v1.12.4（GitHub Releases）。
 
 ### 待外部确认（不阻塞开发，阻塞上线）
 
