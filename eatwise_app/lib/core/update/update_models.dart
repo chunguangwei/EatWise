@@ -31,6 +31,42 @@ final class AppVersionInfo {
     );
   }
 
+  /// 自托管兜底下载地址（VPS apk-sync 托管的最新包）。更新检测直连
+  /// GitHub 后不经服务端下发，兜底地址为客户端常量。
+  static const String selfHostedApkFallbackUrl =
+      'https://wcg.polin.tech:8443/downloads/eatwise-latest.apk';
+
+  /// 从 GitHub `releases/latest` 原始 JSON 解析（2026-09-19 起更新检测
+  /// 直连 GitHub：仓库 public 匿名可读，不再经服务端代理；下载仍走
+  /// 端内 UpdateDownloader，主链 GitHub CDN + 自托管兜底续传）。
+  /// Release body 单语 zh/en 同填；最低支持版本无下发渠道，常量 1.0.0
+  /// 兜底（强制更新阈值〔假设〕）。
+  factory AppVersionInfo.fromGitHubRelease(Map<String, dynamic> json) {
+    final tag = json['tag_name'] as String? ?? '';
+    final body = json['body'] as String? ?? '';
+    String? apkUrl;
+    final assets = json['assets'];
+    if (assets is List) {
+      for (final asset in assets) {
+        if (asset is Map<String, dynamic> &&
+            (asset['name'] as String? ?? '').endsWith('.apk')) {
+          apkUrl = asset['browser_download_url'] as String?;
+          break;
+        }
+      }
+    }
+    return AppVersionInfo(
+      latestVersion: tag.replaceFirst(RegExp('^v', caseSensitive: false), ''),
+      minSupportedVersion: '1.0.0',
+      releaseNotesZh: body,
+      releaseNotesEn: body,
+      apkUrl: apkUrl,
+      apkUrlFallback: selfHostedApkFallbackUrl,
+      publishedAt: json['published_at'] as String?,
+      source: 'github',
+    );
+  }
+
   final String latestVersion;
   final String minSupportedVersion;
   final String releaseNotesZh;

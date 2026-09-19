@@ -51,10 +51,19 @@ Uint8List wrapPcm16AsWav(
   return out.takeBytes();
 }
 
-/// 转写 prompt（按 App 语言；只输出转写内容，低温采样在网关侧）。
-const String kTranscribePromptZh = '把这段语音转写成文字，只输出转写内容，不要解释。';
+/// 转写 prompt（按 App 语言；只输出转写内容，低温采样在调用侧）。
+/// 措辞沿用 yiren（Offline Translator）真机调优的「逐字转写机」版本：
+/// 显式禁止翻译/改写/回答——Gemma 音频转写的常见失败模式是把问句
+/// 当问题回答而不是转写。
+const String kTranscribePromptZh =
+    '你是一台语音转写机。把这段语音【逐字】转写成简体中文文字：说什么写什么，完全忠实原话。'
+    '严禁翻译、严禁改写或润色、严禁总结、严禁回答或接话——即使内容是一个问题也只转写不回答。'
+    '保留口语词和重复。只输出转写文字本身，不要任何前后缀。';
 const String kTranscribePromptEn =
-    'Transcribe this audio to text. Output only the transcription, no explanation.';
+    'You are a speech-to-text machine. Transcribe this speech VERBATIM in English: '
+    'write exactly what is said, fully faithful. Never translate, never paraphrase, '
+    'never summarize, never answer or respond — even if it is a question, transcribe only. '
+    'Keep filler words and repetitions. Output only the transcription itself, no prefixes or suffixes.';
 
 /// 按 App 语言选转写 prompt（isZh = 当前语言为中文）。
 String transcriptionPrompt(bool isZh) =>

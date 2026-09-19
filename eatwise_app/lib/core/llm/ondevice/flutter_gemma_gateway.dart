@@ -117,6 +117,7 @@ final class FlutterGemmaGateway implements OnDeviceLlmGateway {
     int maxOutputTokens = 96,
     double temperature = 0.15,
     int topK = 1,
+    double? topP,
     int seed = 42,
   }) {
     return _runChat(
@@ -138,6 +139,7 @@ final class FlutterGemmaGateway implements OnDeviceLlmGateway {
     int maxOutputTokens = 96,
     double temperature = 0.15,
     int topK = 1,
+    double? topP,
     int seed = 42,
   }) {
     return _runChat(
@@ -159,6 +161,7 @@ final class FlutterGemmaGateway implements OnDeviceLlmGateway {
     int maxOutputTokens = 96,
     double temperature = 0.15,
     int topK = 1,
+    double? topP,
     int seed = 42,
   }) {
     return _runChat(
@@ -181,6 +184,7 @@ final class FlutterGemmaGateway implements OnDeviceLlmGateway {
     required int maxOutputTokens,
     required double temperature,
     required int topK,
+    double? topP,
     required int seed,
   }) {
     return _serialized(() async {
@@ -206,6 +210,7 @@ final class FlutterGemmaGateway implements OnDeviceLlmGateway {
         chat = await model.createChat(
           temperature: temperature,
           topK: topK,
+          topP: topP,
           randomSeed: seed,
           systemInstruction: systemInstruction ?? '',
           maxOutputTokens: maxOutputTokens,

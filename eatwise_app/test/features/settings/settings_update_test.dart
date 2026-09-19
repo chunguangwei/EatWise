@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/consent_store.dart';
@@ -46,18 +47,19 @@ void main() {
     await LocaleSettings.setLocale(AppLocale.zhCn);
   });
 
-  Map<String, dynamic> versionEnvelope({
-    String latest = '1.2.0',
-    String min = '1.0.0',
-  }) {
-    return StubResponse.envelope(<String, dynamic>{
-      'latestVersion': latest,
-      'minSupportedVersion': min,
-      'releaseNotes': <String, String>{'zh': '- 新增更新检查', 'en': '- Update'},
-      'apkUrl': 'https://example.com/app.apk',
-      'publishedAt': null,
-      'source': 'github',
-    });
+  Map<String, dynamic> githubRelease({String tag = 'v1.2.0'}) {
+    return <String, dynamic>{
+      'tag_name': tag,
+      'body': '- 新增更新检查',
+      'published_at': null,
+      'assets': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'name': 'eatwise-$tag.apk',
+          'browser_download_url':
+              'https://github.com/chunguangwei/EatWise/releases/download/$tag/eatwise-$tag.apk',
+        },
+      ],
+    };
   }
 
   Future<void> pumpSettings(
@@ -107,14 +109,15 @@ void main() {
             currentAppVersionProvider.overrideWithValue(
               () async => currentVersion,
             ),
-            if (platform != null)
-              updateCheckerProvider.overrideWith(
-                (ref) => UpdateChecker(
-                  dio: ref.watch(apiDioProvider),
-                  currentVersion: ref.watch(currentAppVersionProvider),
-                  platform: platform,
-                ),
+            // 更新检查直连 GitHub（裸 Dio + 假 adapter；默认 platform 解析
+            // 为 android），iOS 平台门场景显式传 platform。
+            updateCheckerProvider.overrideWith(
+              (ref) => UpdateChecker(
+                dio: Dio()..httpClientAdapter = adapter,
+                currentVersion: ref.watch(currentAppVersionProvider),
+                platform: platform,
               ),
+            ),
             dataExportServiceProvider.overrideWithValue(_FakeExportService()),
             accountDeletionServiceProvider.overrideWithValue(
               _FakeDeletionService(),
@@ -146,8 +149,8 @@ void main() {
 
   testWidgets('关于组含「检查更新」行；有更新弹更新弹窗', (tester) async {
     adapter.stub(
-      '/app/version/latest',
-      StubResponse.json(200, versionEnvelope()),
+      UpdateChecker.latestReleaseUrl,
+      StubResponse.json(200, githubRelease()),
     );
     await pumpSettings(tester, currentVersion: '1.0.0');
 
@@ -157,13 +160,13 @@ void main() {
     expect(find.text('最新版本：1.2.0'), findsOneWidget);
     expect(find.text('立即更新'), findsOneWidget);
     expect(find.text('以后再说'), findsOneWidget);
-    // 手动检查带 platform 查询参数。
-    expect(adapter.requestsTo('/app/version/latest'), 1);
+    // 直连 GitHub：无 platform 参数，带 GitHub API 头。
+    expect(adapter.requestsTo(UpdateChecker.latestReleaseUrl), 1);
     expect(
       adapter.requests
-          .firstWhere((r) => r.path == '/app/version/latest')
-          .queryParameters['platform'],
-      isNotNull,
+          .firstWhere((r) => r.path == UpdateChecker.latestReleaseUrl)
+          .headers['Accept'],
+      'application/vnd.github+json',
     );
 
     await unmount(tester);
@@ -176,14 +179,14 @@ void main() {
       DateTime.now().millisecondsSinceEpoch,
     );
     adapter.stub(
-      '/app/version/latest',
-      StubResponse.json(200, versionEnvelope()),
+      UpdateChecker.latestReleaseUrl,
+      StubResponse.json(200, githubRelease()),
     );
     await pumpSettings(tester, currentVersion: '1.0.0');
 
     await tapCheckUpdate(tester);
 
-    expect(adapter.requestsTo('/app/version/latest'), 1);
+    expect(adapter.requestsTo(UpdateChecker.latestReleaseUrl), 1);
     expect(find.text('发现新版本'), findsOneWidget);
 
     await unmount(tester);
@@ -191,8 +194,8 @@ void main() {
 
   testWidgets('已是最新：SnackBar 提示，不弹更新弹窗', (tester) async {
     adapter.stub(
-      '/app/version/latest',
-      StubResponse.json(200, versionEnvelope()),
+      UpdateChecker.latestReleaseUrl,
+      StubResponse.json(200, githubRelease()),
     );
     await pumpSettings(tester, currentVersion: '1.2.0');
 
@@ -205,7 +208,10 @@ void main() {
   });
 
   testWidgets('检查失败：SnackBar 提示稍后重试', (tester) async {
-    adapter.stub('/app/version/latest', StubResponse.networkError('offline'));
+    adapter.stub(
+      UpdateChecker.latestReleaseUrl,
+      StubResponse.networkError('offline'),
+    );
     await pumpSettings(tester, currentVersion: '1.0.0');
 
     await tapCheckUpdate(tester);
@@ -217,8 +223,8 @@ void main() {
 
   testWidgets('iOS 平台：有更新也不弹窗（提示「已是最新」、不发请求）', (tester) async {
     adapter.stub(
-      '/app/version/latest',
-      StubResponse.json(200, versionEnvelope()),
+      UpdateChecker.latestReleaseUrl,
+      StubResponse.json(200, githubRelease()),
     );
     await pumpSettings(tester, currentVersion: '1.0.0', platform: 'ios');
 
@@ -226,7 +232,7 @@ void main() {
 
     expect(find.text('发现新版本'), findsNothing);
     expect(find.text('当前已是最新版本'), findsOneWidget);
-    expect(adapter.requestsTo('/app/version/latest'), 0);
+    expect(adapter.requestsTo(UpdateChecker.latestReleaseUrl), 0);
 
     await unmount(tester);
   });

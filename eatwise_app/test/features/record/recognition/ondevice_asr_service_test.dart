@@ -157,6 +157,7 @@ final class _FakeGateway implements OnDeviceLlmGateway {
     int maxOutputTokens = 96,
     double temperature = 0.15,
     int topK = 1,
+    double? topP,
     int seed = 42,
   }) {
     throw UnimplementedError('本测试不走文本推理');
@@ -170,6 +171,7 @@ final class _FakeGateway implements OnDeviceLlmGateway {
     int maxOutputTokens = 96,
     double temperature = 0.15,
     int topK = 1,
+    double? topP,
     int seed = 42,
   }) {
     throw UnimplementedError('本测试不走视觉推理');
@@ -183,6 +185,7 @@ final class _FakeGateway implements OnDeviceLlmGateway {
     int maxOutputTokens = 96,
     double temperature = 0.15,
     int topK = 1,
+    double? topP,
     int seed = 42,
   }) async {
     lastPrompt = prompt;

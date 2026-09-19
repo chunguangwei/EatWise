@@ -331,6 +331,7 @@ final class _ControllableGateway implements OnDeviceLlmGateway {
     int maxOutputTokens = 96,
     double temperature = 0.15,
     int topK = 1,
+    double? topP,
     int seed = 42,
   }) {
     throw UnimplementedError('本测试只走视觉推理');
@@ -344,6 +345,7 @@ final class _ControllableGateway implements OnDeviceLlmGateway {
     int maxOutputTokens = 96,
     double temperature = 0.15,
     int topK = 1,
+    double? topP,
     int seed = 42,
   }) {
     throw UnimplementedError('本测试不走音频推理');
@@ -357,6 +359,7 @@ final class _ControllableGateway implements OnDeviceLlmGateway {
     int maxOutputTokens = 96,
     double temperature = 0.15,
     int topK = 1,
+    double? topP,
     int seed = 42,
   }) {
     inferCalled = true;

@@ -74,6 +74,7 @@ abstract interface class OnDeviceLlmGateway {
     int maxOutputTokens,
     double temperature,
     int topK,
+    double? topP,
     int seed,
   });
 
@@ -88,6 +89,7 @@ abstract interface class OnDeviceLlmGateway {
     int maxOutputTokens,
     double temperature,
     int topK,
+    double? topP,
     int seed,
   });
 
@@ -103,6 +105,7 @@ abstract interface class OnDeviceLlmGateway {
     int maxOutputTokens,
     double temperature,
     int topK,
+    double? topP,
     int seed,
   });
 

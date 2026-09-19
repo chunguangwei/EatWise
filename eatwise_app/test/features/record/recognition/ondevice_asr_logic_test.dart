@@ -80,14 +80,15 @@ void main() {
   });
 
   group('transcriptionPrompt', () {
-    test('中文 prompt：只输出转写内容', () {
-      expect(transcriptionPrompt(true), contains('转写成文字'));
-      expect(transcriptionPrompt(true), contains('不要解释'));
+    test('中文 prompt：逐字转写、禁止回答/翻译（yiren 口径）', () {
+      expect(transcriptionPrompt(true), contains('逐字'));
+      expect(transcriptionPrompt(true), contains('严禁回答'));
+      expect(transcriptionPrompt(true), contains('严禁翻译'));
     });
 
-    test('英文 prompt：output only transcription', () {
-      expect(transcriptionPrompt(false), contains('Transcribe'));
-      expect(transcriptionPrompt(false), contains('no explanation'));
+    test('英文 prompt：verbatim, transcribe only', () {
+      expect(transcriptionPrompt(false), contains('VERBATIM'));
+      expect(transcriptionPrompt(false), contains('transcribe only'));
     });
   });
 }

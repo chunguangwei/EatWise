@@ -2,8 +2,6 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
-import 'package:eatwise/core/network/api_client.dart';
-import 'package:eatwise/core/network/api_config.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/core/update/update_checker.dart';
 import 'package:eatwise/core/update/update_dialog.dart';
@@ -89,35 +87,35 @@ void main() {
     });
   });
 
-  group('UpdateChecker（走服务端 /app/version/latest）', () {
+  group('UpdateChecker（直连 GitHub releases/latest）', () {
     late FakeHttpAdapter adapter;
     late Dio dio;
 
     setUp(() {
       adapter = FakeHttpAdapter();
-      dio = createApiDio(config: ApiConfig());
-      dio.httpClientAdapter = adapter;
+      // 裸 Dio：不走服务端 baseUrl/信封拦截器。
+      dio = Dio()..httpClientAdapter = adapter;
     });
 
-    Map<String, dynamic> versionPayload({
-      String latest = '1.2.0',
-      String min = '1.0.0',
-    }) {
-      return StubResponse.envelope(<String, dynamic>{
-        'latestVersion': latest,
-        'minSupportedVersion': min,
-        'releaseNotes': <String, String>{'zh': '修复问题', 'en': 'Bug fixes'},
-        'apkUrl': 'https://example.com/app.apk',
-        'apkUrlFallback': 'https://fallback.example.com/app.apk',
-        'publishedAt': '2026-07-29T00:00:00Z',
-        'source': 'github',
-      });
+    Map<String, dynamic> githubRelease({String tag = 'v1.2.0'}) {
+      return <String, dynamic>{
+        'tag_name': tag,
+        'body': '修复问题',
+        'published_at': '2026-09-19T00:00:00Z',
+        'assets': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'name': 'eatwise-$tag.apk',
+            'browser_download_url':
+                'https://github.com/chunguangwei/EatWise/releases/download/$tag/eatwise-$tag.apk',
+          },
+        ],
+      };
     }
 
-    test('携带 platform 查询参数并解包信封', () async {
+    test('直连 GitHub：解析 release + 双语 notes + 自托管兜底常量', () async {
       adapter.stub(
-        '/app/version/latest',
-        StubResponse.json(200, versionPayload()),
+        UpdateChecker.latestReleaseUrl,
+        StubResponse.json(200, githubRelease()),
       );
       final checker = UpdateChecker(
         dio: dio,
@@ -127,20 +125,25 @@ void main() {
       final result = await checker.check();
       expect(result.status, UpdateStatus.available);
       expect(result.info.latestVersion, '1.2.0');
-      expect(result.info.apkUrl, 'https://example.com/app.apk');
+      expect(
+        result.info.apkUrl,
+        'https://github.com/chunguangwei/EatWise/releases/download/v1.2.0/eatwise-v1.2.0.apk',
+      );
       expect(
         result.info.apkUrlFallback,
-        'https://fallback.example.com/app.apk',
+        AppVersionInfo.selfHostedApkFallbackUrl,
       );
       expect(result.info.releaseNotesFor('zh-CN'), '修复问题');
-      expect(result.info.releaseNotesFor('en'), 'Bug fixes');
-      expect(adapter.requests.single.queryParameters['platform'], 'android');
+      expect(result.info.releaseNotesFor('en'), '修复问题');
+      final request = adapter.requests.single;
+      expect(request.path, UpdateChecker.latestReleaseUrl);
+      expect(request.headers['Accept'], 'application/vnd.github+json');
     });
 
-    test('已是最新 / 强制更新两态', () async {
+    test('已是最新', () async {
       adapter.stub(
-        '/app/version/latest',
-        StubResponse.json(200, versionPayload()),
+        UpdateChecker.latestReleaseUrl,
+        StubResponse.json(200, githubRelease()),
       );
       final upToDate = await UpdateChecker(
         dio: dio,
@@ -148,21 +151,13 @@ void main() {
         platform: 'android',
       ).check();
       expect(upToDate.status, UpdateStatus.upToDate);
-
-      adapter.stub(
-        '/app/version/latest',
-        StubResponse.json(200, versionPayload(min: '1.1.0')),
-      );
-      final forced = await UpdateChecker(
-        dio: dio,
-        currentVersion: () async => '1.0.0',
-        platform: 'android',
-      ).check();
-      expect(forced.status, UpdateStatus.forced);
     });
 
-    test('服务端异常向上抛（由调用方决定静默或提示）', () async {
-      adapter.stub('/app/version/latest', StubResponse.networkError('offline'));
+    test('GitHub 异常向上抛（由调用方决定静默或提示）', () async {
+      adapter.stub(
+        UpdateChecker.latestReleaseUrl,
+        StubResponse.networkError('offline'),
+      );
       final checker = UpdateChecker(
         dio: dio,
         currentVersion: () async => '1.0.0',
@@ -173,8 +168,8 @@ void main() {
 
     test('iOS 平台门：有更新也不发请求，直接报已是最新（不提示更新）', () async {
       adapter.stub(
-        '/app/version/latest',
-        StubResponse.json(200, versionPayload()),
+        UpdateChecker.latestReleaseUrl,
+        StubResponse.json(200, githubRelease()),
       );
       final checker = UpdateChecker(
         dio: dio,
@@ -223,24 +218,24 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final throttle = UpdateCheckThrottle(prefs);
       final adapter = FakeHttpAdapter();
-      final dio = createApiDio(config: ApiConfig());
-      dio.httpClientAdapter = adapter;
+      final dio = Dio()..httpClientAdapter = adapter;
       UpdateChecker checker(String current) => UpdateChecker(
         dio: dio,
         currentVersion: () async => current,
         platform: 'android',
       );
-      Map<String, dynamic> payload() => StubResponse.envelope(<String, dynamic>{
-        'latestVersion': '1.2.0',
-        'minSupportedVersion': '1.0.0',
-        'releaseNotes': <String, String>{'zh': '', 'en': ''},
-        'apkUrl': null,
-        'publishedAt': null,
-        'source': 'github',
-      });
+      Map<String, dynamic> payload() => <String, dynamic>{
+        'tag_name': 'v1.2.0',
+        'body': '',
+        'published_at': null,
+        'assets': const <Map<String, dynamic>>[],
+      };
 
       // 有更新：返回结果并记录检查时间。
-      adapter.stub('/app/version/latest', StubResponse.json(200, payload()));
+      adapter.stub(
+        UpdateChecker.latestReleaseUrl,
+        StubResponse.json(200, payload()),
+      );
       final coordinator = UpdateCheckCoordinator(
         checker: checker('1.0.0'),
         throttle: throttle,
@@ -250,12 +245,15 @@ void main() {
       expect(throttle.shouldCheck(), isFalse);
       // 节流内：直接跳过，不再请求。
       expect(await coordinator.checkOnStartup(), isNull);
-      expect(adapter.requestsTo('/app/version/latest'), 1);
+      expect(adapter.requestsTo(UpdateChecker.latestReleaseUrl), 1);
 
       // 已是最新：返回 null。
       SharedPreferences.setMockInitialValues(<String, Object>{});
       final prefs2 = await SharedPreferences.getInstance();
-      adapter.stub('/app/version/latest', StubResponse.json(200, payload()));
+      adapter.stub(
+        UpdateChecker.latestReleaseUrl,
+        StubResponse.json(200, payload()),
+      );
       final coordinator2 = UpdateCheckCoordinator(
         checker: checker('1.2.0'),
         throttle: UpdateCheckThrottle(prefs2),
@@ -265,7 +263,10 @@ void main() {
       // 网络异常：静默 null，不阻断启动。
       SharedPreferences.setMockInitialValues(<String, Object>{});
       final prefs3 = await SharedPreferences.getInstance();
-      adapter.stub('/app/version/latest', StubResponse.networkError('offline'));
+      adapter.stub(
+        UpdateChecker.latestReleaseUrl,
+        StubResponse.networkError('offline'),
+      );
       final coordinator3 = UpdateCheckCoordinator(
         checker: checker('1.0.0'),
         throttle: UpdateCheckThrottle(prefs3),
@@ -277,21 +278,15 @@ void main() {
       SharedPreferences.setMockInitialValues(<String, Object>{});
       final prefs = await SharedPreferences.getInstance();
       final adapter = FakeHttpAdapter();
-      final dio = createApiDio(config: ApiConfig());
-      dio.httpClientAdapter = adapter;
+      final dio = Dio()..httpClientAdapter = adapter;
       adapter.stub(
-        '/app/version/latest',
-        StubResponse.json(
-          200,
-          StubResponse.envelope(<String, dynamic>{
-            'latestVersion': '1.2.0',
-            'minSupportedVersion': '1.0.0',
-            'releaseNotes': <String, String>{'zh': '', 'en': ''},
-            'apkUrl': null,
-            'publishedAt': null,
-            'source': 'github',
-          }),
-        ),
+        UpdateChecker.latestReleaseUrl,
+        StubResponse.json(200, <String, dynamic>{
+          'tag_name': 'v1.2.0',
+          'body': '',
+          'published_at': null,
+          'assets': const <Map<String, dynamic>>[],
+        }),
       );
       final coordinator = UpdateCheckCoordinator(
         checker: UpdateChecker(

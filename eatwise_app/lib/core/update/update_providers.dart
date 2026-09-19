@@ -15,10 +15,11 @@ final currentAppVersionProvider = Provider<Future<String> Function()>((ref) {
   return () async => (await PackageInfo.fromPlatform()).version;
 });
 
-/// 更新检查器（dio 走全局装配：请求头/信封解包/错误映射）。
+/// 更新检查器（直连 GitHub releases/latest，**裸 Dio**——不走服务端
+/// baseUrl/信封/认证拦截；GitHub 为公共 CA 证书无需 pinning）。
 final updateCheckerProvider = Provider<UpdateChecker>((ref) {
   return UpdateChecker(
-    dio: ref.watch(apiDioProvider),
+    dio: Dio(),
     currentVersion: ref.watch(currentAppVersionProvider),
   );
 });

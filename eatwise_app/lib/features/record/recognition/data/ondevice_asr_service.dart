@@ -40,6 +40,10 @@ final class OnDeviceAsrService {
         transcriptionPrompt(isZh),
         wavBytes,
         maxOutputTokens: 256, // 转写文本额度（一句话级别）
+        // 采样参数沿用 yiren 真机调优值（低温+topK40+topP0.9，转写稳定性优先）。
+        temperature: 0.1,
+        topK: 40,
+        topP: 0.9,
       );
       final text = cleanTranscriptionOutput(raw);
       return text.isEmpty ? null : text;
