@@ -30,16 +30,22 @@ final class ExerciseLogRepository {
   final DateTime Function() _clock;
   final Random _random = Random();
 
+  /// 截图识别导入来源标记（[add] 的 source 参数取值）。
+  static const String sourceScreenshot = 'screenshot';
+
   /// 入账：立即落库（UI 经流即时刷新），返回新记录。
   ///
   /// [kcal] 为入账快照：MET 估算值或用户手改覆盖值，由调用方算好传入。
+  /// [durationMin] 允许 0（截图活动统计导入无时长口径）；手动录入由
+  /// UI 校验 > 0。[source] null = 手动录入，[sourceScreenshot] = 截图导入。
   Future<ExerciseLog> add({
     required String typeKey,
     required int durationMin,
     required double kcal,
+    String? source,
   }) async {
-    if (durationMin <= 0) {
-      throw ArgumentError.value(durationMin, 'durationMin', '时长必须大于 0');
+    if (durationMin < 0) {
+      throw ArgumentError.value(durationMin, 'durationMin', '时长不能为负');
     }
     if (kcal <= 0) {
       throw ArgumentError.value(kcal, 'kcal', '消耗必须大于 0');
@@ -54,6 +60,7 @@ final class ExerciseLogRepository {
         typeKey: Value(typeKey),
         durationMin: Value(durationMin),
         kcal: Value(kcal),
+        source: Value(source),
         localDate: Value(localDateKey(nowUtc)),
         createdAtUtc: Value(nowIso),
       ),

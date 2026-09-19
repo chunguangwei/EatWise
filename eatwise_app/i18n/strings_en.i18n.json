@@ -385,6 +385,22 @@
       "kcalValue": "${kcal} kcal",
       "deleteLabel": "Delete this exercise entry",
       "deleted": "Deleted",
+      "screenshot": {
+        "entryCamera": "Scan photo",
+        "entryGallery": "Import photo",
+        "recognizing": "Reading screenshot…",
+        "recognizingHint": "Extracting exercise data — large screenshots may take a few seconds",
+        "loadingModel": "Loading vision model…",
+        "unavailable": "Couldn't read this image — try a clearer screenshot",
+        "confirmTitleSummary": "Confirm activity data",
+        "confirmTitleWorkout": "Confirm exercise entry",
+        "stepsLabel": "Steps",
+        "distanceLabel": "Distance (km)",
+        "floorsLabel": "Elevation (m, display only)",
+        "activeKcalLabel": "Active calories (kcal)",
+        "burnLabel": "Counted burn (kcal)",
+        "pickTypeHint": "Type not recognized — please pick one manually"
+      },
       "types": {
         "walk": "Walking",
         "jog": "Jogging",
@@ -397,7 +413,8 @@
         "elliptical": "Elliptical",
         "hiking": "Hiking",
         "badminton": "Badminton",
-        "hiit": "HIIT"
+        "hiit": "HIIT",
+        "summary": "Activity summary"
       }
     },
     "home": {

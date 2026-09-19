@@ -257,11 +257,14 @@ class ExerciseLogs extends Table {
   /// 运动类型键（walk/jog/run/cycling/...，见 exercise_types.dart）。
   TextColumn get typeKey => text()();
 
-  /// 时长（分钟）。
+  /// 时长（分钟；截图活动统计导入无时长口径时为 0）。
   IntColumn get durationMin => integer()();
 
   /// 消耗快照（kcal；MET 估算或用户覆盖值）。
   RealColumn get kcal => real()();
+
+  /// 来源标记：null = 手动录入；'screenshot' = 截图识别导入。
+  TextColumn get source => text().nullable()();
 
   /// 归属日（本地时区 yyyy-MM-dd，当日合计聚合键，D-07 口径）。
   TextColumn get localDate => text()();

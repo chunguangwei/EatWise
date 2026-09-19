@@ -55,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -99,6 +99,12 @@ class AppDatabase extends _$AppDatabase {
       // v9：新增 ExerciseLogs（手动记运动，无 GMS 设备兜底；设备级纯本地）。
       if (from < 9) {
         await m.createTable(exerciseLogs);
+      }
+      // v10：ExerciseLogs 补来源标记（source 可空：null=手动录入，
+      // 'screenshot'=截图识别导入）。from<9 时 createTable 已按最新口径
+      // 建表（含 source 列），仅 v9 老库需补列（同 v3→v4 口径）。
+      if (from >= 9 && from < 10) {
+        await m.addColumn(exerciseLogs, exerciseLogs.source);
       }
     },
   );

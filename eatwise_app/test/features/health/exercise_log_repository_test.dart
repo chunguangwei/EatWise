@@ -28,15 +28,24 @@ void main() {
     expect(stored.localDate, '2026-09-19');
   });
 
-  test('入账校验：时长/热量 ≤ 0 抛 ArgumentError', () async {
+  test('入账校验：时长为负 / 热量 ≤ 0 抛 ArgumentError（时长 0 合法：截图汇总导入）', () async {
     expect(
-      () => repo.add(typeKey: 'jog', durationMin: 0, kcal: 100),
+      () => repo.add(typeKey: 'jog', durationMin: -1, kcal: 100),
       throwsArgumentError,
     );
     expect(
       () => repo.add(typeKey: 'jog', durationMin: 30, kcal: 0),
       throwsArgumentError,
     );
+    // 时长 0（截图活动统计导入无时长口径）+ 来源标记。
+    final imported = await repo.add(
+      typeKey: 'summary',
+      durationMin: 0,
+      kcal: 320,
+      source: ExerciseLogRepository.sourceScreenshot,
+    );
+    expect(imported.durationMin, 0);
+    expect(imported.source, 'screenshot');
   });
 
   test('今日合计：多条叠加，他日/他人不计入', () async {

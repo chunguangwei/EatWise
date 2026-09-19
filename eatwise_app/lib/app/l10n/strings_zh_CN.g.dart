@@ -1230,6 +1230,7 @@ class Translations$record$exercise$zh_CN {
 	/// zh-CN: '已删除'
 	String get deleted => '已删除';
 
+	late final Translations$record$exercise$screenshot$zh_CN screenshot = Translations$record$exercise$screenshot$zh_CN.internal(_root);
 	late final Translations$record$exercise$types$zh_CN types = Translations$record$exercise$types$zh_CN.internal(_root);
 }
 
@@ -3192,6 +3193,57 @@ class Translations$record$customFood$correction$zh_CN {
 	String get submit => '提交纠错';
 }
 
+// Path: record.exercise.screenshot
+class Translations$record$exercise$screenshot$zh_CN {
+	Translations$record$exercise$screenshot$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '拍照识别'
+	String get entryCamera => '拍照识别';
+
+	/// zh-CN: '相册导入'
+	String get entryGallery => '相册导入';
+
+	/// zh-CN: '识别截图中…'
+	String get recognizing => '识别截图中…';
+
+	/// zh-CN: '正在提取运动数据，截图大时可能要多等几秒'
+	String get recognizingHint => '正在提取运动数据，截图大时可能要多等几秒';
+
+	/// zh-CN: '正在加载视觉模型…'
+	String get loadingModel => '正在加载视觉模型…';
+
+	/// zh-CN: '没能识别这张图，换张清晰的截图试试'
+	String get unavailable => '没能识别这张图，换张清晰的截图试试';
+
+	/// zh-CN: '确认活动数据'
+	String get confirmTitleSummary => '确认活动数据';
+
+	/// zh-CN: '确认运动记录'
+	String get confirmTitleWorkout => '确认运动记录';
+
+	/// zh-CN: '步数（步）'
+	String get stepsLabel => '步数（步）';
+
+	/// zh-CN: '距离（公里）'
+	String get distanceLabel => '距离（公里）';
+
+	/// zh-CN: '爬楼（米，仅展示）'
+	String get floorsLabel => '爬楼（米，仅展示）';
+
+	/// zh-CN: '活动热量（千卡）'
+	String get activeKcalLabel => '活动热量（千卡）';
+
+	/// zh-CN: '计入消耗（千卡）'
+	String get burnLabel => '计入消耗（千卡）';
+
+	/// zh-CN: '截图里的类型没对上，请手动选择运动类型'
+	String get pickTypeHint => '截图里的类型没对上，请手动选择运动类型';
+}
+
 // Path: record.exercise.types
 class Translations$record$exercise$types$zh_CN {
 	Translations$record$exercise$types$zh_CN.internal(this._root);
@@ -3235,6 +3287,9 @@ class Translations$record$exercise$types$zh_CN {
 
 	/// zh-CN: 'HIIT'
 	String get hiit => 'HIIT';
+
+	/// zh-CN: '活动统计'
+	String get summary => '活动统计';
 }
 
 // Path: fasting.home.greeting
@@ -4124,6 +4179,20 @@ extension on Translations {
 			'record.exercise.kcalValue' => ({required Object kcal}) => '${kcal} 千卡',
 			'record.exercise.deleteLabel' => '删除该条运动记录',
 			'record.exercise.deleted' => '已删除',
+			'record.exercise.screenshot.entryCamera' => '拍照识别',
+			'record.exercise.screenshot.entryGallery' => '相册导入',
+			'record.exercise.screenshot.recognizing' => '识别截图中…',
+			'record.exercise.screenshot.recognizingHint' => '正在提取运动数据，截图大时可能要多等几秒',
+			'record.exercise.screenshot.loadingModel' => '正在加载视觉模型…',
+			'record.exercise.screenshot.unavailable' => '没能识别这张图，换张清晰的截图试试',
+			'record.exercise.screenshot.confirmTitleSummary' => '确认活动数据',
+			'record.exercise.screenshot.confirmTitleWorkout' => '确认运动记录',
+			'record.exercise.screenshot.stepsLabel' => '步数（步）',
+			'record.exercise.screenshot.distanceLabel' => '距离（公里）',
+			'record.exercise.screenshot.floorsLabel' => '爬楼（米，仅展示）',
+			'record.exercise.screenshot.activeKcalLabel' => '活动热量（千卡）',
+			'record.exercise.screenshot.burnLabel' => '计入消耗（千卡）',
+			'record.exercise.screenshot.pickTypeHint' => '截图里的类型没对上，请手动选择运动类型',
 			'record.exercise.types.walk' => '走路',
 			'record.exercise.types.jog' => '慢跑',
 			'record.exercise.types.run' => '快跑',
@@ -4136,6 +4205,7 @@ extension on Translations {
 			'record.exercise.types.hiking' => '爬山',
 			'record.exercise.types.badminton' => '羽毛球',
 			'record.exercise.types.hiit' => 'HIIT',
+			'record.exercise.types.summary' => '活动统计',
 			'record.home.title' => '记录',
 			'record.home.logMeal' => '记一笔',
 			'record.empty.title' => '肚子的故事还没写呢，点橙色按钮记一笔？',
@@ -4329,6 +4399,8 @@ extension on Translations {
 			'reports.weeklySummary.fastingLess' => ({required Object days, required Object delta}) => '上周断食达标 ${days} 天，比前周少 ${delta} 天',
 			'reports.weeklySummary.fastingSame' => ({required Object days}) => '上周断食达标 ${days} 天，与前周持平',
 			'reports.weeklySummary.intakeWithin' => ({required Object kcal}) => '平均每日摄入 ${kcal} 千卡，在目标范围内',
+			_ => null,
+		} ?? switch (path) {
 			'reports.weeklySummary.intakeAbove' => ({required Object kcal, required Object percent}) => '平均每日摄入 ${kcal} 千卡，比目标高 ${percent}%',
 			'reports.weeklySummary.intakeBelow' => ({required Object kcal, required Object percent}) => '平均每日摄入 ${kcal} 千卡，比目标低 ${percent}%',
 			'reports.weeklySummary.weightUp' => ({required Object kg}) => '体重上升 ${kg} 公斤',
@@ -4344,8 +4416,6 @@ extension on Translations {
 			'reports.monthly.avgFastingHoursMinutes' => ({required Object hours, required Object minutes}) => '平均断食 ${hours} 小时 ${minutes} 分钟',
 			'reports.monthly.kcalAvg' => ({required Object kcal, required Object target}) => '月均热量 ${kcal} 千卡 · 目标 ${target} 千卡',
 			'reports.monthly.macros' => ({required Object protein, required Object carbs, required Object fat}) => '蛋白质 ${protein}g · 碳水 ${carbs}g · 脂肪 ${fat}g',
-			_ => null,
-		} ?? switch (path) {
 			'reports.monthly.weightChange' => ({required Object value}) => '体重变化 ${value}',
 			'reports.monthly.empty' => '本月暂无记录',
 			'reports.monthly.emptyHint' => '记一笔饮食或完成一次断食，月报就会长出来～',

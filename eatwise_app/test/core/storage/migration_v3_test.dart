@@ -114,7 +114,7 @@ void main() {
     final db = AppDatabase(NativeDatabase(dbFile));
     addTearDown(() async => db.close());
 
-    expect(db.schemaVersion, 9);
+    expect(db.schemaVersion, 10);
 
     // 迁移后 water_logs 可写可读（v4 同步字段走默认值）。
     await db.waterLogDao.insertLog(
@@ -145,9 +145,9 @@ void main() {
     // v6 贡献状态字段默认 null（未贡献）。
     expect(food.contributionStatus, isNull);
 
-    // 升级后的 user_version 落为 9（重开不再重复迁移）。
+    // 升级后的 user_version 落为 10（重开不再重复迁移）。
     final versionRow = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(versionRow.data['user_version'], 9);
+    expect(versionRow.data['user_version'], 10);
   });
 }
 

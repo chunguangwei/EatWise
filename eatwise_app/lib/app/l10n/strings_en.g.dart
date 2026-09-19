@@ -740,6 +740,7 @@ class _Translations$record$exercise$en extends Translations$record$exercise$zh_C
 	@override String kcalValue({required Object kcal}) => '${kcal} kcal';
 	@override String get deleteLabel => 'Delete this exercise entry';
 	@override String get deleted => 'Deleted';
+	@override late final _Translations$record$exercise$screenshot$en screenshot = _Translations$record$exercise$screenshot$en._(_root);
 	@override late final _Translations$record$exercise$types$en types = _Translations$record$exercise$types$en._(_root);
 }
 
@@ -1786,6 +1787,29 @@ class _Translations$record$customFood$correction$en extends Translations$record$
 	@override String get submit => 'Submit correction';
 }
 
+// Path: record.exercise.screenshot
+class _Translations$record$exercise$screenshot$en extends Translations$record$exercise$screenshot$zh_CN {
+	_Translations$record$exercise$screenshot$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get entryCamera => 'Scan photo';
+	@override String get entryGallery => 'Import photo';
+	@override String get recognizing => 'Reading screenshot…';
+	@override String get recognizingHint => 'Extracting exercise data — large screenshots may take a few seconds';
+	@override String get loadingModel => 'Loading vision model…';
+	@override String get unavailable => 'Couldn\'t read this image — try a clearer screenshot';
+	@override String get confirmTitleSummary => 'Confirm activity data';
+	@override String get confirmTitleWorkout => 'Confirm exercise entry';
+	@override String get stepsLabel => 'Steps';
+	@override String get distanceLabel => 'Distance (km)';
+	@override String get floorsLabel => 'Elevation (m, display only)';
+	@override String get activeKcalLabel => 'Active calories (kcal)';
+	@override String get burnLabel => 'Counted burn (kcal)';
+	@override String get pickTypeHint => 'Type not recognized — please pick one manually';
+}
+
 // Path: record.exercise.types
 class _Translations$record$exercise$types$en extends Translations$record$exercise$types$zh_CN {
 	_Translations$record$exercise$types$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -1805,6 +1829,7 @@ class _Translations$record$exercise$types$en extends Translations$record$exercis
 	@override String get hiking => 'Hiking';
 	@override String get badminton => 'Badminton';
 	@override String get hiit => 'HIIT';
+	@override String get summary => 'Activity summary';
 }
 
 // Path: fasting.home.greeting
@@ -2456,6 +2481,20 @@ extension on TranslationsEn {
 			'record.exercise.kcalValue' => ({required Object kcal}) => '${kcal} kcal',
 			'record.exercise.deleteLabel' => 'Delete this exercise entry',
 			'record.exercise.deleted' => 'Deleted',
+			'record.exercise.screenshot.entryCamera' => 'Scan photo',
+			'record.exercise.screenshot.entryGallery' => 'Import photo',
+			'record.exercise.screenshot.recognizing' => 'Reading screenshot…',
+			'record.exercise.screenshot.recognizingHint' => 'Extracting exercise data — large screenshots may take a few seconds',
+			'record.exercise.screenshot.loadingModel' => 'Loading vision model…',
+			'record.exercise.screenshot.unavailable' => 'Couldn\'t read this image — try a clearer screenshot',
+			'record.exercise.screenshot.confirmTitleSummary' => 'Confirm activity data',
+			'record.exercise.screenshot.confirmTitleWorkout' => 'Confirm exercise entry',
+			'record.exercise.screenshot.stepsLabel' => 'Steps',
+			'record.exercise.screenshot.distanceLabel' => 'Distance (km)',
+			'record.exercise.screenshot.floorsLabel' => 'Elevation (m, display only)',
+			'record.exercise.screenshot.activeKcalLabel' => 'Active calories (kcal)',
+			'record.exercise.screenshot.burnLabel' => 'Counted burn (kcal)',
+			'record.exercise.screenshot.pickTypeHint' => 'Type not recognized — please pick one manually',
 			'record.exercise.types.walk' => 'Walking',
 			'record.exercise.types.jog' => 'Jogging',
 			'record.exercise.types.run' => 'Running',
@@ -2468,6 +2507,7 @@ extension on TranslationsEn {
 			'record.exercise.types.hiking' => 'Hiking',
 			'record.exercise.types.badminton' => 'Badminton',
 			'record.exercise.types.hiit' => 'HIIT',
+			'record.exercise.types.summary' => 'Activity summary',
 			'record.home.title' => 'Log',
 			'record.home.logMeal' => 'Log a bite',
 			'record.empty.title' => 'No food stories yet — tap the orange button to log your first bite?',
@@ -2661,6 +2701,8 @@ extension on TranslationsEn {
 			'reports.weeklySummary.fastingLess' => ({required Object days, required Object delta}) => 'You hit your fasting goal on ${days} of 7 days last week, ${delta} fewer than the week before',
 			'reports.weeklySummary.fastingSame' => ({required Object days}) => 'You hit your fasting goal on ${days} of 7 days last week, the same as the week before',
 			'reports.weeklySummary.intakeWithin' => ({required Object kcal}) => 'average intake was ${kcal} kcal a day, within your target range',
+			_ => null,
+		} ?? switch (path) {
 			'reports.weeklySummary.intakeAbove' => ({required Object kcal, required Object percent}) => 'average intake was ${kcal} kcal a day, ${percent}% above target',
 			'reports.weeklySummary.intakeBelow' => ({required Object kcal, required Object percent}) => 'average intake was ${kcal} kcal a day, ${percent}% below target',
 			'reports.weeklySummary.weightUp' => ({required Object kg}) => 'weight went up ${kg} kg over the week',
@@ -2676,8 +2718,6 @@ extension on TranslationsEn {
 			'reports.monthly.avgFastingHoursMinutes' => ({required Object hours, required Object minutes}) => 'Avg. fast ${hours} h ${minutes} m',
 			'reports.monthly.kcalAvg' => ({required Object kcal, required Object target}) => 'Avg ${kcal} kcal · goal ${target} kcal',
 			'reports.monthly.macros' => ({required Object protein, required Object carbs, required Object fat}) => 'Protein ${protein}g · Carbs ${carbs}g · Fat ${fat}g',
-			_ => null,
-		} ?? switch (path) {
 			'reports.monthly.weightChange' => ({required Object value}) => 'Weight change ${value}',
 			'reports.monthly.empty' => 'No records this month yet',
 			'reports.monthly.emptyHint' => 'Log a meal or finish a fast and your monthly report will bloom.',

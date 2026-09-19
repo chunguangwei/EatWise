@@ -12,8 +12,11 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/health/application/exercise_log_providers.dart';
 import 'package:eatwise/features/health/data/exercise_log_repository.dart';
 import 'package:eatwise/features/health/domain/exercise_types.dart';
+import 'package:eatwise/features/health/presentation/exercise_screenshot_flow.dart';
+import 'package:eatwise/features/health/presentation/exercise_type_names.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
+import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -117,26 +120,6 @@ Future<void> _undoSaved(
   }
 }
 
-/// 运动类型展示名（i18n key `record.exercise.types.<key>`；未知键原样回退，
-/// 向前兼容后续新增类型）。
-String exerciseTypeName(Translations t, String key) {
-  return switch (key) {
-    'walk' => t.record.exercise.types.walk,
-    'jog' => t.record.exercise.types.jog,
-    'run' => t.record.exercise.types.run,
-    'cycling' => t.record.exercise.types.cycling,
-    'swimming' => t.record.exercise.types.swimming,
-    'jumpRope' => t.record.exercise.types.jumpRope,
-    'yoga' => t.record.exercise.types.yoga,
-    'strength' => t.record.exercise.types.strength,
-    'elliptical' => t.record.exercise.types.elliptical,
-    'hiking' => t.record.exercise.types.hiking,
-    'badminton' => t.record.exercise.types.badminton,
-    'hiit' => t.record.exercise.types.hiit,
-    _ => key,
-  };
-}
-
 /// 记运动弹层：类型 chips 单选 + 时长输入 + 实时预估 kcal（可编辑覆盖）
 /// + 今日运动列表（可删）。
 class _ExerciseLogSheet extends ConsumerStatefulWidget {
@@ -224,6 +207,50 @@ class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(t.record.exercise.title, style: textStyles.textLg),
+              const SizedBox(height: AppSpacing.s2),
+              // 截图导入入口（华为运动健康「我的数据」/单次运动记录截图 →
+              // 端侧视觉识别 → 可编辑确认弹层；复用拍照记选图通道）。
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      key: const ValueKey<String>('exercise.screenshot.camera'),
+                      onPressed: () => unawaited(
+                        startExerciseScreenshotImport(
+                          context,
+                          ref,
+                          PhotoSource.camera,
+                        ),
+                      ),
+                      icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                      label: Text(
+                        t.record.exercise.screenshot.entryCamera,
+                        style: textStyles.textSm,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.s2),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      key: const ValueKey<String>(
+                        'exercise.screenshot.gallery',
+                      ),
+                      onPressed: () => unawaited(
+                        startExerciseScreenshotImport(
+                          context,
+                          ref,
+                          PhotoSource.gallery,
+                        ),
+                      ),
+                      icon: const Icon(Icons.photo_library_outlined, size: 18),
+                      label: Text(
+                        t.record.exercise.screenshot.entryGallery,
+                        style: textStyles.textSm,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: AppSpacing.s3),
               Text(
                 t.record.exercise.typeLabel,

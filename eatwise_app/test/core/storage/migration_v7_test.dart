@@ -94,7 +94,7 @@ void main() {
     final db = AppDatabase(NativeDatabase(dbFile));
     addTearDown(() async => db.close());
 
-    expect(db.schemaVersion, 9);
+    expect(db.schemaVersion, 10);
 
     // 历史行完整保留，新列默认 false。
     final entry = (await db.foodEntryDao.getByLocalId('l-1'))!;
@@ -109,9 +109,9 @@ void main() {
     );
     expect((await db.foodEntryDao.getByLocalId('l-1'))!.duringFast, isTrue);
 
-    // 升级后的 user_version 落为 9（重开不再重复迁移）。
+    // 升级后的 user_version 落为 10（重开不再重复迁移）。
     final versionRow = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(versionRow.data['user_version'], 9);
+    expect(versionRow.data['user_version'], 10);
   });
 }
 

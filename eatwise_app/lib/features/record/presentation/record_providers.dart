@@ -223,11 +223,11 @@ aiEngineGuideNavigatorProvider = Provider((ref) {
       context.push('/settings/ai-model');
 });
 
-/// 端侧识别能力是否可用（三服务共用判定：拍照识别/营养表 OCR/自由记）：
-/// 开关开且（快照明确 ready 或快照未出首帧——冷启动窗口期乐观，真实
-/// 就绪由服务内部 load 把关：模型真未下载 → load 抛缺失 → 各服务按自身
+/// 端侧识别能力是否可用（三服务共用判定：拍照识别/营养表 OCR/自由记/运动
+/// 截图识别）：开关开且（快照明确 ready 或快照未出首帧——冷启动窗口期乐观，
+/// 真实就绪由服务内部 load 把关：模型真未下载 → load 抛缺失 → 各服务按自身
 /// 降级路径处理，与 stub/回落同一兜底）。快照已出且未就绪 → false。
-bool _onDeviceRecognitionActive(Ref ref) {
+bool onDeviceRecognitionActive(Ref ref) {
   if (!ref.watch(onDeviceAiEnabledProvider)) return false;
   final snapshotAsync = ref.watch(onDeviceModelSnapshotProvider);
   return switch (snapshotAsync) {
@@ -243,7 +243,7 @@ bool _onDeviceRecognitionActive(Ref ref) {
 /// 走手动搜索兜底）。〔待外部确认：第三方食物识别 API 选型 M0 定〕
 final Provider<FoodRecognitionService> foodRecognitionServiceProvider =
     Provider<FoodRecognitionService>((ref) {
-      if (_onDeviceRecognitionActive(ref)) {
+      if (onDeviceRecognitionActive(ref)) {
         final manager = ref.watch(onDeviceModelManagerProvider);
         return OnDeviceFoodRecognitionService(
           gateway: ref.watch(onDeviceLlmGatewayProvider),
@@ -259,7 +259,7 @@ final Provider<FoodRecognitionService> foodRecognitionServiceProvider =
 /// （表单降级：自定义食物隐藏「拍营养表」入口，条码补录退回纯佐证照）。
 final Provider<OnDeviceNutritionLabelOcrService?>
 nutritionLabelOcrServiceProvider = Provider((ref) {
-  if (!_onDeviceRecognitionActive(ref)) return null;
+  if (!onDeviceRecognitionActive(ref)) return null;
   return OnDeviceNutritionLabelOcrService(
     gateway: ref.watch(onDeviceLlmGatewayProvider),
     modelPath: ref.watch(onDeviceModelManagerProvider).modelPath,
@@ -270,7 +270,7 @@ nutritionLabelOcrServiceProvider = Provider((ref) {
 /// （语音录入回落既有词典解析路径）。
 final Provider<OnDeviceFreeTextMealService?> freeTextMealServiceProvider =
     Provider((ref) {
-      if (!_onDeviceRecognitionActive(ref)) return null;
+      if (!onDeviceRecognitionActive(ref)) return null;
       final manager = ref.watch(onDeviceModelManagerProvider);
       return OnDeviceFreeTextMealService(
         gateway: ref.watch(onDeviceLlmGatewayProvider),

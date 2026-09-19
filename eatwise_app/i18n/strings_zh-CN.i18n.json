@@ -385,6 +385,22 @@
       "kcalValue": "${kcal} 千卡",
       "deleteLabel": "删除该条运动记录",
       "deleted": "已删除",
+      "screenshot": {
+        "entryCamera": "拍照识别",
+        "entryGallery": "相册导入",
+        "recognizing": "识别截图中…",
+        "recognizingHint": "正在提取运动数据，截图大时可能要多等几秒",
+        "loadingModel": "正在加载视觉模型…",
+        "unavailable": "没能识别这张图，换张清晰的截图试试",
+        "confirmTitleSummary": "确认活动数据",
+        "confirmTitleWorkout": "确认运动记录",
+        "stepsLabel": "步数（步）",
+        "distanceLabel": "距离（公里）",
+        "floorsLabel": "爬楼（米，仅展示）",
+        "activeKcalLabel": "活动热量（千卡）",
+        "burnLabel": "计入消耗（千卡）",
+        "pickTypeHint": "截图里的类型没对上，请手动选择运动类型"
+      },
       "types": {
         "walk": "走路",
         "jog": "慢跑",
@@ -397,7 +413,8 @@
         "elliptical": "椭圆机",
         "hiking": "爬山",
         "badminton": "羽毛球",
-        "hiit": "HIIT"
+        "hiit": "HIIT",
+        "summary": "活动统计"
       }
     },
     "home": {
