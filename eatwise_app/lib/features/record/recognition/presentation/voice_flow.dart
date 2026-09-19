@@ -10,10 +10,12 @@ import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
+import 'package:eatwise/features/record/recognition/domain/engine_availability.dart';
 import 'package:eatwise/features/record/recognition/domain/recognition_models.dart';
 import 'package:eatwise/features/record/recognition/presentation/ai_engine_guide_card.dart';
 import 'package:eatwise/features/record/recognition/presentation/ondevice_recording_sheet.dart';
 import 'package:eatwise/features/record/recognition/presentation/photo_meal_sheet.dart';
+import 'package:eatwise/features/record/recognition/presentation/voice_model_download_sheet.dart';
 import 'package:eatwise/features/record/recognition/voice/speech_gateway.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:flutter/material.dart';
@@ -54,6 +56,20 @@ void prewarmOnDeviceAsrEngine(WidgetRef ref) {
 /// 麦克风双权限，Android RECORD_AUDIO）；系统 ASR 可用的设备维持原路径。
 Future<void> startVoiceInput(BuildContext context, WidgetRef ref) async {
   final s = RecordStrings.of(context);
+  // 设备级记忆：系统 ASR 已确认不可用的设备（无 GMS），跳过系统听写
+  // 直达端侧路径——端侧就绪直接进录音面板（不走系统听写、不等 6s），
+  // 模型未下载直接弹引擎引导卡（内嵌下载带进度，完成自动回录音面板）。
+  if (ref.read(systemAsrBrokenProvider)) {
+    if (onDeviceRecognitionActiveFor(
+      ref.watch(onDeviceAiEnabledProvider),
+      ref.watch(onDeviceModelSnapshotProvider),
+    )) {
+      await _openOnDeviceRecording(context, ref, s);
+    } else if (!ref.read(aiEngineGuideDismissedProvider)) {
+      await _showVoiceEngineGuide(context, ref, s);
+    }
+    return;
+  }
   final gateway = ref.read(speechGatewayProvider);
   final available = await gateway.initialize();
   if (!context.mounted) return;
@@ -75,20 +91,7 @@ Future<void> startVoiceInput(BuildContext context, WidgetRef ref) async {
     ref.watch(onDeviceModelSnapshotProvider),
   )) {
     // 端侧模型就绪 → 端侧录音转写（权限首次用时申请，与系统 ASR 路径同口径）。
-    final recorder = ref.read(audioRecorderGatewayProvider);
-    final permitted = await recorder.ensurePermission();
-    if (!context.mounted) return;
-    if (!permitted) {
-      await _showVoiceDeniedCard(context, s);
-      return;
-    }
-    // 预热：面板打开前后台加载引擎（视觉+音频），用户点录音时引擎已热。
-    prewarmOnDeviceAsrEngine(ref);
-    transcript = await showModalBottomSheet<VoiceTranscript>(
-      context: context,
-      isDismissible: false,
-      builder: (_) => const OnDeviceRecordingSheet(),
-    );
+    transcript = await _openOnDeviceRecording(context, ref, s);
     // 面板内取消/转写失败放弃：静默返回（面板已给错误态，不打扰）。
   } else {
     // 模型未就绪 → 引擎引导卡（被会话抑制/有云端 API 时 → 现有降级卡）。
@@ -99,6 +102,68 @@ Future<void> startVoiceInput(BuildContext context, WidgetRef ref) async {
   // null = 用户取消听写/录音：静默返回，不动已输入内容。
   if (transcript == null || !context.mounted) return;
   await _handleTranscript(context, ref, s, transcript);
+}
+
+/// 打开端侧录音面板（权限首次用时申请 + 预热 + 面板），返回转写结果
+///（null = 权限拒绝已弹降级卡 / 用户取消）。两条端侧路径共用：
+/// 设备记忆直达 与 系统 ASR 不可用回落。
+Future<VoiceTranscript?> _openOnDeviceRecording(
+  BuildContext context,
+  WidgetRef ref,
+  RecordStrings s,
+) async {
+  final recorder = ref.read(audioRecorderGatewayProvider);
+  final permitted = await recorder.ensurePermission();
+  if (!context.mounted) return null;
+  if (!permitted) {
+    await _showVoiceDeniedCard(context, s);
+    return null;
+  }
+  // 预热：面板打开前后台加载引擎（视觉+音频），用户点录音时引擎已热。
+  prewarmOnDeviceAsrEngine(ref);
+  if (!context.mounted) return null;
+  return showModalBottomSheet<VoiceTranscript>(
+    context: context,
+    isDismissible: false,
+    builder: (_) => const OnDeviceRecordingSheet(),
+  );
+}
+
+/// 语音专属引擎引导（与拍照记同款引导卡文案，但「下载本地模型」不走
+/// 设置页——语音流程内嵌下载带进度，完成自动回录音面板，步骤最少）。
+Future<void> _showVoiceEngineGuide(
+  BuildContext context,
+  WidgetRef ref,
+  RecordStrings s,
+) async {
+  final action = await showAiEngineGuideCard(context, s);
+  if (!context.mounted) return;
+  switch (action) {
+    case AiEngineGuideAction.downloadModel:
+      final ready = await showModalBottomSheet<bool>(
+        context: context,
+        builder: (_) => const VoiceModelDownloadSheet(),
+      );
+      if (!context.mounted) return;
+      if (ready == true) {
+        // 等下载弹层退出动画完成再开录音面板：连续两个 ModalBottomSheet
+        // 时，先弹出弹层的退出动画会被暂停并残留（route isCurrent=false
+        // 但 widget 不销毁，Flutter 已知行为）。
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+        if (!context.mounted) return;
+        // 下载完成：顺畅回到语音——直接进端侧录音面板。
+        await _openOnDeviceRecording(context, ref, s);
+      }
+    case AiEngineGuideAction.configApi:
+      ref
+          .read(aiEngineGuideNavigatorProvider)
+          .call(context, AiEngineGuideTarget.cloudApi);
+    case AiEngineGuideAction.manualSearch:
+      // 本次会话不再弹（内存态，不持久化）+ 对焦搜索框。
+      ref.read(aiEngineGuideDismissedProvider.notifier).state = true;
+      ref.read(recordSearchPrefillProvider.notifier).state = '';
+    case null: // 遮罩关闭：原地不动
+  }
 }
 
 /// 转写文本 → 后续管线（系统 ASR 与端侧录音转写共用）：
@@ -311,15 +376,21 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
         onError: (error) {
           if (!mounted) return;
           setState(() => _error = error);
-          // 致命错误才预热（良性「没听清」重说即可，不值得加载 2GB 引擎）。
           const benign = <String>{'error_no_match', 'error_speech_timeout'};
-          if (!benign.contains(error)) _prewarmOnce();
+          if (!benign.contains(error)) {
+            // 致命错误：记设备级「系统 ASR 已坏」（下次点语音记直达端侧，
+            // 不再走系统听写白等）；同时预热端侧引擎。
+            ref.read(systemAsrBrokenProvider.notifier).setBroken(true);
+            _prewarmOnce();
+          }
         },
       ),
     );
     _noResultTimer = Timer(kNoResultHintDelay, () {
       if (mounted && _text.isEmpty && _error == null && !_typing) {
         setState(() => _noResultHint = true);
+        // 静默 6s 无结果：同样记设备级「系统 ASR 已坏」+ 预热端侧引擎。
+        ref.read(systemAsrBrokenProvider.notifier).setBroken(true);
         _prewarmOnce(); // 静默兜底触发 = 用户大概率要点逃生舱，提前热引擎
       }
     });
@@ -370,13 +441,10 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
     if (!_onDeviceAsrReady) {
       await widget.gateway.cancel();
       if (!mounted) return;
-      await showAiEngineGuideWithActions(
-        context,
-        ref,
-        RecordStrings.of(context),
-      );
+      // 语音专属引导：内嵌下载带进度（不跳设置页），完成自动回录音面板。
+      await _showVoiceEngineGuide(context, ref, RecordStrings.of(context));
       if (!mounted) return;
-      // 引导结束即关闭听写面板：下载/配置在设置页完成，手动搜索已对焦。
+      // 引导结束即关闭听写面板：下载/配置完成，手动搜索已对焦。
       Navigator.of(context).pop();
       return;
     }

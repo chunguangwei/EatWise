@@ -214,6 +214,28 @@ export interface WaterLogEntity {
   deletedAt: Date | null;
 }
 
+/** 运动记录（手动记运动/截图导入，2026-09-19 产品拍板上行）：轻量两态同步
+ * （pending/synced），无 update op——逐条 create + delete tombstone 即覆盖全部
+ * 场景（口径同 WaterLog：运动记录无编辑场景，改 = 删了重记）。
+ * 合规边界：仅用户主动录入/截图确认的记录上行；系统健康数据
+ * （HealthKit/Health Connect 实时步数）不出端、不落本表。 */
+export interface ExerciseLogEntity {
+  id: string;
+  userId: string;
+  clientRequestId: string;
+  typeKey: string; // 运动类型键（walk/jog/.../summary 活动统计导入）
+  durationMin: number; // 时长（分钟；活动统计导入无时长口径为 0）
+  kcal: number; // 消耗快照（千卡）
+  steps: number | null; // 步数快照（可空）
+  source: string | null; // 来源：null=手动录入，'screenshot'=截图识别导入
+  loggedAt: Date; // 记录时间（UTC，= 客户端 createdAtUtc）
+  localDate: string; // 客户端归属日（yyyy-MM-dd，D-07 口径透传）
+  version: number;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+}
+
 /** 体重记录（阶段 C 体重管理闭环）：同日覆写（userId+date upsert），
  * clientRequestId 幂等（D-20 口径同 WaterLog），体脂率可空，软删 tombstone */
 export interface WeightLogEntity {
@@ -326,6 +348,8 @@ export class DataStore {
   foodSeedVersion: string | null = null;
   readonly foodEntries = new Map<string, FoodEntryEntity>();
   readonly waterLogs = new Map<string, WaterLogEntity>();
+  /** 运动记录（手动记运动/截图导入上行）；key: id，按 (userId, clientRequestId) 幂等定位 */
+  readonly exerciseLogs = new Map<string, ExerciseLogEntity>();
   /** 体重记录（阶段 C）；key: id，按 (userId, clientRequestId) 幂等定位 */
   readonly weightLogs = new Map<string, WeightLogEntity>();
   readonly streaks = new Map<string, StreakEntity>(); // key: userId

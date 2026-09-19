@@ -4,6 +4,7 @@ import 'package:eatwise/features/auth/application/auth_gate.dart';
 import 'package:eatwise/features/auth/data/auth_api.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
+import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 登录态路由门禁（main() override 为持久实例并接入 GoRouter）。
@@ -23,8 +24,9 @@ final StateNotifierProvider<AuthController, AuthState> authControllerProvider =
         api: ref.watch(authApiProvider),
         tokenStore: ref.watch(tokenStoreProvider),
         gate: ref.watch(authGateProvider),
-        // 引导门禁未装配（如纯认证测试）时降级为不同步。
+        // 引导门禁/存储未装配（如纯认证测试）时降级为不同步。
         onboardingGate: _readOnboardingGate(ref),
+        onboardingStore: _readOnboardingStore(ref),
       );
     });
 
@@ -32,6 +34,15 @@ final StateNotifierProvider<AuthController, AuthState> authControllerProvider =
 OnboardingGate? _readOnboardingGate(Ref ref) {
   try {
     return ref.read(onboardingGateProvider);
+  } on Object {
+    return null;
+  }
+}
+
+/// 引导存储读取（未装配时降级 null：服务端 onboardingStatus 只同步内存门禁）。
+OnboardingStore? _readOnboardingStore(Ref ref) {
+  try {
+    return ref.read(onboardingStoreProvider);
   } on Object {
     return null;
   }

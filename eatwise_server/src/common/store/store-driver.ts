@@ -19,6 +19,7 @@ import {
   UserRoleName,
   WaterLogEntity,
   WeightLogEntity,
+  ExerciseLogEntity,
 } from './data-store';
 
 /**
@@ -45,6 +46,8 @@ export interface UserDataExport {
   waterLogs?: WaterLogEntity[];
   /** 体重记录（阶段 C）：真实库 weight_logs 表全量 */
   weightLogs?: WeightLogEntity[];
+  /** 运动记录（手动记运动/截图导入）：真实库 exercise_logs 表全量 */
+  exerciseLogs?: ExerciseLogEntity[];
 }
 
 /** U5 到期删除执行报告（合规 §4.3：个人数据物理删除 + UGC 匿名化） */
@@ -111,6 +114,17 @@ export abstract class StoreDriver {
 
   /** syncToken 增量下游标：updatedAt > since（含 tombstone），按 (updatedAt, id) 升序 */
   abstract findWaterLogsSince(userId: string, since: Date): Promise<WaterLogEntity[]>;
+
+  // ===== 运动记录（手动记运动/截图导入上行：轻量两态，仅 create/软删，无 update）=====
+
+  /** 逐条落库；(userId, clientRequestId) 已存在视为幂等重放，静默成功（D-20） */
+  abstract createExerciseLog(log: ExerciseLogEntity): Promise<void>;
+
+  /** 软删 tombstone（deletedAt + version+1）；重复删除幂等静默 */
+  abstract deleteExerciseLog(userId: string, clientRequestId: string): Promise<void>;
+
+  /** syncToken 增量下游标：updatedAt > since（含 tombstone），按 (updatedAt, id) 升序 */
+  abstract findExerciseLogsSince(userId: string, since: Date): Promise<ExerciseLogEntity[]>;
 
   // ===== 体重记录（阶段 C：同日覆写 upsert + clientRequestId 幂等 + 软删）=====
 
@@ -463,6 +477,9 @@ export class MemoryStoreDriver extends StoreDriver {
     const weightLogs = [...this.store.weightLogs.values()].filter(
       (e) => e.userId === userId && !e.deletedAt,
     );
+    const exerciseLogs = [...this.store.exerciseLogs.values()].filter(
+      (e) => e.userId === userId && !e.deletedAt,
+    );
     return Promise.resolve({
       generatedAt: new Date().toISOString(),
       profile: user,
@@ -473,6 +490,7 @@ export class MemoryStoreDriver extends StoreDriver {
       posts,
       waterLogs,
       weightLogs,
+      exerciseLogs,
     });
   }
 
@@ -489,6 +507,9 @@ export class MemoryStoreDriver extends StoreDriver {
     }
     for (const [id, e] of this.store.weightLogs) {
       if (e.userId === userId) this.store.weightLogs.delete(id);
+    }
+    for (const [id, e] of this.store.exerciseLogs) {
+      if (e.userId === userId) this.store.exerciseLogs.delete(id);
     }
     // 个人自定义食物与贡献候选随账号清除（审核晋升的共享食物已转出个人库，留存）
     for (const [id, f] of this.store.customFoods) {
@@ -598,6 +619,41 @@ export class MemoryStoreDriver extends StoreDriver {
       .filter((e) => e.userId === userId && e.updatedAt.getTime() > since.getTime())
       .sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime() || a.id.localeCompare(b.id));
     return Promise.resolve(rows);
+  }
+
+  // ===== 运动记录（手动记运动/截图导入上行；与 waterLog 同口径两态）=====
+
+  createExerciseLog(log: ExerciseLogEntity): Promise<void> {
+    const dup = this.findExerciseByClientRequestId(log.userId, log.clientRequestId);
+    if (!dup) this.store.exerciseLogs.set(log.id, log); // 幂等重放：同键已落 → 静默成功
+    return Promise.resolve();
+  }
+
+  deleteExerciseLog(userId: string, clientRequestId: string): Promise<void> {
+    const log = this.findExerciseByClientRequestId(userId, clientRequestId);
+    if (log && !log.deletedAt) {
+      log.deletedAt = new Date();
+      log.version += 1;
+      log.updatedAt = new Date();
+    }
+    return Promise.resolve(); // 未命中/重复删：幂等静默
+  }
+
+  findExerciseLogsSince(userId: string, since: Date): Promise<ExerciseLogEntity[]> {
+    const rows = [...this.store.exerciseLogs.values()]
+      .filter((e) => e.userId === userId && e.updatedAt.getTime() > since.getTime())
+      .sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime() || a.id.localeCompare(b.id));
+    return Promise.resolve(rows);
+  }
+
+  /** 幂等键定位（含 tombstone）：驱动按 userId 全量扫描 */
+  private findExerciseByClientRequestId(
+    userId: string,
+    clientRequestId: string,
+  ): ExerciseLogEntity | undefined {
+    return [...this.store.exerciseLogs.values()].find(
+      (e) => e.userId === userId && e.clientRequestId === clientRequestId,
+    );
   }
 
   // ===== 体重记录（阶段 C；与 weight.service 内存实现同口径）=====

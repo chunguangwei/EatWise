@@ -11,6 +11,7 @@ import {
   RefreshTokenEntity,
   StreakEntity,
   WaterLogEntity,
+  ExerciseLogEntity,
   WeightLogEntity,
 } from '../src/common/store/data-store';
 import { PrismaStore } from '../src/common/store/prisma-store';
@@ -251,6 +252,25 @@ describePg('PrismaStore（集成，真实 PostgreSQL）', () => {
     ]);
     await prisma.post.create({ data: { userId, text: '打卡', imageUrls: [] } });
     await store.createWaterLog(waterLog());
+    // 运动记录（2026-09-19 拍板上行：U3 导出含 exerciseLogs，U5 随账号清除）
+    const now = new Date();
+    const exercise: ExerciseLogEntity = {
+      id: randomUUID(),
+      userId,
+      clientRequestId: randomUUID(),
+      typeKey: 'walk',
+      durationMin: 0,
+      kcal: 68,
+      steps: 1466,
+      source: 'screenshot',
+      loggedAt: now,
+      localDate: '2026-09-19',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    };
+    await store.createExerciseLog(exercise);
     // 个人自定义食物 + 贡献候选（U5 需一并清除）
     const customFood: CustomFoodEntity = {
       id: `cf_${randomUUID().slice(0, 8)}`,
@@ -291,6 +311,7 @@ describePg('PrismaStore（集成，真实 PostgreSQL）', () => {
     expect(bundle!.foodEntries.length).toBeGreaterThanOrEqual(1);
     expect(bundle!.posts).toHaveLength(1);
     expect(bundle!.waterLogs).toHaveLength(1);
+    expect(bundle!.exerciseLogs).toHaveLength(1);
 
     const report = await store.purgeUserData(userId);
     expect(report.foodEntries).toBeGreaterThanOrEqual(1);
@@ -298,6 +319,8 @@ describePg('PrismaStore（集成，真实 PostgreSQL）', () => {
     expect(await prisma.user.findUnique({ where: { id: userId } })).toBeNull();
     // 饮水记录随账号物理清除（water_logs.userId 外键必填，未清则删用户行违反 FK）
     expect(await prisma.waterLog.count({ where: { userId } })).toBe(0);
+    // 运动记录随账号物理清除（exercise_logs.userId 外键必填，同口径）
+    expect(await prisma.exerciseLog.count({ where: { userId } })).toBe(0);
     // 个人自定义食物与贡献候选随账号清除
     expect(await prisma.food.count({ where: { createdByUserId: userId, isCustom: true } })).toBe(0);
     expect(await prisma.foodCandidate.count({ where: { userId } })).toBe(0);
@@ -320,6 +343,26 @@ describePg('PrismaStore 饮水 / 候选 / 举报（集成，真实 PostgreSQL）
       amountMl: 250,
       loggedAt: new Date('2026-09-07T08:00:00Z'),
       localDate: '2026-09-07',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      ...over,
+    };
+  };
+  const exerciseLog = (over: Partial<ExerciseLogEntity> = {}): ExerciseLogEntity => {
+    const now = new Date();
+    return {
+      id: randomUUID(),
+      userId,
+      clientRequestId: randomUUID(),
+      typeKey: 'jog',
+      durationMin: 30,
+      kcal: 210,
+      steps: null,
+      source: null,
+      loggedAt: new Date('2026-09-19T02:00:00Z'),
+      localDate: '2026-09-19',
       version: 1,
       createdAt: now,
       updatedAt: now,
@@ -358,6 +401,7 @@ describePg('PrismaStore 饮水 / 候选 / 举报（集成，真实 PostgreSQL）
 
   beforeEach(async () => {
     await prisma.waterLog.deleteMany({ where: { userId } });
+    await prisma.exerciseLog.deleteMany({ where: { userId } });
     await prisma.foodCandidate.deleteMany({ where: { userId } });
     await prisma.post.deleteMany({ where: { userId } });
   });
@@ -365,10 +409,29 @@ describePg('PrismaStore 饮水 / 候选 / 举报（集成，真实 PostgreSQL）
   afterAll(async () => {
     if (prisma) {
       await prisma.waterLog.deleteMany({ where: { userId } });
+      await prisma.exerciseLog.deleteMany({ where: { userId } });
       await prisma.foodCandidate.deleteMany({ where: { userId } });
       await prisma.user.deleteMany({ where: { id: userId } }).catch(() => undefined);
       await prisma.$disconnect();
     }
+  });
+
+  it('运动：clientRequestId 幂等重放静默；软删留 tombstone；增量按 updatedAt（含 steps/source 列）', async () => {
+    const first = exerciseLog({ clientRequestId: 'cr-ex-1', steps: 1466, source: 'screenshot' });
+    await store.createExerciseLog(first);
+    // 同键重放（不同 id）→ 静默成功，不产生第二行
+    await store.createExerciseLog(exerciseLog({ clientRequestId: 'cr-ex-1', kcal: 999 }));
+    expect(await prisma.exerciseLog.count({ where: { userId } })).toBe(1);
+
+    const since = new Date(Date.now() - 60_000);
+    await store.deleteExerciseLog(userId, 'cr-ex-1');
+    // syncToken 增量：tombstone 仍下发（客户端据此删本地行），字段完整回读
+    const changed = await store.findExerciseLogsSince(userId, since);
+    expect(changed).toHaveLength(1);
+    expect(changed[0].id).toBe(first.id);
+    expect(changed[0].deletedAt).not.toBeNull();
+    expect(changed[0].steps).toBe(1466);
+    expect(changed[0].source).toBe('screenshot');
   });
 
   it('饮水：创建落库 + 按归属日查询（升序，排除 tombstone）', async () => {

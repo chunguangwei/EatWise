@@ -54,6 +54,7 @@ model User {
 
   waterLogs      WaterLog[]
   weightLogs     WeightLog[]
+  exerciseLogs   ExerciseLog[]
   @@map("users")
 }
 
@@ -336,6 +337,34 @@ model WeightLog {
   @@unique([userId, clientRequestId])
   @@index([userId, date]) // 区间查询（GET /weight-logs?from&to）
   @@map("weight_logs")
+}
+
+// 运动记录（手动记运动/截图导入上行，2026-09-19 产品拍板）：轻量两态同步
+// （仅 create/软删，无 update——运动记录无编辑场景，改 = 删了重记），
+// clientRequestId 幂等（D-20 口径同 WaterLog）。
+// 合规边界：仅用户主动录入/截图确认的记录；系统健康数据（HealthKit/
+// Health Connect 实时步数）不出端、不落本表。
+model ExerciseLog {
+  id              String    @id @default(uuid())
+  userId          String
+  clientRequestId String
+  typeKey         String // 运动类型键（walk/jog/.../summary 活动统计导入）
+  durationMin     Int // 时长（分钟；活动统计导入无时长口径为 0）
+  kcal            Float // 消耗快照（千卡）
+  steps           Int? // 步数快照（可空）
+  source          String? // 来源：null=手动录入，'screenshot'=截图识别导入
+  loggedAt        DateTime // 记录时间（UTC，= 客户端 createdAtUtc）
+  localDate       String // 客户端归属日 YYYY-MM-DD（D-07 口径透传）
+  version         Int       @default(1)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime? // 软删 tombstone
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, clientRequestId])
+  @@index([userId, updatedAt, id]) // syncToken 增量下游标
+  @@map("exercise_logs")
 }
 
 // 幂等表（D-20）：相同 (userId, clientRequestId) 重放返回首次结果，保留 90 天〔假设〕

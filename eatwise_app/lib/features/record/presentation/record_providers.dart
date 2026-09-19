@@ -6,6 +6,8 @@ import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/tables.dart';
+import 'package:eatwise/features/health/application/exercise_log_providers.dart'
+    show exerciseLogSyncProvider;
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/data/food_search_remote.dart';
@@ -35,6 +37,7 @@ import 'package:eatwise/features/streak/application/streak_controller.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 /// 记录同步远程端（M7 真实 REST 实现；测试 override 为 FakeRecordRemote）。
@@ -109,6 +112,7 @@ final Provider<RecordSyncEngine> recordSyncEngineProvider =
         weightSync: ref.watch(weightLogSyncProvider),
         weightStore: ref.watch(weightLogStoreProvider),
         contributionReviewSync: ref.watch(contributionReviewSyncProvider),
+        exerciseSync: ref.watch(exerciseLogSyncProvider),
       );
     });
 
@@ -183,6 +187,41 @@ final StateProvider<bool> recordLowConfidenceProvider = StateProvider<bool>(
 /// 拍照/相册取图（生产 ImagePicker；测试 override 为 fake）。
 final Provider<PhotoPickerGateway> photoPickerGatewayProvider =
     Provider<PhotoPickerGateway>((ref) => ImagePickerPhotoGateway());
+
+/// 读取可选 SharedPreferences（未装配时返回 null，仅内存生效）。
+SharedPreferences? _tryPrefs(Ref ref) {
+  try {
+    return ref.read(sharedPreferencesProvider);
+  } on Object {
+    return null;
+  }
+}
+
+/// 系统 ASR 设备级「已坏」记忆（prefs 持久化，按设备不按用户）：
+/// 无 GMS ROM 上系统 ASR 每次必败，首次致命错误/静默超时后记为 broken，
+/// 之后点「语音记」直达端侧录音面板/引擎引导卡，不再走系统听写白等 6s。
+/// 清除途径：端侧转写也失败时自动重置（端侧同样不可靠 → 回系统路径再试，
+/// 避免永久钉死在端侧路径）。
+final systemAsrBrokenProvider =
+    StateNotifierProvider<SystemAsrBrokenController, bool>(
+      (ref) => SystemAsrBrokenController(_tryPrefs(ref)),
+    );
+
+/// [systemAsrBrokenProvider] 的控制器（读 prefs 初始值，写时持久化）。
+final class SystemAsrBrokenController extends StateNotifier<bool> {
+  SystemAsrBrokenController(this._prefs)
+    : super(_prefs?.getBool(_key) ?? false);
+
+  static const String _key = 'settings.systemAsrBroken';
+
+  final SharedPreferences? _prefs;
+
+  /// 标记/清除系统 ASR 不可用（写 prefs，设备级）。
+  void setBroken(bool broken) {
+    state = broken;
+    _prefs?.setBool(_key, broken);
+  }
+}
 
 /// AI 引擎引导卡「先手动搜索」会话内抑制位（内存态，不持久化：
 /// 用户明确选择手动路径后，本次会话各识别入口不再弹引导卡）。

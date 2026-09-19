@@ -297,7 +297,8 @@
       "transcribingNow": "Transcribing…",
       "transcribeFailed": "Couldn't transcribe — record again or type with the keyboard icon",
       "useOnDeviceAsr": "Use offline model",
-      "loadingModel": "Loading offline model (first launch is slower)…"
+      "loadingModel": "Loading offline model (first launch is slower)…",
+      "downloadTitle": "Download offline model"
     },
     "frequent": {
       "title": "Frequently logged",

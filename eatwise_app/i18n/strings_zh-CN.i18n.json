@@ -297,7 +297,8 @@
       "transcribingNow": "转写中…",
       "transcribeFailed": "没转写出来，再录一次，或点右边键盘图标打字",
       "useOnDeviceAsr": "用离线小模型识别",
-      "loadingModel": "正在加载离线模型，首次较慢…"
+      "loadingModel": "正在加载离线模型，首次较慢…",
+      "downloadTitle": "下载离线模型"
     },
     "frequent": {
       "title": "常吃的食物",

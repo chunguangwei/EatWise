@@ -55,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -110,6 +110,22 @@ class AppDatabase extends _$AppDatabase {
       // 活动统计导入；步数持久化，数据页展示合并）。from<9 建表已含。
       if (from >= 9 && from < 11) {
         await m.addColumn(exerciseLogs, exerciseLogs.steps);
+      }
+      // v12：ExerciseLogs 补两态同步字段（clientRequestId/serverId/syncState/
+      // deleted，2026-09-19 拍板上行，口径同 v4 WaterLogs；v9–v11 历史行
+      // 默认 pending 待上行，首轮同步即推送到服务端）。from<9 建表已含。
+      if (from >= 9 && from < 12) {
+        await m.addColumn(exerciseLogs, exerciseLogs.clientRequestId);
+        await m.addColumn(exerciseLogs, exerciseLogs.serverId);
+        await m.addColumn(exerciseLogs, exerciseLogs.syncState);
+        await m.addColumn(exerciseLogs, exerciseLogs.deleted);
+        // 历史行幂等键回填：addColumn 默认 '' 会让服务端 (userId,
+        // clientRequestId) 唯一约束把多条历史行压成一条——localId 本身是
+        // UUIDv4，直接复用作幂等键（服务端 DTO IsUUID('4') 可通过）。
+        await customStatement(
+          'UPDATE exercise_logs SET client_request_id = local_id '
+          "WHERE client_request_id = ''",
+        );
       }
     },
   );

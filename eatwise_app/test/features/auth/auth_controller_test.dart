@@ -6,6 +6,8 @@ import 'package:eatwise/core/network/token_store.dart';
 import 'package:eatwise/features/auth/application/auth_controller.dart';
 import 'package:eatwise/features/auth/application/auth_gate.dart';
 import 'package:eatwise/features/auth/data/auth_api.dart';
+import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
+import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../core/network/fake_http_adapter.dart';
@@ -163,6 +165,123 @@ void main() {
       expect(controller.state.status, isNot(AuthStatus.loggedIn));
       expect(gate.loggedIn, isFalse);
       expect(await tokenStore.refreshToken, isNull);
+    });
+  });
+
+  group('登录恢复 onboarding 状态（v1.12.4 走查：重装老账号被重导根因）', () {
+    Map<String, dynamic> payloadWithOnboarding(String status) =>
+        StubResponse.envelope(<String, dynamic>{
+          'accessToken': 'at-1',
+          'refreshToken': 'rt-1',
+          'expiresIn': 7200,
+          'isNewUser': false,
+          'user': <String, dynamic>{
+            'id': 'u-1',
+            'nickname': null,
+            'locale': 'zh-CN',
+            'timezone': 'Asia/Shanghai',
+            'goal': null,
+            'onboardingStatus': status,
+          },
+        });
+
+    test('服务端 completed → 内存门禁 + 持久化存储双写（杀进程重开不再进引导）', () async {
+      final onboardingStore = InMemoryOnboardingStore();
+      final onboardingGate = OnboardingGate(completed: false);
+      controller = AuthController(
+        api: AuthApi(
+          createApiDio(config: ApiConfig(), tokenStore: tokenStore)
+            ..httpClientAdapter = adapter,
+        ),
+        tokenStore: tokenStore,
+        gate: gate,
+        onboardingGate: onboardingGate,
+        onboardingStore: onboardingStore,
+      );
+      adapter.stub(
+        '/auth/login/phone',
+        StubResponse.json(200, payloadWithOnboarding('completed')),
+      );
+
+      await controller.loginWithPhone(phone: '+8613800138000', code: '123456');
+
+      // 内存门禁即时翻转（登录后路由直接进首页，不闪引导页）。
+      expect(onboardingGate.completed, isTrue);
+      // 持久化完成标记：模拟杀进程重开——main() 冷启动仅从存储重建门禁。
+      expect(onboardingStore.isOnboardingCompleted, isTrue);
+      final coldStartGate = OnboardingGate(
+        completed: onboardingStore.isOnboardingCompleted,
+      );
+      expect(coldStartGate.completed, isTrue);
+    });
+
+    test('服务端 skipped → 同样恢复完成态（跳过=不再引导）', () async {
+      final onboardingStore = InMemoryOnboardingStore();
+      final onboardingGate = OnboardingGate(completed: false);
+      controller = AuthController(
+        api: AuthApi(
+          createApiDio(config: ApiConfig(), tokenStore: tokenStore)
+            ..httpClientAdapter = adapter,
+        ),
+        tokenStore: tokenStore,
+        gate: gate,
+        onboardingGate: onboardingGate,
+        onboardingStore: onboardingStore,
+      );
+      adapter.stub(
+        '/auth/login/phone',
+        StubResponse.json(200, payloadWithOnboarding('skipped')),
+      );
+
+      await controller.loginWithPhone(phone: '+8613800138000', code: '123456');
+
+      expect(onboardingGate.completed, isTrue);
+      expect(onboardingStore.isOnboardingCompleted, isTrue);
+    });
+
+    test('服务端 none（新注册/未引导）→ 不写完成态，行为不变正常走引导', () async {
+      final onboardingStore = InMemoryOnboardingStore();
+      final onboardingGate = OnboardingGate(completed: false);
+      controller = AuthController(
+        api: AuthApi(
+          createApiDio(config: ApiConfig(), tokenStore: tokenStore)
+            ..httpClientAdapter = adapter,
+        ),
+        tokenStore: tokenStore,
+        gate: gate,
+        onboardingGate: onboardingGate,
+        onboardingStore: onboardingStore,
+      );
+      adapter.stub(
+        '/auth/login/phone',
+        StubResponse.json(200, payloadWithOnboarding('none')),
+      );
+
+      await controller.loginWithPhone(phone: '+8613800138000', code: '123456');
+
+      expect(onboardingGate.completed, isFalse);
+      expect(onboardingStore.isOnboardingCompleted, isFalse);
+    });
+
+    test('引导存储未装配（纯认证环境）→ 仅内存门禁，不崩', () async {
+      final onboardingGate = OnboardingGate(completed: false);
+      controller = AuthController(
+        api: AuthApi(
+          createApiDio(config: ApiConfig(), tokenStore: tokenStore)
+            ..httpClientAdapter = adapter,
+        ),
+        tokenStore: tokenStore,
+        gate: gate,
+        onboardingGate: onboardingGate,
+      );
+      adapter.stub(
+        '/auth/login/phone',
+        StubResponse.json(200, payloadWithOnboarding('completed')),
+      );
+
+      await controller.loginWithPhone(phone: '+8613800138000', code: '123456');
+
+      expect(onboardingGate.completed, isTrue);
     });
   });
 

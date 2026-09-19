@@ -103,11 +103,17 @@ Future<void> startExerciseScreenshotImport(
 }
 
 /// 识别成功埋点（record_kind=exercise / entry_type=screenshot；运动明细
-/// 属健康明细不上报 §1.6-3；sync_state=local：设备级纯本地）。
+/// 属健康明细不上报 §1.6-3；sync_state=pending：本地落库待上行）并触发
+/// 一轮同步（pending 队列上行，仅登录态生效）。
 void _trackSaved(WidgetRef ref, ExerciseLog saved) {
   final analytics = ref.read(analyticsServiceProvider);
   final flowId = analytics.startRecordFlow();
   final flow = analytics.endRecordFlow(flowId);
+  try {
+    unawaited(ref.read(recordSyncEngineProvider).syncNow());
+  } on Object {
+    // 防御：同步引擎未装配（如测试环境仅注入仓储）时跳过。
+  }
   analytics.track(
     'record_flow_success',
     properties: <String, Object?>{
@@ -118,7 +124,7 @@ void _trackSaved(WidgetRef ref, ExerciseLog saved) {
       'item_count': 1,
       'record_kind': 'exercise',
       'is_edited': true, // 确认弹层字段全部可编辑，按已确认口径记
-      'sync_state': 'local',
+      'sync_state': 'pending',
     },
     flushNow: true,
   );
@@ -145,6 +151,12 @@ void _showSavedSnackBar(
         onPressed: () => unawaited(() async {
           final ok = await repo.delete(saved.localId);
           if (ok) {
+            // 撤销 tombstone 上行（已上行记录）。
+            try {
+              unawaited(ref.read(recordSyncEngineProvider).syncNow());
+            } on Object {
+              // 防御：同步引擎未装配（如测试环境仅注入仓储）时跳过。
+            }
             analytics.track(
               'record_undo_click',
               properties: <String, Object?>{

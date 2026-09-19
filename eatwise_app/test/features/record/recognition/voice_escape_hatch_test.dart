@@ -11,6 +11,7 @@ import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/recognition/data/ondevice_asr_service.dart';
 import 'package:eatwise/features/record/recognition/domain/engine_availability.dart';
 import 'package:eatwise/features/record/recognition/presentation/ondevice_recording_sheet.dart';
+import 'package:eatwise/features/record/recognition/presentation/voice_model_download_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -157,11 +158,25 @@ void main() {
     expect(find.text('配置云端 API'), findsOneWidget);
     expect(find.text('先手动搜索'), findsOneWidget);
 
-    // 点「下载本地模型（推荐）」→ 深链端侧模型卡，听写面板关闭。
+    // 点「下载本地模型（推荐）」→ 语音流程内嵌下载弹层（不再深链
+    // 设置页）：下载弹层出现，无路由导航。
     await tester.tap(find.text('下载本地模型（推荐）'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(navigated, <AiEngineGuideTarget>[AiEngineGuideTarget.onDeviceModel]);
+    expect(navigated, isEmpty);
+    expect(find.byType(VoiceModelDownloadSheet), findsOneWidget);
+    expect(find.text('下载离线模型'), findsOneWidget);
+
+    // 取消下载 → 引导流程结束 → 听写面板也关闭。
+    await tester.tap(
+      find.descendant(
+        of: find.byType(VoiceModelDownloadSheet),
+        matching: find.text('取消'),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(VoiceModelDownloadSheet), findsNothing);
     expect(find.text('正在听… 说说吃了什么，如「一碗米饭」'), findsNothing);
     await settleUi(tester);
   });

@@ -15,6 +15,7 @@ import 'package:eatwise/features/health/domain/exercise_types.dart';
 import 'package:eatwise/features/health/presentation/exercise_screenshot_flow.dart';
 import 'package:eatwise/features/health/presentation/exercise_type_names.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
 import 'package:flutter/material.dart';
@@ -41,6 +42,12 @@ Future<void> startExerciseLog(BuildContext context, WidgetRef ref) async {
   }
   if (saved != null) {
     final flow = analytics.endRecordFlow(flowId);
+    // 记录后触发一轮同步（运动记录 pending 队列上行，仅登录态生效）。
+    try {
+      unawaited(ref.read(recordSyncEngineProvider).syncNow());
+    } on Object {
+      // 防御：同步引擎未装配（如测试环境仅注入仓储）时跳过。
+    }
     final confirmedAtMs = DateTime.now().millisecondsSinceEpoch;
     analytics.track(
       'record_flow_success',
@@ -68,16 +75,22 @@ Future<void> startExerciseLog(BuildContext context, WidgetRef ref) async {
         persist: false,
         action: SnackBarAction(
           label: s.toastUndo,
-          onPressed: () => unawaited(
-            _undoSaved(
+          onPressed: () => unawaited(() async {
+            await _undoSaved(
               context,
               analytics,
               repo,
               s,
               saved.localId,
               confirmedAtMs,
-            ),
-          ),
+            );
+            // 撤销 tombstone 上行（已上行记录）。
+            try {
+              unawaited(ref.read(recordSyncEngineProvider).syncNow());
+            } on Object {
+              // 防御：同步引擎未装配（如测试环境仅注入仓储）时跳过。
+            }
+          }()),
         ),
       ),
     );

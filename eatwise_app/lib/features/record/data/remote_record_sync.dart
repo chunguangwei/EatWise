@@ -22,6 +22,7 @@ final class SyncPullPage {
     required this.nextSyncToken,
     required this.hasMore,
     this.waterLogChanges = const <Map<String, dynamic>>[],
+    this.exerciseLogChanges = const <Map<String, dynamic>>[],
   });
 
   /// 原始 change 项（entry 全量视图或 {tombstone:{id,deletedAt}}）。
@@ -29,6 +30,9 @@ final class SyncPullPage {
 
   /// 饮水记录 change 项（waterLog 全量视图或 {tombstone:{entity,id,deletedAt}}）。
   final List<Map<String, dynamic>> waterLogChanges;
+
+  /// 运动记录 change 项（exerciseLog 全量视图或 {tombstone:{entity,id,deletedAt}}）。
+  final List<Map<String, dynamic>> exerciseLogChanges;
   final String? nextSyncToken;
   final bool hasMore;
 }
@@ -202,6 +206,9 @@ final class RemoteRecordSync implements RecordRemote {
         waterLogChanges:
             (body['waterLogChanges'] as List<dynamic>? ?? const <dynamic>[])
                 .cast<Map<String, dynamic>>(),
+        exerciseLogChanges:
+            (body['exerciseLogChanges'] as List<dynamic>? ?? const <dynamic>[])
+                .cast<Map<String, dynamic>>(),
         nextSyncToken: body['syncToken'] as String?,
         hasMore: body['hasMore'] == true,
       );
@@ -248,20 +255,39 @@ final class RemoteRecordSync implements RecordRemote {
     String? token = syncToken;
     // 首个发生跳过的页面之前的游标（存在跳过时返回它，不持久化新 token）。
     String? firstSkippedPageToken;
+    // 下行落库涉及的归属日集合（结束后统一重算聚合缓存——下行入库不经
+    // 仓储 _recompute，不重算则首页今日汇总/信号卡拿不到重装恢复的记录，
+    // v1.12.4 走查「有记录但首页不显示」根因）。
+    final affectedDates = <String>{};
     var hasMore = true;
     while (hasMore) {
       final pageTokenBefore = token;
       final page = await pullPage(syncToken: token);
       var pageSkipped = false;
       for (final change in page.changes) {
-        pageSkipped = (await _applyChange(db, userId, change)) || pageSkipped;
+        final result = await _applyChange(db, userId, change);
+        pageSkipped = result.skipped || pageSkipped;
+        final affected = result.affectedDate;
+        if (affected != null) affectedDates.add(affected);
       }
       for (final change in page.waterLogChanges) {
         await _applyWaterChange(db, userId, change);
       }
+      for (final change in page.exerciseLogChanges) {
+        await _applyExerciseChange(db, userId, change);
+      }
       if (pageSkipped) firstSkippedPageToken ??= pageTokenBefore;
       token = page.nextSyncToken;
       hasMore = page.hasMore;
+    }
+    // 聚合缓存重算（§2.6 本地预估；下行 insert/update/tombstone 即时生效）。
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    for (final localDate in affectedDates) {
+      await db.foodEntryDao.recomputeDailyNutrition(
+        userId,
+        localDate,
+        updatedAtUtc: nowIso,
+      );
     }
     return firstSkippedPageToken ?? token;
   }
@@ -323,9 +349,70 @@ final class RemoteRecordSync implements RecordRemote {
     }
   }
 
-  /// 应用单条 entry change；返回 true = 本地食物库缺条目被跳过未落库
-  /// （调用方据此回退游标，保证该 change 下轮重拉不丢）。
-  Future<bool> _applyChange(
+  /// 运动记录下行入库（两态轻量口径，与 [_applyWaterChange] 同法）：
+  /// 本地 pending 不被下行覆盖；tombstone 仅清除已同步行。
+  Future<void> _applyExerciseChange(
+    AppDatabase db,
+    String userId,
+    Map<String, dynamic> change,
+  ) async {
+    final tombstone = change['tombstone'];
+    if (tombstone is Map<String, dynamic>) {
+      final local = await db.exerciseLogDao.getByServerId(
+        tombstone['id']! as String,
+      );
+      if (local != null && local.syncState == ExerciseSyncState.synced) {
+        await db.exerciseLogDao.deleteLog(local.localId);
+      }
+      return;
+    }
+    final serverId = change['id'] as String?;
+    if (serverId == null) return;
+    final clientRequestId = change['clientRequestId'] as String?;
+    ExerciseLog? local;
+    if (clientRequestId != null) {
+      local = await db.exerciseLogDao.getByClientRequestId(clientRequestId);
+    }
+    local ??= await db.exerciseLogDao.getByServerId(serverId);
+    if (local != null && local.syncState == ExerciseSyncState.pending) {
+      // 本地未上行：不被下行覆盖（上行 create 幂等键对账后回填）。
+      return;
+    }
+    final loggedAt =
+        change['loggedAt'] as String? ??
+        DateTime.now().toUtc().toIso8601String();
+    final companion = ExerciseLogsCompanion(
+      userId: Value(userId),
+      serverId: Value(serverId),
+      clientRequestId: Value(clientRequestId ?? ''),
+      syncState: const Value(ExerciseSyncState.synced),
+      deleted: const Value(false),
+      typeKey: Value(change['typeKey'] as String? ?? 'other'),
+      durationMin: Value((change['durationMin'] as num?)?.toInt() ?? 0),
+      kcal: Value((change['kcal'] as num?)?.toDouble() ?? 0),
+      steps: Value((change['steps'] as num?)?.toInt()),
+      source: Value(change['source'] as String?),
+      localDate: Value(
+        change['localDate'] as String? ??
+            _localDateOf(DateTime.parse(loggedAt)),
+      ),
+    );
+    if (local != null) {
+      await db.exerciseLogDao.applyServerRow(local.localId, companion);
+    } else {
+      await db.exerciseLogDao.insertLog(
+        companion.copyWith(
+          localId: Value(_uuid()),
+          createdAtUtc: Value(loggedAt),
+        ),
+      );
+    }
+  }
+
+  /// 应用单条 entry change。返回是否因本地食物库缺条目被跳过未落库
+  /// （调用方据此回退游标，保证该 change 下轮重拉不丢）+ 实际落库/软删
+  /// 影响的归属日（供调用方重算聚合缓存）。
+  Future<({bool skipped, String? affectedDate})> _applyChange(
     AppDatabase db,
     String userId,
     Map<String, dynamic> change,
@@ -338,12 +425,13 @@ final class RemoteRecordSync implements RecordRemote {
       // 删改冲突（D-20 不可合并）：本地有未同步修改 → 双份保留，不软删。
       if (local != null && local.syncStatus == SyncStatus.synced) {
         await db.foodEntryDao.markDeleted(local.localId);
+        return (skipped: false, affectedDate: local.localDate);
       }
-      return false;
+      return (skipped: false, affectedDate: null);
     }
     final serverId = change['id'] as String?;
     final clientRequestId = change['clientRequestId'] as String?;
-    if (serverId == null) return false;
+    if (serverId == null) return (skipped: false, affectedDate: null);
     // 先按幂等键对账（本机待发记录），再按服务端主键（多端/重装）。
     FoodEntry? local;
     if (clientRequestId != null) {
@@ -352,13 +440,13 @@ final class RemoteRecordSync implements RecordRemote {
     local ??= await db.foodEntryDao.getByServerId(serverId);
     if (local != null && local.syncStatus != SyncStatus.synced) {
       // 本地有未上行修改：不被下行覆盖（§2.4），上行冲突由 push 处理。
-      return false;
+      return (skipped: false, affectedDate: null);
     }
     final foodId = change['foodId'] as String?;
     if (foodId == null || await db.foodDao.getById(foodId) == null) {
       // 本地食物库缺该条目（种子未覆盖）：跳过不落库；游标由 _pullPages
       // 回退到本页之前，待食物库刷新后重拉补齐。
-      return true;
+      return (skipped: true, affectedDate: null);
     }
     final snapshot = change['nutritionSnapshot'];
     final snapshotMap = snapshot is Map<String, dynamic>
@@ -403,7 +491,10 @@ final class RemoteRecordSync implements RecordRemote {
         ),
       );
     }
-    return false;
+    return (
+      skipped: false,
+      affectedDate: _localDateOf(DateTime.parse(eatenAt)),
+    );
   }
 
   /// 归属日 = 就餐 UTC 按设备时区换算的本地自然日（D-07）。

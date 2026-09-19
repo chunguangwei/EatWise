@@ -59,14 +59,42 @@ export class EntryPayloadDto {
 
   @IsOptional()
   @IsString()
-  clientRequestId?: string; // waterLog delete 兜底定位（create 已上行但 serverId 丢失场景）
+  clientRequestId?: string; // waterLog/exerciseLog delete 兜底定位（create 已上行但 serverId 丢失场景）
+
+  // ---- exerciseLog 载荷（entity=exerciseLog 时使用，与上两者二选一）----
+
+  @IsOptional()
+  @IsString()
+  typeKey?: string; // 运动类型键（walk/jog/.../summary 活动统计导入）
+
+  @IsOptional()
+  @IsInt()
+  @Min(0) // 活动统计导入无时长口径为 0
+  @Max(1440) // 单日时长上限〔假设〕防误输
+  durationMin?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0.1)
+  @Max(10000) // 单次消耗上限〔假设〕防误输
+  kcal?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(200000) // 单日步数上限〔假设〕防误输
+  steps?: number;
+
+  @IsOptional()
+  @IsIn(['screenshot']) // null=手动录入；'screenshot'=截图识别导入
+  source?: string;
 }
 
 export class SyncOpDto {
   @IsUUID('4')
   clientRequestId: string;
 
-  @IsIn(['foodEntry', 'waterLog']) // 防腐层覆盖 FoodEntry + WaterLog（轻量两态）；fastingRecord/userProfile/fastingPlan 后续接入
+  @IsIn(['foodEntry', 'waterLog', 'exerciseLog']) // 防腐层覆盖 FoodEntry + WaterLog/ExerciseLog（轻量两态）；fastingRecord/userProfile/fastingPlan 后续接入
   entity: string;
 
   @IsIn(['create', 'update', 'delete'])

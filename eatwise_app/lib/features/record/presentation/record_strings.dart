@@ -222,6 +222,9 @@ final class RecordStrings {
   /// record.voice.loadingModel
   String get voiceLoadingModel => _t.record.voice.loadingModel;
 
+  /// record.voice.downloadTitle
+  String get voiceDownloadTitle => _t.record.voice.downloadTitle;
+
   /// record.voice.noSpeechHint
   String get voiceNoSpeechHint => _t.record.voice.noSpeechHint;
 

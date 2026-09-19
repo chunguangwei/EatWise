@@ -660,6 +660,7 @@ class _Translations$record$voice$en extends Translations$record$voice$zh_CN {
 	@override String get transcribeFailed => 'Couldn\'t transcribe — record again or type with the keyboard icon';
 	@override String get useOnDeviceAsr => 'Use offline model';
 	@override String get loadingModel => 'Loading offline model (first launch is slower)…';
+	@override String get downloadTitle => 'Download offline model';
 }
 
 // Path: record.frequent
@@ -2460,6 +2461,7 @@ extension on TranslationsEn {
 			'record.voice.transcribeFailed' => 'Couldn\'t transcribe — record again or type with the keyboard icon',
 			'record.voice.useOnDeviceAsr' => 'Use offline model',
 			'record.voice.loadingModel' => 'Loading offline model (first launch is slower)…',
+			'record.voice.downloadTitle' => 'Download offline model',
 			'record.frequent.title' => 'Frequently logged',
 			'record.frequent.empty' => 'Log a few more meals and your usuals will show up here',
 			'record.frequent.emptyCta' => 'Search instead',
@@ -2750,9 +2752,9 @@ extension on TranslationsEn {
 			'reports.growth.hourUnit' => 'h',
 			'reports.growth.kgUnit' => 'kg',
 			'reports.growth.noValue' => '—',
-			'reports.growth.empty' => 'No footprints yet — log a meal or finish a fast to start.',
 			_ => null,
 		} ?? switch (path) {
+			'reports.growth.empty' => 'No footprints yet — log a meal or finish a fast to start.',
 			'reports.weekly.title' => 'This week',
 			'reports.weekly.range' => ({required Object start, required Object end}) => '${start} – ${end}',
 			'reports.weekly.qualified' => ({required Object days}) => '${days} days on target',

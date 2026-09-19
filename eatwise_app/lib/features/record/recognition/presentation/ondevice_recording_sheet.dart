@@ -91,6 +91,10 @@ class _OnDeviceRecordingSheetState
                   );
         if (!mounted || _cancelRequested) return;
         if (text == null) {
+          // 端侧转写也失败：重置「系统 ASR 已坏」设备记忆（端侧同样不可靠
+          // → 下次回系统路径再试，避免永久钉死在端侧路径；无 GMS 设备会
+          // 再次失败后自动重新记忆）。
+          ref.read(systemAsrBrokenProvider.notifier).setBroken(false);
           setState(() => _stage = _Stage.failed);
         } else {
           setState(() {

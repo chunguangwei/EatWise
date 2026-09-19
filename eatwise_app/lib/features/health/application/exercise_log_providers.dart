@@ -1,8 +1,10 @@
 import 'package:eatwise/core/llm/ondevice/ondevice_providers.dart';
+import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/features/health/data/exercise_log_repository.dart';
 import 'package:eatwise/features/health/data/exercise_screenshot_service.dart';
+import 'package:eatwise/features/health/data/remote_exercise_log_sync.dart';
 import 'package:eatwise/features/record/data/water_log_repository.dart'
     show localDateKey;
 import 'package:eatwise/features/record/presentation/record_providers.dart'
@@ -11,7 +13,8 @@ import 'package:eatwise/features/streak/application/streak_controller.dart'
     show currentUserIdProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// 手动记运动仓库（设备级纯本地，不经同步引擎）。
+/// 手动记运动仓库（两态 pending/synced，经同步引擎上行云端——仅登录态
+/// 生效，匿名本地 pending 保留）。
 /// userId 与饮食记录仓储同口径（[currentUserIdProvider]）。
 final Provider<ExerciseLogRepository> exerciseLogRepositoryProvider =
     Provider<ExerciseLogRepository>((ref) {
@@ -19,6 +22,13 @@ final Provider<ExerciseLogRepository> exerciseLogRepositoryProvider =
         db: ref.watch(appDatabaseProvider),
         userId: ref.watch(currentUserIdProvider),
       );
+    });
+
+/// 运动记录上行同步端（两态 pending/synced，挂 recordSyncEngineProvider
+/// 触发链，与饮水同口径）。
+final Provider<RemoteExerciseLogSync> exerciseLogSyncProvider =
+    Provider<RemoteExerciseLogSync>((ref) {
+      return RemoteExerciseLogSync(dio: ref.watch(apiDioProvider));
     });
 
 /// 今日手动运动消耗合计流（kcal；首页预算行 / 数据页消耗卡合并数据源）。

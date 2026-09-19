@@ -3,6 +3,7 @@ import 'package:eatwise/core/network/token_store.dart';
 import 'package:eatwise/features/auth/application/auth_gate.dart';
 import 'package:eatwise/features/auth/data/auth_api.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
+import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 登录态机（restoring → loggedOut / loggedIn）。
@@ -85,6 +86,7 @@ final class AuthController extends StateNotifier<AuthState> {
     required this.tokenStore,
     required this.gate,
     this.onboardingGate,
+    this.onboardingStore,
   }) : super(const AuthState());
 
   /// 认证接口。
@@ -99,6 +101,11 @@ final class AuthController extends StateNotifier<AuthState> {
   /// 新手引导门禁（可选；登录/注册响应 onboardingStatus 为
   /// completed/skipped 时同步为已完成，防止老用户重装被重导）。
   final OnboardingGate? onboardingGate;
+
+  /// 引导存储（可选；服务端 onboardingStatus 下行时**持久化**完成标记——
+  /// 仅写内存门禁会在杀进程重开后丢失，老用户重装被重导（v1.12.4 走查）。
+  /// 本地标记从此只是服务端状态的缓存）。
+  final OnboardingStore? onboardingStore;
 
   /// 启动时恢复会话：本地有 refreshToken 即视为登录
   /// （accessToken 过期由拦截器 401 refresh 无感续期）。
@@ -244,18 +251,22 @@ final class AuthController extends StateNotifier<AuthState> {
   }
 
   /// 会话落库 + 门禁翻转（登录/注册共用；服务端 onboardingStatus
-  /// 为 completed 时同步本地引导门禁，避免老用户重装后被重导）。
+  /// 为 completed/skipped 时恢复本地引导完成态——**内存门禁 + 持久化
+  /// 存储双写**：只写内存会在杀进程重开后丢失，老用户重装被重导；
+  /// 时序上先于路由状态翻转完成，登录后路由直接进首页不闪引导页）。
   Future<void> _applySession(AuthSession session) async {
     await tokenStore.saveTokens(
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
       userId: session.userId,
     );
-    final onboardingGate = this.onboardingGate;
-    if (onboardingGate != null &&
-        (session.onboardingStatus == 'completed' ||
-            session.onboardingStatus == 'skipped')) {
-      onboardingGate.completed = true;
+    if (session.onboardingStatus == 'completed' ||
+        session.onboardingStatus == 'skipped') {
+      onboardingStore?.markOnboardingCompleted();
+      final onboardingGate = this.onboardingGate;
+      if (onboardingGate != null) {
+        onboardingGate.completed = true;
+      }
     }
     gate.loggedIn = true;
     state = state.copyWith(

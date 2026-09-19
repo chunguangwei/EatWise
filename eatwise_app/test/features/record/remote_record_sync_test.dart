@@ -299,6 +299,65 @@ void main() {
       expect(entries.first.kcal, 232);
     });
 
+    test('下行落库后聚合缓存重算（v1.12.4「重装恢复后首页不显示」回归）', () async {
+      // 首页今日汇总/信号卡数据源 = daily_nutrition_caches；下行入库不经
+      // 仓储 _recompute，必须显式重算，否则缓存为空、首页假空态。
+      stubPull(<Map<String, dynamic>>[
+        entryView(),
+        entryView(id: 'srv-2', clientRequestId: 'c-2', grams: 100),
+      ]);
+
+      await remote.pullDown(db, 'u-1', null);
+
+      final cache = await db.foodEntryDao.getDailyNutrition(
+        'u-1',
+        '2026-07-27',
+      );
+      expect(cache, isNotNull);
+      expect(cache!.entryCount, 2);
+      // 200g(232) + 100g(232 × 快照原值入账 = 232 each，按快照累加)。
+      expect(cache.kcal, 464);
+      expect(cache.isLocalEstimate, isTrue);
+    });
+
+    test('下行 tombstone 软删后聚合缓存同步重算（合计回落）', () async {
+      final syncedEntry = makeEntry(
+        localId: 'l-synced',
+        clientRequestId: 'c-synced',
+        serverId: 'srv-del',
+        serverVersion: 1,
+        syncStatus: SyncStatus.synced,
+      );
+      await db.foodEntryDao.insertEntry(syncedEntry.toCompanion(true));
+      // 先有一次缓存（模拟本机此前已聚合）。
+      await db.foodEntryDao.recomputeDailyNutrition(
+        'u-1',
+        '2026-07-27',
+        updatedAtUtc: '2026-07-27T02:00:00.000Z',
+      );
+      expect(
+        (await db.foodEntryDao.getDailyNutrition('u-1', '2026-07-27'))!.kcal,
+        232,
+      );
+
+      stubPull(<Map<String, dynamic>>[
+        <String, dynamic>{
+          'tombstone': <String, dynamic>{
+            'id': 'srv-del',
+            'deletedAt': '2026-07-27T03:00:00.000Z',
+          },
+        },
+      ]);
+      await remote.pullDown(db, 'u-1', 'st_0');
+
+      final cache = await db.foodEntryDao.getDailyNutrition(
+        'u-1',
+        '2026-07-27',
+      );
+      expect(cache!.entryCount, 0);
+      expect(cache.kcal, 0);
+    });
+
     test('本地 pending 记录（同 clientRequestId）不被下行覆盖', () async {
       final repo = await _insertLocalPending(db);
       stubPull(<Map<String, dynamic>>[

@@ -23,6 +23,7 @@ import {
   UserEntity,
   UserRoleName,
   WaterLogEntity,
+  ExerciseLogEntity,
   WeightLogEntity,
 } from './data-store';
 import {
@@ -65,16 +66,25 @@ export class PrismaStore extends StoreDriver {
   async collectUserExport(userId: string): Promise<UserDataExport | null> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user || user.deletedAt) return null;
-    const [foodEntries, fastingPlans, fastingRecords, streak, posts, waterLogs, weightLogs] =
-      await Promise.all([
-        this.prisma.foodEntry.findMany({ where: { userId, deletedAt: null } }),
-        this.prisma.fastingPlan.findMany({ where: { userId } }),
-        this.prisma.fastingRecord.findMany({ where: { userId } }),
-        this.prisma.streak.findUnique({ where: { userId } }),
-        this.prisma.post.findMany({ where: { userId, deletedAt: null } }),
-        this.prisma.waterLog.findMany({ where: { userId, deletedAt: null } }),
-        this.prisma.weightLog.findMany({ where: { userId, deletedAt: null } }),
-      ]);
+    const [
+      foodEntries,
+      fastingPlans,
+      fastingRecords,
+      streak,
+      posts,
+      waterLogs,
+      weightLogs,
+      exerciseLogs,
+    ] = await Promise.all([
+      this.prisma.foodEntry.findMany({ where: { userId, deletedAt: null } }),
+      this.prisma.fastingPlan.findMany({ where: { userId } }),
+      this.prisma.fastingRecord.findMany({ where: { userId } }),
+      this.prisma.streak.findUnique({ where: { userId } }),
+      this.prisma.post.findMany({ where: { userId, deletedAt: null } }),
+      this.prisma.waterLog.findMany({ where: { userId, deletedAt: null } }),
+      this.prisma.weightLog.findMany({ where: { userId, deletedAt: null } }),
+      this.prisma.exerciseLog.findMany({ where: { userId, deletedAt: null } }),
+    ]);
     return {
       generatedAt: new Date().toISOString(),
       profile: toUserEntity(user),
@@ -85,6 +95,7 @@ export class PrismaStore extends StoreDriver {
       posts: posts.map(toPostEntity),
       waterLogs: waterLogs.map(toWaterLogEntity),
       weightLogs: weightLogs.map(toWeightLogEntity),
+      exerciseLogs: exerciseLogs.map(toExerciseLogEntity),
     };
   }
 
@@ -109,6 +120,7 @@ export class PrismaStore extends StoreDriver {
       await tx.dailyNutrition.deleteMany({ where: { userId } });
       await tx.waterLog.deleteMany({ where: { userId } }); // users 外键必填，须先于用户行删除
       await tx.weightLog.deleteMany({ where: { userId } }); // 同口径：体重记录随账号清除
+      await tx.exerciseLog.deleteMany({ where: { userId } }); // 同口径：运动记录随账号清除
       // 贡献候选与个人自定义食物随账号清除（已晋升共享的食物 isCustom=false 留存，内存模式同口径）
       await tx.foodCandidate.deleteMany({ where: { userId } });
       await tx.food.deleteMany({ where: { createdByUserId: userId, isCustom: true } });
@@ -427,6 +439,58 @@ export class PrismaStore extends StoreDriver {
       return rows.map(toWaterLogEntity);
     } catch (e) {
       throw this.fail('findWaterLogsSince', e);
+    }
+  }
+
+  // ===== 运动记录（exercise_logs：create 幂等 + delete tombstone，无 update）=====
+
+  /** 逐条落库；(userId, clientRequestId) 唯一约束冲突视为幂等重放 → 静默成功（D-20） */
+  async createExerciseLog(log: ExerciseLogEntity): Promise<void> {
+    try {
+      await this.prisma.exerciseLog.create({
+        data: {
+          id: log.id,
+          userId: log.userId,
+          clientRequestId: log.clientRequestId,
+          typeKey: log.typeKey,
+          durationMin: log.durationMin,
+          kcal: log.kcal,
+          steps: log.steps,
+          source: log.source,
+          loggedAt: log.loggedAt,
+          localDate: log.localDate,
+          version: log.version,
+          deletedAt: log.deletedAt,
+        },
+      });
+    } catch (e) {
+      if (isUniqueConflict(e)) return; // 重放：首次结果已落库，不覆盖
+      throw this.fail('createExerciseLog', e);
+    }
+  }
+
+  /** 软删 tombstone；未命中/重复删除幂等静默（与内存模式同口径） */
+  async deleteExerciseLog(userId: string, clientRequestId: string): Promise<void> {
+    try {
+      await this.prisma.exerciseLog.updateMany({
+        where: { userId, clientRequestId, deletedAt: null },
+        data: { deletedAt: new Date(), version: { increment: 1 } },
+      });
+    } catch (e) {
+      throw this.fail('deleteExerciseLog', e);
+    }
+  }
+
+  /** syncToken 增量下游标：updatedAt > since（含 tombstone），按 (updatedAt, id) 稳定升序 */
+  async findExerciseLogsSince(userId: string, since: Date): Promise<ExerciseLogEntity[]> {
+    try {
+      const rows = await this.prisma.exerciseLog.findMany({
+        where: { userId, updatedAt: { gt: since } },
+        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      });
+      return rows.map(toExerciseLogEntity);
+    } catch (e) {
+      throw this.fail('findExerciseLogsSince', e);
     }
   }
 
@@ -1662,6 +1726,25 @@ function toWaterLogEntity(w: Prisma.WaterLogGetPayload<object>): WaterLogEntity 
     userId: w.userId,
     clientRequestId: w.clientRequestId,
     amountMl: w.amountMl,
+    loggedAt: w.loggedAt,
+    localDate: w.localDate,
+    version: w.version,
+    createdAt: w.createdAt,
+    updatedAt: w.updatedAt,
+    deletedAt: w.deletedAt,
+  };
+}
+
+function toExerciseLogEntity(w: Prisma.ExerciseLogGetPayload<object>): ExerciseLogEntity {
+  return {
+    id: w.id,
+    userId: w.userId,
+    clientRequestId: w.clientRequestId,
+    typeKey: w.typeKey,
+    durationMin: w.durationMin,
+    kcal: w.kcal,
+    steps: w.steps,
+    source: w.source,
     loggedAt: w.loggedAt,
     localDate: w.localDate,
     version: w.version,

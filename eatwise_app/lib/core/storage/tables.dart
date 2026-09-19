@@ -241,10 +241,18 @@ class WaterLogs extends Table {
   Set<Column<Object>> get primaryKey => {localId};
 }
 
+/// 运动记录两态同步状态（轻量口径同 WaterSyncState：无编辑场景，仅
+/// pending/synced；改 = 删了重记）。
+enum ExerciseSyncState { pending, synced }
+
 /// ExerciseLog 手动记运动（无 GMS 设备手动兜底：鸿蒙等 Health Connect /
 /// HealthKit 不可用场景）。
 ///
-/// 设备级数据：纯本地落库、不上行服务端（无同步字段，与饮食四态不同口径）。
+/// 两态同步（2026-09-19 产品拍板上行：pending/synced，口径同 WaterLogs）：
+/// 入账落 pending 待上行，上行成功回填 serverId 转 synced；撤销/删除未上行
+/// 物理删除、已上行置 tombstone 待上行 delete op。合规边界：仅用户主动
+/// 录入/截图确认落库的记录上行——系统健康数据（HealthKit/Health Connect
+/// 实时步数）不落本表、不出端。
 /// `typeKey` 为 `features/health/domain/exercise_types.dart` 的稳定键；
 /// `kcal` 为入账快照（MET 估算值或用户手改覆盖值）。
 class ExerciseLogs extends Table {
@@ -272,6 +280,20 @@ class ExerciseLogs extends Table {
 
   /// 归属日（本地时区 yyyy-MM-dd，当日合计聚合键，D-07 口径）。
   TextColumn get localDate => text()();
+
+  /// 上行幂等键（UUIDv4，入账生成，重试/删除 op 复用，§2.2）。
+  TextColumn get clientRequestId => text().withDefault(const Constant(''))();
+
+  /// 服务端主键，首次上行成功回填。
+  TextColumn get serverId => text().nullable()();
+
+  /// 两态同步状态（pending/synced）。
+  TextColumn get syncState => textEnum<ExerciseSyncState>().withDefault(
+    Constant(ExerciseSyncState.pending.name),
+  )();
+
+  /// 本地 tombstone：已上行记录的撤销/删除标记（上行 delete op 后物理清除）。
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   /// 本地创建时间（UTC ISO8601）。
   TextColumn get createdAtUtc => text()();

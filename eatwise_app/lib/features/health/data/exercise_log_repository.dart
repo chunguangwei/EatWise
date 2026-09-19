@@ -2,14 +2,20 @@ import 'dart:math';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/record/data/water_log_repository.dart'
     show localDateKey;
 
-/// 手动记运动仓库（无 GMS 设备手动兜底）。
+/// 手动记运动仓库（无 GMS 设备手动兜底；2026-09-19 拍板上行）。
 ///
-/// 设备级口径：纯本地落库、不上行服务端（无 pending/synced，与饮水两态
-/// 不同）。删除即物理删除——D-11 撤销与弹层今日列表删除同一语义；
-/// 乐观更新经 [watchLogsForDate] / [watchTotalKcalForDate] 流即时可见。
+/// 两态同步（pending/synced，口径同 WaterLogRepository，无编辑场景）：
+/// 入账落本地 pending 队列，由同步引擎（RemoteExerciseLogSync，挂
+/// RecordSyncEngine.syncNow 链）批量上行 /sync/push；乐观更新经
+/// [watchLogsForDate] / [watchTotalKcalForDate] 流即时可见。
+/// 撤销/删除复用 D-11 语义：从未上行 → 物理删除；已上行 → 置 tombstone
+/// 待上行 delete op（服务端软删）。
+/// 合规边界：仅本仓库落库的用户主动录入/截图确认记录上行；系统健康数据
+/// （HealthKit/Health Connect 实时步数）不经本仓库、不出端。
 final class ExerciseLogRepository {
   ExerciseLogRepository({
     required this.db,
@@ -67,17 +73,26 @@ final class ExerciseLogRepository {
         source: Value(source),
         steps: Value(steps),
         localDate: Value(localDateKey(nowUtc)),
+        clientRequestId: Value(_uuid()),
+        syncState: const Value(ExerciseSyncState.pending),
         createdAtUtc: Value(nowIso),
       ),
     );
     return (await db.exerciseLogDao.getByLocalId(localId))!;
   }
 
-  /// 删除该条（物理删除；D-11 撤销与弹层删除同一入口）。返回是否删除成功。
+  /// 删除该条（D-11 撤销与弹层删除同一入口；两态口径同
+  /// WaterLogRepository.undo）：从未上行 → 物理删除；已上行 → tombstone
+  /// （聚合即时排除，待上行 delete op 后物理清除）。返回是否删除成功。
   Future<bool> delete(String localId) async {
     final log = await db.exerciseLogDao.getByLocalId(localId);
-    if (log == null) return false;
-    return await db.exerciseLogDao.deleteLog(localId) > 0;
+    if (log == null || log.deleted) return false;
+    if (log.serverId == null && log.syncState == ExerciseSyncState.pending) {
+      // 从未上行：直接物理删除，无需 tombstone。
+      return await db.exerciseLogDao.deleteLog(localId) > 0;
+    }
+    await db.exerciseLogDao.markTombstone(localId);
+    return true;
   }
 
   /// 某日运动记录流（弹层今日列表）。

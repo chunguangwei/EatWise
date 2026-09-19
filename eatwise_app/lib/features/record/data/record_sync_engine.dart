@@ -1,4 +1,5 @@
 import 'package:eatwise/core/network/api_exception.dart';
+import 'package:eatwise/features/health/data/remote_exercise_log_sync.dart';
 import 'package:eatwise/features/record/custom_food/application/contribution_review.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
@@ -26,6 +27,7 @@ final class RecordSyncEngine {
     this.weightSync,
     this.weightStore,
     this.contributionReviewSync,
+    this.exerciseSync,
   });
 
   /// 记录仓储。
@@ -48,6 +50,9 @@ final class RecordSyncEngine {
 
   /// 贡献审核状态同步（可选：未装配/匿名跳过；仅登录态有意义）。
   final ContributionReviewSync? contributionReviewSync;
+
+  /// 运动记录上行同步（可选：2026-09-19 拍板上行；未装配为 null 跳过）。
+  final RemoteExerciseLogSync? exerciseSync;
 
   static const String _tokenKeyPrefix = 'record_sync_token_';
 
@@ -79,6 +84,15 @@ final class RecordSyncEngine {
       }
       await repository.retryPending();
       await waterSync?.pushPending(repository.db, repository.userId);
+      // 运动记录上行（2026-09-19 拍板）：与饮水同链（仅登录态——匿名推送
+      // 必 401，本地 pending 保留待登录后由登录成功触发的同步轮上行）。
+      if (repository.userId != 'anonymous') {
+        try {
+          await exerciseSync?.pushPending(repository.db, repository.userId);
+        } on ApiException {
+          // 失败保留下次重试。
+        }
+      }
       // 体重记录推拉（阶段 C）：仅登录态（匿名推送必 401，本地已可用）。
       final weightSync = this.weightSync;
       final weightStore = this.weightStore;

@@ -1,6 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BusinessException, err } from '../common/errors/business.exception';
-import { FoodEntryEntity, NutritionSnapshot, WaterLogEntity } from '../common/store/data-store';
+import {
+  ExerciseLogEntity,
+  FoodEntryEntity,
+  NutritionSnapshot,
+  WaterLogEntity,
+} from '../common/store/data-store';
 import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { newId, payloadHash } from '../common/utils/id.util';
 import { clampPageLimit } from '../common/utils/pagination.util';
@@ -62,6 +67,7 @@ export class SyncService {
   private async applyOp(userId: string, op: SyncOpDto): Promise<OpResult> {
     try {
       if (op.entity === 'waterLog') return await this.applyWaterOp(userId, op);
+      if (op.entity === 'exerciseLog') return await this.applyExerciseOp(userId, op);
       if (op.entity !== 'foodEntry') {
         return {
           clientRequestId: op.clientRequestId,
@@ -313,6 +319,132 @@ export class SyncService {
       updatedAt: e.updatedAt.toISOString(),
     };
   }
+
+  // ===== exerciseLog 轻量同步（两态：仅 create/delete，无 update——
+  // 运动记录无编辑场景，改 = 删了重记；幂等 clientRequestId 同 waterLog 口径）=====
+
+  private async applyExerciseOp(userId: string, op: SyncOpDto): Promise<OpResult> {
+    switch (op.op) {
+      case 'create':
+        return await this.applyExerciseCreate(userId, op);
+      case 'delete':
+        return await this.applyExerciseDelete(userId, op);
+      default:
+        return {
+          clientRequestId: op.clientRequestId,
+          status: 'error',
+          error: { code: 'VALIDATION_ERROR' },
+        };
+    }
+  }
+
+  private async applyExerciseCreate(userId: string, op: SyncOpDto): Promise<OpResult> {
+    const typeKey = op.payload?.typeKey;
+    const durationMin = op.payload?.durationMin;
+    const kcal = op.payload?.kcal;
+    const loggedAt = op.payload?.loggedAt;
+    if (
+      !typeKey ||
+      durationMin == null ||
+      durationMin < 0 ||
+      kcal == null ||
+      kcal <= 0 ||
+      !loggedAt
+    ) {
+      return {
+        clientRequestId: op.clientRequestId,
+        status: 'error',
+        error: { code: 'VALIDATION_ERROR' },
+      };
+    }
+    const dup = await this.findExerciseByClientRequestId(userId, op.clientRequestId);
+    if (dup) {
+      // 幂等重放：同键同体返回首次结果；同键不同体 = 客户端 bug
+      const same =
+        dup.typeKey === typeKey &&
+        dup.durationMin === durationMin &&
+        dup.kcal === kcal &&
+        dup.loggedAt.toISOString() === new Date(loggedAt).toISOString();
+      if (!same) {
+        return {
+          clientRequestId: op.clientRequestId,
+          status: 'error',
+          error: { code: 'IDEMPOTENCY_PAYLOAD_MISMATCH' },
+        };
+      }
+      return {
+        clientRequestId: op.clientRequestId,
+        status: 'applied',
+        serverEntry: this.exerciseLogView(dup),
+      };
+    }
+    const now = new Date();
+    const log: ExerciseLogEntity = {
+      id: newId(),
+      userId,
+      clientRequestId: op.clientRequestId,
+      typeKey,
+      durationMin,
+      kcal,
+      steps: op.payload?.steps ?? null,
+      source: op.payload?.source ?? null,
+      loggedAt: new Date(loggedAt),
+      localDate: op.payload?.localDate ?? '',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    };
+    await this.driver.createExerciseLog(log);
+    return {
+      clientRequestId: op.clientRequestId,
+      status: 'applied',
+      serverEntry: this.exerciseLogView(log),
+    };
+  }
+
+  private async applyExerciseDelete(userId: string, op: SyncOpDto): Promise<OpResult> {
+    const id = op.serverId ?? op.payload?.id;
+    // 与 waterLog delete 同法：本用户增量扫描（含 tombstone）覆盖 id 与幂等键两种定位
+    const logs = await this.driver.findExerciseLogsSince(userId, new Date(0));
+    const log =
+      (id ? logs.find((e) => e.id === id) : undefined) ??
+      (op.payload?.clientRequestId
+        ? logs.find((e) => e.clientRequestId === op.payload?.clientRequestId)
+        : undefined);
+    if (!log || log.userId !== userId) {
+      return { clientRequestId: op.clientRequestId, status: 'error', error: { code: 'NOT_FOUND' } };
+    }
+    if (!log.deletedAt) await this.driver.deleteExerciseLog(userId, log.clientRequestId);
+    // 软删幂等：重复删除返回 applied
+    return { clientRequestId: op.clientRequestId, status: 'applied' };
+  }
+
+  /** 幂等键定位（含 tombstone）：驱动按 userId 增量扫描，since=epoch 即全量 */
+  private async findExerciseByClientRequestId(
+    userId: string,
+    clientRequestId: string,
+  ): Promise<ExerciseLogEntity | null> {
+    const logs = await this.driver.findExerciseLogsSince(userId, new Date(0));
+    return logs.find((e) => e.clientRequestId === clientRequestId) ?? null;
+  }
+
+  private exerciseLogView(e: ExerciseLogEntity) {
+    return {
+      entity: 'exerciseLog',
+      id: e.id,
+      clientRequestId: e.clientRequestId,
+      typeKey: e.typeKey,
+      durationMin: e.durationMin,
+      kcal: e.kcal,
+      steps: e.steps,
+      source: e.source,
+      loggedAt: e.loggedAt.toISOString(),
+      localDate: e.localDate,
+      version: e.version,
+      updatedAt: e.updatedAt.toISOString(),
+    };
+  }
   // ===== E6 / sync/pull 增量下行（syncToken 游标）=====
   async pull(userId: string, syncToken: string | undefined, limit = 200) {
     limit = clampPageLimit(limit, 200, 1000); // 非法 limit（负数/NaN）回落默认，防游标死循环
@@ -337,6 +469,15 @@ export class SyncService {
         : this.waterLogView(e),
     );
 
+    // 运动记录随行下行（同 waterLog 口径：轻量两态，不分页〔假设：单用户
+    // 手动记录量小〕，复用同一 syncToken 游标语义）
+    const exerciseLogs = await this.driver.findExerciseLogsSince(userId, new Date(after?.ts ?? 0));
+    const exerciseChanges = exerciseLogs.map((e) =>
+      e.deletedAt
+        ? { tombstone: { entity: 'exerciseLog', id: e.id, deletedAt: e.deletedAt.toISOString() } }
+        : this.exerciseLogView(e),
+    );
+
     const page = all.slice(0, limit);
     const last = page[page.length - 1];
     return {
@@ -346,6 +487,7 @@ export class SyncService {
           : this.entryView(e),
       ),
       waterLogChanges: waterChanges,
+      exerciseLogChanges: exerciseChanges,
       syncToken: last
         ? this.encodeToken(last.updatedAt, last.id)
         : (syncToken ?? this.encodeToken(new Date(), '')),

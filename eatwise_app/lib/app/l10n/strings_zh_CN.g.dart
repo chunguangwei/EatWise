@@ -1080,6 +1080,9 @@ class Translations$record$voice$zh_CN {
 
 	/// zh-CN: '正在加载离线模型，首次较慢…'
 	String get loadingModel => '正在加载离线模型，首次较慢…';
+
+	/// zh-CN: '下载离线模型'
+	String get downloadTitle => '下载离线模型';
 }
 
 // Path: record.frequent
@@ -4238,6 +4241,7 @@ extension on Translations {
 			'record.voice.transcribeFailed' => '没转写出来，再录一次，或点右边键盘图标打字',
 			'record.voice.useOnDeviceAsr' => '用离线小模型识别',
 			'record.voice.loadingModel' => '正在加载离线模型，首次较慢…',
+			'record.voice.downloadTitle' => '下载离线模型',
 			'record.frequent.title' => '常吃的食物',
 			'record.frequent.empty' => '多记几笔，常吃榜就出来啦',
 			'record.frequent.emptyCta' => '去搜一搜',
@@ -4528,9 +4532,9 @@ extension on Translations {
 			'reports.growth.hourUnit' => '小时',
 			'reports.growth.kgUnit' => '公斤',
 			'reports.growth.noValue' => '—',
-			'reports.growth.empty' => '还没有足迹，先记一笔或完成一次断食吧',
 			_ => null,
 		} ?? switch (path) {
+			'reports.growth.empty' => '还没有足迹，先记一笔或完成一次断食吧',
 			'reports.weekly.title' => '本周报告',
 			'reports.weekly.range' => ({required Object start, required Object end}) => '${start} – ${end}',
 			'reports.weekly.qualified' => ({required Object days}) => '达标 ${days} 天',
