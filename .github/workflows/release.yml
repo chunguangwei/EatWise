@@ -22,6 +22,8 @@ jobs:
         working-directory: eatwise_app
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 需要历史 tag 生成更新日志
 
       - uses: subosito/flutter-action@v2
         with:
@@ -62,10 +64,23 @@ jobs:
 
       # API_BASE_URL 取仓库 Actions 变量（Settings → Secrets and variables →
       # Actions → Variables），未配置时回退为 localhost（仅模拟器可用）。
+      # CI_KEYSTORE_PATH 让 build.gradle.kts 走显式 ciRelease 签名——runner
+      # 上 debug 默认 keystore 查找不可靠（v1.12.2/v1.12.3 两次签名漂移实锤），
+      # 显式路径 + 构建后指纹断言双保险。
       - name: 构建 APK（release；签名=上面的 keystore）
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL || 'http://localhost:3000/v1' }}
+          CI_KEYSTORE_PATH: /home/runner/.android/debug.keystore
         run: flutter build apk --release --dart-define=API_BASE_URL="$API_BASE_URL"
+
+      # 产物签名指纹断言：与本机 debug key 基线（79:94:78:99…B1:95，debug
+      # 证书指纹非敏感）不一致直接失败，绝不再放出签名漂移的包。
+      - name: 校验 APK 签名指纹（防签名漂移）
+        run: |
+          APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          CERT=$("$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-release.apk)
+          echo "$CERT"
+          echo "$CERT" | grep -q "79947899336324f5977ea90ad5fc296df6b51bba1071e536ed58510cf712b195"
 
       - name: 读取版本号
         id: ver
@@ -79,7 +94,18 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           cp build/app/outputs/flutter-apk/app-release.apk "eatwise-${TAG}.apk"
+          # 更新日志取上一 tag 以来的提交标题（客户端更新弹窗直接展示该
+          # 文本，--generate-notes 只会产出一条 Full Changelog 链接）。
+          PREV_TAG=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)
+          if [ -n "$PREV_TAG" ]; then RANGE="$PREV_TAG..$TAG"; else RANGE="$TAG"; fi
+          {
+            echo "## 更新内容"
+            echo
+            git log --pretty=format:'- %s' "$RANGE" | grep -vE '^- chore: v[0-9]' || echo '- 稳定性改进与问题修复'
+            echo
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG:-v0}...${TAG}"
+          } > release-notes.md
           gh release create "$TAG" "eatwise-${TAG}.apk" \
             --title "EatWise $TAG" \
-            --generate-notes \
+            --notes-file release-notes.md \
             --latest
