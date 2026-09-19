@@ -13,10 +13,10 @@ import 'package:flutter/material.dart';
 /// 强制更新（[UpdateStatus.forced]）无「以后再说」且不可关闭
 /// （barrierDismissible=false + 拦截返回）。
 ///
-/// 「立即更新」行为分平台：Android 走 App 内下载（[UpdateDownloader]，自托管
-/// 自签名证书不经浏览器、可显示进度），完成自动调起系统安装器，失败给重试；
-/// iOS 走 [UpdateLauncher] 打开 App Store 占位（当前 iOS 平台门不弹窗，
-/// 该路径仅平台中立性兜底）。
+/// 「立即更新」行为分平台：Android 走 App 内下载（[UpdateDownloader]：GitHub
+/// 主链 + 自托管兜底 + 断点续传/重试/保活，可显示进度），完成自动调起系统
+/// 安装器，失败给重试；iOS 走 [UpdateLauncher] 打开 App Store 占位（当前 iOS
+/// 平台门不弹窗，该路径仅平台中立性兜底）。
 Future<void> showUpdateDialog(
   BuildContext context,
   UpdateCheckResult result, {
@@ -113,6 +113,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
     });
     final ok = await _downloader.downloadAndInstall(
       apkUrl,
+      fallbackUrl: info.apkUrlFallback,
       onProgress: (received, total) {
         if (!mounted) return;
         setState(() {

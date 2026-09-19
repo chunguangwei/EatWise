@@ -9,6 +9,7 @@ final class AppVersionInfo {
     required this.releaseNotesZh,
     required this.releaseNotesEn,
     required this.apkUrl,
+    this.apkUrlFallback,
     required this.publishedAt,
     required this.source,
   });
@@ -24,6 +25,7 @@ final class AppVersionInfo {
       releaseNotesZh: notesMap['zh'] as String? ?? '',
       releaseNotesEn: notesMap['en'] as String? ?? '',
       apkUrl: json['apkUrl'] as String?,
+      apkUrlFallback: json['apkUrlFallback'] as String?,
       publishedAt: json['publishedAt'] as String?,
       source: json['source'] as String? ?? 'github',
     );
@@ -34,8 +36,11 @@ final class AppVersionInfo {
   final String releaseNotesZh;
   final String releaseNotesEn;
 
-  /// Android APK 下载地址；iOS 为 null（走 App Store 占位〔假设〕）。
+  /// Android APK 下载主链（GitHub release asset，CDN）；iOS 为 null（走 App Store 占位〔假设〕）。
   final String? apkUrl;
+
+  /// Android APK 兜底下载地址（自托管，主链连续失败时切换）；未配为 null。
+  final String? apkUrlFallback;
   final String? publishedAt;
 
   /// 数据来源：github / fallback（env 兜底）。

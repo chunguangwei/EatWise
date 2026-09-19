@@ -1,9 +1,10 @@
 import 'package:eatwise/core/update/update_models.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// 「立即更新」跳转：Android 外部浏览器打开 APK 下载地址；
-/// iOS 打开 App Store 页（URL 占位〔假设〕，待上架后替换真实 App ID）。
-/// 当前 iOS 在 UpdateChecker 平台门处即不提示更新，本跳转实际仅 Android 可达。
+/// 「立即更新」外部跳转兜底：仅 iOS 使用（打开 App Store 占位〔假设〕，
+/// 待上架后替换真实 App ID）；Android 自 2026-09-19 起走 App 内下载
+/// （UpdateDownloader），本类不再经手 APK 地址。
+/// 当前 iOS 在 UpdateChecker 平台门处即不提示更新，本跳转实际不可达。
 final class UpdateLauncher {
   const UpdateLauncher({Future<bool> Function(Uri url)? launch})
     : _launch = launch ?? _defaultLaunch;

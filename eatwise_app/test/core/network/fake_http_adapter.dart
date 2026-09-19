@@ -65,7 +65,12 @@ final class FakeHttpAdapter implements HttpClientAdapter {
 
 /// 预置响应（JSON 信封或网络错误）。
 final class StubResponse {
-  const StubResponse._(this.statusCode, this.body, this.throwError);
+  const StubResponse._(
+    this.statusCode,
+    this.body,
+    this.throwError, [
+    this.extraHeaders,
+  ]);
 
   /// JSON 响应（自动包 json content-type）。
   factory StubResponse.json(int statusCode, Object body) =>
@@ -76,13 +81,18 @@ final class StubResponse {
       StubResponse._(null, null, error);
 
   /// 原始字节响应（下载场景）：application/octet-stream 且带 content-length，
-  /// 供 onReceiveProgress 拿到真实 total。
-  factory StubResponse.rawBytes(int statusCode, List<int> bytes) =>
-      StubResponse._(statusCode, bytes, null);
+  /// 供 onReceiveProgress 拿到真实 total；extraHeaders 供 206/416 等
+  /// 续传场景带 Content-Range。
+  factory StubResponse.rawBytes(
+    int statusCode,
+    List<int> bytes, {
+    Map<String, List<String>>? extraHeaders,
+  }) => StubResponse._(statusCode, bytes, null, extraHeaders);
 
   final int? statusCode;
   final Object? body;
   final Object? throwError;
+  final Map<String, List<String>>? extraHeaders;
 
   /// 成功信封（契约 §1.3：{data, meta}）。
   static Map<String, dynamic> envelope(Object data) => <String, dynamic>{
@@ -126,6 +136,7 @@ final class StubResponse {
         headers: <String, List<String>>{
           Headers.contentTypeHeader: <String>['application/octet-stream'],
           Headers.contentLengthHeader: <String>['${b.length}'],
+          ...?extraHeaders,
         },
       );
     }

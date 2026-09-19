@@ -108,6 +108,7 @@ void main() {
         'minSupportedVersion': min,
         'releaseNotes': <String, String>{'zh': '修复问题', 'en': 'Bug fixes'},
         'apkUrl': 'https://example.com/app.apk',
+        'apkUrlFallback': 'https://fallback.example.com/app.apk',
         'publishedAt': '2026-07-29T00:00:00Z',
         'source': 'github',
       });
@@ -126,6 +127,11 @@ void main() {
       final result = await checker.check();
       expect(result.status, UpdateStatus.available);
       expect(result.info.latestVersion, '1.2.0');
+      expect(result.info.apkUrl, 'https://example.com/app.apk');
+      expect(
+        result.info.apkUrlFallback,
+        'https://fallback.example.com/app.apk',
+      );
       expect(result.info.releaseNotesFor('zh-CN'), '修复问题');
       expect(result.info.releaseNotesFor('en'), 'Bug fixes');
       expect(adapter.requests.single.queryParameters['platform'], 'android');
@@ -341,19 +347,28 @@ void main() {
     });
   });
 
-  group('UpdateDownloader（App 内下载 + 调起安装器）', () {
+  group('UpdateDownloader（App 内下载 + 续传/重试/兜底/保活）', () {
     const apkUrl = 'https://example.com/app.apk';
+    const fallbackUrl = 'https://fallback.example.com/app.apk';
     final apkBytes = List<int>.generate(64, (i) => i);
 
     late FakeHttpAdapter adapter;
     late Dio dio;
     late Directory tempDir;
+    late List<String> wakelockEvents;
+    late List<Duration> sleeps;
+
+    String partPath() =>
+        '${tempDir.path}/${UpdateDownloader.apkFileName}${UpdateDownloader.partFileSuffix}';
+    String finalPath() => '${tempDir.path}/${UpdateDownloader.apkFileName}';
 
     setUp(() {
       adapter = FakeHttpAdapter();
       dio = Dio();
       dio.httpClientAdapter = adapter;
       tempDir = Directory.systemTemp.createTempSync('update_dl_test');
+      wakelockEvents = <String>[];
+      sleeps = <Duration>[];
     });
 
     tearDown(() {
@@ -362,8 +377,14 @@ void main() {
 
     UpdateDownloader downloader({
       required Future<bool> Function(String) open,
-    }) =>
-        UpdateDownloader(dio: dio, openApk: open, tempDir: () async => tempDir);
+    }) => UpdateDownloader(
+      dio: dio,
+      openApk: open,
+      tempDir: () async => tempDir,
+      acquireWakelock: () async => wakelockEvents.add('acquire'),
+      releaseWakelock: () async => wakelockEvents.add('release'),
+      sleep: (d) async => sleeps.add(d),
+    );
 
     test('成功：流式下载到临时目录、进度回调递增且末次满量、调起 open', () async {
       adapter.stub(apkUrl, StubResponse.rawBytes(200, apkBytes));
@@ -383,11 +404,12 @@ void main() {
       expect(opened.single, endsWith(UpdateDownloader.apkFileName));
       expect(progress, isNotEmpty);
       expect(progress.last, (apkBytes.length, apkBytes.length));
-      final saved = File('${tempDir.path}/eatwise-update.apk');
-      expect(saved.readAsBytesSync(), apkBytes);
+      expect(File(finalPath()).readAsBytesSync(), apkBytes);
+      // 保活：下载期间 acquire，结束必 release。
+      expect(wakelockEvents, <String>['acquire', 'release']);
     });
 
-    test('下载失败（网络错误）：返回 false 且不调起 open（可重试）', () async {
+    test('下载失败（网络错误重试耗尽）：返回 false 且不调起 open；保活仍释放', () async {
       adapter.stub(apkUrl, StubResponse.networkError('offline'));
       var openCalled = false;
       final ok = await downloader(
@@ -398,6 +420,13 @@ void main() {
       ).downloadAndInstall(apkUrl);
       expect(ok, isFalse);
       expect(openCalled, isFalse);
+      // 3 次尝试 = 首次 + 2 次退避重试（1s/2s）
+      expect(sleeps, <Duration>[
+        const Duration(seconds: 1),
+        const Duration(seconds: 2),
+      ]);
+      expect(adapter.requestsTo(apkUrl), 3);
+      expect(wakelockEvents, <String>['acquire', 'release']);
     });
 
     test('调起安装器失败（用户取消/无权限）：返回 false', () async {
@@ -406,6 +435,195 @@ void main() {
         open: (path) async => false,
       ).downloadAndInstall(apkUrl);
       expect(ok, isFalse);
+    });
+
+    test('断点续传：.part 已存在带 Range 请求，206 追加写、进度累计不回退', () async {
+      File(partPath()).writeAsBytesSync(apkBytes.sublist(0, 4));
+      adapter.stub(
+        apkUrl,
+        StubResponse.rawBytes(
+          206,
+          apkBytes.sublist(4),
+          extraHeaders: <String, List<String>>{
+            'content-range': <String>['bytes 4-63/64'],
+          },
+        ),
+      );
+      final progress = <(int, int)>[];
+      final ok = await downloader(open: (path) async => true)
+          .downloadAndInstall(
+            apkUrl,
+            onProgress: (received, total) => progress.add((received, total)),
+          );
+      expect(ok, isTrue);
+      expect(adapter.requests.single.headers['range'], 'bytes=4-');
+      expect(File(finalPath()).readAsBytesSync(), apkBytes);
+      expect(progress, isNotEmpty);
+      expect(progress.first.$1, greaterThan(4)); // 累计：已收 4 + 本次
+      expect(progress.last, (64, 64));
+    });
+
+    test('服务端不认 Range（回 200）：截断重下整文件', () async {
+      File(partPath()).writeAsBytesSync(<int>[9, 9, 9, 9]);
+      adapter.stub(apkUrl, StubResponse.rawBytes(200, apkBytes));
+      final progress = <(int, int)>[];
+      final ok = await downloader(open: (path) async => true)
+          .downloadAndInstall(
+            apkUrl,
+            onProgress: (received, total) => progress.add((received, total)),
+          );
+      expect(ok, isTrue);
+      expect(File(finalPath()).readAsBytesSync(), apkBytes);
+      expect(progress.last, (64, 64)); // 从 0 重计仍收满
+    });
+
+    test('416（.part 已完整）：不写数据直接大小校验通过并 rename', () async {
+      File(partPath()).writeAsBytesSync(apkBytes);
+      adapter.stub(
+        apkUrl,
+        StubResponse.rawBytes(
+          416,
+          <int>[],
+          extraHeaders: <String, List<String>>{
+            'content-range': <String>['bytes */64'],
+          },
+        ),
+      );
+      final ok = await downloader(
+        open: (path) async => true,
+      ).downloadAndInstall(apkUrl);
+      expect(ok, isTrue);
+      expect(File(finalPath()).readAsBytesSync(), apkBytes);
+    });
+
+    test('中断后自动重试：前两次网络错误、第三次成功（指数退避 1s/2s）', () async {
+      adapter
+        ..stub(apkUrl, StubResponse.networkError('offline'))
+        ..stub(apkUrl, StubResponse.networkError('offline'))
+        ..stub(apkUrl, StubResponse.rawBytes(200, apkBytes));
+      final ok = await downloader(
+        open: (path) async => true,
+      ).downloadAndInstall(apkUrl);
+      expect(ok, isTrue);
+      expect(sleeps, <Duration>[
+        const Duration(seconds: 1),
+        const Duration(seconds: 2),
+      ]);
+      expect(adapter.requestsTo(apkUrl), 3);
+      expect(File(finalPath()).readAsBytesSync(), apkBytes);
+    });
+
+    test('主链连续失败切兜底 URL：.part 续传跨 URL 成立', () async {
+      // 主链：先收到 4 字节后中断（声明总长 64 但流只有 4 字节）→ 重试全失败。
+      adapter
+        ..stub(
+          apkUrl,
+          StubResponse.rawBytes(
+            200,
+            apkBytes.sublist(0, 4),
+            extraHeaders: <String, List<String>>{
+              Headers.contentLengthHeader: <String>['64'],
+            },
+          ),
+        )
+        ..stub(apkUrl, StubResponse.networkError('offline'))
+        ..stub(apkUrl, StubResponse.networkError('offline'));
+      // 兜底：带 Range 续传（.part 已收 4 字节）。
+      adapter.stub(
+        fallbackUrl,
+        StubResponse.rawBytes(
+          206,
+          apkBytes.sublist(4),
+          extraHeaders: <String, List<String>>{
+            'content-range': <String>['bytes 4-63/64'],
+          },
+        ),
+      );
+      final ok = await downloader(
+        open: (path) async => true,
+      ).downloadAndInstall(apkUrl, fallbackUrl: fallbackUrl);
+      expect(ok, isTrue);
+      expect(adapter.requestsTo(apkUrl), 3);
+      expect(adapter.requestsTo(fallbackUrl), 1);
+      expect(adapter.requests.last.headers['range'], 'bytes=4-');
+      expect(File(finalPath()).readAsBytesSync(), apkBytes);
+    });
+
+    test('切兜底后总长度不一致：清 .part 重下', () async {
+      File(partPath()).writeAsBytesSync(<int>[9, 9, 9, 9]);
+      // 主链：首轮 206 声明总长 64（记下 expectedTotal）但流不完整，
+      // 后续重试 5xx 耗尽。
+      adapter
+        ..stub(
+          apkUrl,
+          StubResponse.rawBytes(
+            206,
+            apkBytes.sublist(4, 6),
+            extraHeaders: <String, List<String>>{
+              'content-range': <String>['bytes 4-5/64'],
+            },
+          ),
+        )
+        ..stub(apkUrl, StubResponse.rawBytes(500, <int>[]))
+        ..stub(apkUrl, StubResponse.rawBytes(500, <int>[]));
+      // 兜底为另一个文件（总长 100 ≠ 64）：首轮 206 声明不一致 → 清 .part，
+      // 下一轮从 0 重下。
+      final otherBytes = List<int>.generate(100, (i) => 255 - i);
+      adapter
+        ..stub(
+          fallbackUrl,
+          StubResponse.rawBytes(
+            206,
+            otherBytes.sublist(6),
+            extraHeaders: <String, List<String>>{
+              'content-range': <String>['bytes 6-99/100'],
+            },
+          ),
+        )
+        ..stub(fallbackUrl, StubResponse.rawBytes(200, otherBytes));
+      final ok = await downloader(
+        open: (path) async => true,
+      ).downloadAndInstall(apkUrl, fallbackUrl: fallbackUrl);
+      expect(ok, isTrue);
+      expect(File(finalPath()).readAsBytesSync(), otherBytes);
+      expect(adapter.requestsTo(fallbackUrl), 2);
+      // 第二轮从头下：不带 Range。
+      expect(adapter.requests.last.headers['range'], isNull);
+    });
+
+    test('完整性校验：流短于声明总长视为失败，保留 .part 供重试续传', () async {
+      adapter.stub(
+        apkUrl,
+        StubResponse.rawBytes(
+          200,
+          apkBytes.sublist(0, 10),
+          extraHeaders: <String, List<String>>{
+            Headers.contentLengthHeader: <String>['64'],
+          },
+        ),
+      );
+      var openCalled = false;
+      final ok = await downloader(
+        open: (path) async {
+          openCalled = true;
+          return true;
+        },
+      ).downloadAndInstall(apkUrl);
+      expect(ok, isFalse);
+      expect(openCalled, isFalse);
+      expect(File(finalPath()).existsSync(), isFalse); // 未 rename
+      expect(
+        File(partPath()).readAsBytesSync(),
+        apkBytes.sublist(0, 10),
+      ); // .part 保留
+    });
+
+    test('parseContentRangeTotal（纯函数）：正常/416 星号/缺失/非法', () {
+      expect(parseContentRangeTotal('bytes 4-63/64'), 64);
+      expect(parseContentRangeTotal('bytes */128'), 128);
+      expect(parseContentRangeTotal(null), isNull);
+      expect(parseContentRangeTotal('bytes 0-3/*'), isNull);
+      expect(parseContentRangeTotal('garbage'), isNull);
     });
   });
 
@@ -439,7 +657,8 @@ void main() {
       );
     }
 
-    /// 假下载器：dio 走 FakeHttpAdapter（stub apkUrl），openApk 记录调起。
+    /// 假下载器：dio 走 FakeHttpAdapter（stub apkUrl），openApk 记录调起；
+    /// sleep/保亮注入假实现（失败路径的退避重试不耗真实时间）。
     UpdateDownloader fakeDownloader({
       required FakeHttpAdapter adapter,
       required Directory tempDir,
@@ -450,6 +669,9 @@ void main() {
         dio: dio,
         openApk: open,
         tempDir: () async => tempDir,
+        acquireWakelock: () async {},
+        releaseWakelock: () async {},
+        sleep: (_) async {},
       );
     }
 
@@ -546,6 +768,16 @@ void main() {
 
     testWidgets('下载失败给重试：错误提示 + 「重试」，重试成功后调起安装', (tester) async {
       final adapter = FakeHttpAdapter()
+        // 首轮把每 URL 3 次尝试全部耗尽（下载器内部自动重试），
+        // 第二轮（点「重试」）才成功。
+        ..stub(
+          'https://example.com/app.apk',
+          StubResponse.networkError('offline'),
+        )
+        ..stub(
+          'https://example.com/app.apk',
+          StubResponse.networkError('offline'),
+        )
         ..stub(
           'https://example.com/app.apk',
           StubResponse.networkError('offline'),

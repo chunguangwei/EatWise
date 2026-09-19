@@ -76,12 +76,13 @@ describe('AppVersionService（GitHub Releases 代理 + 降级兜底 + 缓存）'
       minSupportedVersion: '1.0.0',
       releaseNotes: { zh: '- 新增更新检查', en: '- 新增更新检查' },
       apkUrl: 'https://github.com/x/app-release.apk',
+      apkUrlFallback: null,
       publishedAt: '2026-07-29T00:00:00Z',
       source: 'github',
     });
   });
 
-  it('GitHub 成功且已配 APP_APK_URL：apkUrl 用自托管地址，版本/notes 仍取 GitHub', async () => {
+  it('GitHub 成功且已配 APP_APK_URL：apkUrl 用 GitHub asset（主链），自托管降为兜底', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, releasePayload));
     const service = new AppVersionService(
       new ConfigService({
@@ -90,24 +91,27 @@ describe('AppVersionService（GitHub Releases 代理 + 降级兜底 + 缓存）'
     );
     const view = await service.getLatest('android');
     expect(view.source).toBe('github');
-    expect(view.apkUrl).toBe('https://wcg.polin.tech:8443/downloads/eatwise-v1.2.0.apk');
+    expect(view.apkUrl).toBe('https://github.com/x/app-release.apk');
+    expect(view.apkUrlFallback).toBe('https://wcg.polin.tech:8443/downloads/eatwise-v1.2.0.apk');
     expect(view.latestVersion).toBe('1.2.0');
     expect(view.releaseNotes.zh).toBe('- 新增更新检查');
     expect(view.publishedAt).toBe('2026-07-29T00:00:00Z');
   });
 
-  it('GitHub 成功但未配 APP_APK_URL：apkUrl 维持 release asset 地址', async () => {
+  it('GitHub 成功但未配 APP_APK_URL：apkUrl 维持 release asset 地址且无兜底', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, releasePayload));
     const service = new AppVersionService(new ConfigService());
     const view = await service.getLatest('android');
     expect(view.apkUrl).toBe('https://github.com/x/app-release.apk');
+    expect(view.apkUrlFallback).toBeNull();
   });
 
-  it('GitHub 成功且 APP_APK_URL 为空串：视为未配，维持 release asset 地址', async () => {
+  it('GitHub 成功且 APP_APK_URL 为空串：视为未配，无兜底', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, releasePayload));
     const service = new AppVersionService(new ConfigService({ APP_APK_URL: '' }));
     const view = await service.getLatest('android');
     expect(view.apkUrl).toBe('https://github.com/x/app-release.apk');
+    expect(view.apkUrlFallback).toBeNull();
   });
 
   it('携带 GITHUB_RELEASE_TOKEN 时请求带 Authorization 头', async () => {
@@ -123,6 +127,7 @@ describe('AppVersionService（GitHub Releases 代理 + 降级兜底 + 缓存）'
     const service = new AppVersionService(new ConfigService());
     const view = await service.getLatest('ios');
     expect(view.apkUrl).toBeNull();
+    expect(view.apkUrlFallback).toBeNull();
     expect(view.latestVersion).toBe('1.2.0');
   });
 
@@ -139,6 +144,7 @@ describe('AppVersionService（GitHub Releases 代理 + 降级兜底 + 缓存）'
     expect(view.source).toBe('fallback');
     expect(view.latestVersion).toBe('1.1.0');
     expect(view.apkUrl).toBe('https://cdn.example.com/app.apk');
+    expect(view.apkUrlFallback).toBeNull(); // env 兜底路径自托管已是主链，无再兜底
     expect(view.releaseNotes.zh).toBe('修复若干问题');
     expect(view.releaseNotes.en).toBe('修复若干问题'); // 未配 EN 时回退 ZH
   });

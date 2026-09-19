@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.10.0+47
+version: 1.11.0+48
 
 environment:
   sdk: ^3.12.2
@@ -62,6 +62,8 @@ dependencies:
   url_launcher: ^6.3.2
   # 应用内更新：打开下载好的 APK 调起系统安装器（维护中的 open_file 继任包）。
   open_filex: ^4.7.0
+  # 应用内更新：下载 APK 期间保持屏幕常亮（防息屏断连中断下载）。
+  wakelock_plus: ^1.4.0
   saver_gallery: ^5.1.0
   mobile_scanner: ^7.4.0
   # 端侧小模型 AI 估算（spike 实测版本，见 docs/superpowers 端侧推理 spike）：
