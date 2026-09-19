@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:eatwise/features/record/recognition/data/food_recognition_service.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
 import 'package:eatwise/features/record/recognition/domain/recognition_models.dart';
+import 'package:eatwise/features/record/recognition/voice/audio_recorder_gateway.dart';
 import 'package:eatwise/features/record/recognition/voice/speech_gateway.dart';
 
 /// 取图 fake：可配置返回字节 / 用户取消（null）/ 权限拒绝。
@@ -58,5 +59,33 @@ final class FakeSpeechGateway implements SpeechGateway {
   @override
   Future<void> cancel() async {
     cancelled = true;
+  }
+}
+
+/// 麦克风录音 fake（端侧 ASR 路径）：可配置权限拒绝 / 录音产出字节 / 取消标记。
+final class FakeAudioRecorderGateway implements AudioRecorderGateway {
+  bool permitted = true;
+  Uint8List? pcm = Uint8List.fromList(<int>[1, 2, 3, 4]);
+  bool recording = false;
+  bool cancelled = false;
+
+  @override
+  Future<bool> ensurePermission() async => permitted;
+
+  @override
+  Future<void> start() async {
+    recording = true;
+  }
+
+  @override
+  Future<Uint8List?> stop() async {
+    recording = false;
+    return pcm;
+  }
+
+  @override
+  Future<void> cancel() async {
+    cancelled = true;
+    recording = false;
   }
 }

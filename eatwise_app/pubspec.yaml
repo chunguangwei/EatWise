@@ -53,6 +53,7 @@ dependencies:
   flutter_secure_storage: ^10.3.1
   image_picker: ^1.2.3
   speech_to_text: ^7.4.0
+  record: ^7.1.1
   app_settings: ^8.0.3
   # 埋点 user_id HMAC-SHA256 匿名化（埋点规范 1.2）。
   crypto: ^3.0.6

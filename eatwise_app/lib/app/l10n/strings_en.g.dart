@@ -622,6 +622,9 @@ class _Translations$record$voice$en extends Translations$record$voice$zh_CN {
 	@override String get understanding => 'Understanding…';
 	@override String get noSpeechHint => 'Didn\'t catch that — try again, or tap the keyboard icon to type';
 	@override String get errorGeneric => 'Voice recognition unavailable — tap the keyboard icon to type instead';
+	@override String get recordingNow => 'Recording… tap again to stop';
+	@override String get transcribingNow => 'Transcribing…';
+	@override String get transcribeFailed => 'Couldn\'t transcribe — record again or type with the keyboard icon';
 }
 
 // Path: record.frequent
@@ -2404,6 +2407,9 @@ extension on TranslationsEn {
 			'record.voice.understanding' => 'Understanding…',
 			'record.voice.noSpeechHint' => 'Didn\'t catch that — try again, or tap the keyboard icon to type',
 			'record.voice.errorGeneric' => 'Voice recognition unavailable — tap the keyboard icon to type instead',
+			'record.voice.recordingNow' => 'Recording… tap again to stop',
+			'record.voice.transcribingNow' => 'Transcribing…',
+			'record.voice.transcribeFailed' => 'Couldn\'t transcribe — record again or type with the keyboard icon',
 			'record.frequent.title' => 'Frequently logged',
 			'record.frequent.empty' => 'Log a few more meals and your usuals will show up here',
 			'record.frequent.emptyCta' => 'Search instead',
@@ -2700,11 +2706,11 @@ extension on TranslationsEn {
 			'reports.weeklySummary.chipRecorded' => ({required Object days}) => '${days}d logged',
 			'reports.weeklySummary.chipAvgKcal' => ({required Object kcal, required Object target}) => 'avg ${kcal} · goal ${target} kcal',
 			'reports.weeklySummary.chipWeight' => ({required Object kg}) => 'weight ${kg} kg',
+			_ => null,
+		} ?? switch (path) {
 			'reports.weeklySummary.fastingPlain' => ({required Object days}) => 'You hit your fasting goal on ${days} of 7 days last week',
 			'reports.weeklySummary.fastingMore' => ({required Object days, required Object delta}) => 'You hit your fasting goal on ${days} of 7 days last week, ${delta} more than the week before',
 			'reports.weeklySummary.fastingLess' => ({required Object days, required Object delta}) => 'You hit your fasting goal on ${days} of 7 days last week, ${delta} fewer than the week before',
-			_ => null,
-		} ?? switch (path) {
 			'reports.weeklySummary.fastingSame' => ({required Object days}) => 'You hit your fasting goal on ${days} of 7 days last week, the same as the week before',
 			'reports.weeklySummary.intakeWithin' => ({required Object kcal}) => 'average intake was ${kcal} kcal a day, within your target range',
 			'reports.weeklySummary.intakeAbove' => ({required Object kcal, required Object percent}) => 'average intake was ${kcal} kcal a day, ${percent}% above target',

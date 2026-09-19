@@ -289,7 +289,10 @@
       "typeHint": "说一句，比如「中午吃了一碗牛肉面加个蛋」",
       "understanding": "理解中…",
       "noSpeechHint": "没听清，请再说一次，或点右边键盘图标打字",
-      "errorGeneric": "语音识别不可用，点右边键盘图标打字输入"
+      "errorGeneric": "语音识别不可用，点右边键盘图标打字输入",
+      "recordingNow": "正在录音… 再点一下停止",
+      "transcribingNow": "转写中…",
+      "transcribeFailed": "没转写出来，再录一次，或点右边键盘图标打字"
     },
     "frequent": {
       "title": "常吃的食物",

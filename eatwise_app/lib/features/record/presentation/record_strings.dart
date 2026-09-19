@@ -197,6 +197,15 @@ final class RecordStrings {
   /// record.voice.understanding
   String get voiceUnderstanding => _t.record.voice.understanding;
 
+  /// record.voice.recordingNow
+  String get voiceRecordingNow => _t.record.voice.recordingNow;
+
+  /// record.voice.transcribingNow
+  String get voiceTranscribingNow => _t.record.voice.transcribingNow;
+
+  /// record.voice.transcribeFailed
+  String get voiceTranscribeFailed => _t.record.voice.transcribeFailed;
+
   /// record.voice.noSpeechHint
   String get voiceNoSpeechHint => _t.record.voice.noSpeechHint;
 

@@ -18,11 +18,13 @@ import 'package:eatwise/features/record/data/water_log_repository.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/recognition/data/food_recognition_service.dart';
 import 'package:eatwise/features/record/recognition/data/frequent_foods.dart';
+import 'package:eatwise/features/record/recognition/data/ondevice_asr_service.dart';
 import 'package:eatwise/features/record/recognition/data/ondevice_food_recognition_service.dart';
 import 'package:eatwise/features/record/recognition/data/ondevice_free_text_meal_service.dart';
 import 'package:eatwise/features/record/recognition/data/ondevice_label_ocr_service.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
 import 'package:eatwise/features/record/recognition/domain/engine_availability.dart';
+import 'package:eatwise/features/record/recognition/voice/audio_recorder_gateway.dart';
 import 'package:eatwise/features/record/recognition/voice/speech_gateway.dart';
 import 'package:eatwise/features/record/recognition/voice/voice_text_parser.dart';
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
@@ -228,8 +230,19 @@ aiEngineGuideNavigatorProvider = Provider((ref) {
 /// 真实就绪由服务内部 load 把关：模型真未下载 → load 抛缺失 → 各服务按自身
 /// 降级路径处理，与 stub/回落同一兜底）。快照已出且未就绪 → false。
 bool onDeviceRecognitionActive(Ref ref) {
-  if (!ref.watch(onDeviceAiEnabledProvider)) return false;
-  final snapshotAsync = ref.watch(onDeviceModelSnapshotProvider);
+  return onDeviceRecognitionActiveFor(
+    ref.watch(onDeviceAiEnabledProvider),
+    ref.watch(onDeviceModelSnapshotProvider),
+  );
+}
+
+/// [onDeviceRecognitionActive] 的核心判定（纯函数）：WidgetRef 与 Ref
+/// 在 riverpod 2.6 无公共父类，调用侧各自读值后走这里。
+bool onDeviceRecognitionActiveFor(
+  bool enabled,
+  AsyncValue<OnDeviceModelSnapshot> snapshotAsync,
+) {
+  if (!enabled) return false;
   return switch (snapshotAsync) {
     AsyncData(:final value) => value.status == OnDeviceModelStatus.ready,
     // 快照未出（冷启动 refresh 进行中）：乐观按就绪。
@@ -284,6 +297,26 @@ final Provider<OnDeviceFreeTextMealService?> freeTextMealServiceProvider =
 final Provider<SpeechGateway> speechGatewayProvider = Provider<SpeechGateway>(
   (ref) => SpeechToTextGateway(),
 );
+
+/// 麦克风录音网关（端侧 ASR 路径；生产 record 插件，测试 override 为 fake）。
+final Provider<AudioRecorderGateway> audioRecorderGatewayProvider =
+    Provider<AudioRecorderGateway>((ref) {
+      final gateway = RecordAudioRecorderGateway();
+      ref.onDispose(() => unawaited(gateway.dispose()));
+      return gateway;
+    });
+
+/// 端侧 ASR 转写服务（系统 ASR 不可用时的回落）。开关关或快照明确未就绪
+/// → null（语音入口走引擎引导卡/降级卡）。
+final Provider<OnDeviceAsrService?> onDeviceAsrServiceProvider = Provider((
+  ref,
+) {
+  if (!onDeviceRecognitionActive(ref)) return null;
+  return OnDeviceAsrService(
+    gateway: ref.watch(onDeviceLlmGatewayProvider),
+    modelPath: ref.watch(onDeviceModelManagerProvider).modelPath,
+  );
+});
 
 /// 语音轻量解析器（纯 Dart：词典匹配 + 份量正则，D-16）。
 final Provider<VoiceTextParser> voiceTextParserProvider =

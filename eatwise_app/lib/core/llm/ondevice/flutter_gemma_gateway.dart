@@ -30,6 +30,9 @@ final class FlutterGemmaGateway implements OnDeviceLlmGateway {
   /// 当前已加载模型的视觉能力（与 getActiveModel 的 supportImage 对应）。
   bool _visionEnabled = false;
 
+  /// 当前已加载模型的音频能力（与 getActiveModel 的 supportAudio 对应）。
+  bool _audioEnabled = false;
+
   /// genMutex：全局操作串行化（引擎单租户）。
   Future<void> _tail = Future<void>.value();
 
@@ -53,12 +56,24 @@ final class FlutterGemmaGateway implements OnDeviceLlmGateway {
   bool get visionEnabled => _model != null && _visionEnabled;
 
   @override
-  Future<void> load(String modelPath, {bool enableVision = false}) {
+  bool get audioEnabled => _model != null && _audioEnabled;
+
+  @override
+  Future<void> load(
+    String modelPath, {
+    bool enableVision = false,
+    bool enableAudio = false,
+  }) {
     return _serialized(() async {
-      // 幂等：已加载且视觉能力一致直接复用；能力不一致时交给
-      // getActiveModel —— core 单例检测到 supportImage 变化会自动关旧模型
-      // 重建（ActiveModelParams.firstDifference），无需手动 unload。
-      if (_model != null && _visionEnabled == enableVision) return;
+      // 幂等：已加载且能力组合一致直接复用；任一能力不一致时交给
+      // getActiveModel —— core 单例检测到 supportImage/supportAudio 变化会
+      // 自动关旧模型重建（ActiveModelParams.firstDifference），无需手动
+      // unload。
+      if (_model != null &&
+          _visionEnabled == enableVision &&
+          _audioEnabled == enableAudio) {
+        return;
+      }
       if (!await File(modelPath).exists()) {
         throw OnDeviceModelMissingException('模型文件不存在：$modelPath');
       }
@@ -77,13 +92,19 @@ final class FlutterGemmaGateway implements OnDeviceLlmGateway {
           // （Metal 备不了 STABLEHLO_COMPOSITE，LiteRT-LM#2461）。
           supportImage: enableVision,
           maxNumImages: enableVision ? 1 : null,
+          // 音频编码器开关（端侧 ASR；supportAudio → LiteRT-LM
+          // enableAudio，litertlm FFI 全链路支持）。⚠️ E2B 是否含音频塔
+          // 未实证：不含则此处加载失败，UI 回落降级（AGENTS.md 已记录）。
+          supportAudio: enableAudio,
         );
         _visionEnabled = enableVision;
+        _audioEnabled = enableAudio;
       } on OnDeviceLlmException {
         rethrow;
       } on Object catch (e) {
         _model = null;
         _visionEnabled = false;
+        _audioEnabled = false;
         throw _classifyLoadError(e);
       }
     });
@@ -130,10 +151,32 @@ final class FlutterGemmaGateway implements OnDeviceLlmGateway {
     );
   }
 
+  @override
+  Future<String> inferWithAudio(
+    String prompt,
+    Uint8List wavBytes, {
+    String? systemInstruction,
+    int maxOutputTokens = 96,
+    double temperature = 0.15,
+    int topK = 1,
+    int seed = 42,
+  }) {
+    return _runChat(
+      Message.withAudio(text: prompt, audioBytes: wavBytes, isUser: true),
+      requiresAudio: true,
+      systemInstruction: systemInstruction,
+      maxOutputTokens: maxOutputTokens,
+      temperature: temperature,
+      topK: topK,
+      seed: seed,
+    );
+  }
+
   /// 单会话 close+recreate 执行一次推理（spike 定稿采样参数为默认值）。
   Future<String> _runChat(
     Message message, {
-    required bool requiresVision,
+    bool requiresVision = false,
+    bool requiresAudio = false,
     String? systemInstruction,
     required int maxOutputTokens,
     required double temperature,
@@ -149,6 +192,13 @@ final class FlutterGemmaGateway implements OnDeviceLlmGateway {
         // 插件在 supportImage=false 时静默丢图按纯文本回答，必须显式拦截。
         throw const OnDeviceLlmEngineException(
           '当前模型未启用视觉能力，请 load(enableVision: true)',
+        );
+      }
+      if (requiresAudio && !_audioEnabled) {
+        // 插件在 supportAudio=false 时静默拒音频消息，必须显式拦截
+        //（与视觉拦截同口径）。
+        throw const OnDeviceLlmEngineException(
+          '当前模型未启用音频能力，请 load(enableAudio: true)',
         );
       }
       InferenceChat? chat;
@@ -186,6 +236,7 @@ final class FlutterGemmaGateway implements OnDeviceLlmGateway {
       final model = _model;
       _model = null;
       _visionEnabled = false;
+      _audioEnabled = false;
       if (model != null) {
         try {
           await model.close();

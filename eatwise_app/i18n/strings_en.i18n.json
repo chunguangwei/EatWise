@@ -289,7 +289,10 @@
       "typeHint": "Say it in one line, e.g. \"beef noodle soup and an egg for lunch\"",
       "understanding": "Understanding…",
       "noSpeechHint": "Didn't catch that — try again, or tap the keyboard icon to type",
-      "errorGeneric": "Voice recognition unavailable — tap the keyboard icon to type instead"
+      "errorGeneric": "Voice recognition unavailable — tap the keyboard icon to type instead",
+      "recordingNow": "Recording… tap again to stop",
+      "transcribingNow": "Transcribing…",
+      "transcribeFailed": "Couldn't transcribe — record again or type with the keyboard icon"
     },
     "frequent": {
       "title": "Frequently logged",

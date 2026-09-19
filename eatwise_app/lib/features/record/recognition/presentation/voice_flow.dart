@@ -1,8 +1,8 @@
 import 'dart:async';
-
 import 'package:app_settings/app_settings.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/llm/ondevice/ondevice_providers.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
@@ -10,8 +10,11 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:eatwise/features/record/recognition/domain/recognition_models.dart';
+import 'package:eatwise/features/record/recognition/presentation/ai_engine_guide_card.dart';
+import 'package:eatwise/features/record/recognition/presentation/ondevice_recording_sheet.dart';
 import 'package:eatwise/features/record/recognition/presentation/photo_meal_sheet.dart';
 import 'package:eatwise/features/record/recognition/voice/speech_gateway.dart';
+import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,30 +25,66 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// 与拍照识别七段同构）→ 明细确认卡一键入账（EntrySource.voice）；
 /// 端侧未启用/推理失败/解析空 → 回落既有词典解析路径（不破坏）。
 ///
-/// 首次点击用时申请权限（合规 §3.1：iOS 语音识别+麦克风双权限，
-/// Android RECORD_AUDIO）；权限拒绝/设备不支持 → 降级说明卡引导手动
-/// 输入，不阻断记录；「取消」丢弃本次听写但不丢已输入内容。
+/// 系统 ASR 不可用（无 GMS 等 ROM）时的三路回落：
+/// 端侧模型就绪 → 端侧录音转写面板（record 插件录音 + Gemma 音频编码器）；
+/// 未就绪 → 引擎引导卡（ai_engine_guide_card 复用；被会话抑制/有引擎时
+/// → 现有权限降级卡）。首次点击用时申请权限（合规 §3.1：iOS 语音识别+
+/// 麦克风双权限，Android RECORD_AUDIO）；系统 ASR 可用的设备维持原路径。
 Future<void> startVoiceInput(BuildContext context, WidgetRef ref) async {
   final s = RecordStrings.of(context);
   final gateway = ref.read(speechGatewayProvider);
   final available = await gateway.initialize();
   if (!context.mounted) return;
-  if (!available) {
-    await _showVoiceDeniedCard(context, s);
+
+  final VoiceTranscript? transcript;
+  if (available) {
+    final localeId = LocaleSettings.currentLocale.languageTag.replaceAll(
+      '-',
+      '_',
+    );
+    transcript = await showModalBottomSheet<VoiceTranscript>(
+      context: context,
+      isDismissible: false,
+      builder: (_) =>
+          _VoiceListeningSheet(gateway: gateway, localeId: localeId),
+    );
+  } else if (onDeviceRecognitionActiveFor(
+    ref.watch(onDeviceAiEnabledProvider),
+    ref.watch(onDeviceModelSnapshotProvider),
+  )) {
+    // 端侧模型就绪 → 端侧录音转写（权限首次用时申请，与系统 ASR 路径同口径）。
+    final recorder = ref.read(audioRecorderGatewayProvider);
+    final permitted = await recorder.ensurePermission();
+    if (!context.mounted) return;
+    if (!permitted) {
+      await _showVoiceDeniedCard(context, s);
+      return;
+    }
+    transcript = await showModalBottomSheet<VoiceTranscript>(
+      context: context,
+      isDismissible: false,
+      builder: (_) => const OnDeviceRecordingSheet(),
+    );
+    // 面板内取消/转写失败放弃：静默返回（面板已给错误态，不打扰）。
+  } else {
+    // 模型未就绪 → 引擎引导卡（被会话抑制/有云端 API 时 → 现有降级卡）。
+    if (await guideIfNoAiEngine(context, ref, s)) return;
+    if (context.mounted) await _showVoiceDeniedCard(context, s);
     return;
   }
-  final localeId = LocaleSettings.currentLocale.languageTag.replaceAll(
-    '-',
-    '_',
-  );
-  final transcript = await showModalBottomSheet<VoiceTranscript>(
-    context: context,
-    isDismissible: false,
-    builder: (_) => _VoiceListeningSheet(gateway: gateway, localeId: localeId),
-  );
-  // null = 用户取消听写：静默返回，不动已输入内容。
+  // null = 用户取消听写/录音：静默返回，不动已输入内容。
   if (transcript == null || !context.mounted) return;
+  await _handleTranscript(context, ref, s, transcript);
+}
 
+/// 转写文本 → 后续管线（系统 ASR 与端侧录音转写共用）：
+/// 端侧自由记推理优先（明细确认卡一键入账），失败/解析空回落词典解析。
+Future<void> _handleTranscript(
+  BuildContext context,
+  WidgetRef ref,
+  RecordStrings s,
+  VoiceTranscript transcript,
+) async {
   // 「说一句记一笔」：端侧文本明细推理优先（开关开且模型就绪时），
   // 成功 → 明细确认卡一键入账；失败/解析空/取消 → 回落词典解析。
   final items = await _tryFreeTextInference(

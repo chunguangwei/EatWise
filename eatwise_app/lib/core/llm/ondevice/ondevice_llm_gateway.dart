@@ -42,6 +42,9 @@ abstract interface class OnDeviceLlmGateway {
   /// 已加载模型是否带视觉能力（load 时 enableVision: true）。
   bool get visionEnabled;
 
+  /// 已加载模型是否带音频能力（load 时 enableAudio: true）。
+  bool get audioEnabled;
+
   /// 加载模型文件（.litertlm 绝对路径）。文件不存在抛
   /// [OnDeviceModelMissingException]；OOM 抛 [OnDeviceLlmMemoryException]。
   ///
@@ -50,7 +53,17 @@ abstract interface class OnDeviceLlmGateway {
   /// flutter_gemma RuntimeConfig 文档）。已加载且能力一致时幂等复用；
   /// 已加载但视觉能力不一致时引擎侧先关旧模型再按新参数重建（core 单例
   /// 自动处理，调用方无需先 unload）。
-  Future<void> load(String modelPath, {bool enableVision = false});
+  ///
+  /// [enableAudio] 启用音频编码器（端侧 ASR 用；flutter_gemma 的
+  /// supportAudio → LiteRT-LM enableAudio，flutter_gemma_litertlm 1.6.3
+  /// 原生 FFI 全链路支持）。与视觉可同时开，能力不一致时同样重建。
+  /// ⚠️ E2B .litertlm 是否内置音频编码器未实证——若模型不含音频塔，
+  /// supportAudio 加载/推理会失败，UI 侧需回落降级（AGENTS.md 已记录）。
+  Future<void> load(
+    String modelPath, {
+    bool enableVision = false,
+    bool enableAudio = false,
+  });
 
   /// 单次推理，返回模型输出原文（解析由纯函数层负责）。
   /// 每次调用新建会话、结束即关闭（手机端单会话 close+recreate，
@@ -71,6 +84,21 @@ abstract interface class OnDeviceLlmGateway {
   Future<String> inferWithImage(
     String prompt,
     Uint8List imageBytes, {
+    String? systemInstruction,
+    int maxOutputTokens,
+    double temperature,
+    int topK,
+    int seed,
+  });
+
+  /// 带音频推理（端侧 ASR）：[wavBytes] 为 WAV 字节（16kHz 单声道 PCM16
+  /// 封装），随用户消息一并送入音频编码器。模型未以音频能力加载
+  /// （[audioEnabled] 为 false）时抛 [OnDeviceLlmEngineException]——
+  /// 插件在 supportAudio=false 时静默拒音频消息，这里必须显式拦截
+  ///（与视觉拦截同口径）。
+  Future<String> inferWithAudio(
+    String prompt,
+    Uint8List wavBytes, {
     String? systemInstruction,
     int maxOutputTokens,
     double temperature,

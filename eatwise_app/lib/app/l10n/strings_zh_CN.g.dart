@@ -986,6 +986,15 @@ class Translations$record$voice$zh_CN {
 
 	/// zh-CN: '语音识别不可用，点右边键盘图标打字输入'
 	String get errorGeneric => '语音识别不可用，点右边键盘图标打字输入';
+
+	/// zh-CN: '正在录音… 再点一下停止'
+	String get recordingNow => '正在录音… 再点一下停止';
+
+	/// zh-CN: '转写中…'
+	String get transcribingNow => '转写中…';
+
+	/// zh-CN: '没转写出来，再录一次，或点右边键盘图标打字'
+	String get transcribeFailed => '没转写出来，再录一次，或点右边键盘图标打字';
 }
 
 // Path: record.frequent
@@ -4106,6 +4115,9 @@ extension on Translations {
 			'record.voice.understanding' => '理解中…',
 			'record.voice.noSpeechHint' => '没听清，请再说一次，或点右边键盘图标打字',
 			'record.voice.errorGeneric' => '语音识别不可用，点右边键盘图标打字输入',
+			'record.voice.recordingNow' => '正在录音… 再点一下停止',
+			'record.voice.transcribingNow' => '转写中…',
+			'record.voice.transcribeFailed' => '没转写出来，再录一次，或点右边键盘图标打字',
 			'record.frequent.title' => '常吃的食物',
 			'record.frequent.empty' => '多记几笔，常吃榜就出来啦',
 			'record.frequent.emptyCta' => '去搜一搜',
@@ -4402,11 +4414,11 @@ extension on Translations {
 			'reports.weeklySummary.chipRecorded' => ({required Object days}) => '记录 ${days} 天',
 			'reports.weeklySummary.chipAvgKcal' => ({required Object kcal, required Object target}) => '平均 ${kcal} · 目标 ${target} 千卡',
 			'reports.weeklySummary.chipWeight' => ({required Object kg}) => '体重 ${kg} 公斤',
+			_ => null,
+		} ?? switch (path) {
 			'reports.weeklySummary.fastingPlain' => ({required Object days}) => '上周断食达标 ${days} 天',
 			'reports.weeklySummary.fastingMore' => ({required Object days, required Object delta}) => '上周断食达标 ${days} 天，比前周多 ${delta} 天',
 			'reports.weeklySummary.fastingLess' => ({required Object days, required Object delta}) => '上周断食达标 ${days} 天，比前周少 ${delta} 天',
-			_ => null,
-		} ?? switch (path) {
 			'reports.weeklySummary.fastingSame' => ({required Object days}) => '上周断食达标 ${days} 天，与前周持平',
 			'reports.weeklySummary.intakeWithin' => ({required Object kcal}) => '平均每日摄入 ${kcal} 千卡，在目标范围内',
 			'reports.weeklySummary.intakeAbove' => ({required Object kcal, required Object percent}) => '平均每日摄入 ${kcal} 千卡，比目标高 ${percent}%',

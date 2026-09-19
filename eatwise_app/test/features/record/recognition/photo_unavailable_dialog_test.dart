@@ -305,7 +305,14 @@ final class _ControllableGateway implements OnDeviceLlmGateway {
   bool get visionEnabled => _loaded && _vision;
 
   @override
-  Future<void> load(String modelPath, {bool enableVision = false}) {
+  bool get audioEnabled => false; // 本用例不走音频
+
+  @override
+  Future<void> load(
+    String modelPath, {
+    bool enableVision = false,
+    bool enableAudio = false,
+  }) {
     loadCalled = true;
     final completer = Completer<void>();
     _loadCompleter = completer;
@@ -327,6 +334,19 @@ final class _ControllableGateway implements OnDeviceLlmGateway {
     int seed = 42,
   }) {
     throw UnimplementedError('本测试只走视觉推理');
+  }
+
+  @override
+  Future<String> inferWithAudio(
+    String prompt,
+    Uint8List wavBytes, {
+    String? systemInstruction,
+    int maxOutputTokens = 96,
+    double temperature = 0.15,
+    int topK = 1,
+    int seed = 42,
+  }) {
+    throw UnimplementedError('本测试不走音频推理');
   }
 
   @override
