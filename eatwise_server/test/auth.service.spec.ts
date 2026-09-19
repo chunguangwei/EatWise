@@ -99,6 +99,46 @@ describe('AuthService（D-13：验证码/账号密码登录 + JWT 签发/刷新�
   });
 });
 
+describe('AuthService 短信 mock 开关（SMS_MOCK_ENABLED=false 关闭验证码链路）', () => {
+  let store: DataStore;
+  let auth: AuthService;
+
+  beforeEach(() => {
+    store = new DataStore();
+    auth = new AuthService(
+      store,
+      new MemoryStoreDriver(store),
+      new JwtService({ secret: 'test-secret', signOptions: { expiresIn: 7200 } }),
+      new ConfigService({ SMS_MOCK_ENABLED: 'false' }),
+    );
+  });
+
+  const phone = '+8613800138000';
+
+  it('send-code 直接拒绝 SMS_CHANNEL_UNAVAILABLE（501），不落验证码', () => {
+    expect(() => auth.sendSms(phone, 'login')).toThrow(
+      expect.objectContaining({
+        code: 'SMS_CHANNEL_UNAVAILABLE',
+        status: 501,
+      }) as unknown as Error,
+    );
+    expect(store.smsCodes.has(phone)).toBe(false);
+  });
+
+  it('验证码登录同样拒绝（防御绕过 send-code 直接调 login）', async () => {
+    await expect(auth.loginPhone(phone, '123456')).rejects.toMatchObject({
+      code: 'SMS_CHANNEL_UNAVAILABLE',
+    });
+  });
+
+  it('关闭 mock 不影响账号密码注册/登录', async () => {
+    await auth.register('alice_01', 'Passw0rd123');
+    const res = await auth.login('alice_01', 'Passw0rd123');
+    expect(res.isNewUser).toBe(false);
+    expect(res.accessToken).toBeTruthy();
+  });
+});
+
 describe('AuthService 账号密码认证（D-13 修订主路径：注册/登录/改密）', () => {
   let store: DataStore;
   let auth: AuthService;

@@ -41,6 +41,9 @@ export const err = {
   // 认证
   authCodeInvalid: (remainingAttempts?: number) =>
     new BusinessException('AUTH_CODE_INVALID', HttpStatus.BAD_REQUEST, { remainingAttempts }),
+  /** 短信通道未接入且 mock 已关闭（SMS_MOCK_ENABLED=false）：手机号验证码链路整体不可用 */
+  smsChannelUnavailable: () =>
+    new BusinessException('SMS_CHANNEL_UNAVAILABLE', HttpStatus.NOT_IMPLEMENTED),
 
   // 账号密码认证（D-13 修订：账号密码为主路径）
   /** 注册用户名已被占用 */

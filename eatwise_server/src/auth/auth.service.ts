@@ -18,7 +18,8 @@ const MAX_DEVICE_SESSIONS = 5; // 最多 5 个活跃设备会话，超出踢最�
 /**
  * 认证（D-13）。用户/会话令牌读写全部收口到 StoreDriver（prisma 模式真实落库）。
  * 〔假设〕短信通道未接入：验证码固定 mock 为 123456 并落内存（DataStore.smsCodes），
- * 生产实现应替换为真实短信服务商 + Redis 存储。
+ * 由 env SMS_MOCK_ENABLED 开关（默认 true 仅开发用；生产必须 false，此时
+ * send-code 与验证码登录一律拒绝 SMS_CHANNEL_UNAVAILABLE）。
  */
 @Injectable()
 export class AuthService {
@@ -29,7 +30,13 @@ export class AuthService {
     private readonly config: ConfigService,
   ) {}
 
+  /** 短信 mock 开关：仅显式 'false' 关闭，缺省/其他值均开启（开发与现有测试不受影响） */
+  private smsMockEnabled(): boolean {
+    return this.config.get<string>('SMS_MOCK_ENABLED', 'true') !== 'false';
+  }
+
   sendSms(phone: string, _scene: string) {
+    if (!this.smsMockEnabled()) throw err.smsChannelUnavailable();
     const existing = this.store.smsCodes.get(phone);
     if (existing && Date.now() - existing.sentAt.getTime() < SMS_RESEND_AFTER_SEC * 1000) {
       const wait =
@@ -42,6 +49,8 @@ export class AuthService {
   }
 
   async loginPhone(phone: string, code: string, device?: DeviceDto) {
+    // 防御：mock 关闭时即便绕过 send-code 直接调登录也拒绝
+    if (!this.smsMockEnabled()) throw err.smsChannelUnavailable();
     const record = this.store.smsCodes.get(phone);
     if (!record || Date.now() - record.sentAt.getTime() > SMS_CODE_TTL_SEC * 1000) {
       throw err.authCodeInvalid(0);

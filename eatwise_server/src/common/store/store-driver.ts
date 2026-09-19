@@ -25,7 +25,7 @@ import {
  * 由环境变量 STORE_DRIVER=memory|prisma 选择实现（默认 memory，见 InfraModule）。
  * MemoryStoreDriver 适配同步内存 DataStore（行为与历史一致）；PrismaStore 覆盖
  * 全实体真实落库（用户/令牌/断食/饮食/饮水/streak/帖子/点赞举报/审核队列/
- * 自定义食物/幂等键），仅 smsCodes（mock）与管理端登录限流保留内存。
+ * 自定义食物/幂等键），仅 smsCodes（mock，SMS_MOCK_ENABLED=false 时停用）与管理端登录限流保留内存。
  */
 
 /** DI token：STORE_DRIVER 环境变量选择 MemoryStoreDriver / PrismaStore */

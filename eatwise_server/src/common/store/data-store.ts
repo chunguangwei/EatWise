@@ -351,7 +351,7 @@ export class DataStore {
     return `${postId}|${userId}`;
   }
 
-  /** 短信验证码（〔假设〕mock：固定 123456，生产应落 Redis 并接短信通道） */
+  /** 短信验证码（〔假设〕mock：固定 123456，受 SMS_MOCK_ENABLED 开关控制，生产关闭后本表不再写入） */
   readonly smsCodes = new Map<string, { code: string; sentAt: Date; attempts: number }>();
 
   constructor() {
