@@ -159,6 +159,7 @@ class _TimerBody extends ConsumerWidget {
     final plan = timer.plan!;
     final snapshot = timer.snapshot!;
     final location = ref.watch(deviceLocationProvider);
+    final pending = ref.watch(pendingPlanProvider);
     final controller = ref.read(fastingTimerControllerProvider.notifier);
     final streak = ref.watch(streakControllerProvider);
 
@@ -238,6 +239,74 @@ class _TimerBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.s2),
+        // 待生效方案横幅（真机走查 Bug1：换方案登记 pendingPlan 后界面无
+        // 任何呈现，用户不知道方案存在哪/何时生效/如何取消）。
+        if (pending != null)
+          Container(
+            key: const ValueKey<String>('fasting.pendingPlanBanner'),
+            margin: const EdgeInsets.only(bottom: AppSpacing.s2),
+            padding: const EdgeInsets.all(AppSpacing.s3),
+            decoration: BoxDecoration(
+              borderRadius: radii.rMd,
+              border: Border.all(
+                color: colors.brandPrimary.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Icon(
+                      Icons.schedule_rounded,
+                      size: 14,
+                      color: colors.brandPrimary,
+                    ),
+                    const SizedBox(width: AppSpacing.s1),
+                    Expanded(
+                      child: Text(
+                        '${t.fasting.home.pendingPlanBadge} · ${pending.plan.id}'
+                        ' (${_formatMinutes(pending.plan.eatStartMinutes)}'
+                        '–${_formatMinutes(pending.plan.eatEndMinutes)})',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textStyles.textSm.copyWith(
+                          color: colors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        minimumSize: Size.zero,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.s2,
+                        ),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () => _cancelPendingPlan(context, ref),
+                      child: Text(t.common.action.cancel),
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 22),
+                  child: Text(
+                    t.fasting.home.pendingPlanEffective(
+                      date: formatAttributionDate(
+                        pending.effectiveDate,
+                        locale: LocaleSettings.currentLocale,
+                      ),
+                    ),
+                    style: textStyles.textXs.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         // M5 问候区连胜展示（streak=0 不显示火焰，显示引导文案；999+ 截断）。
         Align(
           alignment: Alignment.centerLeft,
@@ -533,6 +602,40 @@ class _TimerBody extends ConsumerWidget {
           }
         },
         onDismiss: () => Navigator.pop(dialogContext),
+      ),
+    );
+  }
+
+  /// 取消待生效方案（走查 Bug1）：确认弹窗 → 清本地 pendingPlan →
+  /// planVersionProvider +1（pendingPlanProvider 失效、横幅消失）。
+  /// 服务端 pending 行由下次 syncNow 以 current 方案重推收敛。
+  void _cancelPendingPlan(BuildContext context, WidgetRef ref) {
+    final t = Translations.of(context);
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        content: Text(
+          t.fasting.home.pendingPlanCancelBody,
+          style: textStyles.textBase,
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(t.common.action.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              ref.read(onboardingStoreProvider).clearPendingPlan();
+              ref.read(planVersionProvider.notifier).state++;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(t.fasting.home.pendingPlanCancelled)),
+              );
+            },
+            child: Text(t.common.action.confirm),
+          ),
+        ],
       ),
     );
   }

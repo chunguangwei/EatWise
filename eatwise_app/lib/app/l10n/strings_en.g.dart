@@ -894,6 +894,10 @@ class _Translations$fasting$home$en extends Translations$fasting$home$zh_CN {
 	@override String extendedBadge({required Object minutes}) => 'Extended +${minutes} min';
 	@override String get extendLimit => 'You can extend by up to 4 hours per fast';
 	@override String planTag({required Object id, required Object start, required Object end}) => '${id} · Eating window ${start}–${end}';
+	@override String get pendingPlanBadge => 'Upcoming plan';
+	@override String pendingPlanEffective({required Object date}) => 'Starts automatically on ${date} at 0:00';
+	@override String get pendingPlanCancelBody => 'Canceling keeps your current plan; this plan change will not take effect.';
+	@override String get pendingPlanCancelled => 'New plan canceled — your current plan stays';
 	@override String get noPlanSubtitle => 'Answer 3 quick questions to find your fasting rhythm';
 	@override String get celebrationTitle => 'Fast complete! Your body just did a quiet deep-clean ✨';
 	@override String get celebrationBadge => 'Fast complete ✨';
@@ -2645,6 +2649,10 @@ extension on TranslationsEn {
 			'fasting.home.extendedBadge' => ({required Object minutes}) => 'Extended +${minutes} min',
 			'fasting.home.extendLimit' => 'You can extend by up to 4 hours per fast',
 			'fasting.home.planTag' => ({required Object id, required Object start, required Object end}) => '${id} · Eating window ${start}–${end}',
+			'fasting.home.pendingPlanBadge' => 'Upcoming plan',
+			'fasting.home.pendingPlanEffective' => ({required Object date}) => 'Starts automatically on ${date} at 0:00',
+			'fasting.home.pendingPlanCancelBody' => 'Canceling keeps your current plan; this plan change will not take effect.',
+			'fasting.home.pendingPlanCancelled' => 'New plan canceled — your current plan stays',
 			'fasting.home.noPlanSubtitle' => 'Answer 3 quick questions to find your fasting rhythm',
 			'fasting.home.celebrationTitle' => 'Fast complete! Your body just did a quiet deep-clean ✨',
 			'fasting.home.celebrationBadge' => 'Fast complete ✨',
@@ -2770,12 +2778,12 @@ extension on TranslationsEn {
 			'reports.trend.unit.kcal' => 'kcal',
 			'reports.trend.unit.hour' => 'h',
 			'reports.trend.empty' => 'Your trends are warming up — log a few days to get them moving.',
+			_ => null,
+		} ?? switch (path) {
 			'reports.trend.ctaRecord' => 'Log now',
 			'reports.trend.ctaFast' => 'Start fasting',
 			'reports.trend.ctaWeight' => 'Log weight',
 			'reports.trend.targetLine' => ({required Object kg}) => 'Goal ${kg} kg',
-			_ => null,
-		} ?? switch (path) {
 			'reports.trend.toGoal' => ({required Object kg}) => '${kg} kg to goal',
 			'reports.trend.goalReached' => 'Weight goal reached',
 			'reports.trend.weightUnlock' => ({required Object count}) => 'Log your weight ${count} more times to unlock your full curve',

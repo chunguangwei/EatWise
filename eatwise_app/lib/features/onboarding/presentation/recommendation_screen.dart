@@ -123,7 +123,7 @@ class RecommendationScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.s3),
             TextButton(
               key: const ValueKey<String>('onboarding.recommendation.science'),
-              onPressed: () => context.push('/onboarding/science'),
+              onPressed: () => context.push('/science'),
               child: Text(t.onboarding.recommendation.scienceLink),
             ),
           ],
@@ -170,14 +170,30 @@ class RecommendationScreen extends ConsumerWidget {
       if (confirmed != true || !context.mounted) return;
     }
     final result = controller.startPrimaryPlan(window: window);
-    if (result.usedFallback && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            t.onboarding.recommendation.fallbackNotice(kcal: result.targetKcal),
+    if (context.mounted) {
+      // 换方案反馈（真机走查 Bug1）：pending 方案不立即生效，确认后必须
+      // 明说「已排期，X 日生效」，否则用户以为保存失败。
+      if (result.pendingEffectiveDate != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              t.onboarding.recommendation.planChangeConfirm(
+                date: result.pendingEffectiveDate!.toIsoString(),
+              ),
+            ),
           ),
-        ),
-      );
+        );
+      } else if (result.usedFallback) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              t.onboarding.recommendation.fallbackNotice(
+                kcal: result.targetKcal,
+              ),
+            ),
+          ),
+        );
+      }
     }
     if (context.mounted) {
       context.go('/');

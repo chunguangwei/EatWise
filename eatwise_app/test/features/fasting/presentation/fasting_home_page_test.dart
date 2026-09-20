@@ -2,11 +2,15 @@ import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_scheduler.dart';
+import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
+import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
+import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_cycle_store.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_home_page.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -381,5 +385,52 @@ void main() {
     expect(find.text('123:45:56'), findsOneWidget);
     final boxWidth = tester.getSize(find.byType(CountdownText)).width;
     expect(boxWidth, lessThanOrEqualTo(CountdownText.maxWidth));
+  });
+
+  testWidgets('待生效方案横幅：pending 方案可见 + 取消后消失（走查 Bug1）', (tester) async {
+    SharedPreferencesOnboardingStore(prefs).savePendingPlan(
+      PendingPlan(
+        plan: const FastingPlan(
+          id: '14:10',
+          eatStartMinutes: 10 * 60,
+          eatEndMinutes: 20 * 60,
+        ),
+        effectiveDate: const LocalDate(2026, 7, 29),
+        effectiveUtc: bjtUtc(29, 0),
+      ),
+    );
+    await pumpHome(tester);
+
+    expect(
+      find.byKey(const ValueKey<String>('fasting.pendingPlanBanner')),
+      findsOneWidget,
+    );
+    expect(find.text('待生效方案 · 14:10 (10:00–20:00)'), findsOneWidget);
+    expect(find.text('将于 7月29日 0:00 自动生效'), findsOneWidget);
+
+    // 取消 → 确认弹窗 → 确认后 pending 清除、横幅消失。
+    await tester.tap(find.text('取消'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('取消后将继续使用当前方案，本次换方案不再生效。'), findsOneWidget);
+    await tester.tap(find.text('确定'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(
+      find.byKey(const ValueKey<String>('fasting.pendingPlanBanner')),
+      findsNothing,
+    );
+    expect(SharedPreferencesOnboardingStore(prefs).loadPendingPlan(), isNull);
+    await unmount(tester);
+  });
+
+  testWidgets('无 pending 时不渲染横幅（回归）', (tester) async {
+    await pumpHome(tester);
+    expect(
+      find.byKey(const ValueKey<String>('fasting.pendingPlanBanner')),
+      findsNothing,
+    );
+    await unmount(tester);
   });
 }

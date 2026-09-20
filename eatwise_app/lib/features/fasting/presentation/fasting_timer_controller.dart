@@ -34,6 +34,15 @@ final localNotificationServiceProvider = Provider<NotificationService>((ref) {
   return LocalNotificationService();
 });
 
+/// 已登记待生效的换方案（T12，D-06）；无 pending 时为 null。
+///
+/// watch [planVersionProvider]：一键启动/换方案登记/取消都会 +1，横幅
+/// 随之刷新（onboardingStoreProvider 是存储句柄，watch 它不随键值写入重建）。
+final pendingPlanProvider = Provider<PendingPlan?>((ref) {
+  ref.watch(planVersionProvider);
+  return ref.read(onboardingStoreProvider).loadPendingPlan();
+});
+
 /// 断食通知调度器（单 reschedule 入口，§7.2.3）。
 ///
 /// 文案经 slang 适配器解析（D-15）；语言切换后新文案在下一次重排生效。
@@ -241,6 +250,7 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
       ),
     );
     onboardStore.clearPendingPlan();
+    ref.invalidate(pendingPlanProvider); // 转正后横幅随之消失
     _store.clearActiveCycle(); // 作废进行中周期（口径见函数注释）
     _store.clearEarlyEatEndUtc(); // 旧方案的提前破窗覆盖一并作废
     _reschedule(plan, 0, RescheduleReason.planActivate);

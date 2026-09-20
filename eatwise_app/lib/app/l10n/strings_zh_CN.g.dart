@@ -1541,6 +1541,18 @@ class Translations$fasting$home$zh_CN {
 	/// zh-CN: '${id} · 进食窗口 ${start}–${end}'
 	String planTag({required Object id, required Object start, required Object end}) => '${id} · 进食窗口 ${start}–${end}';
 
+	/// zh-CN: '待生效方案'
+	String get pendingPlanBadge => '待生效方案';
+
+	/// zh-CN: '将于 ${date} 0:00 自动生效'
+	String pendingPlanEffective({required Object date}) => '将于 ${date} 0:00 自动生效';
+
+	/// zh-CN: '取消后将继续使用当前方案，本次换方案不再生效。'
+	String get pendingPlanCancelBody => '取消后将继续使用当前方案，本次换方案不再生效。';
+
+	/// zh-CN: '已取消新方案，当前方案保持不变'
+	String get pendingPlanCancelled => '已取消新方案，当前方案保持不变';
+
 	/// zh-CN: '3 个小问题，帮你找到最适合的断食节奏'
 	String get noPlanSubtitle => '3 个小问题，帮你找到最适合的断食节奏';
 
@@ -4449,6 +4461,10 @@ extension on Translations {
 			'fasting.home.extendedBadge' => ({required Object minutes}) => '已延长 +${minutes} 分钟',
 			'fasting.home.extendLimit' => '单次最多延长 4 小时',
 			'fasting.home.planTag' => ({required Object id, required Object start, required Object end}) => '${id} · 进食窗口 ${start}–${end}',
+			'fasting.home.pendingPlanBadge' => '待生效方案',
+			'fasting.home.pendingPlanEffective' => ({required Object date}) => '将于 ${date} 0:00 自动生效',
+			'fasting.home.pendingPlanCancelBody' => '取消后将继续使用当前方案，本次换方案不再生效。',
+			'fasting.home.pendingPlanCancelled' => '已取消新方案，当前方案保持不变',
 			'fasting.home.noPlanSubtitle' => '3 个小问题，帮你找到最适合的断食节奏',
 			'fasting.home.celebrationTitle' => '断食完成！身体悄悄做了次大扫除 ✨',
 			'fasting.home.celebrationBadge' => '断食完成 ✨',
@@ -4574,12 +4590,12 @@ extension on Translations {
 			'reports.trend.unit.kcal' => '千卡',
 			'reports.trend.unit.hour' => '小时',
 			'reports.trend.empty' => '数据曲线正在热身，多记几天它就跑起来啦',
+			_ => null,
+		} ?? switch (path) {
 			'reports.trend.ctaRecord' => '去记录',
 			'reports.trend.ctaFast' => '去断食',
 			'reports.trend.ctaWeight' => '记体重',
 			'reports.trend.targetLine' => ({required Object kg}) => '目标 ${kg} 公斤',
-			_ => null,
-		} ?? switch (path) {
 			'reports.trend.toGoal' => ({required Object kg}) => '距目标还有 ${kg} 公斤',
 			'reports.trend.goalReached' => '已达到目标体重',
 			'reports.trend.weightUnlock' => ({required Object count}) => '再记录 ${count} 次体重，解锁完整曲线',
