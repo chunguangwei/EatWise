@@ -2,12 +2,13 @@ import 'dart:typed_data';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/network/api_exception.dart';
-import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
 import 'package:eatwise/features/social/application/feed_controller.dart';
+import 'package:eatwise/features/social/application/post_polish_providers.dart';
+import 'package:eatwise/features/social/application/post_polish_service.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,8 +23,8 @@ final composePhotoPickerProvider = Provider<PhotoPickerGateway>((ref) {
 ///
 /// 配图链路：选图即上传（POST /uploads，U1）→ 拿到 `/v1/uploads/<id>` →
 /// 发布时作为 imageUrls 上行。上传中禁用发布（避免发出缺图帖），失败提供
-/// 就地重试，且发布时可选「不带图发布」（失败不阻断文字发布）；预览上传前
-/// 用本地字节、成功后切网络图。
+/// 就地重试，且发布时可选「不带图发布」（失败不阻断文字发布）；预览恒用
+/// 本地字节。AI 润色（端侧视觉模型，结合配图）回填输入框，可一键撤销。
 class ComposePage extends ConsumerStatefulWidget {
   const ComposePage({super.key});
 
@@ -44,6 +45,13 @@ class _ComposePageState extends ConsumerState<ComposePage> {
 
   /// 上传代际：移除/换图后丢弃在途回调，避免旧图 URL 覆盖新图。
   int _uploadSeq = 0;
+
+  /// AI 润色在途标志 + 当前阶段（null = 不在润色）。
+  bool _polishing = false;
+  PostPolishPhase? _polishPhase;
+
+  /// 润色前原文（撤销用；一次撤销后清空，再润色重新快照）。
+  String? _prePolishText;
 
   @override
   void dispose() {
@@ -89,6 +97,72 @@ class _ComposePageState extends ConsumerState<ComposePage> {
         _uploadError = e.message;
       });
     }
+  }
+
+  /// AI 润色：端侧视觉模型结合原文 + 配图生成润色文案，成功回填输入框
+  /// （原文快照供撤销）；失败 snackbar 提示，不阻断发布。
+  Future<void> _polish() async {
+    final t = Translations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final service = ref.read(postPolishServiceProvider);
+    final text = _controller.text.trim();
+    if (service == null || _polishing || text.isEmpty) return;
+    setState(() {
+      _polishing = true;
+      _polishPhase = null;
+    });
+    service.onPhaseChanged = (phase) {
+      if (mounted) setState(() => _polishPhase = phase);
+    };
+    PostPolishResult result;
+    try {
+      result = await service.polish(text, imageBytes: _photo);
+    } finally {
+      service.onPhaseChanged = null;
+    }
+    if (!mounted) return;
+    switch (result) {
+      case PostPolishOk(:final text):
+        setState(() {
+          _prePolishText = _controller.text;
+          _controller.value = TextEditingValue(
+            text: text,
+            selection: TextSelection.collapsed(offset: text.length),
+          );
+          _polishing = false;
+          _polishPhase = null;
+        });
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(t.social.compose.polishDone),
+            action: SnackBarAction(
+              label: t.social.compose.polishUndo,
+              onPressed: _undoPolish,
+            ),
+          ),
+        );
+      case PostPolishUnavailable():
+        setState(() {
+          _polishing = false;
+          _polishPhase = null;
+        });
+        messenger.showSnackBar(
+          SnackBar(content: Text(t.social.compose.polishFailed)),
+        );
+    }
+  }
+
+  /// 撤销润色：回填润色前原文（snackbar「撤销润色」入口触发）。
+  void _undoPolish() {
+    final original = _prePolishText;
+    if (original == null) return;
+    setState(() {
+      _prePolishText = null;
+      _controller.value = TextEditingValue(
+        text: original,
+        selection: TextSelection.collapsed(offset: original.length),
+      );
+    });
   }
 
   Future<void> _publish() async {
@@ -176,46 +250,20 @@ class _ComposePageState extends ConsumerState<ComposePage> {
       );
     }
 
-    final url = _photoUrl;
-    // 服务端回的是相对路径（契约自带 /v1 前缀），渲染前补 origin。
-    final absoluteUrl = url == null
-        ? null
-        : ref.read(apiConfigProvider).resolveUrl(url);
     return Column(
       children: <Widget>[
         Stack(
           children: <Widget>[
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              // 上传成功前用本地字节（选图即刻可见），之后走网络图。
-              child: absoluteUrl == null
-                  ? Image.memory(
-                      photo,
-                      height: 180,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    )
-                  : Image.network(
-                      absoluteUrl,
-                      height: 180,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      // 网络图首帧前继续显示本地图，避免闪烁。
-                      loadingBuilder: (context, child, progress) =>
-                          Image.memory(
-                            photo,
-                            height: 180,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                      errorBuilder: (context, error, stackTrace) =>
-                          Image.memory(
-                            photo,
-                            height: 180,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                    ),
+              // 预览恒用本地字节：选图即刻可见，上传成功切网络图在
+              // 自签证书下反而引入加载失败面（无收益）。
+              child: Image.memory(
+                photo,
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
             if (_uploading)
               Positioned.fill(
@@ -343,6 +391,31 @@ class _ComposePageState extends ConsumerState<ComposePage> {
                 ),
               ),
             ),
+            // AI 润色（端侧视觉模型；服务为 null = 开关关/模型未就绪 →
+            // 隐藏入口，发布主流程不受影响）。
+            if (ref.watch(postPolishServiceProvider) != null) ...<Widget>[
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _polishing || _controller.text.trim().isEmpty
+                      ? null
+                      : _polish,
+                  icon: _polishing
+                      ? const SizedBox(
+                          height: 14,
+                          width: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.auto_fix_high_outlined, size: 18),
+                  label: Text(switch ((_polishing, _polishPhase)) {
+                    (true, PostPolishPhase.loadingModel) =>
+                      t.social.compose.polishLoadingModel,
+                    (true, _) => t.social.compose.polishInferring,
+                    (false, _) => t.social.compose.polish,
+                  }),
+                ),
+              ),
+            ],
             const SizedBox(height: AppSpacing.s2),
             // 配图：选图即上传，上传中禁用发布；失败可重试或不带图发布。
             _buildPhotoSection(t),

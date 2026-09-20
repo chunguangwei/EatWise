@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
+import 'package:eatwise/features/social/application/post_polish_service.dart';
 import 'package:eatwise/features/social/data/social_api.dart';
 import 'package:eatwise/features/social/data/upload_api.dart';
 import 'package:eatwise/features/streak/data/streak_api.dart';
@@ -19,11 +20,12 @@ ServerPost stubPost({
   String auditStatus = 'approved',
   bool isAuthor = false,
   DateTime? createdAtUtc,
+  List<String> imageUrls = const <String>[],
 }) {
   return ServerPost(
     id: id,
     text: text,
-    imageUrls: const <String>[],
+    imageUrls: imageUrls,
     streakDaysAtPost: streakDaysAtPost,
     likeCount: likeCount,
     likedByMe: likedByMe,
@@ -214,6 +216,29 @@ final Uint8List pngBytes = Uint8List.fromList(<int>[
   0x1e, 0x00, 0x07, 0x82, 0x02, 0x7f, 0x3d, 0xc8, 0x48, 0xef, 0x00, 0x00, //
   0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82, //
 ]);
+
+/// AI 润色服务桩：按 [result] 返回，记录调用入参。
+final class FakePostPolishService implements PostPolishService {
+  FakePostPolishService(this.result);
+
+  PostPolishResult result;
+  int calls = 0;
+  String? lastText;
+  Uint8List? lastImage;
+  void Function(PostPolishPhase)? _onPhase;
+
+  @override
+  set onPhaseChanged(void Function(PostPolishPhase phase)? cb) => _onPhase = cb;
+
+  @override
+  Future<PostPolishResult> polish(String text, {Uint8List? imageBytes}) async {
+    calls++;
+    lastText = text;
+    lastImage = imageBytes;
+    _onPhase?.call(PostPolishPhase.inferring);
+    return result;
+  }
+}
 
 /// 常用异常。
 const rejectedException = BusinessApiException(

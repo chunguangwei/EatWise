@@ -2843,6 +2843,24 @@ class Translations$social$compose$zh_CN {
 
 	/// zh-CN: '先写点什么吧'
 	String get emptyText => '先写点什么吧';
+
+	/// zh-CN: 'AI 润色'
+	String get polish => 'AI 润色';
+
+	/// zh-CN: '正在加载端侧模型…'
+	String get polishLoadingModel => '正在加载端侧模型…';
+
+	/// zh-CN: 'AI 润色中…'
+	String get polishInferring => 'AI 润色中…';
+
+	/// zh-CN: '润色失败，请稍后重试'
+	String get polishFailed => '润色失败，请稍后重试';
+
+	/// zh-CN: '已为你润色'
+	String get polishDone => '已为你润色';
+
+	/// zh-CN: '撤销润色'
+	String get polishUndo => '撤销润色';
 }
 
 // Path: auth.login
@@ -4900,6 +4918,12 @@ extension on Translations {
 			'social.compose.publish' => '发布',
 			'social.compose.publishFailed' => '发布失败，请稍后重试',
 			'social.compose.emptyText' => '先写点什么吧',
+			'social.compose.polish' => 'AI 润色',
+			'social.compose.polishLoadingModel' => '正在加载端侧模型…',
+			'social.compose.polishInferring' => 'AI 润色中…',
+			'social.compose.polishFailed' => '润色失败，请稍后重试',
+			'social.compose.polishDone' => '已为你润色',
+			'social.compose.polishUndo' => '撤销润色',
 			'auth.login.title' => '登录',
 			'auth.login.subtitle' => '使用账号密码登录',
 			'auth.login.phoneLabel' => '手机号',

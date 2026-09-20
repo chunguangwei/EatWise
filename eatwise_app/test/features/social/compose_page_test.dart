@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/social/application/feed_controller.dart';
+import 'package:eatwise/features/social/application/post_polish_providers.dart';
+import 'package:eatwise/features/social/application/post_polish_service.dart';
 import 'package:eatwise/features/social/presentation/compose_page.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart';
 import 'package:eatwise/features/streak/data/streak_api.dart';
@@ -33,6 +35,7 @@ void main() {
     ServerStreakView? streakView,
     Object? streakError,
     Object? uploadError,
+    PostPolishService? polishService,
   }) async {
     if (uploadError != null) upload = FakeUploadApi(error: uploadError);
     // 放大视口：带图 + 上传失败行时发布按钮会跌出默认 800x600 的懒构建区。
@@ -64,6 +67,7 @@ void main() {
             streakApiProvider.overrideWithValue(
               FakeStreakApi(view: streakView, error: streakError),
             ),
+            postPolishServiceProvider.overrideWithValue(polishService),
           ],
           child: MaterialApp.router(
             theme: AppTheme.light(),
@@ -252,5 +256,62 @@ void main() {
     expect(find.text('Add photo'), findsOneWidget);
     await unmount(tester);
     await LocaleSettings.setLocale(AppLocale.zhCn);
+  });
+
+  group('AI 润色', () {
+    testWidgets('服务为 null（开关关/模型未就绪）→ 入口隐藏', (tester) async {
+      await pumpCompose(tester); // polishService 默认 null
+      expect(find.text('AI 润色'), findsNothing);
+      await unmount(tester);
+    });
+
+    testWidgets('空文本禁用；成功回填输入框，snackbar 撤销恢复原文', (tester) async {
+      final polish = FakePostPolishService(const PostPolishOk('润色后的文案'));
+      await pumpCompose(tester, polishService: polish);
+      final button = find.widgetWithText(TextButton, 'AI 润色');
+      expect(
+        tester.widget<TextButton>(button).onPressed,
+        isNull,
+        reason: '空文本不可润色',
+      );
+      await tester.enterText(find.byType(TextField), '原始文案');
+      await tester.pump();
+      await tester.tap(button);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(polish.lastText, '原始文案');
+      expect(find.text('润色后的文案'), findsOneWidget); // 已回填输入框
+
+      // snackbar「撤销润色」→ 回填原文。
+      await tester.tap(find.text('撤销润色'));
+      await tester.pump();
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        '原始文案',
+      );
+      await unmount(tester);
+    });
+
+    testWidgets('带配图润色把图片字节传给服务；失败提示且不改写原文', (tester) async {
+      pickedPhoto = pngBytes;
+      final polish = FakePostPolishService(
+        const PostPolishUnavailable('model_missing'),
+      );
+      await pumpCompose(tester, polishService: polish);
+      await tester.tap(find.text('添加图片'));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.enterText(find.byType(TextField), '带图打卡');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(TextButton, 'AI 润色'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(polish.lastImage, pngBytes);
+      expect(find.text('润色失败，请稍后重试'), findsOneWidget);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        '带图打卡',
+      ); // 原文未被改写
+      await unmount(tester);
+    });
   });
 }

@@ -1561,6 +1561,12 @@ class _Translations$social$compose$en extends Translations$social$compose$zh_CN 
 	@override String get publish => 'Post';
 	@override String get publishFailed => 'Couldn\'t post. Please try again.';
 	@override String get emptyText => 'Write something first';
+	@override String get polish => 'AI polish';
+	@override String get polishLoadingModel => 'Loading on-device model…';
+	@override String get polishInferring => 'Polishing…';
+	@override String get polishFailed => 'Polish failed. Please try again.';
+	@override String get polishDone => 'Polished for you';
+	@override String get polishUndo => 'Undo polish';
 }
 
 // Path: auth.login
@@ -3080,6 +3086,12 @@ extension on TranslationsEn {
 			'social.compose.publish' => 'Post',
 			'social.compose.publishFailed' => 'Couldn\'t post. Please try again.',
 			'social.compose.emptyText' => 'Write something first',
+			'social.compose.polish' => 'AI polish',
+			'social.compose.polishLoadingModel' => 'Loading on-device model…',
+			'social.compose.polishInferring' => 'Polishing…',
+			'social.compose.polishFailed' => 'Polish failed. Please try again.',
+			'social.compose.polishDone' => 'Polished for you',
+			'social.compose.polishUndo' => 'Undo polish',
 			'auth.login.title' => 'Sign in',
 			'auth.login.subtitle' => 'Sign in with your username and password',
 			'auth.login.phoneLabel' => 'Phone number',

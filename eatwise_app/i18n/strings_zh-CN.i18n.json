@@ -1056,7 +1056,13 @@
       "noStreak": "完成今天的断食，打卡就会带上连胜徽章哦",
       "publish": "发布",
       "publishFailed": "发布失败，请稍后重试",
-      "emptyText": "先写点什么吧"
+      "emptyText": "先写点什么吧",
+      "polish": "AI 润色",
+      "polishLoadingModel": "正在加载端侧模型…",
+      "polishInferring": "AI 润色中…",
+      "polishFailed": "润色失败，请稍后重试",
+      "polishDone": "已为你润色",
+      "polishUndo": "撤销润色"
     }
   },
   "auth": {
