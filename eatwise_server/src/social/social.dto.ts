@@ -38,6 +38,7 @@ export class CreatePostDto {
    */
   @IsOptional()
   linkedStreakDays?: number;
+
   /**
    * 匿名发帖：作者身份对非作者查看者遮蔽（服务端视图层抹除 author.id/nickname）。
    */
@@ -46,13 +47,14 @@ export class CreatePostDto {
   anonymous?: boolean;
 
   /**
-   * 预设头像库索引（客户端常量表 0–7，共 8 套微信/QQ 式默认头像）。
-   * 仅 anonymous=true 时有意义；跟帖固定，不随用户资料变。
+   * 预设头像库索引。客户端常量表 kSocialAvatars 为权威（当前 0–24 共 25 款），
+   * 服务端宽松收 0–63：客户端独立自更新，加头像不必追发服务端；越界值老客户端
+   * 渲染时回落默认头像。仅 anonymous=true 时有意义；跟帖固定，不随用户资料变。
    */
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(7)
+  @Max(63)
   avatarId?: number;
 }
 

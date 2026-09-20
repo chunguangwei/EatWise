@@ -369,10 +369,8 @@ class _ComposePageState extends ConsumerState<ComposePage> {
                     child: Semantics(
                       button: true,
                       selected: _avatarId == i,
-                      label:
-                          Localizations.localeOf(context).languageCode == 'zh'
-                          ? kSocialAvatars[i].labelZh
-                          : kSocialAvatars[i].labelEn,
+                      // 头像无语义名（纯图形），无障碍按序号播报。
+                      label: '${t.social.compose.pickAvatar} ${i + 1}',
                       child: InkWell(
                         onTap: () => setState(() => _avatarId = i),
                         customBorder: const CircleBorder(),
