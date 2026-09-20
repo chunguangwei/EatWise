@@ -1,4 +1,5 @@
 import 'package:eatwise/core/network/api_exception.dart';
+import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/health/data/remote_exercise_log_sync.dart';
 import 'package:eatwise/features/record/custom_food/application/contribution_review.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
@@ -29,6 +30,7 @@ final class RecordSyncEngine {
     this.weightStore,
     this.contributionReviewSync,
     this.exerciseSync,
+    this.planSync,
     this.cacheRepair,
   });
 
@@ -56,6 +58,9 @@ final class RecordSyncEngine {
   /// 运动记录上行同步（可选：2026-09-19 拍板上行；未装配为 null 跳过）。
   final RemoteExerciseLogSync? exerciseSync;
 
+  /// 断食方案上行同步（可选：进食窗口自选；未装配为 null 跳过）。
+  final FastingPlanSync? planSync;
+
   /// 每日聚合缓存回填修复（可选：v1.12.5 走查盲区——旧版本下行遗留的
   /// 存量记录不经重算、sync 游标已越过，首页/趋势假空不自愈；未装配为
   /// null 跳过）。
@@ -76,6 +81,13 @@ final class RecordSyncEngine {
     if (_syncing) return;
     _syncing = true;
     try {
+      // 断食方案上行（进食窗口自选）：脏标记存在时 PUT（仅登录态——
+      // 匿名必 401，脏标记保留待登录后同步轮迁移上行）。失败保留重试。
+      try {
+        await planSync?.flush();
+      } on ApiException {
+        // 失败保留脏标记，下次同步轮重试。
+      }
       try {
         // 自定义食物先上行（饮食记录引用其服务端 id，颠倒顺序会让
         // 引用本地临时 id 的记录上行 4xx）。

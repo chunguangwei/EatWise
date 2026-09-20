@@ -1,5 +1,6 @@
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/analytics_service.dart';
+import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
@@ -7,6 +8,7 @@ import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_rule_config.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
+import 'package:eatwise/features/fasting/domain/window_rules.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
 import 'package:eatwise/features/onboarding/application/profile_sync.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
@@ -225,16 +227,27 @@ final class OnboardingController extends Notifier<OnboardingState> {
     state = state.copyWith(recommendation: rec.promote(option));
   }
 
-  /// 主推荐方案（与 [startPrimaryPlan] 同口径）。
+  /// 主推荐方案（与 [startPrimaryPlan] 无自定义窗口时同口径）。
   FastingPlan get _primaryPlan =>
       state.recommendation?.primary.toFastingPlan() ?? FastingPlan.plan16x8;
 
-  /// 一键启动是否走换方案链路（T12，D-06：已有生效方案且窗口不同 →
-  /// 次日 0:00 本地生效；确认弹窗据此先行明示）。
-  bool get isPlanChange {
+  /// 指定方案 [plan] 相对当前生效方案是否构成换方案（T12，D-06：已有生效
+  /// 方案且**进食窗口不同** → 次日 0:00 本地生效）。窗口等价只比起止墙钟
+  /// （[sameWindow]），自定义窗口 id 带 `@HH:mm` 后缀但窗口相同者视为
+  /// 同方案（直接重写、立即生效）。
+  bool isPlanChangeAgainst(FastingPlan plan) {
     final existing = _store.loadActivePlan();
-    return existing != null && existing.plan != _primaryPlan;
+    if (existing == null) return false;
+    return !sameWindow(
+      existing.plan.eatStartMinutes,
+      existing.plan.eatEndMinutes,
+      plan.eatStartMinutes,
+      plan.eatEndMinutes,
+    );
   }
+
+  /// 一键启动是否走换方案链路（主推荐口径；确认弹窗据此先行明示）。
+  bool get isPlanChange => isPlanChangeAgainst(_primaryPlan);
 
   /// 换方案生效日预览（本地次日，确认弹窗展示用）。
   LocalDate get planChangeEffectiveDate => localDateOf(
@@ -242,16 +255,18 @@ final class OnboardingController extends Notifier<OnboardingState> {
     ref.read(deviceLocationProvider),
   ).addDays(1);
 
-  /// 一键启动（M1 功能点 4 / US-1.1）：
-  /// - 首次启动（或无变化重写）：立即写入用户方案、初始化进食窗口
+  /// 一键启动（M1 功能点 4 / US-1.1；[window] 非空 = 自定义进食窗口，
+  /// 方案取草稿构造的 [FastingPlan]，否则用主推荐）：
+  /// - 首次启动（或窗口无变化重写）：立即写入用户方案、初始化进食窗口
   ///   （M2 引擎 resolveState 重算落点）；
   /// - 已有生效方案且窗口不同：走换方案链路（T12，D-06），登记
   ///   pendingPlan 次日 0:00 本地生效，当日锚点不动、已记录数据保留
   ///   不回算（生效动作见 FastingTimerController 的 T13 转正）；
   /// 两条路径都初始化每日营养目标（D-04，与断食窗口解耦故即时更新）、
-  /// 标记引导完成。
-  StartPlanResult startPrimaryPlan() {
-    final plan = _primaryPlan;
+  /// 标记引导完成；方案本地落盘/登记后置脏并尽力上行（PUT
+  /// /fasting-plans/current，失败由同步引擎重试）。
+  StartPlanResult startPrimaryPlan({FastingWindowDraft? window}) {
+    final plan = window?.toFastingPlan() ?? _primaryPlan;
     final nowUtc = ref.read(nowUtcProvider);
     final location = ref.read(deviceLocationProvider);
 
@@ -260,7 +275,7 @@ final class OnboardingController extends Notifier<OnboardingState> {
     final goal = _computeAndSaveNutritionGoal();
 
     LocalDate? pendingEffectiveDate;
-    if (isPlanChange) {
+    if (isPlanChangeAgainst(plan)) {
       // 换方案（T12，D-06）：登记 pendingPlan，次日 0:00 本地生效；
       // 确认弹窗「新方案将于次日 0:00 生效」由 UI 层先行明示。
       final pending = schedulePlanChange(plan, nowUtc, location);
@@ -279,6 +294,9 @@ final class OnboardingController extends Notifier<OnboardingState> {
         ),
       );
     }
+    // 方案上行（进食窗口自选）：置脏 + fire-and-forget 尝试一次；
+    // 失败保留脏标记，由 RecordSyncEngine 同步轮重试。
+    ref.read(fastingPlanSyncProvider)?.markDirtyAndTryFlush(plan);
 
     _store.clearQuizProgress();
     _store.markOnboardingCompleted();

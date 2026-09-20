@@ -205,3 +205,20 @@ PlanRecommendation recommendPlan(OnboardingAnswers answers) {
       );
   }
 }
+
+/// 各进食时长的推荐窗口起点（本地墙钟分钟数，D-03 默认窗口表）：
+/// 10h→10:00（14:10 零基础默认窗口）、8h→12:00、6h→12:00（16:8/18:6
+/// 默认窗口）。自定义窗口编辑器「重置为推荐窗口」预填用。
+/// [eatingHours] 非 6/8/10 抛 [ArgumentError]。
+int recommendedStartMinutes(int eatingHours) {
+  return switch (eatingHours) {
+    10 => 10 * 60,
+    8 => 12 * 60,
+    6 => 12 * 60,
+    _ => throw ArgumentError.value(
+      eatingHours,
+      'eatingHours',
+      '进食时长只支持 6/8/10 小时',
+    ),
+  };
+}

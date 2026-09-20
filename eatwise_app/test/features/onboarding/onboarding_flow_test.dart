@@ -260,6 +260,17 @@ void main() {
     );
     await pumpFrames(tester);
 
+    // 「自定义进食窗口」入口加入后科普按钮被挤出懒构建缓存区，先滚到可见。
+    await tester.dragUntilVisible(
+      find.byKey(const ValueKey<String>('onboarding.recommendation.science')),
+      find.byType(ListView).first,
+      const Offset(0, -200),
+    );
+    await pumpFrames(tester);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('onboarding.recommendation.science')),
+    );
+    await pumpFrames(tester);
     await tester.tap(
       find.byKey(const ValueKey<String>('onboarding.recommendation.science')),
     );

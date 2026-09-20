@@ -6,6 +6,7 @@ import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/tables.dart';
+import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/health/application/exercise_log_providers.dart'
     show exerciseLogSyncProvider;
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
@@ -114,6 +115,7 @@ final Provider<RecordSyncEngine> recordSyncEngineProvider =
         weightStore: ref.watch(weightLogStoreProvider),
         contributionReviewSync: ref.watch(contributionReviewSyncProvider),
         exerciseSync: ref.watch(exerciseLogSyncProvider),
+        planSync: ref.watch(fastingPlanSyncProvider),
         cacheRepair: ref.watch(dailyNutritionCacheRepairProvider),
       );
     });

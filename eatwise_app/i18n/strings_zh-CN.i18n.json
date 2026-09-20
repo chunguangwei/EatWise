@@ -524,6 +524,16 @@
         "confirm": "确认结束"
       }
     },
+    "window": {
+      "entry": "自定义进食窗口",
+      "title": "自定义进食窗口",
+      "duration": "进食时长",
+      "hoursOption": "${hours} 小时",
+      "start": "开始时间",
+      "preview": "进食 ${window} · 禁食 ${hours} 小时",
+      "resetRecommended": "重置为推荐窗口",
+      "confirm": "确定"
+    },
     "widget": {
       "dueEat": "${time} 可进食",
       "dueEatEnd": "${time} 进食截止"

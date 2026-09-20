@@ -6,10 +6,12 @@ import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/account/presentation/weight_goal_fields.dart';
+import 'package:eatwise/features/fasting/domain/window_rules.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
 import 'package:eatwise/features/onboarding/domain/onboarding_types.dart';
 import 'package:eatwise/features/onboarding/domain/plan_recommendation.dart';
+import 'package:eatwise/features/onboarding/presentation/window_editor_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -77,6 +79,17 @@ class RecommendationScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.s6),
+            // 自定义进食窗口（进食窗口自选：编辑器弹层；确认后走既有
+            // 启动/换方案路径，T12 弹窗与 D-06 次日生效文案复用）。
+            OutlinedButton.icon(
+              key: const ValueKey<String>(
+                'onboarding.recommendation.customWindow',
+              ),
+              onPressed: () => _onCustomWindowPressed(context, ref),
+              icon: const Icon(Icons.schedule),
+              label: Text(t.fasting.window.entry),
+            ),
+            const SizedBox(height: AppSpacing.s6),
             Text(
               t.onboarding.recommendation.altTitle,
               style: textStyles.textXl,
@@ -119,12 +132,21 @@ class RecommendationScreen extends ConsumerWidget {
     );
   }
 
-  /// 一键启动：已有生效方案且窗口不同时先弹 T12 确认（「新方案将于
-  /// 次日 0:00 生效」，D-06），确认后写入；首次启动立即生效。
-  Future<void> _onStartPressed(BuildContext context, WidgetRef ref) async {
+  /// 「一键启动」与「自定义窗口确认」共用入口：已有生效方案且目标窗口
+  /// 不同时先弹 T12 确认（「新方案将于次日 0:00 生效」，D-06），确认后
+  /// 写入；首次启动立即生效。[window] 非空 = 自定义进食窗口草稿。
+  Future<void> _startWith(
+    BuildContext context,
+    WidgetRef ref, {
+    FastingWindowDraft? window,
+  }) async {
     final t = Translations.of(context);
     final controller = ref.read(onboardingControllerProvider.notifier);
-    if (controller.isPlanChange) {
+    final plan = window?.toFastingPlan();
+    final planChanged = plan == null
+        ? controller.isPlanChange
+        : controller.isPlanChangeAgainst(plan);
+    if (planChanged) {
       final date = controller.planChangeEffectiveDate.toIsoString();
       final confirmed = await showDialog<bool>(
         context: context,
@@ -147,7 +169,7 @@ class RecommendationScreen extends ConsumerWidget {
       );
       if (confirmed != true || !context.mounted) return;
     }
-    final result = controller.startPrimaryPlan();
+    final result = controller.startPrimaryPlan(window: window);
     if (result.usedFallback && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -160,6 +182,29 @@ class RecommendationScreen extends ConsumerWidget {
     if (context.mounted) {
       context.go('/');
     }
+  }
+
+  /// 一键启动（主推荐口径）。
+  Future<void> _onStartPressed(BuildContext context, WidgetRef ref) =>
+      _startWith(context, ref);
+
+  /// 自定义进食窗口：弹编辑器（初始值 = 当前主推荐窗口）；确认后走
+  /// [_startWith]（T12 弹窗与生效时序与一键启动同路径）。
+  Future<void> _onCustomWindowPressed(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final rec =
+        ref.read(onboardingControllerProvider).recommendation ??
+        recommendPlan(OnboardingAnswers.empty);
+    final draft = await WindowEditorSheet.show(
+      context,
+      initialEatingHours:
+          (rec.primary.toFastingPlan()?.eatWindowMinutes ?? 8 * 60) ~/ 60,
+      initialStartMinutes: rec.primary.eatStartMinutes ?? 12 * 60,
+    );
+    if (draft == null || !context.mounted) return;
+    await _startWith(context, ref, window: draft);
   }
 
   String _reasonText(Translations t, PlanRecommendation rec) {

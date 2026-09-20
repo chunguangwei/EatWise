@@ -143,6 +143,7 @@ class Translations$fasting$zh_CN {
 
 	// Translations
 	late final Translations$fasting$home$zh_CN home = Translations$fasting$home$zh_CN.internal(_root);
+	late final Translations$fasting$window$zh_CN window = Translations$fasting$window$zh_CN.internal(_root);
 	late final Translations$fasting$widget$zh_CN widget = Translations$fasting$widget$zh_CN.internal(_root);
 }
 
@@ -1569,6 +1570,39 @@ class Translations$fasting$home$zh_CN {
 
 	late final Translations$fasting$home$greeting$zh_CN greeting = Translations$fasting$home$greeting$zh_CN.internal(_root);
 	late final Translations$fasting$home$endFastDialog$zh_CN endFastDialog = Translations$fasting$home$endFastDialog$zh_CN.internal(_root);
+}
+
+// Path: fasting.window
+class Translations$fasting$window$zh_CN {
+	Translations$fasting$window$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '自定义进食窗口'
+	String get entry => '自定义进食窗口';
+
+	/// zh-CN: '自定义进食窗口'
+	String get title => '自定义进食窗口';
+
+	/// zh-CN: '进食时长'
+	String get duration => '进食时长';
+
+	/// zh-CN: '${hours} 小时'
+	String hoursOption({required Object hours}) => '${hours} 小时';
+
+	/// zh-CN: '开始时间'
+	String get start => '开始时间';
+
+	/// zh-CN: '进食 ${window} · 禁食 ${hours} 小时'
+	String preview({required Object window, required Object hours}) => '进食 ${window} · 禁食 ${hours} 小时';
+
+	/// zh-CN: '重置为推荐窗口'
+	String get resetRecommended => '重置为推荐窗口';
+
+	/// zh-CN: '确定'
+	String get confirm => '确定';
 }
 
 // Path: fasting.widget
@@ -4433,6 +4467,14 @@ extension on Translations {
 			'fasting.home.endFastDialog.earlyWarning' => '距计划结束还有 15 分钟以上，本次将记为不达标',
 			'fasting.home.endFastDialog.cancel' => '继续断食',
 			'fasting.home.endFastDialog.confirm' => '确认结束',
+			'fasting.window.entry' => '自定义进食窗口',
+			'fasting.window.title' => '自定义进食窗口',
+			'fasting.window.duration' => '进食时长',
+			'fasting.window.hoursOption' => ({required Object hours}) => '${hours} 小时',
+			'fasting.window.start' => '开始时间',
+			'fasting.window.preview' => ({required Object window, required Object hours}) => '进食 ${window} · 禁食 ${hours} 小时',
+			'fasting.window.resetRecommended' => '重置为推荐窗口',
+			'fasting.window.confirm' => '确定',
 			'fasting.widget.dueEat' => ({required Object time}) => '${time} 可进食',
 			'fasting.widget.dueEatEnd' => ({required Object time}) => '${time} 进食截止',
 			'home.tab.home' => '首页',
@@ -4533,6 +4575,8 @@ extension on Translations {
 			'reports.trend.ctaWeight' => '记体重',
 			'reports.trend.targetLine' => ({required Object kg}) => '目标 ${kg} 公斤',
 			'reports.trend.toGoal' => ({required Object kg}) => '距目标还有 ${kg} 公斤',
+			_ => null,
+		} ?? switch (path) {
 			'reports.trend.goalReached' => '已达到目标体重',
 			'reports.trend.weightUnlock' => ({required Object count}) => '再记录 ${count} 次体重，解锁完整曲线',
 			'reports.growth.title' => ({required Object days}) => '${days} 天成长轨迹',
@@ -4541,8 +4585,6 @@ extension on Translations {
 			'reports.growth.avgFasting' => '平均断食',
 			'reports.growth.weightDelta' => '体重变化',
 			'reports.growth.daysUnit' => '天',
-			_ => null,
-		} ?? switch (path) {
 			'reports.growth.hourUnit' => '小时',
 			'reports.growth.kgUnit' => '公斤',
 			'reports.growth.noValue' => '—',

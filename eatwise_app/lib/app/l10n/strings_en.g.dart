@@ -135,6 +135,7 @@ class _Translations$fasting$en extends Translations$fasting$zh_CN {
 
 	// Translations
 	@override late final _Translations$fasting$home$en home = _Translations$fasting$home$en._(_root);
+	@override late final _Translations$fasting$window$en window = _Translations$fasting$window$en._(_root);
 	@override late final _Translations$fasting$widget$en widget = _Translations$fasting$widget$en._(_root);
 }
 
@@ -904,6 +905,23 @@ class _Translations$fasting$home$en extends Translations$fasting$home$zh_CN {
 	@override String planProgressBehind({required Object week, required Object gap}) => 'Week ${week} · ${gap} kg to go';
 	@override late final _Translations$fasting$home$greeting$en greeting = _Translations$fasting$home$greeting$en._(_root);
 	@override late final _Translations$fasting$home$endFastDialog$en endFastDialog = _Translations$fasting$home$endFastDialog$en._(_root);
+}
+
+// Path: fasting.window
+class _Translations$fasting$window$en extends Translations$fasting$window$zh_CN {
+	_Translations$fasting$window$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get entry => 'Custom eating window';
+	@override String get title => 'Custom eating window';
+	@override String get duration => 'Eating duration';
+	@override String hoursOption({required Object hours}) => '${hours} hours';
+	@override String get start => 'Start time';
+	@override String preview({required Object window, required Object hours}) => 'Eat ${window} · Fast ${hours} hours';
+	@override String get resetRecommended => 'Reset to recommended window';
+	@override String get confirm => 'Confirm';
 }
 
 // Path: fasting.widget
@@ -2647,6 +2665,14 @@ extension on TranslationsEn {
 			'fasting.home.endFastDialog.earlyWarning' => 'Ending more than 15 minutes early counts as not qualified',
 			'fasting.home.endFastDialog.cancel' => 'Keep fasting',
 			'fasting.home.endFastDialog.confirm' => 'End fast',
+			'fasting.window.entry' => 'Custom eating window',
+			'fasting.window.title' => 'Custom eating window',
+			'fasting.window.duration' => 'Eating duration',
+			'fasting.window.hoursOption' => ({required Object hours}) => '${hours} hours',
+			'fasting.window.start' => 'Start time',
+			'fasting.window.preview' => ({required Object window, required Object hours}) => 'Eat ${window} · Fast ${hours} hours',
+			'fasting.window.resetRecommended' => 'Reset to recommended window',
+			'fasting.window.confirm' => 'Confirm',
 			'fasting.widget.dueEat' => ({required Object time}) => 'Eat at ${time}',
 			'fasting.widget.dueEatEnd' => ({required Object time}) => 'Window ends ${time}',
 			'home.tab.home' => 'Home',
@@ -2747,6 +2773,8 @@ extension on TranslationsEn {
 			'reports.trend.ctaWeight' => 'Log weight',
 			'reports.trend.targetLine' => ({required Object kg}) => 'Goal ${kg} kg',
 			'reports.trend.toGoal' => ({required Object kg}) => '${kg} kg to goal',
+			_ => null,
+		} ?? switch (path) {
 			'reports.trend.goalReached' => 'Weight goal reached',
 			'reports.trend.weightUnlock' => ({required Object count}) => 'Log your weight ${count} more times to unlock your full curve',
 			'reports.growth.title' => ({required Object days}) => '${days}-day journey',
@@ -2755,8 +2783,6 @@ extension on TranslationsEn {
 			'reports.growth.avgFasting' => 'Avg. fast',
 			'reports.growth.weightDelta' => 'Weight change',
 			'reports.growth.daysUnit' => 'd',
-			_ => null,
-		} ?? switch (path) {
 			'reports.growth.hourUnit' => 'h',
 			'reports.growth.kgUnit' => 'kg',
 			'reports.growth.noValue' => '—',

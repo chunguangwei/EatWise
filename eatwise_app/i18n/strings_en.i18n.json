@@ -524,6 +524,16 @@
         "confirm": "End fast"
       }
     },
+    "window": {
+      "entry": "Custom eating window",
+      "title": "Custom eating window",
+      "duration": "Eating duration",
+      "hoursOption": "${hours} hours",
+      "start": "Start time",
+      "preview": "Eat ${window} · Fast ${hours} hours",
+      "resetRecommended": "Reset to recommended window",
+      "confirm": "Confirm"
+    },
     "widget": {
       "dueEat": "Eat at ${time}",
       "dueEatEnd": "Window ends ${time}"

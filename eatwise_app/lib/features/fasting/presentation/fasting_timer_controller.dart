@@ -8,6 +8,7 @@ import 'package:eatwise/core/notification/notification_service.dart';
 import 'package:eatwise/core/widget_bridge/widget_sync_service.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_scheduler.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_texts.dart';
+import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/domain/fast_cycle.dart';
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
@@ -243,6 +244,9 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     _store.clearActiveCycle(); // 作废进行中周期（口径见函数注释）
     _store.clearEarlyEatEndUtc(); // 旧方案的提前破窗覆盖一并作废
     _reschedule(plan, 0, RescheduleReason.planActivate);
+    // T13 转正 = 服务端视角的「改动生效」落地：置脏并尽力上行一次，
+    // 保证服务端 current 与本地生效方案收敛（失败由同步引擎重试）。
+    ref.read(fastingPlanSyncProvider)?.markDirtyAndTryFlush(plan);
     return plan;
   }
 
