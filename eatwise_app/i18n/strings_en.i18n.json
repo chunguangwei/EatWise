@@ -176,7 +176,10 @@
       "other": "Other"
     },
     "today": {
-      "title": "Today's log"
+      "title": "Today's log",
+      "deleteEntry": "Delete this entry?",
+      "deleteConfirmAction": "Delete",
+      "deleted": "Deleted"
     },
     "entries": {
       "photo": "Photo",

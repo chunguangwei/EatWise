@@ -8,6 +8,7 @@ import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:eatwise/features/record/recognition/domain/engine_availability.dart';
@@ -197,7 +198,6 @@ Future<void> _handleTranscript(
     );
     return;
   }
-
   // 全量食物库构建解析词典（约 7.5k 条内存可行；limit 截断会让尾部
   // 词条永远匹配不到）。
   final foods = await ref.read(recordRepositoryProvider).allFoodsForVoiceDict();
@@ -212,16 +212,37 @@ Future<void> _handleTranscript(
     ).showSnackBar(SnackBar(content: Text(s.voiceNoMatch)));
     return;
   }
-  final top = result.items.first;
-  ref.read(recordSelectedFoodProvider.notifier).state = top.food;
-  ref
-      .read(recordAmountTextProvider.notifier)
-      .state = top.amountG == top.amountG.roundToDouble()
-      ? top.amountG.round().toString()
-      : top.amountG.toString();
-  // 语音文本已由用户亲口确认，不标「请确认」（该标记留给拍照低置信度）。
-  ref.read(recordLowConfidenceProvider.notifier).state = false;
-  ref.read(recordEntrySourceProvider.notifier).state = EntrySource.voice;
+  // 词典命中也可能多条（「两个鸡蛋一碗米饭」）：全部条目进同款明细
+  // 确认弹层（可改克数/删除/取消），**不再**只取第一条静默预填直接入账
+  // （真机走查 bug：多个信息只记了第一个，用户无确认机会）。
+  final mealItems = result.items
+      .map(
+        (p) => RecognizedMealItem(
+          name: p.food.nameZh,
+          nameEn: p.food.nameEn,
+          grams: p.amountG,
+          per100g: NutritionSnapshot(
+            kcal: p.food.kcalPer100g,
+            proteinG: p.food.proteinPer100g,
+            carbG: p.food.carbPer100g,
+            fatG: p.food.fatPer100g,
+          ),
+          confidence: 1.0,
+          food: p.food,
+        ),
+      )
+      .toList();
+  final confirm = await showPhotoMealConfirmSheet(
+    context,
+    ref,
+    mealItems,
+    entrySource: EntrySource.voice,
+    showRetake: false,
+  );
+  if (!context.mounted || confirm == null || confirm.loggedCount == 0) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(s.photoLoggedItems(confirm.loggedCount))),
+  );
 }
 
 /// 听写面板产出：转写文本 + 输入方式（语音/键盘，埋点 input 维度）。
@@ -509,7 +530,7 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
                             hintText: s.voiceTypeHint,
                             isDense: true,
                           ),
-                          onChanged: (value) => _text = value,
+                          onChanged: (value) => setState(() => _text = value),
                         )
                       : Text(
                           _text.isEmpty ? s.voiceListening : _text,

@@ -176,7 +176,10 @@
       "other": "其他"
     },
     "today": {
-      "title": "今日记录"
+      "title": "今日记录",
+      "deleteEntry": "删除这条记录？",
+      "deleteConfirmAction": "删除",
+      "deleted": "已删除"
     },
     "entries": {
       "photo": "拍照记",

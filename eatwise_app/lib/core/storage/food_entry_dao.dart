@@ -64,6 +64,33 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
     return (delete(foodEntries)..where((e) => e.localId.equals(localId))).go();
   }
 
+  /// 用户删除：软删为 tombstone（已上行行的删除须以 delete op 上行，
+  /// 服务端软删后下行同步到其他设备；未上行的撤销走 [deleteEntry]）。
+  Future<void> tombstoneEntry(String localId, String updatedAtUtc) {
+    return (update(foodEntries)..where((e) => e.localId.equals(localId))).write(
+      FoodEntriesCompanion(
+        deleted: const Value(true),
+        updatedAtUtc: Value(updatedAtUtc),
+      ),
+    );
+  }
+
+  /// 已软删、已上行（持 serverId）待 delete op 上行的行（同 [pendingEntries]
+  /// 供 retryPending 扫尾；delete ack 后物理清除）。
+  Future<List<FoodEntry>> deletePendingEntries(String userId) {
+    return (select(foodEntries)
+          ..where(
+            (e) =>
+                e.userId.equals(userId) &
+                e.deleted.equals(true) &
+                e.serverId.isNotNull(),
+          )
+          ..orderBy(<OrderingTerm Function(FoodEntries)>[
+            (e) => OrderingTerm.asc(e.updatedAtUtc),
+          ]))
+        .get();
+  }
+
   /// 指定用户全部待上行记录（重试用，按创建时间升序，§2.3 批内顺序）。
   Future<List<FoodEntry>> pendingEntries(String userId) {
     return (select(foodEntries)

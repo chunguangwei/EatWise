@@ -179,10 +179,11 @@ void main() {
 
     await speakAndFinish(tester, '一碗米饭');
 
-    // 回落词典解析：结果卡预填白米饭 200g（「一碗」映射），可直接确认。
-    expect(find.text('确认记录'), findsOneWidget);
-    expect(inSheet(find.text('确认这餐明细')), findsNothing);
-    expect(find.textContaining('热量 232 千卡'), findsOneWidget);
+    // 修复后行为：词典命中（可多条）进同款明细确认弹层，可改克数/删除/取消，
+    // 不再只取第一条静默预填直接入账（真机走查 bug：多个食物只记第一个）。
+    expect(inSheet(find.text('确认这餐明细')), findsOneWidget);
+    expect(inSheet(find.text('白米饭')), findsOneWidget);
+    expect(find.text('确认记录'), findsNothing);
     await settleUi(tester);
   });
 }

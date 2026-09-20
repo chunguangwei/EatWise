@@ -220,13 +220,14 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    // 结果卡预填：白米饭 200g（一碗映射）；语音不标「请确认」。
-    expect(find.text('确认记录'), findsOneWidget);
+    // 修复后：词典命中进明细确认弹层（可改克数/删除/取消），多条全带，
+    // 不再只取第一条预填结果卡静默入账（真机走查 bug）。
+    expect(find.text('确认这餐明细'), findsOneWidget);
     expect(find.text('请确认'), findsNothing);
-    expect(find.text('热量 232 千卡'), findsOneWidget);
+    expect(find.text('白米饭'), findsWidgets);
 
     remote.mode = FakeRemoteMode.offline;
-    await tester.tap(find.text('确认记录'));
+    await tester.tap(find.text('全部记录'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     final entries = await repository.entriesForDate(DateTime.now().toUtc());

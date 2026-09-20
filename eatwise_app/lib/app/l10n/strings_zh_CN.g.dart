@@ -733,6 +733,15 @@ class Translations$record$today$zh_CN {
 
 	/// zh-CN: '今日记录'
 	String get title => '今日记录';
+
+	/// zh-CN: '删除这条记录？'
+	String get deleteEntry => '删除这条记录？';
+
+	/// zh-CN: '删除'
+	String get deleteConfirmAction => '删除';
+
+	/// zh-CN: '已删除'
+	String get deleted => '已删除';
 }
 
 // Path: record.entries
@@ -4140,6 +4149,9 @@ extension on Translations {
 			'record.meal.snack' => '加餐',
 			'record.meal.other' => '其他',
 			'record.today.title' => '今日记录',
+			'record.today.deleteEntry' => '删除这条记录？',
+			'record.today.deleteConfirmAction' => '删除',
+			'record.today.deleted' => '已删除',
 			'record.entries.photo' => '拍照记',
 			'record.entries.voice' => '语音记',
 			'record.entries.frequent' => '常吃',
@@ -4529,11 +4541,11 @@ extension on Translations {
 			'reports.growth.avgFasting' => '平均断食',
 			'reports.growth.weightDelta' => '体重变化',
 			'reports.growth.daysUnit' => '天',
+			_ => null,
+		} ?? switch (path) {
 			'reports.growth.hourUnit' => '小时',
 			'reports.growth.kgUnit' => '公斤',
 			'reports.growth.noValue' => '—',
-			_ => null,
-		} ?? switch (path) {
 			'reports.growth.empty' => '还没有足迹，先记一笔或完成一次断食吧',
 			'reports.weekly.title' => '本周报告',
 			'reports.weekly.range' => ({required Object start, required Object end}) => '${start} – ${end}',

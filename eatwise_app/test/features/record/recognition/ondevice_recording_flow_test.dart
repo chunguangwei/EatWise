@@ -161,14 +161,13 @@ void main() {
     final field = tester.widget<TextField>(find.byType(TextField).last);
     expect(field.controller!.text, '一碗米饭');
 
-    // 完成 → 词典解析兜底入账预填（白米饭 200g，「一碗」映射）。
+    // 完成 → 词典解析结果进明细确认弹层（修复后口径：不再只取第一条预填结果卡）。
     await tester.tap(find.text('完成'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
-    expect(find.text('确认记录'), findsOneWidget);
-    // 结果卡标题 + 底部搜索列表同名食物各一处。
-    expect(find.text('白米饭'), findsNWidgets(2));
+    expect(find.text('确认这餐明细'), findsOneWidget);
+    expect(find.text('白米饭'), findsWidgets);
     await settleUi(tester);
   });
 

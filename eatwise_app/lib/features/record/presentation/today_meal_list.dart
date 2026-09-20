@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
@@ -8,6 +9,7 @@ import 'package:eatwise/features/record/custom_food/presentation/custom_food_str
 import 'package:eatwise/features/record/domain/meal_type.dart';
 import 'package:eatwise/features/record/presentation/meal_type_chips.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
+import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -45,11 +47,39 @@ class TodayMealList extends ConsumerWidget {
   }
 }
 
-/// 单条记录行：食物名 + 份量/热量摘要。
+/// 单条记录行：食物名 + 份量/热量摘要 + 删除（走查修复：入账后无法删除）。
 class _EntryRow extends ConsumerWidget {
   const _EntryRow({required this.entry});
 
   final FoodEntry entry;
+
+  /// 删除确认弹窗（防误触）。
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final t = Translations.of(context);
+    final s = RecordStrings.of(context);
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(t.record.today.deleteEntry),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(s.cancelAction),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(t.record.today.deleteConfirmAction),
+          ),
+        ],
+      ),
+    );
+    if (yes != true || !context.mounted) return;
+    await ref.read(recordRepositoryProvider).deleteEntry(entry.localId);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(t.record.today.deleted)));
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -101,6 +131,16 @@ class _EntryRow extends ConsumerWidget {
             '${entry.amountG.round()} ${t.record.nutrition.gramUnit} · '
             '${entry.kcal.round()} ${t.record.nutrition.kcalUnit}',
             style: textStyles.textSm.copyWith(color: colors.textSecondary),
+          ),
+          // 删除入口（走查修复）：≥40px 触控目标，确认弹窗防误触。
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            iconSize: 20,
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            color: colors.textSecondary,
+            tooltip: t.record.today.deleteEntry,
+            onPressed: () => unawaited(_confirmDelete(context, ref)),
           ),
         ],
       ),

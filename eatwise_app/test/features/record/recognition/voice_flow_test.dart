@@ -100,7 +100,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   }
 
-  testWidgets('词典全量加载：第 601 条食物也能语音命中并预填结果卡', (tester) async {
+  testWidgets('词典全量加载：第 601 条食物也能语音命中并进明细确认弹层', (tester) async {
     await pumpPage(tester);
 
     await tester.tap(find.text('语音记'));
@@ -112,9 +112,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    // 命中第 601 条（500 截断线之外）：结果卡预填该食物。
+    // 命中第 601 条（500 截断线之外）：进明细确认弹层（修复后口径）。
     expect(find.text('没听出是什么食物，换个说法或手动搜索'), findsNothing);
-    expect(find.text('确认记录'), findsOneWidget);
+    expect(find.text('确认这餐明细'), findsOneWidget);
     expect(find.text('燕窝羹'), findsOneWidget);
     await settleUi(tester);
   });

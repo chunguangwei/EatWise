@@ -155,7 +155,7 @@ class _OnDeviceRecordingSheetState
                             hintText: s.voiceTypeHint,
                             isDense: true,
                           ),
-                          onChanged: (value) => _text = value,
+                          onChanged: (value) => setState(() => _text = value),
                         )
                       : Text(_statusText(s), style: textStyles.textBase),
                 ),

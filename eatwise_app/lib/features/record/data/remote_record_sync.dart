@@ -115,8 +115,18 @@ final class RemoteRecordSync implements RecordRemote {
   }
 
   /// FoodEntry → sync/push op（create 无 serverId；update 携带
-  /// serverId + baseVersion 供服务端 LWW 冲突检测，§2.3/§3.1）。
+  /// serverId + baseVersion 供服务端 LWW 冲突检测，§2.3/§3.1；
+  /// 用户删除的已上行行（deleted=true）→ delete op，ack 后物理清除）。
   Map<String, dynamic> _opFor(FoodEntry entry) {
+    if (entry.deleted) {
+      return <String, dynamic>{
+        'clientRequestId': entry.clientRequestId,
+        'entity': 'foodEntry',
+        'op': 'delete',
+        if (entry.serverId != null) 'serverId': entry.serverId,
+        'payload': <String, dynamic>{},
+      };
+    }
     final payload = <String, dynamic>{
       'eatenAt': entry.datetimeUtc,
       'foodId': entry.foodId,

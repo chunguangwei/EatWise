@@ -490,6 +490,9 @@ class _Translations$record$today$en extends Translations$record$today$zh_CN {
 
 	// Translations
 	@override String get title => 'Today\'s log';
+	@override String get deleteEntry => 'Delete this entry?';
+	@override String get deleteConfirmAction => 'Delete';
+	@override String get deleted => 'Deleted';
 }
 
 // Path: record.entries
@@ -2360,6 +2363,9 @@ extension on TranslationsEn {
 			'record.meal.snack' => 'Snack',
 			'record.meal.other' => 'Other',
 			'record.today.title' => 'Today\'s log',
+			'record.today.deleteEntry' => 'Delete this entry?',
+			'record.today.deleteConfirmAction' => 'Delete',
+			'record.today.deleted' => 'Deleted',
 			'record.entries.photo' => 'Photo',
 			'record.entries.voice' => 'Voice',
 			'record.entries.frequent' => 'Usual',
@@ -2749,11 +2755,11 @@ extension on TranslationsEn {
 			'reports.growth.avgFasting' => 'Avg. fast',
 			'reports.growth.weightDelta' => 'Weight change',
 			'reports.growth.daysUnit' => 'd',
+			_ => null,
+		} ?? switch (path) {
 			'reports.growth.hourUnit' => 'h',
 			'reports.growth.kgUnit' => 'kg',
 			'reports.growth.noValue' => '—',
-			_ => null,
-		} ?? switch (path) {
 			'reports.growth.empty' => 'No footprints yet — log a meal or finish a fast to start.',
 			'reports.weekly.title' => 'This week',
 			'reports.weekly.range' => ({required Object start, required Object end}) => '${start} – ${end}',

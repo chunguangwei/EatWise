@@ -134,6 +134,29 @@ final class RecordRepository {
     return true;
   }
 
+  /// 用户删除一条已入账记录（走查修复：记录后无删除入口）。
+  /// 未上行（无 serverId）→ 本地物理删（云端本就无此行）；
+  /// 已上行 → 软删 tombstone + 上行 delete op（ack 后物理清除，
+  /// 服务端软删经下行同步到其他设备）；聚合即时重算。
+  Future<bool> deleteEntry(String localId) async {
+    final entry = await db.foodEntryDao.getByLocalId(localId);
+    if (entry == null || entry.deleted) return false;
+    _cancelPush(localId);
+    if (entry.serverId == null) {
+      await db.foodEntryDao.deleteEntry(localId);
+    } else {
+      await db.foodEntryDao.tombstoneEntry(
+        localId,
+        _clock().toUtc().toIso8601String(),
+      );
+      // 即时尝试上行 delete（成功物理清除/失败留 tombstone 下轮 retryPending）；
+      // 列表与聚合在 tombstone 落库即更新，不阻塞 UI 观感。
+      if (remote.isOnline) await _push(localId);
+    }
+    await _recompute(DateTime.parse(entry.datetimeUtc));
+    return true;
+  }
+
   /// 份量修改实时重算营养（US-3.1）：快照随份量重算，localVersion+1。
   /// synced 记录被编辑 → 重新生成 clientRequestId 并转 submitting 待上行
   /// （T9）；pending/submitting 原位修改保留状态（T10）。
@@ -180,13 +203,18 @@ final class RecordRepository {
   }
 
   /// 批量上行全部 pending（T8：网络恢复 / 手动「立即重试」）。
-  /// 返回本次尝试上行的条数。
+  /// 先扫已删除待 delete op 的 tombstone 行（用户删除已上行记录，
+  /// ack/NOT_FOUND 后物理清除），再上行普通 pending。返回尝试条数。
   Future<int> retryPending() async {
+    final deletePendings = await db.foodEntryDao.deletePendingEntries(userId);
+    for (final entry in deletePendings) {
+      await _push(entry.localId);
+    }
     final pendings = await db.foodEntryDao.pendingEntries(userId);
     for (final entry in pendings) {
       await _push(entry.localId);
     }
-    return pendings.length;
+    return deletePendings.length + pendings.length;
   }
 
   /// 「待同步 N 条」计数流（§4.1）。
@@ -245,19 +273,31 @@ final class RecordRepository {
     _undoDeadlines.remove(localId);
   }
 
-  /// 上行单条并按结果迁移四态（T4/T5/T6/T7）。
+  /// 上行单条并按结果迁移四态（T4/T5/T6/T7）。tombstone 行走 delete op：
+  /// ack/NOT_FOUND（云端已无此行/从未上行）→ 物理清除。
   Future<void> _push(String localId) async {
     final entry = await db.foodEntryDao.getByLocalId(localId);
-    if (entry == null || entry.deleted) return;
-    if (entry.syncStatus == SyncStatus.synced) return;
+    if (entry == null) return;
+    final isDelete = entry.deleted;
+    if (isDelete && entry.serverId == null) {
+      await db.foodEntryDao.deleteEntry(localId);
+      return;
+    }
+    if (!isDelete && entry.syncStatus == SyncStatus.synced) return;
     // 乐观入账守卫：引用未上行自定义食物（customSyncPending / 本地行缺失）
     // 的记录保持 pending 留待下轮——服务端按服务端 id 解析食物，本地临时 id
     // 上行必 4xx，放行会走 T7 回滚静默删除（「不报错就没了」根因的客户端侧）。
-    final food = await db.foodDao.getById(entry.foodId);
-    if (food == null || food.customSyncPending) return;
+    if (!isDelete) {
+      final food = await db.foodDao.getById(entry.foodId);
+      if (food == null || food.customSyncPending) return;
+    }
     final outcome = await remote.push(entry);
     switch (outcome) {
       case PushAck():
+        if (isDelete) {
+          await db.foodEntryDao.deleteEntry(localId);
+          break;
+        }
         await db.foodEntryDao.updateEntry(
           localId,
           FoodEntriesCompanion(
@@ -279,6 +319,11 @@ final class RecordRepository {
           ),
         );
       case PushReject():
+        if (isDelete) {
+          // NOT_FOUND 等：云端已无此行（或从未成功上行）→ 直接物理清除。
+          await db.foodEntryDao.deleteEntry(localId);
+          break;
+        }
         // T7：4xx 校验拒绝 → 回滚乐观更新（本地删除），提示用户重新提交。
         await db.foodEntryDao.deleteEntry(localId);
         await _recompute(DateTime.parse(entry.datetimeUtc));
