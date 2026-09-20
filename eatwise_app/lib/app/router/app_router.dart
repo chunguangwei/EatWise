@@ -62,6 +62,8 @@ GoRouter createAppRouter({
       final onLogin = location == '/login';
       final onRegister = location == '/register';
       final onOnboarding = location.startsWith('/onboarding');
+      // 科普页为顶层路由，但引导中允许停留（推荐页「是什么原理」入口）。
+      final onScience = location == '/science';
       // 未登录时 /register、/login 与 /legal/* 协议正文同级放行
       // （注册即自动登录无门禁意义；注册/登录页须可读隐私政策与用户协议）。
       if (!loggedIn) {
@@ -69,7 +71,7 @@ GoRouter createAppRouter({
         return onAuthPage ? null : '/login';
       }
       if (onLogin || onRegister) return gate.completed ? '/' : '/onboarding';
-      if (!gate.completed && !onOnboarding) return '/onboarding';
+      if (!gate.completed && !onOnboarding && !onScience) return '/onboarding';
       // 同意后停留在弹窗页 → 按登录/引导门禁送到应去页面。
       if (gate.completed && (onOnboarding || location == '/legal/consent')) {
         return '/';
@@ -233,8 +235,10 @@ GoRouter createAppRouter({
         path: '/onboarding/recommendation',
         builder: (context, state) => const RecommendationScreen(),
       ),
+      // 原理科普页：顶层路由（不放 /onboarding/* 前缀下——redirect 会把
+      // 已完成引导用户的 /onboarding 前缀一律弹回首页，导致点科普跳首页）。
       GoRoute(
-        path: '/onboarding/science',
+        path: '/science',
         builder: (context, state) => const ScienceCardScreen(),
       ),
     ],

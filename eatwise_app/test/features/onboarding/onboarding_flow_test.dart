@@ -424,4 +424,51 @@ void main() {
     expect(pending.effectiveDate.toIsoString(), '2026-07-29');
     expect(find.text('断食计时'), findsOneWidget); // 确认后回首页
   });
+
+  testWidgets('走查 Bug2 回归：已完成引导用户点「断食是什么原理」打开'
+      '科普页，不再被 redirect 弹回首页', (tester) async {
+    await pumpApp(
+      tester,
+      completed: true,
+      initialPrefs: <String, Object>{
+        'onboarding.activePlan': jsonEncode(<String, dynamic>{
+          'planId': '14:10',
+          'eatStartMinutes': 600,
+          'eatEndMinutes': 1200,
+          'initialState': 'fasting',
+          'targetUtc': null,
+          'attributionDate': null,
+          'startedAtUtc': fixedNowUtc - 86400,
+        }),
+      },
+    );
+
+    // 我的 → 断食方案 → 推荐页 → 科普入口。
+    await tester.tap(find.text('我的'));
+    await pumpFrames(tester);
+    await tester.scrollUntilVisible(
+      find.text('断食方案'),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await pumpFrames(tester);
+    await tester.tap(find.text('断食方案'));
+    await pumpFrames(tester);
+    expect(find.text('为你推荐的方案'), findsOneWidget);
+
+    await tester.dragUntilVisible(
+      find.byKey(const ValueKey<String>('onboarding.recommendation.science')),
+      find.byType(ListView).first,
+      const Offset(0, -200),
+    );
+    await pumpFrames(tester);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.recommendation.science')),
+    );
+    await pumpFrames(tester);
+
+    // 旧 bug：/onboarding/science 命中 redirect 前缀被弹回首页。
+    expect(find.text('断食原理小科普'), findsOneWidget);
+    expect(find.text('断食计时'), findsNothing);
+  });
 }
