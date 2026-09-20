@@ -234,6 +234,9 @@ model Post {
   text             String
   imageUrls        String[]
   streakDaysAtPost Int?
+  // 匿名发帖：author 遮蔽在服务端视图层做；avatarId = 客户端预设头像库索引（0..7），跟帖固定。
+  anonymous        Boolean   @default(false)
+  avatarId         Int?
   likeCount        Int       @default(0)
   auditStatus      String    @default("pending") // pending / approved / rejected（先审后发 D-17）
   auditReason      Json? // 双语 {zh, en}

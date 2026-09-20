@@ -280,6 +280,10 @@ export interface PostEntity {
   imageUrls: string[];
   /** 发布时的连续达标天数（服务端权威计算，D-12 口径） */
   streakDaysAtPost: number | null;
+  /** 匿名发帖：非作者查看时服务端抹掉作者身份，仅透出匿名标记 + 预设头像索引 */
+  anonymous: boolean;
+  /** 客户端预设头像库索引（0..7），发帖时选定即固定；非匿名帖为 null */
+  avatarId: number | null;
   likeCount: number;
   auditStatus: AuditStatus;
   /** 双语审核原因（rejected 时展示给作者） */

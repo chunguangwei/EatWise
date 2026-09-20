@@ -1,12 +1,16 @@
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsIn,
+  IsInt,
   IsOptional,
   IsString,
   IsUUID,
   Length,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 /** C1 发布打卡（契约 §3.9：文字 ≤500 字 + 可选图片 URL） */
@@ -34,6 +38,22 @@ export class CreatePostDto {
    */
   @IsOptional()
   linkedStreakDays?: number;
+  /**
+   * 匿名发帖：作者身份对非作者查看者遮蔽（服务端视图层抹除 author.id/nickname）。
+   */
+  @IsOptional()
+  @IsBoolean()
+  anonymous?: boolean;
+
+  /**
+   * 预设头像库索引（客户端常量表 0–7，共 8 套微信/QQ 式默认头像）。
+   * 仅 anonymous=true 时有意义；跟帖固定，不随用户资料变。
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(7)
+  avatarId?: number;
 }
 
 /** C7 举报（同用户同帖幂等一次） */

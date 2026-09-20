@@ -34,7 +34,12 @@ export class SocialService {
   /** C1 发布打卡（幂等 clientRequestId） */
   async create(userId: string, dto: CreatePostDto) {
     const endpoint = 'posts';
-    const hash = payloadHash({ text: dto.text, imageUrls: dto.imageUrls ?? [] });
+    const hash = payloadHash({
+      text: dto.text,
+      imageUrls: dto.imageUrls ?? [],
+      anonymous: dto.anonymous ?? false,
+      avatarId: dto.avatarId ?? null,
+    });
     const hit = await this.driver.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
     if (hit) {
       if (hit.payloadHash !== hash) throw err.payloadMismatch();
@@ -54,6 +59,8 @@ export class SocialService {
       text: dto.text,
       imageUrls: dto.imageUrls ?? [],
       streakDaysAtPost: streakDays,
+      anonymous: dto.anonymous ?? false,
+      avatarId: dto.anonymous ? (dto.avatarId ?? null) : null,
       likeCount: 0,
       auditStatus: 'approved',
       auditReason: null,
@@ -320,6 +327,9 @@ export class SocialService {
     return Promise.all(
       posts.map(async (post) => {
         const isAuthor = post.userId === viewerId;
+        // 匿名帖遮蔽：非作者查看不下发 author.id/nickname（昵称泄漏面在服务端收口）；
+        // 作者本人保留真实昵称，便于区分自己的匿名帖。avatarId 恒下发（客户端预设头像库渲染）。
+        const masked = post.anonymous && !isAuthor;
         return {
           id: post.id,
           text: post.text,
@@ -331,11 +341,15 @@ export class SocialService {
           // 审核原因仅作者可见（契约 §3.9 状态机）
           auditReason: isAuthor ? post.auditReason : null,
           isAuthor,
-          author: {
-            id: post.userId,
-            nickname: names.get(post.userId) ?? null,
-            avatarUrl: null,
-          },
+          anonymous: post.anonymous,
+          avatarId: post.avatarId,
+          author: masked
+            ? { id: null, nickname: null, avatarUrl: null }
+            : {
+                id: post.userId,
+                nickname: names.get(post.userId) ?? null,
+                avatarUrl: null,
+              },
           createdAt: post.createdAt.toISOString(),
         };
       }),

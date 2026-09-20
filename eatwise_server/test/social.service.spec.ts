@@ -249,4 +249,65 @@ describe('社区打卡（M5 P1 / D-17 先审后发）', () => {
     // 恢复后他人可见
     expect((await social.feed(otherId)).items.map((i) => i.id)).toContain(post.id);
   });
+
+  it('匿名帖：他人视角遮蔽作者身份，作者本人保留昵称；avatarId 恒下发', async () => {
+    const post = (await social.create(userId, {
+      clientRequestId: randomUUID(),
+      text: '匿名打卡',
+      anonymous: true,
+      avatarId: 3,
+    })) as {
+      id: string;
+      anonymous: boolean;
+      avatarId: number | null;
+      author: { id: string | null; nickname: string | null };
+    };
+    expect(post.anonymous).toBe(true);
+    expect(post.avatarId).toBe(3);
+    // 作者视角（create/feed/getById）：anonymous=true 但保留真实昵称
+    expect(post.author.nickname).toBe('小林');
+    const ownFeed = await social.feed(userId);
+    const own = ownFeed.items.find((i: { id: string }) => i.id === post.id) as {
+      anonymous: boolean;
+      avatarId: number | null;
+      author: { id: string | null; nickname: string | null };
+    };
+    expect(own.author.nickname).toBe('小林');
+    expect(own.author.id).toBe(userId);
+    // 他人视角：id/nickname 抹除，匿名标记 + 头像索引照常下发
+    const otherView = (await social.getById(otherId, post.id)) as {
+      anonymous: boolean;
+      avatarId: number | null;
+      author: { id: string | null; nickname: string | null };
+    };
+    expect(otherView.anonymous).toBe(true);
+    expect(otherView.avatarId).toBe(3);
+    expect(otherView.author.id).toBeNull();
+    expect(otherView.author.nickname).toBeNull();
+  });
+
+  it('非匿名帖不受遮蔽影响；anonymous 缺省 false', async () => {
+    const post = (await createPost(userId, '实名打卡')) as unknown as {
+      id: string;
+      anonymous: boolean;
+      avatarId: number | null;
+    };
+    expect(post.anonymous).toBe(false);
+    expect(post.avatarId).toBeNull();
+    const otherView = (await social.getById(otherId, post.id)) as {
+      author: { id: string | null; nickname: string | null };
+    };
+    expect(otherView.author.id).toBe(userId);
+    expect(otherView.author.nickname).toBe('小林');
+  });
+
+  it('发布幂等：同键仅 anonymous/avatarId 不同 → 409（新字段纳入载荷哈希）', async () => {
+    const clientRequestId = randomUUID();
+    await social.create(userId, { clientRequestId, text: '同文不同名' });
+    await expect(
+      social.create(userId, { clientRequestId, text: '同文不同名', anonymous: true, avatarId: 2 }),
+    ).rejects.toThrow(
+      expect.objectContaining({ code: 'IDEMPOTENCY_PAYLOAD_MISMATCH' }) as unknown as Error,
+    );
+  });
 });

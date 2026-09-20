@@ -72,6 +72,8 @@ describe('用户权利（U1/U3/U5/U6，合规 §4.2/§4.3）', () => {
       text: '第 3 天打卡',
       imageUrls: ['https://img.example.com/p1.jpg'],
       streakDaysAtPost: 3,
+      anonymous: false,
+      avatarId: null,
       likeCount: 0,
       auditStatus: 'approved',
       auditReason: null,
