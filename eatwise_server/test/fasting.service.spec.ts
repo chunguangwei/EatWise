@@ -3,6 +3,9 @@ import { randomUUID } from 'crypto';
 import { DataStore, FastingRecordEntity } from '../src/common/store/data-store';
 import { MemoryStoreDriver } from '../src/common/store/store-driver';
 import { newId } from '../src/common/utils/id.util';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { PutPlanDto } from '../src/fasting/fasting.dto';
 import { computeWindow, FastingService, MAX_EXTEND_MINUTES } from '../src/fasting/fasting.service';
 import { StreakService } from '../src/streak/streak.service';
 
@@ -252,6 +255,187 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
       } finally {
         jest.useRealTimers();
       }
+    });
+  });
+
+  describe('方案窗口与 planType 一致性校验（自选进食窗口）', () => {
+    async function errorsFor(body: Record<string, unknown>) {
+      return validate(plainToInstance(PutPlanDto, body), { whitelist: true });
+    }
+
+    it('16:8 配 10h 窗口（09:00–19:00）→ 校验失败', async () => {
+      const errors = await errorsFor({
+        clientRequestId: randomUUID(),
+        planType: '16:8',
+        eatingWindow: { start: '09:00', end: '19:00' },
+      });
+      expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it('16:8 配 8h 窗口（09:00–17:00）→ 通过', async () => {
+      const errors = await errorsFor({
+        clientRequestId: randomUUID(),
+        planType: '16:8',
+        eatingWindow: { start: '09:00', end: '17:00' },
+      });
+      expect(errors).toEqual([]);
+    });
+
+    it('跨午夜 22:00–06:00 配 16:8 → 通过；20:00–06:00（10h）配 16:8 → 失败、配 14:10 → 通过', async () => {
+      expect(
+        await errorsFor({
+          clientRequestId: randomUUID(),
+          planType: '16:8',
+          eatingWindow: { start: '22:00', end: '06:00' },
+        }),
+      ).toEqual([]);
+      expect(
+        (
+          await errorsFor({
+            clientRequestId: randomUUID(),
+            planType: '16:8',
+            eatingWindow: { start: '20:00', end: '06:00' },
+          })
+        ).length,
+      ).toBeGreaterThan(0); // (360−1200+1440)%1440 = 600 ≠ 480
+      expect(
+        await errorsFor({
+          clientRequestId: randomUUID(),
+          planType: '14:10',
+          eatingWindow: { start: '20:00', end: '06:00' },
+        }),
+      ).toEqual([]);
+    });
+
+    it('18:6 配 6h 跨午夜（21:00–03:00）通过；14:10 配 08:00–17:00（9h）失败', async () => {
+      expect(
+        await errorsFor({
+          clientRequestId: randomUUID(),
+          planType: '18:6',
+          eatingWindow: { start: '21:00', end: '03:00' },
+        }),
+      ).toEqual([]);
+      const bad = await errorsFor({
+        clientRequestId: randomUUID(),
+        planType: '14:10',
+        eatingWindow: { start: '08:00', end: '17:00' },
+      });
+      expect(bad.length).toBeGreaterThan(0);
+    });
+
+    it('eatingWindow 缺失 / planType 非法 → 各自字段级报错（不 500）', async () => {
+      expect(
+        (await errorsFor({ clientRequestId: randomUUID(), planType: '16:8' })).length,
+      ).toBeGreaterThan(0);
+      expect(
+        (
+          await errorsFor({
+            clientRequestId: randomUUID(),
+            planType: '20:4',
+            eatingWindow: { start: '09:00', end: '17:00' },
+          })
+        ).length,
+      ).toBeGreaterThan(0);
+    });
+  });
+
+  describe('跨午夜进食窗口（20:00–06:00，16:8）', () => {
+    const CROSS = { eatingWindowStart: '20:00', eatingWindowEnd: '06:00' };
+
+    it('凌晨 02:00：eating，窗口锚定昨天（起点=昨日 20:00）', () => {
+      const win = computeWindow(CROSS, TZ, new Date('2026-07-26T18:00:00.000Z')); // 27 日 02:00 本地
+      expect(win.state).toBe('eating');
+      expect(win.eatingStartAt.toISOString()).toBe('2026-07-26T12:00:00.000Z'); // 26 日 20:00 本地
+      expect(win.eatingEndAt.toISOString()).toBe('2026-07-26T22:00:00.000Z'); // 27 日 06:00 本地
+    });
+
+    it('22:00（窗口起点后）：eating，止点落次日 06:00', () => {
+      const win = computeWindow(CROSS, TZ, new Date('2026-07-27T14:00:00.000Z')); // 22:00 本地
+      expect(win.state).toBe('eating');
+      expect(win.eatingStartAt.toISOString()).toBe('2026-07-27T12:00:00.000Z');
+      expect(win.eatingEndAt.toISOString()).toBe('2026-07-27T22:00:00.000Z'); // 28 日 06:00 本地
+    });
+
+    it('10:00（断食中）：fasting，下一窗口 = 今日 20:00 起', () => {
+      const win = computeWindow(CROSS, TZ, new Date('2026-07-27T02:00:00.000Z')); // 10:00 本地
+      expect(win.state).toBe('fasting');
+      expect(win.eatingStartAt.toISOString()).toBe('2026-07-27T12:00:00.000Z');
+    });
+
+    it('getStatus 建档：归属日 = 今日（窗口起点日），断食起点 = 今日 06:00（窗口止点）', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-07-27T02:00:00.000Z')); // 10:00 本地断食中
+      try {
+        await fasting.putCurrentPlan(userId, TZ, '16:8', '20:00', '06:00');
+        const status = await fasting.getStatus(userId, TZ);
+        expect(status.state).toBe('fasting');
+        expect(status.activeRecord?.attributionDate).toBe('2026-07-27');
+        expect(status.activeRecord?.plannedStartAt).toBe('2026-07-26T22:00:00.000Z'); // 今日 06:00 本地
+        expect(status.activeRecord?.plannedEndAt).toBe('2026-07-27T12:00:00.000Z'); // 今日 20:00 本地
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('凌晨进食中 getStatus：eating 不建档；延长覆盖名义进窗后状态保持', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-07-27T02:00:00.000Z'));
+      try {
+        await fasting.putCurrentPlan(userId, TZ, '16:8', '20:00', '06:00');
+        jest.setSystemTime(new Date('2026-07-26T18:00:00.000Z')); // 27 日 02:00 本地：进食中
+        const s0 = await fasting.getStatus(userId, TZ);
+        expect(s0.state).toBe('eating');
+        expect(s0.window.eatingStartAt).toBe('2026-07-26T12:00:00.000Z'); // 周期起点 = 昨日 20:00
+        expect(store.fastingRecords.size).toBe(0); // 进食态不建档
+
+        jest.setSystemTime(new Date('2026-07-27T02:00:00.000Z')); // 回到 10:00 本地：断食中
+        const s1 = await fasting.getStatus(userId, TZ);
+        const recordId = s1.activeRecord!.id;
+        await fasting.extend(userId, randomUUID(), recordId, 30); // plannedEndAt → 20:30 本地
+        jest.setSystemTime(new Date('2026-07-27T12:15:00.000Z')); // 20:15 本地：名义已进窗
+        const s2 = await fasting.getStatus(userId, TZ);
+        expect(s2.state).toBe('fasting'); // 延长覆盖窗口：状态不消失
+        expect(s2.activeRecord?.id).toBe(recordId);
+        expect(store.fastingRecords.size).toBe(1); // 无重复建档
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+  });
+  describe('方案生效语义：首个立即生效 / 改动次日（D-06 修订）', () => {
+    beforeEach(() => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-07-27T02:00:00.000Z')); // 本地 2026-07-27 10:00
+    });
+    afterEach(() => jest.useRealTimers());
+
+    it('首个方案：effectiveDate=今日、status=current，getCurrentPlan 不再是 16:8 兜底', async () => {
+      const res = await fasting.putCurrentPlan(userId, TZ, '18:6', '21:00', '03:00');
+      expect(res.current.status).toBe('current');
+      expect(res.current.effectiveDate).toBe('2026-07-27');
+      expect(res.current.planType).toBe('18:6');
+      const current = await fasting.getCurrentPlan(userId, TZ);
+      expect(current.id).not.toBe('default');
+      expect(current.eatingWindowStart).toBe('21:00');
+    });
+
+    it('已有方案再改：pending 次日生效，current 不变', async () => {
+      const first = await fasting.putCurrentPlan(userId, TZ, '16:8', '09:00', '17:00');
+      const res = await fasting.putCurrentPlan(userId, TZ, '14:10', '08:00', '18:00');
+      expect(res.pending.status).toBe('pending');
+      expect(res.pending.effectiveDate).toBe('2026-07-28');
+      expect(res.current.id).toBe(first.current.id);
+      expect(res.current.planType).toBe('16:8');
+      // 当前生效口径仍是旧方案（计时不提前切换）
+      const current = await fasting.getCurrentPlan(userId, TZ);
+      expect(current.planType).toBe('16:8');
+    });
+
+    it('pending 再次 PUT：整体替换（LWW），仍次日生效', async () => {
+      await fasting.putCurrentPlan(userId, TZ, '16:8', '09:00', '17:00');
+      const p2 = await fasting.putCurrentPlan(userId, TZ, '14:10', '08:00', '18:00');
+      const p3 = await fasting.putCurrentPlan(userId, TZ, '18:6', '21:00', '03:00');
+      expect(p3.pending.id).toBe(p2.pending.id);
+      expect(p3.pending.planType).toBe('18:6');
+      expect(p3.pending.effectiveDate).toBe('2026-07-28');
+      expect(store.fastingPlans.size).toBe(2); // current + 单条 pending
     });
   });
 });

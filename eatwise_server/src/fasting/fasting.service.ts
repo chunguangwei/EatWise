@@ -16,31 +16,43 @@ export interface FastingWindow {
   eatingEndAt: Date;
 }
 
-/** 当前周期进食窗口（UTC 边界）。进食窗口同一天内 start < end（〔假设〕不支持跨午夜窗口） */
+/** 锚定日（窗口起点所属本地自然日）的进食窗口 UTC 边界；end ≤ start 视为跨午夜，止点落次日 */
+function windowFor(
+  anchorDate: string,
+  plan: { eatingWindowStart: string; eatingWindowEnd: string },
+  tz: string,
+): { eatingStartAt: Date; eatingEndAt: Date } {
+  const crossMidnight = plan.eatingWindowEnd <= plan.eatingWindowStart;
+  return {
+    eatingStartAt: zonedTimeToUtc(anchorDate, plan.eatingWindowStart, tz),
+    eatingEndAt: zonedTimeToUtc(
+      crossMidnight ? addDays(anchorDate, 1) : anchorDate,
+      plan.eatingWindowEnd,
+      tz,
+    ),
+  };
+}
+
+/**
+ * 当前周期进食窗口（UTC 边界）。支持跨午夜窗口（如 20:00–06:00）：
+ * 凌晨处于「昨日窗口」内（now < 今日 start 但 < 昨日窗口的止点）→ eating；
+ * 归属日（D-07）= 当前周期窗口**起点**所在本地自然日（凌晨 02:00 的周期起点是昨天）。
+ */
 export function computeWindow(
   plan: { eatingWindowStart: string; eatingWindowEnd: string },
   tz: string,
   now: Date,
 ): FastingWindow {
   const today = localDateOf(now, tz);
-  const todayStart = zonedTimeToUtc(today, plan.eatingWindowStart, tz);
-  const todayEnd = zonedTimeToUtc(today, plan.eatingWindowEnd, tz);
-  if (now.getTime() < todayStart.getTime()) {
-    return {
-      state: 'fasting',
-      eatingStartAt: todayStart,
-      eatingEndAt: todayEnd,
-    };
+  const t = now.getTime();
+  const cur = windowFor(today, plan, tz);
+  if (t >= cur.eatingStartAt.getTime()) {
+    if (t < cur.eatingEndAt.getTime()) return { state: 'eating', ...cur };
+    return { state: 'fasting', ...windowFor(addDays(today, 1), plan, tz) };
   }
-  if (now.getTime() < todayEnd.getTime()) {
-    return { state: 'eating', eatingStartAt: todayStart, eatingEndAt: todayEnd };
-  }
-  const tomorrow = addDays(today, 1);
-  return {
-    state: 'fasting',
-    eatingStartAt: zonedTimeToUtc(tomorrow, plan.eatingWindowStart, tz),
-    eatingEndAt: zonedTimeToUtc(tomorrow, plan.eatingWindowEnd, tz),
-  };
+  const prev = windowFor(addDays(today, -1), plan, tz);
+  if (t < prev.eatingEndAt.getTime()) return { state: 'eating', ...prev };
+  return { state: 'fasting', ...cur };
 }
 
 @Injectable()
@@ -86,10 +98,16 @@ export class FastingService {
     };
   }
 
-  /** P4 一键启动/更换方案：次日 0 点本地生效（D-06），已有 pending 整体替换（LWW） */
+  /**
+   * P4 一键启动/更换方案：已有 current/pending 方案时次日 0 点本地生效（D-06），
+   * 已有 pending 整体替换（LWW）；用户首个方案（库中无任何 current/pending，
+   * 16:8 兜底 D-03 是虚拟值不算）立即生效：effectiveDate=今日本地日、status=current。
+   */
   async putCurrentPlan(userId: string, tz: string, planType: string, start: string, end: string) {
     const plans = await this.driver.listFastingPlansByUser(userId);
-    const effectiveDate = addDays(localDateOf(new Date(), tz), 1);
+    const hasPrior = plans.some((p) => p.status === 'current' || p.status === 'pending');
+    const today = localDateOf(new Date(), tz);
+    const effectiveDate = addDays(today, hasPrior ? 1 : 0);
     let pending = plans.find((p) => p.status === 'pending');
     if (pending) {
       pending.planType = planType;
@@ -106,7 +124,7 @@ export class FastingService {
         eatingWindowStart: start,
         eatingWindowEnd: end,
         effectiveDate,
-        status: 'pending',
+        status: hasPrior ? 'pending' : 'current',
         clientRequestId: null,
         version: 1,
         createdAt: new Date(),
@@ -170,10 +188,9 @@ export class FastingService {
     if (ongoing) return ongoing;
     const plannedEndAt = win.eatingStartAt;
     const existing = await this.driver.findFastingRecordByPlannedEnd(userId, plannedEndAt);
-    if (existing) return existing;
-    // 断食开始 = 上一进食窗口结束
-    const startDate = addDays(localDateOf(plannedEndAt, tz), -1);
-    const plannedStartAt = zonedTimeToUtc(startDate, plan.eatingWindowEnd, tz);
+    // 断食开始 = 上一周期进食窗口的止点：起点日为归属日前一日的窗口（跨午夜窗口止点落次日）
+    const prevWindow = windowFor(addDays(localDateOf(plannedEndAt, tz), -1), plan, tz);
+    const plannedStartAt = prevWindow.eatingEndAt;
     const record: FastingRecordEntity = {
       id: newId(),
       userId,
