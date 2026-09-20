@@ -150,6 +150,37 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
     return query.map((row) => row.read(count) ?? 0).watchSingle();
   }
 
+  /// 有饮食记录的归属日集合（去重升序，排除 tombstone；聚合缓存回填
+  /// 扫描用——v1.12.5 走查：旧版本下行遗留记录不经重算，须主动扫描）。
+  /// [fromDate] 非空时只返回不早于该日的日期（近 N 天廉价窗口）。
+  Future<List<String>> datesWithEntries(String userId, {String? fromDate}) {
+    final query = selectOnly(foodEntries, distinct: true)
+      ..addColumns(<Expression<Object>>[foodEntries.localDate])
+      ..where(
+        foodEntries.userId.equals(userId) &
+            foodEntries.deleted.equals(false) &
+            (fromDate == null
+                ? const Constant(true)
+                : foodEntries.localDate.isBiggerOrEqualValue(fromDate)),
+      )
+      ..orderBy(<OrderingTerm>[OrderingTerm.asc(foodEntries.localDate)]);
+    return query.map((row) => row.read(foodEntries.localDate)!).get();
+  }
+
+  /// 某日记录的最新本地修改时间（UTC ISO8601；缓存过期判定用——
+  /// entries 比 cache 新即过期。无记录返回 null）。
+  Future<String?> maxEntryUpdatedAt(String userId, String localDate) {
+    final latest = foodEntries.updatedAtUtc.max();
+    final query = selectOnly(foodEntries)
+      ..addColumns(<Expression<Object>>[latest])
+      ..where(
+        foodEntries.userId.equals(userId) &
+            foodEntries.localDate.equals(localDate) &
+            foodEntries.deleted.equals(false),
+      );
+    return query.map((row) => row.read(latest)).getSingle();
+  }
+
   /// 从 FoodEntry 营养快照重算某日聚合并写入缓存（§2.6 本地预估）。
   Future<void> recomputeDailyNutrition(
     String userId,

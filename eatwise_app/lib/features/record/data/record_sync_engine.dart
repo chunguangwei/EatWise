@@ -2,6 +2,7 @@ import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/features/health/data/remote_exercise_log_sync.dart';
 import 'package:eatwise/features/record/custom_food/application/contribution_review.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
+import 'package:eatwise/features/record/data/daily_nutrition_cache_repair.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/data/remote_record_sync.dart';
 import 'package:eatwise/features/record/data/remote_water_log_sync.dart';
@@ -28,6 +29,7 @@ final class RecordSyncEngine {
     this.weightStore,
     this.contributionReviewSync,
     this.exerciseSync,
+    this.cacheRepair,
   });
 
   /// 记录仓储。
@@ -54,7 +56,16 @@ final class RecordSyncEngine {
   /// 运动记录上行同步（可选：2026-09-19 拍板上行；未装配为 null 跳过）。
   final RemoteExerciseLogSync? exerciseSync;
 
+  /// 每日聚合缓存回填修复（可选：v1.12.5 走查盲区——旧版本下行遗留的
+  /// 存量记录不经重算、sync 游标已越过，首页/趋势假空不自愈；未装配为
+  /// null 跳过）。
+  final DailyNutritionCacheRepair? cacheRepair;
+
   static const String _tokenKeyPrefix = 'record_sync_token_';
+
+  /// 聚合缓存全量回填完成标记（每用户每安装一次；标记后每次 syncNow
+  /// 只跑近 7 天廉价窗口，兜住标记后新增的边缘情况）。
+  static const String _cacheBackfillDonePrefix = 'daily_cache_backfill_v1_';
 
   String get _tokenKey => '$_tokenKeyPrefix${repository.userId}';
 
@@ -119,7 +130,30 @@ final class RecordSyncEngine {
     } on ApiException {
       // 网络/服务端失败：保持现状，下次触发重试（§4.2）。
     } finally {
+      // 聚合缓存存量回填（v1.12.5 走查盲区修复）：**不依赖 pull 有无新
+      // 变更，也不依赖在线**——旧版本下行遗留记录游标已越过，缓存永远
+      // 不会被重算，必须在每轮同步后主动扫描（纯本地操作，后台执行，
+      // recompute 幂等）。首次全量回填（prefs 标记），之后每次只校验
+      // 近 7 天廉价窗口。失败静默，下轮 syncNow 重试。
+      await _repairDailyCaches();
       _syncing = false;
+    }
+  }
+
+  Future<void> _repairDailyCaches() async {
+    final repair = cacheRepair;
+    if (repair == null) return;
+    final userId = repository.userId;
+    try {
+      final doneKey = '$_cacheBackfillDonePrefix$userId';
+      if (prefs.getBool(doneKey) != true) {
+        await repair.repairAll(userId);
+        await prefs.setBool(doneKey, true);
+      } else {
+        await repair.repairRecent(userId);
+      }
+    } on Object {
+      // 回填失败不阻塞同步主链，下轮 syncNow 重试（标记未落则仍走全量）。
     }
   }
 }

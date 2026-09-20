@@ -10,6 +10,7 @@ import 'package:eatwise/features/health/application/exercise_log_providers.dart'
     show exerciseLogSyncProvider;
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
+import 'package:eatwise/features/record/data/daily_nutrition_cache_repair.dart';
 import 'package:eatwise/features/record/data/food_search_remote.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
@@ -113,7 +114,15 @@ final Provider<RecordSyncEngine> recordSyncEngineProvider =
         weightStore: ref.watch(weightLogStoreProvider),
         contributionReviewSync: ref.watch(contributionReviewSyncProvider),
         exerciseSync: ref.watch(exerciseLogSyncProvider),
+        cacheRepair: ref.watch(dailyNutritionCacheRepairProvider),
       );
+    });
+
+/// 每日聚合缓存回填修复（v1.12.5 走查盲区；挂 recordSyncEngineProvider
+/// 每轮 syncNow 后执行，纯本地后台扫描）。
+final Provider<DailyNutritionCacheRepair> dailyNutritionCacheRepairProvider =
+    Provider<DailyNutritionCacheRepair>((ref) {
+      return DailyNutritionCacheRepair(db: ref.watch(appDatabaseProvider));
     });
 
 /// 当前选中的食物（确认前可修改份量）。
