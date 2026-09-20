@@ -314,4 +314,38 @@ void main() {
       await unmount(tester);
     });
   });
+
+  group('匿名发布', () {
+    testWidgets('默认关闭：无头像选择；开启后展开预设头像，选中后发布透传', (tester) async {
+      await pumpCompose(tester);
+      expect(find.text('匿名发布'), findsOneWidget);
+      expect(find.text('选择头像'), findsNothing); // 关闭态整段收起
+
+      await tester.tap(find.text('匿名发布'));
+      await tester.pump();
+      expect(find.text('选择头像'), findsOneWidget);
+
+      // 选第 4 个头像（下标 3 = 静坐）
+      await tester.tap(find.byIcon(Icons.self_improvement));
+      await tester.pump();
+      await tester.enterText(find.byType(TextField), '匿名打卡');
+      await tester.tap(find.text('发布'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(api.lastAnonymous, isTrue);
+      expect(api.lastAvatarId, 3);
+      await unmount(tester);
+    });
+
+    testWidgets('不开匿名直接发布：anonymous=false、avatarId=null', (tester) async {
+      await pumpCompose(tester);
+      await tester.enterText(find.byType(TextField), '实名打卡');
+      await tester.tap(find.text('发布'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(api.lastAnonymous, isFalse);
+      expect(api.lastAvatarId, isNull);
+      await unmount(tester);
+    });
+  });
 }

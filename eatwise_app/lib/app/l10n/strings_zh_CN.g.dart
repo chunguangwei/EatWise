@@ -2789,6 +2789,21 @@ class Translations$social$feed$zh_CN {
 
 	/// zh-CN: 'EatWise 伙伴'
 	String get anonymous => 'EatWise 伙伴';
+
+	/// zh-CN: '删除'
+	String get delete => '删除';
+
+	/// zh-CN: '确定删除这条打卡吗？删除后无法恢复。'
+	String get deleteConfirm => '确定删除这条打卡吗？删除后无法恢复。';
+
+	/// zh-CN: '已删除'
+	String get deleted => '已删除';
+
+	/// zh-CN: '删除失败，请稍后重试'
+	String get deleteFailed => '删除失败，请稍后重试';
+
+	/// zh-CN: '匿名伙伴'
+	String get anonymousPoster => '匿名伙伴';
 }
 
 // Path: social.compose
@@ -2861,6 +2876,12 @@ class Translations$social$compose$zh_CN {
 
 	/// zh-CN: '撤销润色'
 	String get polishUndo => '撤销润色';
+
+	/// zh-CN: '匿名发布'
+	String get anonymous => '匿名发布';
+
+	/// zh-CN: '选择头像'
+	String get pickAvatar => '选择头像';
 }
 
 // Path: auth.login
@@ -4903,6 +4924,11 @@ extension on Translations {
 			'social.feed.hoursAgo' => ({required Object n}) => '${n} 小时前',
 			'social.feed.daysAgo' => ({required Object n}) => '${n} 天前',
 			'social.feed.anonymous' => 'EatWise 伙伴',
+			'social.feed.delete' => '删除',
+			'social.feed.deleteConfirm' => '确定删除这条打卡吗？删除后无法恢复。',
+			'social.feed.deleted' => '已删除',
+			'social.feed.deleteFailed' => '删除失败，请稍后重试',
+			'social.feed.anonymousPoster' => '匿名伙伴',
 			'social.compose.title' => '发布打卡',
 			'social.compose.hint' => '记录这一刻的坚持…',
 			'social.compose.charCount' => ({required Object n}) => '${n}/500',
@@ -4924,6 +4950,8 @@ extension on Translations {
 			'social.compose.polishFailed' => '润色失败，请稍后重试',
 			'social.compose.polishDone' => '已为你润色',
 			'social.compose.polishUndo' => '撤销润色',
+			'social.compose.anonymous' => '匿名发布',
+			'social.compose.pickAvatar' => '选择头像',
 			'auth.login.title' => '登录',
 			'auth.login.subtitle' => '使用账号密码登录',
 			'auth.login.phoneLabel' => '手机号',

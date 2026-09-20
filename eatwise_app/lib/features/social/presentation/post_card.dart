@@ -7,6 +7,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/social/application/feed_controller.dart';
+import 'package:eatwise/features/social/domain/social_avatars.dart';
 import 'package:eatwise/features/social/presentation/pinned_post_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,7 +48,11 @@ class _PostCardState extends ConsumerState<PostCard> {
     final now = ref.read(socialNowProvider)();
     final item = widget.item;
     final post = item.post;
-    final nickname = post.authorNickname?.trim().isNotEmpty == true
+    // 匿名帖对他人显示「匿名伙伴」（服务端已抹除昵称，这里再兜一层）；
+    // 作者本人保留真实昵称，便于在流里认出自己的匿名帖。
+    final nickname = post.anonymous && !post.isAuthor
+        ? t.social.feed.anonymousPoster
+        : post.authorNickname?.trim().isNotEmpty == true
         ? post.authorNickname!
         : t.social.feed.anonymous;
 
@@ -75,10 +80,26 @@ class _PostCardState extends ConsumerState<PostCard> {
             // 头部：头像占位 + 昵称（1 行截断，4.1）+ 相对时间 + 举报入口。
             Row(
               children: <Widget>[
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: colors.brandPrimary.withValues(alpha: 0.16),
-                  child: Icon(Icons.person_outline, color: colors.brandPrimary),
+                // 头像：匿名帖用发帖时选定的预设头像（微信/QQ 式纯色圆底 +
+                // 图标）；实名帖沿用占位头像（用户头像体系未上线）。
+                Builder(
+                  builder: (context) {
+                    final avatar = post.anonymous
+                        ? socialAvatarOf(post.avatarId)
+                        : null;
+                    return CircleAvatar(
+                      radius: 20,
+                      backgroundColor:
+                          avatar?.background ??
+                          colors.brandPrimary.withValues(alpha: 0.16),
+                      child: Icon(
+                        avatar?.icon ?? Icons.person_outline,
+                        color: avatar == null
+                            ? colors.brandPrimary
+                            : Colors.white,
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(width: AppSpacing.s2),
                 Expanded(
@@ -100,7 +121,18 @@ class _PostCardState extends ConsumerState<PostCard> {
                     ],
                   ),
                 ),
-                if (!post.isAuthor)
+                if (post.isAuthor) ...<Widget>[
+                  // 本人帖：删除入口（待确认卡在途不可互动，不显示）。
+                  if (!item.pendingSync)
+                    IconButton(
+                      icon: Icon(
+                        Icons.delete_outline,
+                        color: colors.textSecondary,
+                      ),
+                      tooltip: t.social.feed.delete,
+                      onPressed: () => _confirmDelete(context),
+                    ),
+                ] else
                   IconButton(
                     icon: Icon(
                       Icons.flag_outlined,
@@ -237,6 +269,36 @@ class _PostCardState extends ConsumerState<PostCard> {
     messenger.showSnackBar(
       SnackBar(
         content: Text(ok ? t.social.feed.reported : t.social.feed.reportFailed),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final t = Translations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        content: Text(t.social.feed.deleteConfirm),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(t.common.action.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(t.social.feed.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await ref
+        .read(feedControllerProvider.notifier)
+        .delete(widget.item.post.id);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(ok ? t.social.feed.deleted : t.social.feed.deleteFailed),
       ),
     );
   }

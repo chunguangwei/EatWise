@@ -9,6 +9,7 @@ import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.da
 import 'package:eatwise/features/social/application/feed_controller.dart';
 import 'package:eatwise/features/social/application/post_polish_providers.dart';
 import 'package:eatwise/features/social/application/post_polish_service.dart';
+import 'package:eatwise/features/social/domain/social_avatars.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,6 +53,10 @@ class _ComposePageState extends ConsumerState<ComposePage> {
 
   /// 润色前原文（撤销用；一次撤销后清空，再润色重新快照）。
   String? _prePolishText;
+
+  /// 匿名发布开关 + 预设头像选择（开启匿名时才可见/上行）。
+  bool _anonymous = false;
+  int _avatarId = 0;
 
   @override
   void dispose() {
@@ -217,6 +222,8 @@ class _ComposePageState extends ConsumerState<ComposePage> {
               ? const <String>[]
               : <String>[_photoUrl!],
           streakDays: streakDays > 0 ? streakDays : null,
+          anonymous: _anonymous,
+          avatarId: _anonymous ? _avatarId : null,
         );
     if (!mounted) return;
     switch (result) {
@@ -321,6 +328,69 @@ class _ComposePageState extends ConsumerState<ComposePage> {
     );
   }
 
+  /// 匿名区：开关 + 开启后展开预设头像横选（微信/QQ 式默认头像，
+  /// 发帖时选定即固定跟帖）。关闭匿名则整段收起，发布不带匿名参数。
+  Widget _buildAnonymousSection(
+    Translations t,
+    AppColors colors,
+    AppTextStyles textStyles,
+  ) {
+    return Column(
+      children: <Widget>[
+        SwitchListTile.adaptive(
+          value: _anonymous,
+          onChanged: (v) => setState(() => _anonymous = v),
+          title: Text(t.social.compose.anonymous, style: textStyles.textBase),
+          subtitle: Text(
+            t.social.feed.anonymousPoster,
+            style: textStyles.textXs.copyWith(color: colors.textSecondary),
+          ),
+          activeThumbColor: colors.brandPrimary,
+          contentPadding: EdgeInsets.zero,
+        ),
+        if (_anonymous) ...<Widget>[
+          const SizedBox(height: AppSpacing.s1),
+          Text(
+            t.social.compose.pickAvatar,
+            style: textStyles.textXs.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.s2),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: <Widget>[
+                for (var i = 0; i < kSocialAvatars.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(right: AppSpacing.s2),
+                    child: Semantics(
+                      button: true,
+                      selected: _avatarId == i,
+                      label:
+                          Localizations.localeOf(context).languageCode == 'zh'
+                          ? kSocialAvatars[i].labelZh
+                          : kSocialAvatars[i].labelEn,
+                      child: InkWell(
+                        onTap: () => setState(() => _avatarId = i),
+                        customBorder: const CircleBorder(),
+                        child: CircleAvatar(
+                          radius: 22,
+                          backgroundColor: kSocialAvatars[i].background,
+                          child: Icon(
+                            kSocialAvatars[i].icon,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
@@ -419,6 +489,9 @@ class _ComposePageState extends ConsumerState<ComposePage> {
             const SizedBox(height: AppSpacing.s2),
             // 配图：选图即上传，上传中禁用发布；失败可重试或不带图发布。
             _buildPhotoSection(t),
+            const SizedBox(height: AppSpacing.s2),
+            // 匿名发布 + 默认头像选择。
+            _buildAnonymousSection(t, colors, textStyles),
             const SizedBox(height: AppSpacing.s6),
             FilledButton(
               onPressed: _submitting || _uploading ? null : _publish,

@@ -291,4 +291,83 @@ void main() {
       await unmount(tester);
     });
   });
+
+  testWidgets('匿名帖：他人视角显示「匿名伙伴」+ 预设头像；本人视角保留昵称', (tester) async {
+    api.posts = <ServerPost>[
+      // 他人视角匿名帖（服务端已抹除昵称）
+      stubPost(
+        id: 'a1',
+        text: '匿名内容',
+        nickname: null,
+        anonymous: true,
+        avatarId: 1,
+      ),
+      // 本人匿名帖：保留真实昵称（便于认出自己的帖）
+      stubPost(
+        id: 'a2',
+        text: '我的匿名帖',
+        isAuthor: true,
+        nickname: '小林',
+        anonymous: true,
+        avatarId: 4,
+      ),
+    ];
+    await pumpFeed(tester);
+
+    expect(find.text('匿名伙伴'), findsOneWidget);
+    expect(find.text('小林'), findsOneWidget);
+    // 预设头像按 avatarId 渲染（火焰=1、爱心=4）。
+    expect(
+      find.descendant(
+        of: find.byType(PostCard),
+        matching: find.byIcon(Icons.local_fire_department_outlined),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(PostCard),
+        matching: find.byIcon(Icons.volunteer_activism),
+      ),
+      findsOneWidget, // a2 的爱心预设头像（与点赞图标不重合）
+    );
+    await unmount(tester);
+  });
+
+  testWidgets('本人帖删除流程：确认对话框 → 卡片移除 + 提示；他人帖无删除入口', (tester) async {
+    api.posts = <ServerPost>[
+      stubPost(id: 'p1', text: '我的要删的帖', isAuthor: true),
+      stubPost(id: 'p2', text: '他人的帖'),
+    ];
+    await pumpFeed(tester);
+
+    // 删除入口仅本人帖有；他人帖只有举报。
+    expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+    expect(find.byIcon(Icons.flag_outlined), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('确定删除这条打卡吗'), findsOneWidget);
+
+    await tester.tap(find.text('删除').last);
+    await tester.pumpAndSettle();
+    expect(api.deleted, <String>['p1']);
+    expect(find.text('我的要删的帖'), findsNothing);
+    expect(find.text('已删除'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('删除失败：卡片原位恢复 + 失败提示', (tester) async {
+    api.posts = <ServerPost>[stubPost(id: 'p1', text: '删不掉的帖', isAuthor: true)];
+    api.deleteError = networkException;
+    await pumpFeed(tester);
+
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除').last);
+    await tester.pumpAndSettle();
+    expect(find.text('删不掉的帖'), findsOneWidget);
+    expect(find.text('删除失败，请稍后重试'), findsOneWidget);
+    await unmount(tester);
+  });
 }

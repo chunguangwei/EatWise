@@ -1537,6 +1537,11 @@ class _Translations$social$feed$en extends Translations$social$feed$zh_CN {
 	@override String hoursAgo({required Object n}) => '${n} hr ago';
 	@override String daysAgo({required Object n}) => '${n} d ago';
 	@override String get anonymous => 'EatWise buddy';
+	@override String get delete => 'Delete';
+	@override String get deleteConfirm => 'Delete this check-in? This can\'t be undone.';
+	@override String get deleted => 'Deleted';
+	@override String get deleteFailed => 'Couldn\'t delete. Please try again later.';
+	@override String get anonymousPoster => 'Anonymous buddy';
 }
 
 // Path: social.compose
@@ -1567,6 +1572,8 @@ class _Translations$social$compose$en extends Translations$social$compose$zh_CN 
 	@override String get polishFailed => 'Polish failed. Please try again.';
 	@override String get polishDone => 'Polished for you';
 	@override String get polishUndo => 'Undo polish';
+	@override String get anonymous => 'Post anonymously';
+	@override String get pickAvatar => 'Pick an avatar';
 }
 
 // Path: auth.login
@@ -3071,6 +3078,11 @@ extension on TranslationsEn {
 			'social.feed.hoursAgo' => ({required Object n}) => '${n} hr ago',
 			'social.feed.daysAgo' => ({required Object n}) => '${n} d ago',
 			'social.feed.anonymous' => 'EatWise buddy',
+			'social.feed.delete' => 'Delete',
+			'social.feed.deleteConfirm' => 'Delete this check-in? This can\'t be undone.',
+			'social.feed.deleted' => 'Deleted',
+			'social.feed.deleteFailed' => 'Couldn\'t delete. Please try again later.',
+			'social.feed.anonymousPoster' => 'Anonymous buddy',
 			'social.compose.title' => 'New check-in',
 			'social.compose.hint' => 'Capture this moment of persistence…',
 			'social.compose.charCount' => ({required Object n}) => '${n}/500',
@@ -3092,6 +3104,8 @@ extension on TranslationsEn {
 			'social.compose.polishFailed' => 'Polish failed. Please try again.',
 			'social.compose.polishDone' => 'Polished for you',
 			'social.compose.polishUndo' => 'Undo polish',
+			'social.compose.anonymous' => 'Post anonymously',
+			'social.compose.pickAvatar' => 'Pick an avatar',
 			'auth.login.title' => 'Sign in',
 			'auth.login.subtitle' => 'Sign in with your username and password',
 			'auth.login.phoneLabel' => 'Phone number',

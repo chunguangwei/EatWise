@@ -1040,7 +1040,12 @@
       "minutesAgo": "${n} min ago",
       "hoursAgo": "${n} hr ago",
       "daysAgo": "${n} d ago",
-      "anonymous": "EatWise buddy"
+      "anonymous": "EatWise buddy",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this check-in? This can't be undone.",
+      "deleted": "Deleted",
+      "deleteFailed": "Couldn't delete. Please try again later.",
+      "anonymousPoster": "Anonymous buddy"
     },
     "compose": {
       "title": "New check-in",
@@ -1063,7 +1068,9 @@
       "polishInferring": "Polishing…",
       "polishFailed": "Polish failed. Please try again.",
       "polishDone": "Polished for you",
-      "polishUndo": "Undo polish"
+      "polishUndo": "Undo polish",
+      "anonymous": "Post anonymously",
+      "pickAvatar": "Pick an avatar"
     }
   },
   "auth": {
