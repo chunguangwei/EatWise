@@ -55,8 +55,17 @@ class _OnDeviceRecordingSheetState
     switch (_stage) {
       case _Stage.idle:
       case _Stage.failed:
+      // 已完成也允许重录（真机走查：转写结果不满意/没听清，点主按钮
+      // 重新开始录音，而不是只能键盘输入或退出面板）。
+      case _Stage.done:
         await recorder.start();
-        if (mounted) setState(() => _stage = _Stage.recording);
+        // 重录时退出键盘态回到听写显示（done 后 _typing 为 true）。
+        if (mounted) {
+          setState(() {
+            _stage = _Stage.recording;
+            _typing = false;
+          });
+        }
       case _Stage.recording:
         final pcm = await recorder.stop();
         if (!mounted) return;
@@ -109,8 +118,7 @@ class _OnDeviceRecordingSheetState
           });
         }
       case _Stage.transcribing:
-      case _Stage.done:
-        break; // 转写中/已完成：主按钮不响应
+        break; // 转写中：主按钮不响应
     }
   }
 

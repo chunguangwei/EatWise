@@ -171,6 +171,31 @@ void main() {
     await settleUi(tester);
   });
 
+  testWidgets('转写完成后点主按钮可重录（真机走查：没有再说一口的入口）', (tester) async {
+    await pumpPage(tester, onDeviceReady: true);
+    await tester.tap(find.text('语音记'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.widgetWithText(OutlinedButton, '点一下开始说话'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(OutlinedButton, '正在录音… 再点一下停止'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 转写完成（done 态回填键盘可编辑）：主按钮仍是「点一下开始说话」。
+    final micButton = find.widgetWithText(OutlinedButton, '点一下开始说话');
+    expect(micButton, findsWidgets);
+
+    // 点它 → 重新开始录音（而非死按钮）。
+    await tester.tap(micButton.last);
+    await tester.pump();
+    expect(recorderGateway.recording, isTrue, reason: 'done 态必须可重录');
+    expect(find.textContaining('正在录音'), findsWidgets);
+    await settleUi(tester);
+  });
+
   testWidgets('录音权限拒绝 → 现有降级卡（不弹端侧面板）', (tester) async {
     recorderGateway.permitted = false;
     await pumpPage(tester, onDeviceReady: true);

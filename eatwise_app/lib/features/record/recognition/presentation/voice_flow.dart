@@ -385,9 +385,23 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
     super.dispose();
   }
 
+  /// 当前是否在听写（错误/停止后为 false → 显示「再说一次」重录入口，
+  /// 修复真机走查：没听清后面板只剩错误态，没有语音重录入口）。
+  bool _listening = false;
+
   @override
   void initState() {
     super.initState();
+    _startListening();
+  }
+
+  /// 开始/重新开始听写（清残留错误态 + 重挂静默兜底定时器）。
+  void _startListening() {
+    setState(() {
+      _error = null;
+      _noResultHint = false;
+      _listening = true;
+    });
     unawaited(
       widget.gateway.start(
         localeId: widget.localeId,
@@ -396,7 +410,10 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
         },
         onError: (error) {
           if (!mounted) return;
-          setState(() => _error = error);
+          setState(() {
+            _error = error;
+            _listening = false;
+          });
           const benign = <String>{'error_no_match', 'error_speech_timeout'};
           if (!benign.contains(error)) {
             // 致命错误：记设备级「系统 ASR 已坏」（下次点语音记直达端侧，
@@ -407,9 +424,13 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
         },
       ),
     );
+    _noResultTimer?.cancel();
     _noResultTimer = Timer(kNoResultHintDelay, () {
       if (mounted && _text.isEmpty && _error == null && !_typing) {
-        setState(() => _noResultHint = true);
+        setState(() {
+          _noResultHint = true;
+          _listening = false;
+        });
         // 静默 6s 无结果：同样记设备级「系统 ASR 已坏」+ 预热端侧引擎。
         ref.read(systemAsrBrokenProvider.notifier).setBroken(true);
         _prewarmOnce(); // 静默兜底触发 = 用户大概率要点逃生舱，提前热引擎
@@ -554,6 +575,9 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
                       );
                     } else {
                       _text = _typeController.text;
+                      // 切回语音态：不在听写（没听清/出错后）则重新开始听写，
+                      // 右上角 mic 钮即语音重录入口。
+                      if (!_listening) _startListening();
                     }
                   }),
                 ),
@@ -566,6 +590,23 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
                 _statusText(s)!,
                 style: textStyles.textSm.copyWith(color: _statusColor(colors)),
               ),
+              // 重录入口：没听清/出错/静默后听写已停，点一下重新说
+              // （真机走查：此前只能切键盘，语音没有重试入口）。
+              if (!_listening) ...<Widget>[
+                const SizedBox(height: AppSpacing.s2),
+                SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: _startListening,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.brandPrimary,
+                      side: BorderSide(color: colors.brandPrimary),
+                    ),
+                    icon: const Icon(Icons.mic),
+                    label: Text(s.voiceRetry, style: textStyles.textBase),
+                  ),
+                ),
+              ],
               // 逃生舱：致命错误/静默超时 → 一键切离线模型；模型未就绪
               // 时点击走「下载本地模型」引导卡（与拍照记入口同款 gating），
               // 已选过「先手动搜索」的会话不再打扰（不显示按钮）。

@@ -299,6 +299,7 @@
       "recordingNow": "正在录音… 再点一下停止",
       "transcribingNow": "转写中…",
       "transcribeFailed": "没转写出来，再录一次，或点右边键盘图标打字",
+      "retry": "再说一次",
       "useOnDeviceAsr": "用离线小模型识别",
       "loadingModel": "正在加载离线模型，首次较慢…",
       "downloadTitle": "下载离线模型"

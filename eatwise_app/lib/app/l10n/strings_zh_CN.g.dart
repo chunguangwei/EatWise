@@ -1085,6 +1085,9 @@ class Translations$record$voice$zh_CN {
 	/// zh-CN: '没转写出来，再录一次，或点右边键盘图标打字'
 	String get transcribeFailed => '没转写出来，再录一次，或点右边键盘图标打字';
 
+	/// zh-CN: '再说一次'
+	String get retry => '再说一次';
+
 	/// zh-CN: '用离线小模型识别'
 	String get useOnDeviceAsr => '用离线小模型识别';
 
@@ -4285,6 +4288,7 @@ extension on Translations {
 			'record.voice.recordingNow' => '正在录音… 再点一下停止',
 			'record.voice.transcribingNow' => '转写中…',
 			'record.voice.transcribeFailed' => '没转写出来，再录一次，或点右边键盘图标打字',
+			'record.voice.retry' => '再说一次',
 			'record.voice.useOnDeviceAsr' => '用离线小模型识别',
 			'record.voice.loadingModel' => '正在加载离线模型，首次较慢…',
 			'record.voice.downloadTitle' => '下载离线模型',
@@ -4574,9 +4578,9 @@ extension on Translations {
 			'reports.trend.ctaFast' => '去断食',
 			'reports.trend.ctaWeight' => '记体重',
 			'reports.trend.targetLine' => ({required Object kg}) => '目标 ${kg} 公斤',
-			'reports.trend.toGoal' => ({required Object kg}) => '距目标还有 ${kg} 公斤',
 			_ => null,
 		} ?? switch (path) {
+			'reports.trend.toGoal' => ({required Object kg}) => '距目标还有 ${kg} 公斤',
 			'reports.trend.goalReached' => '已达到目标体重',
 			'reports.trend.weightUnlock' => ({required Object count}) => '再记录 ${count} 次体重，解锁完整曲线',
 			'reports.growth.title' => ({required Object days}) => '${days} 天成长轨迹',

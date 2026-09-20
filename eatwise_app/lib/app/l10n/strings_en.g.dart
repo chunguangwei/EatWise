@@ -662,6 +662,7 @@ class _Translations$record$voice$en extends Translations$record$voice$zh_CN {
 	@override String get recordingNow => 'Recording… tap again to stop';
 	@override String get transcribingNow => 'Transcribing…';
 	@override String get transcribeFailed => 'Couldn\'t transcribe — record again or type with the keyboard icon';
+	@override String get retry => 'Say it again';
 	@override String get useOnDeviceAsr => 'Use offline model';
 	@override String get loadingModel => 'Loading offline model (first launch is slower)…';
 	@override String get downloadTitle => 'Download offline model';
@@ -2483,6 +2484,7 @@ extension on TranslationsEn {
 			'record.voice.recordingNow' => 'Recording… tap again to stop',
 			'record.voice.transcribingNow' => 'Transcribing…',
 			'record.voice.transcribeFailed' => 'Couldn\'t transcribe — record again or type with the keyboard icon',
+			'record.voice.retry' => 'Say it again',
 			'record.voice.useOnDeviceAsr' => 'Use offline model',
 			'record.voice.loadingModel' => 'Loading offline model (first launch is slower)…',
 			'record.voice.downloadTitle' => 'Download offline model',
@@ -2772,9 +2774,9 @@ extension on TranslationsEn {
 			'reports.trend.ctaFast' => 'Start fasting',
 			'reports.trend.ctaWeight' => 'Log weight',
 			'reports.trend.targetLine' => ({required Object kg}) => 'Goal ${kg} kg',
-			'reports.trend.toGoal' => ({required Object kg}) => '${kg} kg to goal',
 			_ => null,
 		} ?? switch (path) {
+			'reports.trend.toGoal' => ({required Object kg}) => '${kg} kg to goal',
 			'reports.trend.goalReached' => 'Weight goal reached',
 			'reports.trend.weightUnlock' => ({required Object count}) => 'Log your weight ${count} more times to unlock your full curve',
 			'reports.growth.title' => ({required Object days}) => '${days}-day journey',
