@@ -10,7 +10,6 @@ import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_texts.dart';
-import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
@@ -21,6 +20,7 @@ import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/fasting/presentation/plan_progress_bar.dart';
 import 'package:eatwise/features/fasting/presentation/today_budget_row.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/onboarding/presentation/window_editor_sheet.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart';
 import 'package:eatwise/features/streak/domain/streak_types.dart';
 import 'package:eatwise/features/streak/presentation/milestone_badge.dart';
@@ -277,18 +277,6 @@ class _TimerBody extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        minimumSize: Size.zero,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.s2,
-                        ),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      onPressed: () => _cancelPendingPlan(context, ref),
-                      child: Text(t.common.action.cancel),
-                    ),
                   ],
                 ),
                 Padding(
@@ -303,6 +291,45 @@ class _TimerBody extends ConsumerWidget {
                     style: textStyles.textXs.copyWith(
                       color: colors.textSecondary,
                     ),
+                  ),
+                ),
+                // 管理操作（真机走查：只能看不能动，用户要求可改/可删/
+                // 可立即应用）。
+                Padding(
+                  padding: const EdgeInsets.only(left: 14, top: AppSpacing.s1),
+                  child: Row(
+                    children: <Widget>[
+                      TextButton(
+                        key: const ValueKey<String>('fasting.pendingPlan.edit'),
+                        style: _pendingActionStyle(),
+                        onPressed: () =>
+                            _editPendingPlan(context, ref, pending),
+                        child: Text(t.fasting.home.pendingPlanEdit),
+                      ),
+                      TextButton(
+                        key: const ValueKey<String>(
+                          'fasting.pendingPlan.apply',
+                        ),
+                        style: _pendingActionStyle(),
+                        onPressed: () {
+                          controller.applyPendingPlanNow();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(t.fasting.home.pendingPlanApplied),
+                            ),
+                          );
+                        },
+                        child: Text(t.fasting.home.pendingPlanApply),
+                      ),
+                      TextButton(
+                        key: const ValueKey<String>(
+                          'fasting.pendingPlan.cancel',
+                        ),
+                        style: _pendingActionStyle(),
+                        onPressed: () => _cancelPendingPlan(context, ref),
+                        child: Text(t.common.action.cancel),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -607,9 +634,46 @@ class _TimerBody extends ConsumerWidget {
     );
   }
 
-  /// 取消待生效方案（走查 Bug1）：确认弹窗 → 清本地 pendingPlan →
-  /// planVersionProvider +1（pendingPlanProvider 失效、横幅消失）。
-  /// 服务端 pending 行由下次 syncNow 以 current 方案重推收敛。
+  /// 紧凑文字按钮样式（横幅三个操作并排，普通 TextButton 内边距会挤爆）。
+  static ButtonStyle _pendingActionStyle() => TextButton.styleFrom(
+    visualDensity: VisualDensity.compact,
+    minimumSize: Size.zero,
+    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s2),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
+
+  /// 修改待生效方案：复用自定义窗口编辑器（预填 pending 方案当前值），
+  /// 确认后重新登记 pending（生效日仍是次日 0:00，与登记口径一致）。
+  Future<void> _editPendingPlan(
+    BuildContext context,
+    WidgetRef ref,
+    PendingPlan pending,
+  ) async {
+    final t = Translations.of(context);
+    final draft = await WindowEditorSheet.show(
+      context,
+      initialEatingHours: pending.plan.eatWindowMinutes ~/ 60,
+      initialStartMinutes: pending.plan.eatStartMinutes,
+    );
+    if (draft == null || !context.mounted) return;
+    final nowUtc = ref.read(nowUtcProvider);
+    ref
+        .read(onboardingStoreProvider)
+        .savePendingPlan(
+          schedulePlanChange(
+            draft.toFastingPlan(),
+            nowUtc,
+            ref.read(deviceLocationProvider),
+          ),
+        );
+    ref.read(planVersionProvider.notifier).state++;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(t.fasting.home.pendingPlanRescheduled)),
+    );
+  }
+
+  /// 取消待生效方案（走查 Bug1）：确认弹窗 → 控制器 `cancelPendingPlan`
+  /// （清本地 + 回推当前方案收敛服务端，理由见控制器注释）。
   void _cancelPendingPlan(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
@@ -628,16 +692,9 @@ class _TimerBody extends ConsumerWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              ref.read(onboardingStoreProvider).clearPendingPlan();
-              // 服务端收敛：方案上行是 push-only 且 flush 只在有脏标记时
-              // 动作（登记时的 PUT 已清脏，之后 syncNow 是 no-op）——取消
-              // 必须显式置脏回推当前生效方案。服务端 putCurrentPlan 覆写
-              // 同一 pending 行为同窗口 + 明日生效，明日翻转即无害 no-op；
-              // 匿名/离线脏标记保留走同步轮重试。
               ref
-                  .read(fastingPlanSyncProvider)
-                  ?.markDirtyAndTryFlush(timer.plan!);
-              ref.read(planVersionProvider.notifier).state++;
+                  .read(fastingTimerControllerProvider.notifier)
+                  .cancelPendingPlan(timer.plan!);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(t.fasting.home.pendingPlanCancelled)),
               );

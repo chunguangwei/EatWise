@@ -433,4 +433,75 @@ void main() {
     );
     await unmount(tester);
   });
+  testWidgets('待生效方案「立即应用」：确认后马上生效并替换当前方案', (tester) async {
+    SharedPreferencesOnboardingStore(prefs).savePendingPlan(
+      PendingPlan(
+        plan: const FastingPlan(
+          id: '14:10',
+          eatStartMinutes: 10 * 60,
+          eatEndMinutes: 20 * 60,
+        ),
+        effectiveDate: const LocalDate(2026, 7, 29),
+        effectiveUtc: bjtUtc(29, 0),
+      ),
+    );
+    await pumpHome(tester);
+    expect(
+      find.byKey(const ValueKey<String>('fasting.pendingPlanBanner')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('fasting.pendingPlan.apply')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // pending 清空、横幅消失；方案标签切换为已应用的 14:10。
+    expect(SharedPreferencesOnboardingStore(prefs).loadPendingPlan(), isNull);
+    expect(
+      find.byKey(const ValueKey<String>('fasting.pendingPlanBanner')),
+      findsNothing,
+    );
+    expect(find.text('14:10 · 进食窗口 10:00–20:00'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('待生效方案「修改」：编辑器确认（同窗口）后横幅保留并重排', (tester) async {
+    SharedPreferencesOnboardingStore(prefs).savePendingPlan(
+      PendingPlan(
+        plan: const FastingPlan(
+          id: '14:10',
+          eatStartMinutes: 10 * 60,
+          eatEndMinutes: 20 * 60,
+        ),
+        effectiveDate: const LocalDate(2026, 7, 29),
+        effectiveUtc: bjtUtc(29, 0),
+      ),
+    );
+    await pumpHome(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('fasting.pendingPlan.edit')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    // 编辑器直接确认（草稿初值 = pending 窗口）。
+    await tester.tap(
+      find.byKey(const ValueKey<String>('fasting.windowEditor.confirm')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('新方案已更新，将按原定时间生效'), findsOneWidget);
+    final pending = SharedPreferencesOnboardingStore(prefs).loadPendingPlan()!;
+    // 生效日按登记口径重算为本地次日（nowUtcProvider 未固定 → 真实明天）。
+    final tomorrow = DateTime.now().toUtc().add(const Duration(hours: 32));
+    expect(
+      pending.effectiveDate.toIsoString(),
+      '${tomorrow.year}-${tomorrow.month.toString().padLeft(2, '0')}-'
+      '${tomorrow.day.toString().padLeft(2, '0')}',
+    );
+    await unmount(tester);
+  });
 }

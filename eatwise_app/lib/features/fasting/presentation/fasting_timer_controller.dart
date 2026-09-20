@@ -237,8 +237,21 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     final pending = onboardStore.loadPendingPlan();
     if (pending == null) return null;
     final now = _now();
-    final plan = activatePendingPlan(pending, now);
-    if (plan == null) return null;
+    if (activatePendingPlan(pending, now) == null) return null;
+    final plan = _activatePlanNow(pending.plan, now, onboardStore);
+    onboardStore.clearPendingPlan();
+    ref.invalidate(pendingPlanProvider); // 转正后横幅随之消失
+    return plan;
+  }
+
+  /// 方案立即生效落盘（T13 到点转正与用户「立即应用」共用口径）：
+  /// 写 active、作废进行中周期与提前破窗覆盖、重排通知、置脏上行。
+  /// 作废口径见 [_activatePendingPlanIfDue] 注释（幽灵记录问题）。
+  FastingPlan _activatePlanNow(
+    FastingPlan plan,
+    int now,
+    OnboardingStore onboardStore,
+  ) {
     final snapshot = resolveState(now, plan, _location);
     onboardStore.saveActivePlan(
       ActivePlanSnapshot(
@@ -249,15 +262,35 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
         startedAtUtc: now,
       ),
     );
-    onboardStore.clearPendingPlan();
-    ref.invalidate(pendingPlanProvider); // 转正后横幅随之消失
     _store.clearActiveCycle(); // 作废进行中周期（口径见函数注释）
     _store.clearEarlyEatEndUtc(); // 旧方案的提前破窗覆盖一并作废
     _reschedule(plan, 0, RescheduleReason.planActivate);
-    // T13 转正 = 服务端视角的「改动生效」落地：置脏并尽力上行一次，
+    // 转正 = 服务端视角的「改动生效」落地：置脏并尽力上行一次，
     // 保证服务端 current 与本地生效方案收敛（失败由同步引擎重试）。
     ref.read(fastingPlanSyncProvider)?.markDirtyAndTryFlush(plan);
     return plan;
+  }
+
+  /// 用户主动「立即应用」待生效方案（走查：不想等次日 0:00）。
+  /// 口径与 T13 转正一致（进行中周期作废）；planVersion++ 驱动
+  /// 计时主控与横幅重建。
+  void applyPendingPlanNow() {
+    final onboardStore = ref.read(onboardingStoreProvider);
+    final pending = onboardStore.loadPendingPlan();
+    if (pending == null) return;
+    _activatePlanNow(pending.plan, _now(), onboardStore);
+    onboardStore.clearPendingPlan();
+    ref.invalidate(pendingPlanProvider);
+    ref.read(planVersionProvider.notifier).state++;
+  }
+
+  /// 取消待生效方案：清本地 + 显式回推当前生效方案收敛服务端。
+  /// 方案上行 push-only 且 flush 只在脏标记存在时动作（登记 PUT 已清脏，
+  /// syncNow 是 no-op）——只清本地会让服务端/其他设备停在被取消的新窗口。
+  void cancelPendingPlan(FastingPlan activePlan) {
+    ref.read(onboardingStoreProvider).clearPendingPlan();
+    ref.read(fastingPlanSyncProvider)?.markDirtyAndTryFlush(activePlan);
+    ref.read(planVersionProvider.notifier).state++;
   }
 
   /// 用落点快照重建状态；持久化周期与重算周期同根（同一断食开始锚点）

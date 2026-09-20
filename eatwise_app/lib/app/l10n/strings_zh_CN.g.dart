@@ -1541,6 +1541,18 @@ class Translations$fasting$home$zh_CN {
 	/// zh-CN: '${id} · 进食窗口 ${start}–${end}'
 	String planTag({required Object id, required Object start, required Object end}) => '${id} · 进食窗口 ${start}–${end}';
 
+	/// zh-CN: '修改'
+	String get pendingPlanEdit => '修改';
+
+	/// zh-CN: '立即应用'
+	String get pendingPlanApply => '立即应用';
+
+	/// zh-CN: '新方案已立即生效'
+	String get pendingPlanApplied => '新方案已立即生效';
+
+	/// zh-CN: '新方案已更新，将按原定时间生效'
+	String get pendingPlanRescheduled => '新方案已更新，将按原定时间生效';
+
 	/// zh-CN: '待生效方案'
 	String get pendingPlanBadge => '待生效方案';
 
@@ -4461,6 +4473,10 @@ extension on Translations {
 			'fasting.home.extendedBadge' => ({required Object minutes}) => '已延长 +${minutes} 分钟',
 			'fasting.home.extendLimit' => '单次最多延长 4 小时',
 			'fasting.home.planTag' => ({required Object id, required Object start, required Object end}) => '${id} · 进食窗口 ${start}–${end}',
+			'fasting.home.pendingPlanEdit' => '修改',
+			'fasting.home.pendingPlanApply' => '立即应用',
+			'fasting.home.pendingPlanApplied' => '新方案已立即生效',
+			'fasting.home.pendingPlanRescheduled' => '新方案已更新，将按原定时间生效',
 			'fasting.home.pendingPlanBadge' => '待生效方案',
 			'fasting.home.pendingPlanEffective' => ({required Object date}) => '将于 ${date} 0:00 自动生效',
 			'fasting.home.pendingPlanCancelBody' => '取消后将继续使用当前方案，本次换方案不再生效。',
@@ -4586,12 +4602,12 @@ extension on Translations {
 			'reports.trend.dim.fasting' => '断食时长',
 			'reports.trend.range.d7' => '7 天',
 			'reports.trend.range.d30' => '30 天',
+			_ => null,
+		} ?? switch (path) {
 			'reports.trend.unit.kg' => '公斤',
 			'reports.trend.unit.kcal' => '千卡',
 			'reports.trend.unit.hour' => '小时',
 			'reports.trend.empty' => '数据曲线正在热身，多记几天它就跑起来啦',
-			_ => null,
-		} ?? switch (path) {
 			'reports.trend.ctaRecord' => '去记录',
 			'reports.trend.ctaFast' => '去断食',
 			'reports.trend.ctaWeight' => '记体重',

@@ -6,6 +6,7 @@ import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/account/presentation/weight_goal_fields.dart';
+import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/fasting/domain/window_rules.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
@@ -204,20 +205,24 @@ class RecommendationScreen extends ConsumerWidget {
   Future<void> _onStartPressed(BuildContext context, WidgetRef ref) =>
       _startWith(context, ref);
 
-  /// 自定义进食窗口：弹编辑器（初始值 = 当前主推荐窗口）；确认后走
-  /// [_startWith]（T12 弹窗与生效时序与一键启动同路径）。
+  /// 自定义进食窗口：弹编辑器（预填**当前生效方案**的窗口——从设置页
+  /// 直达时用户要改的是正在用的方案，预填推荐值会误导「自定义丢了」；
+  /// 无生效方案才回落主推荐窗口）；确认后走 [_startWith]（T12 弹窗与
+  /// 生效时序与一键启动同路径）。
   Future<void> _onCustomWindowPressed(
     BuildContext context,
     WidgetRef ref,
   ) async {
+    final active = ref.read(onboardingStoreProvider).loadActivePlan()?.plan;
     final rec =
         ref.read(onboardingControllerProvider).recommendation ??
         recommendPlan(OnboardingAnswers.empty);
+    // 信息卡（isInfoOnly）无窗口 → 兜底 16:8 口径。
+    final FastingPlan? base = active ?? rec.primary.toFastingPlan();
     final draft = await WindowEditorSheet.show(
       context,
-      initialEatingHours:
-          (rec.primary.toFastingPlan()?.eatWindowMinutes ?? 8 * 60) ~/ 60,
-      initialStartMinutes: rec.primary.eatStartMinutes ?? 12 * 60,
+      initialEatingHours: (base?.eatWindowMinutes ?? 8 * 60) ~/ 60,
+      initialStartMinutes: base?.eatStartMinutes ?? 12 * 60,
     );
     if (draft == null || !context.mounted) return;
     await _startWith(context, ref, window: draft);

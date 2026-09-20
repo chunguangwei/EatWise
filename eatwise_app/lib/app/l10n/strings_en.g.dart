@@ -894,6 +894,10 @@ class _Translations$fasting$home$en extends Translations$fasting$home$zh_CN {
 	@override String extendedBadge({required Object minutes}) => 'Extended +${minutes} min';
 	@override String get extendLimit => 'You can extend by up to 4 hours per fast';
 	@override String planTag({required Object id, required Object start, required Object end}) => '${id} · Eating window ${start}–${end}';
+	@override String get pendingPlanEdit => 'Edit';
+	@override String get pendingPlanApply => 'Apply now';
+	@override String get pendingPlanApplied => 'New plan applied immediately';
+	@override String get pendingPlanRescheduled => 'New plan updated — still takes effect as scheduled';
 	@override String get pendingPlanBadge => 'Upcoming plan';
 	@override String pendingPlanEffective({required Object date}) => 'Starts automatically on ${date} at 0:00';
 	@override String get pendingPlanCancelBody => 'Canceling keeps your current plan; this plan change will not take effect.';
@@ -2649,6 +2653,10 @@ extension on TranslationsEn {
 			'fasting.home.extendedBadge' => ({required Object minutes}) => 'Extended +${minutes} min',
 			'fasting.home.extendLimit' => 'You can extend by up to 4 hours per fast',
 			'fasting.home.planTag' => ({required Object id, required Object start, required Object end}) => '${id} · Eating window ${start}–${end}',
+			'fasting.home.pendingPlanEdit' => 'Edit',
+			'fasting.home.pendingPlanApply' => 'Apply now',
+			'fasting.home.pendingPlanApplied' => 'New plan applied immediately',
+			'fasting.home.pendingPlanRescheduled' => 'New plan updated — still takes effect as scheduled',
 			'fasting.home.pendingPlanBadge' => 'Upcoming plan',
 			'fasting.home.pendingPlanEffective' => ({required Object date}) => 'Starts automatically on ${date} at 0:00',
 			'fasting.home.pendingPlanCancelBody' => 'Canceling keeps your current plan; this plan change will not take effect.',
@@ -2774,12 +2782,12 @@ extension on TranslationsEn {
 			'reports.trend.dim.fasting' => 'Fasting',
 			'reports.trend.range.d7' => '7D',
 			'reports.trend.range.d30' => '30D',
+			_ => null,
+		} ?? switch (path) {
 			'reports.trend.unit.kg' => 'kg',
 			'reports.trend.unit.kcal' => 'kcal',
 			'reports.trend.unit.hour' => 'h',
 			'reports.trend.empty' => 'Your trends are warming up — log a few days to get them moving.',
-			_ => null,
-		} ?? switch (path) {
 			'reports.trend.ctaRecord' => 'Log now',
 			'reports.trend.ctaFast' => 'Start fasting',
 			'reports.trend.ctaWeight' => 'Log weight',
