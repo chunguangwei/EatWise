@@ -4,6 +4,8 @@ import 'package:eatwise/features/social/application/feed_controller.dart';
 import 'package:eatwise/features/social/data/social_api.dart';
 import 'package:eatwise/features/social/presentation/community_feed_page.dart';
 import 'package:eatwise/features/social/presentation/compose_page.dart';
+import 'package:eatwise/features/social/presentation/pinned_post_image.dart';
+import 'package:eatwise/features/social/presentation/post_card.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -212,5 +214,81 @@ void main() {
     expect(find.text('今天也完成了 16:8！'), findsOneWidget);
     expect(find.text('连续 3 天'), findsOneWidget); // 服务端权威 streak 徽章
     await unmount(tester);
+  });
+
+  group('帖图渲染（证书锁定加载器）', () {
+    testWidgets('加载成功 → Image.memory 渲染字节', (tester) async {
+      api.posts = <ServerPost>[
+        stubPost(
+          id: 'p1',
+          text: '带图帖',
+          imageUrls: <String>['https://wcg.polin.tech:8443/v1/uploads/a.png'],
+        ),
+      ];
+      await tester.pumpWidget(
+        TranslationProvider(
+          child: ProviderScope(
+            overrides: <Override>[
+              ...overrides(),
+              pinnedPostImageLoaderProvider.overrideWithValue(
+                PinnedPostImageLoader((_) async => pngBytes),
+              ),
+            ],
+            child: MaterialApp.router(
+              theme: AppTheme.light(),
+              routerConfig: router(),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      final image = tester.widget<Image>(
+        find.descendant(
+          of: find.byType(PostCard),
+          matching: find.byType(Image),
+        ),
+      );
+      expect(image.image, isA<MemoryImage>()); // 不再走 Image.network
+      await unmount(tester);
+    });
+
+    testWidgets('加载失败 → 断图占位（§3.2.4）', (tester) async {
+      api.posts = <ServerPost>[
+        stubPost(
+          id: 'p1',
+          text: '断图帖',
+          imageUrls: <String>[
+            'https://wcg.polin.tech:8443/v1/uploads/gone.png',
+          ],
+        ),
+      ];
+      await tester.pumpWidget(
+        TranslationProvider(
+          child: ProviderScope(
+            overrides: <Override>[
+              ...overrides(),
+              pinnedPostImageLoaderProvider.overrideWithValue(
+                PinnedPostImageLoader((_) async => null),
+              ),
+            ],
+            child: MaterialApp.router(
+              theme: AppTheme.light(),
+              routerConfig: router(),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(
+        find.descendant(
+          of: find.byType(PostCard),
+          matching: find.byIcon(Icons.broken_image_outlined),
+        ),
+        findsOneWidget,
+      );
+      await unmount(tester);
+    });
   });
 }

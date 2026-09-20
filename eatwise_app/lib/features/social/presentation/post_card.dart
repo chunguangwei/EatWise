@@ -7,6 +7,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/social/application/feed_controller.dart';
+import 'package:eatwise/features/social/presentation/pinned_post_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -145,26 +146,18 @@ class _PostCardState extends ConsumerState<PostCard> {
               onToggle: () => setState(() => _expanded = !_expanded),
             ),
             // 图片：服务端回相对路径（/v1/uploads/<id>），渲染前补 origin；
-            // 加载失败 → 占位图（§3.2.4）。
+            // 走带证书锁定的 dio 拉字节（`Image.network` 裸 HttpClient 不挂
+            // pinning，生产自签证书握手必败）；加载失败 → 占位图（§3.2.4）。
             if (post.imageUrls.isNotEmpty) ...<Widget>[
               const SizedBox(height: AppSpacing.s2),
               ClipRRect(
                 borderRadius: radii.rLg,
                 child: AspectRatio(
                   aspectRatio: 4 / 3,
-                  child: Image.network(
-                    ref
+                  child: PinnedPostImage(
+                    url: ref
                         .read(apiConfigProvider)
                         .resolveUrl(post.imageUrls.first),
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: colors.bgPrimary,
-                      child: Icon(
-                        Icons.broken_image_outlined,
-                        color: colors.textSecondary,
-                        size: 48,
-                      ),
-                    ),
                   ),
                 ),
               ),
