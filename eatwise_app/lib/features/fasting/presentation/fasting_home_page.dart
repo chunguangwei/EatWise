@@ -10,6 +10,7 @@ import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_texts.dart';
+import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
@@ -628,6 +629,14 @@ class _TimerBody extends ConsumerWidget {
             onPressed: () {
               Navigator.pop(dialogContext);
               ref.read(onboardingStoreProvider).clearPendingPlan();
+              // 服务端收敛：方案上行是 push-only 且 flush 只在有脏标记时
+              // 动作（登记时的 PUT 已清脏，之后 syncNow 是 no-op）——取消
+              // 必须显式置脏回推当前生效方案。服务端 putCurrentPlan 覆写
+              // 同一 pending 行为同窗口 + 明日生效，明日翻转即无害 no-op；
+              // 匿名/离线脏标记保留走同步轮重试。
+              ref
+                  .read(fastingPlanSyncProvider)
+                  ?.markDirtyAndTryFlush(timer.plan!);
               ref.read(planVersionProvider.notifier).state++;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(t.fasting.home.pendingPlanCancelled)),
