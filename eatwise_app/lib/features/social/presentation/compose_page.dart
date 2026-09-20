@@ -65,6 +65,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
   }
 
   Future<void> _pickPhoto() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     try {
       final bytes = await ref
           .read(composePhotoPickerProvider)
@@ -104,14 +105,18 @@ class _ComposePageState extends ConsumerState<ComposePage> {
     }
   }
 
-  /// AI 润色：端侧视觉模型结合原文 + 配图生成润色文案，成功回填输入框
-  /// （原文快照供撤销）；失败 snackbar 提示，不阻断发布。
+  /// AI 润色：端侧视觉模型结合原文 + 配图生成文案，成功回填输入框。
+  /// 撤销入口为输入区旁的常驻「撤销润色」按钮（非 snackbar——黑色条会压着
+  /// 键盘长期占屏，且过期快照会在用户继续编辑后覆盖新文字）；
+  /// 任何后续编辑即作废旧快照。
   Future<void> _polish() async {
     final t = Translations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final service = ref.read(postPolishServiceProvider);
     final text = _controller.text.trim();
     if (service == null || _polishing || text.isEmpty) return;
+    // 润色期间收键盘：模型推理可能持续数秒，键盘悬空占屏。
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       _polishing = true;
       _polishPhase = null;
@@ -140,10 +145,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
         messenger.showSnackBar(
           SnackBar(
             content: Text(t.social.compose.polishDone),
-            action: SnackBarAction(
-              label: t.social.compose.polishUndo,
-              onPressed: _undoPolish,
-            ),
+            duration: const Duration(seconds: 2),
           ),
         );
       case PostPolishUnavailable():
@@ -157,7 +159,8 @@ class _ComposePageState extends ConsumerState<ComposePage> {
     }
   }
 
-  /// 撤销润色：回填润色前原文（snackbar「撤销润色」入口触发）。
+  /// 撤销润色：回填润色前原文（输入区旁常驻「撤销润色」按钮触发）。
+  /// 快照在任何后续编辑时作废（onChanged），不会覆盖用户新文字。
   void _undoPolish() {
     final original = _prePolishText;
     if (original == null) return;
@@ -172,6 +175,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
 
   Future<void> _publish() async {
     final t = Translations.of(context);
+    FocusManager.instance.primaryFocus?.unfocus();
     final text = _controller.text.trim();
     final messenger = ScaffoldMessenger.of(context);
     if (text.isEmpty) {
@@ -450,7 +454,14 @@ class _ComposePageState extends ConsumerState<ComposePage> {
                       color: colors.textSecondary,
                     ),
                   ),
-              onChanged: (_) => setState(() {}),
+              // 点输入框外任意处收键盘（iOS 无返回手势收起，缺它键盘关不掉）。
+              onTapOutside: (_) =>
+                  FocusManager.instance.primaryFocus?.unfocus(),
+              // 任何编辑作废润色前快照（撤销入口随之消失，不会覆盖新文字）。
+              onChanged: (_) {
+                if (_prePolishText != null) _prePolishText = null;
+                setState(() {});
+              },
               decoration: InputDecoration(
                 hintText: t.social.compose.hint,
                 filled: true,
@@ -462,7 +473,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
               ),
             ),
             // AI 润色（端侧视觉模型；服务为 null = 开关关/模型未就绪 →
-            // 隐藏入口，发布主流程不受影响）。
+            // 隐藏入口）；润色成功后出现常驻「撤销润色」，继续编辑即消失。
             if (ref.watch(postPolishServiceProvider) != null) ...<Widget>[
               Align(
                 alignment: Alignment.centerRight,
@@ -485,6 +496,15 @@ class _ComposePageState extends ConsumerState<ComposePage> {
                   }),
                 ),
               ),
+              if (_prePolishText != null)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: _undoPolish,
+                    icon: const Icon(Icons.undo, size: 18),
+                    label: Text(t.social.compose.polishUndo),
+                  ),
+                ),
             ],
             const SizedBox(height: AppSpacing.s2),
             // 配图：选图即上传，上传中禁用发布；失败可重试或不带图发布。
