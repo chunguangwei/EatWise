@@ -21,6 +21,8 @@ ServerPost stubPost({
   bool isAuthor = false,
   DateTime? createdAtUtc,
   List<String> imageUrls = const <String>[],
+  bool anonymous = false,
+  int? avatarId,
 }) {
   return ServerPost(
     id: id,
@@ -32,6 +34,8 @@ ServerPost stubPost({
     auditStatus: auditStatus,
     isAuthor: isAuthor,
     authorNickname: nickname,
+    anonymous: anonymous,
+    avatarId: avatarId,
     createdAtUtc: createdAtUtc ?? DateTime.utc(2026, 7, 28, 12),
   );
 }
@@ -47,12 +51,14 @@ final class FakeSocialApi extends SocialApi {
   Object? createError;
   Object? likeError;
   Object? reportError;
+  Object? deleteError;
 
   int fetchFeedCalls = 0;
   int createCalls = 0;
   final List<String> liked = <String>[];
   final List<String> unliked = <String>[];
   final List<String> reported = <String>[];
+  final List<String> deleted = <String>[];
 
   /// 点赞计数（postId → count）。
   final Map<String, int> likeCounts = <String, int>{};
@@ -73,15 +79,21 @@ final class FakeSocialApi extends SocialApi {
 
   /// 最近一次 createPost 上行的图片 URL 列表（校验上传链路接入点）。
   List<String> lastImageUrls = const <String>[];
+  bool lastAnonymous = false;
+  int? lastAvatarId;
 
   @override
   Future<ServerPost> createPost({
     required String clientRequestId,
     required String text,
     List<String> imageUrls = const <String>[],
+    bool anonymous = false,
+    int? avatarId,
   }) async {
     createCalls += 1;
     lastImageUrls = imageUrls;
+    lastAnonymous = anonymous;
+    lastAvatarId = avatarId;
     if (createError != null) throw createError!;
     return stubPost(
       id: 'srv-$createCalls',
@@ -90,6 +102,8 @@ final class FakeSocialApi extends SocialApi {
       streakDaysAtPost: 3,
       auditStatus: 'approved',
       isAuthor: true,
+      anonymous: anonymous,
+      avatarId: avatarId,
     );
   }
 
@@ -106,6 +120,9 @@ final class FakeSocialApi extends SocialApi {
 
   /// 非 null 时 report 挂起在该 Completer 上（竞态测试用）。
   Completer<void>? reportGate;
+
+  /// 非 null 时 deletePost 挂起在该 Completer 上（竞态测试用）。
+  Completer<void>? deleteGate;
 
   @override
   Future<({int likeCount, bool likedByMe})> like(String postId) async {
@@ -135,6 +152,14 @@ final class FakeSocialApi extends SocialApi {
     if (pending != null) await pending.future;
     if (reportError != null) throw reportError!;
     reported.add(postId);
+  }
+
+  @override
+  Future<void> deletePost(String postId) async {
+    final pending = deleteGate;
+    if (pending != null) await pending.future;
+    if (deleteError != null) throw deleteError!;
+    deleted.add(postId);
   }
 }
 

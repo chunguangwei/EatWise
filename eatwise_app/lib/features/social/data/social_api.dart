@@ -14,6 +14,8 @@ final class ServerPost {
     required this.isAuthor,
     required this.authorNickname,
     required this.createdAtUtc,
+    this.anonymous = false,
+    this.avatarId,
   });
 
   final String id;
@@ -31,6 +33,12 @@ final class ServerPost {
 
   /// 作者昵称（可为 null，UI 兜底「EatWise 伙伴」〔假设〕）。
   final String? authorNickname;
+
+  /// 匿名发帖：作者身份对非作者遮蔽（服务端视图已抹除 author）。
+  final bool anonymous;
+
+  /// 预设头像库索引（0..7，见 kSocialAvatars）；非匿名帖为 null。
+  final int? avatarId;
   final DateTime createdAtUtc;
 
   ServerPost copyWith({int? likeCount, bool? likedByMe, String? auditStatus}) {
@@ -44,6 +52,8 @@ final class ServerPost {
       auditStatus: auditStatus ?? this.auditStatus,
       isAuthor: isAuthor,
       authorNickname: authorNickname,
+      anonymous: anonymous,
+      avatarId: avatarId,
       createdAtUtc: createdAtUtc,
     );
   }
@@ -62,6 +72,8 @@ final class ServerPost {
       auditStatus: json['auditStatus'] as String? ?? 'approved',
       isAuthor: json['isAuthor'] as bool? ?? false,
       authorNickname: author['nickname'] as String?,
+      anonymous: json['anonymous'] as bool? ?? false,
+      avatarId: (json['avatarId'] as num?)?.toInt(),
       createdAtUtc:
           DateTime.tryParse(json['createdAt'] as String? ?? '')?.toUtc() ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
@@ -88,12 +100,12 @@ class SocialApi {
 
   final Dio _dio;
 
-  /// C1 发布打卡（幂等 clientRequestId；先审后发，rejected 抛
-  /// BusinessApiException(POST_CONTENT_REJECTED)）。
   Future<ServerPost> createPost({
     required String clientRequestId,
     required String text,
     List<String> imageUrls = const <String>[],
+    bool anonymous = false,
+    int? avatarId,
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
@@ -102,6 +114,8 @@ class SocialApi {
           'clientRequestId': clientRequestId,
           'text': text,
           if (imageUrls.isNotEmpty) 'imageUrls': imageUrls,
+          if (anonymous) 'anonymous': true,
+          if (anonymous && avatarId != null) 'avatarId': avatarId,
         },
       );
       return ServerPost.fromJson(response.data ?? const <String, dynamic>{});
@@ -173,6 +187,15 @@ class SocialApi {
         '/posts/$postId/report',
         data: <String, dynamic>{'reason': ?reason},
       );
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
+  /// C4 删除本人打卡（服务端软删幂等；非作者 404）。
+  Future<void> deletePost(String postId) async {
+    try {
+      await _dio.delete<Map<String, dynamic>>('/posts/$postId');
     } on DioException catch (e) {
       throw toApiException(e);
     }

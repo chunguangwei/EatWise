@@ -224,6 +224,8 @@ final class FeedController extends Notifier<FeedState> {
     required String text,
     List<String> imageUrls = const <String>[],
     int? streakDays,
+    bool anonymous = false,
+    int? avatarId,
   }) async {
     final trimmed = text.trim();
     final localId = 'local-${newClientRequestId()}';
@@ -239,6 +241,8 @@ final class FeedController extends Notifier<FeedState> {
         auditStatus: 'pending',
         isAuthor: true,
         authorNickname: null,
+        anonymous: anonymous,
+        avatarId: avatarId,
         createdAtUtc: DateTime.now().toUtc(),
       ),
     );
@@ -251,6 +255,8 @@ final class FeedController extends Notifier<FeedState> {
         clientRequestId: newClientRequestId(),
         text: trimmed,
         imageUrls: imageUrls,
+        anonymous: anonymous,
+        avatarId: avatarId,
       );
       _replaceById(localId, FeedItem(post: created));
       // 打卡发布埋点（§3.5 community_post_publish；2.6 活跃判定）。
@@ -302,6 +308,38 @@ final class FeedController extends Notifier<FeedState> {
           ? state.items.length
           : state.items.indexWhere((i) => i.post.id == nextId);
       // 原后继也被移除（refresh 整体换掉）时退化为追加到末尾。
+      final at = anchor < 0 ? state.items.length : anchor;
+      state = state.copyWith(
+        items: <FeedItem>[
+          ...state.items.sublist(0, at),
+          removed,
+          ...state.items.sublist(at),
+        ],
+      );
+      return false;
+    }
+  }
+
+  /// 删除本人帖子（服务端软删幂等；本地乐观移除 + 失败回滚）。
+  ///
+  /// 回滚锚定「原后继」postId 重新定位插入点（与 [report] 同款：等待网络
+  /// 期间 refresh/loadMore 可能改序，位置索引会插错位置）。
+  Future<bool> delete(String postId) async {
+    final index = state.items.indexWhere((i) => i.post.id == postId);
+    if (index < 0) return false;
+    final removed = state.items[index];
+    final nextId = index + 1 < state.items.length
+        ? state.items[index + 1].post.id
+        : null;
+    _removeById(postId);
+    try {
+      await _api.deletePost(postId);
+      return true;
+    } on ApiException {
+      if (state.items.any((i) => i.post.id == postId)) return false;
+      final anchor = nextId == null
+          ? state.items.length
+          : state.items.indexWhere((i) => i.post.id == nextId);
       final at = anchor < 0 ? state.items.length : anchor;
       state = state.copyWith(
         items: <FeedItem>[

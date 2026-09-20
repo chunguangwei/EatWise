@@ -257,4 +257,71 @@ void main() {
     expect(ok, isFalse);
     expect(state().items.map((i) => i.post.id).toList(), <String>['p1', 'p2']);
   });
+
+  test('删除：成功移除该帖；失败恢复原位', () async {
+    api.posts = <ServerPost>[stubPost(id: 'p1'), stubPost(id: 'p2')];
+    controller();
+    await settle();
+
+    final ok = await controller().delete('p1');
+    expect(ok, isTrue);
+    expect(api.deleted, <String>['p1']);
+    expect(state().items.map((i) => i.post.id).toList(), <String>['p2']);
+
+    api.deleteError = networkException;
+    final failed = await controller().delete('p2');
+    expect(failed, isFalse);
+    expect(state().items.map((i) => i.post.id).toList(), <String>['p2']);
+  });
+
+  test('删除失败回滚锚定原后继：在途列表变长仍插回原位', () async {
+    api.posts = <ServerPost>[
+      stubPost(id: 'p1'),
+      stubPost(id: 'p2'),
+      stubPost(id: 'p3'),
+    ];
+    controller();
+    await settle();
+
+    api.deleteError = networkException;
+    api.deleteGate = Completer<void>();
+    final future = controller().delete('p1');
+    // 删除在途时 refresh 拉回新列表（不含被删帖，尾部新增 p4）。
+    api.posts = <ServerPost>[
+      stubPost(id: 'p2'),
+      stubPost(id: 'p3'),
+      stubPost(id: 'p4'),
+    ];
+    await controller().refresh();
+    api.deleteGate!.complete();
+    final ok = await future;
+
+    expect(ok, isFalse);
+    expect(state().items.map((i) => i.post.id).toList(), <String>[
+      'p1',
+      'p2',
+      'p3',
+      'p4',
+    ]);
+  });
+
+  test('发布透传匿名参数：乐观卡与服务端视图均带 anonymous/avatarId', () async {
+    controller();
+    await settle();
+
+    final future = controller().publish(
+      text: '匿名打卡',
+      anonymous: true,
+      avatarId: 3,
+    );
+    // 乐观卡立即匿名（发帖人自己也知道是匿名帖）。
+    expect(state().items.first.post.anonymous, isTrue);
+    expect(state().items.first.post.avatarId, 3);
+    final result = await future;
+    expect(result, isA<PublishOk>());
+    expect(api.lastAnonymous, isTrue);
+    expect(api.lastAvatarId, 3);
+    expect(state().items.first.post.anonymous, isTrue);
+    expect(state().items.first.post.avatarId, 3);
+  });
 }
