@@ -28,7 +28,7 @@ class DailyNutritionCacheRepair {
 
   /// 近 [days] 天（含今天）廉价校验：窗口内缓存缺失/过期才重算。返回重算天数。
   Future<int> repairRecent(String userId, {int days = 7}) {
-    final from = DateTime.now().toLocal().subtract(Duration(days: days - 1));
+    final from = _clock().toLocal().subtract(Duration(days: days - 1));
     return _repair(userId, fromDate: localDateKey(from));
   }
 
