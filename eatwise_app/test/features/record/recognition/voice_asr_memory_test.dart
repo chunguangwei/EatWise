@@ -263,6 +263,37 @@ void main() {
     expect(prefs.getBool(brokenKey), isFalse);
     await settleUi(tester);
   });
+
+  // 安卓真机走查 bug（无 GMS/鸿蒙设备 systemAsrBroken=true 直达端侧路径）：
+  // 录音面板点「完成」pop 出的 VoiceTranscript 曾被 startVoiceInput 的
+  // broken 分支丢弃，从不进 _handleTranscript → 无 AI 检测无记录。
+  testWidgets('记忆设备直达端侧：录音转写后点完成 → 进明细确认卡（transcript 不被丢弃）', (tester) async {
+    emitSnapshot(OnDeviceModelStatus.ready);
+    await pumpPage(tester, broken: true, onDeviceReady: true);
+
+    await tester.tap(find.text('语音记'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 直达录音面板 → 录 → 停 → 转写回填。
+    await tester.tap(find.widgetWithText(OutlinedButton, '点一下开始说话'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(OutlinedButton, '正在录音… 再点一下停止'));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 完成 → 必须进管线（自由记服务被 override 为 null → 词典兜底），
+    // 断言明细确认弹层出现；修复前 transcript 被扔，面板直接消失。
+    await tester.tap(find.text('完成'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(find.text('确认这餐明细'), findsOneWidget);
+    expect(find.text('白米饭'), findsWidgets);
+    await settleUi(tester);
+  });
 }
 
 /// 下载动作 Fake（复用设置页卡片测试同款 seam）。

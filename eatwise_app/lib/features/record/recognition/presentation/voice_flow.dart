@@ -61,14 +61,20 @@ Future<void> startVoiceInput(BuildContext context, WidgetRef ref) async {
   // 直达端侧路径——端侧就绪直接进录音面板（不走系统听写、不等 6s），
   // 模型未下载直接弹引擎引导卡（内嵌下载带进度，完成自动回录音面板）。
   if (ref.read(systemAsrBrokenProvider)) {
+    // 安卓真机走查 bug：此分支曾把 _openOnDeviceRecording 的返回值直接丢弃
+    // 后 return，录音面板点「完成」后从不进 _handleTranscript——无 GMS/鸿蒙
+    // 设备语音/键盘输入全部「无 AI 检测无记录」（iOS 系统 ASR 可用不走此分支）。
+    VoiceTranscript? transcript;
     if (onDeviceRecognitionActiveFor(
       ref.watch(onDeviceAiEnabledProvider),
       ref.watch(onDeviceModelSnapshotProvider),
     )) {
-      await _openOnDeviceRecording(context, ref, s);
+      transcript = await _openOnDeviceRecording(context, ref, s);
     } else if (!ref.read(aiEngineGuideDismissedProvider)) {
-      await _showVoiceEngineGuide(context, ref, s);
+      transcript = await _showVoiceEngineGuide(context, ref, s);
     }
+    if (transcript == null || !context.mounted) return;
+    await _handleTranscript(context, ref, s, transcript);
     return;
   }
   final gateway = ref.read(speechGatewayProvider);
@@ -132,28 +138,30 @@ Future<VoiceTranscript?> _openOnDeviceRecording(
 
 /// 语音专属引擎引导（与拍照记同款引导卡文案，但「下载本地模型」不走
 /// 设置页——语音流程内嵌下载带进度，完成自动回录音面板，步骤最少）。
-Future<void> _showVoiceEngineGuide(
+/// 返回下载完成后录音面板的转写结果（用户在引导/面板里取消 → null）。
+Future<VoiceTranscript?> _showVoiceEngineGuide(
   BuildContext context,
   WidgetRef ref,
   RecordStrings s,
 ) async {
   final action = await showAiEngineGuideCard(context, s);
-  if (!context.mounted) return;
+  if (!context.mounted) return null;
   switch (action) {
     case AiEngineGuideAction.downloadModel:
       final ready = await showModalBottomSheet<bool>(
         context: context,
         builder: (_) => const VoiceModelDownloadSheet(),
       );
-      if (!context.mounted) return;
+      if (!context.mounted) return null;
       if (ready == true) {
         // 等下载弹层退出动画完成再开录音面板：连续两个 ModalBottomSheet
         // 时，先弹出弹层的退出动画会被暂停并残留（route isCurrent=false
         // 但 widget 不销毁，Flutter 已知行为）。
         await Future<void>.delayed(const Duration(milliseconds: 300));
-        if (!context.mounted) return;
-        // 下载完成：顺畅回到语音——直接进端侧录音面板。
-        await _openOnDeviceRecording(context, ref, s);
+        if (!context.mounted) return null;
+        // 下载完成：顺畅回到语音——直接进端侧录音面板，转写结果透传给
+        // 调用方管线（曾在此丢弃 → 下载完录完点完成没记录）。
+        return _openOnDeviceRecording(context, ref, s);
       }
     case AiEngineGuideAction.configApi:
       ref
@@ -165,6 +173,7 @@ Future<void> _showVoiceEngineGuide(
       ref.read(recordSearchPrefillProvider.notifier).state = '';
     case null: // 遮罩关闭：原地不动
   }
+  return null;
 }
 
 /// 转写文本 → 后续管线（系统 ASR 与端侧录音转写共用）：
@@ -484,11 +493,16 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
       await widget.gateway.cancel();
       if (!mounted) return;
       // 语音专属引导：内嵌下载带进度（不跳设置页），完成自动回录音面板。
-      await _showVoiceEngineGuide(context, ref, RecordStrings.of(context));
+      // 引导内「下载→录音→完成」的转写结果必须透传为面板返回值，否则
+      // 下载完录完点完成同样没记录（与 startVoiceInput broken 分支同款坑）。
+      final transcript = await _showVoiceEngineGuide(
+        context,
+        ref,
+        RecordStrings.of(context),
+      );
       if (!mounted) return;
       // 引导结束即关闭听写面板：下载/配置完成，手动搜索已对焦。
-      Navigator.of(context).pop();
-      return;
+      Navigator.of(context).pop(transcript);
     }
     // 端侧录音走 record 插件的麦克风权限（与系统 ASR 初始化时的申请
     // 同口径确认一次；拒绝则静默关闭，键盘输入永远可用）。
