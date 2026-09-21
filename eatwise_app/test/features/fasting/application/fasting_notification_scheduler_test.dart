@@ -117,6 +117,103 @@ void main() {
     });
   });
 
+  group('extraPlanner 附加计划（喝水提醒共用 cancelAll 单入口）', () {
+    ScheduledNotification extra(int utcSec) => ScheduledNotification(
+      id: (utcSec ~/ 60) * 10 + 3,
+      title: 'W',
+      body: 'water',
+      channel: channel,
+      triggerAtUtcSec: utcSec,
+    );
+
+    test('断食计划之后追加排程；scheduledCount 含附加条数', () async {
+      final service = FakeNotificationService();
+      final scheduler = FastingNotificationScheduler(
+        notifications: service,
+        textResolver: (n) => (title: 'T', body: n.kind.name),
+        channel: channel,
+        locationResolver: () => bjt,
+        nowUtcSec: () => utc(28, 0),
+        extraPlanner: () async => [extra(utc(28, 5)), extra(utc(28, 6))],
+      );
+
+      final result = await scheduler.reschedule(plan: plan);
+
+      expect(result.plan, hasLength(6));
+      expect(result.scheduledCount, 8); // 6 断食 + 2 喝水
+      // 附加排程在断食排程之后、且共用同一 cancelAll（不各自清场）
+      expect(service.calls.where((c) => c == 'cancelAll'), hasLength(1));
+      expect(service.scheduled.skip(6).map((e) => e.triggerAtUtcSec).toList(), [
+        utc(28, 5),
+        utc(28, 6),
+      ]);
+    });
+
+    test('附加计划生成抛异常：静默降级，断食提醒照常', () async {
+      final service = FakeNotificationService();
+      final scheduler = FastingNotificationScheduler(
+        notifications: service,
+        textResolver: (n) => (title: 'T', body: n.kind.name),
+        channel: channel,
+        locationResolver: () => bjt,
+        nowUtcSec: () => utc(28, 0),
+        extraPlanner: () => throw StateError('prefs 未装配'),
+      );
+
+      final result = await scheduler.reschedule(plan: plan);
+
+      expect(result.scheduledCount, 6);
+      expect(service.scheduled, hasLength(6));
+    });
+
+    test('NO_PLAN：断食无排程但附加计划仍执行（跳过引导用户喝水不断供）', () async {
+      final service = FakeNotificationService();
+      var called = 0;
+      final scheduler = FastingNotificationScheduler(
+        notifications: service,
+        textResolver: (n) => (title: 'T', body: n.kind.name),
+        channel: channel,
+        locationResolver: () => bjt,
+        nowUtcSec: () => utc(28, 0),
+        extraPlanner: () async {
+          called++;
+          return [extra(utc(28, 5))];
+        },
+      );
+
+      final result = await scheduler.reschedule(plan: null);
+
+      expect(called, 1);
+      expect(result.degraded, isFalse);
+      expect(result.plan, isEmpty);
+      expect(result.scheduledCount, 1);
+      expect(service.scheduled, hasLength(1));
+    });
+
+    test('权限拒绝：附加计划也不执行（喝水同样依赖系统权限）', () async {
+      final service = FakeNotificationService()
+        ..status = NotificationPermissionStatus.denied;
+      var called = 0;
+      final scheduler = FastingNotificationScheduler(
+        notifications: service,
+        textResolver: (n) => (title: 'T', body: n.kind.name),
+        channel: channel,
+        locationResolver: () => bjt,
+        nowUtcSec: () => utc(28, 0),
+        extraPlanner: () async {
+          called++;
+          return <ScheduledNotification>[];
+        },
+      );
+
+      final result = await scheduler.reschedule(plan: plan);
+
+      expect(called, 0);
+      expect(result.degraded, isTrue);
+      expect(service.calls, ['cancelAll', 'permissionStatus']);
+    });
+  });
+
   group('降级路径（合规 §3：权限拒绝不阻断计时）', () {
     test('权限拒绝：不排程、不抛异常，返回降级标志', () async {
       final service = FakeNotificationService()
@@ -216,7 +313,11 @@ class FakeNotificationService implements NotificationService {
   var status = NotificationPermissionStatus.granted;
 
   @override
-  Future<void> initialize({NotificationChannelConfig? channel}) async {}
+  Future<void> initialize({
+    NotificationChannelConfig? channel,
+    List<NotificationChannelConfig> extraChannels =
+        const <NotificationChannelConfig>[],
+  }) async {}
 
   @override
   Future<NotificationPermissionStatus> requestPermission() async => status;

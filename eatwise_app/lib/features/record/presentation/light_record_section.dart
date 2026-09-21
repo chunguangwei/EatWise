@@ -10,6 +10,8 @@ import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/account/application/weight_unit_controller.dart';
 import 'package:eatwise/features/account/domain/weight_unit.dart';
+import 'package:eatwise/features/record/application/water_reminder_planner.dart'
+    show rescheduleWaterReminders;
 import 'package:eatwise/features/record/data/water_log_repository.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
@@ -63,6 +65,8 @@ class _WaterCard extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     final flowId = analytics.startRecordFlow();
     final log = await repo.add(amountMl);
+    // 喝水入账 → 立即重排喝水提醒（达标即停发 + 建议量随剩余量收敛）。
+    rescheduleWaterReminders(ref);
     // 记录后触发一轮同步（饮水 pending 队列上行，§2.1）。
     try {
       unawaited(ref.read(recordSyncEngineProvider).syncNow());
@@ -119,6 +123,8 @@ class _WaterCard extends ConsumerWidget {
   ) async {
     final ok = await repo.undo(localId);
     if (ok) {
+      // 撤销后当日总量回落：重排喝水提醒（达标撤销后恢复提醒）。
+      rescheduleWaterReminders(ref);
       // 撤销 tombstone 上行（已上行记录）。
       try {
         unawaited(ref.read(recordSyncEngineProvider).syncNow());

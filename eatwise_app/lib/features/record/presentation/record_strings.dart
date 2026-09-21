@@ -55,6 +55,9 @@ final class RecordStrings {
   /// record.search.clear
   String get searchClear => _t.record.search.clear;
 
+  /// record.search.addRow
+  String searchAddRow(String query) => _t.record.search.addRow(query: query);
+
   /// record.amount.label
   String get amountLabel => _t.record.amount.label;
 
@@ -197,6 +200,9 @@ final class RecordStrings {
 
   /// record.voice.noMatch
   String get voiceNoMatch => _t.record.voice.noMatch;
+
+  /// record.voice.noMatchTyped
+  String get voiceNoMatchTyped => _t.record.voice.noMatchTyped;
 
   /// record.voice.typeInput
   String get voiceTypeInput => _t.record.voice.typeInput;

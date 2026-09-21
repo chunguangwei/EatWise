@@ -40,6 +40,10 @@ enum RescheduleReason {
 
   /// Android 设备重启后重排（§6-B14）。
   bootCompleted,
+
+  /// 喝水入账 / 喝水提醒开关翻转（复用同一 cancelAll 单入口重排喝水计划；
+  /// 「达标停发」与「建议量随剩余量收敛」依赖该触发器即时生效）。
+  waterIntake,
 }
 
 /// 通知文案解析器：计划项 → 标题/正文。
@@ -47,9 +51,7 @@ enum RescheduleReason {
 /// 文案必须走 i18n key（D-15，禁止硬编码）；生产实现由
 /// `fasting_notification_texts.dart` 的 slang 适配器提供，测试可注入替身。
 typedef FastingNotificationTextResolver =
-    ({String title, String body}) Function(
-      PlannedFastingNotification notification,
-    );
+    ({String title, String body}) Function(PlannedFastingNotification);
 
 /// 一次重排的结果回执。
 final class RescheduleResult {
@@ -58,6 +60,7 @@ final class RescheduleResult {
     required this.permissionStatus,
     required this.degraded,
     required this.plan,
+    this.extraCount = 0,
   });
 
   /// 本次重排触发原因。
@@ -73,8 +76,11 @@ final class RescheduleResult {
   /// 本次生成的计划（权限降级时为空列表）。
   final List<PlannedFastingNotification> plan;
 
-  /// 实际排程条数。
-  int get scheduledCount => plan.length;
+  /// 附加计划（喝水提醒等）实际排程条数。
+  final int extraCount;
+
+  /// 实际排程条数（断食 + 附加）。
+  int get scheduledCount => plan.length + extraCount;
 }
 
 /// 断食通知调度器。注入时钟与时区解析器，纯逻辑可全量单测。
@@ -85,6 +91,7 @@ class FastingNotificationScheduler {
     required this.channel,
     required this.locationResolver,
     int Function()? nowUtcSec,
+    this.extraPlanner,
   }) : _nowUtcSec =
            nowUtcSec ??
            (() => DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000);
@@ -102,6 +109,13 @@ class FastingNotificationScheduler {
   final tz.Location Function() locationResolver;
 
   final int Function() _nowUtcSec;
+
+  /// 附加排程计划生成器（喝水提醒等复用同一 cancelAll 单入口的扩展点）。
+  ///
+  /// 关键点：全 App 通知只有本调度器一个「先 cancelAll 再重建」入口——
+  /// 其他提醒若各自实现 cancelAll 会互删对方已排程的通知。附加计划在
+  /// 断食计划之后排程；生成失败静默跳过（不阻断断食提醒）。
+  final Future<List<ScheduledNotification>> Function()? extraPlanner;
 
   /// 全量重排（单一入口，§7.2.3）。
   ///
@@ -122,23 +136,28 @@ class FastingNotificationScheduler {
 
     final status = await notifications.permissionStatus();
 
-    // NO_PLAN 或权限降级：清空后即返回，不阻断业务。
-    if (plan == null || status != NotificationPermissionStatus.granted) {
+    // 权限降级：清空后即返回（喝水提醒同样依赖系统权限）。
+    if (status != NotificationPermissionStatus.granted) {
       return RescheduleResult(
         reason: reason,
         permissionStatus: status,
-        degraded: plan != null,
-        plan: const [],
+        degraded: true,
+        plan: const <PlannedFastingNotification>[],
       );
     }
 
-    final items = buildFastingNotificationPlan(
-      plan: plan,
-      nowUtcSec: _nowUtcSec(),
-      location: locationResolver(),
-      eatSoonLeadSec: eatSoonLeadSec,
-      extensionMinutes: extensionMinutes,
-    );
+    // NO_PLAN：断食提醒无计划可排，但附加计划仍被调用（由生成方自决：
+    // 喝水提醒无生效方案时自行返回空——进食窗口是唯一排程依据，不臆造
+    // 默认窗口；未来若有全天口径的附加提醒可在此场景排程）。
+    final items = plan == null
+        ? const <PlannedFastingNotification>[]
+        : buildFastingNotificationPlan(
+            plan: plan,
+            nowUtcSec: _nowUtcSec(),
+            location: locationResolver(),
+            eatSoonLeadSec: eatSoonLeadSec,
+            extensionMinutes: extensionMinutes,
+          );
 
     for (final item in items) {
       final text = textResolver(item);
@@ -153,11 +172,29 @@ class FastingNotificationScheduler {
       );
     }
 
+    // 附加计划（喝水提醒）：同一 cancelAll 单入口内排程，id 由生成方保证
+    // 与断食 id 空间不冲突（喝水 kind 序号 3，见 waterReminderNotificationId）。
+    // 生成失败静默降级，不阻断断食提醒。
+    var extraCount = 0;
+    final planner = extraPlanner;
+    if (planner != null) {
+      try {
+        final extras = await planner();
+        for (final item in extras) {
+          await notifications.scheduleZoned(item);
+        }
+        extraCount = extras.length;
+      } on Object {
+        // 防御：附加提醒数据缺失/异常时只保留断食提醒。
+      }
+    }
+
     return RescheduleResult(
       reason: reason,
       permissionStatus: status,
       degraded: false,
       plan: items,
+      extraCount: extraCount,
     );
   }
 }

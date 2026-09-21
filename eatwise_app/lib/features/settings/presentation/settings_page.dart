@@ -11,8 +11,11 @@ import 'package:eatwise/core/update/update_dialog.dart';
 import 'package:eatwise/core/update/update_models.dart';
 import 'package:eatwise/core/update/update_providers.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
+import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart'
+    show localNotificationServiceProvider;
 import 'package:eatwise/features/health/presentation/health_sync_section.dart';
 import 'package:eatwise/features/legal/application/legal_providers.dart';
+import 'package:eatwise/features/record/application/water_reminder_planner.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:eatwise/features/settings/data/user_api.dart';
 import 'package:eatwise/features/streak/presentation/streak_profile_card.dart';
@@ -196,6 +199,32 @@ class SettingsPage extends ConsumerWidget {
             _SettingsGroup(
               title: t.settings.group.reminders,
               children: <Widget>[
+                // 喝水提醒开关（默认开）：进食窗口内每小时提醒，建议量按
+                // 当日剩余目标量动态分配；翻转即重排通知（异步无感）。
+                _SettingsTile(
+                  title: t.settings.reminders.waterHourly,
+                  subtitle: t.settings.reminders.waterHourlySubtitle,
+                  trailingWidget: Switch(
+                    value: ref.watch(waterReminderEnabledProvider),
+                    onChanged: (value) async {
+                      ref
+                          .read(waterReminderEnabledProvider.notifier)
+                          .setEnabled(value);
+                      if (value) {
+                        // 「用时申请」时机 = 用户主动开启提醒（合规 §3）；
+                        // 拒绝不阻断开关状态，重排会走降级路径。
+                        try {
+                          await ref
+                              .read(localNotificationServiceProvider)
+                              .requestPermission();
+                        } on Object {
+                          // 防御：插件不可用（测试/桌面端）。
+                        }
+                      }
+                      rescheduleWaterReminders(ref);
+                    },
+                  ),
+                ),
                 _SettingsTile(
                   title: t.settings.reminders.notifications,
                   subtitle: t.settings.reminders.notificationsSubtitle,

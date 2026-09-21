@@ -18,6 +18,7 @@ import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_cycle_store.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
+import 'package:eatwise/features/record/application/water_reminder_planner.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,6 +56,8 @@ final fastingNotificationSchedulerProvider =
         textResolver: slangFastingNotificationTextResolver(t),
         channel: fastingReminderChannel(t),
         locationResolver: () => ref.read(deviceLocationProvider),
+        // 喝水提醒共用本调度器 cancelAll 单入口（避免双调度器互删）。
+        extraPlanner: ref.watch(waterReminderExtraPlannerProvider),
       );
     });
 

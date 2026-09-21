@@ -168,6 +168,7 @@ class Translations$notification$zh_CN {
 
 	// Translations
 	late final Translations$notification$fasting$zh_CN fasting = Translations$notification$fasting$zh_CN.internal(_root);
+	late final Translations$notification$water$zh_CN water = Translations$notification$water$zh_CN.internal(_root);
 }
 
 // Path: nutrition
@@ -409,6 +410,7 @@ class Translations$notify$channel$zh_CN {
 	// Translations
 	late final Translations$notify$channel$fastingReminders$zh_CN fastingReminders = Translations$notify$channel$fastingReminders$zh_CN.internal(_root);
 	late final Translations$notify$channel$general$zh_CN general = Translations$notify$channel$general$zh_CN.internal(_root);
+	late final Translations$notify$channel$waterReminders$zh_CN waterReminders = Translations$notify$channel$waterReminders$zh_CN.internal(_root);
 }
 
 // Path: onboarding.quiz
@@ -797,6 +799,9 @@ class Translations$record$search$zh_CN {
 
 	/// zh-CN: '清空搜索'
 	String get clear => '清空搜索';
+
+	/// zh-CN: '添加「${query}」为自定义食物'
+	String addRow({required Object query}) => '添加「${query}」为自定义食物';
 }
 
 // Path: record.amount
@@ -1060,6 +1065,9 @@ class Translations$record$voice$zh_CN {
 
 	/// zh-CN: '没听出是什么食物，换个说法或手动搜索'
 	String get noMatch => '没听出是什么食物，换个说法或手动搜索';
+
+	/// zh-CN: '没找到匹配的食物，换个说法搜索或添加自定义食物'
+	String get noMatchTyped => '没找到匹配的食物，换个说法搜索或添加自定义食物';
 
 	/// zh-CN: '键盘输入'
 	String get typeInput => '键盘输入';
@@ -1745,6 +1753,18 @@ class Translations$notification$fasting$zh_CN {
 	String get fastStart => '断食窗口开始啦，今天也很棒，加油坚持～';
 }
 
+// Path: notification.water
+class Translations$notification$water$zh_CN {
+	Translations$notification$water$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '该喝水啦～建议喝 ${ml} 毫升，今天还差 ${remaining} 毫升'
+	String hourly({required Object ml, required Object remaining}) => '该喝水啦～建议喝 ${ml} 毫升，今天还差 ${remaining} 毫升';
+}
+
 // Path: nutrition.data
 class Translations$nutrition$data$zh_CN {
 	Translations$nutrition$data$zh_CN.internal(this._root);
@@ -2402,6 +2422,12 @@ class Translations$settings$reminders$zh_CN {
 
 	/// zh-CN: '前往系统设置管理通知权限'
 	String get notificationsSubtitle => '前往系统设置管理通知权限';
+
+	/// zh-CN: '喝水提醒'
+	String get waterHourly => '喝水提醒';
+
+	/// zh-CN: '进食窗口内每小时提醒，按剩余目标量建议饮水量'
+	String get waterHourlySubtitle => '进食窗口内每小时提醒，按剩余目标量建议饮水量';
 }
 
 // Path: settings.about
@@ -3121,6 +3147,21 @@ class Translations$notify$channel$general$zh_CN {
 
 	/// zh-CN: 'App 的一般性提醒'
 	String get description => 'App 的一般性提醒';
+}
+
+// Path: notify.channel.waterReminders
+class Translations$notify$channel$waterReminders$zh_CN {
+	Translations$notify$channel$waterReminders$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '喝水提醒'
+	String get name => '喝水提醒';
+
+	/// zh-CN: '进食窗口内的每小时喝水提醒'
+	String get description => '进食窗口内的每小时喝水提醒';
 }
 
 // Path: onboarding.quiz.q1
@@ -4159,6 +4200,8 @@ extension on Translations {
 			'notify.channel.fastingReminders.description' => '进食窗口与断食窗口的到点提醒',
 			'notify.channel.general.name' => '常规提醒',
 			'notify.channel.general.description' => 'App 的一般性提醒',
+			'notify.channel.waterReminders.name' => '喝水提醒',
+			'notify.channel.waterReminders.description' => '进食窗口内的每小时喝水提醒',
 			'notify.permissionBanner' => '开启通知，到点提醒你进食与断食',
 			'notify.exactAlarmHint' => '系统省电策略可能延迟提醒，建议允许精确闹钟',
 			'onboarding.quiz.title' => '3 个小问题，帮你找到最适合的断食节奏 🌱',
@@ -4287,6 +4330,7 @@ extension on Translations {
 			'record.search.hint' => '搜索食物（中文或英文）',
 			'record.search.empty' => '没找到？换个关键词试试',
 			'record.search.clear' => '清空搜索',
+			'record.search.addRow' => ({required Object query}) => '添加「${query}」为自定义食物',
 			'record.amount.label' => '份量（克）',
 			'record.amount.invalid' => '请输入大于 0 的份量',
 			'record.nutrition.kcal' => '热量',
@@ -4369,6 +4413,7 @@ extension on Translations {
 			'record.voice.deniedTitle' => '麦克风未授权',
 			'record.voice.deniedBody' => '开不了语音也能记，打字搜一样快',
 			'record.voice.noMatch' => '没听出是什么食物，换个说法或手动搜索',
+			'record.voice.noMatchTyped' => '没找到匹配的食物，换个说法搜索或添加自定义食物',
 			'record.voice.typeInput' => '键盘输入',
 			'record.voice.typeHint' => '说一句，比如「中午吃了一碗牛肉面加个蛋」',
 			'record.voice.understanding' => '理解中…',
@@ -4599,6 +4644,7 @@ extension on Translations {
 			'notification.fasting.eatSoon' => '还有 15 分钟就可以进食啦',
 			'notification.fasting.eatStart' => ({required Object date}) => '可以进食啦，本次断食计入 ${date} ✅',
 			'notification.fasting.fastStart' => '断食窗口开始啦，今天也很棒，加油坚持～',
+			'notification.water.hourly' => ({required Object ml, required Object remaining}) => '该喝水啦～建议喝 ${ml} 毫升，今天还差 ${remaining} 毫升',
 			'nutrition.data.dateSwitcher.prevDay' => '前一天',
 			'nutrition.data.dateSwitcher.nextDay' => '后一天',
 			'nutrition.data.dateSwitcher.backToToday' => '回到今天',
@@ -4662,13 +4708,13 @@ extension on Translations {
 			'nutrition.signalCard.advice.fat.zero' => '好像还没记到脂肪哦，是不是漏了一餐？',
 			'nutrition.signalCard.advice.meal.breakfast' => '早餐加个鸡蛋或一杯豆浆',
 			'nutrition.signalCard.advice.meal.lunch' => '午餐来份掌心大的瘦肉或豆腐',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.signalCard.advice.meal.dinner' => '晚餐选清蒸/白灼，七分饱就好',
 			'nutrition.signalCard.advice.meal.snack' => '加餐来把坚果或一杯酸奶',
 			'reports.title' => '趋势与报告',
 			'reports.entry' => '趋势与深度报告',
 			'reports.trend.title' => '成长趋势',
-			_ => null,
-		} ?? switch (path) {
 			'reports.trend.dim.weight' => '体重',
 			'reports.trend.dim.kcal' => '热量',
 			'reports.trend.dim.fasting' => '断食时长',
@@ -4848,6 +4894,8 @@ extension on Translations {
 			'settings.bodyProfile.bmi.unitHint' => '体重单位是公斤，如果你是按斤填的，请改一下体重',
 			'settings.reminders.notifications' => '通知设置',
 			'settings.reminders.notificationsSubtitle' => '前往系统设置管理通知权限',
+			'settings.reminders.waterHourly' => '喝水提醒',
+			'settings.reminders.waterHourlySubtitle' => '进食窗口内每小时提醒，按剩余目标量建议饮水量',
 			'settings.about.version' => '版本',
 			'settings.about.disclaimer' => '免责声明与特殊人群提示',
 			'settings.about.checkUpdate' => '检查更新',

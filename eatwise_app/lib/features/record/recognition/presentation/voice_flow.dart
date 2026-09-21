@@ -215,10 +215,20 @@ Future<void> _handleTranscript(
       .read(voiceTextParserProvider)
       .parse(transcript.text, foods);
   if (result.isEmpty) {
-    // 词典没匹配上：提示换个说法或手动搜索（输入内容保留）。
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(s.voiceNoMatch)));
+    // 真机走查 bug：键盘打字点「完成」未命中词典时，也弹「没听出是什么
+    // 食物」——用户明明打的字，被说「没听清」很莫名。键盘态改口径为
+    // 「没找到匹配」并把原文预填回搜索框：落到搜索空态（自带「添加
+    // 自定义食物」CTA），未收录食物的出路一步到位。
+    if (transcript.typed) {
+      ref.read(recordSearchPrefillProvider.notifier).state = transcript.text;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(s.voiceNoMatchTyped)));
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(s.voiceNoMatch)));
+    }
     return;
   }
   // 词典命中也可能多条（「两个鸡蛋一碗米饭」）：全部条目进同款明细

@@ -8,6 +8,10 @@
       "general": {
         "name": "General reminders",
         "description": "General app reminders"
+      },
+      "waterReminders": {
+        "name": "Water reminders",
+        "description": "Hourly water nudges during your eating window"
       }
     },
     "permissionBanner": "Turn on notifications to get reminded when your eating and fasting windows start",
@@ -194,7 +198,8 @@
     "search": {
       "hint": "Search foods (Chinese or English)",
       "empty": "No match? Try another keyword",
-      "clear": "Clear search"
+      "clear": "Clear search",
+      "addRow": "Add \"${query}\" as custom food"
     },
     "amount": {
       "label": "Amount (g)",
@@ -291,6 +296,7 @@
       "deniedTitle": "Microphone not allowed",
       "deniedBody": "No voice? No problem — typing a search is just as fast",
       "noMatch": "Couldn't catch the food — try rephrasing or search manually",
+      "noMatchTyped": "No matching food found — try different words, search, or add it as a custom food",
       "typeInput": "Type instead",
       "typeHint": "Say it in one line, e.g. \"beef noodle soup and an egg for lunch\"",
       "understanding": "Understanding…",
@@ -583,6 +589,9 @@
       "eatSoon": "Eating window opens in 15 min",
       "eatStart": "Time to eat! This fast counts toward ${date} ✅",
       "fastStart": "Your fasting window has started — you're doing great, keep it up!"
+    },
+    "water": {
+      "hourly": "Time for water! Aim for ${ml} ml — ${remaining} ml to go today"
     }
   },
   "nutrition": {
@@ -916,7 +925,9 @@
     },
     "reminders": {
       "notifications": "Notification settings",
-      "notificationsSubtitle": "Manage notification permission in system settings"
+      "notificationsSubtitle": "Manage notification permission in system settings",
+      "waterHourly": "Water reminders",
+      "waterHourlySubtitle": "Hourly nudges during your eating window, sized to your remaining goal"
     },
     "about": {
       "version": "Version",

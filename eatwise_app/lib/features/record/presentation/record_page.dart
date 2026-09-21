@@ -541,7 +541,15 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                                         foregroundColor: colors.brandPrimary,
                                       ),
                                       onPressed: () => unawaited(
-                                        startCustomFoodFlow(context, ref),
+                                        startCustomFoodFlow(
+                                          context,
+                                          ref,
+                                          // 搜索词预填菜名（语音/键盘
+                                          // 「没找到」预填后同样受益）。
+                                          initialName: ref
+                                              .read(recordSearchQueryProvider)
+                                              .trim(),
+                                        ),
                                       ),
                                       child: Text(
                                         cs.cta,
@@ -557,9 +565,34 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                           ),
                         );
                       }
+                      final query = ref.watch(recordSearchQueryProvider).trim();
                       final resultsList = ListView.builder(
-                        itemCount: foods.length,
+                        // 尾部固定「添加」行：搜索词非空即出现，与命中数无关
+                        // （走查：模糊匹配总返回不相干命中 → 空态 CTA 永不
+                        // 露面，用户仍说「没有添加新食物的地方」）。
+                        itemCount: foods.length + (query.isEmpty ? 0 : 1),
                         itemBuilder: (context, index) {
+                          if (index == foods.length) {
+                            return ListTile(
+                              leading: Icon(
+                                Icons.add_circle_outline,
+                                color: colors.brandPrimary,
+                              ),
+                              title: Text(
+                                s.searchAddRow(query),
+                                style: textStyles.textBase.copyWith(
+                                  color: colors.brandPrimary,
+                                ),
+                              ),
+                              onTap: () => unawaited(
+                                startCustomFoodFlow(
+                                  context,
+                                  ref,
+                                  initialName: query,
+                                ),
+                              ),
+                            );
+                          }
                           final food = foods[index];
                           return ListTile(
                             title: Row(

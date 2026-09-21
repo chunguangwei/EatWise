@@ -160,6 +160,7 @@ class _Translations$notification$en extends Translations$notification$zh_CN {
 
 	// Translations
 	@override late final _Translations$notification$fasting$en fasting = _Translations$notification$fasting$en._(_root);
+	@override late final _Translations$notification$water$en water = _Translations$notification$water$en._(_root);
 }
 
 // Path: nutrition
@@ -323,6 +324,7 @@ class _Translations$notify$channel$en extends Translations$notify$channel$zh_CN 
 	// Translations
 	@override late final _Translations$notify$channel$fastingReminders$en fastingReminders = _Translations$notify$channel$fastingReminders$en._(_root);
 	@override late final _Translations$notify$channel$general$en general = _Translations$notify$channel$general$en._(_root);
+	@override late final _Translations$notify$channel$waterReminders$en waterReminders = _Translations$notify$channel$waterReminders$en._(_root);
 }
 
 // Path: onboarding.quiz
@@ -530,6 +532,7 @@ class _Translations$record$search$en extends Translations$record$search$zh_CN {
 	@override String get hint => 'Search foods (Chinese or English)';
 	@override String get empty => 'No match? Try another keyword';
 	@override String get clear => 'Clear search';
+	@override String addRow({required Object query}) => 'Add "${query}" as custom food';
 }
 
 // Path: record.amount
@@ -654,6 +657,7 @@ class _Translations$record$voice$en extends Translations$record$voice$zh_CN {
 	@override String get deniedTitle => 'Microphone not allowed';
 	@override String get deniedBody => 'No voice? No problem — typing a search is just as fast';
 	@override String get noMatch => 'Couldn\'t catch the food — try rephrasing or search manually';
+	@override String get noMatchTyped => 'No matching food found — try different words, search, or add it as a custom food';
 	@override String get typeInput => 'Type instead';
 	@override String get typeHint => 'Say it in one line, e.g. "beef noodle soup and an egg for lunch"';
 	@override String get understanding => 'Understanding…';
@@ -1007,6 +1011,16 @@ class _Translations$notification$fasting$en extends Translations$notification$fa
 	@override String get fastStart => 'Your fasting window has started — you\'re doing great, keep it up!';
 }
 
+// Path: notification.water
+class _Translations$notification$water$en extends Translations$notification$water$zh_CN {
+	_Translations$notification$water$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String hourly({required Object ml, required Object remaining}) => 'Time for water! Aim for ${ml} ml — ${remaining} ml to go today';
+}
+
 // Path: nutrition.data
 class _Translations$nutrition$data$en extends Translations$nutrition$data$zh_CN {
 	_Translations$nutrition$data$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -1354,6 +1368,8 @@ class _Translations$settings$reminders$en extends Translations$settings$reminder
 	// Translations
 	@override String get notifications => 'Notification settings';
 	@override String get notificationsSubtitle => 'Manage notification permission in system settings';
+	@override String get waterHourly => 'Water reminders';
+	@override String get waterHourlySubtitle => 'Hourly nudges during your eating window, sized to your remaining goal';
 }
 
 // Path: settings.about
@@ -1690,6 +1706,17 @@ class _Translations$notify$channel$general$en extends Translations$notify$channe
 	// Translations
 	@override String get name => 'General reminders';
 	@override String get description => 'General app reminders';
+}
+
+// Path: notify.channel.waterReminders
+class _Translations$notify$channel$waterReminders$en extends Translations$notify$channel$waterReminders$zh_CN {
+	_Translations$notify$channel$waterReminders$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get name => 'Water reminders';
+	@override String get description => 'Hourly water nudges during your eating window';
 }
 
 // Path: onboarding.quiz.q1
@@ -2302,6 +2329,8 @@ extension on TranslationsEn {
 			'notify.channel.fastingReminders.description' => 'Reminders for when your eating and fasting windows start',
 			'notify.channel.general.name' => 'General reminders',
 			'notify.channel.general.description' => 'General app reminders',
+			'notify.channel.waterReminders.name' => 'Water reminders',
+			'notify.channel.waterReminders.description' => 'Hourly water nudges during your eating window',
 			'notify.permissionBanner' => 'Turn on notifications to get reminded when your eating and fasting windows start',
 			'notify.exactAlarmHint' => 'Battery-saving policies may delay reminders — allow exact alarms for on-time alerts',
 			'onboarding.quiz.title' => '3 quick questions to find your fasting rhythm 🌱',
@@ -2430,6 +2459,7 @@ extension on TranslationsEn {
 			'record.search.hint' => 'Search foods (Chinese or English)',
 			'record.search.empty' => 'No match? Try another keyword',
 			'record.search.clear' => 'Clear search',
+			'record.search.addRow' => ({required Object query}) => 'Add "${query}" as custom food',
 			'record.amount.label' => 'Amount (g)',
 			'record.amount.invalid' => 'Enter an amount greater than 0',
 			'record.nutrition.kcal' => 'Calories',
@@ -2512,6 +2542,7 @@ extension on TranslationsEn {
 			'record.voice.deniedTitle' => 'Microphone not allowed',
 			'record.voice.deniedBody' => 'No voice? No problem — typing a search is just as fast',
 			'record.voice.noMatch' => 'Couldn\'t catch the food — try rephrasing or search manually',
+			'record.voice.noMatchTyped' => 'No matching food found — try different words, search, or add it as a custom food',
 			'record.voice.typeInput' => 'Type instead',
 			'record.voice.typeHint' => 'Say it in one line, e.g. "beef noodle soup and an egg for lunch"',
 			'record.voice.understanding' => 'Understanding…',
@@ -2742,6 +2773,7 @@ extension on TranslationsEn {
 			'notification.fasting.eatSoon' => 'Eating window opens in 15 min',
 			'notification.fasting.eatStart' => ({required Object date}) => 'Time to eat! This fast counts toward ${date} ✅',
 			'notification.fasting.fastStart' => 'Your fasting window has started — you\'re doing great, keep it up!',
+			'notification.water.hourly' => ({required Object ml, required Object remaining}) => 'Time for water! Aim for ${ml} ml — ${remaining} ml to go today',
 			'nutrition.data.dateSwitcher.prevDay' => 'Previous day',
 			'nutrition.data.dateSwitcher.nextDay' => 'Next day',
 			'nutrition.data.dateSwitcher.backToToday' => 'Back to today',
@@ -2805,13 +2837,13 @@ extension on TranslationsEn {
 			'nutrition.signalCard.advice.fat.zero' => 'No fat logged yet — did a meal slip by?',
 			'nutrition.signalCard.advice.meal.breakfast' => 'add an egg or a glass of soy milk at breakfast',
 			'nutrition.signalCard.advice.meal.lunch' => 'go for a palm-size portion of lean meat or tofu at lunch',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.signalCard.advice.meal.dinner' => 'pick something steamed or lightly poached for dinner, and stop at 80% full',
 			'nutrition.signalCard.advice.meal.snack' => 'grab a handful of nuts or a yogurt as a snack',
 			'reports.title' => 'Trends & reports',
 			'reports.entry' => 'Trends & deep reports',
 			'reports.trend.title' => 'Growth trends',
-			_ => null,
-		} ?? switch (path) {
 			'reports.trend.dim.weight' => 'Weight',
 			'reports.trend.dim.kcal' => 'Calories',
 			'reports.trend.dim.fasting' => 'Fasting',
@@ -2991,6 +3023,8 @@ extension on TranslationsEn {
 			'settings.bodyProfile.bmi.unitHint' => 'Weight is in kilograms — if you entered it in jin, please correct your weight',
 			'settings.reminders.notifications' => 'Notification settings',
 			'settings.reminders.notificationsSubtitle' => 'Manage notification permission in system settings',
+			'settings.reminders.waterHourly' => 'Water reminders',
+			'settings.reminders.waterHourlySubtitle' => 'Hourly nudges during your eating window, sized to your remaining goal',
 			'settings.about.version' => 'Version',
 			'settings.about.disclaimer' => 'Disclaimer & special groups',
 			'settings.about.checkUpdate' => 'Check for updates',

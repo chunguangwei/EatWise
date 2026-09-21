@@ -153,6 +153,8 @@ void main() {
   testWidgets('空表单校验：菜名必填 + 四营养必填 >0', (tester) async {
     await pumpPage(tester);
     await openSheet(tester);
+    // 搜索词已预填菜名（走查修：空态 CTA initialName）；清空验证必填。
+    await enterSheetField(tester, 0, '');
 
     await tapSave(tester);
 

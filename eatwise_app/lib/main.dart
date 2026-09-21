@@ -13,6 +13,7 @@ import 'package:eatwise/core/network/cert_pinning.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/network/token_store.dart';
 import 'package:eatwise/core/notification/local_notification_service.dart';
+import 'package:eatwise/core/notification/notification_types.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/food_seed_loader.dart';
 import 'package:eatwise/core/storage/providers.dart';
@@ -33,6 +34,7 @@ import 'package:eatwise/features/legal/data/privacy_consent_store.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
+import 'package:eatwise/features/record/application/water_reminder_planner.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/settings/application/settings_prefs_sync.dart';
@@ -95,6 +97,9 @@ Future<void> main() async {
   try {
     await notificationService.initialize(
       channel: fastingReminderChannel(LocaleSettings.currentLocale.buildSync()),
+      extraChannels: <NotificationChannelConfig>[
+        waterReminderChannel(LocaleSettings.currentLocale.buildSync()),
+      ],
     );
   } on Object {
     // 防御：通知插件初始化失败时计时照常，提醒功能降级。

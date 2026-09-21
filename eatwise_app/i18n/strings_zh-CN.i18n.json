@@ -8,6 +8,10 @@
       "general": {
         "name": "常规提醒",
         "description": "App 的一般性提醒"
+      },
+      "waterReminders": {
+        "name": "喝水提醒",
+        "description": "进食窗口内的每小时喝水提醒"
       }
     },
     "permissionBanner": "开启通知，到点提醒你进食与断食",
@@ -194,7 +198,8 @@
     "search": {
       "hint": "搜索食物（中文或英文）",
       "empty": "没找到？换个关键词试试",
-      "clear": "清空搜索"
+      "clear": "清空搜索",
+      "addRow": "添加「${query}」为自定义食物"
     },
     "amount": {
       "label": "份量（克）",
@@ -291,6 +296,7 @@
       "deniedTitle": "麦克风未授权",
       "deniedBody": "开不了语音也能记，打字搜一样快",
       "noMatch": "没听出是什么食物，换个说法或手动搜索",
+      "noMatchTyped": "没找到匹配的食物，换个说法搜索或添加自定义食物",
       "typeInput": "键盘输入",
       "typeHint": "说一句，比如「中午吃了一碗牛肉面加个蛋」",
       "understanding": "理解中…",
@@ -583,6 +589,9 @@
       "eatSoon": "还有 15 分钟就可以进食啦",
       "eatStart": "可以进食啦，本次断食计入 ${date} ✅",
       "fastStart": "断食窗口开始啦，今天也很棒，加油坚持～"
+    },
+    "water": {
+      "hourly": "该喝水啦～建议喝 ${ml} 毫升，今天还差 ${remaining} 毫升"
     }
   },
   "nutrition": {
@@ -915,7 +924,9 @@
     },
     "reminders": {
       "notifications": "通知设置",
-      "notificationsSubtitle": "前往系统设置管理通知权限"
+      "notificationsSubtitle": "前往系统设置管理通知权限",
+      "waterHourly": "喝水提醒",
+      "waterHourlySubtitle": "进食窗口内每小时提醒，按剩余目标量建议饮水量"
     },
     "about": {
       "version": "版本",

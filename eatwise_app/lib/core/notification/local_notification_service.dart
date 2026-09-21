@@ -40,7 +40,11 @@ class LocalNotificationService implements NotificationService {
       >();
 
   @override
-  Future<void> initialize({NotificationChannelConfig? channel}) async {
+  Future<void> initialize({
+    NotificationChannelConfig? channel,
+    List<NotificationChannelConfig> extraChannels =
+        const <NotificationChannelConfig>[],
+  }) async {
     final effective = channel ?? fallbackChannel;
     _channel = effective;
     const androidSettings = AndroidInitializationSettings(
@@ -60,14 +64,19 @@ class LocalNotificationService implements NotificationService {
       ),
     );
     if (_isAndroid) {
-      await _android?.createNotificationChannel(
-        AndroidNotificationChannel(
-          effective.id,
-          effective.name,
-          description: effective.description,
-          importance: Importance.high,
-        ),
-      );
+      for (final c in <NotificationChannelConfig>[
+        effective,
+        ...extraChannels.where((e) => e.id != effective.id),
+      ]) {
+        await _android?.createNotificationChannel(
+          AndroidNotificationChannel(
+            c.id,
+            c.name,
+            description: c.description,
+            importance: Importance.high,
+          ),
+        );
+      }
     }
   }
 

@@ -15,7 +15,11 @@ final class FakeNotificationService implements NotificationService {
       NotificationPermissionStatus.granted;
 
   @override
-  Future<void> initialize({NotificationChannelConfig? channel}) async {
+  Future<void> initialize({
+    NotificationChannelConfig? channel,
+    List<NotificationChannelConfig> extraChannels =
+        const <NotificationChannelConfig>[],
+  }) async {
     calls.add('initialize');
   }
 

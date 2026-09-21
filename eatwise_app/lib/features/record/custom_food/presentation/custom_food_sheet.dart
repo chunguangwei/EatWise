@@ -35,6 +35,7 @@ Future<void> startCustomFoodFlow(
   BuildContext context,
   WidgetRef ref, {
   String? barcodeAlias,
+  String? initialName,
 }) async {
   final cs = CustomFoodStrings.of(context);
   // 联网机会窗口：opportunistic 重试离线期间落本地的 pending 自定义食物
@@ -47,7 +48,10 @@ Future<void> startCustomFoodFlow(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
       ),
-      child: CustomFoodSheet(initialAlias: barcodeAlias),
+      child: CustomFoodSheet(
+        initialAlias: barcodeAlias,
+        initialName: initialName,
+      ),
     ),
   );
   if (result == null || !context.mounted) return;
@@ -137,10 +141,18 @@ Future<void> contributeCustomFood(
 /// 每 100g 四营养，隐藏别名/AI 估算/拍营养表/共享勾选，保存提交
 /// /foods/:id/correction（建议值入众包审核池）。
 class CustomFoodSheet extends ConsumerStatefulWidget {
-  const CustomFoodSheet({super.key, this.initialAlias, this.correctionTarget});
+  const CustomFoodSheet({
+    super.key,
+    this.initialAlias,
+    this.initialName,
+    this.correctionTarget,
+  });
 
   /// 预填别名（可选，扫码未收录时传入条码号）。
   final String? initialAlias;
+
+  /// 预填菜名（可选，记录页「添加食物」入口传入当前搜索词/语音原文）。
+  final String? initialName;
 
   /// 纠错目标食物（非空即纠错模式）。
   final Food? correctionTarget;
@@ -174,6 +186,8 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
       _proteinController.text = _formatNumber(target.proteinPer100g);
       _carbController.text = _formatNumber(target.carbPer100g);
       _fatController.text = _formatNumber(target.fatPer100g);
+    } else if (widget.initialName != null) {
+      _nameController.text = widget.initialName!;
     }
   }
 

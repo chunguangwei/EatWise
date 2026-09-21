@@ -8,8 +8,13 @@ abstract class NotificationService {
   /// 初始化插件并（Android）注册通知渠道。
   ///
   /// [channel] 为默认渠道；后续 [scheduleZoned]/[showNow] 未显式指定
-  /// 渠道时使用。渠道名/描述为 i18n 文案，由调用方解析后传入。
-  Future<void> initialize({NotificationChannelConfig? channel});
+  /// 渠道时使用。[extraChannels] 为需一并注册的附加渠道（如喝水提醒）。
+  /// 渠道名/描述为 i18n 文案，由调用方解析后传入。
+  Future<void> initialize({
+    NotificationChannelConfig? channel,
+    List<NotificationChannelConfig> extraChannels =
+        const <NotificationChannelConfig>[],
+  });
 
   /// 申请通知权限（用时申请，合规 §3：不随启动一股脑申请）。
   ///
