@@ -4,6 +4,7 @@ import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/notification/notification_types.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_scheduler.dart';
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
+import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart'
     show fastingCycleStoreProvider, fastingNotificationSchedulerProvider;
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
@@ -53,10 +54,11 @@ final class WaterReminderEnabledController extends StateNotifier<bool> {
   }
 }
 
-/// 触发一轮「含喝水计划」的全量通知重排（喝水入账/开关翻转入口）。
+/// 触发一轮「含喝水提醒」的全量通知重排（喝水入账/撤销/开关翻转入口）。
 ///
-/// 走断食调度器单入口：plan 取当前生效方案（null 时重排只清空，与
-/// NO_PLAN 语义一致）；失败静默（提醒降级不阻断记录主流程）。
+/// 走断食调度器单入口（NO_PLAN 时断食侧清空、喝水侧按兜底窗口照排，见
+/// [FastingNotificationScheduler.reschedule]）；失败静默（提醒降级不
+/// 阻断记录主流程）。
 void rescheduleWaterReminders(WidgetRef ref) {
   try {
     final plan = ref.read(onboardingStoreProvider).loadActivePlan()?.plan;
@@ -116,7 +118,7 @@ NotificationServiceWaterText slangWaterReminderText(
 /// 喝水提醒文案元组（避免裸 record 类型漂移）。
 typedef NotificationServiceWaterText = ({String title, String body});
 
-/// 排程计划生成器：开关关 / 无生效方案 / 权限降级（调用方保证）时为空。
+/// 排程计划生成器：开关关 / 权限降级（调用方保证）时为空。
 ///
 /// 挂 [FastingNotificationScheduler.extraPlanner]：每次断食重排（启动、
 /// 回前台、方案变更、喝水入账、系统事件）都会带一轮喝水计划重建——
@@ -126,8 +128,12 @@ final waterReminderExtraPlannerProvider =
       return () async {
         final store = ref.read(waterReminderStoreProvider);
         if (!store.isEnabled) return const <ScheduledNotification>[];
-        final plan = ref.read(onboardingStoreProvider).loadActivePlan()?.plan;
-        if (plan == null) return const <ScheduledNotification>[];
+        final plan =
+            // NO_PLAN（跳过引导/未启动断食）回落 16:8 进食窗口（D-03 同款
+            // 兜底口径）——此类用户全程「非断食」，恰是喝水提醒目标人群，
+            // 不能因无生效方案就整日静默。
+            ref.read(onboardingStoreProvider).loadActivePlan()?.plan ??
+            FastingPlan.plan16x8;
         final location = ref.read(deviceLocationProvider);
         final nowUtcSec = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
         final today = localDateOf(nowUtcSec, location);

@@ -70,8 +70,8 @@ int waterReminderNotificationId(int triggerAtUtcSec) =>
 
 /// 生成未来 [horizonSec] 内的喝水提醒计划。
 ///
-/// - [plan]：生效断食方案（进食窗口来源；调用方在 NO_PLAN 时不应调用本
-///   函数——与断食调度器 plan==null 清空语义一致）；
+/// - [plan]：生效断食方案（进食窗口来源；NO_PLAN 用户由调用方按 D-03
+///   口径回落 `FastingPlan.plan16x8` 后传入）；
 /// - [alreadyMl]：**今日**（[nowUtcSec] 归属日）已摄入毫升数；次日按 0 计；
 /// - [goalMl]：每日目标（与 `WaterLogRepository.dailyGoalMl` 同口径）；
 /// - [intervalSec]：提醒间隔（默认 1h，对齐本地整点）。
