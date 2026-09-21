@@ -188,6 +188,7 @@ export class FastingService {
     if (ongoing) return ongoing;
     const plannedEndAt = win.eatingStartAt;
     const existing = await this.driver.findFastingRecordByPlannedEnd(userId, plannedEndAt);
+    if (existing) return existing;
     // 断食开始 = 上一周期进食窗口的止点：起点日为归属日前一日的窗口（跨午夜窗口止点落次日）
     const prevWindow = windowFor(addDays(localDateOf(plannedEndAt, tz), -1), plan, tz);
     const plannedStartAt = prevWindow.eatingEndAt;
