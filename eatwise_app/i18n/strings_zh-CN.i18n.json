@@ -503,7 +503,7 @@
       "attributionEating": "下一段断食将计入 ${date}",
       "extendedBadge": "已延长 +${minutes} 分钟",
       "extendLimit": "单次最多延长 4 小时",
-      "planTag": "${id} · 进食窗口 ${start}–${end}",
+      "planTag": "断食 ${fast} 小时 · 进食窗口 ${start}–${end}",
       "pendingPlanEdit": "修改",
       "pendingPlanApply": "立即应用",
       "pendingPlanApplied": "新方案已立即生效",

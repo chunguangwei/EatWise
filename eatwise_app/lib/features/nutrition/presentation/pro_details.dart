@@ -234,12 +234,17 @@ class _Row extends StatelessWidget {
       children: <Widget>[
         for (var i = 0; i < cells.length; i++)
           Expanded(
-            flex: i == 0 ? 3 : 4,
+            // 走查修复：热量行数字（如 1850 千卡）曾被挤成「18…」——
+            // 首列（名称）收窄，数值列加宽。
+            flex: i == 0 ? 2 : 5,
             child: Text(
               cells[i],
               style: i == 0 ? (firstCellStyle ?? style) : style,
               maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+              overflow: i == 0
+                  ? TextOverflow.ellipsis
+                  : TextOverflow.clip, // 数值列宁可不挤也不要「…」
               textAlign: i == 0 ? TextAlign.start : TextAlign.end,
             ),
           ),

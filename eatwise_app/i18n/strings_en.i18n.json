@@ -503,7 +503,7 @@
       "attributionEating": "Your next fast will count toward ${date}",
       "extendedBadge": "Extended +${minutes} min",
       "extendLimit": "You can extend by up to 4 hours per fast",
-      "planTag": "${id} · Eating window ${start}–${end}",
+      "planTag": "${fast}-hour fast · Eating window ${start}–${end}",
       "pendingPlanEdit": "Edit",
       "pendingPlanApply": "Apply now",
       "pendingPlanApplied": "New plan applied immediately",

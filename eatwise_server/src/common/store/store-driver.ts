@@ -543,6 +543,16 @@ export class MemoryStoreDriver extends StoreDriver {
         postsAnonymized += 1;
       }
     }
+    // 审核队列条目无 userId（仅 postId 关联），按该用户帖集合定位删除；
+    // 含已 tombstone 帖（帖子留存但队列条目属个人派生数据，随账号清除；prisma 驱动同口径）
+    const ownedPostIds = new Set(
+      [...this.store.posts.values()].filter((p) => p.userId === userId).map((p) => p.id),
+    );
+    for (let i = this.store.moderationQueue.length - 1; i >= 0; i--) {
+      if (ownedPostIds.has(this.store.moderationQueue[i].postId)) {
+        this.store.moderationQueue.splice(i, 1);
+      }
+    }
     // 点赞/举报幂等键清除
     for (const key of [...this.store.postLikes]) {
       if (key.endsWith(`|${userId}`)) this.store.postLikes.delete(key);

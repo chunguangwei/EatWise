@@ -24,6 +24,30 @@ class FastingRecordDao extends DatabaseAccessor<AppDatabase>
         .getSingleOrNull();
   }
 
+  /// 登录换挂（审计#1 匿名数据迁移）：userId 与 localId
+  /// （= `userId-attributionDate`，主键）随归属一并改写。
+  /// UPDATE OR IGNORE：若 uid 名下已存在同归属日记录撞主键则跳过该行
+  /// （理论不存在——匿名期服务端无该用户数据，下行也不会把真实 uid 的
+  /// 断食记录带进匿名命名空间），残留的 anonymous 行随后删除（同日以
+  /// uid 侧为准）。返回换挂行数。
+  Future<int> reassignUser(String fromUserId, String toUserId) async {
+    final moved = await customUpdate(
+      'UPDATE OR IGNORE fasting_records '
+      "SET user_id = ?, local_id = ? || '-' || attribution_date "
+      'WHERE user_id = ?',
+      variables: <Variable<Object>>[
+        Variable<String>(toUserId),
+        Variable<String>(toUserId),
+        Variable<String>(fromUserId),
+      ],
+      updates: <ResultSetImplementation<Object?, Object?>>{fastingRecords},
+    );
+    await (delete(
+      fastingRecords,
+    )..where((r) => r.userId.equals(fromUserId))).go();
+    return moved;
+  }
+
   /// 指定用户的全部达标归属日（含已补签），streak 本地推演数据源。
   Future<Set<String>> qualifiedDates(String userId) async {
     final rows =

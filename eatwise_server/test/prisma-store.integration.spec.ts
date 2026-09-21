@@ -250,7 +250,14 @@ describePg('PrismaStore（集成，真实 PostgreSQL）', () => {
         payload: { eatenAt: new Date().toISOString(), foodId: foodA, grams: 100 },
       },
     ]);
-    await prisma.post.create({ data: { userId, text: '打卡', imageUrls: [] } });
+    const itPost = await prisma.post.create({ data: { userId, text: '打卡', imageUrls: [] } });
+    // 审核队列条目仅经 postId 关联，U5 须随该用户帖集合清除
+    await store.enqueueModerationItem({
+      postId: itPost.id,
+      source: 'report',
+      reason: '举报复核',
+      createdAt: new Date(),
+    });
     await store.createWaterLog(waterLog());
     // 运动记录（2026-09-19 拍板上行：U3 导出含 exerciseLogs，U5 随账号清除）
     const now = new Date();
@@ -324,6 +331,8 @@ describePg('PrismaStore（集成，真实 PostgreSQL）', () => {
     // 个人自定义食物与贡献候选随账号清除
     expect(await prisma.food.count({ where: { createdByUserId: userId, isCustom: true } })).toBe(0);
     expect(await prisma.foodCandidate.count({ where: { userId } })).toBe(0);
+    // 审核队列条目随该用户帖集合清除（帖匿名化留存，队列条目不留存）
+    expect(await prisma.moderationQueue.count({ where: { postId: itPost.id } })).toBe(0);
     expect(await store.collectUserExport(userId)).toBeNull();
   });
 });

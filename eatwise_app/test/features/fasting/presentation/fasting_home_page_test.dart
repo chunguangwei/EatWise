@@ -130,7 +130,7 @@ void main() {
     expect(find.text('04:00:00'), findsOneWidget);
     expect(find.text('断食中'), findsOneWidget);
     expect(find.text('本次断食计入 7月28日'), findsOneWidget);
-    expect(find.text('16:8 · 进食窗口 12:00–20:00'), findsOneWidget);
+    expect(find.text('断食 16 小时 · 进食窗口 12:00–20:00'), findsOneWidget);
     expect(
       tester
           .widget<FilledButton>(find.widgetWithText(FilledButton, '结束断食'))
@@ -321,21 +321,13 @@ void main() {
     expect(find.text('End fast'), findsOneWidget);
     expect(find.text('Extend'), findsOneWidget);
     expect(find.text('This fast counts toward Jul 28'), findsOneWidget);
-    expect(find.text('16:8 · Eating window 12:00–20:00'), findsOneWidget);
+    expect(
+      find.text('16-hour fast · Eating window 12:00–20:00'),
+      findsOneWidget,
+    );
 
     await unmount(tester);
     await LocaleSettings.setLocale(AppLocale.zhCn);
-  });
-
-  testWidgets('FAB 跳记录（/record）', (tester) async {
-    await pumpHome(tester);
-
-    await tester.tap(find.byType(FloatingActionButton));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('RECORD_STUB'), findsOneWidget);
-
-    await unmount(tester);
   });
 
   testWidgets('大字体回归：390×844 + textScaler 1.3 无溢出（真机 iPhone 13 反馈）', (
@@ -347,6 +339,7 @@ void main() {
     // 倒计时经 FittedBox(scaleDown) 收缩在环内径内，不产生 overflow 异常。
     expect(find.byType(CountdownText), findsOneWidget);
     expect(find.text('04:00:00'), findsOneWidget);
+
     final boxWidth = tester.getSize(find.byType(CountdownText)).width;
     expect(boxWidth, lessThanOrEqualTo(CountdownText.maxWidth));
 
@@ -463,7 +456,7 @@ void main() {
       find.byKey(const ValueKey<String>('fasting.pendingPlanBanner')),
       findsNothing,
     );
-    expect(find.text('14:10 · 进食窗口 10:00–20:00'), findsOneWidget);
+    expect(find.text('断食 14 小时 · 进食窗口 10:00–20:00'), findsOneWidget);
     await unmount(tester);
   });
 

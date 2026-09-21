@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_api.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
+import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/fasting/domain/window_rules.dart';
@@ -16,17 +17,60 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../fasting/tz_test_helper.dart';
 
-/// 记录 PUT 调用并可控失败的假 API。
+/// 记录 PUT/GET/extend 调用并可控失败的假 API。
 class _FakeApi implements FastingPlanApi {
-  _FakeApi({this.fail = false});
+  _FakeApi({this.fail = false, this.current});
 
   final bool fail;
+
+  /// [FastingPlanApi.fetchCurrent] 的返回值（null = 无方案可回填）。
+  final FastingPlan? current;
+
+  /// 非 null 时 [FastingPlanApi.extendFast] / [fetchCurrent] 抛该异常。
+  Object? error;
+
+  /// [FastingPlanApi.fetchActiveRecordId] 的返回值。
+  String? activeRecordId = 'srv-r1';
+
   final List<FastingPlan> puts = <FastingPlan>[];
+  final List<({String clientRequestId, String recordId, int extendMinutes})>
+  extends_ = <({String clientRequestId, String recordId, int extendMinutes})>[];
+  int fetchCurrentCalls = 0;
 
   @override
   Future<void> putCurrent(FastingPlan plan) async {
     puts.add(plan);
     if (fail) throw const NetworkApiException();
+  }
+
+  @override
+  Future<FastingPlan?> fetchCurrent() async {
+    fetchCurrentCalls++;
+    final e = error;
+    if (e != null) throw e;
+    return current;
+  }
+
+  @override
+  Future<String?> fetchActiveRecordId() async {
+    final e = error;
+    if (e != null) throw e;
+    return activeRecordId;
+  }
+
+  @override
+  Future<void> extendFast({
+    required String clientRequestId,
+    required String recordId,
+    required int extendMinutes,
+  }) async {
+    extends_.add((
+      clientRequestId: clientRequestId,
+      recordId: recordId,
+      extendMinutes: extendMinutes,
+    ));
+    final e = error;
+    if (e != null) throw e;
   }
 }
 
@@ -139,6 +183,202 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(api.puts.single, plan10.toFastingPlan());
       expect(prefs.getString(dirtyKey), isNotNull);
+    });
+  });
+
+  group('pull 下行回填（重装/换机）', () {
+    final custom8 = FastingPlan(
+      id: '16:8@09:00',
+      eatStartMinutes: 540,
+      eatEndMinutes: 1020,
+    );
+
+    FastingPlanSync buildPullSync(
+      _FakeApi api, {
+      OnboardingStore? store,
+      String uid = 'u1',
+      void Function()? onApplied,
+    }) => FastingPlanSync(
+      api: api,
+      prefs: prefs,
+      userId: () => uid,
+      onboardingStore: store,
+      onPlanApplied: onApplied,
+      nowUtc: () => fixedNowUtc,
+      location: () => bjt,
+    );
+
+    test('未登录 no-op：不发 GET', () async {
+      final api = _FakeApi(current: custom8);
+      final store = InMemoryOnboardingStore();
+      await buildPullSync(api, store: store, uid: 'anonymous').pull();
+      expect(api.fetchCurrentCalls, 0);
+      expect(store.loadActivePlan(), isNull);
+    });
+
+    test('本地已有生效方案：不覆盖', () async {
+      final api = _FakeApi(current: custom8);
+      final store = InMemoryOnboardingStore();
+      store.saveActivePlan(
+        ActivePlanSnapshot(
+          plan: FastingPlan.plan14x10,
+          initialState: 'fasting',
+          startedAtUtc: fixedNowUtc,
+        ),
+      );
+      await buildPullSync(api, store: store).pull();
+      expect(api.fetchCurrentCalls, 0); // 存在性短路，连 GET 都不发
+      expect(store.loadActivePlan()!.plan, FastingPlan.plan14x10);
+    });
+
+    test('本地无方案：回填 + 放行引导 + 回调；重复 pull 幂等', () async {
+      final api = _FakeApi(current: custom8);
+      final store = InMemoryOnboardingStore();
+      var applied = 0;
+      final sync = buildPullSync(api, store: store, onApplied: () => applied++);
+      await sync.pull();
+      final saved = store.loadActivePlan()!;
+      expect(saved.plan, custom8);
+      expect(saved.startedAtUtc, fixedNowUtc);
+      // 快照字段与 resolveState 口径一致（假时钟 fixedNowUtc 落点）。
+      final expected = resolveState(fixedNowUtc, custom8, bjt);
+      expect(saved.initialState, expected.state.name);
+      expect(saved.targetUtc, expected.targetUtc);
+      expect(saved.attributionDate, expected.attributionPreview?.toIsoString());
+      expect(store.isOnboardingCompleted, isTrue);
+      // 二次 pull：本地已有方案 → 不再回填、不再回调。
+      await sync.pull();
+      expect(applied, 1);
+    });
+
+    test('服务端无可重建方案 / 拉取失败：静默不回填', () async {
+      final store = InMemoryOnboardingStore();
+      await buildPullSync(_FakeApi(), store: store).pull(); // current=null
+      expect(store.loadActivePlan(), isNull);
+
+      final failing = _FakeApi(current: custom8)
+        ..error = const NetworkApiException();
+      await buildPullSync(failing, store: store).pull();
+      expect(store.loadActivePlan(), isNull);
+      expect(store.isOnboardingCompleted, isFalse);
+    });
+
+    test('引导存储未装配：no-op 不抛', () async {
+      final api = _FakeApi(current: custom8);
+      await buildPullSync(api).pull();
+      expect(api.fetchCurrentCalls, 0);
+    });
+  });
+
+  group('F3 延长队列（queueExtend + flush 重放）', () {
+    const extendKey = 'fasting_extend_pending_u1';
+    const anonExtendKey = 'fasting_extend_pending_anonymous';
+
+    void seedQueue(String key, List<Map<String, Object?>> items) {
+      prefs.setString(key, jsonEncode(items));
+    }
+
+    Map<String, Object?> item({
+      String cid = 'c1',
+      String rid = 'r1',
+      int min = 30,
+    }) => <String, Object?>{
+      'clientRequestId': cid,
+      'recordId': rid,
+      'extendMinutes': min,
+    };
+
+    test('queueExtend：落 prefs；同一 clientRequestId 去重', () async {
+      final sync = buildSync(_FakeApi());
+      await sync.queueExtend(
+        recordId: 'r1',
+        clientRequestId: 'c1',
+        extendMinutes: 30,
+      );
+      await sync.queueExtend(
+        recordId: 'r1',
+        clientRequestId: 'c1',
+        extendMinutes: 30,
+      );
+      final raw = prefs.getString(extendKey)!;
+      expect(jsonDecode(raw), hasLength(1));
+    });
+
+    test('flush：队列重放成功后清键', () async {
+      final api = _FakeApi();
+      seedQueue(extendKey, [item()]);
+      await buildSync(api).flush();
+      expect(api.extends_.single.recordId, 'r1');
+      expect(prefs.getString(extendKey), isNull);
+    });
+
+    test('flush：网络失败保留队列；终态码丢弃该项', () async {
+      final network = _FakeApi()..error = const NetworkApiException();
+      seedQueue(extendKey, [item()]);
+      await buildSync(network).flush();
+      expect(prefs.getString(extendKey), contains('c1'));
+
+      final terminal = _FakeApi()
+        ..error = const BusinessApiException(
+          httpStatus: 409,
+          code: 'FASTING_ALREADY_ENDED',
+          message: 'ended',
+        );
+      await buildSync(terminal).flush();
+      expect(prefs.getString(extendKey), isNull); // 终态丢弃
+    });
+
+    test('flush：pending recordId 重放前补解析', () async {
+      final api = _FakeApi();
+      seedQueue(extendKey, [item(rid: FastingPlanSync.kPendingRecordId)]);
+      await buildSync(api).flush();
+      expect(api.extends_.single.recordId, 'srv-r1'); // fake 解析值
+      expect(prefs.getString(extendKey), isNull);
+    });
+
+    test('flush：方案 PUT 失败仍重放延长队列，并按原契约抛出', () async {
+      final api = _FakeApi(fail: true)..error = null; // fail 只影响 putCurrent
+      await prefs.setString(
+        dirtyKey,
+        jsonEncode(<String, Object?>{
+          'planId': plan10.planId,
+          'eatStartMinutes': 540,
+          'eatEndMinutes': 1140,
+        }),
+      );
+      seedQueue(extendKey, [item()]);
+      await expectLater(buildSync(api).flush(), throwsA(isA<ApiException>()));
+      expect(api.extends_.single.clientRequestId, 'c1'); // 队列未被 PUT 失败阻断
+      expect(prefs.getString(extendKey), isNull);
+      expect(prefs.getString(dirtyKey), isNotNull); // 脏保留
+    });
+
+    test('匿名队列在登录后迁移重放', () async {
+      final api = _FakeApi();
+      var uid = 'anonymous';
+      final sync = FastingPlanSync(api: api, prefs: prefs, userId: () => uid);
+      await sync.queueExtend(
+        recordId: 'r1',
+        clientRequestId: 'c1',
+        extendMinutes: 30,
+      );
+      expect(prefs.getString(anonExtendKey), contains('c1'));
+      await sync.flush();
+      expect(api.extends_, isEmpty); // 匿名不上行
+
+      uid = 'u1';
+      await sync.flush();
+      expect(api.extends_.single.clientRequestId, 'c1');
+      expect(prefs.getString(anonExtendKey), isNull);
+      expect(prefs.getString(extendKey), isNull);
+    });
+
+    test('队列损坏清键；空队列 no-op', () async {
+      final api = _FakeApi();
+      await prefs.setString(extendKey, 'not-json');
+      await buildSync(api).flush();
+      expect(prefs.getString(extendKey), isNull);
+      expect(api.extends_, isEmpty);
     });
   });
 

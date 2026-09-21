@@ -152,7 +152,9 @@ class SignalCardsGrid extends StatelessWidget {
   }
 }
 
-/// 单张信号卡：营养名 + 大数值（已摄入/目标）+ 三重编码落区 + 一句话建议。
+/// 单张信号卡（走查反馈紧凑版）：营养名 + 大数值（已摄入/目标）+
+/// 三重编码落区徽标。一句话建议不再占卡面（卡片过大主因），收进徽标：
+/// 点小徽标弹详情对话框读全警示/建议文案。
 class SignalCard extends StatelessWidget {
   const SignalCard({
     required this.nutrient,
@@ -211,6 +213,36 @@ class SignalCard extends StatelessWidget {
       mealAction: mealActionTextFor(t, mealSegment),
     );
 
+    void openAdviceDialog() {
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          key: ValueKey<String>('signal.advice.$nutrient'),
+          title: Row(
+            children: <Widget>[
+              Icon(zoneIcon, color: zoneColor, size: 20),
+              const SizedBox(width: AppSpacing.s2),
+              Expanded(
+                child: Text(
+                  '$name · $zoneLabel',
+                  style: textStyles.textLg,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          content: Text(advice, style: textStyles.textBase),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(t.common.action.confirm),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Semantics(
       label: '$name $zoneLabel',
       child: Container(
@@ -245,39 +277,47 @@ class SignalCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: AppSpacing.s2),
-            // 三重编码：色 + 图标 + 文字（绝不单靠颜色，PRD M8）。
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.s2,
-                vertical: AppSpacing.s1,
-              ),
-              decoration: BoxDecoration(
-                color: zoneColor.withValues(alpha: 0.16),
+            // 三重编码：色 + 图标 + 文字（绝不单靠颜色，PRD M8）；点徽标
+            // 弹详情对话框读一句话建议（卡片瘦身，警示信息按需查看）。
+            Align(
+              alignment: Alignment.centerLeft,
+              child: InkWell(
+                key: ValueKey<String>('signal.zone.$nutrient'),
                 borderRadius: radii.rFull,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Icon(zoneIcon, color: zoneColor, size: 16),
-                  const SizedBox(width: AppSpacing.s1),
-                  Flexible(
-                    child: Text(
-                      zoneLabel,
-                      style: textStyles.textXs.copyWith(
-                        color: colors.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                onTap: openAdviceDialog,
+                child: Ink(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s2,
+                    vertical: AppSpacing.s1,
                   ),
-                ],
+                  decoration: BoxDecoration(
+                    color: zoneColor.withValues(alpha: 0.16),
+                    borderRadius: radii.rFull,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(zoneIcon, color: zoneColor, size: 16),
+                      const SizedBox(width: AppSpacing.s1),
+                      Flexible(
+                        child: Text(
+                          zoneLabel,
+                          style: textStyles.textXs.copyWith(
+                            color: colors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Icon(
+                        Icons.info_outline,
+                        color: colors.textSecondary,
+                        size: 14,
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.s2),
-            // 一句话建议：四态规范 4.1 —— 不允许截断，由文案长度上限约束。
-            Text(
-              advice,
-              style: textStyles.textSm.copyWith(color: colors.textSecondary),
             ),
           ],
         ),

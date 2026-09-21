@@ -1,4 +1,7 @@
+import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_scheduler.dart';
+import 'package:eatwise/features/fasting/data/fasting_plan_api.dart';
+import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
@@ -6,6 +9,7 @@ import 'package:eatwise/features/fasting/presentation/fasting_cycle_store.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
+import 'package:eatwise/features/streak/application/streak_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,7 +19,6 @@ import '../tz_test_helper.dart';
 import 'fasting_presentation_test_helper.dart';
 
 /// FastingTimerController 单测（假时钟 + 内存存储 + 可断言调度器）。
-///
 /// 时间线约定：Asia/Shanghai，方案 16:8（进食 12:00–20:00 本地）；
 /// 2026-07-28 本地 12:00 = UTC 04:00，本地 20:00 = UTC 12:00。
 void main() {
@@ -121,6 +124,87 @@ void main() {
       );
       expect(scheduler.rescheduleCalls.last.extensionMinutes, 30);
       expect(scheduler.rescheduleCalls.last.plan, FastingPlan.plan16x8);
+    });
+
+    test('F3 上报：登录态延长成功后异步上报本次增量（30），不入队', () async {
+      prefs = await seedActivePlanPrefs(startedAtUtc: bjtUtc(27, 12));
+      clock = FakeClock(bjtUtc(28, 0));
+      final api = _FakePlanApi();
+      final container = ProviderContainer(
+        overrides: <Override>[
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          fastingCycleStoreProvider.overrideWithValue(cycleStore),
+          fastingNotificationSchedulerProvider.overrideWithValue(scheduler),
+          fastingClockProvider.overrideWithValue(clock.call),
+          deviceLocationProvider.overrideWithValue(bjt),
+          currentUserIdProvider.overrideWithValue('u1'),
+          fastingPlanSyncProvider.overrideWithValue(
+            FastingPlanSync(api: api, prefs: prefs, userId: () => 'u1'),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(fastingTimerControllerProvider.notifier).extend(),
+        isTrue,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+
+      // 服务端契约：extendMinutes 是本次增量（步进 30），服务端自行累计。
+      expect(api.extends_.single.extendMinutes, 30);
+      expect(api.extends_.single.recordId, 'srv-r1');
+      // 上报成功：不落待上报队列。
+      expect(prefs.getString('fasting_extend_pending_u1'), isNull);
+    });
+
+    test('F3 上报失败：转入 prefs 队列等同步轮重放（本地延长不回滚）', () async {
+      prefs = await seedActivePlanPrefs(startedAtUtc: bjtUtc(27, 12));
+      clock = FakeClock(bjtUtc(28, 0));
+      final api = _FakePlanApi()..extendError = const NetworkApiException();
+      final container = ProviderContainer(
+        overrides: <Override>[
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          fastingCycleStoreProvider.overrideWithValue(cycleStore),
+          fastingNotificationSchedulerProvider.overrideWithValue(scheduler),
+          fastingClockProvider.overrideWithValue(clock.call),
+          deviceLocationProvider.overrideWithValue(bjt),
+          currentUserIdProvider.overrideWithValue('u1'),
+          fastingPlanSyncProvider.overrideWithValue(
+            FastingPlanSync(api: api, prefs: prefs, userId: () => 'u1'),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(fastingTimerControllerProvider.notifier).extend(),
+        isTrue,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+
+      expect(api.extends_.single.extendMinutes, 30); // 尝试过一次
+      // 本地延长保留（fire-and-forget 不回滚）。
+      expect(cycleStore.loadActiveCycle()!.extendedMinutes, 30);
+      // 入队：recordId 已知直接带上，同步轮 flush 原样重放。
+      expect(
+        prefs.getString('fasting_extend_pending_u1'),
+        allOf(contains('srv-r1'), contains('"extendMinutes":30')),
+      );
+    });
+
+    test('F3 匿名/未装配同步栈：延长主流程不受影响、零上行零入队', () async {
+      prefs = await seedActivePlanPrefs(startedAtUtc: bjtUtc(27, 12));
+      clock = FakeClock(bjtUtc(28, 0));
+      final container = await buildContainer(); // 无 currentUserId/sync override
+
+      expect(
+        container.read(fastingTimerControllerProvider.notifier).extend(),
+        isTrue,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+      expect(cycleStore.loadActiveCycle()!.extendedMinutes, 30);
+      expect(prefs.getString('fasting_extend_pending_u1'), isNull);
     });
 
     test('累计 4h 上限：第 9 次返回 false（按钮置 disabled，T7）', () async {
@@ -373,4 +457,36 @@ void main() {
       );
     });
   });
+}
+
+/// F3 断言用假方案接口：记录 extend 调用，可注入失败。
+class _FakePlanApi implements FastingPlanApi {
+  String? activeRecordId = 'srv-r1';
+  Object? extendError;
+  final List<({String clientRequestId, String recordId, int extendMinutes})>
+  extends_ = <({String clientRequestId, String recordId, int extendMinutes})>[];
+
+  @override
+  Future<void> putCurrent(FastingPlan plan) async {}
+
+  @override
+  Future<FastingPlan?> fetchCurrent() async => null;
+
+  @override
+  Future<String?> fetchActiveRecordId() async => activeRecordId;
+
+  @override
+  Future<void> extendFast({
+    required String clientRequestId,
+    required String recordId,
+    required int extendMinutes,
+  }) async {
+    extends_.add((
+      clientRequestId: clientRequestId,
+      recordId: recordId,
+      extendMinutes: extendMinutes,
+    ));
+    final e = extendError;
+    if (e != null) throw e;
+  }
 }

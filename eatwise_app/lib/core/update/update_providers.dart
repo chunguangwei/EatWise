@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:eatwise/core/network/cert_pinning.dart';
 import 'package:eatwise/core/network/network_providers.dart';
@@ -14,6 +16,13 @@ import 'package:package_info_plus/package_info_plus.dart';
 final currentAppVersionProvider = Provider<Future<String> Function()>((ref) {
   return () async => (await PackageInfo.fromPlatform()).version;
 });
+
+/// 应用内更新检查是否适用于当前平台（2026-09-21 产品决策）：iOS 更新
+/// 完全依赖 App Store，端内不提供「检查更新」入口（checker 的 iOS 平台
+/// 门依旧保留作双保险）；测试可覆盖。
+final updateCheckSupportedPlatformProvider = Provider<bool>(
+  (ref) => !Platform.isIOS,
+);
 
 /// 更新检查器（直连 GitHub releases/latest，**裸 Dio**——不走服务端
 /// baseUrl/信封/认证拦截；GitHub 为公共 CA 证书无需 pinning）。

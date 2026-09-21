@@ -3,6 +3,7 @@ import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/health/data/remote_exercise_log_sync.dart';
 import 'package:eatwise/features/record/custom_food/application/contribution_review.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
+import 'package:eatwise/features/record/data/anonymous_data_migrator.dart';
 import 'package:eatwise/features/record/data/daily_nutrition_cache_repair.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/data/remote_record_sync.dart';
@@ -32,6 +33,7 @@ final class RecordSyncEngine {
     this.exerciseSync,
     this.planSync,
     this.cacheRepair,
+    this.anonymousMigrator,
   });
 
   /// 记录仓储。
@@ -66,6 +68,10 @@ final class RecordSyncEngine {
   /// null 跳过）。
   final DailyNutritionCacheRepair? cacheRepair;
 
+  /// 匿名数据换挂迁移器（可选：审计#1——登录首轮同步前把 anonymous 名下
+  /// 记录/prefs 并入真实 uid；未装配为 null 跳过）。
+  final AnonymousDataMigrator? anonymousMigrator;
+
   static const String _tokenKeyPrefix = 'record_sync_token_';
 
   /// 聚合缓存全量回填完成标记（每用户每安装一次；标记后每次 syncNow
@@ -81,6 +87,17 @@ final class RecordSyncEngine {
     if (_syncing) return;
     _syncing = true;
     try {
+      // 匿名数据换挂（审计#1）先于一切上行/下行：登录首轮把试用期的
+      // anonymous 名下记录并入真实 uid（否则 pending 永远不上行、
+      // 页面假空）。仅登录态；失败静默（迁移器内部标记未落则下轮重试），
+      // 不阻断同步主链。
+      if (repository.userId != 'anonymous') {
+        try {
+          await anonymousMigrator?.migrateIfNeeded(repository.userId);
+        } on Object {
+          // 迁移失败降级为「维持现状」，下轮 syncNow 重试（标记未落）。
+        }
+      }
       // 断食方案上行（进食窗口自选）：脏标记存在时 PUT（仅登录态——
       // 匿名必 401，脏标记保留待登录后同步轮迁移上行）。失败保留重试。
       try {

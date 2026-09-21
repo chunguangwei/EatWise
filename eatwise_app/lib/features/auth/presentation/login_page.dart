@@ -7,6 +7,7 @@ import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/auth/presentation/auth_error.dart';
+import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/settings/application/settings_prefs_sync.dart';
 import 'package:flutter/material.dart';
@@ -102,6 +103,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       unawaited(ref.read(settingsPrefsSyncProvider).pull());
     } on Object {
       // 防御：偏好同步未装配时跳过。
+    }
+    // 重装/换机恢复：本地无生效方案时下行回填服务端当前方案（失败静默）。
+    try {
+      unawaited(ref.read(fastingPlanSyncProvider)?.pull());
+    } on Object {
+      // 防御：方案同步未装配时跳过。
     }
   }
 

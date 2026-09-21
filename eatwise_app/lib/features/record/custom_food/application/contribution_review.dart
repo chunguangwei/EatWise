@@ -93,6 +93,57 @@ final class ContributionStatusStore {
       return <String>[];
     }
   }
+
+  /// 登录换挂（审计#1 匿名数据迁移）：anonymous 命名空间并入 [userId]
+  /// 命名空间后删除匿名键。口径：已知状态表（candidateId → 状态）同候选
+  /// 以已登录侧为准（uid 侧 diff 基线更新），驳回通知队列按「uid 侧在前、匿名侧追加」
+  /// 合并（一次性提示不丢失）。匿名期审核同步本不运行（引擎登录态
+  /// 门禁），此换挂兜住旧版本遗留的匿名键。
+  static void migrateAnonymous(SharedPreferences prefs, String userId) {
+    for (final prefix in <String>[_statusPrefix, _noticePrefix]) {
+      final anonKey =
+          '$prefix'
+          'anonymous';
+      final raw = prefs.getString(anonKey);
+      if (raw == null || raw.isEmpty) continue;
+      final targetKey = '$prefix$userId';
+      final ownRaw = prefs.getString(targetKey);
+      var merged = raw;
+      if (prefix == _statusPrefix) {
+        final map = <String, Object?>{};
+        for (final src in <String?>[raw, ownRaw]) {
+          if (src == null || src.isEmpty) continue;
+          try {
+            final decoded = jsonDecode(src);
+            // uid 侧在第二轮：同候选（键）覆盖匿名侧。
+            if (decoded is Map) {
+              for (final e in decoded.entries) {
+                if (e.value is String) map[e.key.toString()] = e.value;
+              }
+            }
+          } on FormatException {
+            // 脏键忽略。
+          }
+        }
+        merged = jsonEncode(map);
+      } else {
+        final list = <String>[];
+        for (final src in <String?>[ownRaw, raw]) {
+          if (src == null || src.isEmpty) continue;
+          try {
+            final decoded = jsonDecode(src);
+            if (decoded is List) list.addAll(decoded.whereType<String>());
+          } on FormatException {
+            // 脏键忽略。
+          }
+        }
+        merged = jsonEncode(list);
+      }
+      // 同步写穿内存缓存（setString 返回前已生效），fire-and-forget。
+      prefs.setString(targetKey, merged);
+      prefs.remove(anonKey);
+    }
+  }
 }
 
 /// 贡献审核状态同步（不做推送：记录同步 / 进入记录页时拉取「我的贡献」，

@@ -222,10 +222,12 @@ class SettingsPage extends ConsumerWidget {
                       ref.watch(appVersionLabelProvider).valueOrNull ?? '…',
                 ),
                 // 应用内更新检查（手动触发，不节流；已是最新弹提示）。
-                _SettingsTile(
-                  title: t.settings.about.checkUpdate,
-                  onTap: () => _checkUpdate(context, ref),
-                ),
+                // iOS 更新完全依赖 App Store，不提供端内入口（2026-09-21）。
+                if (ref.watch(updateCheckSupportedPlatformProvider))
+                  _SettingsTile(
+                    title: t.settings.about.checkUpdate,
+                    onTap: () => _checkUpdate(context, ref),
+                  ),
                 _SettingsTile(
                   title: t.settings.about.disclaimer,
                   onTap: () => context.push('/legal/disclaimer'),

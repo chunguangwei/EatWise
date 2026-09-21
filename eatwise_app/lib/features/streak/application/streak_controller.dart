@@ -66,11 +66,13 @@ final class StreakUiState {
   final String? pendingBreakPopupDate;
 }
 
-/// 本地存储（生产 SharedPreferences；未注入场景降级内存，不阻断主流程）。
+/// 本地存储（生产 SharedPreferences，键按当前用户命名空间；未注入场景
+/// 降级内存，不阻断主流程）。构造期一次性迁移旧全局键（审计#6）。
 final streakLocalStoreProvider = Provider<StreakLocalStore>((ref) {
   try {
     return SharedPreferencesStreakLocalStore(
       ref.watch(sharedPreferencesProvider),
+      userId: ref.watch(currentUserIdProvider),
     );
   } on Object {
     return InMemoryStreakLocalStore();

@@ -19,6 +19,14 @@ class WaterLogDao extends DatabaseAccessor<AppDatabase>
     return into(waterLogs).insert(log);
   }
 
+  /// 登录换挂（审计#1 匿名数据迁移）：把 [fromUserId] 名下全部记录
+  /// （含 synced / tombstone）改挂 [toUserId]。返回换挂行数。
+  Future<int> reassignUser(String fromUserId, String toUserId) {
+    return (update(waterLogs)..where((e) => e.userId.equals(fromUserId))).write(
+      WaterLogsCompanion(userId: Value(toUserId)),
+    );
+  }
+
   /// 按本地主键取单条。
   Future<WaterLog?> getByLocalId(String localId) {
     return (select(

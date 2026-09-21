@@ -73,12 +73,6 @@ class _FastingHomePageState extends ConsumerState<FastingHomePage> {
         backgroundColor: colors.bgPrimary,
         title: Text(t.fasting.home.title),
       ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: t.record.home.logMeal,
-        backgroundColor: colors.brandAccent,
-        onPressed: () => context.go('/record'),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
       body: SafeArea(
         child: timer.plan == null
             ? const _NoPlanBody()
@@ -231,7 +225,7 @@ class _TimerBody extends ConsumerWidget {
             ),
             child: Text(
               t.fasting.home.planTag(
-                id: plan.planTypeId,
+                fast: plan.fastWindowMinutes ~/ 60,
                 start: _formatMinutes(plan.eatStartMinutes),
                 end: _formatMinutes(plan.eatEndMinutes),
               ),

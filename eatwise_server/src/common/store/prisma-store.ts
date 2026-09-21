@@ -102,6 +102,12 @@ export class PrismaStore extends StoreDriver {
   // ===== U5 到期执行（合规 §4.3：物理删除个人数据 + UGC 匿名化，单事务）=====
   async purgeUserData(userId: string): Promise<PurgeReport> {
     return this.prisma.$transaction(async (tx) => {
+      // 审核队列无 userId 列（仅 postId 外键），须在匿名化解除用户关联前按该用户帖集合定位；
+      // 含已 tombstone 帖（帖子留存但队列条目属个人派生数据，随账号清除）
+      const ownedPostIds = (
+        await tx.post.findMany({ where: { userId }, select: { id: true } })
+      ).map((p) => p.id);
+      await tx.moderationQueue.deleteMany({ where: { postId: { in: ownedPostIds } } });
       // UGC 匿名化（内容留存口径〔待法务确认〕：清空正文/图片 + 解除用户关联 + tombstone；
       // posts.userId 可空，物理删用户行不再违反 FK）
       const posts = await tx.post.updateMany({

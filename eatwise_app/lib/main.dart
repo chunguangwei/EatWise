@@ -24,6 +24,7 @@ import 'package:eatwise/core/widget_bridge/widget_deep_link.dart';
 import 'package:eatwise/features/auth/application/auth_gate.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_texts.dart';
+import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/legal/application/legal_providers.dart';
@@ -144,6 +145,12 @@ Future<void> main() async {
     unawaited(container.read(recordSyncEngineProvider).syncNow());
     // D-21：恢复会话后下行用户级偏好（远端新才覆盖本地，失败静默）。
     unawaited(container.read(settingsPrefsSyncProvider).pull());
+    // 重装/换机恢复：本地无生效方案时下行回填服务端当前方案（失败静默）。
+    try {
+      unawaited(container.read(fastingPlanSyncProvider)?.pull());
+    } on Object {
+      // 防御：方案同步未装配时跳过。
+    }
   }
   // 冷启动引擎预热（真机反馈：重启后端侧开关持久化为开但没人触发
   // 预热，首拍仍吃视觉重建数秒）——等首个模型快照落地后「开关开 +

@@ -174,6 +174,62 @@ class WeightLogStore {
     return migrated;
   }
 
+  /// 登录换挂（审计#1 匿名数据迁移）：把 anonymous 命名空间条目并入
+  /// [userId] 命名空间后删除匿名键。合并口径：同日以已登录侧为准
+  /// （uid 侧条目可能已同步/更新过，匿名期旧值不覆盖）；匿名独有日期
+  /// 原样并入（保留各自 synced 标记，pending 随同步上行）。
+  /// 返回并入条数（0 = 无匿名数据，调用方幂等标记照常落）。
+  static int migrateAnonymous(SharedPreferences prefs, String userId) {
+    final anonKey =
+        '$_keyPrefix'
+        'anonymous';
+    final raw = prefs.getString(anonKey);
+    if (raw == null || raw.isEmpty) return 0;
+    final merged = <String, Object?>{};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) {
+        for (final entry in decoded.entries) {
+          final parsed = WeightLogEntry.fromJson(entry.value);
+          // 匿名侧无法解析的脏条目直接丢弃（连同旧键一起消失）。
+          if (parsed != null) merged[entry.key.toString()] = parsed.toJson();
+        }
+      }
+    } on FormatException {
+      prefs.remove(anonKey);
+      return 0;
+    }
+    final targetKey = '$_keyPrefix$userId';
+    final own = <String, Object?>{};
+    final ownRaw = prefs.getString(targetKey);
+    if (ownRaw != null && ownRaw.isNotEmpty) {
+      try {
+        final decodedOwn = jsonDecode(ownRaw);
+        if (decodedOwn is Map) {
+          for (final entry in decodedOwn.entries) {
+            final parsed = WeightLogEntry.fromJson(entry.value);
+            if (parsed != null) {
+              own[entry.key.toString()] = parsed.toJson();
+            }
+          }
+        }
+      } on FormatException {
+        // uid 侧损坏：按空表处理（匿名条目并入即成新基线）。
+      }
+    }
+    var moved = 0;
+    merged.forEach((String date, Object? entry) {
+      if (own.containsKey(date)) return; // 同日以已登录侧为准
+      own[date] = entry;
+      moved++;
+    });
+    // 写穿 SharedPreferences 内存缓存（setString 返回前已生效），与
+    // _migrateLegacy 同法 fire-and-forget。
+    prefs.setString(targetKey, jsonEncode(own));
+    prefs.remove(anonKey);
+    return moved;
+  }
+
   /// 读取 [fromDate]～[toDate]（yyyy-MM-dd，含端点）的体重记录。
   Map<String, double> loadRange(String fromDate, String toDate) {
     return <String, double>{

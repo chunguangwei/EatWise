@@ -58,6 +58,24 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
         .write(FoodEntriesCompanion(foodId: Value(newFoodId)));
   }
 
+  /// 登录换挂（审计#1 匿名数据迁移）：把 [fromUserId] 名下全部记录
+  /// （含 synced / tombstone——它们本就属于真实用户，只是归属标记）改挂
+  /// [toUserId]。serverId 同值冲突理论不存在：匿名期服务端无该用户记录，
+  /// 下行行不会与匿名行同属双方。返回换挂行数。
+  Future<int> reassignUser(String fromUserId, String toUserId) {
+    return (update(foodEntries)..where((e) => e.userId.equals(fromUserId)))
+        .write(FoodEntriesCompanion(userId: Value(toUserId)));
+  }
+
+  /// 清空 [userId] 名下聚合缓存（匿名记录换挂后调用：缓存行随记录换主
+  /// 成为孤儿，防退回匿名登录后旧缓存假显；真实用户的缓存由回填修复/
+  /// 入账重算补建）。
+  Future<int> deleteUserDailyCaches(String userId) {
+    return (delete(
+      dailyNutritionCaches,
+    )..where((c) => c.userId.equals(userId))).go();
+  }
+
   /// 物理删除（D-11 撤销窗内撤回 / T7 校验拒绝回滚，此时上行未成功，
   /// 云端无此记录，无需 tombstone）。
   Future<void> deleteEntry(String localId) {

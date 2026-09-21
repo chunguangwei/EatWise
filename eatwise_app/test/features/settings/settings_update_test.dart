@@ -110,13 +110,16 @@ void main() {
               () async => currentVersion,
             ),
             // 更新检查直连 GitHub（裸 Dio + 假 adapter；默认 platform 解析
-            // 为 android），iOS 平台门场景显式传 platform。
+            // 为 android），iOS 平台门场景显式传 platform（同时隐藏入口）。
             updateCheckerProvider.overrideWith(
               (ref) => UpdateChecker(
                 dio: Dio()..httpClientAdapter = adapter,
                 currentVersion: ref.watch(currentAppVersionProvider),
                 platform: platform,
               ),
+            ),
+            updateCheckSupportedPlatformProvider.overrideWithValue(
+              platform != 'ios',
             ),
             dataExportServiceProvider.overrideWithValue(_FakeExportService()),
             accountDeletionServiceProvider.overrideWithValue(
@@ -221,17 +224,17 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('iOS 平台：有更新也不弹窗（提示「已是最新」、不发请求）', (tester) async {
+  testWidgets('iOS 平台：关于组隐藏「检查更新」入口（App Store 分发）', (tester) async {
     adapter.stub(
       UpdateChecker.latestReleaseUrl,
       StubResponse.json(200, githubRelease()),
     );
     await pumpSettings(tester, currentVersion: '1.0.0', platform: 'ios');
 
-    await tapCheckUpdate(tester);
+    await tester.scrollUntilVisible(find.text('免责声明与特殊人群提示'), 120);
+    await tester.pump();
 
-    expect(find.text('发现新版本'), findsNothing);
-    expect(find.text('当前已是最新版本'), findsOneWidget);
+    expect(find.text('检查更新'), findsNothing);
     expect(adapter.requestsTo(UpdateChecker.latestReleaseUrl), 0);
 
     await unmount(tester);

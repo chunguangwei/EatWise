@@ -102,8 +102,6 @@ jobs:
             echo "## 更新内容"
             echo
             git log --pretty=format:'- %s' "$RANGE" | grep -vE '^- chore: v[0-9]' || echo '- 稳定性改进与问题修复'
-            echo
-            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG:-v0}...${TAG}"
           } > release-notes.md
           gh release create "$TAG" "eatwise-${TAG}.apk" \
             --title "EatWise $TAG" \

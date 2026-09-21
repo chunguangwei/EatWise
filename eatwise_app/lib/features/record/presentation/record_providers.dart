@@ -11,6 +11,7 @@ import 'package:eatwise/features/health/application/exercise_log_providers.dart'
     show exerciseLogSyncProvider;
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
+import 'package:eatwise/features/record/data/anonymous_data_migrator.dart';
 import 'package:eatwise/features/record/data/daily_nutrition_cache_repair.dart';
 import 'package:eatwise/features/record/data/food_search_remote.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
@@ -117,6 +118,17 @@ final Provider<RecordSyncEngine> recordSyncEngineProvider =
         exerciseSync: ref.watch(exerciseLogSyncProvider),
         planSync: ref.watch(fastingPlanSyncProvider),
         cacheRepair: ref.watch(dailyNutritionCacheRepairProvider),
+        anonymousMigrator: ref.watch(anonymousDataMigratorProvider),
+      );
+    });
+
+/// 匿名 → 登录数据换挂迁移器（审计#1；挂 recordSyncEngineProvider，
+/// 登录态首轮 syncNow 执行一次，prefs 标记幂等）。
+final Provider<AnonymousDataMigrator> anonymousDataMigratorProvider =
+    Provider<AnonymousDataMigrator>((ref) {
+      return AnonymousDataMigrator(
+        db: ref.watch(appDatabaseProvider),
+        prefs: ref.watch(sharedPreferencesProvider),
       );
     });
 

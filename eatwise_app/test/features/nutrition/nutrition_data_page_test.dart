@@ -98,7 +98,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
   }
 
-  testWidgets('信号灯四卡：三重编码（色+图标+文字）+ 大数值 + 一句话建议', (tester) async {
+  testWidgets('信号灯四卡：三重编码（色+图标+文字）+ 大数值；建议收进徽标弹窗', (tester) async {
     // kcal 1700（85% 绿）；protein 75（75% 黄）；carb 80（40% 红）；
     // fat 60（100% 绿）。
     await seedToday(kcal: 1700, proteinG: 75, carbG: 80, fatG: 60);
@@ -118,10 +118,19 @@ void main() {
     // 大数值（已摄入）与目标。
     expect(find.text('1700'), findsOneWidget);
     expect(find.text('/ 目标 2000 千卡'), findsOneWidget);
-    // 一句话建议（红区碳水 × 午餐餐段）。
+    // 一句话建议不再占卡面（瘦身）；点红区碳水徽标弹详情对话框读全。
+    expect(find.textContaining('今天碳水太少了'), findsNothing);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('signal.zone.NutrientType.carb')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('今天碳水太少了'), findsOneWidget);
-    // 餐段插值同时出现在黄区蛋白与红区碳水两条建议中。
-    expect(find.textContaining('午餐来份掌心大的瘦肉或豆腐'), findsNWidgets(2));
+    expect(find.textContaining('午餐来份掌心大的瘦肉或豆腐'), findsOneWidget);
+    await tester.tap(find.text('确定'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.textContaining('今天碳水太少了'), findsNothing);
     // 总结 H2：有红 → 温和引导。
     expect(find.textContaining('有几盏小红灯'), findsOneWidget);
     // 无记录空态不出现。
@@ -228,9 +237,15 @@ void main() {
     expect(find.text('On track'), findsNWidgets(2));
     expect(find.text('Heads-up'), findsOneWidget);
     expect(find.text('Warning'), findsOneWidget);
-    expect(find.textContaining('Carbs are well under today'), findsOneWidget);
+    // 建议收进徽标弹窗：窄屏下卡面无建议长文，点开弹窗读全。
+    expect(find.textContaining('Carbs are well under today'), findsNothing);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('signal.zone.NutrientType.carb')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
-    // 截断规则：营养名单行 ellipsis；建议不截断（四态规范 4.1）。
+    // 截断规则：营养名单行 ellipsis；弹窗内建议不截断（四态规范 4.1）。
     final nameText = tester.widget<Text>(find.text('Calories').first);
     expect(nameText.maxLines, 1);
     expect(nameText.overflow, TextOverflow.ellipsis);
@@ -238,6 +253,9 @@ void main() {
       find.textContaining('Carbs are well under today'),
     );
     expect(adviceText.overflow, isNull); // 建议必须读全，不允许截断
+    await tester.tap(find.text('OK'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     // 折叠区在首屏外（Sliver 懒加载），先滚动露出再展开。
     await tester.drag(find.byType(ListView), const Offset(0, -600));

@@ -1540,8 +1540,8 @@ class Translations$fasting$home$zh_CN {
 	/// zh-CN: '单次最多延长 4 小时'
 	String get extendLimit => '单次最多延长 4 小时';
 
-	/// zh-CN: '${id} · 进食窗口 ${start}–${end}'
-	String planTag({required Object id, required Object start, required Object end}) => '${id} · 进食窗口 ${start}–${end}';
+	/// zh-CN: '断食 ${fast} 小时 · 进食窗口 ${start}–${end}'
+	String planTag({required Object fast, required Object start, required Object end}) => '断食 ${fast} 小时 · 进食窗口 ${start}–${end}';
 
 	/// zh-CN: '修改'
 	String get pendingPlanEdit => '修改';
@@ -4538,7 +4538,7 @@ extension on Translations {
 			'fasting.home.attributionEating' => ({required Object date}) => '下一段断食将计入 ${date}',
 			'fasting.home.extendedBadge' => ({required Object minutes}) => '已延长 +${minutes} 分钟',
 			'fasting.home.extendLimit' => '单次最多延长 4 小时',
-			'fasting.home.planTag' => ({required Object id, required Object start, required Object end}) => '${id} · 进食窗口 ${start}–${end}',
+			'fasting.home.planTag' => ({required Object fast, required Object start, required Object end}) => '断食 ${fast} 小时 · 进食窗口 ${start}–${end}',
 			'fasting.home.pendingPlanEdit' => '修改',
 			'fasting.home.pendingPlanApply' => '立即应用',
 			'fasting.home.pendingPlanApplied' => '新方案已立即生效',

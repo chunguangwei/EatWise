@@ -19,6 +19,7 @@ import 'package:eatwise/features/fasting/presentation/fasting_cycle_store.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -497,7 +498,45 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     );
     state = _resolve(plan, resolveState(_now(), plan, _location));
     _syncWidget(plan);
+    // F3 延长上报（D-10 服务端审计）：fire-and-forget，本地延长不等网络；
+    // 失败落 prefs 队列由 FastingPlanSync.flush 同步轮重放（幂等键去重）。
+    unawaited(_reportExtend(cycle, extended));
     return true;
+  }
+
+  /// F3 上报一次延长增量。任何失败（recordId 解析失败/网络/业务码）
+  /// 都尽力转入待上报队列；队列也写不进（sync 未装配）则仅记日志。
+  Future<void> _reportExtend(FastCycle before, FastCycle after) async {
+    if (ref.read(currentUserIdProvider) == 'anonymous') return;
+    final clientRequestId = newClientRequestId();
+    final delta = after.extendedMinutes - before.extendedMinutes;
+    final sync = ref.read(fastingPlanSyncProvider);
+    if (sync == null) return; // 同步栈未装配（测试/预览）：本地延长照旧生效
+    String recordId = FastingPlanSync.kPendingRecordId;
+    try {
+      recordId = await sync.api.fetchActiveRecordId() ?? recordId;
+      if (recordId != FastingPlanSync.kPendingRecordId) {
+        await sync.api.extendFast(
+          clientRequestId: clientRequestId,
+          recordId: recordId,
+          extendMinutes: delta,
+        );
+        return;
+      }
+    } on Object catch (e) {
+      debugPrint('FastingTimer: F3 延长上报失败，转入队列 $e');
+    }
+    // 未取到 recordId 或 extend 调用失败：入队由同步轮重放（recordId
+    // 已知则直接带上，未知由 flush 重放前补解析）。
+    try {
+      await sync.queueExtend(
+        recordId: recordId,
+        clientRequestId: clientRequestId,
+        extendMinutes: delta,
+      );
+    } on Object catch (e) {
+      debugPrint('FastingTimer: F3 延长入队失败（丢失） $e');
+    }
   }
 
   /// 关闭破壳庆祝（动画播完或用户点按）。

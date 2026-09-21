@@ -175,8 +175,14 @@ describe('用户权利（U1/U3/U5/U6，合规 §4.2/§4.3）', () => {
       expect(again.deletionStatus).toBeNull();
     });
 
-    it('到期执行：个人数据物理删除 + 打卡帖匿名化；未到期不执行', async () => {
+    it('到期执行：个人数据物理删除 + 打卡帖匿名化 + 审核队列随账号清除；未到期不执行', async () => {
       seedUserData();
+      // 审核队列条目仅经 postId 关联：本人帖一条（须清除）+ 他人帖一条（须留存）
+      store.posts.set('p2', { ...store.posts.get('p1')!, id: 'p2', userId: 'other-user' });
+      store.moderationQueue.push(
+        { postId: 'p1', source: 'report', reason: '举报复核', createdAt: new Date() },
+        { postId: 'p2', source: 'auto', reason: '机审疑似', createdAt: new Date() },
+      );
       await users.requestDeletion(userId);
 
       // 未到期：扫描不清除
@@ -196,6 +202,8 @@ describe('用户权利（U1/U3/U5/U6，合规 §4.2/§4.3）', () => {
       expect(post.deletedAt).not.toBeNull(); // UGC 匿名化 tombstone
       expect(post.text).toBe('');
       expect(post.imageUrls).toEqual([]);
+      // 审核队列：本人帖条目随账号清除，他人帖条目留存
+      expect(store.moderationQueue.map((q) => q.postId)).toEqual(['p2']);
     });
 
     it('到期执行：个人自定义食物与贡献候选一并清除；已晋升共享的食物留存', async () => {

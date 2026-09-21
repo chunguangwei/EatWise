@@ -894,7 +894,7 @@ class _Translations$fasting$home$en extends Translations$fasting$home$zh_CN {
 	@override String attributionEating({required Object date}) => 'Your next fast will count toward ${date}';
 	@override String extendedBadge({required Object minutes}) => 'Extended +${minutes} min';
 	@override String get extendLimit => 'You can extend by up to 4 hours per fast';
-	@override String planTag({required Object id, required Object start, required Object end}) => '${id} · Eating window ${start}–${end}';
+	@override String planTag({required Object fast, required Object start, required Object end}) => '${fast}-hour fast · Eating window ${start}–${end}';
 	@override String get pendingPlanEdit => 'Edit';
 	@override String get pendingPlanApply => 'Apply now';
 	@override String get pendingPlanApplied => 'New plan applied immediately';
@@ -2683,7 +2683,7 @@ extension on TranslationsEn {
 			'fasting.home.attributionEating' => ({required Object date}) => 'Your next fast will count toward ${date}',
 			'fasting.home.extendedBadge' => ({required Object minutes}) => 'Extended +${minutes} min',
 			'fasting.home.extendLimit' => 'You can extend by up to 4 hours per fast',
-			'fasting.home.planTag' => ({required Object id, required Object start, required Object end}) => '${id} · Eating window ${start}–${end}',
+			'fasting.home.planTag' => ({required Object fast, required Object start, required Object end}) => '${fast}-hour fast · Eating window ${start}–${end}',
 			'fasting.home.pendingPlanEdit' => 'Edit',
 			'fasting.home.pendingPlanApply' => 'Apply now',
 			'fasting.home.pendingPlanApplied' => 'New plan applied immediately',
