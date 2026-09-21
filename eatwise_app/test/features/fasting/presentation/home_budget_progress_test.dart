@@ -158,6 +158,27 @@ void main() {
 
       await unmount(tester);
     });
+
+    testWidgets('窄屏三段齐：预算文案两行换行不截断（真机「运…」走查）', (tester) async {
+      // 280 逻辑宽（目标兜底 2000）：「已吃 1916 · 还可吃 84 · 运动 +250」
+      // 一行放不下，maxLines=1 时被 ellipsis 截成「运…」；修复后允许两行，
+      // 渲染高度必须是两倍行高（>24 逻辑像素），即真正换行而非截断。
+      tester.view.physicalSize = const Size(280 * 3, 640 * 3);
+      tester.view.devicePixelRatio = 3;
+      todayCache = cacheWithKcal(1916);
+      healthController = await readyHealthController(
+        steps: 8000,
+        activeEnergyKcal: 250,
+      );
+      await pumpHome(tester);
+
+      final budget = find.text('已吃 1916 千卡 · 还可吃 84 千卡 · 运动 +250');
+      expect(budget, findsOneWidget);
+      final box = tester.getSize(budget);
+      expect(box.height, greaterThan(24));
+
+      await unmount(tester);
+    });
   });
 
   group('方案进度条', () {

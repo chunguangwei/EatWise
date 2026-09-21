@@ -91,18 +91,27 @@ class _StatGrid extends StatelessWidget {
       (growth.weightDelta, deltaText, Icons.monitor_weight_outlined),
     ];
 
-    return Row(
+    // 2×2 网格（真机走查：窄屏四等分单行时，「15.0 小时」这类长值在
+    // ~60dp 格宽下 ellipsis 截断；两列格宽足够，长值不再截）。
+    Widget cell(int i) =>
+        _StatCell(label: cells[i].$1, value: cells[i].$2, icon: cells[i].$3);
+    return Column(
       children: <Widget>[
-        for (var i = 0; i < cells.length; i++) ...<Widget>[
-          if (i > 0) const SizedBox(width: AppSpacing.s2),
-          Expanded(
-            child: _StatCell(
-              label: cells[i].$1,
-              value: cells[i].$2,
-              icon: cells[i].$3,
-            ),
-          ),
-        ],
+        Row(
+          children: <Widget>[
+            Expanded(child: cell(0)),
+            const SizedBox(width: AppSpacing.s2),
+            Expanded(child: cell(1)),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.s2),
+        Row(
+          children: <Widget>[
+            Expanded(child: cell(2)),
+            const SizedBox(width: AppSpacing.s2),
+            Expanded(child: cell(3)),
+          ],
+        ),
       ],
     );
   }
@@ -136,11 +145,15 @@ class _StatCell extends StatelessWidget {
         children: <Widget>[
           Icon(icon, size: 20, color: colors.brandPrimary),
           const SizedBox(height: AppSpacing.s1),
-          Text(
-            value,
-            style: textStyles.textBase.copyWith(color: colors.textPrimary),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          // 数值永不截断：窄屏 2×2 格宽下「15.0 小时」仍可能溢出几 px，
+          // ellipsis 会吞掉单位（真机走查）；scaleDown 放不下时等比缩小。
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: textStyles.textBase.copyWith(color: colors.textPrimary),
+              maxLines: 1,
+            ),
           ),
           const SizedBox(height: AppSpacing.s1),
           // 标签允许两行换行（走查：英文长标签如 "Fasting goals hit"

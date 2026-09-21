@@ -387,7 +387,8 @@
       "photoOcr": "Scan nutrition label",
       "photoOcrReading": "Reading label…",
       "photoOcrFailed": "Couldn't read the label — try another angle or fill in manually",
-      "estimateBadgeOcr": "AI read the label — please verify"
+      "estimateBadgeOcr": "AI read the label — please verify",
+      "approvedSharedHint": "This food was approved into the shared library. To change its nutrition, tap \"Wrong data?\" to submit a correction."
     },
     "water": {
       "title": "Water today",

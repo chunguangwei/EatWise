@@ -82,10 +82,12 @@ class TodayBudgetRow extends ConsumerWidget {
           Icon(icon, size: 18, color: textColor),
           const SizedBox(width: AppSpacing.s2),
           Expanded(
+            // 窄屏三段齐（已吃/还可吃/运动）一行放不下——曾 ellipsis 截成
+            // 「运…」（真机走查）；放开两行自然换行，信息完整优先。
             child: Text(
               text,
               style: textStyles.textSm.copyWith(color: textColor),
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ),

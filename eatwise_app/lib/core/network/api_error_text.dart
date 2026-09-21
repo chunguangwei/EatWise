@@ -9,6 +9,8 @@ import 'package:eatwise/core/network/api_exception.dart';
 ///   文案，走本地 i18n 兜底（`common.error.*`），避免英文界面弹中文提示。
 String apiErrorDisplayMessage(Translations t, ApiException e) {
   return switch (e) {
+    // 同步时窗自愈码（本地已写 approved）：人话引导走纠错入口。
+    FoodApprovedSharedApiException() => t.record.customFood.approvedSharedHint,
     BusinessApiException() => e.message,
     TimeoutApiException() => t.common.error.timeout,
     NetworkApiException() => t.common.error.network,

@@ -165,6 +165,13 @@ final class CustomFoodRepository {
     try {
       await remote.updateCustom(food.id, draft);
     } on ApiException catch (e) {
+      if (e is BusinessApiException && e.code == 'NOT_FOUND') {
+        // 同步时窗：审核通过后本地行还没翻 approved（秒批/离线审批），
+        // 服务端已晋升共享（isCustom=false）→ 404。自愈：本地写 approved
+        // （动作行门控随即隐藏），改抛专用码给 UI 出人话引导。
+        await db.foodDao.setContributionStatus(food.id, 'approved');
+        throw const FoodApprovedSharedApiException();
+      }
       if (e is! NetworkApiException && e is! TimeoutApiException) rethrow;
     }
     return (await db.foodDao.getById(food.id))!;
@@ -181,7 +188,17 @@ final class CustomFoodRepository {
     required RecordRepository recordRepository,
     required String userId,
   }) async {
-    await remote.deleteCustom(food.id);
+    try {
+      await remote.deleteCustom(food.id);
+    } on ApiException catch (e) {
+      // 同 update：同步时窗内服务端已晋升共享 → 404。自愈写 approved，
+      // 本地行/历史记录一律不动（共享食物不该被本地删除）。
+      if (e is BusinessApiException && e.code == 'NOT_FOUND') {
+        await db.foodDao.setContributionStatus(food.id, 'approved');
+        throw const FoodApprovedSharedApiException();
+      }
+      rethrow;
+    }
     final entries = await db.foodEntryDao.entriesForFood(userId, food.id);
     for (final e in entries) {
       await recordRepository.deleteEntry(e.localId);

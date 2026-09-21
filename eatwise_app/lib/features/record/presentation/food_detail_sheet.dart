@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:drift/drift.dart' show Value;
+
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/network/api_error_text.dart';
 import 'package:eatwise/core/network/api_exception.dart';
@@ -554,6 +556,14 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
       messenger.showSnackBar(SnackBar(content: Text(cs.deleteDone(n))));
       if (mounted) Navigator.of(context).pop();
     } on ApiException catch (e) {
+      if (e is FoodApprovedSharedApiException) {
+        // 仓储已自愈写 approved；同步内存行让动作行门控立即生效。
+        setState(
+          () => _food = _food.copyWith(
+            contributionStatus: const Value('approved'),
+          ),
+        );
+      }
       messenger.showSnackBar(
         SnackBar(
           content: Text(

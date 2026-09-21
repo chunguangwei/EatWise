@@ -387,7 +387,8 @@
       "photoOcr": "拍营养表",
       "photoOcrReading": "读表中…",
       "photoOcrFailed": "没读出来，换个角度拍或手动填写",
-      "estimateBadgeOcr": "AI 读表，请核对"
+      "estimateBadgeOcr": "AI 读表，请核对",
+      "approvedSharedHint": "该食物已审核通过，进入共享食物库；如需修改营养数据，请点「数据有误？」提交纠错"
     },
     "water": {
       "title": "今日饮水",

@@ -407,6 +407,50 @@ void main() {
     expect(await db.foodDao.getById(saved.food.id), isNotNull);
     expect(await db.foodEntryDao.getByLocalId('l-entry-1'), isNotNull);
   });
+
+  test('编辑命中 404（同步时窗已晋升共享）：自愈写 approved + 抛专用码', () async {
+    final saved = await repository.save(draft);
+    remote.approvedShared = true;
+
+    await expectLater(
+      repository.update(saved.food, edited),
+      throwsA(isA<FoodApprovedSharedApiException>()),
+    );
+    // 本地行状态已自愈 → 详情页动作行门控随即隐藏。
+    expect(
+      (await db.foodDao.getById(saved.food.id))!.contributionStatus,
+      'approved',
+    );
+  });
+
+  test('删除命中 404（同步时窗已晋升共享）：自愈写 approved，本地行与记录不动', () async {
+    final saved = await repository.save(draft);
+    await insertEntry(
+      'l-entry-1',
+      foodId: saved.food.id,
+      syncStatus: SyncStatus.pending,
+    );
+    remote.approvedShared = true;
+    final recordRepo = RecordRepository(
+      db: db,
+      remote: FakeRecordRemote(mode: FakeRemoteMode.offline),
+      location: tz.getLocation('Asia/Shanghai'),
+      userId: 'u-1',
+    );
+    addTearDown(recordRepo.dispose);
+
+    await expectLater(
+      repository.delete(
+        saved.food,
+        recordRepository: recordRepo,
+        userId: 'u-1',
+      ),
+      throwsA(isA<FoodApprovedSharedApiException>()),
+    );
+    final row = await db.foodDao.getById(saved.food.id);
+    expect(row!.contributionStatus, 'approved');
+    expect(await db.foodEntryDao.getByLocalId('l-entry-1'), isNotNull);
+  });
 }
 
 /// 模拟 422 校验拒绝的远程端（T7 口径：不可重试错误上抛）。

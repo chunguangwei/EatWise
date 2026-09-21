@@ -365,6 +365,10 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
   /// 注入删除冲突（409 FOOD_UNDER_REVIEW，审核中候选不可删）。
   bool deleteUnderReview = false;
 
+  /// 注入「已晋升共享」404（服务端 promote 后 findCustomFoodById 查不到，
+  /// PATCH/DELETE 同款 NOT_FOUND；测仓储层同步时窗自愈用）。
+  bool approvedShared = false;
+
   /// deleteCustom 返回的级联删除记录条数（默认 0）。
   int deleteEntriesReturned = 0;
 
@@ -372,6 +376,13 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
   Future<void> updateCustom(String foodId, CustomFoodDraft draft) async {
     if (mode == FakeCustomFoodMode.offline) {
       throw const NetworkApiException();
+    }
+    if (approvedShared) {
+      throw const BusinessApiException(
+        httpStatus: 404,
+        code: 'NOT_FOUND',
+        message: '资源不存在',
+      );
     }
     receivedUpdateIds.add('$foodId|${draft.nameZh}');
   }
@@ -386,6 +397,13 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
         httpStatus: 409,
         code: 'FOOD_UNDER_REVIEW',
         message: '该食物正在审核中，无法删除',
+      );
+    }
+    if (approvedShared) {
+      throw const BusinessApiException(
+        httpStatus: 404,
+        code: 'NOT_FOUND',
+        message: '资源不存在',
       );
     }
     receivedDeleteIds.add(foodId);

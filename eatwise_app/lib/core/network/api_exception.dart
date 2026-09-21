@@ -32,6 +32,17 @@ final class TimeoutApiException extends ApiException {
   String get code => 'TIMEOUT';
 }
 
+/// 自定义食物已晋升共享库（服务端 promote 后行 isCustom=false，
+/// PATCH/DELETE /foods/custom/:id 必 404）。仓储层捕获 NOT_FOUND 自愈
+/// （本地写 contributionStatus=approved）后改抛此码；UI 映射到人话
+/// 文案引导走「数据有误？」纠错，而非裸「资源不存在」。
+final class FoodApprovedSharedApiException extends ApiException {
+  const FoodApprovedSharedApiException() : super(message: '食物已审核进入共享库');
+
+  @override
+  String get code => 'FOOD_APPROVED_SHARED';
+}
+
 /// 服务端业务错误（4xx/5xx，错误信封三段式）。
 final class BusinessApiException extends ApiException {
   const BusinessApiException({

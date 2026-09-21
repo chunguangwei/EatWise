@@ -83,8 +83,8 @@ void main() {
         );
   }
 
-  Future<void> pumpPage(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1170, 2532);
+  Future<void> pumpPage(WidgetTester tester, {double width = 390}) async {
+    tester.view.physicalSize = Size(width * 3, 2532);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -215,6 +215,34 @@ void main() {
     expect(find.textContaining('周报还差一点点数据'), findsNothing);
 
     await unmount(tester);
+  });
+
+  testWidgets('窄屏 320：成长轨迹四格 2×2 长值不截断（真机走查）', (tester) async {
+    // 「15.0 小时」这类长值：单行四等分时代被 ellipsis clamp 到格宽；
+    // 2×2 网格下格宽充足。截断判定用宽度一致性——截断时 RenderBox 宽度
+    // =约束宽（随屏宽变），未截断=文本固有宽（与屏宽无关）。320 与 800
+    // 两档同宽即证明窄屏未被 clamp。
+    await seedNutrition('2026-07-26', 2000, entries: 3);
+    await seedNutrition('2026-07-28', 1600);
+    await seedFast('2026-07-26', 16);
+    await seedFast('2026-07-27', 14, qualified: false);
+
+    Future<double> valueWidthAt(double w) async {
+      await pumpPage(tester, width: w);
+      await tester.dragUntilVisible(
+        find.text('15.0 小时'),
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      final size = (tester.getSize(find.text('15.0 小时'))).width;
+      await unmount(tester);
+      return size;
+    }
+
+    final wide = await valueWidthAt(800);
+    final narrow = await valueWidthAt(320);
+    expect(narrow, wide);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('体重维度目标线：未设置目标时不画虚线、无差值文案', (tester) async {

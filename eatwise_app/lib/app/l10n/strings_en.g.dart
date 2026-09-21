@@ -751,6 +751,7 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get photoOcrReading => 'Reading label…';
 	@override String get photoOcrFailed => 'Couldn\'t read the label — try another angle or fill in manually';
 	@override String get estimateBadgeOcr => 'AI read the label — please verify';
+	@override String get approvedSharedHint => 'This food was approved into the shared library. To change its nutrition, tap "Wrong data?" to submit a correction.';
 }
 
 // Path: record.water
@@ -2632,6 +2633,7 @@ extension on TranslationsEn {
 			'record.customFood.photoOcrReading' => 'Reading label…',
 			'record.customFood.photoOcrFailed' => 'Couldn\'t read the label — try another angle or fill in manually',
 			'record.customFood.estimateBadgeOcr' => 'AI read the label — please verify',
+			'record.customFood.approvedSharedHint' => 'This food was approved into the shared library. To change its nutrition, tap "Wrong data?" to submit a correction.',
 			'record.water.title' => 'Water today',
 			'record.water.progress' => ({required Object total, required Object goal}) => '${total} / ${goal} ml',
 			'record.water.quickAddLabel' => ({required Object ml}) => 'Add ${ml} ml of water',
@@ -2850,9 +2852,9 @@ extension on TranslationsEn {
 			'nutrition.signalCard.advice.carb.yellowHigh' => ({required Object meal_action}) => 'Carbs are a touch high — ${meal_action} to keep your blood sugar steady.',
 			'nutrition.signalCard.advice.carb.redLow' => ({required Object meal_action}) => 'Carbs are well under today — ${meal_action}. Don\'t shortchange your body.',
 			'nutrition.signalCard.advice.carb.redHigh' => ({required Object meal_action}) => 'Carbs ran quite high — ${meal_action} to keep your blood sugar steadier.',
-			'nutrition.signalCard.advice.carb.zero' => 'No carbs logged yet — did a meal slip by?',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.signalCard.advice.carb.zero' => 'No carbs logged yet — did a meal slip by?',
 			'nutrition.signalCard.advice.fat.green' => 'Healthy fat intake — your skin and glow will love it.',
 			'nutrition.signalCard.advice.fat.yellowLow' => ({required Object meal_action}) => 'Good fats are a bit low — ${meal_action}; they help absorb vitamins.',
 			'nutrition.signalCard.advice.fat.yellowHigh' => ({required Object meal_action}) => 'Fat\'s a touch high — ${meal_action} for a lighter feel.',

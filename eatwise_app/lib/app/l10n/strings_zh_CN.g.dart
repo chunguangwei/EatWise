@@ -1278,6 +1278,9 @@ class Translations$record$customFood$zh_CN {
 
 	/// zh-CN: 'AI 读表，请核对'
 	String get estimateBadgeOcr => 'AI 读表，请核对';
+
+	/// zh-CN: '该食物已审核通过，进入共享食物库；如需修改营养数据，请点「数据有误？」提交纠错'
+	String get approvedSharedHint => '该食物已审核通过，进入共享食物库；如需修改营养数据，请点「数据有误？」提交纠错';
 }
 
 // Path: record.water
@@ -4519,6 +4522,7 @@ extension on Translations {
 			'record.customFood.photoOcrReading' => '读表中…',
 			'record.customFood.photoOcrFailed' => '没读出来，换个角度拍或手动填写',
 			'record.customFood.estimateBadgeOcr' => 'AI 读表，请核对',
+			'record.customFood.approvedSharedHint' => '该食物已审核通过，进入共享食物库；如需修改营养数据，请点「数据有误？」提交纠错',
 			'record.water.title' => '今日饮水',
 			'record.water.progress' => ({required Object total, required Object goal}) => '${total} / ${goal} 毫升',
 			'record.water.quickAddLabel' => ({required Object ml}) => '加 ${ml} 毫升水',
@@ -4737,9 +4741,9 @@ extension on Translations {
 			'nutrition.signalCard.advice.carb.yellowHigh' => ({required Object meal_action}) => '碳水略高，${meal_action}，让血糖稳一点。',
 			'nutrition.signalCard.advice.carb.redLow' => ({required Object meal_action}) => '今天碳水太少了，${meal_action}，别亏待身体。',
 			'nutrition.signalCard.advice.carb.redHigh' => ({required Object meal_action}) => '碳水超得有点多，${meal_action}，让血糖稳一点。',
-			'nutrition.signalCard.advice.carb.zero' => '好像还没记到碳水哦，是不是漏了一餐？',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.signalCard.advice.carb.zero' => '好像还没记到碳水哦，是不是漏了一餐？',
 			'nutrition.signalCard.advice.fat.green' => '脂肪摄入很健康，皮肤和气色都会喜欢。',
 			'nutrition.signalCard.advice.fat.yellowLow' => ({required Object meal_action}) => '好脂肪有点少，${meal_action}，帮助吸收维生素。',
 			'nutrition.signalCard.advice.fat.yellowHigh' => ({required Object meal_action}) => '脂肪略高，${meal_action}，清淡一点更轻盈。',
