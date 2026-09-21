@@ -210,4 +210,21 @@ void main() {
     );
     expect(find.text('审核中'), findsOneWidget);
   });
+
+  testWidgets('自定义食物已晋升共享（approved）：动作行全隐藏（改删权已失）', (tester) async {
+    await pumpSheet(
+      tester,
+      onConfirm: (_) {},
+      food: customFood.copyWith(contributionStatus: const Value('approved')),
+    );
+    expect(find.byKey(const ValueKey<String>('foodDetail.edit')), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('foodDetail.share')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('foodDetail.delete')),
+      findsNothing,
+    );
+  });
 }

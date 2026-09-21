@@ -373,10 +373,14 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
                       ),
                     ),
                     // 自定义食物动作行（编辑 / 分享给所有用户 / 删除）；
-                    // 共享/社区食物无此三能力不渲染。审核中不提供分享入口
+                    // 共享/社区食物无此三能力不渲染。**approved 后也不渲染**：
+                    // 服务端晋升就地翻 isCustom=false，贡献者失去改删权（本地行
+                    // 标记不回翻，若放行 PATCH/DELETE 必 404「资源不存在」）；
+                    // 共享库改动走「数据有误？」纠错入口。审核中不提供分享入口
                     // （头部徽标已显示「审核中」），删除仍可用（服务端 409
                     // 兜底并提示等待审核）。
-                    if (food.isCustom) ...<Widget>[
+                    if (food.isCustom &&
+                        food.contributionStatus != 'approved') ...<Widget>[
                       const SizedBox(height: AppSpacing.s1),
                       Wrap(
                         spacing: AppSpacing.s1,
