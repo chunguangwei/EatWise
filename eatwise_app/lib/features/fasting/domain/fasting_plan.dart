@@ -26,8 +26,15 @@ final class FastingPlan {
     eatEndMinutes: 20 * 60,
   );
 
-  /// 方案标识，如 `16:8`。
+  /// 方案标识（内部口径），如 `16:8`；自定义窗口带锚点后缀 `16:8@09:00`
+  /// （`@HH:mm` = 进食窗口开始锚点，`window_rules.buildWindow` 生成，
+  /// 供同步/落盘稳定标识，不是给用户看的）。
   final String id;
+
+  /// 面向用户的方案类型名（去掉 `@HH:mm` 锚点后缀，如 `14:10@09:00` →
+  /// `14:10`）：锚点即进食窗口开始时间，界面已单独展示窗口区间，原样
+  /// 展示 id 会让用户看不懂（真机走查反馈）。展示一律用本 getter。
+  String get planTypeId => id.split('@').first;
 
   /// 进食窗口开始：本地墙钟，距当日 0:00 的分钟数（如 12:00 → 720）。
   final int eatStartMinutes;

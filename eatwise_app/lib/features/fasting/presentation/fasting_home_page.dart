@@ -231,7 +231,7 @@ class _TimerBody extends ConsumerWidget {
             ),
             child: Text(
               t.fasting.home.planTag(
-                id: plan.id,
+                id: plan.planTypeId,
                 start: _formatMinutes(plan.eatStartMinutes),
                 end: _formatMinutes(plan.eatEndMinutes),
               ),
@@ -266,7 +266,7 @@ class _TimerBody extends ConsumerWidget {
                     const SizedBox(width: AppSpacing.s1),
                     Expanded(
                       child: Text(
-                        '${t.fasting.home.pendingPlanBadge} · ${pending.plan.id}'
+                        '${t.fasting.home.pendingPlanBadge} · ${pending.plan.planTypeId}'
                         ' (${_formatMinutes(pending.plan.eatStartMinutes)}'
                         '–${_formatMinutes(pending.plan.eatEndMinutes)})',
                         maxLines: 1,
