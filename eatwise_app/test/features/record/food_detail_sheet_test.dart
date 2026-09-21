@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
@@ -46,6 +47,7 @@ void main() {
     WidgetTester tester, {
     required ValueChanged<String> onConfirm,
     AppLocale locale = AppLocale.zhCn,
+    Food food = food,
   }) async {
     await LocaleSettings.setLocale(locale);
     await tester.pumpWidget(
@@ -63,6 +65,22 @@ void main() {
     );
     await tester.pump();
   }
+
+  // 自定义食物（个人库行）：详情弹层带编辑/分享/删除动作行。
+  const customFood = Food(
+    id: 'cf-1',
+    nameZh: '自制燕窝羹',
+    nameEn: 'Custom Bird Nest',
+    aliasesZh: '[]',
+    aliasesEn: '[]',
+    kcalPer100g: 60,
+    proteinPer100g: 5,
+    carbPer100g: 8,
+    fatPer100g: 1,
+    isCustom: true,
+    customSyncPending: false,
+    customClientRequestId: 'req-cf',
+  );
 
   testWidgets('信息分层：名称/绿灯徽标/热量大字/三圆环/人话注释/折叠区默认收起', (tester) async {
     await pumpSheet(tester, onConfirm: (_) {});
@@ -140,5 +158,56 @@ void main() {
     expect(find.text('Green · enjoy freely'), findsOneWidget);
     expect(find.textContaining('2.25×'), findsOneWidget);
     expect(find.text('Nutrition per 100 g'), findsOneWidget);
+  });
+
+  testWidgets('自定义食物：动作行含编辑/分享/删除', (tester) async {
+    await pumpSheet(tester, onConfirm: (_) {}, food: customFood);
+    expect(
+      find.byKey(const ValueKey<String>('foodDetail.edit')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('foodDetail.share')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('foodDetail.delete')),
+      findsOneWidget,
+    );
+    expect(find.text('分享给所有用户'), findsOneWidget);
+  });
+
+  testWidgets('共享/内置食物：不渲染动作行', (tester) async {
+    await pumpSheet(tester, onConfirm: (_) {}); // 默认 isCustom=false
+    expect(find.byKey(const ValueKey<String>('foodDetail.edit')), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('foodDetail.share')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('foodDetail.delete')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('自定义食物审核中：隐藏分享入口（徽标已示审核中）', (tester) async {
+    await pumpSheet(
+      tester,
+      onConfirm: (_) {},
+      food: customFood.copyWith(contributionStatus: const Value('pending')),
+    );
+    expect(
+      find.byKey(const ValueKey<String>('foodDetail.edit')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('foodDetail.share')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('foodDetail.delete')),
+      findsOneWidget,
+    );
+    expect(find.text('审核中'), findsOneWidget);
   });
 }

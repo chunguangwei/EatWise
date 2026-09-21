@@ -199,10 +199,16 @@ export class FoodService {
     const food = await this.driver.findCustomFoodById(foodId);
     if (!food || food.userId !== userId) throw err.notFound();
 
-    // 同一食物只允许一个候选：重复贡献幂等返回原状态（pending/approved/rejected）
+    // 同一食物只允许一个候选：pending/approved 重复贡献幂等返回原状态；
+    // rejected 视为重新提交——重置回 pending（清驳回理由/审核留痕）回到人工审核池。
+    // 机审不再重跑：名称首次提交已过机审，池内 rejected 是人工终审结论，重提交通道
+    // 本就该由终审再裁（改名走 PATCH 后重提交同样成立，池内可见最新行）。
     const existing = await this.driver.findFoodCandidateByFoodId(foodId);
     if (existing) {
-      const response = await this.candidateView(existing);
+      if (existing.status === 'rejected') {
+        await this.driver.updateFoodCandidateStatus(existing.id, 'pending', '', null);
+      }
+      const response = await this.candidateView(await this.mustGetCandidate(existing.id));
       await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response);
       return response;
     }

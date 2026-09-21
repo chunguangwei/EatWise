@@ -175,6 +175,28 @@ describe('自定义食物改/删（FoodService.updateCustomFood / deleteCustomFo
     expect(await driver.findCustomFoodById(FOOD_ID)).toBeNull();
   });
 
+  it('rejected 候选重新提交 → 重置回 pending（清理由/留痕）回审核池', async () => {
+    const contributed = (await food.contributeCustomFood(OWNER, FOOD_ID, {
+      clientRequestId: randomUUID(),
+    })) as { id: string };
+    await food.reviewFoodCandidate(contributed.id, { action: 'reject', reason: '信息不全' });
+
+    const resubmitted = (await food.contributeCustomFood(OWNER, FOOD_ID, {
+      clientRequestId: randomUUID(),
+    })) as { id: string; status: string; reason: string | null; reviewedBy: string | null };
+    expect(resubmitted.id).toBe(contributed.id); // 同一候选行原位重置，不新建
+    expect(resubmitted.status).toBe('pending');
+    expect(resubmitted.reason).toBeNull();
+    expect(resubmitted.reviewedBy).toBeNull();
+
+    // 重置后回到审核中语义：删除再次 409
+    await expectBusiness(
+      food.deleteCustomFood(OWNER, FOOD_ID),
+      'FOOD_UNDER_REVIEW',
+      409,
+    );
+  });
+
   it('DELETE 非 owner / 共享食物 → 404；删除后 search/get 不再命中', async () => {
     await expectBusiness(food.deleteCustomFood(OTHER, FOOD_ID), 'NOT_FOUND', 404);
     expect(await driver.searchFoods('酸奶', OTHER)).toEqual([]);

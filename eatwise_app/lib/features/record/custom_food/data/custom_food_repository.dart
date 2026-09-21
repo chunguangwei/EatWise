@@ -134,24 +134,34 @@ final class CustomFoodRepository {
   /// 编辑自定义食物（PATCH，无幂等键）：先本地后远端。
   ///
   /// companion 只带上行可编辑列——drift insertOnConflictUpdate 跳过缺省列，
-  /// isCustom/customSyncPending/contributionStatus 等标记不受扰动。
+  /// isCustom/contributionStatus 等标记不受扰动。
   /// 网络/超时错误静默〔已定口径：自定义食物行主要服务创建者设备，
   /// 离线编辑保留本地值，下次联网不重试（更新 LWW 无语义可重放）〕；
   /// 4xx/5xx 业务错误上抛 UI 提示。返回编辑后的最新本地行。
+  ///
+  /// pending 行（离线新建尚未上行）例外：服务端还没有这条行，PATCH 必 404——
+  /// 只改本地并**轮换 customClientRequestId**：retryPending 以行当前内容 +
+  /// 该键重放 create，若沿用旧键，「离线新建 → 编辑 → 联网重放」会用旧幂等键
+  /// 带新内容打服务端（首次注册的是旧内容）→ PAYLOAD_MISMATCH 永久卡 pending。
   Future<Food> update(Food food, CustomFoodDraft draft) async {
-    await db.foodDao.upsertAll(<FoodsCompanion>[
-      FoodsCompanion(
-        id: Value(food.id),
-        nameZh: Value(draft.nameZh),
-        nameEn: Value(draft.nameEn ?? draft.nameZh),
-        aliasesZh: Value(jsonEncode(draft.aliasesZh)),
-        aliasesEn: Value(jsonEncode(draft.aliasesEn)),
-        kcalPer100g: Value(draft.per100g.kcal),
-        proteinPer100g: Value(draft.per100g.proteinG),
-        carbPer100g: Value(draft.per100g.carbG),
-        fatPer100g: Value(draft.per100g.fatG),
-      ),
-    ]);
+    final companion = FoodsCompanion(
+      id: Value(food.id),
+      nameZh: Value(draft.nameZh),
+      nameEn: Value(draft.nameEn ?? draft.nameZh),
+      aliasesZh: Value(jsonEncode(draft.aliasesZh)),
+      aliasesEn: Value(jsonEncode(draft.aliasesEn)),
+      kcalPer100g: Value(draft.per100g.kcal),
+      proteinPer100g: Value(draft.per100g.proteinG),
+      carbPer100g: Value(draft.per100g.carbG),
+      fatPer100g: Value(draft.per100g.fatG),
+    );
+    if (food.customSyncPending) {
+      await db.foodDao.upsertAll(<FoodsCompanion>[
+        companion.copyWith(customClientRequestId: Value(_uuid())),
+      ]);
+      return (await db.foodDao.getById(food.id))!;
+    }
+    await db.foodDao.upsertAll(<FoodsCompanion>[companion]);
     try {
       await remote.updateCustom(food.id, draft);
     } on ApiException catch (e) {

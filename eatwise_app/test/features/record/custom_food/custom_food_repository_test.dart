@@ -250,22 +250,42 @@ void main() {
     );
   }
 
-  test('编辑：本地行更新 + PATCH 上行；同步标记不受扰动', () async {
-    // 先离线保存 → 行 pending；恢复在线后编辑。
-    remote.mode = FakeCustomFoodMode.offline;
-    final saved = await repository.save(draft);
-    remote.mode = FakeCustomFoodMode.success;
+  test('编辑已上行行：本地更新 + PATCH 上行；同步标记不受扰动', () async {
+    final saved = await repository.save(draft); // 在线保存 → synced 行
+    expect(saved.food.customSyncPending, isFalse);
 
     final updated = await repository.update(saved.food, edited);
 
     expect(updated.nameZh, '冰糖燕窝羹');
     expect(updated.kcalPer100g, 70);
     expect(updated.aliasesZh, contains('冰糖燕窝'));
-    // 编辑不做幂等重试：pending 标记/幂等键原样保留（创建上行仍待重试）。
-    expect(updated.customSyncPending, isTrue);
-    expect(updated.customClientRequestId, isNotEmpty);
+    expect(updated.customSyncPending, isFalse);
     expect(updated.isCustom, isTrue);
     expect(remote.receivedUpdateIds, <String>['${saved.food.id}|冰糖燕窝羹']);
+  });
+
+  test('编辑 pending 行（离线新建未上行）：不发 PATCH，轮换幂等键防重放错配', () async {
+    // 离线新建 → 行 pending（服务端无此行，PATCH 必 404）；恢复在线后编辑。
+    remote.mode = FakeCustomFoodMode.offline;
+    final saved = await repository.save(draft);
+    final oldKey = saved.food.customClientRequestId;
+    remote.mode = FakeCustomFoodMode.success;
+
+    final updated = await repository.update(saved.food, edited);
+
+    expect(updated.nameZh, '冰糖燕窝羹');
+    expect(updated.customSyncPending, isTrue); // 仍待创建上行
+    // 幂等键必须轮换：retryPending 以最新内容重放 create，沿用旧键会因
+    // 首次注册的是旧内容触发 PAYLOAD_MISMATCH 永久卡 pending。
+    expect(updated.customClientRequestId, isNot(oldKey));
+    expect(remote.receivedUpdateIds, isEmpty); // 未对缺失行发 PATCH
+
+    // 联网重放成功（新键 + 编辑后内容），临时行重映射为服务端 id 转 synced。
+    expect(await repository.retryPending(), 1);
+    expect(await db.foodDao.getById(saved.food.id), isNull); // custom-* 临时行已重映射
+    final row = await db.foodDao.getById('srv-food-1');
+    expect(row!.customSyncPending, isFalse);
+    expect(row.nameZh, '冰糖燕窝羹'); // 重放带的是编辑后内容
   });
 
   test('编辑离线：网络错误静默保留本地值，不抛出', () async {
