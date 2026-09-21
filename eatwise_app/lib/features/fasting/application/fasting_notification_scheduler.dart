@@ -146,9 +146,9 @@ class FastingNotificationScheduler {
       );
     }
 
-    // NO_PLAN：断食提醒无计划可排，但附加计划仍被调用（由生成方自决：
-    // 喝水提醒无生效方案时自行返回空——进食窗口是唯一排程依据，不臆造
-    // 默认窗口；未来若有全天口径的附加提醒可在此场景排程）。
+    // NO_PLAN：断食提醒无计划可排，但附加计划仍执行——跳过引导的用户
+    // 全程处于「非断食」状态，恰是喝水提醒目标人群（生成方按 D-03
+    // 口径回落 16:8 进食窗口，不整日静默）。
     final items = plan == null
         ? const <PlannedFastingNotification>[]
         : buildFastingNotificationPlan(
