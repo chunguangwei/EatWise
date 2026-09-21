@@ -53,6 +53,7 @@ npm run test:e2e
 
 - 真实库：`docker compose up -d postgres && npx prisma migrate deploy`，`STORE_DRIVER=prisma` 启动。
 - 云主机自部署：`Dockerfile` + `docker-compose.prod.yml` + `deploy/`（Caddyfile/env 模板）已入库，完整步骤见 `docs/tech/部署-云主机自部署-v1.0.md`。
+- **VPS 代码同步坑（2026-09-21 实炸）**：VPS 无 git，更新代码靠 rsync——**永远用目录级目标**（`rsync -az src/ host:.../src/`、`rsync -az prisma/migrations/ host:.../prisma/migrations/`）。多源文件写法（`rsync prisma/schema.prisma prisma/seed.ts dest/`）会把路径拍平落到 `dest/schema.prisma`，杂散根级 schema 经 `COPY . .` 进镜像后劫持 prisma CLI 默认解析（日志特征：`schema loaded from schema.prisma` + `No migration found in prisma/migrations`）→ migrate deploy 空转、新列缺失、seed P2022。判据只认 migrate 日志的 applied 行 + `\d foods` 列。
 - 持久化（2026-09-08 收口完成）：业务 Service 全部走 StoreDriver 接口，`STORE_DRIVER=prisma` 即真实落库（含用户/令牌/断食/饮食/饮水/体重/streak/帖子/点赞举报/审核队列/自定义食物/幂等键）；仅 smsCodes（mock）与管理端登录限流保留内存。prisma 模式启动前需 `npm run prisma:seed` 灌食物库（内存模式由 main.ts 自动灌）。
 - 体重记录（阶段 C，2026-09-17）：`weight_logs` 表 + `/v1/weight-logs`（POST 幂等 upsert 同 userId+date 覆写 / GET ?from&to / DELETE 软删）；客户端 WeightLogStore 按用户命名空间（v2 key，v1 全局键一次性迁移），两态 pending/synced 经 RecordSyncEngine 推拉（仅登录态）。
 - 图片存储（2026-09-14 迁移完成）：`STORAGE_DRIVER=local`（默认，落 uploads/，仅单实例）/ `s3`（R2/S3 + CDN，需 `S3_BUCKET`/`S3_ACCESS_KEY`/`S3_SECRET`/`CDN_BASE_URL`，R2 另需 `S3_ENDPOINT`，缺失启动即报错）；s3 模式 GET /v1/uploads/:filename 302 到 CDN，端点契约不变。
