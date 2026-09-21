@@ -140,6 +140,19 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('窄屏 320dp：信号灯四卡保持 2 列栅格（v1.13.3 安卓走查「每卡一行」回归）', (tester) async {
+    await seedToday(kcal: 1700, proteinG: 75, carbG: 80, fatG: 60);
+    await pumpPage(tester, size: const Size(960, 2000)); // 320 逻辑宽
+
+    final kcal = tester.getCenter(find.text('热量').first);
+    final protein = tester.getCenter(find.text('蛋白质').first);
+    // 前两卡同行不同列 = 2 列栅格（旧 minCardWidth 150 在此宽度退化 1 列）。
+    expect(protein.dy, closeTo(kcal.dy, 1));
+    expect(protein.dx, greaterThan(kcal.dx));
+
+    await unmount(tester);
+  });
+
   testWidgets('专业数据默认折叠，点「查看详情」展开 RDA，可再收起', (tester) async {
     await seedToday(kcal: 2000, proteinG: 100, carbG: 200, fatG: 60);
     await pumpPage(tester);

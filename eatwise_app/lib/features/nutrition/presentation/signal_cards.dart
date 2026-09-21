@@ -13,9 +13,11 @@ import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/nutrition/application/advice_text.dart';
 import 'package:flutter/material.dart';
 
-/// 信号灯四卡栅格（设计稿 §4.2-③：`grid auto-fit minmax(150px,1fr)`，
-/// 蛋白/碳水/脂肪/热量），每卡三重编码（色+图标+文字，M8 硬性）+
-/// Inter 大数值（已摄入/目标）+ 一句话建议（§4 规则模板库）。
+/// 信号灯四卡栅格（设计稿 §4.2-③ `grid auto-fit minmax(150px,1fr)` 的
+/// 移动端适配版：最小卡宽 150 是网页画布口径，在窄屏安卓（320–347 逻辑
+/// 宽，走查 v1.13.3 实锤退化成 1 卡/行）不适用，降到 136 后 320dp 手机
+/// 也能两列），蛋白/碳水/脂肪/热量，每卡三重编码（色+图标+文字，M8
+/// 硬性）+ Inter 大数值（已摄入/目标）。
 class SignalCardsGrid extends StatelessWidget {
   const SignalCardsGrid({
     required this.intake,
@@ -45,15 +47,18 @@ class SignalCardsGrid extends StatelessWidget {
   /// 曝光去重日期键（§4.1：attribute_date 变化重计；空串表示不区分日期）。
   final String exposureDateKey;
 
-  /// 栅格最小卡宽（设计稿 minmax(150px,1fr)）。
-  static const double minCardWidth = 150;
+  /// 栅格最小卡宽。〔移动适配修正 v1.13.3〕设计稿 150 为网页画布口径：
+  /// 安卓手机页面左右 padding 16×2 后可用宽 288–328，150 口径在 ≤347
+  /// 逻辑宽机型上 floor 出 1 列（走查实锤「每卡一行」，iOS ≥375 恰好 2
+  /// 列没暴露）。136 = 150 的近似下限，保 320dp 机 2 列、iPad 4 列。
+  static const double minCardWidth = 136;
 
   @override
   Widget build(BuildContext context) {
     final nutrients = NutrientType.values;
     return LayoutBuilder(
       builder: (context, constraints) {
-        // auto-fit：能放几列放几列，卡宽最小 150。
+        // auto-fit：能放几列放几列，卡宽最小 136（移动适配，见 minCardWidth）。
         final cols = math.max(
           1,
           ((constraints.maxWidth + AppSpacing.s4) /
@@ -270,11 +275,17 @@ class SignalCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            Text(
-              '/ ${t.nutrition.data.proDetails.target} $target $unit',
-              style: textStyles.textXs.copyWith(color: colors.textSecondary),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            // 目标行窄屏（2 列 ~136dp）整体缩放，不省略号（同 pro 表
+            // v1.13.3 手法）。
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '/ ${t.nutrition.data.proDetails.target} $target $unit',
+                style: textStyles.textXs.copyWith(color: colors.textSecondary),
+                maxLines: 1,
+                softWrap: false,
+              ),
             ),
             const SizedBox(height: AppSpacing.s2),
             // 三重编码：色 + 图标 + 文字（绝不单靠颜色，PRD M8）；点徽标
