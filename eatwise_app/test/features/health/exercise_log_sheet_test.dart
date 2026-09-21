@@ -349,4 +349,92 @@ void main() {
       await settleUi(tester);
     });
   });
+
+  group('当日已有记录 → 再加一条 / 替换选择', () {
+    /// 预置一条今日 jog 210 千卡，起弹层填 walk 30 分钟（预估 105）点保存。
+    Future<void> openAndSave(WidgetTester tester) async {
+      await repo.add(typeKey: 'jog', durationMin: 30, kcal: 210);
+      await pumpEntry(tester);
+      await openSheet(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('exercise.duration')),
+        '30',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('exercise.save')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+
+    testWidgets('保存弹选择框：取消 → 留在弹层不丢输入、不落库', (tester) async {
+      await openAndSave(tester);
+      expect(find.text('今天已经有运动记录'), findsOneWidget);
+      expect(find.textContaining('今天已记 1 条，共 210 千卡'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('exercise.conflict.cancel')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      // 弹层仍在、时长输入保留、库里只有预置那条。
+      expect(find.text('记运动'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey<String>('exercise.duration')),
+            )
+            .controller!
+            .text,
+        '30',
+      );
+      expect(await repo.logsForDate(todayKey()), hasLength(1));
+      await settleUi(tester);
+    });
+
+    testWidgets('再加一条 → 两条都在', (tester) async {
+      await openAndSave(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('exercise.conflict.add')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      final today = await repo.logsForDate(todayKey());
+      expect(today.map((l) => l.typeKey), containsAll(<String>['jog', 'walk']));
+      await settleUi(tester);
+    });
+
+    testWidgets('替换今天记录 → 只剩新记录；撤销 → 旧记录恢复', (tester) async {
+      await openAndSave(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('exercise.conflict.replace')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      var today = await repo.logsForDate(todayKey());
+      expect(today.map((l) => l.typeKey), <String>['walk']);
+      // D-11 撤销：新行删除 + 被替换的 jog 恢复。
+      await tester.tap(find.text('撤销'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      today = await repo.logsForDate(todayKey());
+      expect(today.map((l) => l.typeKey), <String>['jog']);
+      expect(today.single.kcal, 210);
+      await settleUi(tester);
+    });
+
+    testWidgets('当日无记录 → 不弹窗直接存（回归）', (tester) async {
+      await pumpEntry(tester);
+      await openSheet(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('exercise.duration')),
+        '30',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('exercise.save')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('今天已经有运动记录'), findsNothing);
+      expect(await repo.logsForDate(todayKey()), hasLength(1));
+      await settleUi(tester);
+    });
+  });
 }

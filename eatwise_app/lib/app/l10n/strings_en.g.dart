@@ -788,6 +788,7 @@ class _Translations$record$exercise$en extends Translations$record$exercise$zh_C
 	@override String get stepsLabel => 'Steps';
 	@override String get stepsEstimateHint => 'Enter steps to auto-estimate distance & calories — duration can stay empty';
 	@override String stepsValue({required Object steps}) => '${steps} steps';
+	@override late final _Translations$record$exercise$conflict$en conflict = _Translations$record$exercise$conflict$en._(_root);
 	@override String get deleteLabel => 'Delete this exercise entry';
 	@override String get deleted => 'Deleted';
 	@override late final _Translations$record$exercise$screenshot$en screenshot = _Translations$record$exercise$screenshot$en._(_root);
@@ -1876,6 +1877,19 @@ class _Translations$record$customFood$correction$en extends Translations$record$
 	@override String get submit => 'Submit correction';
 }
 
+// Path: record.exercise.conflict
+class _Translations$record$exercise$conflict$en extends Translations$record$exercise$conflict$zh_CN {
+	_Translations$record$exercise$conflict$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'You already logged exercise today';
+	@override String body({required Object count, required Object kcal}) => '${count} entries totaling ${kcal} kcal are already logged today. Add another entry, or replace today\'s old entries with this one?';
+	@override String get add => 'Add another';
+	@override String get replace => 'Replace today\'s entries';
+}
+
 // Path: record.exercise.screenshot
 class _Translations$record$exercise$screenshot$en extends Translations$record$exercise$screenshot$zh_CN {
 	_Translations$record$exercise$screenshot$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -2592,6 +2606,10 @@ extension on TranslationsEn {
 			'record.exercise.stepsLabel' => 'Steps',
 			'record.exercise.stepsEstimateHint' => 'Enter steps to auto-estimate distance & calories — duration can stay empty',
 			'record.exercise.stepsValue' => ({required Object steps}) => '${steps} steps',
+			'record.exercise.conflict.title' => 'You already logged exercise today',
+			'record.exercise.conflict.body' => ({required Object count, required Object kcal}) => '${count} entries totaling ${kcal} kcal are already logged today. Add another entry, or replace today\'s old entries with this one?',
+			'record.exercise.conflict.add' => 'Add another',
+			'record.exercise.conflict.replace' => 'Replace today\'s entries',
 			'record.exercise.deleteLabel' => 'Delete this exercise entry',
 			'record.exercise.deleted' => 'Deleted',
 			'record.exercise.screenshot.entryCamera' => 'Scan photo',
@@ -2791,12 +2809,12 @@ extension on TranslationsEn {
 			'reports.entry' => 'Trends & deep reports',
 			'reports.trend.title' => 'Growth trends',
 			'reports.trend.dim.weight' => 'Weight',
+			_ => null,
+		} ?? switch (path) {
 			'reports.trend.dim.kcal' => 'Calories',
 			'reports.trend.dim.fasting' => 'Fasting',
 			'reports.trend.range.d7' => '7D',
 			'reports.trend.range.d30' => '30D',
-			_ => null,
-		} ?? switch (path) {
 			'reports.trend.unit.kg' => 'kg',
 			'reports.trend.unit.kcal' => 'kcal',
 			'reports.trend.unit.hour' => 'h',

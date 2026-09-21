@@ -14,7 +14,6 @@ import 'dart:typed_data';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_context.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
-import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
@@ -24,6 +23,7 @@ import 'package:eatwise/features/health/data/exercise_log_repository.dart';
 import 'package:eatwise/features/health/data/exercise_screenshot_service.dart';
 import 'package:eatwise/features/health/domain/exercise_screenshot_logic.dart';
 import 'package:eatwise/features/health/domain/exercise_types.dart';
+import 'package:eatwise/features/health/presentation/exercise_save_conflict.dart';
 import 'package:eatwise/features/health/presentation/exercise_type_names.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
@@ -80,17 +80,17 @@ Future<void> startExerciseScreenshotImport(
   if (outcome == null || !context.mounted) return;
   switch (outcome) {
     case ExerciseScreenshotSuccess(data: final data):
-      final saved = await showExerciseScreenshotConfirmSheet(
+      final result = await showExerciseScreenshotConfirmSheet(
         context,
         ref,
         data,
       );
-      if (saved == null || !context.mounted) return;
-      _trackSaved(ref, saved);
+      if (result == null || !context.mounted) return;
+      _trackSaved(ref, result);
       // 确认落库后收起记运动弹层，让「已记录·撤销」吐司可见
       // （SnackBar 在 Scaffold 层，modal sheet 会遮住它）。
       Navigator.of(context).pop();
-      _showSavedSnackBar(messenger, ref, s, saved);
+      _showSavedSnackBar(messenger, ref, s, result);
     case ExerciseScreenshotUnavailable(detail: final detail?)
         when detail.isNotEmpty:
       // 模型原文透出（含「无法识别」）：用户能看到模型实际看到了什么。
@@ -105,7 +105,7 @@ Future<void> startExerciseScreenshotImport(
 /// 识别成功埋点（record_kind=exercise / entry_type=screenshot；运动明细
 /// 属健康明细不上报 §1.6-3；sync_state=pending：本地落库待上行）并触发
 /// 一轮同步（pending 队列上行，仅登录态生效）。
-void _trackSaved(WidgetRef ref, ExerciseLog saved) {
+void _trackSaved(WidgetRef ref, ExerciseSaveResult result) {
   final analytics = ref.read(analyticsServiceProvider);
   final flowId = analytics.startRecordFlow();
   final flow = analytics.endRecordFlow(flowId);
@@ -121,10 +121,10 @@ void _trackSaved(WidgetRef ref, ExerciseLog saved) {
       'duration_ms': flow?.durationMs ?? 0,
       'step_count': 3,
       'entry_type': 'screenshot',
-      'item_count': 1,
+      'item_count': result.replaced.isEmpty ? 1 : result.replaced.length + 1,
       'record_kind': 'exercise',
       'is_edited': true, // 确认弹层字段全部可编辑，按已确认口径记
-      'sync_state': 'pending',
+      'sync_state': result.replaced.isEmpty ? 'pending' : 'replace',
     },
     flushNow: true,
   );
@@ -135,8 +135,9 @@ void _showSavedSnackBar(
   ScaffoldMessengerState messenger,
   WidgetRef ref,
   RecordStrings s,
-  ExerciseLog saved,
+  ExerciseSaveResult result,
 ) {
+  final saved = result.saved;
   final analytics = ref.read(analyticsServiceProvider);
   final repo = ref.read(exerciseLogRepositoryProvider);
   final confirmedAtMs = DateTime.now().millisecondsSinceEpoch;
@@ -149,7 +150,14 @@ void _showSavedSnackBar(
       action: SnackBarAction(
         label: s.toastUndo,
         onPressed: () => unawaited(() async {
-          final ok = await repo.delete(saved.localId);
+          final ok = result.replaced.isEmpty
+              ? await repo.delete(saved.localId)
+              : await repo
+                    .undoReplace(
+                      savedLocalId: saved.localId,
+                      replaced: result.replaced,
+                    )
+                    .then((_) => true);
           if (ok) {
             // 撤销 tombstone 上行（已上行记录）。
             try {
@@ -269,13 +277,13 @@ Future<ExerciseScreenshotOutcome?> _recognizeWithCancel(
 }
 
 /// 打开截图数据确认弹层（isScrollControlled，键盘弹起不遮挡输入）。
-/// 返回已落库的 [ExerciseLog]（null = 取消/关闭）。
-Future<ExerciseLog?> showExerciseScreenshotConfirmSheet(
+/// 返回已落库结果 [ExerciseSaveResult]（null = 取消/关闭）。
+Future<ExerciseSaveResult?> showExerciseScreenshotConfirmSheet(
   BuildContext context,
   WidgetRef ref,
   ExerciseScreenshotData data,
 ) {
-  return showModalBottomSheet<ExerciseLog>(
+  return showModalBottomSheet<ExerciseSaveResult>(
     context: context,
     isScrollControlled: true,
     builder: (sheetContext) => Padding(
@@ -433,16 +441,24 @@ class _ExerciseScreenshotConfirmSheetState
     }
     _saving = true;
     try {
-      final saved = await ref
-          .read(exerciseLogRepositoryProvider)
-          .add(
-            typeKey: typeKey,
-            durationMin: durationMin,
-            kcal: kcal,
-            source: ExerciseLogRepository.sourceScreenshot,
-            steps: steps,
-          );
-      if (mounted) Navigator.of(context).pop(saved);
+      // 当日已有记录 → 「再加一条 / 替换今天记录」选择（全天汇总截图
+      // 重复导入防重复累计）；取消则留在确认弹层。
+      final outcome = await saveExerciseWithConflict(
+        context: context,
+        t: t,
+        repo: ref.read(exerciseLogRepositoryProvider),
+        typeKey: typeKey,
+        durationMin: durationMin,
+        kcal: kcal,
+        source: ExerciseLogRepository.sourceScreenshot,
+        steps: steps,
+      );
+      if (outcome == null) return;
+      if (mounted) {
+        Navigator.of(context).pop(
+          ExerciseSaveResult(saved: outcome.saved!, replaced: outcome.replaced),
+        );
+      }
     } finally {
       _saving = false;
     }

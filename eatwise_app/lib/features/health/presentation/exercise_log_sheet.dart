@@ -12,6 +12,7 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/health/application/exercise_log_providers.dart';
 import 'package:eatwise/features/health/data/exercise_log_repository.dart';
 import 'package:eatwise/features/health/domain/exercise_types.dart';
+import 'package:eatwise/features/health/presentation/exercise_save_conflict.dart';
 import 'package:eatwise/features/health/presentation/exercise_screenshot_flow.dart';
 import 'package:eatwise/features/health/presentation/exercise_type_names.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
@@ -31,7 +32,7 @@ Future<void> startExerciseLog(BuildContext context, WidgetRef ref) async {
   final analytics = ref.read(analyticsServiceProvider);
   final messenger = ScaffoldMessenger.of(context);
   final flowId = analytics.startRecordFlow();
-  final saved = await showModalBottomSheet<ExerciseLog>(
+  final result = await showModalBottomSheet<ExerciseSaveResult>(
     context: context,
     isScrollControlled: true,
     builder: (_) => const _ExerciseLogSheet(),
@@ -40,7 +41,7 @@ Future<void> startExerciseLog(BuildContext context, WidgetRef ref) async {
     analytics.endRecordFlow(flowId);
     return;
   }
-  if (saved != null) {
+  if (result != null) {
     final flow = analytics.endRecordFlow(flowId);
     // 记录后触发一轮同步（运动记录 pending 队列上行，仅登录态生效）。
     try {
@@ -81,7 +82,7 @@ Future<void> startExerciseLog(BuildContext context, WidgetRef ref) async {
               analytics,
               repo,
               s,
-              saved.localId,
+              result,
               confirmedAtMs,
             );
             // 撤销 tombstone 上行（已上行记录）。
@@ -107,21 +108,32 @@ Future<void> startExerciseLog(BuildContext context, WidgetRef ref) async {
   }
 }
 
-/// D-11 撤销：物理删除该条（设备级纯本地，无 tombstone），流即时回滚。
+/// D-11 撤销：纯新增 → 删除该条；替换 → 删除新行并把被替换的旧记录恢复
+/// 回来（[ExerciseLogRepository.undoReplace]），流即时回滚。
 Future<void> _undoSaved(
   BuildContext context,
   AnalyticsService analytics,
   ExerciseLogRepository repo,
   RecordStrings s,
-  String localId,
+  ExerciseSaveResult result,
   int confirmedAtMs,
 ) async {
-  final ok = await repo.delete(localId);
+  final saved = result.saved;
+  final bool ok;
+  if (result.replaced.isEmpty) {
+    ok = await repo.delete(saved.localId);
+  } else {
+    await repo.undoReplace(
+      savedLocalId: saved.localId,
+      replaced: result.replaced,
+    );
+    ok = true;
+  }
   if (ok) {
     analytics.track(
       'record_undo_click',
       properties: <String, Object?>{
-        'record_id_hash': anonymizedContentId(localId),
+        'record_id_hash': anonymizedContentId(saved.localId),
         'after_ms': DateTime.now().millisecondsSinceEpoch - confirmedAtMs,
       },
     );
@@ -207,15 +219,23 @@ class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
       setState(() => _error = t.record.exercise.kcalInvalid);
       return;
     }
-    final saved = await ref
-        .read(exerciseLogRepositoryProvider)
-        .add(
-          typeKey: _type.key,
-          durationMin: minutes,
-          kcal: kcal,
-          steps: bySteps ? steps : null,
-        );
-    if (mounted) Navigator.of(context).pop(saved);
+    // 当日已有记录 → 选择「再加一条 / 替换今天记录」（截图全天汇总重复
+    // 导入防重复累计）；取消则留在弹层不丢输入。
+    final outcome = await saveExerciseWithConflict(
+      context: context,
+      t: t,
+      repo: ref.read(exerciseLogRepositoryProvider),
+      typeKey: _type.key,
+      durationMin: minutes,
+      kcal: kcal,
+      steps: bySteps ? steps : null,
+    );
+    if (outcome == null) return;
+    if (mounted) {
+      Navigator.of(context).pop(
+        ExerciseSaveResult(saved: outcome.saved!, replaced: outcome.replaced),
+      );
+    }
   }
 
   @override

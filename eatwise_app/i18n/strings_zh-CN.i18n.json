@@ -402,6 +402,12 @@
       "stepsLabel": "步数（步）",
       "stepsEstimateHint": "填步数则按步数自动估算距离与热量，时长可留空",
       "stepsValue": "${steps} 步",
+      "conflict": {
+        "title": "今天已经有运动记录",
+        "body": "今天已记 ${count} 条，共 ${kcal} 千卡。这次是再加一条，还是用新数据替换今天的旧记录？",
+        "add": "再加一条",
+        "replace": "替换今天记录"
+      },
       "deleteLabel": "删除该条运动记录",
       "deleted": "已删除",
       "screenshot": {

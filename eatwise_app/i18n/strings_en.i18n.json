@@ -402,6 +402,12 @@
       "stepsLabel": "Steps",
       "stepsEstimateHint": "Enter steps to auto-estimate distance & calories — duration can stay empty",
       "stepsValue": "${steps} steps",
+      "conflict": {
+        "title": "You already logged exercise today",
+        "body": "${count} entries totaling ${kcal} kcal are already logged today. Add another entry, or replace today's old entries with this one?",
+        "add": "Add another",
+        "replace": "Replace today's entries"
+      },
       "deleteLabel": "Delete this exercise entry",
       "deleted": "Deleted",
       "screenshot": {

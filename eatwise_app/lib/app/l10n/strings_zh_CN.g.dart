@@ -1352,6 +1352,8 @@ class Translations$record$exercise$zh_CN {
 	/// zh-CN: '${steps} 步'
 	String stepsValue({required Object steps}) => '${steps} 步';
 
+	late final Translations$record$exercise$conflict$zh_CN conflict = Translations$record$exercise$conflict$zh_CN.internal(_root);
+
 	/// zh-CN: '删除该条运动记录'
 	String get deleteLabel => '删除该条运动记录';
 
@@ -3420,6 +3422,27 @@ class Translations$record$customFood$correction$zh_CN {
 	String get submit => '提交纠错';
 }
 
+// Path: record.exercise.conflict
+class Translations$record$exercise$conflict$zh_CN {
+	Translations$record$exercise$conflict$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '今天已经有运动记录'
+	String get title => '今天已经有运动记录';
+
+	/// zh-CN: '今天已记 ${count} 条，共 ${kcal} 千卡。这次是再加一条，还是用新数据替换今天的旧记录？'
+	String body({required Object count, required Object kcal}) => '今天已记 ${count} 条，共 ${kcal} 千卡。这次是再加一条，还是用新数据替换今天的旧记录？';
+
+	/// zh-CN: '再加一条'
+	String get add => '再加一条';
+
+	/// zh-CN: '替换今天记录'
+	String get replace => '替换今天记录';
+}
+
 // Path: record.exercise.screenshot
 class Translations$record$exercise$screenshot$zh_CN {
 	Translations$record$exercise$screenshot$zh_CN.internal(this._root);
@@ -4438,6 +4461,10 @@ extension on Translations {
 			'record.exercise.stepsLabel' => '步数（步）',
 			'record.exercise.stepsEstimateHint' => '填步数则按步数自动估算距离与热量，时长可留空',
 			'record.exercise.stepsValue' => ({required Object steps}) => '${steps} 步',
+			'record.exercise.conflict.title' => '今天已经有运动记录',
+			'record.exercise.conflict.body' => ({required Object count, required Object kcal}) => '今天已记 ${count} 条，共 ${kcal} 千卡。这次是再加一条，还是用新数据替换今天的旧记录？',
+			'record.exercise.conflict.add' => '再加一条',
+			'record.exercise.conflict.replace' => '替换今天记录',
 			'record.exercise.deleteLabel' => '删除该条运动记录',
 			'record.exercise.deleted' => '已删除',
 			'record.exercise.screenshot.entryCamera' => '拍照识别',
@@ -4637,12 +4664,12 @@ extension on Translations {
 			'reports.entry' => '趋势与深度报告',
 			'reports.trend.title' => '成长趋势',
 			'reports.trend.dim.weight' => '体重',
+			_ => null,
+		} ?? switch (path) {
 			'reports.trend.dim.kcal' => '热量',
 			'reports.trend.dim.fasting' => '断食时长',
 			'reports.trend.range.d7' => '7 天',
 			'reports.trend.range.d30' => '30 天',
-			_ => null,
-		} ?? switch (path) {
 			'reports.trend.unit.kg' => '公斤',
 			'reports.trend.unit.kcal' => '千卡',
 			'reports.trend.unit.hour' => '小时',

@@ -95,6 +95,69 @@ final class ExerciseLogRepository {
     return true;
   }
 
+  /// 今日全部运动记录（排除 tombstone）——保存前冲突检测用。
+  /// 与 [add] 的归属日同口径（同一 `_clock`），保证「查到的冲突」与
+  /// 「入账的当天」一致。
+  Future<List<ExerciseLog>> todayLogs() {
+    return logsForDate(localDateKey(_clock()));
+  }
+
+  /// 替换今日记录（华为运动健康等截图是全天汇总，同日重复导入/再录入
+  /// 时应更新而非追加，否则当天消耗重复累计）：今日全部非 tombstone 行
+  /// 逐条按两态口径删除（见 [delete]），再入账新行。
+  ///
+  /// 同步语义 = delete ops + create op（服务端协议只有 create/delete
+  /// 两态，无 update，见 AGENTS.md），双端口径天然一致。
+  /// 返回新行 + 被删旧行快照（D-11 撤销经 [undoReplace] 恢复）。
+  Future<ExerciseSaveResult> replaceToday({
+    required String typeKey,
+    required int durationMin,
+    required double kcal,
+    String? source,
+    int? steps,
+  }) async {
+    final replaced = await todayLogs();
+    final saved = await add(
+      typeKey: typeKey,
+      durationMin: durationMin,
+      kcal: kcal,
+      source: source,
+      steps: steps,
+    );
+    for (final log in replaced) {
+      await delete(log.localId);
+    }
+    return ExerciseSaveResult(saved: saved, replaced: replaced);
+  }
+
+  /// 撤销一次「替换」：删除新行 + 把快照旧行重新插回（新 localId + 新
+  /// clientRequestId，pending 重新上行）。行身份变化可接受——用户可见
+  /// 数据恢复即达标；已上行的旧行此前已随替换上行 delete op，恢复即
+  /// 服务端新行。
+  Future<void> undoReplace({
+    required String savedLocalId,
+    required List<ExerciseLog> replaced,
+  }) async {
+    await delete(savedLocalId);
+    for (final log in replaced) {
+      await db.exerciseLogDao.insertLog(
+        ExerciseLogsCompanion(
+          localId: Value(_uuid()),
+          userId: Value(userId),
+          typeKey: Value(log.typeKey),
+          durationMin: Value(log.durationMin),
+          kcal: Value(log.kcal),
+          source: Value(log.source),
+          steps: Value(log.steps),
+          localDate: Value(log.localDate),
+          clientRequestId: Value(_uuid()),
+          syncState: const Value(ExerciseSyncState.pending),
+          createdAtUtc: Value(log.createdAtUtc),
+        ),
+      );
+    }
+  }
+
   /// 某日运动记录流（弹层今日列表）。
   Stream<List<ExerciseLog>> watchLogsForDate(String localDate) {
     return db.exerciseLogDao.watchLogsForDate(userId, localDate);
@@ -130,4 +193,16 @@ final class ExerciseLogRepository {
         '${hex.substring(12, 16)}-${hex.substring(16, 20)}-'
         '${hex.substring(20)}';
   }
+}
+
+/// 一次入账结果：新行 + 「替换」模式下的旧行快照（撤销恢复用；add 模式
+/// 快照为空）。
+final class ExerciseSaveResult {
+  const ExerciseSaveResult({required this.saved, this.replaced = const []});
+
+  /// 新入账的行。
+  final ExerciseLog saved;
+
+  /// 被替换掉的旧行快照（按创建时间升序）；空 = 本次是纯新增。
+  final List<ExerciseLog> replaced;
 }

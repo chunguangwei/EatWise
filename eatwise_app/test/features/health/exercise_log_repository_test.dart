@@ -1,4 +1,5 @@
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/health/data/exercise_log_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -131,5 +132,87 @@ void main() {
     // 删除后步数合计回落。
     expect(await repo.delete(log.localId), isTrue);
     expect(await repo.watchTotalStepsForDate('2026-09-19').first, 0);
+  });
+
+  test('替换今日：旧行全删（两态口径）、新行入账、快照返回；他日不受影响', () async {
+    final old1 = await repo.add(typeKey: 'jog', durationMin: 30, kcal: 210);
+    final old2 = await repo.add(typeKey: 'yoga', durationMin: 40, kcal: 120);
+    await db.exerciseLogDao.insertLog(
+      ExerciseLogsCompanion.insert(
+        localId: 'x-old-day',
+        userId: 'anonymous',
+        typeKey: 'walk',
+        durationMin: 60,
+        kcal: 200,
+        localDate: '2026-09-18',
+        createdAtUtc: '2026-09-18T10:00:00.000Z',
+      ),
+    );
+
+    final result = await repo.replaceToday(
+      typeKey: 'summary',
+      durationMin: 0,
+      kcal: 320,
+      source: ExerciseLogRepository.sourceScreenshot,
+    );
+    // 新行入账；今日只剩新行，合计=新值（旧行 pending 未上行 → 物理删）。
+    expect(result.replaced.map((l) => l.localId), [old1.localId, old2.localId]);
+    final today = await repo.logsForDate('2026-09-19');
+    expect(today.map((l) => l.localId), [result.saved.localId]);
+    expect(await repo.totalKcalForDate('2026-09-19'), 320);
+    // 他日记录不受影响。
+    expect(await repo.totalKcalForDate('2026-09-18'), 200);
+  });
+
+  test('替换今日：已上行旧行置 tombstone 待上行 delete op，聚合即时排除', () async {
+    final synced = await repo.add(typeKey: 'jog', durationMin: 30, kcal: 210);
+    await db.exerciseLogDao.markSynced(synced.localId, 'srv-1');
+
+    final result = await repo.replaceToday(
+      typeKey: 'jog',
+      durationMin: 45,
+      kcal: 300,
+    );
+    expect(result.replaced, hasLength(1));
+    final row = await db.exerciseLogDao.getByLocalId(synced.localId);
+    expect(row, isNotNull); // tombstone 保留待上行
+    expect(row!.deleted, isTrue);
+    expect(row.syncState, ExerciseSyncState.pending);
+    expect(await repo.totalKcalForDate('2026-09-19'), 300);
+  });
+
+  test('撤销替换：删新行 + 旧行恢复（新幂等键 pending 重新上行）', () async {
+    await repo.add(typeKey: 'jog', durationMin: 30, kcal: 210);
+    final synced = await repo.add(typeKey: 'yoga', durationMin: 40, kcal: 120);
+    await db.exerciseLogDao.markSynced(synced.localId, 'srv-2');
+
+    final result = await repo.replaceToday(
+      typeKey: 'summary',
+      durationMin: 0,
+      kcal: 320,
+    );
+    await repo.undoReplace(
+      savedLocalId: result.saved.localId,
+      replaced: result.replaced,
+    );
+
+    final today = await repo.logsForDate('2026-09-19');
+    // 新行被删；两条旧行恢复（数据口径一致，行身份换新）。
+    expect(today, hasLength(2));
+    expect(today.map((l) => l.typeKey), containsAll(<String>['jog', 'yoga']));
+    expect(await repo.totalKcalForDate('2026-09-19'), 330);
+    final restored = today.firstWhere((l) => l.typeKey == 'yoga');
+    expect(restored.clientRequestId, isNot(synced.clientRequestId));
+    expect(restored.syncState, ExerciseSyncState.pending);
+  });
+
+  test('todayLogs：排除 tombstone，只含今日非删行', () async {
+    await repo.add(typeKey: 'jog', durationMin: 30, kcal: 210);
+    final gone = await repo.add(typeKey: 'yoga', durationMin: 40, kcal: 120);
+    await db.exerciseLogDao.markSynced(gone.localId, 'srv-3');
+    await repo.delete(gone.localId); // tombstone
+    final today = await repo.todayLogs();
+    expect(today, hasLength(1));
+    expect(today.single.typeKey, 'jog');
   });
 }
