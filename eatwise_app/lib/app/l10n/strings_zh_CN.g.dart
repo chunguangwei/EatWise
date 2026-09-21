@@ -3687,6 +3687,9 @@ class Translations$nutrition$data$proDetails$zh_CN {
 
 	/// zh-CN: 'RDA 为成人通用膳食参考值〔待营养专业背书〕，个人目标以你的方案为准'
 	String get rdaNote => 'RDA 为成人通用膳食参考值〔待营养专业背书〕，个人目标以你的方案为准';
+
+	/// zh-CN: '单位：热量为千卡，蛋白质/碳水/脂肪为克。'
+	String get unitsNote => '单位：热量为千卡，蛋白质/碳水/脂肪为克。';
 }
 
 // Path: nutrition.data.trend
@@ -4614,6 +4617,7 @@ extension on Translations {
 			'nutrition.data.proDetails.percent' => '占比',
 			'nutrition.data.proDetails.rda' => 'RDA 参考',
 			'nutrition.data.proDetails.rdaNote' => 'RDA 为成人通用膳食参考值〔待营养专业背书〕，个人目标以你的方案为准',
+			'nutrition.data.proDetails.unitsNote' => '单位：热量为千卡，蛋白质/碳水/脂肪为克。',
 			'nutrition.data.trend.title' => '近 7 日趋势',
 			'nutrition.data.trend.kcal' => '热量',
 			'nutrition.data.trend.fasting' => '断食时长',
@@ -4663,9 +4667,9 @@ extension on Translations {
 			'reports.title' => '趋势与报告',
 			'reports.entry' => '趋势与深度报告',
 			'reports.trend.title' => '成长趋势',
-			'reports.trend.dim.weight' => '体重',
 			_ => null,
 		} ?? switch (path) {
+			'reports.trend.dim.weight' => '体重',
 			'reports.trend.dim.kcal' => '热量',
 			'reports.trend.dim.fasting' => '断食时长',
 			'reports.trend.range.d7' => '7 天',

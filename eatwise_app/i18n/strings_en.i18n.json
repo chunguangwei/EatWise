@@ -609,7 +609,8 @@
         "actual": "Intake",
         "percent": "% of goal",
         "rda": "RDA ref.",
-        "rdaNote": "RDA values are general adult dietary references (pending nutritionist sign-off) — your personal goals follow your plan"
+        "rdaNote": "RDA values are general adult dietary references (pending nutritionist sign-off) — your personal goals follow your plan",
+        "unitsNote": "Units: kcal for energy, grams for protein/carbs/fat."
       },
       "trend": {
         "title": "Last 7 days",

@@ -178,7 +178,7 @@ class _DetailsTable extends StatelessWidget {
         ],
         const SizedBox(height: AppSpacing.s3),
         Text(
-          pd.rdaNote,
+          '${pd.unitsNote}\n${pd.rdaNote}',
           style: textStyles.textXs.copyWith(color: colors.textSecondary),
         ),
       ],
@@ -197,9 +197,6 @@ class _DetailsTable extends StatelessWidget {
       NutrientType.carb => t.record.nutrition.carb,
       NutrientType.fat => t.record.nutrition.fat,
     };
-    final unit = n == NutrientType.kcal
-        ? t.record.nutrition.kcalUnit
-        : t.record.nutrition.gramUnit;
     final (actual, target) = switch (n) {
       NutrientType.kcal => (intake.kcal, goal.targetKcal.toDouble()),
       NutrientType.protein => (intake.proteinG, goal.proteinG.toDouble()),
@@ -207,13 +204,15 @@ class _DetailsTable extends StatelessWidget {
       NutrientType.fat => (intake.fatG, goal.fatG.toDouble()),
     };
     final percent = actual / target * 100;
+    // 走查修复（v1.13.3）：数值列去单位只留数字——「2000 千卡」在 5 列
+    // 窄屏放不下曾被裁成「200…」；单位口径收进表下注释（rdaNote）。
     return _Row(
       cells: <String>[
         name,
-        '${target.toStringAsFixed(0)} $unit',
-        '${actual.toStringAsFixed(0)} $unit',
+        target.toStringAsFixed(0),
+        actual.toStringAsFixed(0),
         '${percent.toStringAsFixed(0)}%',
-        '${rda[n]!.toStringAsFixed(0)} $unit',
+        rda[n]!.toStringAsFixed(0),
       ],
       style: textStyles.textSm.copyWith(color: colors.textPrimary),
       firstCellStyle: textStyles.textSm.copyWith(color: colors.textPrimary),
@@ -234,19 +233,29 @@ class _Row extends StatelessWidget {
       children: <Widget>[
         for (var i = 0; i < cells.length; i++)
           Expanded(
-            // 走查修复：热量行数字（如 1850 千卡）曾被挤成「18…」——
-            // 首列（名称）收窄，数值列加宽。
+            // 首列（营养素名）收窄、数值列加宽；数值列 FittedBox 兜底——
+            // 内容超宽时整体缩小而不裁剪/省略（走查修复 v1.13.3，
+            // 此前 flex+clip 组合在窄屏安卓仍截数字）。
             flex: i == 0 ? 2 : 5,
-            child: Text(
-              cells[i],
-              style: i == 0 ? (firstCellStyle ?? style) : style,
-              maxLines: 1,
-              softWrap: false,
-              overflow: i == 0
-                  ? TextOverflow.ellipsis
-                  : TextOverflow.clip, // 数值列宁可不挤也不要「…」
-              textAlign: i == 0 ? TextAlign.start : TextAlign.end,
-            ),
+            child: i == 0
+                ? Text(
+                    cells[i],
+                    style: firstCellStyle ?? style,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                  )
+                : FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      cells[i],
+                      style: style,
+                      maxLines: 1,
+                      softWrap: false,
+                      textAlign: TextAlign.end,
+                    ),
+                  ),
           ),
       ],
     );

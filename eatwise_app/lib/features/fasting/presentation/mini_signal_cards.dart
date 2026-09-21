@@ -7,10 +7,17 @@ import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/fasting/domain/daily_nutrition.dart';
+import 'package:eatwise/features/fasting/domain/fasting_clock.dart'
+    show localDateOf;
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_rule_config.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/onboarding/application/profile_sync.dart'
+    show mergeProfileWithServer, serverProfileOf;
+import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
+import 'package:eatwise/features/settings/application/settings_providers.dart'
+    show userMeProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,25 +28,57 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// `evaluateDailySignals`（signal_light/daily_nutrition 领域纯函数）→
 /// 落区渲染；当日 0 条记录走空态（四态规范 3.4：不出现误导性信号灯）。
 
-/// 每日营养目标（M1 引导写入的快照；缺失时按 D-04 兜底公式重算）。
+/// 每日营养目标（M1 引导写入的快照；缺失/兜底态按最新档案重算，D-04）。
+///
+/// 走查修复（v1.13.3）「当前按默认目标估算」误提示：快照缺失或本身
+/// usedFallback=true（身体档案表单 sex/活动水平可空，保存即落兜底快照）
+/// 时，改为按「本地档案 ∪ 服务端下行档案」重算——重装/跨设备登录后
+/// 本地未落盘、资料却在服务端的用户不再被误报默认目标。重算仍缺项
+/// （isComplete=false）才保留 usedFallback=true 并展示补全提示。
+/// 纯读侧重算，不落盘（保存档案仍由 BodyProfileService 写权威快照）。
 final nutritionGoalProvider = Provider<NutritionGoal>((ref) {
-  final snapshot = ref.watch(onboardingStoreProvider).loadNutritionGoal();
+  final store = ref.watch(onboardingStoreProvider);
+  NutritionGoal? snapshotGoal;
+  final snapshot = store.loadNutritionGoal();
   if (snapshot != null) {
-    return NutritionGoal(
+    snapshotGoal = NutritionGoal(
       bmr: null,
       tdee: null,
       targetKcal: snapshot.targetKcal,
       proteinG: snapshot.proteinG,
-      carbG: snapshot.carbG,
       fatG: snapshot.fatG,
+      carbG: snapshot.carbG,
       usedFallback: snapshot.usedFallback,
       configVersion: snapshot.configVersion,
     );
+    if (!snapshot.usedFallback) return snapshotGoal;
   }
-  return computeNutritionGoal(
-    const UserProfileInput(),
-    NutritionRuleConfig.defaults,
+  // 重算素材：本地档案优先、服务端下行补齐（serverProfileOf 逆解析）；
+  // 未登录/U1 未加载完时 me=null，等价旧行为（空档案兜底）。
+  final me = ref.watch(userMeProvider).valueOrNull;
+  final profile = mergeProfileWithServer(
+    store.loadProfile() ?? OnboardingProfile.empty,
+    me == null ? null : serverProfileOf(me),
   );
+  final input = profile.toProfileInput(
+    goal: me?.goal == 'fat_loss'
+        ? NutritionGoalType.lose
+        : NutritionGoalType.maintain,
+    currentYear: DateTime.fromMillisecondsSinceEpoch(
+      ref.watch(nowUtcProvider) * 1000,
+      isUtc: true,
+    ).year,
+    today: localDateOf(
+      ref.watch(nowUtcProvider),
+      ref.watch(deviceLocationProvider),
+    ),
+  );
+  if (!input.isComplete) {
+    // 资料确实不全：有旧兜底快照则沿用（避免克数口径抖动），否则兜底公式。
+    return snapshotGoal ??
+        computeNutritionGoal(input, NutritionRuleConfig.defaults);
+  }
+  return computeNutritionGoal(input, NutritionRuleConfig.defaults);
 });
 
 /// 当日营养聚合缓存流（数据源端口）。

@@ -115,8 +115,9 @@ void main() {
     expect(find.text('达标'), findsNWidgets(2));
     expect(find.text('适量提醒'), findsOneWidget);
     expect(find.text('警示'), findsOneWidget);
-    // 大数值（已摄入）与目标。
-    expect(find.text('1700'), findsOneWidget);
+    // 大数值（已摄入）与目标。专业表数值列去单位后，折叠表里的已摄入
+    // 热量单元格与大字同为「1700」。
+    expect(find.text('1700'), findsNWidgets(2));
     expect(find.text('/ 目标 2000 千卡'), findsOneWidget);
     // 一句话建议不再占卡面（瘦身）；点红区碳水徽标弹详情对话框读全。
     expect(find.textContaining('今天碳水太少了'), findsNothing);
@@ -206,7 +207,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('1700'), findsNothing);
-    expect(find.text('2000'), findsOneWidget); // 回到今天的大数值
+    // 专业表数值列去单位后裸数字不再唯一；以目标行文本确认已回到今天。
+    expect(find.text('/ 目标 2000 千卡'), findsOneWidget);
 
     await unmount(tester);
   });
@@ -265,7 +267,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('RDA ref.'), findsOneWidget);
-
+    // 数值列去单位：目标列裸数字，旧「值+单位」拼接文本不再出现（单位进注）。
+    expect(find.text('2000'), findsWidgets);
+    expect(find.text('2000 kcal'), findsNothing);
     expect(tester.takeException(), isNull); // 无溢出错
 
     await unmount(tester);

@@ -7,6 +7,10 @@ import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
+import 'package:eatwise/features/onboarding/domain/onboarding_profile.dart';
+import 'package:eatwise/features/settings/application/settings_providers.dart'
+    show userMeProvider;
+import 'package:eatwise/features/settings/data/user_api.dart' show UserMeView;
 import 'package:eatwise/features/streak/application/streak_controller.dart'
     show currentUserIdProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -198,6 +202,110 @@ void main() {
       final goal = container.read(nutritionGoalProvider);
       expect(goal.usedFallback, isTrue);
       expect(goal.targetKcal, 2000); // 性别缺失兜底 2000 kcal
+    });
+
+    // v1.13.3 走查回归：资料齐全但本地无快照/快照为兜底 → 按档案重算，
+    // 不再误报「按默认目标估算」。
+    test('无快照但服务端档案齐全：按档案重算，usedFallback=false', () async {
+      await seedGoal(withSnapshot: false);
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          nutritionNowProvider.overrideWithValue(now),
+          // 固定 2026-07-28（Asia/Shanghai 正午）→ 35 岁。
+          nowUtcProvider.overrideWithValue(
+            DateTime.utc(2026, 7, 28, 4).millisecondsSinceEpoch ~/ 1000,
+          ),
+          userMeProvider.overrideWith(
+            (ref) => Future.value(
+              const UserMeView(
+                id: 'u1',
+                username: '',
+                maskedPhone: '',
+                gender: 'male',
+                birthYear: 1990,
+                heightCm: 175,
+                weightKg: 70,
+                activityLevel: 'moderate',
+                goal: 'fat_loss',
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(userMeProvider.future);
+
+      final goal = container.read(nutritionGoalProvider);
+      expect(goal.usedFallback, false);
+      // 男 36/175/70/moderate 减脂：BMR 1618.75 ×1.55 ×0.8 = 2007 → 2010，
+      // 绝非性别缺失兜底 2000。
+      expect(goal.targetKcal, 2010);
+    });
+
+    test('兜底快照 + 本地完整档案：重算覆盖旧兜底值', () async {
+      await seedGoal(withSnapshot: false);
+      final store = SharedPreferencesOnboardingStore(prefs);
+      store.saveProfile(
+        const OnboardingProfile(
+          sex: ProfileSex.male,
+          birthYear: 1990,
+          heightCm: 175,
+          weightKg: 70,
+          activityLevel: ActivityLevel.moderate,
+        ),
+      );
+      store.saveNutritionGoal(
+        const NutritionGoalSnapshot(
+          targetKcal: 2000,
+          proteinG: 125,
+          carbG: 90,
+          fatG: 44,
+          usedFallback: true,
+          configVersion: 'v1',
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          nutritionNowProvider.overrideWithValue(now),
+          userMeProvider.overrideWith((ref) => Future.value(null)),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final goal = container.read(nutritionGoalProvider);
+      expect(goal.usedFallback, false);
+      // 无 goal 信息 → maintain：TDEE = 1618.75×1.55 ≈ 2509 → 2510（非 2000）。
+      expect(goal.targetKcal, isNot(2000));
+    });
+
+    test('资料确实不全：沿用旧兜底快照原值（不抖动）', () async {
+      await seedGoal(withSnapshot: false);
+      final store = SharedPreferencesOnboardingStore(prefs);
+      store.saveNutritionGoal(
+        const NutritionGoalSnapshot(
+          targetKcal: 2000,
+          proteinG: 125,
+          carbG: 90,
+          fatG: 44,
+          usedFallback: true,
+          configVersion: 'v1',
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          nutritionNowProvider.overrideWithValue(now),
+          userMeProvider.overrideWith((ref) => Future.value(null)),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final goal = container.read(nutritionGoalProvider);
+      expect(goal.usedFallback, true);
+      expect(goal.proteinG, 125);
+      expect(goal.carbG, 90);
     });
   });
 

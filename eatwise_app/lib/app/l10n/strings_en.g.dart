@@ -2012,6 +2012,7 @@ class _Translations$nutrition$data$proDetails$en extends Translations$nutrition$
 	@override String get percent => '% of goal';
 	@override String get rda => 'RDA ref.';
 	@override String get rdaNote => 'RDA values are general adult dietary references (pending nutritionist sign-off) — your personal goals follow your plan';
+	@override String get unitsNote => 'Units: kcal for energy, grams for protein/carbs/fat.';
 }
 
 // Path: nutrition.data.trend
@@ -2759,6 +2760,7 @@ extension on TranslationsEn {
 			'nutrition.data.proDetails.percent' => '% of goal',
 			'nutrition.data.proDetails.rda' => 'RDA ref.',
 			'nutrition.data.proDetails.rdaNote' => 'RDA values are general adult dietary references (pending nutritionist sign-off) — your personal goals follow your plan',
+			'nutrition.data.proDetails.unitsNote' => 'Units: kcal for energy, grams for protein/carbs/fat.',
 			'nutrition.data.trend.title' => 'Last 7 days',
 			'nutrition.data.trend.kcal' => 'Calories',
 			'nutrition.data.trend.fasting' => 'Fasting',
@@ -2808,9 +2810,9 @@ extension on TranslationsEn {
 			'reports.title' => 'Trends & reports',
 			'reports.entry' => 'Trends & deep reports',
 			'reports.trend.title' => 'Growth trends',
-			'reports.trend.dim.weight' => 'Weight',
 			_ => null,
 		} ?? switch (path) {
+			'reports.trend.dim.weight' => 'Weight',
 			'reports.trend.dim.kcal' => 'Calories',
 			'reports.trend.dim.fasting' => 'Fasting',
 			'reports.trend.range.d7' => '7D',
