@@ -6,14 +6,22 @@ import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
+import 'package:eatwise/features/record/data/record_remote.dart';
+import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:timezone/timezone.dart' as tz;
+
+import '../record_test_helper.dart';
 
 /// 自定义食物仓储单测（K2：远端直调 + 本地落库 + 离线 pending 重试）。
 ///
 /// 覆盖：在线保存落库可搜、离线仅落本地 pending、联网 retryPending
 /// 幂等重试、业务错误上抛不落库。
 void main() {
+  setUpAll(() async {
+    await initRecordTestTimeZones();
+  });
   late AppDatabase db;
   late FakeCustomFoodRemote remote;
   late CustomFoodRepository repository;
@@ -204,6 +212,181 @@ void main() {
       isNull,
     );
   });
+
+  // ── 编辑（PATCH）/ 删除（DELETE）──────────────────────────────
+
+  const edited = CustomFoodDraft(
+    nameZh: '冰糖燕窝羹',
+    aliasesZh: <String>['燕窝', '冰糖燕窝'],
+    per100g: NutritionSnapshot(kcal: 70, proteinG: 6, carbG: 9, fatG: 2),
+    source: CustomFoodSource.manual,
+  );
+
+  Future<void> insertEntry(
+    String localId, {
+    required String foodId,
+    required SyncStatus syncStatus,
+    String? serverId,
+  }) {
+    return db.foodEntryDao.insertEntry(
+      FoodEntriesCompanion(
+        localId: Value(localId),
+        userId: const Value('u-1'),
+        clientRequestId: Value('c-$localId'),
+        syncStatus: Value(syncStatus),
+        serverId: Value(serverId),
+        datetimeUtc: const Value('2026-09-14T01:10:00.000Z'),
+        localDate: const Value('2026-09-14'),
+        foodId: Value(foodId),
+        amountG: const Value(200),
+        kcal: const Value(120),
+        proteinG: const Value(10),
+        carbG: const Value(16),
+        fatG: const Value(2),
+        source: const Value(EntrySource.manual),
+        createdAtUtc: const Value('2026-09-14T01:10:00.000Z'),
+        updatedAtUtc: const Value('2026-09-14T01:10:00.000Z'),
+      ),
+    );
+  }
+
+  test('编辑：本地行更新 + PATCH 上行；同步标记不受扰动', () async {
+    // 先离线保存 → 行 pending；恢复在线后编辑。
+    remote.mode = FakeCustomFoodMode.offline;
+    final saved = await repository.save(draft);
+    remote.mode = FakeCustomFoodMode.success;
+
+    final updated = await repository.update(saved.food, edited);
+
+    expect(updated.nameZh, '冰糖燕窝羹');
+    expect(updated.kcalPer100g, 70);
+    expect(updated.aliasesZh, contains('冰糖燕窝'));
+    // 编辑不做幂等重试：pending 标记/幂等键原样保留（创建上行仍待重试）。
+    expect(updated.customSyncPending, isTrue);
+    expect(updated.customClientRequestId, isNotEmpty);
+    expect(updated.isCustom, isTrue);
+    expect(remote.receivedUpdateIds, <String>['${saved.food.id}|冰糖燕窝羹']);
+  });
+
+  test('编辑离线：网络错误静默保留本地值，不抛出', () async {
+    final saved = await repository.save(draft);
+    remote.mode = FakeCustomFoodMode.offline;
+
+    final updated = await repository.update(saved.food, edited);
+
+    // 已定口径：自定义行主要服务创建者设备，离线编辑保留本地值不重试。
+    expect(updated.nameZh, '冰糖燕窝羹');
+    expect((await db.foodDao.getById(saved.food.id))!.nameZh, '冰糖燕窝羹');
+    expect(remote.receivedUpdateIds, isEmpty);
+  });
+
+  test('删除成功：远端确认后本地两态级联 + 聚合重算 + 行移除', () async {
+    final saved = await repository.save(draft);
+    await insertEntry(
+      'l-pending',
+      foodId: saved.food.id,
+      syncStatus: SyncStatus.pending,
+    );
+    await insertEntry(
+      'l-synced',
+      foodId: saved.food.id,
+      syncStatus: SyncStatus.synced,
+      serverId: 'srv-e2',
+    );
+    await db.foodEntryDao.recomputeDailyNutrition(
+      'u-1',
+      '2026-09-14',
+      updatedAtUtc: '2026-09-14T01:20:00.000Z',
+    );
+    remote.deleteEntriesReturned = 2;
+    // 记录远程端离线：tombstone 留库待上行（在线口径由 entry_delete_test 覆盖）。
+    final recordRepo = RecordRepository(
+      db: db,
+      remote: FakeRecordRemote(mode: FakeRemoteMode.offline),
+      location: tz.getLocation('Asia/Shanghai'),
+      userId: 'u-1',
+    );
+    addTearDown(recordRepo.dispose);
+
+    final deleted = await repository.delete(
+      saved.food,
+      recordRepository: recordRepo,
+      userId: 'u-1',
+    );
+
+    expect(deleted, 2);
+    expect(remote.receivedDeleteIds, <String>[saved.food.id]);
+    // 食物行移除 + 搜索不再命中。
+    expect(await db.foodDao.getById(saved.food.id), isNull);
+    expect(await db.foodDao.searchFoods('燕窝羹'), isEmpty);
+    // 未上行记录物理删；已上行记录转 tombstone（下行同步他端）。
+    expect(await db.foodEntryDao.getByLocalId('l-pending'), isNull);
+    expect((await db.foodEntryDao.getByLocalId('l-synced'))!.deleted, isTrue);
+    // 归属日聚合即时重算清零。
+    final daily = await db.foodEntryDao.getDailyNutrition('u-1', '2026-09-14');
+    expect(daily!.kcal, 0);
+    expect(daily.entryCount, 0);
+  });
+
+  test('删除被拒（409 FOOD_UNDER_REVIEW）：本地一切不动可重试', () async {
+    final saved = await repository.save(draft);
+    await insertEntry(
+      'l-entry-1',
+      foodId: saved.food.id,
+      syncStatus: SyncStatus.pending,
+    );
+    remote.deleteUnderReview = true;
+    final recordRepo = RecordRepository(
+      db: db,
+      remote: FakeRecordRemote(mode: FakeRemoteMode.offline),
+      location: tz.getLocation('Asia/Shanghai'),
+      userId: 'u-1',
+    );
+    addTearDown(recordRepo.dispose);
+
+    await expectLater(
+      repository.delete(
+        saved.food,
+        recordRepository: recordRepo,
+        userId: 'u-1',
+      ),
+      throwsA(
+        isA<BusinessApiException>()
+            .having((e) => e.code, 'code', 'FOOD_UNDER_REVIEW')
+            .having((e) => e.httpStatus, 'httpStatus', 409),
+      ),
+    );
+    expect(await db.foodDao.getById(saved.food.id), isNotNull);
+    expect(await db.foodEntryDao.getByLocalId('l-entry-1'), isNotNull);
+  });
+
+  test('删除离线：网络错误上抛，本地一切不动', () async {
+    final saved = await repository.save(draft);
+    await insertEntry(
+      'l-entry-1',
+      foodId: saved.food.id,
+      syncStatus: SyncStatus.pending,
+    );
+    remote.mode = FakeCustomFoodMode.offline;
+    final recordRepo = RecordRepository(
+      db: db,
+      remote: FakeRecordRemote(mode: FakeRemoteMode.offline),
+      location: tz.getLocation('Asia/Shanghai'),
+      userId: 'u-1',
+    );
+    addTearDown(recordRepo.dispose);
+
+    await expectLater(
+      repository.delete(
+        saved.food,
+        recordRepository: recordRepo,
+        userId: 'u-1',
+      ),
+      throwsA(isA<NetworkApiException>()),
+    );
+    expect(await db.foodDao.getById(saved.food.id), isNotNull);
+    expect(await db.foodEntryDao.getByLocalId('l-entry-1'), isNotNull);
+  });
 }
 
 /// 模拟 422 校验拒绝的远程端（T7 口径：不可重试错误上抛）。
@@ -245,6 +428,16 @@ final class _RejectingRemote implements CustomFoodRemote {
     CustomFoodDraft draft, {
     required String clientRequestId,
   }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> updateCustom(String foodId, CustomFoodDraft draft) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<int> deleteCustom(String foodId) {
     throw UnimplementedError();
   }
 }

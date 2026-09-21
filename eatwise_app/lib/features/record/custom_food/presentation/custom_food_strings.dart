@@ -127,6 +127,32 @@ final class CustomFoodStrings {
   String reviewRejectedNotice(String name) =>
       _t.record.customFood.reviewRejectedNotice(name: name);
 
+  /// record.customFood.editTitle
+  String get editTitle => _t.record.customFood.editTitle;
+
+  /// record.customFood.editAction
+  String get editAction => _t.record.customFood.editAction;
+
+  /// record.customFood.editSave
+  String get editSave => _t.record.customFood.editSave;
+
+  /// record.customFood.deleteAction
+  String get deleteAction => _t.record.customFood.deleteAction;
+
+  /// record.customFood.deleteConfirmTitle
+  String get deleteConfirmTitle => _t.record.customFood.deleteConfirmTitle;
+
+  /// record.customFood.deleteConfirmBody（含将删历史记录条数）
+  String deleteConfirmBody(int count) =>
+      _t.record.customFood.deleteConfirmBody(n: count);
+
+  /// record.customFood.deleteDone（已删历史记录条数）
+  String deleteDone(int count) => _t.record.customFood.deleteDone(n: count);
+
+  /// record.customFood.underReviewDeleteBlocked（409 FOOD_UNDER_REVIEW）
+  String get underReviewDeleteBlocked =>
+      _t.record.customFood.underReviewDeleteBlocked;
+
   /// 搜索结果行状态标签（K2 众包；null = 不显示标签）：
   /// 自定义食物按贡献状态分「自定义/审核中/已共享/未通过」；
   /// 非自定义但下行标记 approved 的为他人贡献的社区食物（「社区」）。

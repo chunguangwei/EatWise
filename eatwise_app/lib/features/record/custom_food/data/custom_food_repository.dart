@@ -6,6 +6,7 @@ import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
+import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 
 /// 自定义食物保存结果（保存后立即可搜可记：直接回填记录结果卡）。
@@ -128,6 +129,55 @@ final class CustomFoodRepository {
   /// 网络/业务错误原样上抛，由 UI 提示（表单保留可重试）。
   Future<String> submitCorrection(String foodId, CustomFoodDraft draft) {
     return remote.submitCorrection(foodId, draft, clientRequestId: _uuid());
+  }
+
+  /// 编辑自定义食物（PATCH，无幂等键）：先本地后远端。
+  ///
+  /// companion 只带上行可编辑列——drift insertOnConflictUpdate 跳过缺省列，
+  /// isCustom/customSyncPending/contributionStatus 等标记不受扰动。
+  /// 网络/超时错误静默〔已定口径：自定义食物行主要服务创建者设备，
+  /// 离线编辑保留本地值，下次联网不重试（更新 LWW 无语义可重放）〕；
+  /// 4xx/5xx 业务错误上抛 UI 提示。返回编辑后的最新本地行。
+  Future<Food> update(Food food, CustomFoodDraft draft) async {
+    await db.foodDao.upsertAll(<FoodsCompanion>[
+      FoodsCompanion(
+        id: Value(food.id),
+        nameZh: Value(draft.nameZh),
+        nameEn: Value(draft.nameEn ?? draft.nameZh),
+        aliasesZh: Value(jsonEncode(draft.aliasesZh)),
+        aliasesEn: Value(jsonEncode(draft.aliasesEn)),
+        kcalPer100g: Value(draft.per100g.kcal),
+        proteinPer100g: Value(draft.per100g.proteinG),
+        carbPer100g: Value(draft.per100g.carbG),
+        fatPer100g: Value(draft.per100g.fatG),
+      ),
+    ]);
+    try {
+      await remote.updateCustom(food.id, draft);
+    } on ApiException catch (e) {
+      if (e is! NetworkApiException && e is! TimeoutApiException) rethrow;
+    }
+    return (await db.foodDao.getById(food.id))!;
+  }
+
+  /// 删除自定义食物（DELETE）：先远端后本地——409 FOOD_UNDER_REVIEW /
+  /// 网络错误直接上抛，本地一切不动（可重试）；远端成功后本地两态级联：
+  /// 每条历史记录走 [RecordRepository.deleteEntry]（含 tombstone/物理删
+  /// 两态 + 逐条归属日聚合重算），最后物理删食物行。返回本地删除的
+  /// 历史记录条数（提示文案用；服务端 deletedEntries 为权威口径，本地
+  /// 条数用于即时反馈）。
+  Future<int> delete(
+    Food food, {
+    required RecordRepository recordRepository,
+    required String userId,
+  }) async {
+    await remote.deleteCustom(food.id);
+    final entries = await db.foodEntryDao.entriesForFood(userId, food.id);
+    for (final e in entries) {
+      await recordRepository.deleteEntry(e.localId);
+    }
+    await db.foodDao.deleteById(food.id);
+    return entries.length;
   }
 
   /// 联网后重试 pending 自定义食物（幂等键复用，重复上行不产生重复条目）。  /// 返回本轮上行成功条数。

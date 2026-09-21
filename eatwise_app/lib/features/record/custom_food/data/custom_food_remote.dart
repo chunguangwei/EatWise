@@ -43,6 +43,16 @@ abstract interface class CustomFoodRemote {
     CustomFoodDraft draft, {
     required String clientRequestId,
   });
+
+  /// 编辑自定义食物（PATCH /foods/custom/:id，body 同创建去 clientRequestId，
+  /// 不做幂等〔已定口径：更新 LWW，重放同值无害〕；owner 不匹配/不存在 404，
+  /// 名称/营养校验与创建同口径 400 → BusinessApiException 上抛）。
+  Future<void> updateCustom(String foodId, CustomFoodDraft draft);
+
+  /// 删除自定义食物（DELETE /foods/custom/:id）：返回服务端级联软删的
+  /// 历史记录条数（deletedEntries）；审核中候选 409 FOOD_UNDER_REVIEW，
+  /// 非 owner/不存在 404。
+  Future<int> deleteCustom(String foodId);
 }
 
 /// 估算不可用（503 ESTIMATE_UNAVAILABLE / 超时 / 网络错误）的统一判定：
@@ -160,6 +170,44 @@ final class RemoteCustomFoodApi implements CustomFoodRemote {
         },
       );
       return response.data?['status'] as String? ?? 'pending';
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
+  @override
+  Future<void> updateCustom(String foodId, CustomFoodDraft draft) async {
+    try {
+      // body 与 createCustom 同构，仅去 clientRequestId（更新不做幂等键）。
+      await dio.patch<Map<String, dynamic>>(
+        '/foods/custom/$foodId',
+        data: <String, dynamic>{
+          'nameZh': draft.nameZh,
+          if (draft.nameEn != null && draft.nameEn!.isNotEmpty)
+            'nameEn': draft.nameEn,
+          'aliasesZh': draft.aliasesZh,
+          'aliasesEn': draft.aliasesEn,
+          'per100g': <String, dynamic>{
+            'kcal': draft.per100g.kcal,
+            'proteinG': draft.per100g.proteinG,
+            'carbG': draft.per100g.carbG,
+            'fatG': draft.per100g.fatG,
+          },
+          'source': customFoodSourceName(draft.source),
+        },
+      );
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
+  @override
+  Future<int> deleteCustom(String foodId) async {
+    try {
+      final response = await dio.delete<Map<String, dynamic>>(
+        '/foods/custom/$foodId',
+      );
+      return (response.data?['deletedEntries'] as num?)?.toInt() ?? 0;
     } on DioException catch (e) {
       throw toApiException(e);
     }
@@ -308,5 +356,39 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
     receivedCorrectionIds.add('$foodId:$clientRequestId');
     _correctionIdem[clientRequestId] = 'pending';
     return 'pending';
+  }
+
+  /// 已收到的更新/删除请求 ID（断言上行用）。
+  final List<String> receivedUpdateIds = <String>[];
+  final List<String> receivedDeleteIds = <String>[];
+
+  /// 注入删除冲突（409 FOOD_UNDER_REVIEW，审核中候选不可删）。
+  bool deleteUnderReview = false;
+
+  /// deleteCustom 返回的级联删除记录条数（默认 0）。
+  int deleteEntriesReturned = 0;
+
+  @override
+  Future<void> updateCustom(String foodId, CustomFoodDraft draft) async {
+    if (mode == FakeCustomFoodMode.offline) {
+      throw const NetworkApiException();
+    }
+    receivedUpdateIds.add('$foodId|${draft.nameZh}');
+  }
+
+  @override
+  Future<int> deleteCustom(String foodId) async {
+    if (mode == FakeCustomFoodMode.offline) {
+      throw const NetworkApiException();
+    }
+    if (deleteUnderReview) {
+      throw const BusinessApiException(
+        httpStatus: 409,
+        code: 'FOOD_UNDER_REVIEW',
+        message: '该食物正在审核中，无法删除',
+      );
+    }
+    receivedDeleteIds.add(foodId);
+    return deleteEntriesReturned;
   }
 }

@@ -159,12 +159,14 @@ model Food {
   createdByUserId String? // 自定义/社区共享食物创建者（共享食物保留溯源；可见性按 isCustom 过滤）
   clientRequestId String? // 自定义食物创建幂等键（K2，D-20）
   barcode         String? // 包装食品条码（8-14 位数字；条码众包候选 approve 晋升时写入，后续扫码先命中自有库）
+  deletedAt       DateTime? // 软删 tombstone（自定义食物删除；共享库行不删）
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   entries FoodEntry[]
 
   @@index([barcode]) // 条码命中查询
+  @@index([deletedAt]) // 软删过滤（读路径 deletedAt:null）
   @@map("foods")
 }
 

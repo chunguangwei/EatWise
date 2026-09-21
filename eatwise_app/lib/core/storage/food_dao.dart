@@ -78,4 +78,10 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
       FoodsCompanion(contributionStatus: Value(status)),
     );
   }
+
+  /// 物理删除食物行（自定义食物删除用；调用方须先处理引用它的
+  /// food_entries——两态删除/tombstone 由 CustomFoodRepository.delete 负责）。
+  Future<void> deleteById(String id) {
+    return (delete(foods)..where((f) => f.id.equals(id))).go();
+  }
 }

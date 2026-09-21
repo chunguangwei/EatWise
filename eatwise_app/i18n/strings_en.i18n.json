@@ -349,6 +349,20 @@
       "badgeRejected": "Not approved",
       "badgeCommunity": "Community",
       "reviewRejectedNotice": "Your submitted food \"${name}\" was not approved; related records have been removed",
+      "editTitle": "Edit custom food",
+      "editAction": "Edit",
+      "editSave": "Save changes",
+      "deleteAction": "Delete",
+      "deleteConfirmTitle": "Delete this custom food?",
+      "deleteConfirmBody": {
+        "one": "${n} related log will also be deleted. This can't be undone.",
+        "other": "${n} related logs will also be deleted. This can't be undone."
+      },
+      "deleteDone": {
+        "one": "Deleted (including ${n} log)",
+        "other": "Deleted (including ${n} logs)"
+      },
+      "underReviewDeleteBlocked": "This food is under review and can't be deleted yet. Please wait for the review to finish.",
       "contributions": {
         "title": "My contributions",
         "filterAll": "All",

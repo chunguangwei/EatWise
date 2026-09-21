@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'dart:convert';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/analytics_service.dart';
@@ -146,6 +146,7 @@ class CustomFoodSheet extends ConsumerStatefulWidget {
     this.initialAlias,
     this.initialName,
     this.correctionTarget,
+    this.editTarget,
   });
 
   /// 预填别名（可选，扫码未收录时传入条码号）。
@@ -156,6 +157,11 @@ class CustomFoodSheet extends ConsumerStatefulWidget {
 
   /// 纠错目标食物（非空即纠错模式）。
   final Food? correctionTarget;
+
+  /// 编辑目标食物（非空即编辑模式）：预填全部字段，保存走
+  /// PATCH /foods/custom/:id（不动同步标记）；分享勾选隐藏，
+  /// 分享走详情页独立按钮。
+  final Food? editTarget;
 
   @override
   ConsumerState<CustomFoodSheet> createState() => _CustomFoodSheetState();
@@ -176,18 +182,40 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
   /// 精简表单（无别名/估算/OCR/共享勾选），保存走 /foods/:id/correction。
   bool get _isCorrection => widget.correctionTarget != null;
 
+  /// 编辑模式（[CustomFoodSheet.editTarget] 非空）：预填当前值，
+  /// 保存走 PATCH；不做分享勾选（分享走详情页独立按钮）。
+  bool get _isEdit => widget.editTarget != null;
+
   @override
   void initState() {
     super.initState();
-    final target = widget.correctionTarget;
-    if (target != null) {
-      _nameController.text = target.nameZh;
-      _kcalController.text = _formatNumber(target.kcalPer100g);
-      _proteinController.text = _formatNumber(target.proteinPer100g);
-      _carbController.text = _formatNumber(target.carbPer100g);
-      _fatController.text = _formatNumber(target.fatPer100g);
-    } else if (widget.initialName != null) {
-      _nameController.text = widget.initialName!;
+    final edit = widget.editTarget;
+    if (edit != null) {
+      _nameController.text = edit.nameZh;
+      var aliasText = '';
+      try {
+        aliasText = (jsonDecode(edit.aliasesZh) as List<dynamic>)
+            .whereType<String>()
+            .join('、');
+      } on Object {
+        // 别名 JSON 坏数据视为无别名（同 food_detail_sheet._aliasText 口径）
+      }
+      _aliasController.text = aliasText;
+      _kcalController.text = _formatNumber(edit.kcalPer100g);
+      _proteinController.text = _formatNumber(edit.proteinPer100g);
+      _carbController.text = _formatNumber(edit.carbPer100g);
+      _fatController.text = _formatNumber(edit.fatPer100g);
+    } else {
+      final target = widget.correctionTarget;
+      if (target != null) {
+        _nameController.text = target.nameZh;
+        _kcalController.text = _formatNumber(target.kcalPer100g);
+        _proteinController.text = _formatNumber(target.proteinPer100g);
+        _carbController.text = _formatNumber(target.carbPer100g);
+        _fatController.text = _formatNumber(target.fatPer100g);
+      } else if (widget.initialName != null) {
+        _nameController.text = widget.initialName!;
+      }
     }
   }
 
@@ -377,6 +405,20 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
             ? CustomFoodSource.llmEstimate
             : CustomFoodSource.manual,
       );
+      // 编辑模式：PATCH 更新后带最新行出弹层（详情页据此刷新展示）。
+      final editTarget = widget.editTarget;
+      if (editTarget != null) {
+        final updated = await ref
+            .read(customFoodRepositoryProvider)
+            .update(editTarget, draft);
+        if (mounted) {
+          FocusManager.instance.primaryFocus?.unfocus();
+          Navigator.of(
+            context,
+          ).pop(CustomFoodSaveResult(food: updated, uploaded: true));
+        }
+        return;
+      }
       // 纠错模式：建议值提交众包审核池，不动本地食物库。
       final correctionTarget = widget.correctionTarget;
       if (correctionTarget != null) {
@@ -532,7 +574,11 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               Text(
-                _isCorrection ? cs.correctionTitle : cs.title,
+                _isCorrection
+                    ? cs.correctionTitle
+                    : _isEdit
+                    ? cs.editTitle
+                    : cs.title,
                 style: textStyles.textLg,
               ),
               if (_isCorrection)
@@ -713,7 +759,8 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
               ),
               const SizedBox(height: AppSpacing.s3),
               // 贡献开关（默认不勾）：保存成功后提交共享候选审核。
-              if (!_isCorrection)
+              // 编辑态不做分享：分享走详情页按钮（此处勾选仅针对新建）。
+              if (!_isCorrection && !_isEdit)
                 CheckboxListTile(
                   value: _shareToAll,
                   onChanged: (value) =>
@@ -730,7 +777,11 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                   minimumSize: const Size.fromHeight(AppSpacing.s12),
                 ),
                 child: Text(
-                  _isCorrection ? cs.correctionSubmit : cs.saveAction,
+                  _isCorrection
+                      ? cs.correctionSubmit
+                      : _isEdit
+                      ? cs.editSave
+                      : cs.saveAction,
                   style: textStyles.textBase,
                 ),
               ),

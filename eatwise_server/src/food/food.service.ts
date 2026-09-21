@@ -17,6 +17,7 @@ import {
   CreateCustomFoodDto,
   CreateFoodCorrectionDto,
   ReviewFoodCandidateDto,
+  UpdateCustomFoodDto,
 } from './food.dto';
 import { isPer100gInRange } from './food.rules';
 
@@ -108,6 +109,61 @@ export class FoodService {
     const response = this.customView(food);
     await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response);
     return response;
+  }
+
+  /**
+   * 更新自定义食物（个人库编辑，LWW 不做幂等——重放同值无害，D-20 口径外）。
+   * 仅创建者可改（他人/共享/已删 → 404，不泄露存在性）；
+   * 名称/营养校验与 createCustomFood 同口径（trim 后 1-50 字 / isPer100gInRange）。
+   */
+  async updateCustomFood(userId: string, foodId: string, dto: UpdateCustomFoodDto) {
+    const food = await this.driver.findCustomFoodById(foodId);
+    if (!food || food.userId !== userId) throw err.notFound();
+
+    const nameZh = dto.nameZh.trim();
+    if (nameZh.length < 1 || nameZh.length > 50) {
+      throw err.validation({ nameZh: 'trimmed length must be 1-50' });
+    }
+    if (!isPer100gInRange(dto.per100g)) {
+      throw err.validation({ per100g: 'out of range (kcal 0-900, macros 0-100)' });
+    }
+
+    await this.driver.updateCustomFood(foodId, {
+      nameZh,
+      nameEn: dto.nameEn?.trim() || nameZh, // 〔假设〕未给英文名时回退中文名（同 create）
+      aliases: [...(dto.aliasesZh ?? []), ...(dto.aliasesEn ?? [])]
+        .map((a) => a.trim())
+        .filter(Boolean),
+      kcalPer100g: dto.per100g.kcal,
+      proteinPer100g: dto.per100g.proteinG,
+      carbsPer100g: dto.per100g.carbG,
+      fatPer100g: dto.per100g.fatG,
+      source: dto.source,
+    });
+    const updated = await this.driver.findCustomFoodById(foodId);
+    if (!updated) throw err.notFound();
+    return this.customView(updated);
+  }
+
+  /**
+   * 删除自定义食物（软删 tombstone；prisma deletedAt / 内存移行，读路径即时隐藏）。
+   * 仅创建者可删（他人/共享/已删 → 404，不泄露存在性）；
+   * 已有 pending 共享候选（审核中）→ 409 FOOD_UNDER_REVIEW：审核结论要回写该食物
+   * （approve 晋升 / reject 联动清记录），删除须先撤销或等审核落定。
+   * rejected 候选不阻断（candidateView 已容忍食物缺失回退 null，审核台不悬空）。
+   * 级联：本人引用该食物的饮食记录全部 tombstone（sync/pull 下行，其它设备自动清）。
+   * 不做幂等：重删第二次 404（资源已不存在的自然语义）。
+   */
+  async deleteCustomFood(userId: string, foodId: string) {
+    const food = await this.driver.findCustomFoodById(foodId);
+    if (!food || food.userId !== userId) throw err.notFound();
+
+    const candidate = await this.driver.findFoodCandidateByFoodId(foodId);
+    if (candidate?.status === 'pending') throw err.foodUnderReview();
+
+    await this.driver.softDeleteCustomFood(foodId);
+    const deletedEntries = await this.driver.softDeleteFoodEntriesByFood(userId, foodId);
+    return { deleted: true, deletedEntries };
   }
 
   /**

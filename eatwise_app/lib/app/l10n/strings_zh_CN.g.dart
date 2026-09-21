@@ -1234,6 +1234,36 @@ class Translations$record$customFood$zh_CN {
 	/// zh-CN: '你提交的食品「${name}」未通过审核，相关记录已移除'
 	String reviewRejectedNotice({required Object name}) => '你提交的食品「${name}」未通过审核，相关记录已移除';
 
+	/// zh-CN: '编辑自定义食物'
+	String get editTitle => '编辑自定义食物';
+
+	/// zh-CN: '编辑'
+	String get editAction => '编辑';
+
+	/// zh-CN: '保存修改'
+	String get editSave => '保存修改';
+
+	/// zh-CN: '删除'
+	String get deleteAction => '删除';
+
+	/// zh-CN: '删除这个自定义食物？'
+	String get deleteConfirmTitle => '删除这个自定义食物？';
+
+	/// zh-CN: '(one) {将同时删除 ${n} 条相关历史记录，此操作不可撤销} (other) {将同时删除 ${n} 条相关历史记录，此操作不可撤销}'
+	String deleteConfirmBody({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('zh'))(n,
+		one: '将同时删除 ${n} 条相关历史记录，此操作不可撤销',
+		other: '将同时删除 ${n} 条相关历史记录，此操作不可撤销',
+	);
+
+	/// zh-CN: '(one) {已删除（含 ${n} 条记录）} (other) {已删除（含 ${n} 条记录）}'
+	String deleteDone({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('zh'))(n,
+		one: '已删除（含 ${n} 条记录）',
+		other: '已删除（含 ${n} 条记录）',
+	);
+
+	/// zh-CN: '该食物正在审核中，暂时无法删除，请先等待审核完成'
+	String get underReviewDeleteBlocked => '该食物正在审核中，暂时无法删除，请先等待审核完成';
+
 	late final Translations$record$customFood$contributions$zh_CN contributions = Translations$record$customFood$contributions$zh_CN.internal(_root);
 	late final Translations$record$customFood$correction$zh_CN correction = Translations$record$customFood$correction$zh_CN.internal(_root);
 
@@ -4460,6 +4490,14 @@ extension on Translations {
 			'record.customFood.badgeRejected' => '未通过',
 			'record.customFood.badgeCommunity' => '社区',
 			'record.customFood.reviewRejectedNotice' => ({required Object name}) => '你提交的食品「${name}」未通过审核，相关记录已移除',
+			'record.customFood.editTitle' => '编辑自定义食物',
+			'record.customFood.editAction' => '编辑',
+			'record.customFood.editSave' => '保存修改',
+			'record.customFood.deleteAction' => '删除',
+			'record.customFood.deleteConfirmTitle' => '删除这个自定义食物？',
+			'record.customFood.deleteConfirmBody' => ({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('zh'))(n, one: '将同时删除 ${n} 条相关历史记录，此操作不可撤销', other: '将同时删除 ${n} 条相关历史记录，此操作不可撤销', ), 
+			'record.customFood.deleteDone' => ({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('zh'))(n, one: '已删除（含 ${n} 条记录）', other: '已删除（含 ${n} 条记录）', ), 
+			'record.customFood.underReviewDeleteBlocked' => '该食物正在审核中，暂时无法删除，请先等待审核完成',
 			'record.customFood.contributions.title' => '我的贡献',
 			'record.customFood.contributions.filterAll' => '全部',
 			'record.customFood.contributions.empty' => '暂无贡献记录',
@@ -4700,6 +4738,8 @@ extension on Translations {
 			'nutrition.signalCard.advice.carb.redLow' => ({required Object meal_action}) => '今天碳水太少了，${meal_action}，别亏待身体。',
 			'nutrition.signalCard.advice.carb.redHigh' => ({required Object meal_action}) => '碳水超得有点多，${meal_action}，让血糖稳一点。',
 			'nutrition.signalCard.advice.carb.zero' => '好像还没记到碳水哦，是不是漏了一餐？',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.signalCard.advice.fat.green' => '脂肪摄入很健康，皮肤和气色都会喜欢。',
 			'nutrition.signalCard.advice.fat.yellowLow' => ({required Object meal_action}) => '好脂肪有点少，${meal_action}，帮助吸收维生素。',
 			'nutrition.signalCard.advice.fat.yellowHigh' => ({required Object meal_action}) => '脂肪略高，${meal_action}，清淡一点更轻盈。',
@@ -4708,8 +4748,6 @@ extension on Translations {
 			'nutrition.signalCard.advice.fat.zero' => '好像还没记到脂肪哦，是不是漏了一餐？',
 			'nutrition.signalCard.advice.meal.breakfast' => '早餐加个鸡蛋或一杯豆浆',
 			'nutrition.signalCard.advice.meal.lunch' => '午餐来份掌心大的瘦肉或豆腐',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.signalCard.advice.meal.dinner' => '晚餐选清蒸/白灼，七分饱就好',
 			'nutrition.signalCard.advice.meal.snack' => '加餐来把坚果或一杯酸奶',
 			'reports.title' => '趋势与报告',

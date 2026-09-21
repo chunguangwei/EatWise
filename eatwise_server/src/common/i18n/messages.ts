@@ -37,6 +37,7 @@ const zh: Record<string, string> = {
   RESOURCE_GONE: '该内容已删除',
   FOOD_BARCODE_NOT_FOUND: '未收录该商品，可手动搜索或添加自定义食物',
   FOOD_CONTRIBUTE_REJECTED: '食物名称未通过审核，无法贡献到共享食物库',
+  FOOD_UNDER_REVIEW: '该食物正在审核中，无法删除；请先撤销或等待审核完成',
   UPLOAD_TYPE_UNSUPPORTED: '只支持 jpg / png / webp 图片',
   UPLOAD_FILE_TOO_LARGE: '图片超过 5MB，请换一张或压缩后再传',
 };
@@ -72,6 +73,8 @@ const en: Record<string, string> = {
   FOOD_BARCODE_NOT_FOUND: 'Product not found; try searching manually or adding a custom food',
   FOOD_CONTRIBUTE_REJECTED:
     'Food name did not pass review and cannot be contributed to the shared food library',
+  FOOD_UNDER_REVIEW:
+    'This food is under review and cannot be deleted; withdraw it or wait for the review to finish',
   UPLOAD_TYPE_UNSUPPORTED: 'Only jpg / png / webp images are supported',
   UPLOAD_FILE_TOO_LARGE: 'Image is larger than 5MB, please pick another or compress first',
 };

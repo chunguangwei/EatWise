@@ -321,8 +321,21 @@ export abstract class StoreDriver {
    */
   abstract applyFoodCorrection(foodId: string, suggestion: FoodCorrectionSuggestion): Promise<void>;
 
-  /** 审核晋升/删除时物理移除个人库条目 */
+  /**
+   * 自定义食物字段级更新（PATCH，LWW 无幂等键）：仅合并 patch 给出的字段；
+   * 行不存在或非自定义/已软删 → NOT_FOUND（与 Service 层 owner 校验同一 404 口径）。
+   */
+  abstract updateCustomFood(id: string, patch: Partial<CustomFoodEntity>): Promise<void>;
+
+  /** 审核晋升时物理移除个人库条目 */
   abstract deleteCustomFood(id: string): Promise<void>;
+
+  /**
+   * 自定义食物软删 tombstone（prisma：deletedAt=now，读路径 deletedAt:null 隐藏；
+   * 内存驱动：直接移除行——search/get 语义与 prisma 过滤后一致）。
+   * 行不存在或非自定义/已删 → NOT_FOUND。
+   */
+  abstract softDeleteCustomFood(id: string): Promise<void>;
 
   // ===== 饮食记录（food_entries；批量上行走 PrismaStore.pushFoodEntries 既有路径）=====
 
@@ -940,6 +953,20 @@ export class MemoryStoreDriver extends StoreDriver {
 
   deleteCustomFood(id: string): Promise<void> {
     this.store.customFoods.delete(id);
+    return Promise.resolve();
+  }
+
+  /** PATCH 合并写回（LWW）：仅覆盖 patch 给出的字段；缺失/非本人行由 Service 先校验，这里缺行 404 */
+  updateCustomFood(id: string, patch: Partial<CustomFoodEntity>): Promise<void> {
+    const food = this.store.customFoods.get(id);
+    if (!food) return Promise.reject(err.notFound());
+    this.store.customFoods.set(id, { ...food, ...patch });
+    return Promise.resolve();
+  }
+
+  /** 内存无 tombstone 列：直接移除行（findCustomFoodById/searchFoods 随即不可见，与 prisma deletedAt 过滤后同语义） */
+  softDeleteCustomFood(id: string): Promise<void> {
+    if (!this.store.customFoods.delete(id)) return Promise.reject(err.notFound());
     return Promise.resolve();
   }
 

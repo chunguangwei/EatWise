@@ -1,9 +1,9 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { err } from '../common/errors/business.exception';
 import { BarcodeService } from './barcode/barcode.service';
 import { FoodCandidateStatus } from '../common/store/data-store';
-import { ContributeFoodDto, CreateCustomFoodDto, CreateFoodCorrectionDto } from './food.dto';
+import { ContributeFoodDto, CreateCustomFoodDto, CreateFoodCorrectionDto, UpdateCustomFoodDto } from './food.dto';
 import { FoodService } from './food.service';
 
 const CONTRIBUTION_STATUSES: FoodCandidateStatus[] = ['pending', 'approved', 'rejected'];
@@ -52,6 +52,31 @@ export class FoodController {
   @HttpCode(200)
   createCustom(@CurrentUser() user: AuthUser, @Body() dto: CreateCustomFoodDto) {
     return this.food.createCustomFood(user.userId, dto);
+  }
+
+  /**
+   * 更新自定义食物（个人库编辑；LWW 无幂等键——重放同值无害）。
+   * 仅创建者可改（他人/共享/已删 → 404，不泄露存在性）；校验口径同创建。
+   */
+  @Patch('custom/:id')
+  @HttpCode(200)
+  updateCustom(
+    @CurrentUser() user: AuthUser,
+    @Param('id') foodId: string,
+    @Body() dto: UpdateCustomFoodDto,
+  ) {
+    return this.food.updateCustomFood(user.userId, foodId, dto);
+  }
+
+  /**
+   * 删除自定义食物（软删 tombstone，读路径即时隐藏）：仅创建者可删；
+   * 已提交共享审核（pending 候选）→ 409 FOOD_UNDER_REVIEW（先撤销/等审核落定）；
+   * 级联软删本人引用该食物的饮食记录（sync/pull 下行 tombstone 清其它设备）。幂等重删 404。
+   */
+  @Delete('custom/:id')
+  @HttpCode(200)
+  deleteCustom(@CurrentUser() user: AuthUser, @Param('id') foodId: string) {
+    return this.food.deleteCustomFood(user.userId, foodId);
   }
 
   /**

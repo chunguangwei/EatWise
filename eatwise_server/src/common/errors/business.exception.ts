@@ -76,6 +76,10 @@ export const err = {
   foodContributeRejected: (reason?: { zh: string; en: string }) =>
     new BusinessException('FOOD_CONTRIBUTE_REJECTED', HttpStatus.BAD_REQUEST, { reason }),
 
+  /** 自定义食物审核中（存在 pending 共享候选）：删除被阻断，须先撤销/等审核落定 */
+  foodUnderReview: () =>
+    new BusinessException('FOOD_UNDER_REVIEW', HttpStatus.CONFLICT, { code: 'FOOD_UNDER_REVIEW' }),
+
   // 社区打卡（M5 / D-17 先审后发）
   postContentRejected: (reason?: { zh: string; en: string }) =>
     new BusinessException('POST_CONTENT_REJECTED', HttpStatus.BAD_REQUEST, { reason }),

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/network/api_error_text.dart';
+import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
@@ -10,12 +12,15 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_rule_config.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
+import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
+import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_sheet.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
 import 'package:eatwise/features/record/domain/food_signal.dart';
 import 'package:eatwise/features/record/domain/macro_energy.dart';
 import 'package:eatwise/features/record/domain/nrv_reference.dart';
 import 'package:eatwise/features/record/presentation/meal_type_chips.dart';
+import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:eatwise/features/record/recognition/domain/nutrition_label_ocr_logic.dart'
     show kKjPerKcal;
@@ -72,6 +77,9 @@ class FoodDetailSheet extends ConsumerStatefulWidget {
 class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
   final TextEditingController _amountController = TextEditingController();
 
+  /// 当前展示行：分享/编辑后原地刷新（编辑/删除成功则收起弹层）。
+  late Food _food = widget.food;
+
   @override
   void initState() {
     super.initState();
@@ -94,7 +102,8 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final radii = Theme.of(context).extension<AppRadii>()!;
     final isEn = LocaleSettings.currentLocale == AppLocale.en;
-    final food = widget.food;
+    final messenger = ScaffoldMessenger.of(context);
+    final food = _food;
 
     final goal = ref.watch(nutritionGoalProvider);
     final verdict = evaluateFoodSignal(
@@ -363,6 +372,65 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
                         ),
                       ),
                     ),
+                    // 自定义食物动作行（编辑 / 分享给所有用户 / 删除）；
+                    // 共享/社区食物无此三能力不渲染。审核中不提供分享入口
+                    // （头部徽标已显示「审核中」），删除仍可用（服务端 409
+                    // 兜底并提示等待审核）。
+                    if (food.isCustom) ...<Widget>[
+                      const SizedBox(height: AppSpacing.s1),
+                      Wrap(
+                        spacing: AppSpacing.s1,
+                        children: <Widget>[
+                          TextButton(
+                            key: const ValueKey<String>('foodDetail.edit'),
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(44, 44),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.s2,
+                              ),
+                            ),
+                            onPressed: () =>
+                                unawaited(_onEdit(messenger, cs, textStyles)),
+                            child: Text(
+                              cs.editAction,
+                              style: textStyles.textSm,
+                            ),
+                          ),
+                          if (food.contributionStatus != 'pending')
+                            TextButton(
+                              key: const ValueKey<String>('foodDetail.share'),
+                              style: TextButton.styleFrom(
+                                minimumSize: const Size(44, 44),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.s2,
+                                ),
+                              ),
+                              onPressed: () => unawaited(_onShare()),
+                              child: Text(
+                                cs.shareAction,
+                                style: textStyles.textSm,
+                              ),
+                            ),
+                          TextButton(
+                            key: const ValueKey<String>('foodDetail.delete'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: colors.signalRed,
+                              minimumSize: const Size(44, 44),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.s2,
+                              ),
+                            ),
+                            onPressed: () => unawaited(
+                              _onDelete(t, cs, messenger, textStyles),
+                            ),
+                            child: Text(
+                              cs.deleteAction,
+                              style: textStyles.textSm,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -390,6 +458,108 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
         ),
       ),
     );
+  }
+
+  /// 编辑：叠一层 CustomFoodSheet 编辑态（PATCH）；保存成功刷新搜索
+  /// 缓存并收起详情——避免旧份量输入框对着新营养数值。
+  Future<void> _onEdit(
+    ScaffoldMessengerState messenger,
+    CustomFoodStrings cs,
+    AppTextStyles textStyles,
+  ) async {
+    final result = await showModalBottomSheet<CustomFoodSaveResult>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+        ),
+        child: CustomFoodSheet(editTarget: _food),
+      ),
+    );
+    if (result == null) return;
+    ref.invalidate(recordFoodSearchProvider);
+    if (!mounted) return;
+    messenger.showSnackBar(SnackBar(content: Text(cs.savedOnline)));
+    Navigator.of(context).pop();
+  }
+
+  /// 分享给所有用户：复用事后贡献入口（内部含结果 Toast + 搜索刷新；
+  /// rejected 重提交服务端幂等返回原 rejected，按钮维持不显示语义可接受）。
+  /// 完成后重读本地行，刷新头部徽标与按钮可见性。
+  Future<void> _onShare() async {
+    await contributeCustomFood(context, ref, _food.id);
+    if (!mounted) return;
+    final fresh = await ref
+        .read(recordRepositoryProvider)
+        .db
+        .foodDao
+        .getById(_food.id);
+    if (!mounted) return;
+    setState(() => _food = fresh ?? _food);
+  }
+
+  /// 删除：确认对话框明示将级联删除的历史条数 → DELETE 远端成功后本地
+  /// 两态级联（tombstone/物理删 + 聚合重算，见 CustomFoodRepository.delete）
+  /// 并收起详情；409 FOOD_UNDER_REVIEW / 网络错误本地一切不动，可重试。
+  Future<void> _onDelete(
+    Translations t,
+    CustomFoodStrings cs,
+    ScaffoldMessengerState messenger,
+    AppTextStyles textStyles,
+  ) async {
+    final recordRepo = ref.read(recordRepositoryProvider);
+    final entries = await recordRepo.db.foodEntryDao.entriesForFood(
+      recordRepo.userId,
+      _food.id,
+    );
+    if (!mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(cs.deleteConfirmTitle),
+        content: Text(cs.deleteConfirmBody(entries.length)),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(t.common.action.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(cs.deleteAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      final n = await ref
+          .read(customFoodRepositoryProvider)
+          .delete(
+            _food,
+            recordRepository: recordRepo,
+            userId: recordRepo.userId,
+          );
+      ref.invalidate(recordFoodSearchProvider);
+      // 机会性上行 tombstone（失败不影响本地删除结果，下轮 sync 兜底）。
+      try {
+        unawaited(ref.read(recordSyncEngineProvider).syncNow());
+      } on Object {
+        // 网络层未装配（测试只注入仓储）时降级纯本地。
+      }
+      messenger.showSnackBar(SnackBar(content: Text(cs.deleteDone(n))));
+      if (mounted) Navigator.of(context).pop();
+    } on ApiException catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            e is BusinessApiException && e.code == 'FOOD_UNDER_REVIEW'
+                ? cs.underReviewDeleteBlocked
+                : apiErrorDisplayMessage(t, e),
+          ),
+        ),
+      );
+    }
   }
 
   /// 别名展示文本（JSON 字符串数组解码失败视为无别名）。

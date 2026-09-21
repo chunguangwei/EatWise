@@ -349,6 +349,20 @@
       "badgeRejected": "未通过",
       "badgeCommunity": "社区",
       "reviewRejectedNotice": "你提交的食品「${name}」未通过审核，相关记录已移除",
+      "editTitle": "编辑自定义食物",
+      "editAction": "编辑",
+      "editSave": "保存修改",
+      "deleteAction": "删除",
+      "deleteConfirmTitle": "删除这个自定义食物？",
+      "deleteConfirmBody": {
+        "one": "将同时删除 ${n} 条相关历史记录，此操作不可撤销",
+        "other": "将同时删除 ${n} 条相关历史记录，此操作不可撤销"
+      },
+      "deleteDone": {
+        "one": "已删除（含 ${n} 条记录）",
+        "other": "已删除（含 ${n} 条记录）"
+      },
+      "underReviewDeleteBlocked": "该食物正在审核中，暂时无法删除，请先等待审核完成",
       "contributions": {
         "title": "我的贡献",
         "filterAll": "全部",

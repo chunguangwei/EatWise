@@ -73,6 +73,41 @@ export class CreateCustomFoodDto {
 }
 
 /**
+ * 更新自定义食物（PATCH /foods/custom/:id，LWW 无幂等键——重放同值无害，D-20 口径外）。
+ * 字段口径同 CreateCustomFoodDto（减 clientRequestId）；per100g 整体提交（四项一起改）。
+ */
+export class UpdateCustomFoodDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  nameZh: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  nameEn?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  aliasesZh?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  aliasesEn?: string[];
+
+  @ValidateNested()
+  @Type(() => Per100gDto)
+  per100g: Per100gDto;
+
+  @IsIn(['manual', 'llm-estimate'])
+  source: 'manual' | 'llm-estimate';
+}
+
+/**
  * 贡献自定义食物到共享库（幂等 clientRequestId）。
  * 条码商品补录（OFF 未命中场景）：额外传 barcode + evidenceImageUrl（包装营养表
  * 佐证照片，先经 POST /v1/uploads 上传）；两者必须成对出现，传了 barcode 即 kind=barcode。

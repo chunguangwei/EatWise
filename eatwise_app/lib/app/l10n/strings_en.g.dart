@@ -731,6 +731,20 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get badgeRejected => 'Not approved';
 	@override String get badgeCommunity => 'Community';
 	@override String reviewRejectedNotice({required Object name}) => 'Your submitted food "${name}" was not approved; related records have been removed';
+	@override String get editTitle => 'Edit custom food';
+	@override String get editAction => 'Edit';
+	@override String get editSave => 'Save changes';
+	@override String get deleteAction => 'Delete';
+	@override String get deleteConfirmTitle => 'Delete this custom food?';
+	@override String deleteConfirmBody({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(n,
+		one: '${n} related log will also be deleted. This can\'t be undone.',
+		other: '${n} related logs will also be deleted. This can\'t be undone.',
+	);
+	@override String deleteDone({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(n,
+		one: 'Deleted (including ${n} log)',
+		other: 'Deleted (including ${n} logs)',
+	);
+	@override String get underReviewDeleteBlocked => 'This food is under review and can\'t be deleted yet. Please wait for the review to finish.';
 	@override late final _Translations$record$customFood$contributions$en contributions = _Translations$record$customFood$contributions$en._(_root);
 	@override late final _Translations$record$customFood$correction$en correction = _Translations$record$customFood$correction$en._(_root);
 	@override String get photoOcr => 'Scan nutrition label';
@@ -2589,6 +2603,14 @@ extension on TranslationsEn {
 			'record.customFood.badgeRejected' => 'Not approved',
 			'record.customFood.badgeCommunity' => 'Community',
 			'record.customFood.reviewRejectedNotice' => ({required Object name}) => 'Your submitted food "${name}" was not approved; related records have been removed',
+			'record.customFood.editTitle' => 'Edit custom food',
+			'record.customFood.editAction' => 'Edit',
+			'record.customFood.editSave' => 'Save changes',
+			'record.customFood.deleteAction' => 'Delete',
+			'record.customFood.deleteConfirmTitle' => 'Delete this custom food?',
+			'record.customFood.deleteConfirmBody' => ({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(n, one: '${n} related log will also be deleted. This can\'t be undone.', other: '${n} related logs will also be deleted. This can\'t be undone.', ), 
+			'record.customFood.deleteDone' => ({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(n, one: 'Deleted (including ${n} log)', other: 'Deleted (including ${n} logs)', ), 
+			'record.customFood.underReviewDeleteBlocked' => 'This food is under review and can\'t be deleted yet. Please wait for the review to finish.',
 			'record.customFood.contributions.title' => 'My contributions',
 			'record.customFood.contributions.filterAll' => 'All',
 			'record.customFood.contributions.empty' => 'No contributions yet',
@@ -2829,6 +2851,8 @@ extension on TranslationsEn {
 			'nutrition.signalCard.advice.carb.redLow' => ({required Object meal_action}) => 'Carbs are well under today — ${meal_action}. Don\'t shortchange your body.',
 			'nutrition.signalCard.advice.carb.redHigh' => ({required Object meal_action}) => 'Carbs ran quite high — ${meal_action} to keep your blood sugar steadier.',
 			'nutrition.signalCard.advice.carb.zero' => 'No carbs logged yet — did a meal slip by?',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.signalCard.advice.fat.green' => 'Healthy fat intake — your skin and glow will love it.',
 			'nutrition.signalCard.advice.fat.yellowLow' => ({required Object meal_action}) => 'Good fats are a bit low — ${meal_action}; they help absorb vitamins.',
 			'nutrition.signalCard.advice.fat.yellowHigh' => ({required Object meal_action}) => 'Fat\'s a touch high — ${meal_action} for a lighter feel.',
@@ -2837,8 +2861,6 @@ extension on TranslationsEn {
 			'nutrition.signalCard.advice.fat.zero' => 'No fat logged yet — did a meal slip by?',
 			'nutrition.signalCard.advice.meal.breakfast' => 'add an egg or a glass of soy milk at breakfast',
 			'nutrition.signalCard.advice.meal.lunch' => 'go for a palm-size portion of lean meat or tofu at lunch',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.signalCard.advice.meal.dinner' => 'pick something steamed or lightly poached for dinner, and stop at 80% full',
 			'nutrition.signalCard.advice.meal.snack' => 'grab a handful of nuts or a yogurt as a snack',
 			'reports.title' => 'Trends & reports',

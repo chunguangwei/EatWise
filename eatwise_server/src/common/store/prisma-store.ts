@@ -993,8 +993,8 @@ export class PrismaStore extends StoreDriver {
 
   async findFoodById(id: string): Promise<FoodEntity | null> {
     try {
-      // 仅内置/共享库（自定义食物行 isCustom=true，走 findCustomFoodById）
-      const row = await this.prisma.food.findFirst({ where: { id, isCustom: false } });
+      // 仅内置/共享库（自定义食物行 isCustom=true，走 findCustomFoodById）；软删行隐藏
+      const row = await this.prisma.food.findFirst({ where: { id, isCustom: false, deletedAt: null } });
       return row ? toFoodEntity(row) : null;
     } catch (e) {
       throw this.fail('findFoodById', e);
@@ -1004,7 +1004,7 @@ export class PrismaStore extends StoreDriver {
   /** 共享库按条码精确命中（foods_barcode_idx；与内存同口径排除 isCustom 行） */
   async findFoodByBarcode(barcode: string): Promise<FoodEntity | null> {
     try {
-      const row = await this.prisma.food.findFirst({ where: { barcode, isCustom: false } });
+      const row = await this.prisma.food.findFirst({ where: { barcode, isCustom: false, deletedAt: null } });
       return row ? toFoodEntity(row) : null;
     } catch (e) {
       throw this.fail('findFoodByBarcode', e);
@@ -1038,7 +1038,7 @@ export class PrismaStore extends StoreDriver {
 
   async findCustomFoodById(id: string): Promise<CustomFoodEntity | null> {
     try {
-      const row = await this.prisma.food.findFirst({ where: { id, isCustom: true } });
+      const row = await this.prisma.food.findFirst({ where: { id, isCustom: true, deletedAt: null } });
       return row ? toCustomFoodEntity(row) : null;
     } catch (e) {
       throw this.fail('findCustomFoodById', e);
@@ -1048,7 +1048,7 @@ export class PrismaStore extends StoreDriver {
   async findCustomFoodsByUser(userId: string): Promise<CustomFoodEntity[]> {
     try {
       const rows = await this.prisma.food.findMany({
-        where: { createdByUserId: userId, isCustom: true },
+        where: { createdByUserId: userId, isCustom: true, deletedAt: null },
       });
       return rows.map(toCustomFoodEntity);
     } catch (e) {
@@ -1075,6 +1075,7 @@ export class PrismaStore extends StoreDriver {
       // includes 同口径（区分大小写），统一交给 toSearchHit 一份逻辑（同内存全表扫描）。
       const rows = await this.prisma.food.findMany({
         where: {
+          deletedAt: null, // 软删行（自定义删除）对搜索隐藏
           OR: [
             { isCustom: false },
             ...(userId ? [{ isCustom: true, createdByUserId: userId }] : []),
@@ -1103,7 +1104,7 @@ export class PrismaStore extends StoreDriver {
   async promoteCustomFoodToShared(foodId: string, barcode?: string | null): Promise<void> {
     try {
       const updated = await this.prisma.food.updateMany({
-        where: { id: foodId, isCustom: true },
+        where: { id: foodId, isCustom: true, deletedAt: null },
         data: {
           isCustom: false,
           source: 'community',
@@ -1201,11 +1202,46 @@ export class PrismaStore extends StoreDriver {
     }
   }
 
+  /** PATCH 合并写回（LWW）：仅覆盖 patch 给出的字段；非自定义/已软删/缺行 → NOT_FOUND */
+  async updateCustomFood(id: string, patch: Partial<CustomFoodEntity>): Promise<void> {
+    try {
+      const updated = await this.prisma.food.updateMany({
+        where: { id, isCustom: true, deletedAt: null },
+        data: {
+          ...(patch.nameZh !== undefined ? { nameZh: patch.nameZh } : {}),
+          ...(patch.nameEn !== undefined ? { nameEn: patch.nameEn } : {}),
+          ...(patch.aliases !== undefined ? { aliases: patch.aliases } : {}),
+          ...(patch.kcalPer100g !== undefined ? { kcalPer100g: patch.kcalPer100g } : {}),
+          ...(patch.proteinPer100g !== undefined ? { proteinPer100g: patch.proteinPer100g } : {}),
+          ...(patch.carbsPer100g !== undefined ? { carbsPer100g: patch.carbsPer100g } : {}),
+          ...(patch.fatPer100g !== undefined ? { fatPer100g: patch.fatPer100g } : {}),
+          ...(patch.source !== undefined ? { source: patch.source } : {}),
+        },
+      });
+      if (updated.count === 0) throw err.notFound();
+    } catch (e) {
+      throw this.fail('updateCustomFood', e);
+    }
+  }
+
   async deleteCustomFood(id: string): Promise<void> {
     try {
       await this.prisma.food.deleteMany({ where: { id, isCustom: true } });
     } catch (e) {
       throw this.fail('deleteCustomFood', e);
+    }
+  }
+
+  /** 软删 tombstone（deletedAt=now）；非自定义/已删/缺行 → NOT_FOUND */
+  async softDeleteCustomFood(id: string): Promise<void> {
+    try {
+      const updated = await this.prisma.food.updateMany({
+        where: { id, isCustom: true, deletedAt: null },
+        data: { deletedAt: new Date() },
+      });
+      if (updated.count === 0) throw err.notFound();
+    } catch (e) {
+      throw this.fail('softDeleteCustomFood', e);
     }
   }
 
