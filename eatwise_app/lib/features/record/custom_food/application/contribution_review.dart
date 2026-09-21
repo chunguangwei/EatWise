@@ -153,6 +153,15 @@ final class ContributionReviewSync {
             break; // diff 只产出终态迁移，防御性穷尽
         }
       }
+      // 存量校正：首轮即终态（无 pending 基线可 diff——管理员在客户端
+      // 见到 pending 之前就批完，如提交后秒批 / 离线期间审批）时，本地
+      // Foods 行还停在 pending，「审核中」徽标永不清除（真机走查）。
+      // 幂等对齐，不提示、不清记录（首轮静默意图不变）。
+      for (final c in current) {
+        if (c.status == FoodContributionStatus.pending) continue;
+        if (known[c.id] == 'pending') continue; // 终态迁移已在上面处理
+        await _reconcileStatus(c.foodId, foodContributionStatusName(c.status));
+      }
       await store.saveKnown(knownStatusMapOf(current));
       if (notices.isNotEmpty) {
         await store.appendNotices(notices);
@@ -164,7 +173,14 @@ final class ContributionReviewSync {
     }
   }
 
-  /// 全量拉取我的贡献（页码翻页直到 hasMore=false）。
+  /// 本地行存在且停在 pending 才覆写终态；null/已终态行不动。
+  Future<void> _reconcileStatus(String foodId, String status) async {
+    final food = await db.foodDao.getById(foodId);
+    if (food != null && food.contributionStatus == 'pending') {
+      await db.foodDao.setContributionStatus(foodId, status);
+    }
+  }
+
   Future<List<FoodContribution>> _fetchAll() async {
     final all = <FoodContribution>[];
     var page = 1;

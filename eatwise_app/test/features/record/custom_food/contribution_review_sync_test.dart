@@ -182,6 +182,38 @@ void main() {
     expect(food?.contributionStatus, 'approved');
   });
 
+  test('存量校正：首轮服务端即 approved（无 pending 基线）→ 本地 pending 行去「审核中」，不提示', () async {
+    await addEntry();
+    // 用户提交贡献后一直没同步；期间管理员秒批。首轮直接见到 approved：
+    // diff 无迁移（基线空），但本地行停在 pending 必须被校正。
+    remote.contributions = <FoodContribution>[
+      contribution('c-1', FoodContributionStatus.approved),
+    ];
+
+    final notices = await sync.syncNow();
+
+    expect(notices, isEmpty);
+    expect(tick, 0);
+    final food = await db.foodDao.getById('cf-1');
+    expect(food?.contributionStatus, 'approved');
+    // 记录保留（入账快照不回溯）。
+    expect(await db.foodEntryDao.entriesForFood(userId, 'cf-1'), hasLength(1));
+  });
+
+  test('存量校正同样覆盖 rejected：本地 pending 行校正为 rejected（不清记录不提示）', () async {
+    await addEntry();
+    remote.contributions = <FoodContribution>[
+      contribution('c-1', FoodContributionStatus.rejected),
+    ];
+    await sync.syncNow();
+
+    final food = await db.foodDao.getById('cf-1');
+    expect(food?.contributionStatus, 'rejected');
+    // 首轮静默意图不变：记录保留、不通知（reject 级联由服务端软删 +
+    // pull tombstone 收敛）。
+    expect(await db.foodEntryDao.entriesForFood(userId, 'cf-1'), hasLength(1));
+  });
+
   test('匿名用户跳过（贡献需登录，无候选可拉）', () async {
     final anonymous = ContributionReviewSync(
       db: db,
