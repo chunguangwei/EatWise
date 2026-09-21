@@ -233,29 +233,21 @@ class _Row extends StatelessWidget {
       children: <Widget>[
         for (var i = 0; i < cells.length; i++)
           Expanded(
-            // 首列（营养素名）收窄、数值列加宽；数值列 FittedBox 兜底——
-            // 内容超宽时整体缩小而不裁剪/省略（走查修复 v1.13.3，
-            // 此前 flex+clip 组合在窄屏安卓仍截数字）。
-            flex: i == 0 ? 2 : 5,
-            child: i == 0
-                ? Text(
-                    cells[i],
-                    style: firstCellStyle ?? style,
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.ellipsis,
-                  )
-                : FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      cells[i],
-                      style: style,
-                      maxLines: 1,
-                      softWrap: false,
-                      textAlign: TextAlign.end,
-                    ),
-                  ),
+            // 走查修复（v1.13.3 追加）：首列「蛋白质」曾按 flex 2 被裁成
+            // 「蛋…」——名称列加宽到 3 且同样 FittedBox 兜底（超宽整体
+            // 缩小不省略）；数值列 FittedBox 保证窄屏数字不截断。
+            flex: i == 0 ? 3 : 4,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: i == 0 ? Alignment.centerLeft : Alignment.centerRight,
+              child: Text(
+                cells[i],
+                style: i == 0 ? (firstCellStyle ?? style) : style,
+                maxLines: 1,
+                softWrap: false,
+                textAlign: i == 0 ? TextAlign.start : TextAlign.end,
+              ),
+            ),
           ),
       ],
     );

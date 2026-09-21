@@ -246,11 +246,6 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
-
-    // 截断规则：营养名单行 ellipsis；弹窗内建议不截断（四态规范 4.1）。
-    final nameText = tester.widget<Text>(find.text('Calories').first);
-    expect(nameText.maxLines, 1);
-    expect(nameText.overflow, TextOverflow.ellipsis);
     final adviceText = tester.widget<Text>(
       find.textContaining('Carbs are well under today'),
     );
@@ -270,6 +265,12 @@ void main() {
     // 数值列去单位：目标列裸数字，旧「值+单位」拼接文本不再出现（单位进注）。
     expect(find.text('2000'), findsWidgets);
     expect(find.text('2000 kcal'), findsNothing);
+    // 截断规则（v1.13.3 追加）：表内名称/数值全部 FittedBox 兜底，
+    // 窄屏整体缩放完整显示，不再「蛋…」式省略。
+    expect(
+      find.ancestor(of: find.text('Protein'), matching: find.byType(FittedBox)),
+      findsWidgets,
+    );
     expect(tester.takeException(), isNull); // 无溢出错
 
     await unmount(tester);
