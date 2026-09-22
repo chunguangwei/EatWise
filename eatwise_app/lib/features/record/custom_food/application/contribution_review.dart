@@ -193,6 +193,7 @@ final class ContributionReviewSync {
     required this.store,
     this.userId = 'anonymous',
     this.onNoticesAdded,
+    this.onStatusApplied,
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now;
 
@@ -210,6 +211,11 @@ final class ContributionReviewSync {
 
   /// 有新驳回通知入队后的回调（UI 层 bump tick 触发展示）。
   final void Function()? onNoticesAdded;
+
+  /// 本地食物行 contributionStatus 被本轮改写后的回调（UI 层 invalidate
+  /// entryFoodProvider——记录行「审核中」徽标的数据源是一次性 FutureProvider
+  /// 缓存，不失效则本会话内徽标永不消失，真机走查缺陷）。
+  final void Function(String foodId)? onStatusApplied;
 
   final DateTime Function() _clock;
 
@@ -229,6 +235,7 @@ final class ContributionReviewSync {
         switch (t.to) {
           case FoodContributionStatus.approved:
             await db.foodDao.setContributionStatus(t.foodId, 'approved');
+            onStatusApplied?.call(t.foodId);
           case FoodContributionStatus.rejected:
             // 纠错驳回：目标食物仍在共享库、记录不动（服务端同口径）——
             // 只提示「建议未采纳」；自定义/条码驳回才清记录（走查修复：
@@ -248,11 +255,24 @@ final class ContributionReviewSync {
       // 存量校正：首轮即终态（无 pending 基线可 diff——管理员在客户端
       // 见到 pending 之前就批完，如提交后秒批 / 离线期间审批）时，本地
       // Foods 行还停在 pending，「审核中」徽标永不清除（真机走查）。
-      // 幂等对齐，不提示、不清记录（首轮静默意图不变）。
+      // 幂等对齐，不提示、不清记录（首轮静默意图不变）。同一食物可能挂
+      // 多条贡献（驳回纠错 + 通过自定义），逐条迭代后写覆盖前写、结果随
+      // 迭代顺序漂移——按 foodId 取 updatedAt 最新的终态贡献为权威值；
+      // 本地行与权威值不一致即改写（覆盖 rejected→approved 重提交残留）。
+      final authoritative = <String, FoodContribution>{};
       for (final c in current) {
         if (c.status == FoodContributionStatus.pending) continue;
         if (known[c.id] == 'pending') continue; // 终态迁移已在上面处理
-        await _reconcileStatus(c.foodId, foodContributionStatusName(c.status));
+        final prev = authoritative[c.foodId];
+        if (prev == null || !c.updatedAt.isBefore(prev.updatedAt)) {
+          authoritative[c.foodId] = c;
+        }
+      }
+      for (final entry in authoritative.entries) {
+        await _reconcileStatus(
+          entry.key,
+          foodContributionStatusName(entry.value.status),
+        );
       }
       await store.saveKnown(knownStatusMapOf(current));
       if (notices.isNotEmpty) {
@@ -269,11 +289,12 @@ final class ContributionReviewSync {
     return (await db.foodDao.getById(foodId))?.nameZh ?? foodId;
   }
 
-  /// 本地行存在且停在 pending 才覆写终态；null/已终态行不动。
+  /// 本地行存在且状态与权威终态不一致才改写（幂等：已对齐零写入）。
   Future<void> _reconcileStatus(String foodId, String status) async {
     final food = await db.foodDao.getById(foodId);
-    if (food != null && food.contributionStatus == 'pending') {
+    if (food != null && food.contributionStatus != status) {
       await db.foodDao.setContributionStatus(foodId, status);
+      onStatusApplied?.call(foodId);
     }
   }
 
@@ -307,6 +328,7 @@ final class ContributionReviewSync {
       );
     }
     await db.foodDao.setContributionStatus(foodId, 'rejected');
+    onStatusApplied?.call(foodId);
     return RejectedNotice(name: food?.nameZh ?? foodId);
   }
 }

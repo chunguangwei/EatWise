@@ -1,5 +1,6 @@
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/analytics_service.dart';
+import 'package:eatwise/core/time/timezone_bootstrap.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
@@ -50,15 +51,12 @@ final planVersionProvider = StateProvider<int>((ref) => 0);
 
 /// 设备时区（D-07：UTC 存储本地渲染）。
 ///
-/// 〔假设〕MVP 上架区域为中国区（D-15），默认 Asia/Shanghai；
-/// 时区数据库未初始化（如单元测试未注入）时回退 UTC。
-/// 〔待外部确认〕设备 IANA 时区名获取（如 flutter_timezone）属 M2 运行时接线。
+/// 生产 = main 启动期 `bootstrapTimezone` 设定的设备时区；测试/预览未装配
+/// 时回退 Asia/Shanghai（与历史硬编码口径一致）。曾硬编码 Asia/Shanghai
+/// 与落库侧（tz.local）口径分裂——非上海时区设备归属日/窗口显示与入库
+/// 不一致。
 final deviceLocationProvider = Provider<tz.Location>((ref) {
-  try {
-    return tz.getLocation('Asia/Shanghai');
-  } on Object {
-    return tz.UTC;
-  }
+  return deviceLocationFallback();
 });
 
 /// 一键启动结果（驱动兜底提示）。

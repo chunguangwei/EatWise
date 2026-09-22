@@ -236,9 +236,10 @@ final class RemoteRecordSync implements RecordRemote {
   ///
   /// 落库规则（§2.4）：本地存在未上行修改（非 synced）的记录不被下行
   /// 覆盖；tombstone 仅软删已同步记录（删改冲突双份保留待人工处理）。
-  /// 防丢约束：某条 change 因本地食物库缺条目被跳过时，返回的游标停留在
-  /// 首个发生跳过的页面之前——该 change 未落库，token 不得越过它，
-  /// 下轮（食物库刷新后）从旧游标重拉补齐（重放对已落库行幂等）。
+  /// 防丢约束：某条 change 因数据畸形（缺 foodId / 缺快照）被跳过时，返回的
+  /// 游标停留在首个发生跳过的页面之前——该 change 未落库，token 不得越过
+  /// 它（服务端契约上这两种畸形几乎不可能出现，防御性保留）。食物行缺失
+  /// 但带快照时不再 skip：合成占位行落库（token 正常推进）。
   Future<String?> pullDown(
     AppDatabase db,
     String userId,
@@ -419,9 +420,9 @@ final class RemoteRecordSync implements RecordRemote {
     }
   }
 
-  /// 应用单条 entry change。返回是否因本地食物库缺条目被跳过未落库
-  /// （调用方据此回退游标，保证该 change 下轮重拉不丢）+ 实际落库/软删
-  /// 影响的归属日（供调用方重算聚合缓存）。
+  /// 应用单条 entry change。返回是否被跳过未落库（仅限畸形 change：缺
+  /// foodId 或缺快照；调用方据此回退游标）+ 实际落库/软删影响的归属日
+  /// （供调用方重算聚合缓存）。
   Future<({bool skipped, String? affectedDate})> _applyChange(
     AppDatabase db,
     String userId,
@@ -453,15 +454,21 @@ final class RemoteRecordSync implements RecordRemote {
       return (skipped: false, affectedDate: null);
     }
     final foodId = change['foodId'] as String?;
-    if (foodId == null || await db.foodDao.getById(foodId) == null) {
-      // 本地食物库缺该条目（种子未覆盖）：跳过不落库；游标由 _pullPages
-      // 回退到本页之前，待食物库刷新后重拉补齐。
-      return (skipped: true, affectedDate: null);
-    }
     final snapshot = change['nutritionSnapshot'];
     final snapshotMap = snapshot is Map<String, dynamic>
         ? snapshot
         : const <String, dynamic>{};
+    if (foodId == null || snapshotMap.isEmpty) {
+      // 缺 foodId / 缺快照 = 畸形 change（服务端记录视图恒带快照），
+      // 入账只会写进零营养脏行——skip 等人工介入。
+      return (skipped: true, affectedDate: null);
+    }
+    if (await db.foodDao.getById(foodId) == null) {
+      // 食物行缺失但带快照：合成占位行落库——食物可能已被 seed 缩量/
+      // 下架（removedIds），行永久消失，「等食物库刷新自愈」假设失效
+      // （v1.12.4 反向案例）：新设备/重装下行会永久卡死在该页。
+      await _ensurePlaceholderFood(db, foodId, change, snapshotMap);
+    }
     final eatenAt = change['eatenAt']! as String;
     final updatedAt =
         change['updatedAt'] as String? ??
@@ -505,6 +512,40 @@ final class RemoteRecordSync implements RecordRemote {
       skipped: false,
       affectedDate: _localDateOf(DateTime.parse(eatenAt)),
     );
+  }
+
+  /// 下行记录引用的食物行本地缺失（seed 缩量 removedIds / 共享行被下架软删
+  /// ——行永久消失，「等食物库刷新自愈」假设失效，v1.12.4 反向案例：新设备
+  /// 下行会永久卡死在该页）时，用记录自带的营养快照合成占位行落库。
+  /// 快照是本餐总量，按克数换算回每 100g 口径；名称直接存 foodId（与
+  /// today_meal_list 缺行回退显示同口径，无 UI 差异）。upsert 幂等，
+  /// 后续同名 change 重放不重复建。isCustom=false：不参与 seed 治理
+  /// （deleteBuiltInByIds 只删未被引用的行，记录引用天然保护它）。
+  Future<void> _ensurePlaceholderFood(
+    AppDatabase db,
+    String foodId,
+    Map<String, dynamic> change,
+    Map<String, dynamic> snapshotMap,
+  ) async {
+    final grams = (change['grams'] as num?)?.toDouble() ?? 0;
+    // 每 100g = 总量 ÷ 克数 × 100；克数非正（旧数据/畸形）时按 0 存，
+    // 记录行营养仍取快照值不受影响。
+    double per100(String key) {
+      final v = (snapshotMap[key] as num?)?.toDouble() ?? 0;
+      return grams > 0 ? v / grams * 100 : 0;
+    }
+
+    await db.foodDao.upsertAll(<FoodsCompanion>[
+      FoodsCompanion.insert(
+        id: foodId,
+        nameZh: foodId,
+        nameEn: foodId,
+        kcalPer100g: per100('kcal'),
+        proteinPer100g: per100('proteinG'),
+        carbPer100g: per100('carbsG'),
+        fatPer100g: per100('fatG'),
+      ),
+    ]);
   }
 
   /// 归属日 = 就餐 UTC 按设备时区换算的本地自然日（D-07）。

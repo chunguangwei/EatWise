@@ -34,6 +34,7 @@ void main() {
     FoodContributionStatus status, {
     String foodId = 'cf-1',
     FoodContributionKind kind = FoodContributionKind.custom,
+    DateTime? updatedAt,
   }) {
     return FoodContribution(
       id: id,
@@ -42,7 +43,7 @@ void main() {
       kind: kind,
       reason: status == FoodContributionStatus.rejected ? '营养数据存疑' : null,
       createdAt: DateTime.utc(2026, 9, 1),
-      updatedAt: DateTime.utc(2026, 9, 19),
+      updatedAt: updatedAt ?? DateTime.utc(2026, 9, 19),
     );
   }
 
@@ -250,6 +251,57 @@ void main() {
     expect(await db.foodEntryDao.entriesForFood(userId, 'cf-1'), hasLength(1));
   });
 
+  test(
+    '存量校正按 foodId 取 updatedAt 最新终态：旧 rejected + 新 approved 不误写回 rejected',
+    () async {
+      // 同一食物挂多条贡献（纠错被驳回 + 重提交后通过）。逐条迭代后写覆盖
+      // 前写、结果随服务端返回顺序漂移——必须以最新一条为权威。
+      remote.contributions = <FoodContribution>[
+        contribution(
+          'c-old',
+          FoodContributionStatus.rejected,
+          kind: FoodContributionKind.correction,
+          updatedAt: DateTime.utc(2026, 9, 10),
+        ),
+        contribution(
+          'c-new',
+          FoodContributionStatus.approved,
+          updatedAt: DateTime.utc(2026, 9, 20),
+        ),
+      ];
+
+      await sync.syncNow();
+
+      final food = await db.foodDao.getById('cf-1');
+      expect(food?.contributionStatus, 'approved');
+      // 反序输入（新在前）结果一致：与迭代顺序无关。
+      final store2 = ContributionStatusStore.inMemory(userId: 'u-other');
+      final sync2 = ContributionReviewSync(
+        db: db,
+        remote: remote,
+        store: store2,
+        userId: 'u-other',
+      );
+      await db.foodDao.setContributionStatus('cf-1', 'pending');
+      remote.contributions = remote.contributions.reversed.toList();
+      await sync2.syncNow();
+      expect(
+        (await db.foodDao.getById('cf-1'))?.contributionStatus,
+        'approved',
+      );
+    },
+  );
+
+  test('存量校正覆盖 rejected→approved 重提交残留：本地 rejected 行随权威终态改写', () async {
+    await db.foodDao.setContributionStatus('cf-1', 'rejected');
+    remote.contributions = <FoodContribution>[
+      contribution('c-1', FoodContributionStatus.approved),
+    ];
+
+    await sync.syncNow();
+
+    expect((await db.foodDao.getById('cf-1'))?.contributionStatus, 'approved');
+  });
   test('匿名用户跳过（贡献需登录，无候选可拉）', () async {
     final anonymous = ContributionReviewSync(
       db: db,

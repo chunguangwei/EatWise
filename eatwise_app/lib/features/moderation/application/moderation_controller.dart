@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/features/moderation/data/moderation_api.dart';
+import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 审批中心远程端（生产 REST；测试 override 为 FakeModerationRemote）。
@@ -135,16 +136,41 @@ final class ModerationController extends Notifier<ModerationState> {
         action: approve ? 'approve' : 'reject',
         reason: reason,
       );
+      final hits = state.items.where((c) => c.id == candidateId).toList();
+      final candidate = hits.isEmpty ? null : hits.first;
       state = state.copyWith(
         items: state.items.where((c) => c.id != candidateId).toList(),
         clearActing: true,
       );
+      if (candidate != null && candidate.foodId.isNotEmpty) {
+        await _applyLocalFoodStatus(candidate.foodId, approve);
+      }
       return approve
           ? ModerationActionResult.approved
           : ModerationActionResult.rejected;
     } on Object {
       state = state.copyWith(clearActing: true);
       rethrow;
+    }
+  }
+
+  /// 审核终态即时回写本地食物行并失效记录行食物缓存：同设备既是审批人
+  /// 又是提交人时（真机走查场景），本机「审核中」徽标不必等下一轮
+  /// ContributionReviewSync。只动 contributionStatus==pending 的本地行
+  /// （他端提交/共享库行恒 null 不受影响）；失败静默——远端已终态，
+  /// 本地由后续同步轮 reconcile 兜底。
+  Future<void> _applyLocalFoodStatus(String foodId, bool approve) async {
+    try {
+      final dao = ref.read(recordRepositoryProvider).db.foodDao;
+      final food = await dao.getById(foodId);
+      if (food == null || food.contributionStatus != 'pending') return;
+      await dao.setContributionStatus(
+        foodId,
+        approve ? 'approved' : 'rejected',
+      );
+      ref.invalidate(entryFoodProvider(foodId));
+    } on Object {
+      // 本地回写失败不影响审核结果。
     }
   }
 

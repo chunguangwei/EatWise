@@ -20,6 +20,7 @@ import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.d
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
+import 'package:eatwise/features/record/presentation/meal_type_chips.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:eatwise/features/record/recognition/domain/photo_recognition_logic.dart';
@@ -134,6 +135,8 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
     for (final row in _rows) {
       if (!row.item.isMatched) unawaited(_findSimilar(row));
     }
+    // 餐次 chips 共用全局 provider——进弹层先复位，避免残留上次选择。
+    ref.read(recordMealTypeProvider.notifier).state = null;
   }
 
   /// 未命中行模糊搜索：递减前缀逐个查，首个非空结果取前 3 条。
@@ -211,6 +214,9 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
     final customRepo = ref.read(customFoodRepositoryProvider);
     // 阶段 C：断食计时进行中的用餐打「断食期用餐」本地标记（不上行）。
     final duringFast = ref.read(isFastingInProgressProvider);
+    // 餐次（走查修）：拍照/自由记流曾完全不传 mealType，仓储一律按当前
+    // 小时智能预判；现在与搜索/详情流同款 chips，未点选时传 null 走预判。
+    final mealType = ref.read(recordMealTypeProvider);
     var logged = 0;
     var pendingReview = 0;
     try {
@@ -244,6 +250,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
             mealUtc: DateTime.now().toUtc(),
             source: widget.entrySource,
             duringFast: duringFast,
+            mealType: mealType,
           ),
         );
         logged++;
@@ -286,6 +293,9 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
               _buildRow(s, colors, textStyles, radii, row),
               const SizedBox(height: AppSpacing.s2),
             ],
+            // 餐次选择（与搜索确认卡/详情弹层同款；整批条目共用一个餐次）。
+            const MealTypeChips(),
+            const SizedBox(height: AppSpacing.s2),
             const SizedBox(height: AppSpacing.s1),
             Row(
               children: <Widget>[

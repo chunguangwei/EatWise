@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/network_providers.dart';
+import 'package:eatwise/core/time/timezone_bootstrap.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_api.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
@@ -86,13 +87,10 @@ class FastingPlanSync {
   static int _defaultNowUtc() =>
       DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
 
-  /// 同 [deviceLocationProvider]：时区库未初始化（纯单测）回退 UTC。
+  /// 同 [deviceLocationProvider]：生产取 main 启动装配后的设备时区，
+  /// 未装配（纯单测）回退 Asia/Shanghai。
   static tz.Location _defaultLocation() {
-    try {
-      return tz.getLocation('Asia/Shanghai');
-    } on Object {
-      return tz.UTC;
-    }
+    return deviceLocationFallback();
   }
 
   /// 方案本地写入/转正：置脏 + fire-and-forget 尝试一次上行。

@@ -10,6 +10,7 @@ import 'package:eatwise/features/record/data/remote_record_sync.dart';
 import 'package:eatwise/features/record/data/remote_water_log_sync.dart';
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
 import 'package:eatwise/features/reports/data/remote_weight_log_sync.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 记录同步引擎（规格 §2.1：App 启动 / 前台恢复 / 登录成功触发）。
@@ -102,15 +103,18 @@ final class RecordSyncEngine {
       // 匿名必 401，脏标记保留待登录后同步轮迁移上行）。失败保留重试。
       try {
         await planSync?.flush();
-      } on ApiException {
-        // 失败保留脏标记，下次同步轮重试。
+      } on Object catch (e) {
+        // 失败保留脏标记，下次同步轮重试。捕获放宽到 Object：曾只 catch
+        // ApiException，插件/序列化等杂异常直接中断整轮，后面的贡献审核/
+        // 记录上行全部轮不到（徽标残留嫌疑路径）。
+        debugPrint('[Sync] planSync.flush 失败（下轮重试）：$e');
       }
       try {
         // 自定义食物先上行（饮食记录引用其服务端 id，颠倒顺序会让
         // 引用本地临时 id 的记录上行 4xx）。
         await customFoodSync?.retryPending();
-      } on ApiException {
-        // 失败保留下次重试。
+      } on Object catch (e) {
+        debugPrint('[Sync] customFood.retryPending 失败（下轮重试）：$e');
       }
       // 贡献审核状态感知（仅登录态）先于记录上行：approved 去「审核中」
       // 标记；rejected 清理本地记录（含 pending，防驳回后上行重建）并入队
@@ -118,8 +122,9 @@ final class RecordSyncEngine {
       if (repository.userId != 'anonymous') {
         try {
           await contributionReviewSync?.syncNow();
-        } on ApiException {
-          // 失败保留下次重试。
+        } on Object catch (e) {
+          // 失败保留下次重试；留痕便于真机诊断徽标残留。
+          debugPrint('[Sync] contributionReview.syncNow 失败（下轮重试）：$e');
         }
       }
       await repository.retryPending();
@@ -129,7 +134,8 @@ final class RecordSyncEngine {
       if (repository.userId != 'anonymous') {
         try {
           await exerciseSync?.pushPending(repository.db, repository.userId);
-        } on ApiException {
+        } on Object catch (e) {
+          debugPrint('[Sync] exercise pushPending 失败（下轮重试）：$e');
           // 失败保留下次重试。
         }
       }
@@ -141,7 +147,8 @@ final class RecordSyncEngine {
           repository.userId != 'anonymous') {
         try {
           await weightSync.sync(weightStore);
-        } on ApiException {
+        } on Object catch (e) {
+          debugPrint('[Sync] weight sync 失败（下轮重试）：$e');
           // 失败保留下次重试。
         }
       }

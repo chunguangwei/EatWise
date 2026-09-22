@@ -18,6 +18,7 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/food_seed_loader.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
+import 'package:eatwise/core/time/timezone_bootstrap.dart';
 import 'package:eatwise/core/update/update_dialog.dart';
 import 'package:eatwise/core/update/update_providers.dart';
 import 'package:eatwise/core/widget_bridge/home_widget_gateway.dart';
@@ -46,7 +47,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:timezone/timezone.dart' as tz;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,14 +54,18 @@ Future<void> main() async {
   await LocaleSettings.useDeviceLocale();
   final prefs = await SharedPreferences.getInstance();
   restoreLocalePreference(prefs);
-  // 时区数据库（D-07：UTC 存储本地渲染，M2 引擎锚点换算依赖）。
-  // 加载失败不阻断启动，由 deviceLocationProvider 回退 UTC 防御。
+  // 时区装配（D-07：UTC 存储本地渲染，M2 引擎锚点换算依赖）：装载数据 +
+  // 把 tz.local 设为设备时区（offset 匹配）——只 init 不 set 时 tz.local
+  // 恒 UTC，餐次预判/归属日/X-Timezone 三口径全部错位（真机走查根因）。
+  // 失败不阻断启动：bootstrapTimezone 内部回落 UTC。
+  Uint8List? tzfBytes;
   try {
     final data = await rootBundle.load('packages/timezone/data/latest_all.tzf');
-    tz.initializeDatabase(data.buffer.asUint8List());
+    tzfBytes = data.buffer.asUint8List();
   } on Object {
-    // 防御：时区数据缺失时按 UTC 渲染，引导主流程不阻断。
+    // 防御：时区数据缺失按 UTC 渲染，引导主流程不阻断。
   }
+  bootstrapTimezone(tzfBytes);
   // M1：读取引导完成标志位，决定首屏进入 /onboarding 还是首页。
   final gate = OnboardingGate(
     completed: SharedPreferencesOnboardingStore(prefs).isOnboardingCompleted,
