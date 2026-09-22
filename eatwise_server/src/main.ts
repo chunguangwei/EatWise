@@ -1,14 +1,17 @@
 import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { DataStore } from './common/store/data-store';
 import { loadFoodSeedFromFile } from './common/store/food-seed-loader';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Caddy 反代后 req.ip 恒等于代理 IP：信任一跳 X-Forwarded-For，
+  // 否则全局限流（ThrottlerGuard）会把全站用户塞进同一个 300/min 桶。
+  app.set('trust proxy', 1);
   // D-16：开发环境把 foods.seed.json 全量库灌入内存 DataStore，
-  // 保证 K1/K2 双语搜索有真实数据；文件缺失时静默降级为内置 fixture。
   // prisma 驱动模式下食物库由 `npm run prisma:seed` 灌入 PostgreSQL，此处跳过。
   if ((process.env.STORE_DRIVER ?? 'memory') !== 'prisma') {
     const seed = loadFoodSeedFromFile(app.get(DataStore));

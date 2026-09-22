@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AdminModule } from './admin/admin.module';
 import { AppVersionModule } from './app-version/app-version.module';
 import { AuthModule } from './auth/auth.module';
@@ -22,8 +22,17 @@ import { WeightModule } from './weight/weight.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    // 限流（契约 §6.1，阈值〔假设〕按压测校准）：默认 300 req/min
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
+    // 限流（契约 §6.1，阈值〔假设〕按压测校准）：默认 300 req/min/IP（trust
+    // proxy 取 XFF 真实客户端 IP，见 main.ts）；THROTTLE_LIMIT env 可调，
+    // e2e 高频 spec 在其文件内设大值防 429。守卫经 APP_GUARD 全局绑定。
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          { ttl: 60_000, limit: Number(config.get('THROTTLE_LIMIT', 300)) },
+        ],
+      }),
+    }),
     InfraModule,
     AdminModule,
     AppVersionModule,
@@ -42,6 +51,7 @@ import { WeightModule } from './weight/weight.module';
   providers: [
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
     { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

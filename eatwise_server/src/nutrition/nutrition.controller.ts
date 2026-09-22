@@ -1,7 +1,7 @@
 import { Controller, Get, Headers, Inject, Query } from '@nestjs/common';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
-import { localDateOf } from '../common/utils/time.util';
+import { isValidTimezone, localDateOf } from '../common/utils/time.util';
 import { NutritionService } from './nutrition.service';
 
 @Controller('nutrition')
@@ -19,7 +19,13 @@ export class NutritionController {
     @Headers('x-timezone') headerTz?: string,
   ) {
     const account = await this.driver.findUserById(user.userId);
-    const tz = headerTz ?? account?.timezone ?? 'Asia/Shanghai';
+    // 非法 X-Timezone 不 500（Intl.RangeError）：回退 profile，同 fasting 口径（走查）
+    const tz =
+      headerTz && isValidTimezone(headerTz)
+        ? headerTz
+        : account?.timezone && isValidTimezone(account.timezone)
+          ? account.timezone
+          : 'Asia/Shanghai';
     return this.nutrition.daily(user.userId, date ?? localDateOf(new Date(), tz), tz);
   }
 }

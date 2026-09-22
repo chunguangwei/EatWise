@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Headers, HttpCode, Inject, Post } from '@nestjs/common';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
+import { isValidTimezone } from '../common/utils/time.util';
 import { MakeupDto } from './streak.dto';
 import { StreakService } from './streak.service';
 
@@ -14,7 +15,14 @@ export class StreakController {
   /** S1 当前 streak、历史最长、里程碑、补签卡状态 */
   @Get()
   async get(@CurrentUser() user: AuthUser, @Headers('x-timezone') tz?: string) {
-    const zone = tz ?? (await this.driver.findUserById(user.userId))?.timezone ?? 'Asia/Shanghai';
+    // 非法 X-Timezone 不 500（Intl.RangeError）：回退 profile，同 fasting 口径（走查）
+    const profileTz = (await this.driver.findUserById(user.userId))?.timezone;
+    const zone =
+      tz && isValidTimezone(tz)
+        ? tz
+        : profileTz && isValidTimezone(profileTz)
+          ? profileTz
+          : 'Asia/Shanghai';
     const entity = await this.streak.recompute(user.userId);
     return this.streak.streakView(entity, zone);
   }

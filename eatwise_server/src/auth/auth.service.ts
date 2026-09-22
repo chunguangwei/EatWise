@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -22,7 +22,7 @@ const MAX_DEVICE_SESSIONS = 5; // 最多 5 个活跃设备会话，超出踢最�
  * send-code 与验证码登录一律拒绝 SMS_CHANNEL_UNAVAILABLE）。
  */
 @Injectable()
-export class AuthService {
+export class AuthService implements OnApplicationBootstrap {
   constructor(
     private readonly store: DataStore,
     @Inject(STORE_DRIVER) private readonly driver: StoreDriver,
@@ -30,9 +30,25 @@ export class AuthService {
     private readonly config: ConfigService,
   ) {}
 
-  /** 短信 mock 开关：仅显式 'false' 关闭，缺省/其他值均开启（开发与现有测试不受影响） */
+  /**
+   * 短信 mock 开关：白名单判定——仅显式 'true' 开启（缺省 'true' 保开发/测试；
+   * 'False'/'0'/拼错一律关闭，fail-closed，防误配把固定码 123456 通道带上生产）。
+   * 生产开启由 onApplicationBootstrap fail-fast 拦截。
+   */
   private smsMockEnabled(): boolean {
-    return this.config.get<string>('SMS_MOCK_ENABLED', 'true') !== 'false';
+    return (this.config.get<string>('SMS_MOCK_ENABLED', 'true') ?? 'true') === 'true';
+  }
+
+  /** 生产环境 mock 短信（固定码 123456）绝不可用：启动即拒绝，不留运行期侥幸 */
+  onApplicationBootstrap() {
+    if (
+      this.config.get<string>('NODE_ENV') === 'production' &&
+      this.smsMockEnabled()
+    ) {
+      throw new Error(
+        'SMS_MOCK_ENABLED must be false when NODE_ENV=production (fixed code 123456 accepts any phone login)',
+      );
+    }
   }
 
   sendSms(phone: string, _scene: string) {

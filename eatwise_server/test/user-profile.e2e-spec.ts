@@ -92,7 +92,7 @@ describe('User profile patch validation (e2e)', () => {
     expect(me.body.data.user.onboardingStatus).toBe('skipped');
   });
 
-  it('D-21 settingsPrefs 偏好同步包：PATCH 落库 + getMe 回显，对象外类型 → 400', async () => {
+  it('D-21 settingsPrefs 偏好同步包：PATCH 落库 + getMe 回显，syncedAt 服务端打戳，对象外类型 → 400', async () => {
     const prefs = {
       locale: 'zh-CN',
       theme: 'system',
@@ -102,7 +102,13 @@ describe('User profile patch validation (e2e)', () => {
       syncedAt: '2026-09-18T08:00:00.000Z',
     };
     const res = await patch({ settingsPrefs: prefs }).expect(200);
-    expect(res.body.data.user.settingsPrefs).toEqual(prefs);
+    // LWW 时间戳由服务端时钟统一打（走查 L6）：客户端自报值被忽略。
+    const stamped = res.body.data.user.settingsPrefs;
+    expect(stamped).toEqual({ ...prefs, syncedAt: expect.any(String) });
+    expect(stamped.syncedAt).not.toBe(prefs.syncedAt);
+    expect(Math.abs(Date.parse(stamped.syncedAt) - Date.now())).toBeLessThan(
+      60_000,
+    );
 
     // 字段级 LWW：只改部分键时整个 JSON 包整体替换（客户端约定整包推送）
     const next = { ...prefs, theme: 'dark', syncedAt: '2026-09-18T09:00:00.000Z' };
@@ -110,10 +116,14 @@ describe('User profile patch validation (e2e)', () => {
       .get('/v1/users/me')
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
-    expect(me.body.data.user.settingsPrefs).toEqual(prefs);
+    expect(me.body.data.user.settingsPrefs).toEqual(stamped);
 
     const res2 = await patch({ settingsPrefs: next }).expect(200);
-    expect(res2.body.data.user.settingsPrefs).toEqual(next);
+    const stamped2 = res2.body.data.user.settingsPrefs;
+    expect(stamped2).toEqual({ ...next, syncedAt: expect.any(String) });
+    expect(Date.parse(stamped2.syncedAt)).toBeGreaterThanOrEqual(
+      Date.parse(stamped.syncedAt),
+    );
 
     // 非对象类型 → DTO 校验拒绝
     expect((await patch({ settingsPrefs: 'dark' })).status).toBe(400);

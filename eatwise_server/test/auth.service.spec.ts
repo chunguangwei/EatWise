@@ -131,6 +131,37 @@ describe('AuthService 短信 mock 开关（SMS_MOCK_ENABLED=false 关闭验证�
     });
   });
 
+  it('白名单判定 fail-closed：\'False\'/\'0\'/空串等非精确 \'true\' 一律关闭', () => {
+    for (const raw of ['False', 'FALSE', '0', 'yes', '']) {
+      const svc = new AuthService(
+        new DataStore(),
+        new MemoryStoreDriver(new DataStore()),
+        new JwtService({ secret: 'test-secret' }),
+        new ConfigService({ SMS_MOCK_ENABLED: raw }),
+      );
+      expect(() => svc.sendSms(phone, 'login')).toThrow(
+        expect.objectContaining({ code: 'SMS_CHANNEL_UNAVAILABLE' }) as unknown as Error,
+      );
+    }
+  });
+
+  it('生产 NODE_ENV=production 且 mock 开启 → 启动 fail-fast', () => {
+    const savedEnv = { ...process.env };
+    process.env.NODE_ENV = 'production';
+    process.env.SMS_MOCK_ENABLED = 'true';
+    try {
+      const svc = new AuthService(
+        new DataStore(),
+        new MemoryStoreDriver(new DataStore()),
+        new JwtService({ secret: 'test-secret' }),
+        new ConfigService(),
+      );
+      expect(() => svc.onApplicationBootstrap()).toThrow(/SMS_MOCK_ENABLED/);
+    } finally {
+      process.env = savedEnv;
+    }
+  });
+
   it('关闭 mock 不影响账号密码注册/登录', async () => {
     await auth.register('alice_01', 'Passw0rd123');
     const res = await auth.login('alice_01', 'Passw0rd123');

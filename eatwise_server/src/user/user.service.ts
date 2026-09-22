@@ -49,6 +49,14 @@ export class UserService {
     if (typeof patch['targetDate'] === 'string') {
       patch['targetDate'] = new Date(`${patch['targetDate']}T00:00:00.000Z`);
     }
+    // settingsPrefs 的 LWW 时间戳由服务端时钟统一打（忽略客户端自报值）：
+    // 各端设备墙钟有偏差，超前设备的旧偏好会永久压制他端改动（走查 L6）。
+    if (patch['settingsPrefs'] && typeof patch['settingsPrefs'] === 'object') {
+      patch['settingsPrefs'] = {
+        ...(patch['settingsPrefs'] as Record<string, unknown>),
+        syncedAt: new Date().toISOString(),
+      };
+    }
     // version+1 / updatedAt=服务端时钟 由驱动赋值（客户端传入的 updatedAt 忽略，防腐层）
     const user = await this.driver.updateUserProfile(userId, patch);
     return { user: this.userView(user), nutritionTargets: computeTargets(user) };

@@ -107,6 +107,14 @@ export class UpdateCustomFoodDto {
   source: 'manual' | 'llm-estimate';
 }
 
+/** K2 批量按 id 取（ids 形态防腐：非数组/非字符串元素不再直达驱动炸 500） */
+export class BatchGetFoodsDto {
+  @IsArray()
+  @ArrayMaxSize(200)
+  @IsString({ each: true })
+  ids: string[];
+}
+
 /**
  * 贡献自定义食物到共享库（幂等 clientRequestId）。
  * 条码商品补录（OFF 未命中场景）：额外传 barcode + evidenceImageUrl（包装营养表
@@ -121,9 +129,15 @@ export class ContributeFoodDto {
   @Matches(/^\d{8,14}$/, { message: 'barcode must be 8-14 digits' })
   barcode?: string;
 
-  /** 包装营养表佐证照片 URL（/v1/uploads/xxx 或 CDN URL）；条码贡献必填（审核「对答案」根基） */
+  /**
+   * 包装营养表佐证照片 URL（/v1/uploads/xxx 或 CDN URL）；条码贡献必填（审核「对答案」根基）。
+   * 协议白名单 http(s)/站内相对路径——管理台把该值拼进 <a href>，javascript: 伪协议
+   * 是存储型 XSS（普通用户→管理员 JWT 窃取，走查）。
+   */
   @IsOptional()
-  @IsString()
+  @Matches(/^(https?:\/\/|\/\/|\/)[^\s]*$/, {
+    message: 'evidenceImageUrl must be an http(s) or site-relative URL',
+  })
   @MaxLength(500)
   evidenceImageUrl?: string;
 }

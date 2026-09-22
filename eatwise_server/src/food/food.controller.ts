@@ -3,7 +3,13 @@ import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { err } from '../common/errors/business.exception';
 import { BarcodeService } from './barcode/barcode.service';
 import { FoodCandidateStatus } from '../common/store/data-store';
-import { ContributeFoodDto, CreateCustomFoodDto, CreateFoodCorrectionDto, UpdateCustomFoodDto } from './food.dto';
+import {
+  BatchGetFoodsDto,
+  ContributeFoodDto,
+  CreateCustomFoodDto,
+  CreateFoodCorrectionDto,
+  UpdateCustomFoodDto,
+} from './food.dto';
 import { FoodService } from './food.service';
 
 const CONTRIBUTION_STATUSES: FoodCandidateStatus[] = ['pending', 'approved', 'rejected'];
@@ -29,9 +35,10 @@ export class FoodController {
   /** K2 按 id 批量取（离线缓存校验/详情），≤200 个〔假设〕；自定义食物仅创建者可见 */
   @Post('batch-get')
   @HttpCode(200)
-  async batchGet(@CurrentUser() user: AuthUser, @Body('ids') ids: string[] = []) {
-    if (ids.length > 200) throw err.validation({ ids: 'at most 200 ids' });
-    const found = await Promise.all(ids.map((id) => this.food.getById(id, user.userId)));
+  async batchGet(@CurrentUser() user: AuthUser, @Body() dto: BatchGetFoodsDto) {
+    const found = await Promise.all(
+      dto.ids.map((id) => this.food.getById(id, user.userId)),
+    );
     return { items: found.filter((f): f is NonNullable<typeof f> => Boolean(f)) };
   }
 

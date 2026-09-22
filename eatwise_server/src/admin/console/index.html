@@ -622,10 +622,12 @@
       var STATUS_LABEL = { pending: '待审核', approved: '已通过', rejected: '已拒绝' };
       var KIND_LABEL = { custom: '自定义', barcode: '条码', correction: '纠错' };
 
-      /** 佐证照片地址：本机 local 驱动返回 /v1/uploads 相对路径，需拼当前 origin 才能直接引图 */
+      /** 佐证照片地址：本机 local 驱动返回 /v1/uploads 相对路径，需拼当前 origin 才能直接引图。
+       *  协议白名单 http(s)/站内相对路径（存量数据可能含 javascript: 伪协议——存储型 XSS）。 */
       function absUrl(u) {
         if (!u) return '';
-        return u.charAt(0) === '/' ? location.origin + u : u;
+        if (u.charAt(0) === '/') return location.origin + u;
+        return /^https?:\/\//i.test(u) ? u : '';
       }
 
       /** 条码贡献审核单元格：条码 + 包装营养表佐证照片（点击新开页放大「对答案」） */
@@ -633,8 +635,8 @@
         if (c.kind !== 'barcode') return '<span class="muted">—</span>';
         var html =
           '<span class="badge barcode">条码</span> <strong>' + esc(c.barcode || '') + '</strong>';
-        if (c.evidenceImageUrl) {
-          var u = absUrl(c.evidenceImageUrl);
+        var u = c.evidenceImageUrl ? absUrl(c.evidenceImageUrl) : '';
+        if (u) {
           html +=
             '<a href="' +
             esc(u) +
