@@ -10,7 +10,12 @@ import { FoodService } from './food.service';
 @Module({
   // SocialModule 导出 ContentModerationService（D-17 三态机审抽象，贡献食物名复用）
   imports: [SocialModule],
-  controllers: [FoodController, AdminFoodController, AdminFoodsController, ModerationFoodController],
+  controllers: [
+    FoodController,
+    AdminFoodController,
+    AdminFoodsController,
+    ModerationFoodController,
+  ],
   providers: [FoodService, BarcodeService],
   exports: [FoodService],
 })

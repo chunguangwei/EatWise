@@ -161,8 +161,7 @@ export class FastingService {
       } else {
         // 延长后 plannedEndAt 偏离口径时回显刚自动结算的记录（不重复建档）
         activeRecord =
-          (await this.driver.findFastingRecordByPlannedEnd(userId, win.eatingStartAt)) ??
-          settled;
+          (await this.driver.findFastingRecordByPlannedEnd(userId, win.eatingStartAt)) ?? settled;
       }
     }
     // 延长覆盖名义进食窗口（on_track 且 plannedEndAt>now）→ 仍在断食，状态不消失

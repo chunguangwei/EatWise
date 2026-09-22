@@ -1,5 +1,10 @@
 import { randomUUID } from 'crypto';
-import { CustomFoodEntity, DataStore, FoodEntity, FoodEntryEntity } from '../src/common/store/data-store';
+import {
+  CustomFoodEntity,
+  DataStore,
+  FoodEntity,
+  FoodEntryEntity,
+} from '../src/common/store/data-store';
 import { BusinessException } from '../src/common/errors/business.exception';
 import { MemoryStoreDriver } from '../src/common/store/store-driver';
 import { FoodService } from '../src/food/food.service';
@@ -96,7 +101,12 @@ describe('管理端食物库（FoodService.adminSearchFoods / adminDeleteFood）
     );
     // 契约字段：id/kcal/source/isCustom/deleted
     const custom = admin.items.find((i) => i.id === CUSTOM_B_ID)!;
-    expect(custom).toMatchObject({ kcalPer100g: 55, source: 'manual', isCustom: true, deleted: false });
+    expect(custom).toMatchObject({
+      kcalPer100g: 55,
+      source: 'manual',
+      isCustom: true,
+      deleted: false,
+    });
     const shared = admin.items.find((i) => i.id === SHARED_ID)!;
     expect(shared).toMatchObject({ kcalPer100g: 50, source: 'usda', isCustom: false });
     // 同一关键词，普通用户视角看不到他人自定义
