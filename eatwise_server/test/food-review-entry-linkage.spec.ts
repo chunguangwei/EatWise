@@ -233,6 +233,19 @@ describe('审核内容删除（审批中心「删除」：候选 + 食物行 + �
     expect(await driver.findFoodById(foodId)).not.toBeNull(); // 内容未动
   });
 
+  it('adminDeleteFood 同款盲点：最早行 approved + pending 纠错孪生 → 409 不软删', async () => {
+    const { foodId, candidateId } = await contribute();
+    await food.reviewFoodCandidate(candidateId, { action: 'approve' }, null);
+    await food.createFoodCorrection(userId, foodId, {
+      clientRequestId: randomUUID(),
+      per100g: { kcal: 15, proteinG: 1, carbG: 2, fatG: 0.5 },
+    });
+    await expect(food.adminDeleteFood(foodId)).rejects.toMatchObject({
+      code: 'FOOD_UNDER_REVIEW',
+    });
+    expect(await driver.findFoodById(foodId)).not.toBeNull();
+  });
+
   it('kind=correction 删除只删建议痕迹：目标共享食物不动', async () => {
     const builtin = [...store.foods.values()][0];
     const candidate = (await food.createFoodCorrection(userId, builtin.id, {

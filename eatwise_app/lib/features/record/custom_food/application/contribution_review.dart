@@ -312,7 +312,6 @@ final class ContributionReviewSync {
           continue;
         }
         notices.add(await _applyRemoval(foodId, row.nameZh));
-        onStatusApplied?.call(foodId);
       }
       await store.saveKnown(knownStatusMapOf(current));
       if (notices.isNotEmpty) {

@@ -211,17 +211,24 @@ final accountIdentityStoreProvider = Provider<AccountIdentityStore?>((ref) {
 ///
 /// 失败自愈（真机走查③「账号行永显点击重试」）：吞错返回 null 会被
 /// Riverpod 当**成功值**永久缓存——冷启动撞上服务端重启窗（502/连接拒）
-/// 后，除非手动进设置页点重试，任何页面都不会再拉。失败时调度一次
-/// 延迟 `invalidateSelf`（30s，够瞬时故障恢复；模块级标志保证单次装配
-/// 只挂一个定时器，持续失败=每 30s 一次廉价重试，成功后自然停止）。
-bool _userMeRetryScheduled = false;
-
+/// 后，除非手动进设置页点重试，任何页面都不会再拉。失败时挂 30s 延迟
+/// `invalidateSelf`（够瞬时故障恢复；持续失败=每 30s 一次廉价重试，
+/// 成功后自然停止）。timer 必须 body 局部 + **首个 await 之前**注册
+/// onDispose（riverpod 2.6.1 在 element 未挂载时 ref.onDispose 直接抛
+/// StateError，catch 里才注册=dispose 后落地必抛、timer 无人取消）；
+/// `disposed` 守卫拦「dispose 后 future 才落地」新建的 timer——unmount 会
+/// dispose container，守卫没有则 fake_async 永挂 pending timer。
+/// invalidateSelf 重跑 body 前 runOnDispose 自动取消上一轮 timer，
+/// 无需模块级标志（invalidateSelf 前 runOnDispose 已跑完旧监听）。
 final userMeProvider = FutureProvider<UserMeView?>((ref) async {
+  Timer? timer;
   var disposed = false;
-  ref.onDispose(() => disposed = true);
+  ref.onDispose(() {
+    disposed = true;
+    timer?.cancel();
+  });
   try {
     final me = await ref.watch(userApiProvider).getMe();
-    _userMeRetryScheduled = false;
     // 账号标识本地兜底：成功拉取即缓存显示值（username 优先，其次
     // 脱敏手机号——已掩码，合规 §6）。
     final identity = me.username.isNotEmpty ? me.username : me.maskedPhone;
@@ -230,18 +237,9 @@ final userMeProvider = FutureProvider<UserMeView?>((ref) async {
     }
     return me;
   } on Object {
-    // 装配已销毁（container.dispose 后 future 才落地）不再挂定时器。
-    if (!_userMeRetryScheduled && !disposed) {
-      late final Timer timer;
-      timer = Timer(const Duration(seconds: 30), () {
-        _userMeRetryScheduled = false;
-        ref.invalidateSelf();
-      });
-      // 装配被销毁（登出/热重载）时取消并复位标志，否则永久压制后续自愈。
-      ref.onDispose(() {
-        timer.cancel();
-        _userMeRetryScheduled = false;
-      });
+    // dispose 后落地=container 已销毁（登出/测试 unmount），不再挂定时器。
+    if (!disposed) {
+      timer = Timer(const Duration(seconds: 30), ref.invalidateSelf);
     }
     return null;
   }

@@ -179,8 +179,7 @@ export class FoodService {
     const food = await this.driver.findCustomFoodById(foodId);
     if (!food || food.userId !== userId) throw err.notFound();
 
-    const candidate = await this.driver.findFoodCandidateByFoodId(foodId);
-    if (candidate?.status === 'pending') throw err.foodUnderReview();
+    await this.assertNotUnderSharedReview(foodId);
 
     await this.driver.softDeleteCustomFood(foodId);
     const deletedEntries = await this.driver.softDeleteFoodEntriesByFood(userId, foodId);
@@ -194,12 +193,25 @@ export class FoodService {
    * deleteCustomFood 口径，先撤销/等审核落定）；行不存在/已删 → 404（重删 404）。
    */
   async adminDeleteFood(foodId: string) {
-    const candidate = await this.driver.findFoodCandidateByFoodId(foodId);
-    if (candidate?.status === 'pending') throw err.foodUnderReview();
+    await this.assertNotUnderSharedReview(foodId);
 
     await this.driver.softDeleteFoodById(foodId);
     const deletedEntries = await this.driver.softDeleteAllFoodEntriesByFood(foodId);
     return { deleted: true, deletedEntries };
+  }
+
+  /**
+   * 「该食物行还有未落定的审核结论」守卫：同 foodId 存在 pending 候选时禁止
+   * 删除食物行（审核结论要回写该行），409 FOOD_UNDER_REVIEW。
+   * 必须扫 pending 审核池全量——findFoodCandidateByFoodId 是 findFirst
+   * (createdAt asc) 单行查询，最早行恰为被删行（典型：转正后又有人提纠错）
+   * 时会漏检更新的 pending 孪生，删完留幽灵候选在池里。
+   */
+  private async assertNotUnderSharedReview(foodId: string, exceptId?: string) {
+    const pending = await this.driver.listFoodCandidates('pending');
+    if (pending.some((c) => c.foodId === foodId && (!exceptId || c.id !== exceptId))) {
+      throw err.foodUnderReview();
+    }
   }
 
   /**
@@ -523,15 +535,9 @@ export class FoodService {
     if (!candidate) throw err.notFound();
 
     if (candidate.kind !== 'correction') {
-      // 同食物行还有其它 pending 候选时不动内容（审核结论要回写该行），
-      // 同 adminDeleteFood 的 FOOD_UNDER_REVIEW 守卫口径。不能用
-      // findFoodCandidateByFoodId（findFirst createdAt 升序，命中的可能恰
-      // 是被删行本身，漏掉后来的 pending 孪生）——扫 pending 审核池，
-      // 含指向同一食物行的纠错候选（审核结论同样要回写该行）。
-      const pending = await this.driver.listFoodCandidates('pending');
-      if (pending.some((c) => c.foodId === candidate.foodId && c.id !== candidateId)) {
-        throw err.foodUnderReview();
-      }
+      // 同食物行还有其它 pending 候选（含纠错孪生）时不动内容——审核结论
+      // 要回写该行；排除被删行自身（撤下 pending = 合法删除）。
+      await this.assertNotUnderSharedReview(candidate.foodId, candidateId);
       // approved 行已晋升共享、可被任意用户记录引用：下架=跨用户级联
       // （adminDeleteFood 同口径）；pending/rejected 仍是贡献者私有行。
       if (candidate.status === 'approved') {
