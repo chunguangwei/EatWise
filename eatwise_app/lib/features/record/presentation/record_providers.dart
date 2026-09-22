@@ -91,16 +91,54 @@ final Provider<RemoteFoodSearch> remoteFoodSearchProvider =
       );
     });
 
-/// 双语食物搜索结果（D-15/D-16）。
-final FutureProvider<List<Food>> recordFoodSearchProvider =
-    FutureProvider<List<Food>>((ref) async {
-      final query = ref.watch(recordSearchQueryProvider);
-      try {
-        return await ref.watch(remoteFoodSearchProvider).search(query);
-      } on Object {
-        // 防御：网络层未装配（如测试只注入仓储）时降级纯本地。
-        return ref.read(recordRepositoryProvider).searchFoods(query);
+/// 双语食物搜索结果（D-15/D-16）——stale-while-revalidate：
+/// 本地命中立即推（9.2k 行四列 LIKE 全表实测 <7ms，无需索引），远端补充
+/// 200ms 防抖后追加。常驻流：查询变化只推新数据事件、不重建流（riverpod
+/// 依赖变更会让 state 回退 AsyncLoading——`ref.listen` 规避，旧结果全程
+/// 留在屏上，杜绝「每敲一键闪一次转圈/空态」）；generation 计数丢弃过期
+/// 远端响应。空查询零网络请求（今日列表走 [todayEntriesProvider]）。
+final StreamProvider<List<Food>> recordFoodSearchProvider =
+    StreamProvider<List<Food>>((ref) {
+      final controller = StreamController<List<Food>>();
+      var generation = 0;
+      void runQuery(String rawQuery) {
+        final query = rawQuery.trim();
+        final gen = ++generation;
+        unawaited(() async {
+          final repo = ref.read(recordRepositoryProvider);
+          try {
+            final local = await repo.searchFoods(query);
+            if (gen != generation) return; // 已被更新的输入作废
+            controller.add(local);
+            if (query.isEmpty) return;
+            await Future<void>.delayed(const Duration(milliseconds: 200));
+            if (gen != generation) return;
+            try {
+              final merged = await ref
+                  .read(remoteFoodSearchProvider)
+                  .search(query);
+              if (gen == generation) controller.add(merged);
+            } on Object {
+              // 远端不可用（网络层未装配/离线/超时）：保留已出的本地结果。
+            }
+          } on Object {
+            // 本地查询异常：保留旧结果（不推事件）。
+          }
+        }());
       }
+
+      // listen 而非 watch：查询变化不重建本流（AsyncValue 不回退 loading，
+      // 旧结果在屏）；repo/userId 切换时同样按最新值重查。
+      ref.listen(
+        recordSearchQueryProvider,
+        (previous, next) => runQuery(next),
+        fireImmediately: true,
+      );
+      ref.listen(recordRepositoryProvider, (previous, next) {
+        runQuery(ref.read(recordSearchQueryProvider));
+      });
+      ref.onDispose(() => unawaited(controller.close()));
+      return controller.stream;
     });
 
 /// 记录同步引擎（启动/登录成功后 syncNow：先上行 pending 再增量下行，

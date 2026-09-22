@@ -19,13 +19,14 @@ describe('D-16 全量食物库 seed 加载与双语搜索', () => {
     food = new FoodService(new MemoryStoreDriver(store), new StubModerationService());
   });
 
-  it('加载 seed：>=7000 条，含 USDA 与策展来源', () => {
+  it('加载 seed：>=1900 条全双语，含成分表与策展来源', () => {
     const result = loadFoodSeedFromFile(store, seedPath);
     expect(result).not.toBeNull();
     expect(result!.skipped).toBe(false);
-    expect(result!.loaded).toBeGreaterThanOrEqual(7000);
+    // v1.13.10 裁剪：USDA 无中文名行默认剔除，全库双语硬约束（E4）。
+    expect(result!.loaded).toBeGreaterThanOrEqual(1900);
     const sources = new Set([...store.foods.values()].map((f) => f.source));
-    expect(sources).toContain('usda-sr');
+    expect(sources).toContain('cfct');
     expect(sources).toContain('curated');
   });
 
@@ -60,7 +61,7 @@ describe('D-16 全量食物库 seed 加载与双语搜索', () => {
     expect(res.items.some((i) => i.nameZh === '鸡胸肉')).toBe(true);
   });
 
-  it('USDA 条目可检索且营养字段齐全：q=rice 有结果', async () => {
+  it('英文词可检索且营养字段齐全：q=rice 有结果', async () => {
     const res = await food.search('rice');
     expect(res.items.length).toBeGreaterThan(0);
     const hit = res.items[0];

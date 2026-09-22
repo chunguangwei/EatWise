@@ -231,9 +231,25 @@ ROWS: list[tuple[str, str, list[str], list[str], float, float, float, str]] = [
 
 
 def main() -> int:
+    # 入库去重：正名与既有 seed 行（zh_common 策展 + cfct 成分表）精确同名 →
+    # 丢弃新行（旧行优先保留——已随旧 seed 出厂）。搜「面条」出两行不同值才是事故。
+    taken: set[str] = set()
+    for src in (
+        DATA_DIR / "curated" / "zh_common_foods.json",
+        DATA_DIR / "cfct" / "cfct_foods.json",
+    ):
+        if src.exists():
+            for f in json.loads(src.read_text(encoding="utf-8"))["foods"]:
+                if f.get("name_zh"):
+                    taken.add(f["name_zh"])
+
     foods = []
     seen = set()
+    dropped: list[str] = []
     for zh, en, azh, aen, p, c, f, cat in ROWS:
+        if zh in taken:
+            dropped.append(zh)
+            continue
         slug = en_slug(en)
         assert slug not in seen, f"duplicate slug: {slug}"
         seen.add(slug)
@@ -254,6 +270,8 @@ def main() -> int:
                 "zh_verified": True,
             }
         )
+    if dropped:
+        print(f"[dishes] 同名去重丢弃 {len(dropped)} 行（既有行优先）: {dropped}")
 
     OUT.write_text(
         json.dumps(

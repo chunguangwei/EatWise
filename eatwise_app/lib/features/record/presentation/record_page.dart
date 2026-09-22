@@ -324,7 +324,10 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     final pendingCount = ref.watch(recordPendingCountProvider).value ?? 0;
     final today = ref.watch(recordTodayNutritionProvider).value;
     final selected = ref.watch(recordSelectedFoodProvider);
-    final results = ref.watch(recordFoodSearchProvider);
+    // 搜索结果为流式本地先行（stale-while-revalidate）：valueOrNull 让
+    // 远端补充/防抖窗口期间旧结果留在屏上，杜绝「每敲一键闪一次转圈」。
+    final foods =
+        ref.watch(recordFoodSearchProvider).valueOrNull ?? const <Food>[];
     final isEn = LocaleSettings.currentLocale == AppLocale.en;
     // 键盘可见性须在 Scaffold 之外读取（resizeToAvoidBottomInset 会把
     // bottom inset 从 body 的 MediaQuery 里消化掉）。
@@ -499,8 +502,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                 // 占大头；确认卡内部可滚，小屏键盘顶起时按钮不再被顶出屏幕，
                 // 真机走查）。
                 Expanded(
-                  child: results.when(
-                    data: (foods) {
+                  child: Builder(
+                    builder: (context) {
                       // 优化点 2：搜索框为空且今日有记录 → 「今日记录」
                       // 餐次分组列表（对标薄荷记录页，替代空查询下的
                       // 前 20 条库内浏览列表）；无今日记录时保持原行为。
@@ -655,16 +658,6 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                         child: resultsList,
                       );
                     },
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (error, stackTrace) => Center(
-                      child: Text(
-                        s.searchEmpty,
-                        style: textStyles.textSm.copyWith(
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                    ),
                   ),
                 ),
                 // 今日聚合（本地预估，§2.6 注明待云端校准；键盘顶起时

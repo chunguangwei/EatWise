@@ -65,14 +65,14 @@
   {
    "id": "cfct-109004",
    "name_zh": "全脂甜炼乳(雀巢)",
-   "name_en": "全脂甜炼乳(雀巢)",
+   "name_en": "Sweetened condensed whole milk",
    "aliases_zh": [
     "全脂甜炼乳",
     "全脂甜炼乳(雀巢)",
     "全脂甜炼乳（雀巢）"
    ],
    "aliases_en": [
-    "全脂甜炼乳(雀巢)"
+    "sweetened condensed whole milk"
    ],
    "kcal": 380.0,
    "protein_g": 7.5,
@@ -85,14 +85,14 @@
   {
    "id": "cfct-109005",
    "name_zh": "全脂甜炼乳(燕山牌)",
-   "name_en": "全脂甜炼乳(燕山牌)",
+   "name_en": "Sweetened condensed whole milk",
    "aliases_zh": [
     "全脂甜炼乳",
     "全脂甜炼乳(燕山牌)",
     "全脂甜炼乳（燕山牌）"
    ],
    "aliases_en": [
-    "全脂甜炼乳(燕山牌)"
+    "sweetened condensed whole milk"
    ],
    "kcal": 374.0,
    "protein_g": 8.2,
@@ -105,12 +105,12 @@
   {
    "id": "cfct-109006",
    "name_zh": "脱脂甜炼乳",
-   "name_en": "脱脂甜炼乳",
+   "name_en": "Sweetened condensed skim milk",
    "aliases_zh": [
     "脱脂甜炼乳"
    ],
    "aliases_en": [
-    "脱脂甜炼乳"
+    "sweetened condensed skim milk"
    ],
    "kcal": 275.0,
    "protein_g": 10.3,
@@ -123,14 +123,14 @@
   {
    "id": "cfct-109007",
    "name_zh": "蛋白粉(益力健乳铁乳清蛋白粉)",
-   "name_en": "蛋白粉(益力健乳铁乳清蛋白粉)",
+   "name_en": "Protein powder",
    "aliases_zh": [
     "蛋白粉",
     "蛋白粉(益力健乳铁乳清蛋白粉)",
     "蛋白粉（益力健乳铁乳清蛋白粉）"
    ],
    "aliases_en": [
-    "蛋白粉(益力健乳铁乳清蛋白粉)"
+    "protein powder"
    ],
    "kcal": 425.0,
    "protein_g": 50.0,
@@ -143,14 +143,14 @@
   {
    "id": "cfct-109008",
    "name_zh": "牛初乳奶片(纽瑞滋牛初乳咀嚼奶片)",
-   "name_en": "牛初乳奶片(纽瑞滋牛初乳咀嚼奶片)",
+   "name_en": "Bovine colostrum milk tablet",
    "aliases_zh": [
     "牛初乳奶片",
     "牛初乳奶片(纽瑞滋牛初乳咀嚼奶片)",
     "牛初乳奶片（纽瑞滋牛初乳咀嚼奶片）"
    ],
    "aliases_en": [
-    "牛初乳奶片(纽瑞滋牛初乳咀嚼奶片)"
+    "bovine colostrum milk tablet"
    ],
    "kcal": 347.0,
    "protein_g": 27.0,
@@ -163,12 +163,12 @@
   {
    "id": "cfct-109009",
    "name_zh": "奶渣",
-   "name_en": "奶渣",
+   "name_en": "Dried milk curd",
    "aliases_zh": [
     "奶渣"
    ],
    "aliases_en": [
-    "奶渣"
+    "dried milk curd"
    ],
    "kcal": 381.0,
    "protein_g": 44.4,
@@ -313,12 +313,12 @@
   {
    "id": "cfct-105008",
    "name_zh": "奶油",
-   "name_en": "奶油",
+   "name_en": "Cream",
    "aliases_zh": [
     "奶油"
    ],
    "aliases_en": [
-    "奶油"
+    "cream"
    ],
    "kcal": 785.0,
    "protein_g": 1.1,
@@ -331,12 +331,12 @@
   {
    "id": "cfct-105009",
    "name_zh": "酥油",
-   "name_en": "酥油",
+   "name_en": "Butter (yak, Tibetan)",
    "aliases_zh": [
     "酥油"
    ],
    "aliases_en": [
-    "酥油"
+    "butter (yak, tibetan)"
    ],
    "kcal": 718.0,
    "protein_g": 0.7,
@@ -349,14 +349,14 @@
   {
    "id": "cfct-105010",
    "name_zh": "酥油茶(原味)",
-   "name_en": "酥油茶(原味)",
+   "name_en": "Butter tea",
    "aliases_zh": [
     "酥油茶",
     "酥油茶(原味)",
     "酥油茶（原味）"
    ],
    "aliases_en": [
-    "酥油茶(原味)"
+    "butter tea"
    ],
    "kcal": 465.0,
    "protein_g": 3.0,
@@ -389,14 +389,14 @@
   {
    "id": "cfct-102101x",
    "name_zh": "全脂奶粉(代表值)",
-   "name_en": "全脂奶粉(代表值)",
+   "name_en": "Whole milk powder",
    "aliases_zh": [
     "全脂奶粉",
     "全脂奶粉(代表值)",
     "全脂奶粉（代表值）"
    ],
    "aliases_en": [
-    "全脂奶粉(代表值)"
+    "whole milk powder"
    ],
    "kcal": 482.0,
    "protein_g": 19.9,
@@ -447,14 +447,14 @@
   {
    "id": "cfct-102105",
    "name_zh": "全脂奶粉(雀巢)",
-   "name_en": "全脂奶粉(雀巢)",
+   "name_en": "Whole milk powder",
    "aliases_zh": [
     "全脂奶粉",
     "全脂奶粉(雀巢)",
     "全脂奶粉（雀巢）"
    ],
    "aliases_en": [
-    "全脂奶粉(雀巢)"
+    "whole milk powder"
    ],
    "kcal": 504.0,
    "protein_g": 24.0,
@@ -467,14 +467,14 @@
   {
    "id": "cfct-102107",
    "name_zh": "全脂奶粉(伊利牌)",
-   "name_en": "全脂奶粉(伊利牌)",
+   "name_en": "Whole milk powder",
    "aliases_zh": [
     "全脂奶粉",
     "全脂奶粉(伊利牌)",
     "全脂奶粉（伊利牌）"
    ],
    "aliases_en": [
-    "全脂奶粉(伊利牌)"
+    "whole milk powder"
    ],
    "kcal": 504.0,
    "protein_g": 22.0,
@@ -487,14 +487,14 @@
   {
    "id": "cfct-102125",
    "name_zh": "全脂奶粉(红星速溶加锌奶粉)",
-   "name_en": "全脂奶粉(红星速溶加锌奶粉)",
+   "name_en": "Whole milk powder",
    "aliases_zh": [
     "全脂奶粉",
     "全脂奶粉(红星速溶加锌奶粉)",
     "全脂奶粉（红星速溶加锌奶粉）"
    ],
    "aliases_en": [
-    "全脂奶粉(红星速溶加锌奶粉)"
+    "whole milk powder"
    ],
    "kcal": 478.0,
    "protein_g": 18.5,
@@ -507,14 +507,14 @@
   {
    "id": "cfct-102126",
    "name_zh": "全脂奶粉(欧世蒙牛多维高钙高铁奶粉)",
-   "name_en": "全脂奶粉(欧世蒙牛多维高钙高铁奶粉)",
+   "name_en": "Whole milk powder",
    "aliases_zh": [
     "全脂奶粉",
     "全脂奶粉(欧世蒙牛多维高钙高铁奶粉)",
     "全脂奶粉（欧世蒙牛多维高钙高铁奶粉）"
    ],
    "aliases_en": [
-    "全脂奶粉(欧世蒙牛多维高钙高铁奶粉)"
+    "whole milk powder"
    ],
    "kcal": 473.0,
    "protein_g": 18.2,
@@ -527,14 +527,14 @@
   {
    "id": "cfct-102127",
    "name_zh": "全脂奶粉(雪花钙加锌调制奶粉)",
-   "name_en": "全脂奶粉(雪花钙加锌调制奶粉)",
+   "name_en": "Whole milk powder",
    "aliases_zh": [
     "全脂奶粉",
     "全脂奶粉(雪花钙加锌调制奶粉)",
     "全脂奶粉（雪花钙加锌调制奶粉）"
    ],
    "aliases_en": [
-    "全脂奶粉(雪花钙加锌调制奶粉)"
+    "whole milk powder"
    ],
    "kcal": 461.0,
    "protein_g": 17.0,
@@ -547,14 +547,14 @@
   {
    "id": "cfct-102128",
    "name_zh": "全脂奶粉(雪花高钙多维调制奶粉)",
-   "name_en": "全脂奶粉(雪花高钙多维调制奶粉)",
+   "name_en": "Whole milk powder",
    "aliases_zh": [
     "全脂奶粉",
     "全脂奶粉(雪花高钙多维调制奶粉)",
     "全脂奶粉（雪花高钙多维调制奶粉）"
    ],
    "aliases_en": [
-    "全脂奶粉(雪花高钙多维调制奶粉)"
+    "whole milk powder"
    ],
    "kcal": 484.0,
    "protein_g": 19.5,
@@ -567,14 +567,14 @@
   {
    "id": "cfct-102130x",
    "name_zh": "全脂甜奶粉(代表值)",
-   "name_en": "全脂甜奶粉(代表值)",
+   "name_en": "Sweetened whole milk powder",
    "aliases_zh": [
     "全脂甜奶粉",
     "全脂甜奶粉(代表值)",
     "全脂甜奶粉（代表值）"
    ],
    "aliases_en": [
-    "全脂甜奶粉(代表值)"
+    "sweetened whole milk powder"
    ],
    "kcal": 485.0,
    "protein_g": 20.2,
@@ -587,12 +587,12 @@
   {
    "id": "cfct-102131",
    "name_zh": "全脂甜奶粉",
-   "name_en": "全脂甜奶粉",
+   "name_en": "Sweetened whole milk powder",
    "aliases_zh": [
     "全脂甜奶粉"
    ],
    "aliases_en": [
-    "全脂甜奶粉"
+    "sweetened whole milk powder"
    ],
    "kcal": 490.0,
    "protein_g": 22.5,
@@ -605,14 +605,14 @@
   {
    "id": "cfct-102132",
    "name_zh": "全脂甜奶粉(伊利牌)",
-   "name_en": "全脂甜奶粉(伊利牌)",
+   "name_en": "Sweetened whole milk powder",
    "aliases_zh": [
     "全脂甜奶粉",
     "全脂甜奶粉(伊利牌)",
     "全脂甜奶粉（伊利牌）"
    ],
    "aliases_en": [
-    "全脂甜奶粉(伊利牌)"
+    "sweetened whole milk powder"
    ],
    "kcal": 476.0,
    "protein_g": 19.0,
@@ -625,14 +625,14 @@
   {
    "id": "cfct-102133",
    "name_zh": "全脂甜奶粉(飞鹤全脂甜乳粉)",
-   "name_en": "全脂甜奶粉(飞鹤全脂甜乳粉)",
+   "name_en": "Sweetened whole milk powder",
    "aliases_zh": [
     "全脂甜奶粉",
     "全脂甜奶粉(飞鹤全脂甜乳粉)",
     "全脂甜奶粉（飞鹤全脂甜乳粉）"
    ],
    "aliases_en": [
-    "全脂甜奶粉(飞鹤全脂甜乳粉)"
+    "sweetened whole milk powder"
    ],
    "kcal": 479.0,
    "protein_g": 20.0,
@@ -645,14 +645,14 @@
   {
    "id": "cfct-102134",
    "name_zh": "全脂甜奶粉(红星速溶全脂甜奶粉)",
-   "name_en": "全脂甜奶粉(红星速溶全脂甜奶粉)",
+   "name_en": "Sweetened whole milk powder",
    "aliases_zh": [
     "全脂甜奶粉",
     "全脂甜奶粉(红星速溶全脂甜奶粉)",
     "全脂甜奶粉（红星速溶全脂甜奶粉）"
    ],
    "aliases_en": [
-    "全脂甜奶粉(红星速溶全脂甜奶粉)"
+    "sweetened whole milk powder"
    ],
    "kcal": 481.0,
    "protein_g": 18.5,
@@ -665,14 +665,14 @@
   {
    "id": "cfct-102135",
    "name_zh": "全脂甜奶粉(三元燕山牌全脂甜奶粉)",
-   "name_en": "全脂甜奶粉(三元燕山牌全脂甜奶粉)",
+   "name_en": "Sweetened whole milk powder",
    "aliases_zh": [
     "全脂甜奶粉",
     "全脂甜奶粉(三元燕山牌全脂甜奶粉)",
     "全脂甜奶粉（三元燕山牌全脂甜奶粉）"
    ],
    "aliases_en": [
-    "全脂甜奶粉(三元燕山牌全脂甜奶粉)"
+    "sweetened whole milk powder"
    ],
    "kcal": 500.0,
    "protein_g": 21.0,
@@ -685,14 +685,14 @@
   {
    "id": "cfct-102150x",
    "name_zh": "低脂奶粉(代表值, 高钙高铁)",
-   "name_en": "低脂奶粉(代表值, 高钙高铁)",
+   "name_en": "Low-fat milk powder",
    "aliases_zh": [
     "低脂奶粉",
     "低脂奶粉(代表值, 高钙高铁)",
     "低脂奶粉（代表值, 高钙高铁）"
    ],
    "aliases_en": [
-    "低脂奶粉(代表值, 高钙高铁)"
+    "low-fat milk powder"
    ],
    "kcal": 425.0,
    "protein_g": 23.7,
@@ -705,14 +705,14 @@
   {
    "id": "cfct-102151",
    "name_zh": "低脂奶粉(高钙高铁, 雀巢)",
-   "name_en": "低脂奶粉(高钙高铁, 雀巢)",
+   "name_en": "Low-fat milk powder",
    "aliases_zh": [
     "低脂奶粉",
     "低脂奶粉(高钙高铁, 雀巢)",
     "低脂奶粉（高钙高铁, 雀巢）"
    ],
    "aliases_en": [
-    "低脂奶粉(高钙高铁, 雀巢)"
+    "low-fat milk powder"
    ],
    "kcal": 413.0,
    "protein_g": 27.0,
@@ -725,14 +725,14 @@
   {
    "id": "cfct-102152",
    "name_zh": "低脂奶粉(高钙高铁, 伊利牌)",
-   "name_en": "低脂奶粉(高钙高铁, 伊利牌)",
+   "name_en": "Low-fat milk powder",
    "aliases_zh": [
     "低脂奶粉",
     "低脂奶粉(高钙高铁, 伊利牌)",
     "低脂奶粉（高钙高铁, 伊利牌）"
    ],
    "aliases_en": [
-    "低脂奶粉(高钙高铁, 伊利牌)"
+    "low-fat milk powder"
    ],
    "kcal": 423.0,
    "protein_g": 27.0,
@@ -745,14 +745,14 @@
   {
    "id": "cfct-102153",
    "name_zh": "低脂奶粉(高钙高铁, 可淇牌)",
-   "name_en": "低脂奶粉(高钙高铁, 可淇牌)",
+   "name_en": "Low-fat milk powder",
    "aliases_zh": [
     "低脂奶粉",
     "低脂奶粉(高钙高铁, 可淇牌)",
     "低脂奶粉（高钙高铁, 可淇牌）"
    ],
    "aliases_en": [
-    "低脂奶粉(高钙高铁, 可淇牌)"
+    "low-fat milk powder"
    ],
    "kcal": 437.0,
    "protein_g": 17.0,
@@ -785,14 +785,14 @@
   {
    "id": "cfct-102211",
    "name_zh": "驴奶粉(花麒牌, 西域龙驴奶粉)",
-   "name_en": "驴奶粉(花麒牌, 西域龙驴奶粉)",
+   "name_en": "Donkey milk powder",
    "aliases_zh": [
     "驴奶粉",
     "驴奶粉(花麒牌, 西域龙驴奶粉)",
     "驴奶粉（花麒牌, 西域龙驴奶粉）"
    ],
    "aliases_en": [
-    "驴奶粉(花麒牌, 西域龙驴奶粉)"
+    "donkey milk powder"
    ],
    "kcal": 442.0,
    "protein_g": 20.1,
@@ -805,14 +805,14 @@
   {
    "id": "cfct-102212",
    "name_zh": "驴奶粉(金驴龙奶)",
-   "name_en": "驴奶粉(金驴龙奶)",
+   "name_en": "Donkey milk powder",
    "aliases_zh": [
     "驴奶粉",
     "驴奶粉(金驴龙奶)",
     "驴奶粉（金驴龙奶）"
    ],
    "aliases_en": [
-    "驴奶粉(金驴龙奶)"
+    "donkey milk powder"
    ],
    "kcal": 416.0,
    "protein_g": 14.8,
@@ -825,14 +825,14 @@
   {
    "id": "cfct-102213",
    "name_zh": "驴奶粉(源西域牌, 冻干特质)",
-   "name_en": "驴奶粉(源西域牌, 冻干特质)",
+   "name_en": "Donkey milk powder",
    "aliases_zh": [
     "驴奶粉",
     "驴奶粉(源西域牌, 冻干特质)",
     "驴奶粉（源西域牌, 冻干特质）"
    ],
    "aliases_en": [
-    "驴奶粉(源西域牌, 冻干特质)"
+    "donkey milk powder"
    ],
    "kcal": 428.0,
    "protein_g": 19.3,
@@ -845,14 +845,14 @@
   {
    "id": "cfct-102221",
    "name_zh": "驼奶粉(花麒牌, 西域龙驼奶粉)",
-   "name_en": "驼奶粉(花麒牌, 西域龙驼奶粉)",
+   "name_en": "Camel milk powder",
    "aliases_zh": [
     "驼奶粉",
     "驼奶粉(花麒牌, 西域龙驼奶粉)",
     "驼奶粉（花麒牌, 西域龙驼奶粉）"
    ],
    "aliases_en": [
-    "驼奶粉(花麒牌, 西域龙驼奶粉)"
+    "camel milk powder"
    ],
    "kcal": 528.0,
    "protein_g": 20.2,
@@ -865,14 +865,14 @@
   {
    "id": "cfct-102222",
    "name_zh": "驼奶粉(天山牧歌牌)",
-   "name_en": "驼奶粉(天山牧歌牌)",
+   "name_en": "Camel milk powder",
    "aliases_zh": [
     "驼奶粉",
     "驼奶粉(天山牧歌牌)",
     "驼奶粉（天山牧歌牌）"
    ],
    "aliases_en": [
-    "驼奶粉(天山牧歌牌)"
+    "camel milk powder"
    ],
    "kcal": 513.0,
    "protein_g": 16.7,
@@ -885,14 +885,14 @@
   {
    "id": "cfct-102223",
    "name_zh": "驼奶粉(旺源牌, 全脂驼乳粉)",
-   "name_en": "驼奶粉(旺源牌, 全脂驼乳粉)",
+   "name_en": "Camel milk powder",
    "aliases_zh": [
     "驼奶粉",
     "驼奶粉(旺源牌, 全脂驼乳粉)",
     "驼奶粉（旺源牌, 全脂驼乳粉）"
    ],
    "aliases_en": [
-    "驼奶粉(旺源牌, 全脂驼乳粉)"
+    "camel milk powder"
    ],
    "kcal": 545.0,
    "protein_g": 21.3,
@@ -905,14 +905,14 @@
   {
    "id": "cfct-102301x",
    "name_zh": "儿童配方奶粉(代表值)",
-   "name_en": "儿童配方奶粉(代表值)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(代表值)",
     "儿童配方奶粉（代表值）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(代表值)"
+    "children formula milk powder"
    ],
    "kcal": 454.0,
    "protein_g": 19.0,
@@ -925,14 +925,14 @@
   {
    "id": "cfct-102302",
    "name_zh": "儿童配方奶粉(安儿健A+, 美赞臣)",
-   "name_en": "儿童配方奶粉(安儿健A+, 美赞臣)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(安儿健A+, 美赞臣)",
     "儿童配方奶粉（安儿健A+, 美赞臣）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(安儿健a+, 美赞臣)"
+    "children formula milk powder"
    ],
    "kcal": 428.0,
    "protein_g": 17.9,
@@ -945,14 +945,14 @@
   {
    "id": "cfct-102303",
    "name_zh": "儿童配方奶粉(适体健, 美赞臣)",
-   "name_en": "儿童配方奶粉(适体健, 美赞臣)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(适体健, 美赞臣)",
     "儿童配方奶粉（适体健, 美赞臣）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(适体健, 美赞臣)"
+    "children formula milk powder"
    ],
    "kcal": 417.0,
    "protein_g": 16.0,
@@ -965,14 +965,14 @@
   {
    "id": "cfct-102304",
    "name_zh": "儿童配方奶粉(惠氏)",
-   "name_en": "儿童配方奶粉(惠氏)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(惠氏)",
     "儿童配方奶粉（惠氏）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(惠氏)"
+    "children formula milk powder"
    ],
    "kcal": 451.0,
    "protein_g": 17.0,
@@ -985,14 +985,14 @@
   {
    "id": "cfct-102305",
    "name_zh": "儿童配方奶粉(可淇牌)",
-   "name_en": "儿童配方奶粉(可淇牌)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(可淇牌)",
     "儿童配方奶粉（可淇牌）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(可淇牌)"
+    "children formula milk powder"
    ],
    "kcal": 457.0,
    "protein_g": 17.0,
@@ -1005,14 +1005,14 @@
   {
    "id": "cfct-102306",
    "name_zh": "儿童配方奶粉(完达山牌)",
-   "name_en": "儿童配方奶粉(完达山牌)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(完达山牌)",
     "儿童配方奶粉（完达山牌）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(完达山牌)"
+    "children formula milk powder"
    ],
    "kcal": 458.0,
    "protein_g": 17.0,
@@ -1025,14 +1025,14 @@
   {
    "id": "cfct-102307",
    "name_zh": "儿童配方奶粉(贝因美特选幼童配方奶粉4阶段)",
-   "name_en": "儿童配方奶粉(贝因美特选幼童配方奶粉4阶段)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(贝因美特选幼童配方奶粉4阶段)",
     "儿童配方奶粉（贝因美特选幼童配方奶粉4阶段）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(贝因美特选幼童配方奶粉4阶段)"
+    "children formula milk powder"
    ],
    "kcal": 473.0,
    "protein_g": 18.0,
@@ -1045,14 +1045,14 @@
   {
    "id": "cfct-102308",
    "name_zh": "儿童配方奶粉(多美滋优阶儿童配方奶粉)",
-   "name_en": "儿童配方奶粉(多美滋优阶儿童配方奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(多美滋优阶儿童配方奶粉)",
     "儿童配方奶粉（多美滋优阶儿童配方奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(多美滋优阶儿童配方奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 406.0,
    "protein_g": 19.6,
@@ -1065,14 +1065,14 @@
   {
    "id": "cfct-102309",
    "name_zh": "儿童配方奶粉(惠氏金装学儿乐学龄前儿童配方奶粉)",
-   "name_en": "儿童配方奶粉(惠氏金装学儿乐学龄前儿童配方奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(惠氏金装学儿乐学龄前儿童配方奶粉)",
     "儿童配方奶粉（惠氏金装学儿乐学龄前儿童配方奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(惠氏金装学儿乐学龄前儿童配方奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 442.0,
    "protein_g": 17.0,
@@ -1085,14 +1085,14 @@
   {
    "id": "cfct-102310",
    "name_zh": "儿童配方奶粉(美素佳儿GOLD金装儿童配方奶粉)",
-   "name_en": "儿童配方奶粉(美素佳儿GOLD金装儿童配方奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(美素佳儿GOLD金装儿童配方奶粉)",
     "儿童配方奶粉（美素佳儿GOLD金装儿童配方奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(美素佳儿gold金装儿童配方奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 452.0,
    "protein_g": 25.8,
@@ -1105,14 +1105,14 @@
   {
    "id": "cfct-102311",
    "name_zh": "儿童配方奶粉(美赞臣安儿健儿童配方奶粉)",
-   "name_en": "儿童配方奶粉(美赞臣安儿健儿童配方奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(美赞臣安儿健儿童配方奶粉)",
     "儿童配方奶粉（美赞臣安儿健儿童配方奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(美赞臣安儿健儿童配方奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 434.0,
    "protein_g": 20.0,
@@ -1125,14 +1125,14 @@
   {
    "id": "cfct-102312",
    "name_zh": "儿童配方奶粉(明治珍爱童儿童配方奶粉)",
-   "name_en": "儿童配方奶粉(明治珍爱童儿童配方奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(明治珍爱童儿童配方奶粉)",
     "儿童配方奶粉（明治珍爱童儿童配方奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(明治珍爱童儿童配方奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 465.0,
    "protein_g": 20.0,
@@ -1145,14 +1145,14 @@
   {
    "id": "cfct-102313",
    "name_zh": "儿童配方奶粉(欧世蒙牛金装佳智学龄前儿童特殊配方奶粉4阶段)",
-   "name_en": "儿童配方奶粉(欧世蒙牛金装佳智学龄前儿童特殊配方奶粉4阶段)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(欧世蒙牛金装佳智学龄前儿童特殊配方奶粉4阶段)",
     "儿童配方奶粉（欧世蒙牛金装佳智学龄前儿童特殊配方奶粉4阶段）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(欧世蒙牛金装佳智学龄前儿童特殊配方奶粉4阶段)"
+    "children formula milk powder"
    ],
    "kcal": 470.0,
    "protein_g": 17.9,
@@ -1165,14 +1165,14 @@
   {
    "id": "cfct-102314",
    "name_zh": "儿童配方奶粉(雀巢能恩全进口奶源儿童配方奶粉4)",
-   "name_en": "儿童配方奶粉(雀巢能恩全进口奶源儿童配方奶粉4)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(雀巢能恩全进口奶源儿童配方奶粉4)",
     "儿童配方奶粉（雀巢能恩全进口奶源儿童配方奶粉4）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(雀巢能恩全进口奶源儿童配方奶粉4)"
+    "children formula milk powder"
    ],
    "kcal": 455.0,
    "protein_g": 22.0,
@@ -1185,14 +1185,14 @@
   {
    "id": "cfct-102315",
    "name_zh": "儿童配方奶粉(三元爱益儿童成长配方奶粉)",
-   "name_en": "儿童配方奶粉(三元爱益儿童成长配方奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(三元爱益儿童成长配方奶粉)",
     "儿童配方奶粉（三元爱益儿童成长配方奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(三元爱益儿童成长配方奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 500.0,
    "protein_g": 20.0,
@@ -1205,14 +1205,14 @@
   {
    "id": "cfct-102316",
    "name_zh": "儿童配方奶粉(完达山4段儿童奶粉)",
-   "name_en": "儿童配方奶粉(完达山4段儿童奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(完达山4段儿童奶粉)",
     "儿童配方奶粉（完达山4段儿童奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(完达山4段儿童奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 462.0,
    "protein_g": 17.1,
@@ -1225,14 +1225,14 @@
   {
    "id": "cfct-102317",
    "name_zh": "儿童配方奶粉(完达山金装元乳4段儿童奶粉)",
-   "name_en": "儿童配方奶粉(完达山金装元乳4段儿童奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(完达山金装元乳4段儿童奶粉)",
     "儿童配方奶粉（完达山金装元乳4段儿童奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(完达山金装元乳4段儿童奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 466.0,
    "protein_g": 17.5,
@@ -1245,14 +1245,14 @@
   {
    "id": "cfct-102318",
    "name_zh": "儿童配方奶粉(雪花学生特殊配方奶粉)",
-   "name_en": "儿童配方奶粉(雪花学生特殊配方奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(雪花学生特殊配方奶粉)",
     "儿童配方奶粉（雪花学生特殊配方奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(雪花学生特殊配方奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 461.0,
    "protein_g": 17.5,
@@ -1265,14 +1265,14 @@
   {
    "id": "cfct-102319",
    "name_zh": "儿童配方奶粉(雪花学生营养奶粉)",
-   "name_en": "儿童配方奶粉(雪花学生营养奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(雪花学生营养奶粉)",
     "儿童配方奶粉（雪花学生营养奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(雪花学生营养奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 463.0,
    "protein_g": 17.8,
@@ -1285,14 +1285,14 @@
   {
    "id": "cfct-102320",
    "name_zh": "儿童配方奶粉(雅培金装喜康宝儿童配方奶粉)",
-   "name_en": "儿童配方奶粉(雅培金装喜康宝儿童配方奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(雅培金装喜康宝儿童配方奶粉)",
     "儿童配方奶粉（雅培金装喜康宝儿童配方奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(雅培金装喜康宝儿童配方奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 444.0,
    "protein_g": 17.5,
@@ -1305,14 +1305,14 @@
   {
    "id": "cfct-102321",
    "name_zh": "儿童配方奶粉(雅士利儿童奶粉)",
-   "name_en": "儿童配方奶粉(雅士利儿童奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(雅士利儿童奶粉)",
     "儿童配方奶粉（雅士利儿童奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(雅士利儿童奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 460.0,
    "protein_g": 21.6,
@@ -1325,14 +1325,14 @@
   {
    "id": "cfct-102322",
    "name_zh": "儿童配方奶粉(伊利儿童配方奶粉)",
-   "name_en": "儿童配方奶粉(伊利儿童配方奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(伊利儿童配方奶粉)",
     "儿童配方奶粉（伊利儿童配方奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(伊利儿童配方奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 465.0,
    "protein_g": 21.0,
@@ -1345,14 +1345,14 @@
   {
    "id": "cfct-102323",
    "name_zh": "儿童配方奶粉(伊利金领冠儿童配方奶粉)",
-   "name_en": "儿童配方奶粉(伊利金领冠儿童配方奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(伊利金领冠儿童配方奶粉)",
     "儿童配方奶粉（伊利金领冠儿童配方奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(伊利金领冠儿童配方奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 467.0,
    "protein_g": 21.5,
@@ -1365,14 +1365,14 @@
   {
    "id": "cfct-102324",
    "name_zh": "儿童配方奶粉(伊利金装儿童配方奶粉)",
-   "name_en": "儿童配方奶粉(伊利金装儿童配方奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(伊利金装儿童配方奶粉)",
     "儿童配方奶粉（伊利金装儿童配方奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(伊利金装儿童配方奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 467.0,
    "protein_g": 21.5,
@@ -1385,14 +1385,14 @@
   {
    "id": "cfct-102325",
    "name_zh": "儿童配方奶粉(伊利学生营养奶粉)",
-   "name_en": "儿童配方奶粉(伊利学生营养奶粉)",
+   "name_en": "Children formula milk powder",
    "aliases_zh": [
     "儿童配方奶粉",
     "儿童配方奶粉(伊利学生营养奶粉)",
     "儿童配方奶粉（伊利学生营养奶粉）"
    ],
    "aliases_en": [
-    "儿童配方奶粉(伊利学生营养奶粉)"
+    "children formula milk powder"
    ],
    "kcal": 464.0,
    "protein_g": 18.0,
@@ -1405,14 +1405,14 @@
   {
    "id": "cfct-102501x",
    "name_zh": "孕产妇配方奶粉(代表值)",
-   "name_en": "孕产妇配方奶粉(代表值)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(代表值)",
     "孕产妇配方奶粉（代表值）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(代表值)"
+    "maternity formula milk powder"
    ],
    "kcal": 413.0,
    "protein_g": 22.0,
@@ -1425,14 +1425,14 @@
   {
    "id": "cfct-102502",
    "name_zh": "孕产妇配方奶粉(惠氏)",
-   "name_en": "孕产妇配方奶粉(惠氏)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(惠氏)",
     "孕产妇配方奶粉（惠氏）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(惠氏)"
+    "maternity formula milk powder"
    ],
    "kcal": 405.0,
    "protein_g": 16.0,
@@ -1445,14 +1445,14 @@
   {
    "id": "cfct-102503",
    "name_zh": "孕产妇配方奶粉(美赞臣)",
-   "name_en": "孕产妇配方奶粉(美赞臣)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(美赞臣)",
     "孕产妇配方奶粉（美赞臣）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(美赞臣)"
+    "maternity formula milk powder"
    ],
    "kcal": 378.0,
    "protein_g": 23.3,
@@ -1465,14 +1465,14 @@
   {
    "id": "cfct-102504",
    "name_zh": "孕产妇配方奶粉(贝因美冠军宝贝孕妈咪配方奶粉)",
-   "name_en": "孕产妇配方奶粉(贝因美冠军宝贝孕妈咪配方奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(贝因美冠军宝贝孕妈咪配方奶粉)",
     "孕产妇配方奶粉（贝因美冠军宝贝孕妈咪配方奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(贝因美冠军宝贝孕妈咪配方奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 425.0,
    "protein_g": 22.5,
@@ -1485,14 +1485,14 @@
   {
    "id": "cfct-102505",
    "name_zh": "孕产妇配方奶粉(贝因美金装爱+孕妈咪配方奶粉)",
-   "name_en": "孕产妇配方奶粉(贝因美金装爱+孕妈咪配方奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(贝因美金装爱+孕妈咪配方奶粉)",
     "孕产妇配方奶粉（贝因美金装爱+孕妈咪配方奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(贝因美金装爱+孕妈咪配方奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 434.0,
    "protein_g": 22.5,
@@ -1505,14 +1505,14 @@
   {
    "id": "cfct-102506",
    "name_zh": "孕产妇配方奶粉(贝因美金装爱+准妈咪配方奶粉)",
-   "name_en": "孕产妇配方奶粉(贝因美金装爱+准妈咪配方奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(贝因美金装爱+准妈咪配方奶粉)",
     "孕产妇配方奶粉（贝因美金装爱+准妈咪配方奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(贝因美金装爱+准妈咪配方奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 426.0,
    "protein_g": 22.5,
@@ -1525,14 +1525,14 @@
   {
    "id": "cfct-102507",
    "name_zh": "孕产妇配方奶粉(多美滋优阶妈妈孕产妇配方奶粉)",
-   "name_en": "孕产妇配方奶粉(多美滋优阶妈妈孕产妇配方奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(多美滋优阶妈妈孕产妇配方奶粉)",
     "孕产妇配方奶粉（多美滋优阶妈妈孕产妇配方奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(多美滋优阶妈妈孕产妇配方奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 360.0,
    "protein_g": 20.5,
@@ -1545,14 +1545,14 @@
   {
    "id": "cfct-102508",
    "name_zh": "孕产妇配方奶粉(飞帆孕产妇配方乳粉)",
-   "name_en": "孕产妇配方奶粉(飞帆孕产妇配方乳粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(飞帆孕产妇配方乳粉)",
     "孕产妇配方奶粉（飞帆孕产妇配方乳粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(飞帆孕产妇配方乳粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 460.0,
    "protein_g": 18.0,
@@ -1565,14 +1565,14 @@
   {
    "id": "cfct-102509",
    "name_zh": "孕产妇配方奶粉(合生元金装妈妈配方奶粉)",
-   "name_en": "孕产妇配方奶粉(合生元金装妈妈配方奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(合生元金装妈妈配方奶粉)",
     "孕产妇配方奶粉（合生元金装妈妈配方奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(合生元金装妈妈配方奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 380.0,
    "protein_g": 27.0,
@@ -1585,14 +1585,14 @@
   {
    "id": "cfct-102510",
    "name_zh": "孕产妇配方奶粉(亨氏超金妈妈孕产妇配方奶粉)",
-   "name_en": "孕产妇配方奶粉(亨氏超金妈妈孕产妇配方奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(亨氏超金妈妈孕产妇配方奶粉)",
     "孕产妇配方奶粉（亨氏超金妈妈孕产妇配方奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(亨氏超金妈妈孕产妇配方奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 398.0,
    "protein_g": 26.0,
@@ -1605,14 +1605,14 @@
   {
    "id": "cfct-102511",
    "name_zh": "孕产妇配方奶粉(惠氏爱儿乐妈妈孕产妇配方奶粉)",
-   "name_en": "孕产妇配方奶粉(惠氏爱儿乐妈妈孕产妇配方奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(惠氏爱儿乐妈妈孕产妇配方奶粉)",
     "孕产妇配方奶粉（惠氏爱儿乐妈妈孕产妇配方奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(惠氏爱儿乐妈妈孕产妇配方奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 406.0,
    "protein_g": 19.0,
@@ -1625,14 +1625,14 @@
   {
    "id": "cfct-102512",
    "name_zh": "孕产妇配方奶粉(美素佳儿GOLD金装妈妈孕产妇配方奶粉)",
-   "name_en": "孕产妇配方奶粉(美素佳儿GOLD金装妈妈孕产妇配方奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(美素佳儿GOLD金装妈妈孕产妇配方奶粉)",
     "孕产妇配方奶粉（美素佳儿GOLD金装妈妈孕产妇配方奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(美素佳儿gold金装妈妈孕产妇配方奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 454.0,
    "protein_g": 27.0,
@@ -1645,14 +1645,14 @@
   {
    "id": "cfct-102513",
    "name_zh": "孕产妇配方奶粉(美赞臣安婴妈妈孕产妇配方奶粉)",
-   "name_en": "孕产妇配方奶粉(美赞臣安婴妈妈孕产妇配方奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(美赞臣安婴妈妈孕产妇配方奶粉)",
     "孕产妇配方奶粉（美赞臣安婴妈妈孕产妇配方奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(美赞臣安婴妈妈孕产妇配方奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 383.0,
    "protein_g": 24.0,
@@ -1665,14 +1665,14 @@
   {
    "id": "cfct-102514",
    "name_zh": "孕产妇配方奶粉(雀巢妈妈孕产妇奶粉)",
-   "name_en": "孕产妇配方奶粉(雀巢妈妈孕产妇奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(雀巢妈妈孕产妇奶粉)",
     "孕产妇配方奶粉（雀巢妈妈孕产妇奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(雀巢妈妈孕产妇奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 407.0,
    "protein_g": 20.0,
@@ -1685,14 +1685,14 @@
   {
    "id": "cfct-102515",
    "name_zh": "孕产妇配方奶粉(雀巢妈妈孕产妇营养配方奶粉)",
-   "name_en": "孕产妇配方奶粉(雀巢妈妈孕产妇营养配方奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(雀巢妈妈孕产妇营养配方奶粉)",
     "孕产妇配方奶粉（雀巢妈妈孕产妇营养配方奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(雀巢妈妈孕产妇营养配方奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 402.0,
    "protein_g": 20.0,
@@ -1705,14 +1705,14 @@
   {
    "id": "cfct-102516",
    "name_zh": "孕产妇配方奶粉(三元爱力优妈妈配方奶粉)",
-   "name_en": "孕产妇配方奶粉(三元爱力优妈妈配方奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(三元爱力优妈妈配方奶粉)",
     "孕产妇配方奶粉（三元爱力优妈妈配方奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(三元爱力优妈妈配方奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 438.0,
    "protein_g": 22.5,
@@ -1725,14 +1725,14 @@
   {
    "id": "cfct-102517",
    "name_zh": "孕产妇配方奶粉(圣元优博妈咪孕产妇配方奶粉)",
-   "name_en": "孕产妇配方奶粉(圣元优博妈咪孕产妇配方奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(圣元优博妈咪孕产妇配方奶粉)",
     "孕产妇配方奶粉（圣元优博妈咪孕产妇配方奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(圣元优博妈咪孕产妇配方奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 440.0,
    "protein_g": 22.0,
@@ -1745,14 +1745,14 @@
   {
    "id": "cfct-102518",
    "name_zh": "孕产妇配方奶粉(完达山妈咪配方奶粉)",
-   "name_en": "孕产妇配方奶粉(完达山妈咪配方奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(完达山妈咪配方奶粉)",
     "孕产妇配方奶粉（完达山妈咪配方奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(完达山妈咪配方奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 455.0,
    "protein_g": 22.5,
@@ -1765,14 +1765,14 @@
   {
    "id": "cfct-102519",
    "name_zh": "孕产妇配方奶粉(雅培妈妈喜康素金装孕产妇配方奶粉)",
-   "name_en": "孕产妇配方奶粉(雅培妈妈喜康素金装孕产妇配方奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(雅培妈妈喜康素金装孕产妇配方奶粉)",
     "孕产妇配方奶粉（雅培妈妈喜康素金装孕产妇配方奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(雅培妈妈喜康素金装孕产妇配方奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 367.0,
    "protein_g": 23.1,
@@ -1785,14 +1785,14 @@
   {
    "id": "cfct-102520",
    "name_zh": "孕产妇配方奶粉(雅士利能慧金装孕产妇奶粉)",
-   "name_en": "孕产妇配方奶粉(雅士利能慧金装孕产妇奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(雅士利能慧金装孕产妇奶粉)",
     "孕产妇配方奶粉（雅士利能慧金装孕产妇奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(雅士利能慧金装孕产妇奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 425.0,
    "protein_g": 20.6,
@@ -1805,14 +1805,14 @@
   {
    "id": "cfct-102521",
    "name_zh": "孕产妇配方奶粉(伊利金领冠妈妈配方奶粉)",
-   "name_en": "孕产妇配方奶粉(伊利金领冠妈妈配方奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(伊利金领冠妈妈配方奶粉)",
     "孕产妇配方奶粉（伊利金领冠妈妈配方奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(伊利金领冠妈妈配方奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 456.0,
    "protein_g": 22.0,
@@ -1825,14 +1825,14 @@
   {
    "id": "cfct-102522",
    "name_zh": "孕产妇配方奶粉(伊利孕妇奶粉)",
-   "name_en": "孕产妇配方奶粉(伊利孕妇奶粉)",
+   "name_en": "Maternity formula milk powder",
    "aliases_zh": [
     "孕产妇配方奶粉",
     "孕产妇配方奶粉(伊利孕妇奶粉)",
     "孕产妇配方奶粉（伊利孕妇奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方奶粉(伊利孕妇奶粉)"
+    "maternity formula milk powder"
    ],
    "kcal": 441.0,
    "protein_g": 22.0,
@@ -1845,14 +1845,14 @@
   {
    "id": "cfct-102523",
    "name_zh": "孕产妇配方羊奶粉(美可高特孕产妇配方羊奶粉)",
-   "name_en": "孕产妇配方羊奶粉(美可高特孕产妇配方羊奶粉)",
+   "name_en": "Maternity goat milk formula",
    "aliases_zh": [
     "孕产妇配方羊奶粉",
     "孕产妇配方羊奶粉(美可高特孕产妇配方羊奶粉)",
     "孕产妇配方羊奶粉（美可高特孕产妇配方羊奶粉）"
    ],
    "aliases_en": [
-    "孕产妇配方羊奶粉(美可高特孕产妇配方羊奶粉)"
+    "maternity goat milk formula"
    ],
    "kcal": 447.0,
    "protein_g": 22.0,
@@ -1865,14 +1865,14 @@
   {
    "id": "cfct-102801x",
    "name_zh": "中老年配方奶粉(代表值)",
-   "name_en": "中老年配方奶粉(代表值)",
+   "name_en": "Senior formula milk powder",
    "aliases_zh": [
     "中老年配方奶粉",
     "中老年配方奶粉(代表值)",
     "中老年配方奶粉（代表值）"
    ],
    "aliases_en": [
-    "中老年配方奶粉(代表值)"
+    "senior formula milk powder"
    ],
    "kcal": 424.0,
    "protein_g": 21.8,
@@ -1885,14 +1885,14 @@
   {
    "id": "cfct-102802",
    "name_zh": "中老年配方奶粉(可淇牌)",
-   "name_en": "中老年配方奶粉(可淇牌)",
+   "name_en": "Senior formula milk powder",
    "aliases_zh": [
     "中老年配方奶粉",
     "中老年配方奶粉(可淇牌)",
     "中老年配方奶粉（可淇牌）"
    ],
    "aliases_en": [
-    "中老年配方奶粉(可淇牌)"
+    "senior formula milk powder"
    ],
    "kcal": 432.0,
    "protein_g": 18.0,
@@ -1905,14 +1905,14 @@
   {
    "id": "cfct-102803",
    "name_zh": "中老年配方奶粉(雀巢)",
-   "name_en": "中老年配方奶粉(雀巢)",
+   "name_en": "Senior formula milk powder",
    "aliases_zh": [
     "中老年配方奶粉",
     "中老年配方奶粉(雀巢)",
     "中老年配方奶粉（雀巢）"
    ],
    "aliases_en": [
-    "中老年配方奶粉(雀巢)"
+    "senior formula milk powder"
    ],
    "kcal": 429.0,
    "protein_g": 30.0,
@@ -1925,14 +1925,14 @@
   {
    "id": "cfct-102804",
    "name_zh": "中老年配方奶粉(森永牌)",
-   "name_en": "中老年配方奶粉(森永牌)",
+   "name_en": "Senior formula milk powder",
    "aliases_zh": [
     "中老年配方奶粉",
     "中老年配方奶粉(森永牌)",
     "中老年配方奶粉（森永牌）"
    ],
    "aliases_en": [
-    "中老年配方奶粉(森永牌)"
+    "senior formula milk powder"
    ],
    "kcal": 418.0,
    "protein_g": 22.0,
@@ -1945,14 +1945,14 @@
   {
    "id": "cfct-102805",
    "name_zh": "中老年配方奶粉(三元爱益中老年配方奶粉)",
-   "name_en": "中老年配方奶粉(三元爱益中老年配方奶粉)",
+   "name_en": "Senior formula milk powder",
    "aliases_zh": [
     "中老年配方奶粉",
     "中老年配方奶粉(三元爱益中老年配方奶粉)",
     "中老年配方奶粉（三元爱益中老年配方奶粉）"
    ],
    "aliases_en": [
-    "中老年配方奶粉(三元爱益中老年配方奶粉)"
+    "senior formula milk powder"
    ],
    "kcal": 448.0,
    "protein_g": 20.0,
@@ -1965,14 +1965,14 @@
   {
    "id": "cfct-102806",
    "name_zh": "中老年配方奶粉(雪花中老年特殊配方奶粉)",
-   "name_en": "中老年配方奶粉(雪花中老年特殊配方奶粉)",
+   "name_en": "Senior formula milk powder",
    "aliases_zh": [
     "中老年配方奶粉",
     "中老年配方奶粉(雪花中老年特殊配方奶粉)",
     "中老年配方奶粉（雪花中老年特殊配方奶粉）"
    ],
    "aliases_en": [
-    "中老年配方奶粉(雪花中老年特殊配方奶粉)"
+    "senior formula milk powder"
    ],
    "kcal": 432.0,
    "protein_g": 20.0,
@@ -1985,14 +1985,14 @@
   {
    "id": "cfct-102807",
    "name_zh": "中老年营养奶粉(雪花中老年营养奶粉)",
-   "name_en": "中老年营养奶粉(雪花中老年营养奶粉)",
+   "name_en": "Senior nutritional milk powder",
    "aliases_zh": [
     "中老年营养奶粉",
     "中老年营养奶粉(雪花中老年营养奶粉)",
     "中老年营养奶粉（雪花中老年营养奶粉）"
    ],
    "aliases_en": [
-    "中老年营养奶粉(雪花中老年营养奶粉)"
+    "senior nutritional milk powder"
    ],
    "kcal": 440.0,
    "protein_g": 21.0,
@@ -2217,14 +2217,14 @@
   {
    "id": "cfct-104012",
    "name_zh": "奶酪(光明牌)",
-   "name_en": "奶酪(光明牌)",
+   "name_en": "Cheese",
    "aliases_zh": [
     "奶酪",
     "奶酪(光明牌)",
     "奶酪（光明牌）"
    ],
    "aliases_en": [
-    "奶酪(光明牌)"
+    "cheese"
    ],
    "kcal": 348.0,
    "protein_g": 16.5,
@@ -2237,14 +2237,14 @@
   {
    "id": "cfct-104013",
    "name_zh": "奶酪(骑士牌)",
-   "name_en": "奶酪(骑士牌)",
+   "name_en": "Cheese",
    "aliases_zh": [
     "奶酪",
     "奶酪(骑士牌)",
     "奶酪（骑士牌）"
    ],
    "aliases_en": [
-    "奶酪(骑士牌)"
+    "cheese"
    ],
    "kcal": 386.0,
    "protein_g": 23.0,
@@ -2257,12 +2257,12 @@
   {
    "id": "cfct-104014",
    "name_zh": "低脂奶酪",
-   "name_en": "低脂奶酪",
+   "name_en": "Low-fat cheese",
    "aliases_zh": [
     "低脂奶酪"
    ],
    "aliases_en": [
-    "低脂奶酪"
+    "low-fat cheese"
    ],
    "kcal": 241.0,
    "protein_g": 21.6,
@@ -2275,12 +2275,12 @@
   {
    "id": "cfct-104015",
    "name_zh": "硬质干酪",
-   "name_en": "硬质干酪",
+   "name_en": "Hard cheese",
    "aliases_zh": [
     "硬质干酪"
    ],
    "aliases_en": [
-    "硬质干酪"
+    "hard cheese"
    ],
    "kcal": 411.0,
    "protein_g": 24.9,
@@ -2293,14 +2293,14 @@
   {
    "id": "cfct-104016",
    "name_zh": "奶酪(爱氏晨曦牌, 儿童奶酪条)",
-   "name_en": "奶酪(爱氏晨曦牌, 儿童奶酪条)",
+   "name_en": "Cheese",
    "aliases_zh": [
     "奶酪",
     "奶酪(爱氏晨曦牌, 儿童奶酪条)",
     "奶酪（爱氏晨曦牌, 儿童奶酪条）"
    ],
    "aliases_en": [
-    "奶酪(爱氏晨曦牌, 儿童奶酪条)"
+    "cheese"
    ],
    "kcal": 295.0,
    "protein_g": 23.9,
@@ -2313,14 +2313,14 @@
   {
    "id": "cfct-104017",
    "name_zh": "奶酪(百嘉儿童干酪条)",
-   "name_en": "奶酪(百嘉儿童干酪条)",
+   "name_en": "Cheese",
    "aliases_zh": [
     "奶酪",
     "奶酪(百嘉儿童干酪条)",
     "奶酪（百嘉儿童干酪条）"
    ],
    "aliases_en": [
-    "奶酪(百嘉儿童干酪条)"
+    "cheese"
    ],
    "kcal": 272.0,
    "protein_g": 25.0,
@@ -2333,14 +2333,14 @@
   {
    "id": "cfct-104018",
    "name_zh": "奶酪(多美鲜牌, 欧洲奶油奶酪)",
-   "name_en": "奶酪(多美鲜牌, 欧洲奶油奶酪)",
+   "name_en": "Cheese",
    "aliases_zh": [
     "奶酪",
     "奶酪(多美鲜牌, 欧洲奶油奶酪)",
     "奶酪（多美鲜牌, 欧洲奶油奶酪）"
    ],
    "aliases_en": [
-    "奶酪(多美鲜牌, 欧洲奶油奶酪)"
+    "cheese"
    ],
    "kcal": 356.0,
    "protein_g": 13.1,
@@ -2353,14 +2353,14 @@
   {
    "id": "cfct-104019",
    "name_zh": "奶酪(天润牌, 无限欢酪)",
-   "name_en": "奶酪(天润牌, 无限欢酪)",
+   "name_en": "Cheese",
    "aliases_zh": [
     "奶酪",
     "奶酪(天润牌, 无限欢酪)",
     "奶酪（天润牌, 无限欢酪）"
    ],
    "aliases_en": [
-    "奶酪(天润牌, 无限欢酪)"
+    "cheese"
    ],
    "kcal": 515.0,
    "protein_g": 3.5,
@@ -2373,14 +2373,14 @@
   {
    "id": "cfct-104020",
    "name_zh": "酸奶疙瘩(干, 农户家)",
-   "name_en": "酸奶疙瘩(干, 农户家)",
+   "name_en": "Dried yogurt curd",
    "aliases_zh": [
     "酸奶疙瘩",
     "酸奶疙瘩(干, 农户家)",
     "酸奶疙瘩（干, 农户家）"
    ],
    "aliases_en": [
-    "酸奶疙瘩(干, 农户家)"
+    "dried yogurt curd"
    ],
    "kcal": 446.0,
    "protein_g": 48.8,
@@ -2393,14 +2393,14 @@
   {
    "id": "cfct-104021",
    "name_zh": "酸奶疙瘩(干, 市售)",
-   "name_en": "酸奶疙瘩(干, 市售)",
+   "name_en": "Dried yogurt curd",
    "aliases_zh": [
     "酸奶疙瘩",
     "酸奶疙瘩(干, 市售)",
     "酸奶疙瘩（干, 市售）"
    ],
    "aliases_en": [
-    "酸奶疙瘩(干, 市售)"
+    "dried yogurt curd"
    ],
    "kcal": 451.0,
    "protein_g": 31.1,
@@ -2413,14 +2413,14 @@
   {
    "id": "cfct-104022",
    "name_zh": "酸奶疙瘩(干, 市售, 加盐)",
-   "name_en": "酸奶疙瘩(干, 市售, 加盐)",
+   "name_en": "Dried yogurt curd",
    "aliases_zh": [
     "酸奶疙瘩",
     "酸奶疙瘩(干, 市售, 加盐)",
     "酸奶疙瘩（干, 市售, 加盐）"
    ],
    "aliases_en": [
-    "酸奶疙瘩(干, 市售, 加盐)"
+    "dried yogurt curd"
    ],
    "kcal": 383.0,
    "protein_g": 51.6,
@@ -2433,14 +2433,14 @@
   {
    "id": "cfct-104023",
    "name_zh": "酸奶疙瘩(瑞缘牌, 中脂特硬质干酪)",
-   "name_en": "酸奶疙瘩(瑞缘牌, 中脂特硬质干酪)",
+   "name_en": "Dried yogurt curd",
    "aliases_zh": [
     "酸奶疙瘩",
     "酸奶疙瘩(瑞缘牌, 中脂特硬质干酪)",
     "酸奶疙瘩（瑞缘牌, 中脂特硬质干酪）"
    ],
    "aliases_en": [
-    "酸奶疙瘩(瑞缘牌, 中脂特硬质干酪)"
+    "dried yogurt curd"
    ],
    "kcal": 456.0,
    "protein_g": 14.4,
@@ -2453,14 +2453,14 @@
   {
    "id": "cfct-104024",
    "name_zh": "酸奶疙瘩(新鲜)",
-   "name_en": "酸奶疙瘩(新鲜)",
+   "name_en": "Dried yogurt curd",
    "aliases_zh": [
     "酸奶疙瘩",
     "酸奶疙瘩(新鲜)",
     "酸奶疙瘩（新鲜）"
    ],
    "aliases_en": [
-    "酸奶疙瘩(新鲜)"
+    "dried yogurt curd"
    ],
    "kcal": 275.0,
    "protein_g": 18.6,
@@ -2533,14 +2533,14 @@
   {
    "id": "cfct-101105",
    "name_zh": "纯牛奶(全脂, 光明牌)",
-   "name_en": "纯牛奶(全脂, 光明牌)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 光明牌)",
     "纯牛奶（全脂, 光明牌）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 光明牌)"
+    "whole milk"
    ],
    "kcal": 61.0,
    "protein_g": 3.1,
@@ -2553,14 +2553,14 @@
   {
    "id": "cfct-101106",
    "name_zh": "纯牛奶(全脂, 乐百氏牌)",
-   "name_en": "纯牛奶(全脂, 乐百氏牌)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 乐百氏牌)",
     "纯牛奶（全脂, 乐百氏牌）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 乐百氏牌)"
+    "whole milk"
    ],
    "kcal": 67.0,
    "protein_g": 3.3,
@@ -2573,14 +2573,14 @@
   {
    "id": "cfct-101107",
    "name_zh": "纯牛奶(全脂, 帕玛拉特牌)",
-   "name_en": "纯牛奶(全脂, 帕玛拉特牌)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 帕玛拉特牌)",
     "纯牛奶（全脂, 帕玛拉特牌）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 帕玛拉特牌)"
+    "whole milk"
    ],
    "kcal": 61.0,
    "protein_g": 3.0,
@@ -2593,14 +2593,14 @@
   {
    "id": "cfct-101108",
    "name_zh": "纯牛奶(全脂, 三元牌)",
-   "name_en": "纯牛奶(全脂, 三元牌)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 三元牌)",
     "纯牛奶（全脂, 三元牌）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 三元牌)"
+    "whole milk"
    ],
    "kcal": 69.0,
    "protein_g": 3.4,
@@ -2613,14 +2613,14 @@
   {
    "id": "cfct-101109",
    "name_zh": "纯牛奶(全脂, 完达山牌)",
-   "name_en": "纯牛奶(全脂, 完达山牌)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 完达山牌)",
     "纯牛奶（全脂, 完达山牌）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 完达山牌)"
+    "whole milk"
    ],
    "kcal": 60.0,
    "protein_g": 2.9,
@@ -2633,14 +2633,14 @@
   {
    "id": "cfct-101110",
    "name_zh": "纯牛奶(全脂, 龙丹牌)",
-   "name_en": "纯牛奶(全脂, 龙丹牌)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 龙丹牌)",
     "纯牛奶（全脂, 龙丹牌）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 龙丹牌)"
+    "whole milk"
    ],
    "kcal": 66.0,
    "protein_g": 2.9,
@@ -2653,14 +2653,14 @@
   {
    "id": "cfct-101111",
    "name_zh": "纯牛奶(全脂, 蒙牛牌)",
-   "name_en": "纯牛奶(全脂, 蒙牛牌)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 蒙牛牌)",
     "纯牛奶（全脂, 蒙牛牌）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 蒙牛牌)"
+    "whole milk"
    ],
    "kcal": 67.0,
    "protein_g": 3.1,
@@ -2673,14 +2673,14 @@
   {
    "id": "cfct-101112",
    "name_zh": "纯牛奶(全脂, 新南洋牌)",
-   "name_en": "纯牛奶(全脂, 新南洋牌)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 新南洋牌)",
     "纯牛奶（全脂, 新南洋牌）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 新南洋牌)"
+    "whole milk"
    ],
    "kcal": 67.0,
    "protein_g": 3.1,
@@ -2693,14 +2693,14 @@
   {
    "id": "cfct-101113",
    "name_zh": "纯牛奶(全脂, 帕玛拉特)",
-   "name_en": "纯牛奶(全脂, 帕玛拉特)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 帕玛拉特)",
     "纯牛奶（全脂, 帕玛拉特）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 帕玛拉特)"
+    "whole milk"
    ],
    "kcal": 61.0,
    "protein_g": 2.9,
@@ -2713,14 +2713,14 @@
   {
    "id": "cfct-101114",
    "name_zh": "纯牛奶(全脂, 伊利牌)",
-   "name_en": "纯牛奶(全脂, 伊利牌)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 伊利牌)",
     "纯牛奶（全脂, 伊利牌）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 伊利牌)"
+    "whole milk"
    ],
    "kcal": 68.0,
    "protein_g": 3.2,
@@ -2733,14 +2733,14 @@
   {
    "id": "cfct-101122",
    "name_zh": "纯牛奶(全脂, 爱尔兰金凯利全脂牛奶)",
-   "name_en": "纯牛奶(全脂, 爱尔兰金凯利全脂牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 爱尔兰金凯利全脂牛奶)",
     "纯牛奶（全脂, 爱尔兰金凯利全脂牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 爱尔兰金凯利全脂牛奶)"
+    "whole milk"
    ],
    "kcal": 62.0,
    "protein_g": 3.2,
@@ -2753,14 +2753,14 @@
   {
    "id": "cfct-101123",
    "name_zh": "纯牛奶(全脂, 澳大利亚澳田纯牛奶)",
-   "name_en": "纯牛奶(全脂, 澳大利亚澳田纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 澳大利亚澳田纯牛奶)",
     "纯牛奶（全脂, 澳大利亚澳田纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 澳大利亚澳田纯牛奶)"
+    "whole milk"
    ],
    "kcal": 62.0,
    "protein_g": 3.6,
@@ -2773,14 +2773,14 @@
   {
    "id": "cfct-101124",
    "name_zh": "纯牛奶(全脂, 比利时纯牧牛奶)",
-   "name_en": "纯牛奶(全脂, 比利时纯牧牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 比利时纯牧牛奶)",
     "纯牛奶（全脂, 比利时纯牧牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 比利时纯牧牛奶)"
+    "whole milk"
    ],
    "kcal": 61.0,
    "protein_g": 3.5,
@@ -2793,14 +2793,14 @@
   {
    "id": "cfct-101125",
    "name_zh": "纯牛奶(全脂, 波兰美波全脂纯牛奶)",
-   "name_en": "纯牛奶(全脂, 波兰美波全脂纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 波兰美波全脂纯牛奶)",
     "纯牛奶（全脂, 波兰美波全脂纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 波兰美波全脂纯牛奶)"
+    "whole milk"
    ],
    "kcal": 75.0,
    "protein_g": 3.2,
@@ -2813,14 +2813,14 @@
   {
    "id": "cfct-101126",
    "name_zh": "纯牛奶(全脂, 丹麦爱氏晨曦有机全脂牛奶)",
-   "name_en": "纯牛奶(全脂, 丹麦爱氏晨曦有机全脂牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 丹麦爱氏晨曦有机全脂牛奶)",
     "纯牛奶（全脂, 丹麦爱氏晨曦有机全脂牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 丹麦爱氏晨曦有机全脂牛奶)"
+    "whole milk"
    ],
    "kcal": 67.0,
    "protein_g": 3.5,
@@ -2833,14 +2833,14 @@
   {
    "id": "cfct-101127",
    "name_zh": "纯牛奶(全脂, 德国爱氏晨曦纯牛奶)",
-   "name_en": "纯牛奶(全脂, 德国爱氏晨曦纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 德国爱氏晨曦纯牛奶)",
     "纯牛奶（全脂, 德国爱氏晨曦纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 德国爱氏晨曦纯牛奶)"
+    "whole milk"
    ],
    "kcal": 68.0,
    "protein_g": 3.4,
@@ -2853,14 +2853,14 @@
   {
    "id": "cfct-101128",
    "name_zh": "纯牛奶(全脂, 德国甘蒂牧场纯牛奶)",
-   "name_en": "纯牛奶(全脂, 德国甘蒂牧场纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 德国甘蒂牧场纯牛奶)",
     "纯牛奶（全脂, 德国甘蒂牧场纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 德国甘蒂牧场纯牛奶)"
+    "whole milk"
    ],
    "kcal": 64.0,
    "protein_g": 3.3,
@@ -2873,14 +2873,14 @@
   {
    "id": "cfct-101129",
    "name_zh": "纯牛奶(全脂, 法国得乐思全脂牛奶)",
-   "name_en": "纯牛奶(全脂, 法国得乐思全脂牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 法国得乐思全脂牛奶)",
     "纯牛奶（全脂, 法国得乐思全脂牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 法国得乐思全脂牛奶)"
+    "whole milk"
    ],
    "kcal": 64.0,
    "protein_g": 3.7,
@@ -2893,14 +2893,14 @@
   {
    "id": "cfct-101130",
    "name_zh": "纯牛奶(全脂, 光明纯牛奶)",
-   "name_en": "纯牛奶(全脂, 光明纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 光明纯牛奶)",
     "纯牛奶（全脂, 光明纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 光明纯牛奶)"
+    "whole milk"
    ],
    "kcal": 60.0,
    "protein_g": 3.4,
@@ -2913,14 +2913,14 @@
   {
    "id": "cfct-101131",
    "name_zh": "纯牛奶(全脂, 光明优+高品质纯牛奶)",
-   "name_en": "纯牛奶(全脂, 光明优+高品质纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 光明优+高品质纯牛奶)",
     "纯牛奶（全脂, 光明优+高品质纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 光明优+高品质纯牛奶)"
+    "whole milk"
    ],
    "kcal": 67.0,
    "protein_g": 3.6,
@@ -2933,14 +2933,14 @@
   {
    "id": "cfct-101132",
    "name_zh": "纯牛奶(全脂, 广泽澳醇纯牛奶)",
-   "name_en": "纯牛奶(全脂, 广泽澳醇纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 广泽澳醇纯牛奶)",
     "纯牛奶（全脂, 广泽澳醇纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 广泽澳醇纯牛奶)"
+    "whole milk"
    ],
    "kcal": 63.0,
    "protein_g": 3.5,
@@ -2953,14 +2953,14 @@
   {
    "id": "cfct-101133",
    "name_zh": "纯牛奶(全脂, 花园牌)",
-   "name_en": "纯牛奶(全脂, 花园牌)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 花园牌)",
     "纯牛奶（全脂, 花园牌）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 花园牌)"
+    "whole milk"
    ],
    "kcal": 57.0,
    "protein_g": 2.9,
@@ -2973,14 +2973,14 @@
   {
    "id": "cfct-101134",
    "name_zh": "纯牛奶(全脂, 辉山纯牛奶)",
-   "name_en": "纯牛奶(全脂, 辉山纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 辉山纯牛奶)",
     "纯牛奶（全脂, 辉山纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 辉山纯牛奶)"
+    "whole milk"
    ],
    "kcal": 66.0,
    "protein_g": 3.5,
@@ -2993,14 +2993,14 @@
   {
    "id": "cfct-101135",
    "name_zh": "纯牛奶(全脂, 龙丹松花江牧场纯牛奶)",
-   "name_en": "纯牛奶(全脂, 龙丹松花江牧场纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 龙丹松花江牧场纯牛奶)",
     "纯牛奶（全脂, 龙丹松花江牧场纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 龙丹松花江牧场纯牛奶)"
+    "whole milk"
    ],
    "kcal": 67.0,
    "protein_g": 3.6,
@@ -3013,14 +3013,14 @@
   {
    "id": "cfct-101136",
    "name_zh": "纯牛奶(全脂, 麦趣尔牌)",
-   "name_en": "纯牛奶(全脂, 麦趣尔牌)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 麦趣尔牌)",
     "纯牛奶（全脂, 麦趣尔牌）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 麦趣尔牌)"
+    "whole milk"
    ],
    "kcal": 61.0,
    "protein_g": 2.9,
@@ -3033,14 +3033,14 @@
   {
    "id": "cfct-101137",
    "name_zh": "纯牛奶(全脂, 蒙牛纯牛奶)",
-   "name_en": "纯牛奶(全脂, 蒙牛纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 蒙牛纯牛奶)",
     "纯牛奶（全脂, 蒙牛纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 蒙牛纯牛奶)"
+    "whole milk"
    ],
    "kcal": 67.0,
    "protein_g": 3.4,
@@ -3053,14 +3053,14 @@
   {
    "id": "cfct-101138",
    "name_zh": "纯牛奶(全脂, 蒙牛特仑苏有机纯牛奶)",
-   "name_en": "纯牛奶(全脂, 蒙牛特仑苏有机纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 蒙牛特仑苏有机纯牛奶)",
     "纯牛奶（全脂, 蒙牛特仑苏有机纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 蒙牛特仑苏有机纯牛奶)"
+    "whole milk"
    ],
    "kcal": 69.0,
    "protein_g": 3.4,
@@ -3073,14 +3073,14 @@
   {
    "id": "cfct-101139",
    "name_zh": "纯牛奶(全脂, 明治醇壹高温杀菌乳)",
-   "name_en": "纯牛奶(全脂, 明治醇壹高温杀菌乳)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 明治醇壹高温杀菌乳)",
     "纯牛奶（全脂, 明治醇壹高温杀菌乳）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 明治醇壹高温杀菌乳)"
+    "whole milk"
    ],
    "kcal": 67.0,
    "protein_g": 3.6,
@@ -3093,14 +3093,14 @@
   {
    "id": "cfct-101140",
    "name_zh": "纯牛奶(全脂, 瑞士艾美全脂牛奶)",
-   "name_en": "纯牛奶(全脂, 瑞士艾美全脂牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 瑞士艾美全脂牛奶)",
     "纯牛奶（全脂, 瑞士艾美全脂牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 瑞士艾美全脂牛奶)"
+    "whole milk"
    ],
    "kcal": 70.0,
    "protein_g": 3.2,
@@ -3113,14 +3113,14 @@
   {
    "id": "cfct-101141",
    "name_zh": "纯牛奶(全脂, 圣牧有机纯牛奶)",
-   "name_en": "纯牛奶(全脂, 圣牧有机纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 圣牧有机纯牛奶)",
     "纯牛奶（全脂, 圣牧有机纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 圣牧有机纯牛奶)"
+    "whole milk"
    ],
    "kcal": 74.0,
    "protein_g": 3.5,
@@ -3133,14 +3133,14 @@
   {
    "id": "cfct-101142",
    "name_zh": "纯牛奶(全脂, 天润牌浓缩纯奶)",
-   "name_en": "纯牛奶(全脂, 天润牌浓缩纯奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 天润牌浓缩纯奶)",
     "纯牛奶（全脂, 天润牌浓缩纯奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 天润牌浓缩纯奶)"
+    "whole milk"
    ],
    "kcal": 67.0,
    "protein_g": 3.2,
@@ -3153,14 +3153,14 @@
   {
    "id": "cfct-101143",
    "name_zh": "纯牛奶(全脂, 完达山纯牛奶)",
-   "name_en": "纯牛奶(全脂, 完达山纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 完达山纯牛奶)",
     "纯牛奶（全脂, 完达山纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 完达山纯牛奶)"
+    "whole milk"
    ],
    "kcal": 66.0,
    "protein_g": 3.5,
@@ -3173,14 +3173,14 @@
   {
    "id": "cfct-101144",
    "name_zh": "纯牛奶(全脂, 西域春牌)",
-   "name_en": "纯牛奶(全脂, 西域春牌)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 西域春牌)",
     "纯牛奶（全脂, 西域春牌）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 西域春牌)"
+    "whole milk"
    ],
    "kcal": 59.0,
    "protein_g": 2.9,
@@ -3193,14 +3193,14 @@
   {
    "id": "cfct-101145",
    "name_zh": "纯牛奶(全脂, 夏进纯牛奶)",
-   "name_en": "纯牛奶(全脂, 夏进纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 夏进纯牛奶)",
     "纯牛奶（全脂, 夏进纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 夏进纯牛奶)"
+    "whole milk"
    ],
    "kcal": 63.0,
    "protein_g": 3.5,
@@ -3213,14 +3213,14 @@
   {
    "id": "cfct-101146",
    "name_zh": "纯牛奶(全脂, 现代牧业纯牛奶)",
-   "name_en": "纯牛奶(全脂, 现代牧业纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 现代牧业纯牛奶)",
     "纯牛奶（全脂, 现代牧业纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 现代牧业纯牛奶)"
+    "whole milk"
    ],
    "kcal": 66.0,
    "protein_g": 3.3,
@@ -3233,14 +3233,14 @@
   {
    "id": "cfct-101147",
    "name_zh": "纯牛奶(全脂, 新希望复原乳)",
-   "name_en": "纯牛奶(全脂, 新希望复原乳)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 新希望复原乳)",
     "纯牛奶（全脂, 新希望复原乳）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 新希望复原乳)"
+    "whole milk"
    ],
    "kcal": 63.0,
    "protein_g": 3.0,
@@ -3253,14 +3253,14 @@
   {
    "id": "cfct-101148",
    "name_zh": "纯牛奶(全脂, 新希望千岛湖牧场纯牛奶)",
-   "name_en": "纯牛奶(全脂, 新希望千岛湖牧场纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 新希望千岛湖牧场纯牛奶)",
     "纯牛奶（全脂, 新希望千岛湖牧场纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 新希望千岛湖牧场纯牛奶)"
+    "whole milk"
    ],
    "kcal": 62.0,
    "protein_g": 3.2,
@@ -3273,14 +3273,14 @@
   {
    "id": "cfct-101149",
    "name_zh": "纯牛奶(全脂, 伊利纯牛奶)",
-   "name_en": "纯牛奶(全脂, 伊利纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 伊利纯牛奶)",
     "纯牛奶（全脂, 伊利纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 伊利纯牛奶)"
+    "whole milk"
    ],
    "kcal": 66.0,
    "protein_g": 3.4,
@@ -3293,14 +3293,14 @@
   {
    "id": "cfct-101150",
    "name_zh": "纯牛奶(全脂, 伊利金典有机纯牛奶)",
-   "name_en": "纯牛奶(全脂, 伊利金典有机纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 伊利金典有机纯牛奶)",
     "纯牛奶（全脂, 伊利金典有机纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 伊利金典有机纯牛奶)"
+    "whole milk"
    ],
    "kcal": 73.0,
    "protein_g": 3.5,
@@ -3313,14 +3313,14 @@
   {
    "id": "cfct-101151",
    "name_zh": "纯牛奶(全脂, 意大利培兰全脂纯牛奶)",
-   "name_en": "纯牛奶(全脂, 意大利培兰全脂纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(全脂, 意大利培兰全脂纯牛奶)",
     "纯牛奶（全脂, 意大利培兰全脂纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(全脂, 意大利培兰全脂纯牛奶)"
+    "whole milk"
    ],
    "kcal": 63.0,
    "protein_g": 3.5,
@@ -3333,14 +3333,14 @@
   {
    "id": "cfct-101152",
    "name_zh": "纯牛奶(低脂, 帕玛拉特)",
-   "name_en": "纯牛奶(低脂, 帕玛拉特)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(低脂, 帕玛拉特)",
     "纯牛奶（低脂, 帕玛拉特）"
    ],
    "aliases_en": [
-    "纯牛奶(低脂, 帕玛拉特)"
+    "whole milk"
    ],
    "kcal": 43.0,
    "protein_g": 2.9,
@@ -3353,14 +3353,14 @@
   {
    "id": "cfct-101152x",
    "name_zh": "纯牛奶(代表值, 低脂)",
-   "name_en": "纯牛奶(代表值, 低脂)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(代表值, 低脂)",
     "纯牛奶（代表值, 低脂）"
    ],
    "aliases_en": [
-    "纯牛奶(代表值, 低脂)"
+    "whole milk"
    ],
    "kcal": 47.0,
    "protein_g": 3.5,
@@ -3373,14 +3373,14 @@
   {
    "id": "cfct-101153",
    "name_zh": "纯牛奶(低脂, 澳大利亚德运部分脱脂纯牛奶)",
-   "name_en": "纯牛奶(低脂, 澳大利亚德运部分脱脂纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(低脂, 澳大利亚德运部分脱脂纯牛奶)",
     "纯牛奶（低脂, 澳大利亚德运部分脱脂纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(低脂, 澳大利亚德运部分脱脂纯牛奶)"
+    "whole milk"
    ],
    "kcal": 51.0,
    "protein_g": 3.3,
@@ -3393,14 +3393,14 @@
   {
    "id": "cfct-101154",
    "name_zh": "纯牛奶(低脂, 德国艾德牧牌部分脱脂纯牛奶)",
-   "name_en": "纯牛奶(低脂, 德国艾德牧牌部分脱脂纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(低脂, 德国艾德牧牌部分脱脂纯牛奶)",
     "纯牛奶（低脂, 德国艾德牧牌部分脱脂纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(低脂, 德国艾德牧牌部分脱脂纯牛奶)"
+    "whole milk"
    ],
    "kcal": 45.0,
    "protein_g": 3.5,
@@ -3413,14 +3413,14 @@
   {
    "id": "cfct-101155",
    "name_zh": "纯牛奶(低脂, 蒙牛特仑苏低脂牛奶)",
-   "name_en": "纯牛奶(低脂, 蒙牛特仑苏低脂牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(低脂, 蒙牛特仑苏低脂牛奶)",
     "纯牛奶（低脂, 蒙牛特仑苏低脂牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(低脂, 蒙牛特仑苏低脂牛奶)"
+    "whole milk"
    ],
    "kcal": 48.0,
    "protein_g": 3.8,
@@ -3433,14 +3433,14 @@
   {
    "id": "cfct-101156",
    "name_zh": "纯牛奶(低脂, 明治醇壹低脂肪高温杀菌乳)",
-   "name_en": "纯牛奶(低脂, 明治醇壹低脂肪高温杀菌乳)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(低脂, 明治醇壹低脂肪高温杀菌乳)",
     "纯牛奶（低脂, 明治醇壹低脂肪高温杀菌乳）"
    ],
    "aliases_en": [
-    "纯牛奶(低脂, 明治醇壹低脂肪高温杀菌乳)"
+    "whole milk"
    ],
    "kcal": 46.0,
    "protein_g": 3.6,
@@ -3453,14 +3453,14 @@
   {
    "id": "cfct-101157",
    "name_zh": "纯牛奶(低脂, 新西兰安佳低脂牛奶)",
-   "name_en": "纯牛奶(低脂, 新西兰安佳低脂牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(低脂, 新西兰安佳低脂牛奶)",
     "纯牛奶（低脂, 新西兰安佳低脂牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(低脂, 新西兰安佳低脂牛奶)"
+    "whole milk"
    ],
    "kcal": 51.0,
    "protein_g": 3.8,
@@ -3473,14 +3473,14 @@
   {
    "id": "cfct-101158",
    "name_zh": "纯牛奶(低脂, 新西兰恒天然田园低脂牛奶)",
-   "name_en": "纯牛奶(低脂, 新西兰恒天然田园低脂牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(低脂, 新西兰恒天然田园低脂牛奶)",
     "纯牛奶（低脂, 新西兰恒天然田园低脂牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(低脂, 新西兰恒天然田园低脂牛奶)"
+    "whole milk"
    ],
    "kcal": 45.0,
    "protein_g": 3.7,
@@ -3493,14 +3493,14 @@
   {
    "id": "cfct-101159",
    "name_zh": "纯牛奶(低脂, 伊利金典低脂奶)",
-   "name_en": "纯牛奶(低脂, 伊利金典低脂奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(低脂, 伊利金典低脂奶)",
     "纯牛奶（低脂, 伊利金典低脂奶）"
    ],
    "aliases_en": [
-    "纯牛奶(低脂, 伊利金典低脂奶)"
+    "whole milk"
    ],
    "kcal": 48.0,
    "protein_g": 3.7,
@@ -3513,14 +3513,14 @@
   {
    "id": "cfct-101160",
    "name_zh": "纯牛奶(低脂, 意大利皮尔蒙特低脂牛奶)",
-   "name_en": "纯牛奶(低脂, 意大利皮尔蒙特低脂牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(低脂, 意大利皮尔蒙特低脂牛奶)",
     "纯牛奶（低脂, 意大利皮尔蒙特低脂牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(低脂, 意大利皮尔蒙特低脂牛奶)"
+    "whole milk"
    ],
    "kcal": 45.0,
    "protein_g": 3.4,
@@ -3533,14 +3533,14 @@
   {
    "id": "cfct-101161",
    "name_zh": "纯牛奶(脱脂, 帕玛拉特)",
-   "name_en": "纯牛奶(脱脂, 帕玛拉特)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(脱脂, 帕玛拉特)",
     "纯牛奶（脱脂, 帕玛拉特）"
    ],
    "aliases_en": [
-    "纯牛奶(脱脂, 帕玛拉特)"
+    "whole milk"
    ],
    "kcal": 33.0,
    "protein_g": 2.9,
@@ -3553,14 +3553,14 @@
   {
    "id": "cfct-101161x",
    "name_zh": "纯牛奶(代表值, 脱脂)",
-   "name_en": "纯牛奶(代表值, 脱脂)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(代表值, 脱脂)",
     "纯牛奶（代表值, 脱脂）"
    ],
    "aliases_en": [
-    "纯牛奶(代表值, 脱脂)"
+    "whole milk"
    ],
    "kcal": 34.0,
    "protein_g": 3.5,
@@ -3573,14 +3573,14 @@
   {
    "id": "cfct-101162",
    "name_zh": "纯牛奶(脱脂, 澳大利亚澳田脱脂牛奶)",
-   "name_en": "纯牛奶(脱脂, 澳大利亚澳田脱脂牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(脱脂, 澳大利亚澳田脱脂牛奶)",
     "纯牛奶（脱脂, 澳大利亚澳田脱脂牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(脱脂, 澳大利亚澳田脱脂牛奶)"
+    "whole milk"
    ],
    "kcal": 35.0,
    "protein_g": 3.7,
@@ -3593,14 +3593,14 @@
   {
    "id": "cfct-101163",
    "name_zh": "纯牛奶(脱脂, 丹麦爱氏晨曦脱脂纯牛奶)",
-   "name_en": "纯牛奶(脱脂, 丹麦爱氏晨曦脱脂纯牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(脱脂, 丹麦爱氏晨曦脱脂纯牛奶)",
     "纯牛奶（脱脂, 丹麦爱氏晨曦脱脂纯牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(脱脂, 丹麦爱氏晨曦脱脂纯牛奶)"
+    "whole milk"
    ],
    "kcal": 39.0,
    "protein_g": 3.5,
@@ -3613,14 +3613,14 @@
   {
    "id": "cfct-101164",
    "name_zh": "纯牛奶(脱脂, 德国甘蒂牧场脱脂牛奶)",
-   "name_en": "纯牛奶(脱脂, 德国甘蒂牧场脱脂牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(脱脂, 德国甘蒂牧场脱脂牛奶)",
     "纯牛奶（脱脂, 德国甘蒂牧场脱脂牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(脱脂, 德国甘蒂牧场脱脂牛奶)"
+    "whole milk"
    ],
    "kcal": 34.0,
    "protein_g": 3.3,
@@ -3633,14 +3633,14 @@
   {
    "id": "cfct-101165",
    "name_zh": "纯牛奶(脱脂, 新西兰安佳轻欣脱脂牛奶)",
-   "name_en": "纯牛奶(脱脂, 新西兰安佳轻欣脱脂牛奶)",
+   "name_en": "Whole milk",
    "aliases_zh": [
     "纯牛奶",
     "纯牛奶(脱脂, 新西兰安佳轻欣脱脂牛奶)",
     "纯牛奶（脱脂, 新西兰安佳轻欣脱脂牛奶）"
    ],
    "aliases_en": [
-    "纯牛奶(脱脂, 新西兰安佳轻欣脱脂牛奶)"
+    "whole milk"
    ],
    "kcal": 32.0,
    "protein_g": 3.9,
@@ -3653,14 +3653,14 @@
   {
    "id": "cfct-101166",
    "name_zh": "调制乳(全脂, 强化VA, VD)",
-   "name_en": "调制乳(全脂, 强化VA, VD)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(全脂, 强化VA, VD)",
     "调制乳（全脂, 强化VA, VD）"
    ],
    "aliases_en": [
-    "调制乳(全脂, 强化va, vd)"
+    "modified milk"
    ],
    "kcal": 51.0,
    "protein_g": 2.7,
@@ -3673,14 +3673,14 @@
   {
    "id": "cfct-101167",
    "name_zh": "调制乳(全脂, 草莓味, 卡夫牌)",
-   "name_en": "调制乳(全脂, 草莓味, 卡夫牌)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(全脂, 草莓味, 卡夫牌)",
     "调制乳（全脂, 草莓味, 卡夫牌）"
    ],
    "aliases_en": [
-    "调制乳(全脂, 草莓味, 卡夫牌)"
+    "modified milk"
    ],
    "kcal": 79.0,
    "protein_g": 2.7,
@@ -3693,14 +3693,14 @@
   {
    "id": "cfct-101168",
    "name_zh": "调制乳(全脂, 巧克力味, 卡夫牌)",
-   "name_en": "调制乳(全脂, 巧克力味, 卡夫牌)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(全脂, 巧克力味, 卡夫牌)",
     "调制乳（全脂, 巧克力味, 卡夫牌）"
    ],
    "aliases_en": [
-    "调制乳(全脂, 巧克力味, 卡夫牌)"
+    "modified milk"
    ],
    "kcal": 80.0,
    "protein_g": 2.8,
@@ -3713,14 +3713,14 @@
   {
    "id": "cfct-101169",
    "name_zh": "调制乳(全脂, 巧克力味, 三元牌)",
-   "name_en": "调制乳(全脂, 巧克力味, 三元牌)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(全脂, 巧克力味, 三元牌)",
     "调制乳（全脂, 巧克力味, 三元牌）"
    ],
    "aliases_en": [
-    "调制乳(全脂, 巧克力味, 三元牌)"
+    "modified milk"
    ],
    "kcal": 74.0,
    "protein_g": 2.3,
@@ -3733,14 +3733,14 @@
   {
    "id": "cfct-101170",
    "name_zh": "调制乳(全脂, 学生奶)",
-   "name_en": "调制乳(全脂, 学生奶)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(全脂, 学生奶)",
     "调制乳（全脂, 学生奶）"
    ],
    "aliases_en": [
-    "调制乳(全脂, 学生奶)"
+    "modified milk"
    ],
    "kcal": 66.0,
    "protein_g": 2.6,
@@ -3753,14 +3753,14 @@
   {
    "id": "cfct-101171",
    "name_zh": "调制乳(全脂, 龙丹益醇核桃牛奶)",
-   "name_en": "调制乳(全脂, 龙丹益醇核桃牛奶)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(全脂, 龙丹益醇核桃牛奶)",
     "调制乳（全脂, 龙丹益醇核桃牛奶）"
    ],
    "aliases_en": [
-    "调制乳(全脂, 龙丹益醇核桃牛奶)"
+    "modified milk"
    ],
    "kcal": 62.0,
    "protein_g": 2.5,
@@ -3773,14 +3773,14 @@
   {
    "id": "cfct-101172",
    "name_zh": "调制乳(全脂, 蒙牛特仑苏醇纤牛奶)",
-   "name_en": "调制乳(全脂, 蒙牛特仑苏醇纤牛奶)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(全脂, 蒙牛特仑苏醇纤牛奶)",
     "调制乳（全脂, 蒙牛特仑苏醇纤牛奶）"
    ],
    "aliases_en": [
-    "调制乳(全脂, 蒙牛特仑苏醇纤牛奶)"
+    "modified milk"
    ],
    "kcal": 72.0,
    "protein_g": 3.4,
@@ -3793,14 +3793,14 @@
   {
    "id": "cfct-101173",
    "name_zh": "调制乳(全脂, 蒙牛珍养型零乳糖牛奶)",
-   "name_en": "调制乳(全脂, 蒙牛珍养型零乳糖牛奶)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(全脂, 蒙牛珍养型零乳糖牛奶)",
     "调制乳（全脂, 蒙牛珍养型零乳糖牛奶）"
    ],
    "aliases_en": [
-    "调制乳(全脂, 蒙牛珍养型零乳糖牛奶)"
+    "modified milk"
    ],
    "kcal": 60.0,
    "protein_g": 3.0,
@@ -3813,14 +3813,14 @@
   {
    "id": "cfct-101174",
    "name_zh": "调制乳(全脂, 完达山臻醇牛奶)",
-   "name_en": "调制乳(全脂, 完达山臻醇牛奶)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(全脂, 完达山臻醇牛奶)",
     "调制乳（全脂, 完达山臻醇牛奶）"
    ],
    "aliases_en": [
-    "调制乳(全脂, 完达山臻醇牛奶)"
+    "modified milk"
    ],
    "kcal": 69.0,
    "protein_g": 3.4,
@@ -3833,14 +3833,14 @@
   {
    "id": "cfct-101175",
    "name_zh": "调制乳(全脂, 旺仔复原乳牛奶)",
-   "name_en": "调制乳(全脂, 旺仔复原乳牛奶)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(全脂, 旺仔复原乳牛奶)",
     "调制乳（全脂, 旺仔复原乳牛奶）"
    ],
    "aliases_en": [
-    "调制乳(全脂, 旺仔复原乳牛奶)"
+    "modified milk"
    ],
    "kcal": 74.0,
    "protein_g": 2.5,
@@ -3853,14 +3853,14 @@
   {
    "id": "cfct-101176",
    "name_zh": "调制乳(全脂, 夏进炼乳牛奶)",
-   "name_en": "调制乳(全脂, 夏进炼乳牛奶)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(全脂, 夏进炼乳牛奶)",
     "调制乳（全脂, 夏进炼乳牛奶）"
    ],
    "aliases_en": [
-    "调制乳(全脂, 夏进炼乳牛奶)"
+    "modified milk"
    ],
    "kcal": 71.0,
    "protein_g": 2.5,
@@ -3873,14 +3873,14 @@
   {
    "id": "cfct-101177",
    "name_zh": "调制乳(全脂, 新西兰安佳原味进口儿童牛奶)",
-   "name_en": "调制乳(全脂, 新西兰安佳原味进口儿童牛奶)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(全脂, 新西兰安佳原味进口儿童牛奶)",
     "调制乳（全脂, 新西兰安佳原味进口儿童牛奶）"
    ],
    "aliases_en": [
-    "调制乳(全脂, 新西兰安佳原味进口儿童牛奶)"
+    "modified milk"
    ],
    "kcal": 70.0,
    "protein_g": 3.6,
@@ -3893,14 +3893,14 @@
   {
    "id": "cfct-101178",
    "name_zh": "调制乳(全脂, 新希望特浓牛奶)",
-   "name_en": "调制乳(全脂, 新希望特浓牛奶)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(全脂, 新希望特浓牛奶)",
     "调制乳（全脂, 新希望特浓牛奶）"
    ],
    "aliases_en": [
-    "调制乳(全脂, 新希望特浓牛奶)"
+    "modified milk"
    ],
    "kcal": 66.0,
    "protein_g": 3.3,
@@ -3913,14 +3913,14 @@
   {
    "id": "cfct-101179",
    "name_zh": "调制乳(全脂, 伊利舒化奶)",
-   "name_en": "调制乳(全脂, 伊利舒化奶)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(全脂, 伊利舒化奶)",
     "调制乳（全脂, 伊利舒化奶）"
    ],
    "aliases_en": [
-    "调制乳(全脂, 伊利舒化奶)"
+    "modified milk"
    ],
    "kcal": 68.0,
    "protein_g": 3.5,
@@ -3933,14 +3933,14 @@
   {
    "id": "cfct-101180",
    "name_zh": "调制乳(全脂, 伊利早餐奶麦香味)",
-   "name_en": "调制乳(全脂, 伊利早餐奶麦香味)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(全脂, 伊利早餐奶麦香味)",
     "调制乳（全脂, 伊利早餐奶麦香味）"
    ],
    "aliases_en": [
-    "调制乳(全脂, 伊利早餐奶麦香味)"
+    "modified milk"
    ],
    "kcal": 71.0,
    "protein_g": 2.9,
@@ -3953,14 +3953,14 @@
   {
    "id": "cfct-101181",
    "name_zh": "调制乳(低脂, 强化锌、钙, 帕玛拉特)",
-   "name_en": "调制乳(低脂, 强化锌、钙, 帕玛拉特)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(低脂, 强化锌、钙, 帕玛拉特)",
     "调制乳（低脂, 强化锌、钙, 帕玛拉特）"
    ],
    "aliases_en": [
-    "调制乳(低脂, 强化锌、钙, 帕玛拉特)"
+    "modified milk"
    ],
    "kcal": 60.0,
    "protein_g": 3.0,
@@ -3973,14 +3973,14 @@
   {
    "id": "cfct-101182",
    "name_zh": "调制乳(低脂, 澳大利亚德运高钙低脂奶)",
-   "name_en": "调制乳(低脂, 澳大利亚德运高钙低脂奶)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(低脂, 澳大利亚德运高钙低脂奶)",
     "调制乳（低脂, 澳大利亚德运高钙低脂奶）"
    ],
    "aliases_en": [
-    "调制乳(低脂, 澳大利亚德运高钙低脂奶)"
+    "modified milk"
    ],
    "kcal": 52.0,
    "protein_g": 3.5,
@@ -3993,14 +3993,14 @@
   {
    "id": "cfct-101183",
    "name_zh": "调制乳(低脂, 伊利低脂型舒化奶)",
-   "name_en": "调制乳(低脂, 伊利低脂型舒化奶)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(低脂, 伊利低脂型舒化奶)",
     "调制乳（低脂, 伊利低脂型舒化奶）"
    ],
    "aliases_en": [
-    "调制乳(低脂, 伊利低脂型舒化奶)"
+    "modified milk"
    ],
    "kcal": 46.0,
    "protein_g": 3.4,
@@ -4013,14 +4013,14 @@
   {
    "id": "cfct-101184",
    "name_zh": "调制乳(低脂, 伊利高钙低脂奶)",
-   "name_en": "调制乳(低脂, 伊利高钙低脂奶)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(低脂, 伊利高钙低脂奶)",
     "调制乳（低脂, 伊利高钙低脂奶）"
    ],
    "aliases_en": [
-    "调制乳(低脂, 伊利高钙低脂奶)"
+    "modified milk"
    ],
    "kcal": 47.0,
    "protein_g": 3.2,
@@ -4033,14 +4033,14 @@
   {
    "id": "cfct-101185",
    "name_zh": "调制乳(脱脂, 部分复原乳, 澳大利亚德运高钙脱脂奶)",
-   "name_en": "调制乳(脱脂, 部分复原乳, 澳大利亚德运高钙脱脂奶)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(脱脂, 部分复原乳, 澳大利亚德运高钙脱脂奶)",
     "调制乳（脱脂, 部分复原乳, 澳大利亚德运高钙脱脂奶）"
    ],
    "aliases_en": [
-    "调制乳(脱脂, 部分复原乳, 澳大利亚德运高钙脱脂奶)"
+    "modified milk"
    ],
    "kcal": 42.0,
    "protein_g": 3.6,
@@ -4053,14 +4053,14 @@
   {
    "id": "cfct-101186",
    "name_zh": "调制乳(脱脂, 伊利脱脂奶)",
-   "name_en": "调制乳(脱脂, 伊利脱脂奶)",
+   "name_en": "Modified milk",
    "aliases_zh": [
     "调制乳",
     "调制乳(脱脂, 伊利脱脂奶)",
     "调制乳（脱脂, 伊利脱脂奶）"
    ],
    "aliases_en": [
-    "调制乳(脱脂, 伊利脱脂奶)"
+    "modified milk"
    ],
    "kcal": 34.0,
    "protein_g": 3.3,
@@ -4073,14 +4073,14 @@
   {
    "id": "cfct-101187",
    "name_zh": "鲜牛奶(全脂, 光明鲜牛奶)",
-   "name_en": "鲜牛奶(全脂, 光明鲜牛奶)",
+   "name_en": "Fresh milk",
    "aliases_zh": [
     "鲜牛奶",
     "鲜牛奶(全脂, 光明鲜牛奶)",
     "鲜牛奶（全脂, 光明鲜牛奶）"
    ],
    "aliases_en": [
-    "鲜牛奶(全脂, 光明鲜牛奶)"
+    "fresh milk"
    ],
    "kcal": 63.0,
    "protein_g": 3.4,
@@ -4093,14 +4093,14 @@
   {
    "id": "cfct-101187x",
    "name_zh": "鲜牛奶(代表值, 全脂)",
-   "name_en": "鲜牛奶(代表值, 全脂)",
+   "name_en": "Fresh milk",
    "aliases_zh": [
     "鲜牛奶",
     "鲜牛奶(代表值, 全脂)",
     "鲜牛奶（代表值, 全脂）"
    ],
    "aliases_en": [
-    "鲜牛奶(代表值, 全脂)"
+    "fresh milk"
    ],
    "kcal": 67.0,
    "protein_g": 3.4,
@@ -4113,14 +4113,14 @@
   {
    "id": "cfct-101188",
    "name_zh": "鲜牛奶(全脂, 辉山鲜博士鲜牛奶)",
-   "name_en": "鲜牛奶(全脂, 辉山鲜博士鲜牛奶)",
+   "name_en": "Fresh milk",
    "aliases_zh": [
     "鲜牛奶",
     "鲜牛奶(全脂, 辉山鲜博士鲜牛奶)",
     "鲜牛奶（全脂, 辉山鲜博士鲜牛奶）"
    ],
    "aliases_en": [
-    "鲜牛奶(全脂, 辉山鲜博士鲜牛奶)"
+    "fresh milk"
    ],
    "kcal": 70.0,
    "protein_g": 3.6,
@@ -4133,14 +4133,14 @@
   {
    "id": "cfct-101189",
    "name_zh": "鲜牛奶(全脂, 完达山鲜牛乳)",
-   "name_en": "鲜牛奶(全脂, 完达山鲜牛乳)",
+   "name_en": "Fresh milk",
    "aliases_zh": [
     "鲜牛奶",
     "鲜牛奶(全脂, 完达山鲜牛乳)",
     "鲜牛奶（全脂, 完达山鲜牛乳）"
    ],
    "aliases_en": [
-    "鲜牛奶(全脂, 完达山鲜牛乳)"
+    "fresh milk"
    ],
    "kcal": 66.0,
    "protein_g": 3.6,
@@ -4153,14 +4153,14 @@
   {
    "id": "cfct-101190",
    "name_zh": "鲜牛奶(全脂, 西域春牌全脂巴氏杀菌乳)",
-   "name_en": "鲜牛奶(全脂, 西域春牌全脂巴氏杀菌乳)",
+   "name_en": "Fresh milk",
    "aliases_zh": [
     "鲜牛奶",
     "鲜牛奶(全脂, 西域春牌全脂巴氏杀菌乳)",
     "鲜牛奶（全脂, 西域春牌全脂巴氏杀菌乳）"
    ],
    "aliases_en": [
-    "鲜牛奶(全脂, 西域春牌全脂巴氏杀菌乳)"
+    "fresh milk"
    ],
    "kcal": 63.0,
    "protein_g": 2.5,
@@ -4173,14 +4173,14 @@
   {
    "id": "cfct-101191",
    "name_zh": "鲜牛奶(全脂, 现代牧场鲜牛奶)",
-   "name_en": "鲜牛奶(全脂, 现代牧场鲜牛奶)",
+   "name_en": "Fresh milk",
    "aliases_zh": [
     "鲜牛奶",
     "鲜牛奶(全脂, 现代牧场鲜牛奶)",
     "鲜牛奶（全脂, 现代牧场鲜牛奶）"
    ],
    "aliases_en": [
-    "鲜牛奶(全脂, 现代牧场鲜牛奶)"
+    "fresh milk"
    ],
    "kcal": 64.0,
    "protein_g": 3.4,
@@ -4193,14 +4193,14 @@
   {
    "id": "cfct-101192",
    "name_zh": "鲜牛奶(全脂, 新希望千岛湖牧场鲜牛奶)",
-   "name_en": "鲜牛奶(全脂, 新希望千岛湖牧场鲜牛奶)",
+   "name_en": "Fresh milk",
    "aliases_zh": [
     "鲜牛奶",
     "鲜牛奶(全脂, 新希望千岛湖牧场鲜牛奶)",
     "鲜牛奶（全脂, 新希望千岛湖牧场鲜牛奶）"
    ],
    "aliases_en": [
-    "鲜牛奶(全脂, 新希望千岛湖牧场鲜牛奶)"
+    "fresh milk"
    ],
    "kcal": 76.0,
    "protein_g": 3.6,
@@ -4213,14 +4213,14 @@
   {
    "id": "cfct-101193",
    "name_zh": "鲜牛奶(全脂, 一鸣鲜牛奶)",
-   "name_en": "鲜牛奶(全脂, 一鸣鲜牛奶)",
+   "name_en": "Fresh milk",
    "aliases_zh": [
     "鲜牛奶",
     "鲜牛奶(全脂, 一鸣鲜牛奶)",
     "鲜牛奶（全脂, 一鸣鲜牛奶）"
    ],
    "aliases_en": [
-    "鲜牛奶(全脂, 一鸣鲜牛奶)"
+    "fresh milk"
    ],
    "kcal": 66.0,
    "protein_g": 3.5,
@@ -4269,14 +4269,14 @@
   {
    "id": "cfct-101302",
    "name_zh": "人乳(初乳, 1~7天)",
-   "name_en": "人乳(初乳, 1~7天)",
+   "name_en": "Human milk",
    "aliases_zh": [
     "人乳",
     "人乳(初乳, 1~7天)",
     "人乳（初乳, 1~7天）"
    ],
    "aliases_en": [
-    "人乳(初乳, 1~7天)"
+    "human milk"
    ],
    "kcal": 68.0,
    "protein_g": 2.2,
@@ -4289,14 +4289,14 @@
   {
    "id": "cfct-101303",
    "name_zh": "人乳(过渡乳, 7~14天)",
-   "name_en": "人乳(过渡乳, 7~14天)",
+   "name_en": "Human milk",
    "aliases_zh": [
     "人乳",
     "人乳(过渡乳, 7~14天)",
     "人乳（过渡乳, 7~14天）"
    ],
    "aliases_en": [
-    "人乳(过渡乳, 7~14天)"
+    "human milk"
    ],
    "kcal": 73.0,
    "protein_g": 2.2,
@@ -4309,14 +4309,14 @@
   {
    "id": "cfct-101304",
    "name_zh": "人乳(成熟乳)",
-   "name_en": "人乳(成熟乳)",
+   "name_en": "Human milk",
    "aliases_zh": [
     "人乳",
     "人乳(成熟乳)",
     "人乳（成熟乳）"
    ],
    "aliases_en": [
-    "人乳(成熟乳)"
+    "human milk"
    ],
    "kcal": 70.0,
    "protein_g": 1.2,
@@ -4329,12 +4329,12 @@
   {
    "id": "cfct-101401",
    "name_zh": "鲜驴奶",
-   "name_en": "鲜驴奶",
+   "name_en": "Fresh donkey milk",
    "aliases_zh": [
     "鲜驴奶"
    ],
    "aliases_en": [
-    "鲜驴奶"
+    "fresh donkey milk"
    ],
    "kcal": 33.0,
    "protein_g": 0.4,
@@ -4347,14 +4347,14 @@
   {
    "id": "cfct-101402",
    "name_zh": "鲜驴奶(冻)",
-   "name_en": "鲜驴奶(冻)",
+   "name_en": "Fresh donkey milk",
    "aliases_zh": [
     "鲜驴奶",
     "鲜驴奶(冻)",
     "鲜驴奶（冻）"
    ],
    "aliases_en": [
-    "鲜驴奶(冻)"
+    "fresh donkey milk"
    ],
    "kcal": 41.0,
    "protein_g": 0.5,
@@ -4367,14 +4367,14 @@
   {
    "id": "cfct-101403",
    "name_zh": "鲜驴奶(花麒牌, 冻)",
-   "name_en": "鲜驴奶(花麒牌, 冻)",
+   "name_en": "Fresh donkey milk",
    "aliases_zh": [
     "鲜驴奶",
     "鲜驴奶(花麒牌, 冻)",
     "鲜驴奶（花麒牌, 冻）"
    ],
    "aliases_en": [
-    "鲜驴奶(花麒牌, 冻)"
+    "fresh donkey milk"
    ],
    "kcal": 39.0,
    "protein_g": 0.8,
@@ -4387,12 +4387,12 @@
   {
    "id": "cfct-101501",
    "name_zh": "鲜驼奶",
-   "name_en": "鲜驼奶",
+   "name_en": "Fresh camel milk",
    "aliases_zh": [
     "鲜驼奶"
    ],
    "aliases_en": [
-    "鲜驼奶"
+    "fresh camel milk"
    ],
    "kcal": 72.0,
    "protein_g": 3.7,
@@ -4405,14 +4405,14 @@
   {
    "id": "cfct-101502",
    "name_zh": "鲜驼奶(冻)",
-   "name_en": "鲜驼奶(冻)",
+   "name_en": "Fresh camel milk",
    "aliases_zh": [
     "鲜驼奶",
     "鲜驼奶(冻)",
     "鲜驼奶（冻）"
    ],
    "aliases_en": [
-    "鲜驼奶(冻)"
+    "fresh camel milk"
    ],
    "kcal": 86.0,
    "protein_g": 3.6,
@@ -4425,14 +4425,14 @@
   {
    "id": "cfct-101503",
    "name_zh": "驼奶(旺源牌, 易拉罐)",
-   "name_en": "驼奶(旺源牌, 易拉罐)",
+   "name_en": "Camel milk",
    "aliases_zh": [
     "驼奶",
     "驼奶(旺源牌, 易拉罐)",
     "驼奶（旺源牌, 易拉罐）"
    ],
    "aliases_en": [
-    "驼奶(旺源牌, 易拉罐)"
+    "camel milk"
    ],
    "kcal": 81.0,
    "protein_g": 3.9,
@@ -4445,12 +4445,12 @@
   {
    "id": "cfct-103001",
    "name_zh": "酸奶",
-   "name_en": "酸奶",
+   "name_en": "Yogurt",
    "aliases_zh": [
     "酸奶"
    ],
    "aliases_en": [
-    "酸奶"
+    "yogurt"
    ],
    "kcal": 70.0,
    "protein_g": 3.2,
@@ -4583,14 +4583,14 @@
   {
    "id": "cfct-103007",
    "name_zh": "酸奶(调味)",
-   "name_en": "酸奶(调味)",
+   "name_en": "Yogurt",
    "aliases_zh": [
     "酸奶",
     "酸奶(调味)",
     "酸奶（调味）"
    ],
    "aliases_en": [
-    "酸奶(调味)"
+    "yogurt"
    ],
    "kcal": 88.0,
    "protein_g": 3.0,
@@ -4603,14 +4603,14 @@
   {
    "id": "cfct-103008",
    "name_zh": "酸奶(果粒)",
-   "name_en": "酸奶(果粒)",
+   "name_en": "Yogurt",
    "aliases_zh": [
     "酸奶",
     "酸奶(果粒)",
     "酸奶（果粒）"
    ],
    "aliases_en": [
-    "酸奶(果粒)"
+    "yogurt"
    ],
    "kcal": 98.0,
    "protein_g": 3.3,
@@ -4623,14 +4623,14 @@
   {
    "id": "cfct-103009",
    "name_zh": "酸奶(全脂, 多美鲜全脂果粒, 草莓果粒/覆盆子果粒、桃果粒/西番莲汁/菠萝果粒)",
-   "name_en": "酸奶(全脂, 多美鲜全脂果粒, 草莓果粒/覆盆子果粒、桃果粒/西番莲汁/菠萝果粒)",
+   "name_en": "Yogurt",
    "aliases_zh": [
     "酸奶",
     "酸奶(全脂, 多美鲜全脂果粒, 草莓果粒/覆盆子果粒、桃果粒/西番莲汁/菠萝果粒)",
     "酸奶（全脂, 多美鲜全脂果粒, 草莓果粒/覆盆子果粒、桃果粒/西番莲汁/菠萝果粒）"
    ],
    "aliases_en": [
-    "酸奶(全脂, 多美鲜全脂果粒, 草莓果粒/覆盆子果粒、桃果粒/西番莲汁/菠萝果粒)"
+    "yogurt"
    ],
    "kcal": 111.0,
    "protein_g": 1.6,
@@ -4643,14 +4643,14 @@
   {
    "id": "cfct-103010",
    "name_zh": "酸奶(全脂, 盖瑞牌, 全脂风味发酵乳)",
-   "name_en": "酸奶(全脂, 盖瑞牌, 全脂风味发酵乳)",
+   "name_en": "Yogurt",
    "aliases_zh": [
     "酸奶",
     "酸奶(全脂, 盖瑞牌, 全脂风味发酵乳)",
     "酸奶（全脂, 盖瑞牌, 全脂风味发酵乳）"
    ],
    "aliases_en": [
-    "酸奶(全脂, 盖瑞牌, 全脂风味发酵乳)"
+    "yogurt"
    ],
    "kcal": 93.0,
    "protein_g": 3.1,
@@ -4663,14 +4663,14 @@
   {
    "id": "cfct-103011",
    "name_zh": "酸奶(全脂, 花园牌)",
-   "name_en": "酸奶(全脂, 花园牌)",
+   "name_en": "Yogurt",
    "aliases_zh": [
     "酸奶",
     "酸奶(全脂, 花园牌)",
     "酸奶（全脂, 花园牌）"
    ],
    "aliases_en": [
-    "酸奶(全脂, 花园牌)"
+    "yogurt"
    ],
    "kcal": 77.0,
    "protein_g": 1.6,
@@ -4683,14 +4683,14 @@
   {
    "id": "cfct-103012",
    "name_zh": "酸奶(全脂, 佳丽牌, 益家全脂风味发酵乳)",
-   "name_en": "酸奶(全脂, 佳丽牌, 益家全脂风味发酵乳)",
+   "name_en": "Yogurt",
    "aliases_zh": [
     "酸奶",
     "酸奶(全脂, 佳丽牌, 益家全脂风味发酵乳)",
     "酸奶（全脂, 佳丽牌, 益家全脂风味发酵乳）"
    ],
    "aliases_en": [
-    "酸奶(全脂, 佳丽牌, 益家全脂风味发酵乳)"
+    "yogurt"
    ],
    "kcal": 95.0,
    "protein_g": 2.9,
@@ -4703,14 +4703,14 @@
   {
    "id": "cfct-103013",
    "name_zh": "酸奶(全脂, 天润牌浓缩酸奶, 全脂风味发酵乳)",
-   "name_en": "酸奶(全脂, 天润牌浓缩酸奶, 全脂风味发酵乳)",
+   "name_en": "Yogurt",
    "aliases_zh": [
     "酸奶",
     "酸奶(全脂, 天润牌浓缩酸奶, 全脂风味发酵乳)",
     "酸奶（全脂, 天润牌浓缩酸奶, 全脂风味发酵乳）"
    ],
    "aliases_en": [
-    "酸奶(全脂, 天润牌浓缩酸奶, 全脂风味发酵乳)"
+    "yogurt"
    ],
    "kcal": 95.0,
    "protein_g": 3.0,
@@ -4723,14 +4723,14 @@
   {
    "id": "cfct-103014",
    "name_zh": "酸奶(全脂, 西域春牌新疆老酸奶, 凝固型)",
-   "name_en": "酸奶(全脂, 西域春牌新疆老酸奶, 凝固型)",
+   "name_en": "Yogurt",
    "aliases_zh": [
     "酸奶",
     "酸奶(全脂, 西域春牌新疆老酸奶, 凝固型)",
     "酸奶（全脂, 西域春牌新疆老酸奶, 凝固型）"
    ],
    "aliases_en": [
-    "酸奶(全脂, 西域春牌新疆老酸奶, 凝固型)"
+    "yogurt"
    ],
    "kcal": 96.0,
    "protein_g": 3.1,
@@ -4743,14 +4743,14 @@
   {
    "id": "cfct-103015",
    "name_zh": "酸奶(低脂, 艾美牌, 草莓、芒果、蓝莓、覆盆子、菠萝味低脂风味发酵乳)",
-   "name_en": "酸奶(低脂, 艾美牌, 草莓、芒果、蓝莓、覆盆子、菠萝味低脂风味发酵乳)",
+   "name_en": "Yogurt",
    "aliases_zh": [
     "酸奶",
     "酸奶(低脂, 艾美牌, 草莓、芒果、蓝莓、覆盆子、菠萝味低脂风味发酵乳)",
     "酸奶（低脂, 艾美牌, 草莓、芒果、蓝莓、覆盆子、菠萝味低脂风味发酵乳）"
    ],
    "aliases_en": [
-    "酸奶(低脂, 艾美牌, 草莓、芒果、蓝莓、覆盆子、菠萝味低脂风味发酵乳)"
+    "yogurt"
    ],
    "kcal": 96.0,
    "protein_g": 1.6,
@@ -4763,12 +4763,12 @@
   {
    "id": "cfct-219014",
    "name_zh": "蜂蛹[蜂胚、蜂仔]",
-   "name_en": "蜂蛹[蜂胚、蜂仔]",
+   "name_en": "Bee pupa",
    "aliases_zh": [
     "蜂蛹[蜂胚、蜂仔]"
    ],
    "aliases_en": [
-    "蜂蛹[蜂胚、蜂仔]"
+    "bee pupa"
    ],
    "kcal": 100.0,
    "protein_g": 10.6,
@@ -4781,14 +4781,14 @@
   {
    "id": "cfct-219015",
    "name_zh": "蜂蛹(油蜂, 干)",
-   "name_en": "蜂蛹(油蜂, 干)",
+   "name_en": "Bee pupa",
    "aliases_zh": [
     "蜂蛹",
     "蜂蛹(油蜂, 干)",
     "蜂蛹（油蜂, 干）"
    ],
    "aliases_en": [
-    "蜂蛹(油蜂, 干)"
+    "bee pupa"
    ],
    "kcal": 669.0,
    "protein_g": 20.0,
@@ -4801,14 +4801,14 @@
   {
    "id": "cfct-219016",
    "name_zh": "蜂蛹(大黄蜂)",
-   "name_en": "蜂蛹(大黄蜂)",
+   "name_en": "Bee pupa",
    "aliases_zh": [
     "蜂蛹",
     "蜂蛹(大黄蜂)",
     "蜂蛹（大黄蜂）"
    ],
    "aliases_en": [
-    "蜂蛹(大黄蜂)"
+    "bee pupa"
    ],
    "kcal": 109.0,
    "protein_g": 12.1,
@@ -4821,12 +4821,12 @@
   {
    "id": "cfct-219022",
    "name_zh": "牛蛙",
-   "name_en": "牛蛙",
+   "name_en": "Bullfrog",
    "aliases_zh": [
     "牛蛙"
    ],
    "aliases_en": [
-    "牛蛙"
+    "bullfrog"
    ],
    "kcal": 81.0,
    "protein_g": 15.7,
@@ -4839,12 +4839,12 @@
   {
    "id": "cfct-219028",
    "name_zh": "鸡内金",
-   "name_en": "鸡内金",
+   "name_en": "Chicken gizzard lining",
    "aliases_zh": [
     "鸡内金"
    ],
    "aliases_en": [
-    "鸡内金"
+    "chicken gizzard lining"
    ],
    "kcal": 359.0,
    "protein_g": 83.1,
@@ -4857,12 +4857,12 @@
   {
    "id": "cfct-219029",
    "name_zh": "乌梢蛇",
-   "name_en": "乌梢蛇",
+   "name_en": "Black racer snake",
    "aliases_zh": [
     "乌梢蛇"
    ],
    "aliases_en": [
-    "乌梢蛇"
+    "black racer snake"
    ],
    "kcal": 219.0,
    "protein_g": 49.4,
@@ -4875,12 +4875,12 @@
   {
    "id": "cfct-219030",
    "name_zh": "团螵蛸",
-   "name_en": "团螵蛸",
+   "name_en": "Mantis egg case",
    "aliases_zh": [
     "团螵蛸"
    ],
    "aliases_en": [
-    "团螵蛸"
+    "mantis egg case"
    ],
    "kcal": 365.0,
    "protein_g": 70.2,
@@ -4893,12 +4893,12 @@
   {
    "id": "cfct-219031",
    "name_zh": "阿胶",
-   "name_en": "阿胶",
+   "name_en": "Donkey-hide gelatin",
    "aliases_zh": [
     "阿胶"
    ],
    "aliases_en": [
-    "阿胶"
+    "donkey-hide gelatin"
    ],
    "kcal": 383.0,
    "protein_g": 73.0,
@@ -4911,12 +4911,12 @@
   {
    "id": "cfct-219032",
    "name_zh": "珍珠",
-   "name_en": "珍珠",
+   "name_en": "Pearl",
    "aliases_zh": [
     "珍珠"
    ],
    "aliases_en": [
-    "珍珠"
+    "pearl"
    ],
    "kcal": 18.0,
    "protein_g": 2.0,
@@ -4929,12 +4929,12 @@
   {
    "id": "cfct-219033",
    "name_zh": "牛黄",
-   "name_en": "牛黄",
+   "name_en": "Calculus bovis",
    "aliases_zh": [
     "牛黄"
    ],
    "aliases_en": [
-    "牛黄"
+    "calculus bovis"
    ],
    "kcal": 353.0,
    "protein_g": 48.0,
@@ -4947,14 +4947,14 @@
   {
    "id": "cfct-219034",
    "name_zh": "马鹿胎(粉)",
-   "name_en": "马鹿胎(粉)",
+   "name_en": "Elk fetus",
    "aliases_zh": [
     "马鹿胎",
     "马鹿胎(粉)",
     "马鹿胎（粉）"
    ],
    "aliases_en": [
-    "马鹿胎(粉)"
+    "elk fetus"
    ],
    "kcal": 342.0,
    "protein_g": 36.8,
@@ -4967,12 +4967,12 @@
   {
    "id": "cfct-219035",
    "name_zh": "蛤蚧",
-   "name_en": "蛤蚧",
+   "name_en": "Gecko",
    "aliases_zh": [
     "蛤蚧"
    ],
    "aliases_en": [
-    "蛤蚧"
+    "gecko"
    ],
    "kcal": 382.0,
    "protein_g": 70.8,
@@ -4985,12 +4985,12 @@
   {
    "id": "cfct-219036",
    "name_zh": "燕窝",
-   "name_en": "燕窝",
+   "name_en": "Edible bird's nest",
    "aliases_zh": [
     "燕窝"
    ],
    "aliases_en": [
-    "燕窝"
+    "edible bird's nest"
    ],
    "kcal": 320.0,
    "protein_g": 57.9,
@@ -5003,12 +5003,12 @@
   {
    "id": "cfct-219038",
    "name_zh": "蛤蟆油",
-   "name_en": "蛤蟆油",
+   "name_en": "Oviduct of forest frog",
    "aliases_zh": [
     "蛤蟆油"
    ],
    "aliases_en": [
-    "蛤蟆油"
+    "oviduct of forest frog"
    ],
    "kcal": 241.0,
    "protein_g": 31.4,
@@ -5021,12 +5021,12 @@
   {
    "id": "cfct-219039",
    "name_zh": "龟甲",
-   "name_en": "龟甲",
+   "name_en": "Tortoise shell",
    "aliases_zh": [
     "龟甲"
    ],
    "aliases_en": [
-    "龟甲"
+    "tortoise shell"
    ],
    "kcal": 134.0,
    "protein_g": 26.4,
@@ -5039,12 +5039,12 @@
   {
    "id": "cfct-219040",
    "name_zh": "刺猬皮",
-   "name_en": "刺猬皮",
+   "name_en": "Hedgehog skin",
    "aliases_zh": [
     "刺猬皮"
    ],
    "aliases_en": [
-    "刺猬皮"
+    "hedgehog skin"
    ],
    "kcal": 357.0,
    "protein_g": 69.2,
@@ -5057,14 +5057,14 @@
   {
    "id": "cfct-219042",
    "name_zh": "裙边(干)",
-   "name_en": "裙边(干)",
+   "name_en": "Softshell turtle edge",
    "aliases_zh": [
     "裙边",
     "裙边(干)",
     "裙边（干）"
    ],
    "aliases_en": [
-    "裙边(干)"
+    "softshell turtle edge"
    ],
    "kcal": 337.0,
    "protein_g": 81.6,
@@ -5077,14 +5077,14 @@
   {
    "id": "cfct-219043",
    "name_zh": "鱼肚(干)",
-   "name_en": "鱼肚(干)",
+   "name_en": "Fish maw",
    "aliases_zh": [
     "鱼肚",
     "鱼肚(干)",
     "鱼肚（干）"
    ],
    "aliases_en": [
-    "鱼肚(干)"
+    "fish maw"
    ],
    "kcal": 312.0,
    "protein_g": 75.6,
@@ -5097,14 +5097,14 @@
   {
    "id": "cfct-219044",
    "name_zh": "鱼唇(干)",
-   "name_en": "鱼唇(干)",
+   "name_en": "Fish lip",
    "aliases_zh": [
     "鱼唇",
     "鱼唇(干)",
     "鱼唇（干）"
    ],
    "aliases_en": [
-    "鱼唇(干)"
+    "fish lip"
    ],
    "kcal": 347.0,
    "protein_g": 83.1,
@@ -11531,14 +11531,14 @@
   {
    "id": "cfct-089006",
    "name_zh": "鹿肉(养殖梅花鹿)",
-   "name_en": "鹿肉(养殖梅花鹿)",
+   "name_en": "Venison",
    "aliases_zh": [
     "鹿肉",
     "鹿肉(养殖梅花鹿)",
     "鹿肉（养殖梅花鹿）"
    ],
    "aliases_en": [
-    "鹿肉(养殖梅花鹿)"
+    "venison"
    ],
    "kcal": 92.0,
    "protein_g": 19.7,
@@ -11751,14 +11751,14 @@
   {
    "id": "cfct-082111",
    "name_zh": "牛肉(背部肉)[上脑]",
-   "name_en": "牛肉(背部肉)[上脑]",
+   "name_en": "Beef",
    "aliases_zh": [
     "牛肉(背部肉)[上脑]",
     "牛肉[上脑]",
     "牛肉（背部肉）[上脑]"
    ],
    "aliases_en": [
-    "牛肉(背部肉)[上脑]"
+    "beef"
    ],
    "kcal": 193.0,
    "protein_g": 17.4,
@@ -11771,14 +11771,14 @@
   {
    "id": "cfct-082112",
    "name_zh": "牛肉(里脊肉)[牛柳]",
-   "name_en": "牛肉(里脊肉)[牛柳]",
+   "name_en": "Beef",
    "aliases_zh": [
     "牛肉(里脊肉)[牛柳]",
     "牛肉[牛柳]",
     "牛肉（里脊肉）[牛柳]"
    ],
    "aliases_en": [
-    "牛肉(里脊肉)[牛柳]"
+    "beef"
    ],
    "kcal": 134.0,
    "protein_g": 22.3,
@@ -11791,14 +11791,14 @@
   {
    "id": "cfct-082113",
    "name_zh": "牛肉(臀部肉)[紫盖、白板]",
-   "name_en": "牛肉(臀部肉)[紫盖、白板]",
+   "name_en": "Beef",
    "aliases_zh": [
     "牛肉(臀部肉)[紫盖、白板]",
     "牛肉[紫盖、白板]",
     "牛肉（臀部肉）[紫盖、白板]"
    ],
    "aliases_en": [
-    "牛肉(臀部肉)[紫盖、白板]"
+    "beef"
    ],
    "kcal": 117.0,
    "protein_g": 22.6,
@@ -11811,14 +11811,14 @@
   {
    "id": "cfct-082114",
    "name_zh": "牛肉(肩部肉)[肩肉]",
-   "name_en": "牛肉(肩部肉)[肩肉]",
+   "name_en": "Beef",
    "aliases_zh": [
     "牛肉(肩部肉)[肩肉]",
     "牛肉[肩肉]",
     "牛肉（肩部肉）[肩肉]"
    ],
    "aliases_en": [
-    "牛肉(肩部肉)[肩肉]"
+    "beef"
    ],
    "kcal": 342.0,
    "protein_g": 14.1,
@@ -11831,14 +11831,14 @@
   {
    "id": "cfct-082115",
    "name_zh": "牛肉(胸部肉)[牛胸]",
-   "name_en": "牛肉(胸部肉)[牛胸]",
+   "name_en": "Beef",
    "aliases_zh": [
     "牛肉(胸部肉)[牛胸]",
     "牛肉[牛胸]",
     "牛肉（胸部肉）[牛胸]"
    ],
    "aliases_en": [
-    "牛肉(胸部肉)[牛胸]"
+    "beef"
    ],
    "kcal": 326.0,
    "protein_g": 16.6,
@@ -11851,14 +11851,14 @@
   {
    "id": "cfct-082116",
    "name_zh": "牛肉(腹部肉)[牛腩]",
-   "name_en": "牛肉(腹部肉)[牛腩]",
+   "name_en": "Beef",
    "aliases_zh": [
     "牛肉(腹部肉)[牛腩]",
     "牛肉[牛腩]",
     "牛肉（腹部肉）[牛腩]"
    ],
    "aliases_en": [
-    "牛肉(腹部肉)[牛腩]"
+    "beef"
    ],
    "kcal": 332.0,
    "protein_g": 17.1,
@@ -11871,14 +11871,14 @@
   {
    "id": "cfct-082117",
    "name_zh": "牛肉(膝圆肉)[和尚头]",
-   "name_en": "牛肉(膝圆肉)[和尚头]",
+   "name_en": "Beef",
    "aliases_zh": [
     "牛肉(膝圆肉)[和尚头]",
     "牛肉[和尚头]",
     "牛肉（膝圆肉）[和尚头]"
    ],
    "aliases_en": [
-    "牛肉(膝圆肉)[和尚头]"
+    "beef"
    ],
    "kcal": 106.0,
    "protein_g": 22.4,
@@ -11891,14 +11891,14 @@
   {
    "id": "cfct-082118",
    "name_zh": "牛肉(股内肉)[针扒、米龙、黄瓜条]",
-   "name_en": "牛肉(股内肉)[针扒、米龙、黄瓜条]",
+   "name_en": "Beef",
    "aliases_zh": [
     "牛肉(股内肉)[针扒、米龙、黄瓜条]",
     "牛肉[针扒、米龙、黄瓜条]",
     "牛肉（股内肉）[针扒、米龙、黄瓜条]"
    ],
    "aliases_en": [
-    "牛肉(股内肉)[针扒、米龙、黄瓜条]"
+    "beef"
    ],
    "kcal": 119.0,
    "protein_g": 22.8,
@@ -11911,14 +11911,14 @@
   {
    "id": "cfct-082119",
    "name_zh": "牛肉(小腿肉)[牛展、牛腱子]",
-   "name_en": "牛肉(小腿肉)[牛展、牛腱子]",
+   "name_en": "Beef",
    "aliases_zh": [
     "牛肉(小腿肉)[牛展、牛腱子]",
     "牛肉[牛展、牛腱子]",
     "牛肉（小腿肉）[牛展、牛腱子]"
    ],
    "aliases_en": [
-    "牛肉(小腿肉)[牛展、牛腱子]"
+    "beef"
    ],
    "kcal": 122.0,
    "protein_g": 23.0,
@@ -11931,12 +11931,12 @@
   {
    "id": "cfct-082120",
    "name_zh": "牦牛肉",
-   "name_en": "牦牛肉",
+   "name_en": "Yak beef",
    "aliases_zh": [
     "牦牛肉"
    ],
    "aliases_en": [
-    "牦牛肉"
+    "yak beef"
    ],
    "kcal": 119.0,
    "protein_g": 23.1,
@@ -11949,14 +11949,14 @@
   {
    "id": "cfct-082121",
    "name_zh": "牦牛牛腱肉(冻, 鲜)",
-   "name_en": "牦牛牛腱肉(冻, 鲜)",
+   "name_en": "Yak shank",
    "aliases_zh": [
     "牦牛牛腱肉",
     "牦牛牛腱肉(冻, 鲜)",
     "牦牛牛腱肉（冻, 鲜）"
    ],
    "aliases_en": [
-    "牦牛牛腱肉(冻, 鲜)"
+    "yak shank"
    ],
    "kcal": 100.0,
    "protein_g": 21.2,
@@ -11969,14 +11969,14 @@
   {
    "id": "cfct-082122",
    "name_zh": "牦牛牛霖肉(冻, 鲜)",
-   "name_en": "牦牛牛霖肉(冻, 鲜)",
+   "name_en": "Yak knuckle",
    "aliases_zh": [
     "牦牛牛霖肉",
     "牦牛牛霖肉(冻, 鲜)",
     "牦牛牛霖肉（冻, 鲜）"
    ],
    "aliases_en": [
-    "牦牛牛霖肉(冻, 鲜)"
+    "yak knuckle"
    ],
    "kcal": 110.0,
    "protein_g": 22.5,
@@ -12153,14 +12153,14 @@
   {
    "id": "cfct-082210",
    "name_zh": "牛百叶(黑)",
-   "name_en": "牛百叶(黑)",
+   "name_en": "Beef tripe",
    "aliases_zh": [
     "牛百叶",
     "牛百叶(黑)",
     "牛百叶（黑）"
    ],
    "aliases_en": [
-    "牛百叶(黑)"
+    "beef tripe"
    ],
    "kcal": 70.0,
    "protein_g": 13.2,
@@ -12285,14 +12285,14 @@
   {
    "id": "cfct-082307",
    "name_zh": "牛肉(酱, 五香)",
-   "name_en": "牛肉(酱, 五香)",
+   "name_en": "Beef",
    "aliases_zh": [
     "牛肉",
     "牛肉(酱, 五香)",
     "牛肉（酱, 五香）"
    ],
    "aliases_en": [
-    "牛肉(酱, 五香)"
+    "beef"
    ],
    "kcal": 229.0,
    "protein_g": 33.2,
@@ -12305,14 +12305,14 @@
   {
    "id": "cfct-082308",
    "name_zh": "牛肉(清香)",
-   "name_en": "牛肉(清香)",
+   "name_en": "Beef",
    "aliases_zh": [
     "牛肉",
     "牛肉(清香)",
     "牛肉（清香）"
    ],
    "aliases_en": [
-    "牛肉(清香)"
+    "beef"
    ],
    "kcal": 200.0,
    "protein_g": 25.8,
@@ -12325,14 +12325,14 @@
   {
    "id": "cfct-082309",
    "name_zh": "牛腱子(香叶)",
-   "name_en": "牛腱子(香叶)",
+   "name_en": "Beef shank",
    "aliases_zh": [
     "牛腱子",
     "牛腱子(香叶)",
     "牛腱子（香叶）"
    ],
    "aliases_en": [
-    "牛腱子(香叶)"
+    "beef shank"
    ],
    "kcal": 205.0,
    "protein_g": 35.6,
@@ -12345,14 +12345,14 @@
   {
    "id": "cfct-082310",
    "name_zh": "牛肉干(长富牌)",
-   "name_en": "牛肉干(长富牌)",
+   "name_en": "Beef jerky",
    "aliases_zh": [
     "牛肉干",
     "牛肉干(长富牌)",
     "牛肉干（长富牌）"
    ],
    "aliases_en": [
-    "牛肉干(长富牌)"
+    "beef jerky"
    ],
    "kcal": 342.0,
    "protein_g": 41.8,
@@ -12365,14 +12365,14 @@
   {
    "id": "cfct-082311",
    "name_zh": "牛肉干(沙爹牌)",
-   "name_en": "牛肉干(沙爹牌)",
+   "name_en": "Beef jerky",
    "aliases_zh": [
     "牛肉干",
     "牛肉干(沙爹牌)",
     "牛肉干（沙爹牌）"
    ],
    "aliases_en": [
-    "牛肉干(沙爹牌)"
+    "beef jerky"
    ],
    "kcal": 327.0,
    "protein_g": 40.1,
@@ -12565,14 +12565,14 @@
   {
    "id": "cfct-081110x",
    "name_zh": "猪肉(瘦, fat8g)",
-   "name_en": "猪肉(瘦, fat8g)",
+   "name_en": "Pork",
    "aliases_zh": [
     "猪肉",
     "猪肉(瘦, fat8g)",
     "猪肉（瘦, fat8g）"
    ],
    "aliases_en": [
-    "猪肉(瘦, fat8g)"
+    "pork"
    ],
    "kcal": 153.0,
    "protein_g": 20.7,
@@ -12605,14 +12605,14 @@
   {
    "id": "cfct-081111x",
    "name_zh": "猪肉(fat12g)",
-   "name_en": "猪肉(fat12g)",
+   "name_en": "Pork",
    "aliases_zh": [
     "猪肉",
     "猪肉(fat12g)",
     "猪肉（fat12g）"
    ],
    "aliases_en": [
-    "猪肉(fat12g)"
+    "pork"
    ],
    "kcal": 181.0,
    "protein_g": 19.0,
@@ -12771,14 +12771,14 @@
   {
    "id": "cfct-081121",
    "name_zh": "猪肉(前臀尖, 杜长大猪)",
-   "name_en": "猪肉(前臀尖, 杜长大猪)",
+   "name_en": "Pork",
    "aliases_zh": [
     "猪肉",
     "猪肉(前臀尖, 杜长大猪)",
     "猪肉（前臀尖, 杜长大猪）"
    ],
    "aliases_en": [
-    "猪肉(前臀尖, 杜长大猪)"
+    "pork"
    ],
    "kcal": 289.0,
    "protein_g": 15.3,
@@ -12791,14 +12791,14 @@
   {
    "id": "cfct-081122",
    "name_zh": "猪肉(前臀尖, 良杂猪)",
-   "name_en": "猪肉(前臀尖, 良杂猪)",
+   "name_en": "Pork",
    "aliases_zh": [
     "猪肉",
     "猪肉(前臀尖, 良杂猪)",
     "猪肉（前臀尖, 良杂猪）"
    ],
    "aliases_en": [
-    "猪肉(前臀尖, 良杂猪)"
+    "pork"
    ],
    "kcal": 334.0,
    "protein_g": 14.2,
@@ -12811,14 +12811,14 @@
   {
    "id": "cfct-081123",
    "name_zh": "猪肉(后臀尖, 杜长大猪)",
-   "name_en": "猪肉(后臀尖, 杜长大猪)",
+   "name_en": "Pork",
    "aliases_zh": [
     "猪肉",
     "猪肉(后臀尖, 杜长大猪)",
     "猪肉（后臀尖, 杜长大猪）"
    ],
    "aliases_en": [
-    "猪肉(后臀尖, 杜长大猪)"
+    "pork"
    ],
    "kcal": 165.0,
    "protein_g": 20.8,
@@ -12831,14 +12831,14 @@
   {
    "id": "cfct-081124",
    "name_zh": "猪肉(后臀尖, 良杂猪)",
-   "name_en": "猪肉(后臀尖, 良杂猪)",
+   "name_en": "Pork",
    "aliases_zh": [
     "猪肉",
     "猪肉(后臀尖, 良杂猪)",
     "猪肉（后臀尖, 良杂猪）"
    ],
    "aliases_en": [
-    "猪肉(后臀尖, 良杂猪)"
+    "pork"
    ],
    "kcal": 175.0,
    "protein_g": 20.0,
@@ -12851,14 +12851,14 @@
   {
    "id": "cfct-081125",
    "name_zh": "猪肉(硬肋, 杜长大猪)",
-   "name_en": "猪肉(硬肋, 杜长大猪)",
+   "name_en": "Pork",
    "aliases_zh": [
     "猪肉",
     "猪肉(硬肋, 杜长大猪)",
     "猪肉（硬肋, 杜长大猪）"
    ],
    "aliases_en": [
-    "猪肉(硬肋, 杜长大猪)"
+    "pork"
    ],
    "kcal": 557.0,
    "protein_g": 10.8,
@@ -12871,14 +12871,14 @@
   {
    "id": "cfct-081126",
    "name_zh": "猪肉(硬肋, 良杂猪)",
-   "name_en": "猪肉(硬肋, 良杂猪)",
+   "name_en": "Pork",
    "aliases_zh": [
     "猪肉",
     "猪肉(硬肋, 良杂猪)",
     "猪肉（硬肋, 良杂猪）"
    ],
    "aliases_en": [
-    "猪肉(硬肋, 良杂猪)"
+    "pork"
    ],
    "kcal": 536.0,
    "protein_g": 11.6,
@@ -12891,14 +12891,14 @@
   {
    "id": "cfct-081127",
    "name_zh": "猪肉(通脊, 杜长大猪)",
-   "name_en": "猪肉(通脊, 杜长大猪)",
+   "name_en": "Pork",
    "aliases_zh": [
     "猪肉",
     "猪肉(通脊, 杜长大猪)",
     "猪肉（通脊, 杜长大猪）"
    ],
    "aliases_en": [
-    "猪肉(通脊, 杜长大猪)"
+    "pork"
    ],
    "kcal": 159.0,
    "protein_g": 22.3,
@@ -12911,14 +12911,14 @@
   {
    "id": "cfct-081128",
    "name_zh": "猪肉(通脊, 良杂猪)",
-   "name_en": "猪肉(通脊, 良杂猪)",
+   "name_en": "Pork",
    "aliases_zh": [
     "猪肉",
     "猪肉(通脊, 良杂猪)",
     "猪肉（通脊, 良杂猪）"
    ],
    "aliases_en": [
-    "猪肉(通脊, 良杂猪)"
+    "pork"
    ],
    "kcal": 140.0,
    "protein_g": 20.7,
@@ -12931,14 +12931,14 @@
   {
    "id": "cfct-081129",
    "name_zh": "猪肉(里脊)",
-   "name_en": "猪肉(里脊)",
+   "name_en": "Pork",
    "aliases_zh": [
     "猪肉",
     "猪肉(里脊)",
     "猪肉（里脊）"
    ],
    "aliases_en": [
-    "猪肉(里脊)"
+    "pork"
    ],
    "kcal": 150.0,
    "protein_g": 19.6,
@@ -12951,12 +12951,12 @@
   {
    "id": "cfct-081130",
    "name_zh": "猪皮",
-   "name_en": "猪皮",
+   "name_en": "Pork skin",
    "aliases_zh": [
     "猪皮"
    ],
    "aliases_en": [
-    "猪皮"
+    "pork skin"
    ],
    "kcal": 363.0,
    "protein_g": 27.4,
@@ -12969,14 +12969,14 @@
   {
    "id": "cfct-081131",
    "name_zh": "猪小排(杜长大猪)",
-   "name_en": "猪小排(杜长大猪)",
+   "name_en": "Pork ribs",
    "aliases_zh": [
     "猪小排",
     "猪小排(杜长大猪)",
     "猪小排（杜长大猪）"
    ],
    "aliases_en": [
-    "猪小排(杜长大猪)"
+    "pork ribs"
    ],
    "kcal": 295.0,
    "protein_g": 16.8,
@@ -12989,14 +12989,14 @@
   {
    "id": "cfct-081132",
    "name_zh": "猪小排(良杂猪)",
-   "name_en": "猪小排(良杂猪)",
+   "name_en": "Pork ribs",
    "aliases_zh": [
     "猪小排",
     "猪小排(良杂猪)",
     "猪小排（良杂猪）"
    ],
    "aliases_en": [
-    "猪小排(良杂猪)"
+    "pork ribs"
    ],
    "kcal": 351.0,
    "protein_g": 14.1,
@@ -13009,14 +13009,14 @@
   {
    "id": "cfct-081133",
    "name_zh": "猪腿肉(藏香猪)",
-   "name_en": "猪腿肉(藏香猪)",
+   "name_en": "Pork leg",
    "aliases_zh": [
     "猪腿肉",
     "猪腿肉(藏香猪)",
     "猪腿肉（藏香猪）"
    ],
    "aliases_en": [
-    "猪腿肉(藏香猪)"
+    "pork leg"
    ],
    "kcal": 268.0,
    "protein_g": 17.5,
@@ -13101,14 +13101,14 @@
   {
    "id": "cfct-081209",
    "name_zh": "猪肾(fat8g)[猪腰子]",
-   "name_en": "猪肾(fat8g)[猪腰子]",
+   "name_en": "Pork kidney",
    "aliases_zh": [
     "猪肾(fat8g)[猪腰子]",
     "猪肾[猪腰子]",
     "猪肾（fat8g）[猪腰子]"
    ],
    "aliases_en": [
-    "猪肾(fat8g)[猪腰子]"
+    "pork kidney"
    ],
    "kcal": 137.0,
    "protein_g": 16.0,
@@ -13175,12 +13175,12 @@
   {
    "id": "cfct-081213",
    "name_zh": "猪肚",
-   "name_en": "猪肚",
+   "name_en": "Pork tripe",
    "aliases_zh": [
     "猪肚"
    ],
    "aliases_en": [
-    "猪肚"
+    "pork tripe"
    ],
    "kcal": 97.0,
    "protein_g": 14.1,
@@ -13193,12 +13193,12 @@
   {
    "id": "cfct-081214",
    "name_zh": "猪肝",
-   "name_en": "猪肝",
+   "name_en": "Pork liver",
    "aliases_zh": [
     "猪肝"
    ],
    "aliases_en": [
-    "猪肝"
+    "pork liver"
    ],
    "kcal": 126.0,
    "protein_g": 19.2,
@@ -13211,12 +13211,12 @@
   {
    "id": "cfct-081215",
    "name_zh": "猪舌[口条]",
-   "name_en": "猪舌[口条]",
+   "name_en": "Pork tongue",
    "aliases_zh": [
     "猪舌[口条]"
    ],
    "aliases_en": [
-    "猪舌[口条]"
+    "pork tongue"
    ],
    "kcal": 184.0,
    "protein_g": 18.1,
@@ -13229,14 +13229,14 @@
   {
    "id": "cfct-081216",
    "name_zh": "猪肾(fat2g)[猪腰子]",
-   "name_en": "猪肾(fat2g)[猪腰子]",
+   "name_en": "Pork kidney",
    "aliases_zh": [
     "猪肾(fat2g)[猪腰子]",
     "猪肾[猪腰子]",
     "猪肾（fat2g）[猪腰子]"
    ],
    "aliases_en": [
-    "猪肾(fat2g)[猪腰子]"
+    "pork kidney"
    ],
    "kcal": 82.0,
    "protein_g": 15.8,
@@ -13537,14 +13537,14 @@
   {
    "id": "cfct-081318",
    "name_zh": "火腿心全精肉(雪舫蒋牌)",
-   "name_en": "火腿心全精肉(雪舫蒋牌)",
+   "name_en": "Ham center lean",
    "aliases_zh": [
     "火腿心全精肉",
     "火腿心全精肉(雪舫蒋牌)",
     "火腿心全精肉（雪舫蒋牌）"
    ],
    "aliases_en": [
-    "火腿心全精肉(雪舫蒋牌)"
+    "ham center lean"
    ],
    "kcal": 322.0,
    "protein_g": 37.0,
@@ -13557,14 +13557,14 @@
   {
    "id": "cfct-081319",
    "name_zh": "火腿心肉(生, 金云牌)",
-   "name_en": "火腿心肉(生, 金云牌)",
+   "name_en": "Ham center",
    "aliases_zh": [
     "火腿心肉",
     "火腿心肉(生, 金云牌)",
     "火腿心肉（生, 金云牌）"
    ],
    "aliases_en": [
-    "火腿心肉(生, 金云牌)"
+    "ham center"
    ],
    "kcal": 528.0,
    "protein_g": 22.2,
@@ -13577,14 +13577,14 @@
   {
    "id": "cfct-081320",
    "name_zh": "腊肉(生, fat68g)",
-   "name_en": "腊肉(生, fat68g)",
+   "name_en": "Cured pork",
    "aliases_zh": [
     "腊肉",
     "腊肉(生, fat68g)",
     "腊肉（生, fat68g）"
    ],
    "aliases_en": [
-    "腊肉(生, fat68g)"
+    "cured pork"
    ],
    "kcal": 692.0,
    "protein_g": 18.2,
@@ -13597,12 +13597,12 @@
   {
    "id": "cfct-081321",
    "name_zh": "叉烧肉",
-   "name_en": "叉烧肉",
+   "name_en": "Char siu pork",
    "aliases_zh": [
     "叉烧肉"
    ],
    "aliases_en": [
-    "叉烧肉"
+    "char siu pork"
    ],
    "kcal": 196.0,
    "protein_g": 20.9,
@@ -13615,12 +13615,12 @@
   {
    "id": "cfct-081322",
    "name_zh": "酱排骨",
-   "name_en": "酱排骨",
+   "name_en": "Soy-braised pork ribs",
    "aliases_zh": [
     "酱排骨"
    ],
    "aliases_en": [
-    "酱排骨"
+    "soy-braised pork ribs"
    ],
    "kcal": 366.0,
    "protein_g": 21.7,
@@ -13633,14 +13633,14 @@
   {
    "id": "cfct-081323",
    "name_zh": "猪肉罐头(香糟块肉)",
-   "name_en": "猪肉罐头(香糟块肉)",
+   "name_en": "Canned pork",
    "aliases_zh": [
     "猪肉罐头",
     "猪肉罐头(香糟块肉)",
     "猪肉罐头（香糟块肉）"
    ],
    "aliases_en": [
-    "猪肉罐头(香糟块肉)"
+    "canned pork"
    ],
    "kcal": 542.0,
    "protein_g": 15.5,
@@ -13653,14 +13653,14 @@
   {
    "id": "cfct-081324",
    "name_zh": "猪里脊(熏烤小里脊)",
-   "name_en": "猪里脊(熏烤小里脊)",
+   "name_en": "Pork tenderloin",
    "aliases_zh": [
     "猪里脊",
     "猪里脊(熏烤小里脊)",
     "猪里脊（熏烤小里脊）"
    ],
    "aliases_en": [
-    "猪里脊(熏烤小里脊)"
+    "pork tenderloin"
    ],
    "kcal": 153.0,
    "protein_g": 17.7,
@@ -13673,12 +13673,12 @@
   {
    "id": "cfct-081325",
    "name_zh": "猪肉脯",
-   "name_en": "猪肉脯",
+   "name_en": "Pork jerky",
    "aliases_zh": [
     "猪肉脯"
    ],
    "aliases_en": [
-    "猪肉脯"
+    "pork jerky"
    ],
    "kcal": 378.0,
    "protein_g": 28.0,
@@ -13691,12 +13691,12 @@
   {
    "id": "cfct-081326",
    "name_zh": "肉酥",
-   "name_en": "肉酥",
+   "name_en": "Pork floss",
    "aliases_zh": [
     "肉酥"
    ],
    "aliases_en": [
-    "肉酥"
+    "pork floss"
    ],
    "kcal": 509.0,
    "protein_g": 30.7,
@@ -13709,12 +13709,12 @@
   {
    "id": "cfct-081328",
    "name_zh": "扒猪脸",
-   "name_en": "扒猪脸",
+   "name_en": "Braised pork cheek",
    "aliases_zh": [
     "扒猪脸"
    ],
    "aliases_en": [
-    "扒猪脸"
+    "braised pork cheek"
    ],
    "kcal": 347.0,
    "protein_g": 18.8,
@@ -13727,12 +13727,12 @@
   {
    "id": "cfct-081329",
    "name_zh": "酱肘子",
-   "name_en": "酱肘子",
+   "name_en": "Soy-braised pork knuckle",
    "aliases_zh": [
     "酱肘子"
    ],
    "aliases_en": [
-    "酱肘子"
+    "soy-braised pork knuckle"
    ],
    "kcal": 202.0,
    "protein_g": 29.6,
@@ -13745,14 +13745,14 @@
   {
    "id": "cfct-081330",
    "name_zh": "火腿肉(藏香猪)",
-   "name_en": "火腿肉(藏香猪)",
+   "name_en": "Ham",
    "aliases_zh": [
     "火腿肉",
     "火腿肉(藏香猪)",
     "火腿肉（藏香猪）"
    ],
    "aliases_en": [
-    "火腿肉(藏香猪)"
+    "ham"
    ],
    "kcal": 503.0,
    "protein_g": 29.1,
@@ -13765,14 +13765,14 @@
   {
    "id": "cfct-081331",
    "name_zh": "风干肉(藏香猪)",
-   "name_en": "风干肉(藏香猪)",
+   "name_en": "Air-dried meat",
    "aliases_zh": [
     "风干肉",
     "风干肉(藏香猪)",
     "风干肉（藏香猪）"
    ],
    "aliases_en": [
-    "风干肉(藏香猪)"
+    "air-dried meat"
    ],
    "kcal": 598.0,
    "protein_g": 27.1,
@@ -14191,12 +14191,12 @@
   {
    "id": "cfct-081423",
    "name_zh": "脆皮肠",
-   "name_en": "脆皮肠",
+   "name_en": "Crispy sausage",
    "aliases_zh": [
     "脆皮肠"
    ],
    "aliases_en": [
-    "脆皮肠"
+    "crispy sausage"
    ],
    "kcal": 302.0,
    "protein_g": 16.6,
@@ -14209,12 +14209,12 @@
   {
    "id": "cfct-081424",
    "name_zh": "热狗肠",
-   "name_en": "热狗肠",
+   "name_en": "Hot dog sausage",
    "aliases_zh": [
     "热狗肠"
    ],
    "aliases_en": [
-    "热狗肠"
+    "hot dog sausage"
    ],
    "kcal": 307.0,
    "protein_g": 13.2,
@@ -14227,14 +14227,14 @@
   {
    "id": "cfct-081425",
    "name_zh": "火腿肠(双汇牌)",
-   "name_en": "火腿肠(双汇牌)",
+   "name_en": "Ham sausage",
    "aliases_zh": [
     "火腿肠",
     "火腿肠(双汇牌)",
     "火腿肠（双汇牌）"
    ],
    "aliases_en": [
-    "火腿肠(双汇牌)"
+    "ham sausage"
    ],
    "kcal": 215.0,
    "protein_g": 12.1,
@@ -14247,14 +14247,14 @@
   {
    "id": "cfct-081426",
    "name_zh": "火腿(fat3g)",
-   "name_en": "火腿(fat3g)",
+   "name_en": "Ham",
    "aliases_zh": [
     "火腿",
     "火腿(fat3g)",
     "火腿（fat3g）"
    ],
    "aliases_en": [
-    "火腿(fat3g)"
+    "ham"
    ],
    "kcal": 99.0,
    "protein_g": 15.5,
@@ -14267,14 +14267,14 @@
   {
    "id": "cfct-081427",
    "name_zh": "火腿(宣威牌)",
-   "name_en": "火腿(宣威牌)",
+   "name_en": "Ham",
    "aliases_zh": [
     "火腿",
     "火腿(宣威牌)",
     "火腿（宣威牌）"
    ],
    "aliases_en": [
-    "火腿(宣威牌)"
+    "ham"
    ],
    "kcal": 565.0,
    "protein_g": 11.4,
@@ -14287,12 +14287,12 @@
   {
    "id": "cfct-081428",
    "name_zh": "三明治火腿",
-   "name_en": "三明治火腿",
+   "name_en": "Sandwich ham",
    "aliases_zh": [
     "三明治火腿"
    ],
    "aliases_en": [
-    "三明治火腿"
+    "sandwich ham"
    ],
    "kcal": 115.0,
    "protein_g": 12.5,
@@ -14305,14 +14305,14 @@
   {
    "id": "cfct-081429",
    "name_zh": "午餐肉(上海梅林牌)",
-   "name_en": "午餐肉(上海梅林牌)",
+   "name_en": "Luncheon meat",
    "aliases_zh": [
     "午餐肉",
     "午餐肉(上海梅林牌)",
     "午餐肉（上海梅林牌）"
    ],
    "aliases_en": [
-    "午餐肉(上海梅林牌)"
+    "luncheon meat"
    ],
    "kcal": 320.0,
    "protein_g": 9.0,
@@ -14565,14 +14565,14 @@
   {
    "id": "cfct-083113",
    "name_zh": "羊肉(上脑)",
-   "name_en": "羊肉(上脑)",
+   "name_en": "Lamb",
    "aliases_zh": [
     "羊肉",
     "羊肉(上脑)",
     "羊肉（上脑）"
    ],
    "aliases_en": [
-    "羊肉(上脑)"
+    "lamb"
    ],
    "kcal": 94.0,
    "protein_g": 19.0,
@@ -14585,14 +14585,14 @@
   {
    "id": "cfct-083114",
    "name_zh": "羊肉(腰窝)",
-   "name_en": "羊肉(腰窝)",
+   "name_en": "Lamb",
    "aliases_zh": [
     "羊肉",
     "羊肉(腰窝)",
     "羊肉（腰窝）"
    ],
    "aliases_en": [
-    "羊肉(腰窝)"
+    "lamb"
    ],
    "kcal": 135.0,
    "protein_g": 18.9,
@@ -14605,14 +14605,14 @@
   {
    "id": "cfct-083115",
    "name_zh": "羊肉(前腿)",
-   "name_en": "羊肉(前腿)",
+   "name_en": "Lamb",
    "aliases_zh": [
     "羊肉",
     "羊肉(前腿)",
     "羊肉（前腿）"
    ],
    "aliases_en": [
-    "羊肉(前腿)"
+    "lamb"
    ],
    "kcal": 97.0,
    "protein_g": 19.8,
@@ -14625,14 +14625,14 @@
   {
    "id": "cfct-083116",
    "name_zh": "羊肉(后腿)",
-   "name_en": "羊肉(后腿)",
+   "name_en": "Lamb",
    "aliases_zh": [
     "羊肉",
     "羊肉(后腿)",
     "羊肉（后腿）"
    ],
    "aliases_en": [
-    "羊肉(后腿)"
+    "lamb"
    ],
    "kcal": 111.0,
    "protein_g": 20.6,
@@ -14645,12 +14645,12 @@
   {
    "id": "cfct-083117",
    "name_zh": "羊肉片",
-   "name_en": "羊肉片",
+   "name_en": "Sliced lamb",
    "aliases_zh": [
     "羊肉片"
    ],
    "aliases_en": [
-    "羊肉片"
+    "sliced lamb"
    ],
    "kcal": 118.0,
    "protein_g": 18.0,
@@ -14981,14 +14981,14 @@
   {
    "id": "cfct-083309",
    "name_zh": "烧羊肉(五香)",
-   "name_en": "烧羊肉(五香)",
+   "name_en": "Roast lamb",
    "aliases_zh": [
     "烧羊肉",
     "烧羊肉(五香)",
     "烧羊肉（五香）"
    ],
    "aliases_en": [
-    "烧羊肉(五香)"
+    "roast lamb"
    ],
    "kcal": 183.0,
    "protein_g": 33.6,
@@ -15001,14 +15001,14 @@
   {
    "id": "cfct-083310",
    "name_zh": "羊肉串(生)",
-   "name_en": "羊肉串(生)",
+   "name_en": "Lamb skewer",
    "aliases_zh": [
     "羊肉串",
     "羊肉串(生)",
     "羊肉串（生）"
    ],
    "aliases_en": [
-    "羊肉串(生)"
+    "lamb skewer"
    ],
    "kcal": 118.0,
    "protein_g": 13.0,
@@ -15175,14 +15175,14 @@
   {
    "id": "cfct-084304",
    "name_zh": "驴肉(五香)",
-   "name_en": "驴肉(五香)",
+   "name_en": "Donkey meat",
    "aliases_zh": [
     "驴肉",
     "驴肉(五香)",
     "驴肉（五香）"
    ],
    "aliases_en": [
-    "驴肉(五香)"
+    "donkey meat"
    ],
    "kcal": 167.0,
    "protein_g": 28.2,
@@ -15231,12 +15231,12 @@
   {
    "id": "cfct-099003",
    "name_zh": "乳鸽",
-   "name_en": "乳鸽",
+   "name_en": "Squab",
    "aliases_zh": [
     "乳鸽"
    ],
    "aliases_en": [
-    "乳鸽"
+    "squab"
    ],
    "kcal": 352.0,
    "protein_g": 11.3,
@@ -15249,14 +15249,14 @@
   {
    "id": "cfct-099004",
    "name_zh": "乳鸽(红烧)",
-   "name_en": "乳鸽(红烧)",
+   "name_en": "Squab",
    "aliases_zh": [
     "乳鸽",
     "乳鸽(红烧)",
     "乳鸽（红烧）"
    ],
    "aliases_en": [
-    "乳鸽(红烧)"
+    "squab"
    ],
    "kcal": 255.0,
    "protein_g": 16.9,
@@ -15341,14 +15341,14 @@
   {
    "id": "cfct-094301",
    "name_zh": "火鸡腿(熟)",
-   "name_en": "火鸡腿(熟)",
+   "name_en": "Turkey leg",
    "aliases_zh": [
     "火鸡腿",
     "火鸡腿(熟)",
     "火鸡腿（熟）"
    ],
    "aliases_en": [
-    "火鸡腿(熟)"
+    "turkey leg"
    ],
    "kcal": 100.0,
    "protein_g": 16.7,
@@ -15515,12 +15515,12 @@
   {
    "id": "cfct-091112",
    "name_zh": "鸡胸脯肉",
-   "name_en": "鸡胸脯肉",
+   "name_en": "Chicken breast",
    "aliases_zh": [
     "鸡胸脯肉"
    ],
    "aliases_en": [
-    "鸡胸脯肉"
+    "chicken breast"
    ],
    "kcal": 118.0,
    "protein_g": 24.6,
@@ -15533,12 +15533,12 @@
   {
    "id": "cfct-091113",
    "name_zh": "鸡腿",
-   "name_en": "鸡腿",
+   "name_en": "Chicken leg",
    "aliases_zh": [
     "鸡腿"
    ],
    "aliases_en": [
-    "鸡腿"
+    "chicken leg"
    ],
    "kcal": 146.0,
    "protein_g": 20.2,
@@ -15551,12 +15551,12 @@
   {
    "id": "cfct-091114",
    "name_zh": "鸡翅",
-   "name_en": "鸡翅",
+   "name_en": "Chicken wing",
    "aliases_zh": [
     "鸡翅"
    ],
    "aliases_en": [
-    "鸡翅"
+    "chicken wing"
    ],
    "kcal": 202.0,
    "protein_g": 19.0,
@@ -15569,14 +15569,14 @@
   {
    "id": "cfct-091115",
    "name_zh": "鸡块(带浆粉)",
-   "name_en": "鸡块(带浆粉)",
+   "name_en": "Chicken pieces",
    "aliases_zh": [
     "鸡块",
     "鸡块(带浆粉)",
     "鸡块（带浆粉）"
    ],
    "aliases_en": [
-    "鸡块(带浆粉)"
+    "chicken pieces"
    ],
    "kcal": 206.0,
    "protein_g": 12.2,
@@ -15589,12 +15589,12 @@
   {
    "id": "cfct-091116",
    "name_zh": "野山鸡",
-   "name_en": "野山鸡",
+   "name_en": "Pheasant",
    "aliases_zh": [
     "野山鸡"
    ],
    "aliases_en": [
-    "野山鸡"
+    "pheasant"
    ],
    "kcal": 126.0,
    "protein_g": 20.4,
@@ -15811,14 +15811,14 @@
   {
    "id": "cfct-091308",
    "name_zh": "扒鸡(五香脱骨)",
-   "name_en": "扒鸡(五香脱骨)",
+   "name_en": "Braised chicken",
    "aliases_zh": [
     "扒鸡",
     "扒鸡(五香脱骨)",
     "扒鸡（五香脱骨）"
    ],
    "aliases_en": [
-    "扒鸡(五香脱骨)"
+    "braised chicken"
    ],
    "kcal": 206.0,
    "protein_g": 23.4,
@@ -15831,12 +15831,12 @@
   {
    "id": "cfct-091309",
    "name_zh": "烤鸡",
-   "name_en": "烤鸡",
+   "name_en": "Roast chicken",
    "aliases_zh": [
     "烤鸡"
    ],
    "aliases_en": [
-    "烤鸡"
+    "roast chicken"
    ],
    "kcal": 265.0,
    "protein_g": 28.1,
@@ -15849,14 +15849,14 @@
   {
    "id": "cfct-091310",
    "name_zh": "童子鸡(熟)",
-   "name_en": "童子鸡(熟)",
+   "name_en": "Spring chicken",
    "aliases_zh": [
     "童子鸡",
     "童子鸡(熟)",
     "童子鸡（熟）"
    ],
    "aliases_en": [
-    "童子鸡(熟)"
+    "spring chicken"
    ],
    "kcal": 226.0,
    "protein_g": 15.8,
@@ -16245,12 +16245,12 @@
   {
    "id": "cfct-092214",
    "name_zh": "鸭豉片",
-   "name_en": "鸭豉片",
+   "name_en": "Dried smoked duck slice",
    "aliases_zh": [
     "鸭豉片"
    ],
    "aliases_en": [
-    "鸭豉片"
+    "dried smoked duck slice"
    ],
    "kcal": 603.0,
    "protein_g": 18.3,
@@ -16377,14 +16377,14 @@
   {
    "id": "cfct-092307",
    "name_zh": "烤鸭(老唐牌)",
-   "name_en": "烤鸭(老唐牌)",
+   "name_en": "Roast duck",
    "aliases_zh": [
     "烤鸭",
     "烤鸭(老唐牌)",
     "烤鸭（老唐牌）"
    ],
    "aliases_en": [
-    "烤鸭(老唐牌)"
+    "roast duck"
    ],
    "kcal": 309.0,
    "protein_g": 20.3,
@@ -16397,14 +16397,14 @@
   {
    "id": "cfct-092308",
    "name_zh": "烤鸭(全聚德牌)",
-   "name_en": "烤鸭(全聚德牌)",
+   "name_en": "Roast duck",
    "aliases_zh": [
     "烤鸭",
     "烤鸭(全聚德牌)",
     "烤鸭（全聚德牌）"
    ],
    "aliases_en": [
-    "烤鸭(全聚德牌)"
+    "roast duck"
    ],
    "kcal": 530.0,
    "protein_g": 18.1,
@@ -16471,12 +16471,12 @@
   {
    "id": "cfct-093203",
    "name_zh": "鹅血",
-   "name_en": "鹅血",
+   "name_en": "Goose blood curd",
    "aliases_zh": [
     "鹅血"
    ],
    "aliases_en": [
-    "鹅血"
+    "goose blood curd"
    ],
    "kcal": 74.0,
    "protein_g": 18.6,
@@ -16507,12 +16507,12 @@
   {
    "id": "cfct-093302",
    "name_zh": "腊鹅",
-   "name_en": "腊鹅",
+   "name_en": "Cured goose",
    "aliases_zh": [
     "腊鹅"
    ],
    "aliases_en": [
-    "腊鹅"
+    "cured goose"
    ],
    "kcal": 410.0,
    "protein_g": 24.6,
@@ -17363,14 +17363,14 @@
   {
    "id": "cfct-051045",
    "name_zh": "牛肝菌(鲜)[黄皮牛肝菌、黄皮疣柄牛肝菌、黄癞头]",
-   "name_en": "牛肝菌(鲜)[黄皮牛肝菌、黄皮疣柄牛肝菌、黄癞头]",
+   "name_en": "Porcini mushroom",
    "aliases_zh": [
     "牛肝菌(鲜)[黄皮牛肝菌、黄皮疣柄牛肝菌、黄癞头]",
     "牛肝菌[黄皮牛肝菌、黄皮疣柄牛肝菌、黄癞头]",
     "牛肝菌（鲜）[黄皮牛肝菌、黄皮疣柄牛肝菌、黄癞头]"
    ],
    "aliases_en": [
-    "牛肝菌(鲜)[黄皮牛肝菌、黄皮疣柄牛肝菌、黄癞头]"
+    "porcini mushroom"
    ],
    "kcal": 32.0,
    "protein_g": 4.3,
@@ -20135,12 +20135,12 @@
   {
    "id": "cfct-046011",
    "name_zh": "红菱",
-   "name_en": "红菱",
+   "name_en": "Water caltrop",
    "aliases_zh": [
     "红菱"
    ],
    "aliases_en": [
-    "红菱"
+    "water caltrop"
    ],
    "kcal": 165.0,
    "protein_g": 5.7,
@@ -24213,14 +24213,14 @@
   {
    "id": "cfct-111109",
    "name_zh": "鸡蛋(红皮)",
-   "name_en": "鸡蛋(红皮)",
+   "name_en": "Chicken egg",
    "aliases_zh": [
     "鸡蛋",
     "鸡蛋(红皮)",
     "鸡蛋（红皮）"
    ],
    "aliases_en": [
-    "鸡蛋(红皮)"
+    "chicken egg"
    ],
    "kcal": 143.0,
    "protein_g": 12.2,
@@ -24233,14 +24233,14 @@
   {
    "id": "cfct-111110",
    "name_zh": "鸡蛋(藏鸡蛋)",
-   "name_en": "鸡蛋(藏鸡蛋)",
+   "name_en": "Chicken egg",
    "aliases_zh": [
     "鸡蛋",
     "鸡蛋(藏鸡蛋)",
     "鸡蛋（藏鸡蛋）"
    ],
    "aliases_en": [
-    "鸡蛋(藏鸡蛋)"
+    "chicken egg"
    ],
    "kcal": 162.0,
    "protein_g": 12.6,
@@ -24253,14 +24253,14 @@
   {
    "id": "cfct-111111",
    "name_zh": "鸡蛋(乌鸡蛋, 绿皮)",
-   "name_en": "鸡蛋(乌鸡蛋, 绿皮)",
+   "name_en": "Chicken egg",
    "aliases_zh": [
     "鸡蛋",
     "鸡蛋(乌鸡蛋, 绿皮)",
     "鸡蛋（乌鸡蛋, 绿皮）"
    ],
    "aliases_en": [
-    "鸡蛋(乌鸡蛋, 绿皮)"
+    "chicken egg"
    ],
    "kcal": 170.0,
    "protein_g": 12.6,
@@ -24329,14 +24329,14 @@
   {
    "id": "cfct-111204",
    "name_zh": "鸡蛋(煮)",
-   "name_en": "鸡蛋(煮)",
+   "name_en": "Chicken egg",
    "aliases_zh": [
     "鸡蛋",
     "鸡蛋(煮)",
     "鸡蛋（煮）"
    ],
    "aliases_en": [
-    "鸡蛋(煮)"
+    "chicken egg"
    ],
    "kcal": 143.0,
    "protein_g": 12.1,
@@ -24349,12 +24349,12 @@
   {
    "id": "cfct-111205",
    "name_zh": "毛蛋",
-   "name_en": "毛蛋",
+   "name_en": "Balut",
    "aliases_zh": [
     "毛蛋"
    ],
    "aliases_en": [
-    "毛蛋"
+    "balut"
    ],
    "kcal": 176.0,
    "protein_g": 14.2,
@@ -24367,14 +24367,14 @@
   {
    "id": "cfct-111206",
    "name_zh": "荷包蛋(油煎)",
-   "name_en": "荷包蛋(油煎)",
+   "name_en": "Fried egg",
    "aliases_zh": [
     "荷包蛋",
     "荷包蛋(油煎)",
     "荷包蛋（油煎）"
    ],
    "aliases_en": [
-    "荷包蛋(油煎)"
+    "fried egg"
    ],
    "kcal": 195.0,
    "protein_g": 13.5,
@@ -24387,14 +24387,14 @@
   {
    "id": "cfct-111207",
    "name_zh": "荷包蛋(煮)",
-   "name_en": "荷包蛋(煮)",
+   "name_en": "Fried egg",
    "aliases_zh": [
     "荷包蛋",
     "荷包蛋(煮)",
     "荷包蛋（煮）"
    ],
    "aliases_en": [
-    "荷包蛋(煮)"
+    "fried egg"
    ],
    "kcal": 155.0,
    "protein_g": 12.3,
@@ -24461,12 +24461,12 @@
   {
    "id": "cfct-112104",
    "name_zh": "海鸭蛋",
-   "name_en": "海鸭蛋",
+   "name_en": "Duck egg (sea duck)",
    "aliases_zh": [
     "海鸭蛋"
    ],
    "aliases_en": [
-    "海鸭蛋"
+    "duck egg (sea duck)"
    ],
    "kcal": 243.0,
    "protein_g": 12.7,
@@ -24519,14 +24519,14 @@
   {
    "id": "cfct-112203",
    "name_zh": "鸭蛋(咸鸭蛋, 煮)",
-   "name_en": "鸭蛋(咸鸭蛋, 煮)",
+   "name_en": "Duck egg",
    "aliases_zh": [
     "鸭蛋",
     "鸭蛋(咸鸭蛋, 煮)",
     "鸭蛋（咸鸭蛋, 煮）"
    ],
    "aliases_en": [
-    "鸭蛋(咸鸭蛋, 煮)"
+    "duck egg"
    ],
    "kcal": 177.0,
    "protein_g": 13.8,
@@ -24593,14 +24593,14 @@
   {
    "id": "cfct-113104",
    "name_zh": "鹅蛋(煮)",
-   "name_en": "鹅蛋(煮)",
+   "name_en": "Goose egg",
    "aliases_zh": [
     "鹅蛋",
     "鹅蛋(煮)",
     "鹅蛋（煮）"
    ],
    "aliases_en": [
-    "鹅蛋(煮)"
+    "goose egg"
    ],
    "kcal": 177.0,
    "protein_g": 12.7,
@@ -27047,12 +27047,12 @@
   {
    "id": "cfct-129014",
    "name_zh": "甲鱼蛋",
-   "name_en": "甲鱼蛋",
+   "name_en": "Softshell turtle egg",
    "aliases_zh": [
     "甲鱼蛋"
    ],
    "aliases_en": [
-    "甲鱼蛋"
+    "softshell turtle egg"
    ],
    "kcal": 128.0,
    "protein_g": 12.5,
@@ -27065,14 +27065,14 @@
   {
    "id": "cfct-129015",
    "name_zh": "乌龟(龟板)",
-   "name_en": "乌龟(龟板)",
+   "name_en": "Turtle",
    "aliases_zh": [
     "乌龟",
     "乌龟(龟板)",
     "乌龟（龟板）"
    ],
    "aliases_en": [
-    "乌龟(龟板)"
+    "turtle"
    ],
    "kcal": 466.0,
    "protein_g": 9.9,
@@ -27085,14 +27085,14 @@
   {
    "id": "cfct-129016",
    "name_zh": "乌龟(肉)",
-   "name_en": "乌龟(肉)",
+   "name_en": "Turtle",
    "aliases_zh": [
     "乌龟",
     "乌龟(肉)",
     "乌龟（肉）"
    ],
    "aliases_en": [
-    "乌龟(肉)"
+    "turtle"
    ],
    "kcal": 250.0,
    "protein_g": 14.5,
@@ -27105,14 +27105,14 @@
   {
    "id": "cfct-129017",
    "name_zh": "金鲨鱼翅(干)",
-   "name_en": "金鲨鱼翅(干)",
+   "name_en": "Fish fin (golden shark)",
    "aliases_zh": [
     "金鲨鱼翅",
     "金鲨鱼翅(干)",
     "金鲨鱼翅（干）"
    ],
    "aliases_en": [
-    "金鲨鱼翅(干)"
+    "fish fin (golden shark)"
    ],
    "kcal": 350.0,
    "protein_g": 84.1,
@@ -27125,14 +27125,14 @@
   {
    "id": "cfct-129018",
    "name_zh": "鱼翅(干)",
-   "name_en": "鱼翅(干)",
+   "name_en": "Shark fin",
    "aliases_zh": [
     "鱼翅",
     "鱼翅(干)",
     "鱼翅（干）"
    ],
    "aliases_en": [
-    "鱼翅(干)"
+    "shark fin"
    ],
    "kcal": 362.0,
    "protein_g": 88.4,
@@ -27145,14 +27145,14 @@
   {
    "id": "cfct-129019",
    "name_zh": "棘参(鲜)",
-   "name_en": "棘参(鲜)",
+   "name_en": "Spiny sea cucumber",
    "aliases_zh": [
     "棘参",
     "棘参(鲜)",
     "棘参（鲜）"
    ],
    "aliases_en": [
-    "棘参(鲜)"
+    "spiny sea cucumber"
    ],
    "kcal": 21.0,
    "protein_g": 4.1,
@@ -27165,14 +27165,14 @@
   {
    "id": "cfct-129020",
    "name_zh": "海参(干)",
-   "name_en": "海参(干)",
+   "name_en": "Sea cucumber",
    "aliases_zh": [
     "海参",
     "海参(干)",
     "海参（干）"
    ],
    "aliases_en": [
-    "海参(干)"
+    "sea cucumber"
    ],
    "kcal": 302.0,
    "protein_g": 64.0,
@@ -27185,14 +27185,14 @@
   {
    "id": "cfct-129021",
    "name_zh": "梅花参(泡发)",
-   "name_en": "梅花参(泡发)",
+   "name_en": "Thelenota ananas sea cucumber",
    "aliases_zh": [
     "梅花参",
     "梅花参(泡发)",
     "梅花参（泡发）"
    ],
    "aliases_en": [
-    "梅花参(泡发)"
+    "thelenota ananas sea cucumber"
    ],
    "kcal": 73.0,
    "protein_g": 11.7,
@@ -27205,14 +27205,14 @@
   {
    "id": "cfct-129022",
    "name_zh": "墨鱼(干)",
-   "name_en": "墨鱼(干)",
+   "name_en": "Cuttlefish",
    "aliases_zh": [
     "墨鱼",
     "墨鱼(干)",
     "墨鱼（干）"
    ],
    "aliases_en": [
-    "墨鱼(干)"
+    "cuttlefish"
    ],
    "kcal": 313.0,
    "protein_g": 71.6,
@@ -27225,12 +27225,12 @@
   {
    "id": "cfct-129301",
    "name_zh": "墨鱼圈",
-   "name_en": "墨鱼圈",
+   "name_en": "Cuttlefish ring",
    "aliases_zh": [
     "墨鱼圈"
    ],
    "aliases_en": [
-    "墨鱼圈"
+    "cuttlefish ring"
    ],
    "kcal": 72.0,
    "protein_g": 13.0,
@@ -27243,12 +27243,12 @@
   {
    "id": "cfct-129302",
    "name_zh": "墨鱼丸",
-   "name_en": "墨鱼丸",
+   "name_en": "Cuttlefish ball",
    "aliases_zh": [
     "墨鱼丸"
    ],
    "aliases_en": [
-    "墨鱼丸"
+    "cuttlefish ball"
    ],
    "kcal": 128.0,
    "protein_g": 13.4,
@@ -27531,12 +27531,12 @@
   {
    "id": "cfct-122117",
    "name_zh": "北极虾",
-   "name_en": "北极虾",
+   "name_en": "Ice shrimp",
    "aliases_zh": [
     "北极虾"
    ],
    "aliases_en": [
-    "北极虾"
+    "ice shrimp"
    ],
    "kcal": 132.0,
    "protein_g": 14.9,
@@ -27549,14 +27549,14 @@
   {
    "id": "cfct-122118",
    "name_zh": "九节虾(鲜)",
-   "name_en": "九节虾(鲜)",
+   "name_en": "Banded shrimp",
    "aliases_zh": [
     "九节虾",
     "九节虾(鲜)",
     "九节虾（鲜）"
    ],
    "aliases_en": [
-    "九节虾(鲜)"
+    "banded shrimp"
    ],
    "kcal": 90.0,
    "protein_g": 21.4,
@@ -27569,12 +27569,12 @@
   {
    "id": "cfct-122119",
    "name_zh": "口虾蛄[皮皮虾]",
-   "name_en": "口虾蛄[皮皮虾]",
+   "name_en": "Mantis shrimp",
    "aliases_zh": [
     "口虾蛄[皮皮虾]"
    ],
    "aliases_en": [
-    "口虾蛄[皮皮虾]"
+    "mantis shrimp"
    ],
    "kcal": 82.0,
    "protein_g": 14.8,
@@ -27587,12 +27587,12 @@
   {
    "id": "cfct-122120",
    "name_zh": "罗氏沼虾",
-   "name_en": "罗氏沼虾",
+   "name_en": "Giant freshwater prawn",
    "aliases_zh": [
     "罗氏沼虾"
    ],
    "aliases_en": [
-    "罗氏沼虾"
+    "giant freshwater prawn"
    ],
    "kcal": 91.0,
    "protein_g": 20.6,
@@ -27605,12 +27605,12 @@
   {
    "id": "cfct-122121",
    "name_zh": "南美白对虾",
-   "name_en": "南美白对虾",
+   "name_en": "Whiteleg shrimp",
    "aliases_zh": [
     "南美白对虾"
    ],
    "aliases_en": [
-    "南美白对虾"
+    "whiteleg shrimp"
    ],
    "kcal": 83.0,
    "protein_g": 19.4,
@@ -27623,12 +27623,12 @@
   {
    "id": "cfct-122122",
    "name_zh": "青虾",
-   "name_en": "青虾",
+   "name_en": "River prawn",
    "aliases_zh": [
     "青虾"
    ],
    "aliases_en": [
-    "青虾"
+    "river prawn"
    ],
    "kcal": 100.0,
    "protein_g": 23.8,
@@ -27641,12 +27641,12 @@
   {
    "id": "cfct-122123",
    "name_zh": "琼海虾",
-   "name_en": "琼海虾",
+   "name_en": "Qionghai shrimp",
    "aliases_zh": [
     "琼海虾"
    ],
    "aliases_en": [
-    "琼海虾"
+    "qionghai shrimp"
    ],
    "kcal": 56.0,
    "protein_g": 8.9,
@@ -27695,12 +27695,12 @@
   {
    "id": "cfct-122203",
    "name_zh": "虾酱",
-   "name_en": "虾酱",
+   "name_en": "Shrimp paste",
    "aliases_zh": [
     "虾酱"
    ],
    "aliases_en": [
-    "虾酱"
+    "shrimp paste"
    ],
    "kcal": 112.0,
    "protein_g": 10.8,
@@ -27713,14 +27713,14 @@
   {
    "id": "cfct-122204",
    "name_zh": "虾仁(红)",
-   "name_en": "虾仁(红)",
+   "name_en": "Peeled shrimp",
    "aliases_zh": [
     "虾仁",
     "虾仁(红)",
     "虾仁（红）"
    ],
    "aliases_en": [
-    "虾仁(红)"
+    "peeled shrimp"
    ],
    "kcal": 48.0,
    "protein_g": 10.4,
@@ -27733,12 +27733,12 @@
   {
    "id": "cfct-122205",
    "name_zh": "虾皮",
-   "name_en": "虾皮",
+   "name_en": "Dried krill",
    "aliases_zh": [
     "虾皮"
    ],
    "aliases_en": [
-    "虾皮"
+    "dried krill"
    ],
    "kcal": 153.0,
    "protein_g": 30.7,
@@ -27751,12 +27751,12 @@
   {
    "id": "cfct-122206",
    "name_zh": "虾仁",
-   "name_en": "虾仁",
+   "name_en": "Peeled shrimp",
    "aliases_zh": [
     "虾仁"
    ],
    "aliases_en": [
-    "虾仁"
+    "peeled shrimp"
    ],
    "kcal": 199.0,
    "protein_g": 20.8,
@@ -27769,12 +27769,12 @@
   {
    "id": "cfct-122301",
    "name_zh": "虾仁肉丸",
-   "name_en": "虾仁肉丸",
+   "name_en": "Shrimp meatball",
    "aliases_zh": [
     "虾仁肉丸"
    ],
    "aliases_en": [
-    "虾仁肉丸"
+    "shrimp meatball"
    ],
    "kcal": 152.0,
    "protein_g": 4.6,
@@ -27877,14 +27877,14 @@
   {
    "id": "cfct-123006",
    "name_zh": "海蟹(小)",
-   "name_en": "海蟹(小)",
+   "name_en": "Sea crab",
    "aliases_zh": [
     "海蟹",
     "海蟹(小)",
     "海蟹（小）"
    ],
    "aliases_en": [
-    "海蟹(小)"
+    "sea crab"
    ],
    "kcal": 81.0,
    "protein_g": 14.2,
@@ -27897,14 +27897,14 @@
   {
    "id": "cfct-123007",
    "name_zh": "锯缘青蟹(公, 鲜)",
-   "name_en": "锯缘青蟹(公, 鲜)",
+   "name_en": "Mud crab",
    "aliases_zh": [
     "锯缘青蟹",
     "锯缘青蟹(公, 鲜)",
     "锯缘青蟹（公, 鲜）"
    ],
    "aliases_en": [
-    "锯缘青蟹(公, 鲜)"
+    "mud crab"
    ],
    "kcal": 126.0,
    "protein_g": 16.7,
@@ -27917,14 +27917,14 @@
   {
    "id": "cfct-123008",
    "name_zh": "锯缘青蟹(母, 鲜)",
-   "name_en": "锯缘青蟹(母, 鲜)",
+   "name_en": "Mud crab",
    "aliases_zh": [
     "锯缘青蟹",
     "锯缘青蟹(母, 鲜)",
     "锯缘青蟹（母, 鲜）"
    ],
    "aliases_en": [
-    "锯缘青蟹(母, 鲜)"
+    "mud crab"
    ],
    "kcal": 155.0,
    "protein_g": 17.3,
@@ -27937,14 +27937,14 @@
   {
    "id": "cfct-123009",
    "name_zh": "大闸蟹(母)",
-   "name_en": "大闸蟹(母)",
+   "name_en": "Shanghai hairy crab",
    "aliases_zh": [
     "大闸蟹",
     "大闸蟹(母)",
     "大闸蟹（母）"
    ],
    "aliases_en": [
-    "大闸蟹(母)"
+    "shanghai hairy crab"
    ],
    "kcal": 156.0,
    "protein_g": 21.0,
@@ -27957,14 +27957,14 @@
   {
    "id": "cfct-123010",
    "name_zh": "海蟹(公)",
-   "name_en": "海蟹(公)",
+   "name_en": "Sea crab",
    "aliases_zh": [
     "海蟹",
     "海蟹(公)",
     "海蟹（公）"
    ],
    "aliases_en": [
-    "海蟹(公)"
+    "sea crab"
    ],
    "kcal": 85.0,
    "protein_g": 18.0,
@@ -27977,14 +27977,14 @@
   {
    "id": "cfct-123011",
    "name_zh": "海蟹(母)",
-   "name_en": "海蟹(母)",
+   "name_en": "Sea crab",
    "aliases_zh": [
     "海蟹",
     "海蟹(母)",
     "海蟹（母）"
    ],
    "aliases_en": [
-    "海蟹(母)"
+    "sea crab"
    ],
    "kcal": 64.0,
    "protein_g": 14.2,
@@ -27997,12 +27997,12 @@
   {
    "id": "cfct-123301",
    "name_zh": "蟹足棒",
-   "name_en": "蟹足棒",
+   "name_en": "Crab stick",
    "aliases_zh": [
     "蟹足棒"
    ],
    "aliases_en": [
-    "蟹足棒"
+    "crab stick"
    ],
    "kcal": 123.0,
    "protein_g": 9.0,
@@ -28015,14 +28015,14 @@
   {
    "id": "cfct-123302",
    "name_zh": "蟹膏(大闸蟹, 蒸)",
-   "name_en": "蟹膏(大闸蟹, 蒸)",
+   "name_en": "Crab roe paste",
    "aliases_zh": [
     "蟹膏",
     "蟹膏(大闸蟹, 蒸)",
     "蟹膏（大闸蟹, 蒸）"
    ],
    "aliases_en": [
-    "蟹膏(大闸蟹, 蒸)"
+    "crab roe paste"
    ],
    "kcal": 167.0,
    "protein_g": 15.4,
@@ -28035,14 +28035,14 @@
   {
    "id": "cfct-123303",
    "name_zh": "蟹肉(大闸蟹, 公, 蒸)",
-   "name_en": "蟹肉(大闸蟹, 公, 蒸)",
+   "name_en": "Crab meat",
    "aliases_zh": [
     "蟹肉",
     "蟹肉(大闸蟹, 公, 蒸)",
     "蟹肉（大闸蟹, 公, 蒸）"
    ],
    "aliases_en": [
-    "蟹肉(大闸蟹, 公, 蒸)"
+    "crab meat"
    ],
    "kcal": 128.0,
    "protein_g": 24.2,
@@ -28055,14 +28055,14 @@
   {
    "id": "cfct-123304",
    "name_zh": "蟹黄(大闸蟹, 蒸)",
-   "name_en": "蟹黄(大闸蟹, 蒸)",
+   "name_en": "Crab roe",
    "aliases_zh": [
     "蟹黄",
     "蟹黄(大闸蟹, 蒸)",
     "蟹黄（大闸蟹, 蒸）"
    ],
    "aliases_en": [
-    "蟹黄(大闸蟹, 蒸)"
+    "crab roe"
    ],
    "kcal": 255.0,
    "protein_g": 24.0,
@@ -28075,14 +28075,14 @@
   {
    "id": "cfct-123305",
    "name_zh": "蟹肉(大闸蟹, 母, 蒸)",
-   "name_en": "蟹肉(大闸蟹, 母, 蒸)",
+   "name_en": "Crab meat",
    "aliases_zh": [
     "蟹肉",
     "蟹肉(大闸蟹, 母, 蒸)",
     "蟹肉（大闸蟹, 母, 蒸）"
    ],
    "aliases_en": [
-    "蟹肉(大闸蟹, 母, 蒸)"
+    "crab meat"
    ],
    "kcal": 131.0,
    "protein_g": 22.4,
@@ -28095,14 +28095,14 @@
   {
    "id": "cfct-123306",
    "name_zh": "梭子蟹(公, 蒸)",
-   "name_en": "梭子蟹(公, 蒸)",
+   "name_en": "Swimming crab",
    "aliases_zh": [
     "梭子蟹",
     "梭子蟹(公, 蒸)",
     "梭子蟹（公, 蒸）"
    ],
    "aliases_en": [
-    "梭子蟹(公, 蒸)"
+    "swimming crab"
    ],
    "kcal": 79.0,
    "protein_g": 19.0,
@@ -28115,14 +28115,14 @@
   {
    "id": "cfct-123307",
    "name_zh": "梭子蟹(母, 蒸)",
-   "name_en": "梭子蟹(母, 蒸)",
+   "name_en": "Swimming crab",
    "aliases_zh": [
     "梭子蟹",
     "梭子蟹(母, 蒸)",
     "梭子蟹（母, 蒸）"
    ],
    "aliases_en": [
-    "梭子蟹(母, 蒸)"
+    "swimming crab"
    ],
    "kcal": 101.0,
    "protein_g": 24.1,
@@ -28433,12 +28433,12 @@
   {
    "id": "cfct-124117",
    "name_zh": "海蚌[西施舌]",
-   "name_en": "海蚌[西施舌]",
+   "name_en": "Surf clam",
    "aliases_zh": [
     "海蚌[西施舌]"
    ],
    "aliases_en": [
-    "海蚌[西施舌]"
+    "surf clam"
    ],
    "kcal": 42.0,
    "protein_g": 9.5,
@@ -28451,14 +28451,14 @@
   {
    "id": "cfct-124118",
    "name_zh": "鲍鱼(皱纹鲍)",
-   "name_en": "鲍鱼(皱纹鲍)",
+   "name_en": "Abalone",
    "aliases_zh": [
     "鲍鱼",
     "鲍鱼(皱纹鲍)",
     "鲍鱼（皱纹鲍）"
    ],
    "aliases_en": [
-    "鲍鱼(皱纹鲍)"
+    "abalone"
    ],
    "kcal": 75.0,
    "protein_g": 13.7,
@@ -28719,14 +28719,14 @@
   {
    "id": "cfct-124308",
    "name_zh": "海蚌(鲜)",
-   "name_en": "海蚌(鲜)",
+   "name_en": "Surf clam",
    "aliases_zh": [
     "海蚌",
     "海蚌(鲜)",
     "海蚌（鲜）"
    ],
    "aliases_en": [
-    "海蚌(鲜)"
+    "surf clam"
    ],
    "kcal": 51.0,
    "protein_g": 6.9,
@@ -28739,14 +28739,14 @@
   {
    "id": "cfct-124309",
    "name_zh": "海蚌(漳港海蚌, 鲜)",
-   "name_en": "海蚌(漳港海蚌, 鲜)",
+   "name_en": "Surf clam",
    "aliases_zh": [
     "海蚌",
     "海蚌(漳港海蚌, 鲜)",
     "海蚌（漳港海蚌, 鲜）"
    ],
    "aliases_en": [
-    "海蚌(漳港海蚌, 鲜)"
+    "surf clam"
    ],
    "kcal": 64.0,
    "protein_g": 9.4,
@@ -28759,14 +28759,14 @@
   {
    "id": "cfct-124310",
    "name_zh": "蛏子(焯)",
-   "name_en": "蛏子(焯)",
+   "name_en": "Razor clam",
    "aliases_zh": [
     "蛏子",
     "蛏子(焯)",
     "蛏子（焯）"
    ],
    "aliases_en": [
-    "蛏子(焯)"
+    "razor clam"
    ],
    "kcal": 67.0,
    "protein_g": 13.5,
@@ -28779,14 +28779,14 @@
   {
    "id": "cfct-124311",
    "name_zh": "缢蛏(鲜)",
-   "name_en": "缢蛏(鲜)",
+   "name_en": "Razor clam (synonymimera)",
    "aliases_zh": [
     "缢蛏",
     "缢蛏(鲜)",
     "缢蛏（鲜）"
    ],
    "aliases_en": [
-    "缢蛏(鲜)"
+    "razor clam (synonymimera)"
    ],
    "kcal": 73.0,
    "protein_g": 8.6,
@@ -28799,14 +28799,14 @@
   {
    "id": "cfct-124312",
    "name_zh": "牛角江珧蛤(鲜)[长带子]",
-   "name_en": "牛角江珧蛤(鲜)[长带子]",
+   "name_en": "Pen shell clam",
    "aliases_zh": [
     "牛角江珧蛤(鲜)[长带子]",
     "牛角江珧蛤[长带子]",
     "牛角江珧蛤（鲜）[长带子]"
    ],
    "aliases_en": [
-    "牛角江珧蛤(鲜)[长带子]"
+    "pen shell clam"
    ],
    "kcal": 49.0,
    "protein_g": 7.1,
@@ -28819,14 +28819,14 @@
   {
    "id": "cfct-124313",
    "name_zh": "文蛤(鲜)",
-   "name_en": "文蛤(鲜)",
+   "name_en": "Hard clam",
    "aliases_zh": [
     "文蛤",
     "文蛤(鲜)",
     "文蛤（鲜）"
    ],
    "aliases_en": [
-    "文蛤(鲜)"
+    "hard clam"
    ],
    "kcal": 56.0,
    "protein_g": 9.2,
@@ -28839,14 +28839,14 @@
   {
    "id": "cfct-124314",
    "name_zh": "血蚶(鲜)",
-   "name_en": "血蚶(鲜)",
+   "name_en": "Blood clam",
    "aliases_zh": [
     "血蚶",
     "血蚶(鲜)",
     "血蚶（鲜）"
    ],
    "aliases_en": [
-    "血蚶(鲜)"
+    "blood clam"
    ],
    "kcal": 51.0,
    "protein_g": 8.2,
@@ -28859,14 +28859,14 @@
   {
    "id": "cfct-124315",
    "name_zh": "六角螺(鲜)",
-   "name_en": "六角螺(鲜)",
+   "name_en": "Hexagonal sea snail",
    "aliases_zh": [
     "六角螺",
     "六角螺(鲜)",
     "六角螺（鲜）"
    ],
    "aliases_en": [
-    "六角螺(鲜)"
+    "hexagonal sea snail"
    ],
    "kcal": 118.0,
    "protein_g": 23.5,
@@ -28879,14 +28879,14 @@
   {
    "id": "cfct-124316",
    "name_zh": "海螺肉(干)",
-   "name_en": "海螺肉(干)",
+   "name_en": "Sea snail meat",
    "aliases_zh": [
     "海螺肉",
     "海螺肉(干)",
     "海螺肉（干）"
    ],
    "aliases_en": [
-    "海螺肉(干)"
+    "sea snail meat"
    ],
    "kcal": 295.0,
    "protein_g": 65.7,
@@ -28899,12 +28899,12 @@
   {
    "id": "cfct-124601",
    "name_zh": "文蛤丸",
-   "name_en": "文蛤丸",
+   "name_en": "Hard clam ball",
    "aliases_zh": [
     "文蛤丸"
    ],
    "aliases_en": [
-    "文蛤丸"
+    "hard clam ball"
    ],
    "kcal": 211.0,
    "protein_g": 16.2,
@@ -29447,12 +29447,12 @@
   {
    "id": "cfct-121131",
    "name_zh": "草鱼[白鲩、草包鱼]",
-   "name_en": "草鱼[白鲩、草包鱼]",
+   "name_en": "Grass carp",
    "aliases_zh": [
     "草鱼[白鲩、草包鱼]"
    ],
    "aliases_en": [
-    "草鱼[白鲩、草包鱼]"
+    "grass carp"
    ],
    "kcal": 96.0,
    "protein_g": 17.7,
@@ -29465,12 +29465,12 @@
   {
    "id": "cfct-121132",
    "name_zh": "鲢鱼[白鲢、胖子、连子鱼]",
-   "name_en": "鲢鱼[白鲢、胖子、连子鱼]",
+   "name_en": "Silver carp",
    "aliases_zh": [
     "鲢鱼[白鲢、胖子、连子鱼]"
    ],
    "aliases_en": [
-    "鲢鱼[白鲢、胖子、连子鱼]"
+    "silver carp"
    ],
    "kcal": 84.0,
    "protein_g": 16.3,
@@ -29483,12 +29483,12 @@
   {
    "id": "cfct-121133",
    "name_zh": "鲫鱼[喜头鱼、海附鱼]",
-   "name_en": "鲫鱼[喜头鱼、海附鱼]",
+   "name_en": "Crucian carp",
    "aliases_zh": [
     "鲫鱼[喜头鱼、海附鱼]"
    ],
    "aliases_en": [
-    "鲫鱼[喜头鱼、海附鱼]"
+    "crucian carp"
    ],
    "kcal": 89.0,
    "protein_g": 18.0,
@@ -29501,12 +29501,12 @@
   {
    "id": "cfct-121134",
    "name_zh": "丁桂鱼",
-   "name_en": "丁桂鱼",
+   "name_en": "Tench",
    "aliases_zh": [
     "丁桂鱼"
    ],
    "aliases_en": [
-    "丁桂鱼"
+    "tench"
    ],
    "kcal": 157.0,
    "protein_g": 29.7,
@@ -29519,14 +29519,14 @@
   {
    "id": "cfct-121135",
    "name_zh": "乌鳢(野生)[黑鱼、乌鱼、生鱼]",
-   "name_en": "乌鳢(野生)[黑鱼、乌鱼、生鱼]",
+   "name_en": "Snakehead",
    "aliases_zh": [
     "乌鳢(野生)[黑鱼、乌鱼、生鱼]",
     "乌鳢[黑鱼、乌鱼、生鱼]",
     "乌鳢（野生）[黑鱼、乌鱼、生鱼]"
    ],
    "aliases_en": [
-    "乌鳢(野生)[黑鱼、乌鱼、生鱼]"
+    "snakehead"
    ],
    "kcal": 105.0,
    "protein_g": 19.9,
@@ -29539,12 +29539,12 @@
   {
    "id": "cfct-121136",
    "name_zh": "花骨鱼",
-   "name_en": "花骨鱼",
+   "name_en": "Topmouth culter",
    "aliases_zh": [
     "花骨鱼"
    ],
    "aliases_en": [
-    "花骨鱼"
+    "topmouth culter"
    ],
    "kcal": 155.0,
    "protein_g": 25.8,
@@ -29557,12 +29557,12 @@
   {
    "id": "cfct-121137",
    "name_zh": "黄颡鱼[戈牙鱼、黄鳍鱼]",
-   "name_en": "黄颡鱼[戈牙鱼、黄鳍鱼]",
+   "name_en": "Yellow catfish",
    "aliases_zh": [
     "黄颡鱼[戈牙鱼、黄鳍鱼]"
    ],
    "aliases_en": [
-    "黄颡鱼[戈牙鱼、黄鳍鱼]"
+    "yellow catfish"
    ],
    "kcal": 161.0,
    "protein_g": 17.3,
@@ -29575,12 +29575,12 @@
   {
    "id": "cfct-121138",
    "name_zh": "回头鱼",
-   "name_en": "回头鱼",
+   "name_en": "Elopichthys bambusa",
    "aliases_zh": [
     "回头鱼"
    ],
    "aliases_en": [
-    "回头鱼"
+    "elopichthys bambusa"
    ],
    "kcal": 107.0,
    "protein_g": 14.5,
@@ -29593,12 +29593,12 @@
   {
    "id": "cfct-121139",
    "name_zh": "鮰鱼",
-   "name_en": "鮰鱼",
+   "name_en": "Longsnout catfish",
    "aliases_zh": [
     "鮰鱼"
    ],
    "aliases_en": [
-    "鮰鱼"
+    "longsnout catfish"
    ],
    "kcal": 143.0,
    "protein_g": 14.8,
@@ -29611,12 +29611,12 @@
   {
    "id": "cfct-121140",
    "name_zh": "斑鳠[剑骨鱼]",
-   "name_en": "斑鳠[剑骨鱼]",
+   "name_en": "Spotted catfish",
    "aliases_zh": [
     "斑鳠[剑骨鱼]"
    ],
    "aliases_en": [
-    "斑鳠[剑骨鱼]"
+    "spotted catfish"
    ],
    "kcal": 135.0,
    "protein_g": 16.8,
@@ -29629,12 +29629,12 @@
   {
    "id": "cfct-121141",
    "name_zh": "抗浪鱼",
-   "name_en": "抗浪鱼",
+   "name_en": "Anshu carp",
    "aliases_zh": [
     "抗浪鱼"
    ],
    "aliases_en": [
-    "抗浪鱼"
+    "anshu carp"
    ],
    "kcal": 174.0,
    "protein_g": 16.6,
@@ -29647,12 +29647,12 @@
   {
    "id": "cfct-121142",
    "name_zh": "蓝鳃太阳鱼",
-   "name_en": "蓝鳃太阳鱼",
+   "name_en": "Bluegill",
    "aliases_zh": [
     "蓝鳃太阳鱼"
    ],
    "aliases_en": [
-    "蓝鳃太阳鱼"
+    "bluegill"
    ],
    "kcal": 93.0,
    "protein_g": 17.8,
@@ -29665,12 +29665,12 @@
   {
    "id": "cfct-121143",
    "name_zh": "钳鱼",
-   "name_en": "钳鱼",
+   "name_en": "Channel catfish",
    "aliases_zh": [
     "钳鱼"
    ],
    "aliases_en": [
-    "钳鱼"
+    "channel catfish"
    ],
    "kcal": 212.0,
    "protein_g": 29.2,
@@ -29683,14 +29683,14 @@
   {
    "id": "cfct-121144",
    "name_zh": "翘嘴红鲌(鲜)",
-   "name_en": "翘嘴红鲌(鲜)",
+   "name_en": "Topmouth culter (red)",
    "aliases_zh": [
     "翘嘴红鲌",
     "翘嘴红鲌(鲜)",
     "翘嘴红鲌（鲜）"
    ],
    "aliases_en": [
-    "翘嘴红鲌(鲜)"
+    "topmouth culter (red)"
    ],
    "kcal": 123.0,
    "protein_g": 18.1,
@@ -29703,12 +29703,12 @@
   {
    "id": "cfct-121145",
    "name_zh": "鲥鱼",
-   "name_en": "鲥鱼",
+   "name_en": "Reeves shad",
    "aliases_zh": [
     "鲥鱼"
    ],
    "aliases_en": [
-    "鲥鱼"
+    "reeves shad"
    ],
    "kcal": 189.0,
    "protein_g": 20.8,
@@ -29721,12 +29721,12 @@
   {
    "id": "cfct-121146",
    "name_zh": "鳊鱼[鲂鱼、武昌鱼]",
-   "name_en": "鳊鱼[鲂鱼、武昌鱼]",
+   "name_en": "Bream",
    "aliases_zh": [
     "鳊鱼[鲂鱼、武昌鱼]"
    ],
    "aliases_en": [
-    "鳊鱼[鲂鱼、武昌鱼]"
+    "bream"
    ],
    "kcal": 142.0,
    "protein_g": 27.0,
@@ -29739,12 +29739,12 @@
   {
    "id": "cfct-121147",
    "name_zh": "鲟鱼",
-   "name_en": "鲟鱼",
+   "name_en": "Sturgeon",
    "aliases_zh": [
     "鲟鱼"
    ],
    "aliases_en": [
-    "鲟鱼"
+    "sturgeon"
    ],
    "kcal": 100.0,
    "protein_g": 23.4,
@@ -29757,12 +29757,12 @@
   {
    "id": "cfct-121148",
    "name_zh": "雅鱼",
-   "name_en": "雅鱼",
+   "name_en": "Ya fish (Schizothorax)",
    "aliases_zh": [
     "雅鱼"
    ],
    "aliases_en": [
-    "雅鱼"
+    "ya fish (schizothorax)"
    ],
    "kcal": 131.0,
    "protein_g": 26.5,
@@ -29775,14 +29775,14 @@
   {
    "id": "cfct-121149",
    "name_zh": "胭脂鱼(养殖)",
-   "name_en": "胭脂鱼(养殖)",
+   "name_en": "High-fin banded shark",
    "aliases_zh": [
     "胭脂鱼",
     "胭脂鱼(养殖)",
     "胭脂鱼（养殖）"
    ],
    "aliases_en": [
-    "胭脂鱼(养殖)"
+    "high-fin banded shark"
    ],
    "kcal": 162.0,
    "protein_g": 38.8,
@@ -29795,14 +29795,14 @@
   {
    "id": "cfct-121150",
    "name_zh": "棒棒鱼(雅江冷水鱼)",
-   "name_en": "棒棒鱼(雅江冷水鱼)",
+   "name_en": "Stickfish (local)",
    "aliases_zh": [
     "棒棒鱼",
     "棒棒鱼(雅江冷水鱼)",
     "棒棒鱼（雅江冷水鱼）"
    ],
    "aliases_en": [
-    "棒棒鱼(雅江冷水鱼)"
+    "stickfish (local)"
    ],
    "kcal": 118.0,
    "protein_g": 27.1,
@@ -29815,14 +29815,14 @@
   {
    "id": "cfct-121151",
    "name_zh": "尖嘴鱼(雅江冷水鱼)",
-   "name_en": "尖嘴鱼(雅江冷水鱼)",
+   "name_en": "Needlefish (local)",
    "aliases_zh": [
     "尖嘴鱼",
     "尖嘴鱼(雅江冷水鱼)",
     "尖嘴鱼（雅江冷水鱼）"
    ],
    "aliases_en": [
-    "尖嘴鱼(雅江冷水鱼)"
+    "needlefish (local)"
    ],
    "kcal": 107.0,
    "protein_g": 17.1,
@@ -29835,14 +29835,14 @@
   {
    "id": "cfct-121152",
    "name_zh": "胡子鱼(雅江冷水鱼)",
-   "name_en": "胡子鱼(雅江冷水鱼)",
+   "name_en": "Barbel catfish",
    "aliases_zh": [
     "胡子鱼",
     "胡子鱼(雅江冷水鱼)",
     "胡子鱼（雅江冷水鱼）"
    ],
    "aliases_en": [
-    "胡子鱼(雅江冷水鱼)"
+    "barbel catfish"
    ],
    "kcal": 99.0,
    "protein_g": 17.4,
@@ -30573,14 +30573,14 @@
   {
    "id": "cfct-121241",
    "name_zh": "带鱼(切段)",
-   "name_en": "带鱼(切段)",
+   "name_en": "Hairtail",
    "aliases_zh": [
     "带鱼",
     "带鱼(切段)",
     "带鱼（切段）"
    ],
    "aliases_en": [
-    "带鱼(切段)"
+    "hairtail"
    ],
    "kcal": 108.0,
    "protein_g": 17.6,
@@ -30593,14 +30593,14 @@
   {
    "id": "cfct-121242",
    "name_zh": "黄鱼(小黄花鱼)",
-   "name_en": "黄鱼(小黄花鱼)",
+   "name_en": "Yellow croaker",
    "aliases_zh": [
     "黄鱼",
     "黄鱼(小黄花鱼)",
     "黄鱼（小黄花鱼）"
    ],
    "aliases_en": [
-    "黄鱼(小黄花鱼)"
+    "yellow croaker"
    ],
    "kcal": 114.0,
    "protein_g": 17.0,
@@ -30613,12 +30613,12 @@
   {
    "id": "cfct-121243",
    "name_zh": "金鰉鱼",
-   "name_en": "金鰉鱼",
+   "name_en": "Chinese sturgeon",
    "aliases_zh": [
     "金鰉鱼"
    ],
    "aliases_en": [
-    "金鰉鱼"
+    "chinese sturgeon"
    ],
    "kcal": 99.0,
    "protein_g": 18.7,
@@ -30631,12 +30631,12 @@
   {
    "id": "cfct-121244",
    "name_zh": "鲭鱼",
-   "name_en": "鲭鱼",
+   "name_en": "Mackerel",
    "aliases_zh": [
     "鲭鱼"
    ],
    "aliases_en": [
-    "鲭鱼"
+    "mackerel"
    ],
    "kcal": 413.0,
    "protein_g": 14.4,
@@ -30649,12 +30649,12 @@
   {
    "id": "cfct-121245",
    "name_zh": "双髻鲨",
-   "name_en": "双髻鲨",
+   "name_en": "Hammerhead shark",
    "aliases_zh": [
     "双髻鲨"
    ],
    "aliases_en": [
-    "双髻鲨"
+    "hammerhead shark"
    ],
    "kcal": 111.0,
    "protein_g": 27.4,
@@ -30667,14 +30667,14 @@
   {
    "id": "cfct-121246",
    "name_zh": "紫青低纹鮨(冰鲜)",
-   "name_en": "紫青低纹鮨(冰鲜)",
+   "name_en": "Purple sweetlips",
    "aliases_zh": [
     "紫青低纹鮨",
     "紫青低纹鮨(冰鲜)",
     "紫青低纹鮨（冰鲜）"
    ],
    "aliases_en": [
-    "紫青低纹鮨(冰鲜)"
+    "purple sweetlips"
    ],
    "kcal": 150.0,
    "protein_g": 20.5,
@@ -30687,12 +30687,12 @@
   {
    "id": "cfct-121247",
    "name_zh": "鮟鱇鱼",
-   "name_en": "鮟鱇鱼",
+   "name_en": "Anglerfish",
    "aliases_zh": [
     "鮟鱇鱼"
    ],
    "aliases_en": [
-    "鮟鱇鱼"
+    "anglerfish"
    ],
    "kcal": 60.0,
    "protein_g": 13.7,
@@ -30705,14 +30705,14 @@
   {
    "id": "cfct-121248",
    "name_zh": "鲳鱼(鲜, 刺鲳)",
-   "name_en": "鲳鱼(鲜, 刺鲳)",
+   "name_en": "Pomfret",
    "aliases_zh": [
     "鲳鱼",
     "鲳鱼(鲜, 刺鲳)",
     "鲳鱼（鲜, 刺鲳）"
    ],
    "aliases_en": [
-    "鲳鱼(鲜, 刺鲳)"
+    "pomfret"
    ],
    "kcal": 149.0,
    "protein_g": 16.8,
@@ -30725,14 +30725,14 @@
   {
    "id": "cfct-121249",
    "name_zh": "大菱鲆鱼(鲜)[多宝鱼]",
-   "name_en": "大菱鲆鱼(鲜)[多宝鱼]",
+   "name_en": "Turbot",
    "aliases_zh": [
     "大菱鲆鱼(鲜)[多宝鱼]",
     "大菱鲆鱼[多宝鱼]",
     "大菱鲆鱼（鲜）[多宝鱼]"
    ],
    "aliases_en": [
-    "大菱鲆鱼(鲜)[多宝鱼]"
+    "turbot"
    ],
    "kcal": 81.0,
    "protein_g": 17.0,
@@ -30745,14 +30745,14 @@
   {
    "id": "cfct-121250",
    "name_zh": "海鲈鱼(鲜)",
-   "name_en": "海鲈鱼(鲜)",
+   "name_en": "Sea bass",
    "aliases_zh": [
     "海鲈鱼",
     "海鲈鱼(鲜)",
     "海鲈鱼（鲜）"
    ],
    "aliases_en": [
-    "海鲈鱼(鲜)"
+    "sea bass"
    ],
    "kcal": 112.0,
    "protein_g": 19.5,
@@ -30765,12 +30765,12 @@
   {
    "id": "cfct-121251",
    "name_zh": "红鳍笛鲷[红鱼]",
-   "name_en": "红鳍笛鲷[红鱼]",
+   "name_en": "Redfin snapper",
    "aliases_zh": [
     "红鳍笛鲷[红鱼]"
    ],
    "aliases_en": [
-    "红鳍笛鲷[红鱼]"
+    "redfin snapper"
    ],
    "kcal": 134.0,
    "protein_g": 20.1,
@@ -30783,14 +30783,14 @@
   {
    "id": "cfct-121252",
    "name_zh": "黄姑鱼(鲜)",
-   "name_en": "黄姑鱼(鲜)",
+   "name_en": "Yellow drum",
    "aliases_zh": [
     "黄姑鱼",
     "黄姑鱼(鲜)",
     "黄姑鱼（鲜）"
    ],
    "aliases_en": [
-    "黄姑鱼(鲜)"
+    "yellow drum"
    ],
    "kcal": 88.0,
    "protein_g": 14.7,
@@ -30803,12 +30803,12 @@
   {
    "id": "cfct-121253",
    "name_zh": "鲅鱼[马鲛鱼]",
-   "name_en": "鲅鱼[马鲛鱼]",
+   "name_en": "Spanish mackerel",
    "aliases_zh": [
     "鲅鱼[马鲛鱼]"
    ],
    "aliases_en": [
-    "鲅鱼[马鲛鱼]"
+    "spanish mackerel"
    ],
    "kcal": 194.0,
    "protein_g": 18.7,
@@ -30821,14 +30821,14 @@
   {
    "id": "cfct-121254",
    "name_zh": "石斑鱼(老虎斑)",
-   "name_en": "石斑鱼(老虎斑)",
+   "name_en": "Grouper",
    "aliases_zh": [
     "石斑鱼",
     "石斑鱼(老虎斑)",
     "石斑鱼（老虎斑）"
    ],
    "aliases_en": [
-    "石斑鱼(老虎斑)"
+    "grouper"
    ],
    "kcal": 130.0,
    "protein_g": 20.2,
@@ -30841,14 +30841,14 @@
   {
    "id": "cfct-121255",
    "name_zh": "石斑鱼(红石斑鱼)",
-   "name_en": "石斑鱼(红石斑鱼)",
+   "name_en": "Grouper",
    "aliases_zh": [
     "石斑鱼",
     "石斑鱼(红石斑鱼)",
     "石斑鱼（红石斑鱼）"
    ],
    "aliases_en": [
-    "石斑鱼(红石斑鱼)"
+    "grouper"
    ],
    "kcal": 90.0,
    "protein_g": 19.9,
@@ -30861,14 +30861,14 @@
   {
    "id": "cfct-121256",
    "name_zh": "石斑鱼(黑石斑鱼)",
-   "name_en": "石斑鱼(黑石斑鱼)",
+   "name_en": "Grouper",
    "aliases_zh": [
     "石斑鱼",
     "石斑鱼(黑石斑鱼)",
     "石斑鱼（黑石斑鱼）"
    ],
    "aliases_en": [
-    "石斑鱼(黑石斑鱼)"
+    "grouper"
    ],
    "kcal": 95.0,
    "protein_g": 20.2,
@@ -30881,14 +30881,14 @@
   {
    "id": "cfct-121257",
    "name_zh": "石斑鱼(花石斑鱼)",
-   "name_en": "石斑鱼(花石斑鱼)",
+   "name_en": "Grouper",
    "aliases_zh": [
     "石斑鱼",
     "石斑鱼(花石斑鱼)",
     "石斑鱼（花石斑鱼）"
    ],
    "aliases_en": [
-    "石斑鱼(花石斑鱼)"
+    "grouper"
    ],
    "kcal": 95.0,
    "protein_g": 20.2,
@@ -30901,12 +30901,12 @@
   {
    "id": "cfct-121258",
    "name_zh": "苏眉鱼",
-   "name_en": "苏眉鱼",
+   "name_en": "Humphead wrasse",
    "aliases_zh": [
     "苏眉鱼"
    ],
    "aliases_en": [
-    "苏眉鱼"
+    "humphead wrasse"
    ],
    "kcal": 70.0,
    "protein_g": 16.5,
@@ -30919,14 +30919,14 @@
   {
    "id": "cfct-121259",
    "name_zh": "青衣(红色)",
-   "name_en": "青衣(红色)",
+   "name_en": "Coris wrasse",
    "aliases_zh": [
     "青衣",
     "青衣(红色)",
     "青衣（红色）"
    ],
    "aliases_en": [
-    "青衣(红色)"
+    "coris wrasse"
    ],
    "kcal": 84.0,
    "protein_g": 20.1,
@@ -30939,14 +30939,14 @@
   {
    "id": "cfct-121260",
    "name_zh": "青衣(孔雀绿色)",
-   "name_en": "青衣(孔雀绿色)",
+   "name_en": "Coris wrasse",
    "aliases_zh": [
     "青衣",
     "青衣(孔雀绿色)",
     "青衣（孔雀绿色）"
    ],
    "aliases_en": [
-    "青衣(孔雀绿色)"
+    "coris wrasse"
    ],
    "kcal": 82.0,
    "protein_g": 19.2,
@@ -30959,12 +30959,12 @@
   {
    "id": "cfct-121261",
    "name_zh": "笠鱼",
-   "name_en": "笠鱼",
+   "name_en": "Capelin (local)",
    "aliases_zh": [
     "笠鱼"
    ],
    "aliases_en": [
-    "笠鱼"
+    "capelin (local)"
    ],
    "kcal": 97.0,
    "protein_g": 22.2,
@@ -30977,12 +30977,12 @@
   {
    "id": "cfct-121262",
    "name_zh": "金枪鱼肉",
-   "name_en": "金枪鱼肉",
+   "name_en": "Tuna meat",
    "aliases_zh": [
     "金枪鱼肉"
    ],
    "aliases_en": [
-    "金枪鱼肉"
+    "tuna meat"
    ],
    "kcal": 102.0,
    "protein_g": 23.7,
@@ -30995,12 +30995,12 @@
   {
    "id": "cfct-121263",
    "name_zh": "鲅鱼肉[马鲛鱼肉]",
-   "name_en": "鲅鱼肉[马鲛鱼肉]",
+   "name_en": "Spanish mackerel meat",
    "aliases_zh": [
     "鲅鱼肉[马鲛鱼肉]"
    ],
    "aliases_en": [
-    "鲅鱼肉[马鲛鱼肉]"
+    "spanish mackerel meat"
    ],
    "kcal": 102.0,
    "protein_g": 23.7,
@@ -31013,12 +31013,12 @@
   {
    "id": "cfct-121264",
    "name_zh": "刺泡鱼[刺鲍鱼]",
-   "name_en": "刺泡鱼[刺鲍鱼]",
+   "name_en": "Spiny frogfish (local)",
    "aliases_zh": [
     "刺泡鱼[刺鲍鱼]"
    ],
    "aliases_en": [
-    "刺泡鱼[刺鲍鱼]"
+    "spiny frogfish (local)"
    ],
    "kcal": 94.0,
    "protein_g": 23.0,
@@ -31067,12 +31067,12 @@
   {
    "id": "cfct-121304",
    "name_zh": "鱼排",
-   "name_en": "鱼排",
+   "name_en": "Fish fillet steak",
    "aliases_zh": [
     "鱼排"
    ],
    "aliases_en": [
-    "鱼排"
+    "fish fillet steak"
    ],
    "kcal": 160.0,
    "protein_g": 10.1,
@@ -31085,12 +31085,12 @@
   {
    "id": "cfct-121305",
    "name_zh": "鱼丸",
-   "name_en": "鱼丸",
+   "name_en": "Fish ball",
    "aliases_zh": [
     "鱼丸"
    ],
    "aliases_en": [
-    "鱼丸"
+    "fish ball"
    ],
    "kcal": 107.0,
    "protein_g": 11.1,
@@ -31103,12 +31103,12 @@
   {
    "id": "cfct-121306",
    "name_zh": "鱼子酱",
-   "name_en": "鱼子酱",
+   "name_en": "Caviar",
    "aliases_zh": [
     "鱼子酱"
    ],
    "aliases_en": [
-    "鱼子酱"
+    "caviar"
    ],
    "kcal": 201.0,
    "protein_g": 9.6,
@@ -31121,14 +31121,14 @@
   {
    "id": "cfct-121401",
    "name_zh": "草鱼(熏)",
-   "name_en": "草鱼(熏)",
+   "name_en": "Grass carp",
    "aliases_zh": [
     "草鱼",
     "草鱼(熏)",
     "草鱼（熏）"
    ],
    "aliases_en": [
-    "草鱼(熏)"
+    "grass carp"
    ],
    "kcal": 283.0,
    "protein_g": 24.0,
@@ -31141,14 +31141,14 @@
   {
    "id": "cfct-121402",
    "name_zh": "丁香鱼(香辣味)",
-   "name_en": "丁香鱼(香辣味)",
+   "name_en": "Dried sardine (kayasashi)",
    "aliases_zh": [
     "丁香鱼",
     "丁香鱼(香辣味)",
     "丁香鱼（香辣味）"
    ],
    "aliases_en": [
-    "丁香鱼(香辣味)"
+    "dried sardine (kayasashi)"
    ],
    "kcal": 403.0,
    "protein_g": 19.0,
@@ -31161,14 +31161,14 @@
   {
    "id": "cfct-121403",
    "name_zh": "凤尾鱼(熟)",
-   "name_en": "凤尾鱼(熟)",
+   "name_en": "Anchovy",
    "aliases_zh": [
     "凤尾鱼",
     "凤尾鱼(熟)",
     "凤尾鱼（熟）"
    ],
    "aliases_en": [
-    "凤尾鱼(熟)"
+    "anchovy"
    ],
    "kcal": 520.0,
    "protein_g": 23.5,
@@ -31181,14 +31181,14 @@
   {
    "id": "cfct-121404",
    "name_zh": "箭鱼(炸)",
-   "name_en": "箭鱼(炸)",
+   "name_en": "Swordfish",
    "aliases_zh": [
     "箭鱼",
     "箭鱼(炸)",
     "箭鱼（炸）"
    ],
    "aliases_en": [
-    "箭鱼(炸)"
+    "swordfish"
    ],
    "kcal": 271.0,
    "protein_g": 20.8,
@@ -31201,14 +31201,14 @@
   {
    "id": "cfct-121405",
    "name_zh": "金枪鱼(盐水浸)",
-   "name_en": "金枪鱼(盐水浸)",
+   "name_en": "Tuna",
    "aliases_zh": [
     "金枪鱼",
     "金枪鱼(盐水浸)",
     "金枪鱼（盐水浸）"
    ],
    "aliases_en": [
-    "金枪鱼(盐水浸)"
+    "tuna"
    ],
    "kcal": 99.0,
    "protein_g": 23.5,
@@ -31221,14 +31221,14 @@
   {
    "id": "cfct-121406",
    "name_zh": "金枪鱼(油浸)",
-   "name_en": "金枪鱼(油浸)",
+   "name_en": "Tuna",
    "aliases_zh": [
     "金枪鱼",
     "金枪鱼(油浸)",
     "金枪鱼（油浸）"
    ],
    "aliases_en": [
-    "金枪鱼(油浸)"
+    "tuna"
    ],
    "kcal": 189.0,
    "protein_g": 27.1,
@@ -31241,14 +31241,14 @@
   {
    "id": "cfct-121407",
    "name_zh": "鲮鱼(豆豉, 熟)",
-   "name_en": "鲮鱼(豆豉, 熟)",
+   "name_en": "Dace",
    "aliases_zh": [
     "鲮鱼",
     "鲮鱼(豆豉, 熟)",
     "鲮鱼（豆豉, 熟）"
    ],
    "aliases_en": [
-    "鲮鱼(豆豉, 熟)"
+    "dace"
    ],
    "kcal": 472.0,
    "protein_g": 25.5,
@@ -31261,14 +31261,14 @@
   {
    "id": "cfct-121408",
    "name_zh": "鳗鱼(红烧)",
-   "name_en": "鳗鱼(红烧)",
+   "name_en": "Eel",
    "aliases_zh": [
     "鳗鱼",
     "鳗鱼(红烧)",
     "鳗鱼（红烧）"
    ],
    "aliases_en": [
-    "鳗鱼(红烧)"
+    "eel"
    ],
    "kcal": 211.0,
    "protein_g": 21.3,
@@ -31281,14 +31281,14 @@
   {
    "id": "cfct-121410",
    "name_zh": "鲭鱼(烤, 150°C, 20分)",
-   "name_en": "鲭鱼(烤, 150°C, 20分)",
+   "name_en": "Mackerel",
    "aliases_zh": [
     "鲭鱼",
     "鲭鱼(烤, 150°C, 20分)",
     "鲭鱼（烤, 150°C, 20分）"
    ],
    "aliases_en": [
-    "鲭鱼(烤, 150°c, 20分)"
+    "mackerel"
    ],
    "kcal": 390.0,
    "protein_g": 19.1,
@@ -31301,14 +31301,14 @@
   {
    "id": "cfct-121414",
    "name_zh": "鲭鱼(炸)",
-   "name_en": "鲭鱼(炸)",
+   "name_en": "Mackerel",
    "aliases_zh": [
     "鲭鱼",
     "鲭鱼(炸)",
     "鲭鱼（炸）"
    ],
    "aliases_en": [
-    "鲭鱼(炸)"
+    "mackerel"
    ],
    "kcal": 550.0,
    "protein_g": 17.2,
@@ -31321,14 +31321,14 @@
   {
    "id": "cfct-121415",
    "name_zh": "鲭鱼(蒸)",
-   "name_en": "鲭鱼(蒸)",
+   "name_en": "Mackerel",
    "aliases_zh": [
     "鲭鱼",
     "鲭鱼(蒸)",
     "鲭鱼（蒸）"
    ],
    "aliases_en": [
-    "鲭鱼(蒸)"
+    "mackerel"
    ],
    "kcal": 390.0,
    "protein_g": 14.6,
@@ -31341,14 +31341,14 @@
   {
    "id": "cfct-121416",
    "name_zh": "鲭鱼(煮)",
-   "name_en": "鲭鱼(煮)",
+   "name_en": "Mackerel",
    "aliases_zh": [
     "鲭鱼",
     "鲭鱼(煮)",
     "鲭鱼（煮）"
    ],
    "aliases_en": [
-    "鲭鱼(煮)"
+    "mackerel"
    ],
    "kcal": 372.0,
    "protein_g": 14.9,
@@ -31361,14 +31361,14 @@
   {
    "id": "cfct-121417",
    "name_zh": "沙丁鱼(茄汁, 熟)",
-   "name_en": "沙丁鱼(茄汁, 熟)",
+   "name_en": "Sardine",
    "aliases_zh": [
     "沙丁鱼",
     "沙丁鱼(茄汁, 熟)",
     "沙丁鱼（茄汁, 熟）"
    ],
    "aliases_en": [
-    "沙丁鱼(茄汁, 熟)"
+    "sardine"
    ],
    "kcal": 155.0,
    "protein_g": 13.8,
@@ -31381,14 +31381,14 @@
   {
    "id": "cfct-121418",
    "name_zh": "沙丁鱼(盐水浸)",
-   "name_en": "沙丁鱼(盐水浸)",
+   "name_en": "Sardine",
    "aliases_zh": [
     "沙丁鱼",
     "沙丁鱼(盐水浸)",
     "沙丁鱼（盐水浸）"
    ],
    "aliases_en": [
-    "沙丁鱼(盐水浸)"
+    "sardine"
    ],
    "kcal": 172.0,
    "protein_g": 21.5,
@@ -31401,14 +31401,14 @@
   {
    "id": "cfct-121419",
    "name_zh": "沙丁鱼(油浸)",
-   "name_en": "沙丁鱼(油浸)",
+   "name_en": "Sardine",
    "aliases_zh": [
     "沙丁鱼",
     "沙丁鱼(油浸)",
     "沙丁鱼（油浸）"
    ],
    "aliases_en": [
-    "沙丁鱼(油浸)"
+    "sardine"
    ],
    "kcal": 220.0,
    "protein_g": 23.3,
@@ -31421,14 +31421,14 @@
   {
    "id": "cfct-121420",
    "name_zh": "午餐鱼(香辣味)",
-   "name_en": "午餐鱼(香辣味)",
+   "name_en": "Canned fish",
    "aliases_zh": [
     "午餐鱼",
     "午餐鱼(香辣味)",
     "午餐鱼（香辣味）"
    ],
    "aliases_en": [
-    "午餐鱼(香辣味)"
+    "canned fish"
    ],
    "kcal": 383.0,
    "protein_g": 24.4,
@@ -31441,14 +31441,14 @@
   {
    "id": "cfct-121421",
    "name_zh": "鳕鱼(烤)",
-   "name_en": "鳕鱼(烤)",
+   "name_en": "Cod",
    "aliases_zh": [
     "鳕鱼",
     "鳕鱼(烤)",
     "鳕鱼（烤）"
    ],
    "aliases_en": [
-    "鳕鱼(烤)"
+    "cod"
    ],
    "kcal": 96.0,
    "protein_g": 21.4,
@@ -31461,14 +31461,14 @@
   {
    "id": "cfct-121422",
    "name_zh": "鳕鱼(炸)",
-   "name_en": "鳕鱼(炸)",
+   "name_en": "Cod",
    "aliases_zh": [
     "鳕鱼",
     "鳕鱼(炸)",
     "鳕鱼（炸）"
    ],
    "aliases_en": [
-    "鳕鱼(炸)"
+    "cod"
    ],
    "kcal": 241.0,
    "protein_g": 12.4,

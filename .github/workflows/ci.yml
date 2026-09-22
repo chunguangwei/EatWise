@@ -197,14 +197,14 @@ jobs:
         with:
           python-version: "3.12"
 
-      # CI 不重复拉取 USDA 原始数据（体积大且外网依赖不稳定），
-      # 在 /tmp 副本里用样本模式跑通管线并执行内置质量校验（非负 / kcal 偏差 / id 唯一），
+      # CI 不拉取 USDA 原始数据（管线默认已剔除 usda-sr），在 /tmp 副本里
+      # 跑通管线并执行内置质量校验（非负 / kcal 偏差 / id 唯一 / 双语 E4），
       # 避免覆盖已提交的全量种子文件。
-      - name: 管线样本模式 + 质量校验（/tmp 副本）
+      - name: 管线重建 + 质量校验（/tmp 副本）
         run: |
           cp -R eatwise_data /tmp/eatwise_data_ci
           cd /tmp/eatwise_data_ci
-          python3 scripts/build_seed.py --skip-usda
+          python3 scripts/build_seed.py
           python3 - <<'EOF'
           import json
           with open("foods.seed.json") as f:

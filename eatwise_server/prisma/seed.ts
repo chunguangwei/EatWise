@@ -32,6 +32,8 @@ interface SeedFood {
 interface SeedDoc {
   version: string;
   counts: { total: number };
+  /** 历史版本出现过、当前版本已删除的行 id（累计）——导入方按它清残差。 */
+  removedIds?: string[];
   foods: SeedFood[];
 }
 
@@ -71,6 +73,17 @@ async function main(): Promise<void> {
     upserted += batch.length;
   }
   console.log(`[seed] done: ${upserted} foods upserted`);
+  // seed 版本收敛：软删历史版本导入、本版已删除的行。软删而非硬删——
+  // FoodEntry.foodId 外键无 onDelete，硬删会违约（v1.13.6 踩过）；
+  // 读路径已统一过滤 deletedAt:null。isCustom=false 门：个人库行不受 seed 管治。
+  const removedIds = doc.removedIds ?? [];
+  if (removedIds.length > 0) {
+    const { count } = await prisma.food.updateMany({
+      where: { id: { in: removedIds }, isCustom: false, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+    console.log(`[seed] pruned ${count}/${removedIds.length} stale rows (soft delete)`);
+  }
 }
 
 main()

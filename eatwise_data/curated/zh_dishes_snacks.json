@@ -467,26 +467,6 @@
    "zh_verified": true
   },
   {
-   "id": "curated-baked-sesame-flatbread",
-   "name_zh": "烧饼",
-   "name_en": "Baked Sesame Flatbread",
-   "aliases_zh": [
-    "芝麻烧饼",
-    "火烧"
-   ],
-   "aliases_en": [
-    "sesame flatbread",
-    "shaobing"
-   ],
-   "kcal": 323.0,
-   "protein_g": 8.5,
-   "carb_g": 52.0,
-   "fat_g": 9.0,
-   "category": "早点",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
    "id": "curated-jianbing-chinese-crepe",
    "name_zh": "煎饼果子",
    "name_en": "Jianbing (Chinese Crepe)",
@@ -602,26 +582,6 @@
    "zh_verified": true
   },
   {
-   "id": "curated-wonton-soup",
-   "name_zh": "馄饨",
-   "name_en": "Wonton Soup",
-   "aliases_zh": [
-    "云吞",
-    "抄手"
-   ],
-   "aliases_en": [
-    "wonton",
-    "wonton soup"
-   ],
-   "kcal": 116.0,
-   "protein_g": 6.0,
-   "carb_g": 14.0,
-   "fat_g": 4.0,
-   "category": "早点",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
    "id": "curated-pan-fried-dumpling",
    "name_zh": "锅贴",
    "name_en": "Pan-fried Dumpling",
@@ -637,24 +597,6 @@
    "protein_g": 10.0,
    "carb_g": 24.0,
    "fat_g": 10.5,
-   "category": "早点",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
-   "id": "curated-fried-flatbread",
-   "name_zh": "油饼",
-   "name_en": "Fried Flatbread",
-   "aliases_zh": [
-    "炸油饼"
-   ],
-   "aliases_en": [
-    "fried flatbread"
-   ],
-   "kcal": 341.0,
-   "protein_g": 7.5,
-   "carb_g": 44.0,
-   "fat_g": 15.0,
    "category": "早点",
    "source": "curated",
    "zh_verified": true
@@ -1132,43 +1074,6 @@
    "zh_verified": true
   },
   {
-   "id": "curated-cashew-nuts",
-   "name_zh": "腰果",
-   "name_en": "Cashew Nuts",
-   "aliases_zh": [
-    "腰果仁"
-   ],
-   "aliases_en": [
-    "cashew"
-   ],
-   "kcal": 606.0,
-   "protein_g": 18.0,
-   "carb_g": 30.0,
-   "fat_g": 46.0,
-   "category": "零食",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
-   "id": "curated-almonds",
-   "name_zh": "杏仁",
-   "name_en": "Almonds",
-   "aliases_zh": [
-    "巴旦木",
-    "扁桃仁"
-   ],
-   "aliases_en": [
-    "almond"
-   ],
-   "kcal": 658.0,
-   "protein_g": 21.0,
-   "carb_g": 22.0,
-   "fat_g": 54.0,
-   "category": "零食",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
    "id": "curated-walnut-kernel",
    "name_zh": "核桃仁",
    "name_en": "Walnut Kernel",
@@ -1242,44 +1147,6 @@
    "zh_verified": true
   },
   {
-   "id": "curated-beef-jerky",
-   "name_zh": "牛肉干",
-   "name_en": "Beef Jerky",
-   "aliases_zh": [
-    "风干牛肉",
-    "牛肉脯"
-   ],
-   "aliases_en": [
-    "beef jerky"
-   ],
-   "kcal": 300.0,
-   "protein_g": 45.0,
-   "carb_g": 12.0,
-   "fat_g": 8.0,
-   "category": "零食",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
-   "id": "curated-pork-jerky",
-   "name_zh": "猪肉脯",
-   "name_en": "Pork Jerky",
-   "aliases_zh": [
-    "肉脯",
-    "靖江猪肉脯"
-   ],
-   "aliases_en": [
-    "pork jerky"
-   ],
-   "kcal": 355.0,
-   "protein_g": 30.0,
-   "carb_g": 25.0,
-   "fat_g": 15.0,
-   "category": "零食",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
    "id": "curated-dried-squid-snack",
    "name_zh": "鱿鱼丝",
    "name_en": "Dried Squid Snack",
@@ -1313,25 +1180,6 @@
    "protein_g": 25.0,
    "carb_g": 40.0,
    "fat_g": 5.0,
-   "category": "零食",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
-   "id": "curated-dried-tofu-snack",
-   "name_zh": "豆腐干",
-   "name_en": "Dried Tofu Snack",
-   "aliases_zh": [
-    "豆干",
-    "五香豆干"
-   ],
-   "aliases_en": [
-    "dried tofu snack"
-   ],
-   "kcal": 168.0,
-   "protein_g": 16.0,
-   "carb_g": 8.0,
-   "fat_g": 8.0,
    "category": "零食",
    "source": "curated",
    "zh_verified": true
@@ -2712,42 +2560,6 @@
    "zh_verified": true
   },
   {
-   "id": "curated-braised-chicken-rice-huangmenji",
-   "name_zh": "黄焖鸡米饭",
-   "name_en": "Braised Chicken Rice (Huangmenji)",
-   "aliases_zh": [
-    "黄焖鸡"
-   ],
-   "aliases_en": [
-    "braised chicken rice"
-   ],
-   "kcal": 187.0,
-   "protein_g": 9.0,
-   "carb_g": 22.0,
-   "fat_g": 7.0,
-   "category": "中餐",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
-   "id": "curated-yu-sheng-shredded-pork",
-   "name_zh": "鱼香肉丝",
-   "name_en": "Yu Sheng Shredded Pork",
-   "aliases_zh": [
-    "鱼香肉丝(川菜)"
-   ],
-   "aliases_en": [
-    "fish-fragrant shredded pork"
-   ],
-   "kcal": 168.0,
-   "protein_g": 12.0,
-   "carb_g": 12.0,
-   "fat_g": 8.0,
-   "category": "中餐",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
    "id": "curated-stir-fried-tomato-and-egg",
    "name_zh": "西红柿炒鸡蛋",
    "name_en": "Stir-fried Tomato and Egg",
@@ -2762,24 +2574,6 @@
    "protein_g": 6.0,
    "carb_g": 5.0,
    "fat_g": 7.0,
-   "category": "中餐",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
-   "id": "curated-shredded-pork-with-green-pepper",
-   "name_zh": "青椒肉丝",
-   "name_en": "Shredded Pork with Green Pepper",
-   "aliases_zh": [
-    "辣椒炒肉丝"
-   ],
-   "aliases_en": [
-    "shredded pork with pepper"
-   ],
-   "kcal": 165.0,
-   "protein_g": 13.0,
-   "carb_g": 8.0,
-   "fat_g": 9.0,
    "category": "中餐",
    "source": "curated",
    "zh_verified": true
@@ -2803,24 +2597,6 @@
    "zh_verified": true
   },
   {
-   "id": "curated-shredded-potato-hot-sour-stir-fry",
-   "name_zh": "酸辣土豆丝",
-   "name_en": "Shredded Potato Hot-sour Stir-fry",
-   "aliases_zh": [
-    "土豆丝"
-   ],
-   "aliases_en": [
-    "shredded potato"
-   ],
-   "kcal": 92.0,
-   "protein_g": 2.0,
-   "carb_g": 12.0,
-   "fat_g": 4.0,
-   "category": "中餐",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
    "id": "curated-dry-fried-green-beans",
    "name_zh": "干煸四季豆",
    "name_en": "Dry-fried Green Beans",
@@ -2834,44 +2610,6 @@
    "protein_g": 3.0,
    "carb_g": 9.0,
    "fat_g": 8.0,
-   "category": "中餐",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
-   "id": "curated-braised-pork-belly-hongshaorou",
-   "name_zh": "红烧肉",
-   "name_en": "Braised Pork Belly (Hongshaorou)",
-   "aliases_zh": [
-    "东坡肉",
-    "焖肉"
-   ],
-   "aliases_en": [
-    "braised pork belly"
-   ],
-   "kcal": 417.0,
-   "protein_g": 13.0,
-   "carb_g": 8.0,
-   "fat_g": 37.0,
-   "category": "中餐",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
-   "id": "curated-sweet-and-sour-pork",
-   "name_zh": "糖醋里脊",
-   "name_en": "Sweet and Sour Pork",
-   "aliases_zh": [
-    "咕咾肉",
-    "咕噜肉"
-   ],
-   "aliases_en": [
-    "sweet and sour pork"
-   ],
-   "kcal": 217.0,
-   "protein_g": 12.0,
-   "carb_g": 22.0,
-   "fat_g": 9.0,
    "category": "中餐",
    "source": "curated",
    "zh_verified": true
@@ -2926,24 +2664,6 @@
    "protein_g": 20.0,
    "carb_g": 8.0,
    "fat_g": 16.0,
-   "category": "中餐",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
-   "id": "curated-poached-fish-in-chili-oil",
-   "name_zh": "水煮鱼",
-   "name_en": "Poached Fish in Chili Oil",
-   "aliases_zh": [
-    "水煮肉片"
-   ],
-   "aliases_en": [
-    "poached fish chili oil"
-   ],
-   "kcal": 189.0,
-   "protein_g": 14.0,
-   "carb_g": 4.0,
-   "fat_g": 13.0,
    "category": "中餐",
    "source": "curated",
    "zh_verified": true
@@ -3350,24 +3070,6 @@
    "zh_verified": true
   },
   {
-   "id": "curated-poached-chicken-bai-qie-ji",
-   "name_zh": "白切鸡",
-   "name_en": "Poached Chicken (Bai Qie Ji)",
-   "aliases_zh": [
-    "白斩鸡"
-   ],
-   "aliases_en": [
-    "poached chicken"
-   ],
-   "kcal": 165.0,
-   "protein_g": 20.0,
-   "carb_g": 1.0,
-   "fat_g": 9.0,
-   "category": "中餐",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
    "id": "curated-honey-bbq-pork-char-siu",
    "name_zh": "蜜汁叉烧",
    "name_en": "Honey BBQ Pork (Char Siu)",
@@ -3382,24 +3084,6 @@
    "protein_g": 20.0,
    "carb_g": 12.0,
    "fat_g": 10.0,
-   "category": "中餐",
-   "source": "curated",
-   "zh_verified": true
-  },
-  {
-   "id": "curated-peking-duck",
-   "name_zh": "北京烤鸭",
-   "name_en": "Peking Duck",
-   "aliases_zh": [
-    "烤鸭"
-   ],
-   "aliases_en": [
-    "peking duck"
-   ],
-   "kcal": 294.0,
-   "protein_g": 19.0,
-   "carb_g": 5.0,
-   "fat_g": 22.0,
    "category": "中餐",
    "source": "curated",
    "zh_verified": true

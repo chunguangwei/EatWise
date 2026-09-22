@@ -84,4 +84,23 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
   Future<void> deleteById(String id) {
     return (delete(foods)..where((f) => f.id.equals(id))).go();
   }
+
+  /// 批量删除（seed 版本收敛：上一版有、本版删掉的行）。自定义行由调用方
+  /// 过滤（isCustom=false 条件在 seed loader 侧拼）——个人库行不受 seed 管治。
+  /// 只删未被 food_entries 引用的（历史记录快照显示不依赖此行，但 FK 约束
+  /// 下引用行删除会违约；被引用的残差行留着无害）。
+  Future<void> deleteBuiltInByIds(List<String> ids) async {
+    if (ids.isEmpty) return;
+    // 引用集合走裸 SQL：FoodDao 只挂 foods 表，跨表 DISTINCT 用
+    // customSelect 最省（food_entries 生成列名 food_id）。
+    final rows = await db
+        .customSelect('SELECT DISTINCT food_id FROM food_entries')
+        .get();
+    final refSet = rows.map((r) => r.read<String>('food_id')).toSet();
+    final targets = ids.where((id) => !refSet.contains(id)).toList();
+    if (targets.isEmpty) return;
+    await (delete(
+      foods,
+    )..where((f) => f.id.isIn(targets) & f.isCustom.equals(false))).go();
+  }
 }

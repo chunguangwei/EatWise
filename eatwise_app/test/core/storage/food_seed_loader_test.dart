@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/food_seed_loader.dart';
+import 'package:eatwise/core/storage/sync_status.dart';
+import 'package:eatwise/core/storage/tables.dart' show EntrySource;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -118,6 +121,97 @@ void main() {
     // upsert 语义：重复导入不产生重复行
     final all = await db.foodDao.searchFoods('', limit: 100);
     expect(all.length, 3);
+  });
+  test('seed 收敛：removedIds 删内置残差，保留自定义/被引用行', () async {
+    final prefs = await SharedPreferences.getInstance();
+    // 预置残差：内置旧行、自定义同名旧行、被 food_entries 引用的内置旧行。
+    await db.foodDao.upsertAll(<FoodsCompanion>[
+      const FoodsCompanion(
+        id: Value('stale-old'),
+        nameZh: Value('旧行'),
+        nameEn: Value('Stale old'),
+        kcalPer100g: Value(1),
+        proteinPer100g: Value(0),
+        carbPer100g: Value(0),
+        fatPer100g: Value(0),
+      ),
+      const FoodsCompanion(
+        id: Value('stale-custom'),
+        nameZh: Value('我的旧自定义'),
+        nameEn: Value('My stale custom'),
+        kcalPer100g: Value(1),
+        proteinPer100g: Value(0),
+        carbPer100g: Value(0),
+        fatPer100g: Value(0),
+        isCustom: Value(true),
+      ),
+      const FoodsCompanion(
+        id: Value('stale-referenced'),
+        nameZh: Value('被引用旧行'),
+        nameEn: Value('Stale referenced'),
+        kcalPer100g: Value(1),
+        proteinPer100g: Value(0),
+        carbPer100g: Value(0),
+        fatPer100g: Value(0),
+      ),
+    ]);
+    await db
+        .into(db.foodEntries)
+        .insert(
+          FoodEntriesCompanion.insert(
+            localId: 'e1',
+            userId: 'anonymous',
+            clientRequestId: 'r1',
+            syncStatus: SyncStatus.pending,
+            datetimeUtc: DateTime.now().toUtc().toIso8601String(),
+            foodId: 'stale-referenced',
+            source: EntrySource.manual,
+            localDate: '2026-09-22',
+            updatedAtUtc: '2026-09-22T00:00:00Z',
+            createdAtUtc: '2026-09-22T00:00:00Z',
+            amountG: 100,
+            kcal: 100,
+            proteinG: 1,
+            carbG: 1,
+            fatG: 1,
+          ),
+        );
+
+    final doc = sampleDoc('test.2')
+      ..['removedIds'] = <String>[
+        'stale-old',
+        'stale-custom',
+        'stale-referenced',
+        'curated-steamed-rice', // 本版吸收的策展行
+      ];
+    final pruned = await FoodSeedLoader(
+      db: db,
+      prefs: prefs,
+      assetReader: (_) async => jsonEncode(doc),
+    ).ensureSeeded();
+    expect(pruned.skipped, isFalse);
+
+    expect(await db.foodDao.getById('stale-old'), isNull); // 内置残差删除
+    expect(
+      (await db.foodDao.getById('stale-custom'))!.isCustom,
+      isTrue,
+    ); // 自定义行不受 seed 管治
+    expect(
+      await db.foodDao.getById('stale-referenced'),
+      isNotNull,
+    ); // 被历史记录引用：FK 保护保留
+    expect(
+      await db.foodDao.getById('curated-steamed-rice'),
+      isNull,
+    ); // 本版吸收行清残差
+    expect(await db.foodDao.getById('curated-chicken-breast'), isNotNull);
+    // 重放幂等：版本号已落盘则整体跳过，prune 不重复报错
+    final again = await FoodSeedLoader(
+      db: db,
+      prefs: prefs,
+      assetReader: (_) async => jsonEncode(doc),
+    ).ensureSeeded();
+    expect(again.skipped, isTrue);
   });
 
   test('真实种子资产：全量导入后中文/英文搜索均有结果', () async {

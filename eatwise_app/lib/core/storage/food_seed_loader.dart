@@ -76,6 +76,13 @@ class FoodSeedLoader {
       imported = end;
     }
 
+    // seed 版本收敛：清掉历史版本导入、本版已删除的行（同名对账吸收/裁剪）。
+    // 幂等可重放——prune 先于版本号落盘，中断后重跑再执行一次无副作用。
+    final removedIds =
+        (doc['removedIds'] as List<dynamic>? ?? const <dynamic>[])
+            .cast<String>();
+    await _db.foodDao.deleteBuiltInByIds(removedIds);
+
     await _prefs.setString(versionKey, version);
     await _prefs.setStringList(sourcesKey, sources);
     return FoodSeedResult(version: version, imported: imported, skipped: false);
