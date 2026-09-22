@@ -1,0 +1,3463 @@
+{
+ "_meta": {
+  "source": "curated",
+  "note": "中式熟食/餐饮/零食/饮料补充库：每100g 可食部，kcal 按 Atwater 4P+4C+9F 反算〔假设〕（成分表/USDA 交叉参考），待营养侧校对。生成器 scripts/gen_dishes_snacks.py。"
+ },
+ "foods": [
+  {
+   "id": "curated-xiaolongbao-steamed-soup-dumpling",
+   "name_zh": "小笼包",
+   "name_en": "Xiaolongbao (Steamed Soup Dumpling)",
+   "aliases_zh": [
+    "小笼汤包",
+    "灌汤包"
+   ],
+   "aliases_en": [
+    "soup dumpling",
+    "xiaolongbao"
+   ],
+   "kcal": 203.0,
+   "protein_g": 9.0,
+   "carb_g": 26.0,
+   "fat_g": 7.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-shengjian-bao-pan-fried-bun",
+   "name_zh": "生煎包",
+   "name_en": "Shengjian Bao (Pan-fried Bun)",
+   "aliases_zh": [
+    "生煎馒头"
+   ],
+   "aliases_en": [
+    "pan-fried bun",
+    "shengjian"
+   ],
+   "kcal": 228.5,
+   "protein_g": 10.0,
+   "carb_g": 28.0,
+   "fat_g": 8.5,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-bbq-pork-bun-char-siu-bao",
+   "name_zh": "叉烧包",
+   "name_en": "BBQ Pork Bun (Char Siu Bao)",
+   "aliases_zh": [
+    "叉烧包(蒸)"
+   ],
+   "aliases_en": [
+    "char siu bun",
+    "bbq pork bun"
+   ],
+   "kcal": 224.0,
+   "protein_g": 8.0,
+   "carb_g": 30.0,
+   "fat_g": 8.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-lava-custard-bun",
+   "name_zh": "流沙包",
+   "name_en": "Lava Custard Bun",
+   "aliases_zh": [
+    "奶黄包",
+    "爆浆奶黄包"
+   ],
+   "aliases_en": [
+    "lava custard bun",
+    "custard bun"
+   ],
+   "kcal": 281.0,
+   "protein_g": 6.0,
+   "carb_g": 35.0,
+   "fat_g": 13.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-har-gow-shrimp-dumpling",
+   "name_zh": "虾饺",
+   "name_en": "Har Gow (Shrimp Dumpling)",
+   "aliases_zh": [
+    "水晶虾饺",
+    "虾饺皇"
+   ],
+   "aliases_en": [
+    "har gow",
+    "shrimp dumpling"
+   ],
+   "kcal": 158.5,
+   "protein_g": 9.5,
+   "carb_g": 20.0,
+   "fat_g": 4.5,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-siu-mai-pork-shrimp-dumpling",
+   "name_zh": "烧卖",
+   "name_en": "Siu Mai (Pork Shrimp Dumpling)",
+   "aliases_zh": [
+    "烧麦",
+    "干蒸烧卖"
+   ],
+   "aliases_en": [
+    "siu mai",
+    "shumai"
+   ],
+   "kcal": 187.0,
+   "protein_g": 9.0,
+   "carb_g": 22.0,
+   "fat_g": 7.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-lotus-leaf-sticky-rice-chicken",
+   "name_zh": "糯米鸡",
+   "name_en": "Lotus Leaf Sticky Rice Chicken",
+   "aliases_zh": [
+    "荷叶糯米鸡"
+   ],
+   "aliases_en": [
+    "lotus leaf rice",
+    "sticky rice chicken"
+   ],
+   "kcal": 236.0,
+   "protein_g": 9.0,
+   "carb_g": 32.0,
+   "fat_g": 8.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-rice-roll-cheung-fun",
+   "name_zh": "肠粉",
+   "name_en": "Rice Roll (Cheung Fun)",
+   "aliases_zh": [
+    "布拉肠",
+    "抽屉肠粉"
+   ],
+   "aliases_en": [
+    "rice roll",
+    "cheung fun"
+   ],
+   "kcal": 127.5,
+   "protein_g": 4.0,
+   "carb_g": 20.0,
+   "fat_g": 3.5,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-shrimp-rice-roll",
+   "name_zh": "虾仁肠粉",
+   "name_en": "Shrimp Rice Roll",
+   "aliases_zh": [
+    "鲜虾肠粉"
+   ],
+   "aliases_en": [
+    "shrimp rice roll"
+   ],
+   "kcal": 142.0,
+   "protein_g": 6.5,
+   "carb_g": 20.0,
+   "fat_g": 4.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-steamed-chicken-feet-dim-sum",
+   "name_zh": "凤爪",
+   "name_en": "Steamed Chicken Feet (Dim Sum)",
+   "aliases_zh": [
+    "豉汁凤爪",
+    "虎皮凤爪"
+   ],
+   "aliases_en": [
+    "steamed chicken feet",
+    "dim sum feet"
+   ],
+   "kcal": 218.0,
+   "protein_g": 18.0,
+   "carb_g": 5.0,
+   "fat_g": 14.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-steamed-radish-cake",
+   "name_zh": "萝卜糕",
+   "name_en": "Steamed Radish Cake",
+   "aliases_zh": [
+    "广式萝卜糕"
+   ],
+   "aliases_en": [
+    "radish cake",
+    "turnip cake"
+   ],
+   "kcal": 170.0,
+   "protein_g": 3.0,
+   "carb_g": 17.0,
+   "fat_g": 10.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-steamed-taro-cake",
+   "name_zh": "芋头糕",
+   "name_en": "Steamed Taro Cake",
+   "aliases_zh": [
+    "广式芋头糕"
+   ],
+   "aliases_en": [
+    "taro cake"
+   ],
+   "kcal": 182.0,
+   "protein_g": 4.0,
+   "carb_g": 19.0,
+   "fat_g": 10.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-malga-sponge-cake",
+   "name_zh": "马拉糕",
+   "name_en": "Malga Sponge Cake",
+   "aliases_zh": [
+    "蒸马拉糕"
+   ],
+   "aliases_en": [
+    "malga cake",
+    "steamed sponge cake"
+   ],
+   "kcal": 288.0,
+   "protein_g": 5.0,
+   "carb_g": 40.0,
+   "fat_g": 12.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-egg-tart",
+   "name_zh": "蛋挞",
+   "name_en": "Egg Tart",
+   "aliases_zh": [
+    "葡式蛋挞",
+    "酥皮蛋挞"
+   ],
+   "aliases_en": [
+    "egg tart",
+    "pastel de nata"
+   ],
+   "kcal": 371.0,
+   "protein_g": 6.5,
+   "carb_g": 30.0,
+   "fat_g": 25.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-steamed-beef-ball",
+   "name_zh": "牛肉球",
+   "name_en": "Steamed Beef Ball",
+   "aliases_zh": [
+    "陈皮牛肉球"
+   ],
+   "aliases_en": [
+    "steamed beef ball"
+   ],
+   "kcal": 168.0,
+   "protein_g": 14.0,
+   "carb_g": 10.0,
+   "fat_g": 8.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-century-egg-pork-congee",
+   "name_zh": "皮蛋瘦肉粥",
+   "name_en": "Century Egg Pork Congee",
+   "aliases_zh": [
+    "皮蛋粥",
+    "瘦肉粥"
+   ],
+   "aliases_en": [
+    "century egg congee",
+    "pork congee"
+   ],
+   "kcal": 60.6,
+   "protein_g": 3.5,
+   "carb_g": 8.5,
+   "fat_g": 1.4,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-sampan-congee",
+   "name_zh": "艇仔粥",
+   "name_en": "Sampan Congee",
+   "aliases_zh": [
+    "广东艇仔粥"
+   ],
+   "aliases_en": [
+    "sampan congee"
+   ],
+   "kcal": 54.8,
+   "protein_g": 3.0,
+   "carb_g": 8.0,
+   "fat_g": 1.2,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-pumpkin-congee",
+   "name_zh": "南瓜粥",
+   "name_en": "Pumpkin Congee",
+   "aliases_zh": [
+    "大米南瓜粥"
+   ],
+   "aliases_en": [
+    "pumpkin congee",
+    "pumpkin porridge"
+   ],
+   "kcal": 45.6,
+   "protein_g": 1.0,
+   "carb_g": 9.5,
+   "fat_g": 0.4,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-plain-rice-congee",
+   "name_zh": "白粥",
+   "name_en": "Plain Rice Congee",
+   "aliases_zh": [
+    "白饭粥",
+    "大米粥"
+   ],
+   "aliases_en": [
+    "plain congee",
+    "rice porridge"
+   ],
+   "kcal": 41.4,
+   "protein_g": 0.9,
+   "carb_g": 9.0,
+   "fat_g": 0.2,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-tea-marinated-egg",
+   "name_zh": "茶叶蛋",
+   "name_en": "Tea-marinated Egg",
+   "aliases_zh": [
+    "五香茶叶蛋",
+    "卤蛋"
+   ],
+   "aliases_en": [
+    "tea egg",
+    "marinated egg"
+   ],
+   "kcal": 152.5,
+   "protein_g": 12.5,
+   "carb_g": 2.0,
+   "fat_g": 10.5,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-tofu-pudding-savory",
+   "name_zh": "豆腐脑",
+   "name_en": "Tofu Pudding (Savory)",
+   "aliases_zh": [
+    "豆腐花",
+    "豆花"
+   ],
+   "aliases_en": [
+    "tofu pudding",
+    "douhua"
+   ],
+   "kcal": 48.0,
+   "protein_g": 5.0,
+   "carb_g": 2.5,
+   "fat_g": 2.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-scallion-pancake",
+   "name_zh": "葱油饼",
+   "name_en": "Scallion Pancake",
+   "aliases_zh": [
+    "葱油烙饼"
+   ],
+   "aliases_en": [
+    "scallion pancake"
+   ],
+   "kcal": 354.0,
+   "protein_g": 6.0,
+   "carb_g": 42.0,
+   "fat_g": 18.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-sesame-ball-jian-dui",
+   "name_zh": "麻团",
+   "name_en": "Sesame Ball (Jian Dui)",
+   "aliases_zh": [
+    "煎堆",
+    "芝麻球"
+   ],
+   "aliases_en": [
+    "sesame ball",
+    "jian dui"
+   ],
+   "kcal": 396.0,
+   "protein_g": 6.0,
+   "carb_g": 48.0,
+   "fat_g": 20.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-sweet-fried-dough-cake",
+   "name_zh": "糖油饼",
+   "name_en": "Sweet Fried Dough Cake",
+   "aliases_zh": [
+    "糖饼"
+   ],
+   "aliases_en": [
+    "sweet fried dough"
+   ],
+   "kcal": 371.0,
+   "protein_g": 6.5,
+   "carb_g": 48.0,
+   "fat_g": 17.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-baked-sesame-flatbread",
+   "name_zh": "烧饼",
+   "name_en": "Baked Sesame Flatbread",
+   "aliases_zh": [
+    "芝麻烧饼",
+    "火烧"
+   ],
+   "aliases_en": [
+    "sesame flatbread",
+    "shaobing"
+   ],
+   "kcal": 323.0,
+   "protein_g": 8.5,
+   "carb_g": 52.0,
+   "fat_g": 9.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-jianbing-chinese-crepe",
+   "name_zh": "煎饼果子",
+   "name_en": "Jianbing (Chinese Crepe)",
+   "aliases_zh": [
+    "煎饼",
+    "杂粮煎饼"
+   ],
+   "aliases_en": [
+    "jianbing",
+    "chinese crepe"
+   ],
+   "kcal": 250.0,
+   "protein_g": 8.0,
+   "carb_g": 32.0,
+   "fat_g": 10.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-egg-stuffed-pancake",
+   "name_zh": "鸡蛋灌饼",
+   "name_en": "Egg-stuffed Pancake",
+   "aliases_zh": [
+    "灌饼"
+   ],
+   "aliases_en": [
+    "egg stuffed pancake"
+   ],
+   "kcal": 265.0,
+   "protein_g": 8.5,
+   "carb_g": 33.0,
+   "fat_g": 11.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-roujiamo-chinese-burger",
+   "name_zh": "肉夹馍",
+   "name_en": "Roujiamo (Chinese Burger)",
+   "aliases_zh": [
+    "腊汁肉夹馍"
+   ],
+   "aliases_en": [
+    "roujiamo",
+    "chinese burger"
+   ],
+   "kcal": 271.0,
+   "protein_g": 10.0,
+   "carb_g": 33.0,
+   "fat_g": 11.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-spicy-pepper-soup-hulatang",
+   "name_zh": "胡辣汤",
+   "name_en": "Spicy Pepper Soup (Hulatang)",
+   "aliases_zh": [
+    "河南胡辣汤"
+   ],
+   "aliases_en": [
+    "hulatang",
+    "spicy soup"
+   ],
+   "kcal": 77.0,
+   "protein_g": 3.5,
+   "carb_g": 9.0,
+   "fat_g": 3.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-boiled-dumpling-jiaozi",
+   "name_zh": "水饺",
+   "name_en": "Boiled Dumpling (Jiaozi)",
+   "aliases_zh": [
+    "饺子",
+    "猪肉水饺",
+    "水饺(猪肉白菜)"
+   ],
+   "aliases_en": [
+    "boiled dumpling",
+    "jiaozi"
+   ],
+   "kcal": 219.0,
+   "protein_g": 10.5,
+   "carb_g": 24.0,
+   "fat_g": 9.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-steamed-dumpling",
+   "name_zh": "蒸饺",
+   "name_en": "Steamed Dumpling",
+   "aliases_zh": [
+    "蒸饺(猪肉)"
+   ],
+   "aliases_en": [
+    "steamed dumpling"
+   ],
+   "kcal": 211.5,
+   "protein_g": 10.0,
+   "carb_g": 26.0,
+   "fat_g": 7.5,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-wonton-soup",
+   "name_zh": "馄饨",
+   "name_en": "Wonton Soup",
+   "aliases_zh": [
+    "云吞",
+    "抄手"
+   ],
+   "aliases_en": [
+    "wonton",
+    "wonton soup"
+   ],
+   "kcal": 116.0,
+   "protein_g": 6.0,
+   "carb_g": 14.0,
+   "fat_g": 4.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-pan-fried-dumpling",
+   "name_zh": "锅贴",
+   "name_en": "Pan-fried Dumpling",
+   "aliases_zh": [
+    "牛肉锅贴",
+    "猪肉锅贴"
+   ],
+   "aliases_en": [
+    "potsticker",
+    "pan-fried dumpling"
+   ],
+   "kcal": 230.5,
+   "protein_g": 10.0,
+   "carb_g": 24.0,
+   "fat_g": 10.5,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-fried-flatbread",
+   "name_zh": "油饼",
+   "name_en": "Fried Flatbread",
+   "aliases_zh": [
+    "炸油饼"
+   ],
+   "aliases_en": [
+    "fried flatbread"
+   ],
+   "kcal": 341.0,
+   "protein_g": 7.5,
+   "carb_g": 44.0,
+   "fat_g": 15.0,
+   "category": "早点",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-potato-chips",
+   "name_zh": "薯片",
+   "name_en": "Potato Chips",
+   "aliases_zh": [
+    "土豆片",
+    "洋芋片"
+   ],
+   "aliases_en": [
+    "potato chips",
+    "crisps"
+   ],
+   "kcal": 543.0,
+   "protein_g": 4.0,
+   "carb_g": 53.0,
+   "fat_g": 35.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-prawn-crackers",
+   "name_zh": "虾条",
+   "name_en": "Prawn Crackers",
+   "aliases_zh": [
+    "虾片"
+   ],
+   "aliases_en": [
+    "prawn crackers",
+    "shrimp snack"
+   ],
+   "kcal": 505.0,
+   "protein_g": 5.0,
+   "carb_g": 65.0,
+   "fat_g": 25.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-spicy-gluten-snack-latiao",
+   "name_zh": "辣条",
+   "name_en": "Spicy Gluten Snack (Latiao)",
+   "aliases_zh": [
+    "大面筋",
+    "调味面制品"
+   ],
+   "aliases_en": [
+    "latiao",
+    "spicy gluten"
+   ],
+   "kcal": 312.0,
+   "protein_g": 12.0,
+   "carb_g": 30.0,
+   "fat_g": 16.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-rice-crust-snack",
+   "name_zh": "锅巴",
+   "name_en": "Rice Crust Snack",
+   "aliases_zh": [
+    "糯米锅巴"
+   ],
+   "aliases_en": [
+    "rice crust snack"
+   ],
+   "kcal": 474.0,
+   "protein_g": 7.0,
+   "carb_g": 62.0,
+   "fat_g": 22.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-soda-cracker",
+   "name_zh": "苏打饼干",
+   "name_en": "Soda Cracker",
+   "aliases_zh": [
+    "梳打饼"
+   ],
+   "aliases_en": [
+    "soda cracker"
+   ],
+   "kcal": 406.0,
+   "protein_g": 8.0,
+   "carb_g": 62.0,
+   "fat_g": 14.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-sandwich-cookie",
+   "name_zh": "夹心饼干",
+   "name_en": "Sandwich Cookie",
+   "aliases_zh": [
+    "奥利奥",
+    "巧克力夹心饼干"
+   ],
+   "aliases_en": [
+    "sandwich cookie",
+    "oreo"
+   ],
+   "kcal": 480.0,
+   "protein_g": 5.5,
+   "carb_g": 65.0,
+   "fat_g": 22.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-wafer-biscuit",
+   "name_zh": "威化饼干",
+   "name_en": "Wafer Biscuit",
+   "aliases_zh": [
+    "威化饼"
+   ],
+   "aliases_en": [
+    "wafer"
+   ],
+   "kcal": 516.0,
+   "protein_g": 6.0,
+   "carb_g": 60.0,
+   "fat_g": 28.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-butter-cookie",
+   "name_zh": "曲奇",
+   "name_en": "Butter Cookie",
+   "aliases_zh": [
+    "黄油曲奇",
+    "巧克力曲奇"
+   ],
+   "aliases_en": [
+    "cookie",
+    "butter cookie"
+   ],
+   "kcal": 492.0,
+   "protein_g": 6.5,
+   "carb_g": 58.0,
+   "fat_g": 26.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-sachima",
+   "name_zh": "沙琪玛",
+   "name_en": "Sachima",
+   "aliases_zh": [
+    "沙其玛"
+   ],
+   "aliases_en": [
+    "sachima"
+   ],
+   "kcal": 476.0,
+   "protein_g": 7.0,
+   "carb_g": 58.0,
+   "fat_g": 24.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-walnut-cookie-taosu",
+   "name_zh": "桃酥",
+   "name_en": "Walnut Cookie (Taosu)",
+   "aliases_zh": [
+    "核桃酥"
+   ],
+   "aliases_en": [
+    "chinese walnut cookie"
+   ],
+   "kcal": 511.0,
+   "protein_g": 7.0,
+   "carb_g": 60.0,
+   "fat_g": 27.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-mooncake",
+   "name_zh": "月饼",
+   "name_en": "Mooncake",
+   "aliases_zh": [
+    "莲蓉月饼",
+    "蛋黄月饼"
+   ],
+   "aliases_en": [
+    "mooncake"
+   ],
+   "kcal": 423.0,
+   "protein_g": 8.0,
+   "carb_g": 55.0,
+   "fat_g": 19.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-zongzi-sticky-rice-dumpling",
+   "name_zh": "粽子",
+   "name_en": "Zongzi (Sticky Rice Dumpling)",
+   "aliases_zh": [
+    "肉粽",
+    "豆沙粽"
+   ],
+   "aliases_en": [
+    "zongzi",
+    "rice dumpling"
+   ],
+   "kcal": 216.5,
+   "protein_g": 6.0,
+   "carb_g": 38.0,
+   "fat_g": 4.5,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-tangyuan-glutinous-rice-ball",
+   "name_zh": "汤圆",
+   "name_en": "Tangyuan (Glutinous Rice Ball)",
+   "aliases_zh": [
+    "元宵",
+    "芝麻汤圆"
+   ],
+   "aliases_en": [
+    "tangyuan",
+    "glutinous rice ball"
+   ],
+   "kcal": 261.0,
+   "protein_g": 5.0,
+   "carb_g": 40.0,
+   "fat_g": 9.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-dark-chocolate",
+   "name_zh": "黑巧克力",
+   "name_en": "Dark Chocolate",
+   "aliases_zh": [
+    "黑巧",
+    "可可含量70%巧克力"
+   ],
+   "aliases_en": [
+    "dark chocolate"
+   ],
+   "kcal": 572.0,
+   "protein_g": 8.0,
+   "carb_g": 45.0,
+   "fat_g": 40.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-milk-chocolate",
+   "name_zh": "牛奶巧克力",
+   "name_en": "Milk Chocolate",
+   "aliases_zh": [
+    "奶巧",
+    "牛奶巧克力排"
+   ],
+   "aliases_en": [
+    "milk chocolate"
+   ],
+   "kcal": 520.0,
+   "protein_g": 7.5,
+   "carb_g": 55.0,
+   "fat_g": 30.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-hard-candy",
+   "name_zh": "硬糖",
+   "name_en": "Hard Candy",
+   "aliases_zh": [
+    "水果硬糖"
+   ],
+   "aliases_en": [
+    "hard candy"
+   ],
+   "kcal": 380.0,
+   "protein_g": 0.0,
+   "carb_g": 95.0,
+   "fat_g": 0.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-marshmallow",
+   "name_zh": "棉花糖",
+   "name_en": "Marshmallow",
+   "aliases_zh": [
+    "马什马洛"
+   ],
+   "aliases_en": [
+    "marshmallow"
+   ],
+   "kcal": 327.8,
+   "protein_g": 1.5,
+   "carb_g": 80.0,
+   "fat_g": 0.2,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-ice-cream",
+   "name_zh": "冰淇淋",
+   "name_en": "Ice Cream",
+   "aliases_zh": [
+    "香草冰淇淋",
+    "冰激凌"
+   ],
+   "aliases_en": [
+    "ice cream"
+   ],
+   "kcal": 205.0,
+   "protein_g": 3.5,
+   "carb_g": 23.0,
+   "fat_g": 11.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-ice-pop-bar",
+   "name_zh": "雪糕",
+   "name_en": "Ice Pop / Bar",
+   "aliases_zh": [
+    "冰棍",
+    "棒冰"
+   ],
+   "aliases_en": [
+    "ice pop",
+    "ice bar"
+   ],
+   "kcal": 168.0,
+   "protein_g": 2.5,
+   "carb_g": 26.0,
+   "fat_g": 6.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-double-skin-milk-pudding",
+   "name_zh": "双皮奶",
+   "name_en": "Double-skin Milk Pudding",
+   "aliases_zh": [
+    "广东双皮奶"
+   ],
+   "aliases_en": [
+    "double skin milk"
+   ],
+   "kcal": 166.0,
+   "protein_g": 6.5,
+   "carb_g": 17.0,
+   "fat_g": 8.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-guilinggao-herbal-jelly",
+   "name_zh": "龟苓膏",
+   "name_en": "Guilinggao (Herbal Jelly)",
+   "aliases_zh": [
+    "龟苓膏(原味)"
+   ],
+   "aliases_en": [
+    "herbal jelly",
+    "guilinggao"
+   ],
+   "kcal": 53.8,
+   "protein_g": 1.0,
+   "carb_g": 12.0,
+   "fat_g": 0.2,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-fruit-jelly",
+   "name_zh": "果冻",
+   "name_en": "Fruit Jelly",
+   "aliases_zh": [
+    "果冻条"
+   ],
+   "aliases_en": [
+    "fruit jelly"
+   ],
+   "kcal": 62.9,
+   "protein_g": 0.5,
+   "carb_g": 15.0,
+   "fat_g": 0.1,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-butter-popcorn",
+   "name_zh": "奶油爆米花",
+   "name_en": "Butter Popcorn",
+   "aliases_zh": [
+    "焦糖爆米花"
+   ],
+   "aliases_en": [
+    "butter popcorn"
+   ],
+   "kcal": 450.0,
+   "protein_g": 7.0,
+   "carb_g": 65.0,
+   "fat_g": 18.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-sunflower-seeds-roasted",
+   "name_zh": "瓜子",
+   "name_en": "Sunflower Seeds (Roasted)",
+   "aliases_zh": [
+    "葵花籽",
+    "瓜子(炒)"
+   ],
+   "aliases_en": [
+    "sunflower seeds"
+   ],
+   "kcal": 618.0,
+   "protein_g": 22.0,
+   "carb_g": 20.0,
+   "fat_g": 50.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-roasted-peanuts",
+   "name_zh": "炒花生",
+   "name_en": "Roasted Peanuts",
+   "aliases_zh": [
+    "花生米",
+    "油炸花生"
+   ],
+   "aliases_en": [
+    "roasted peanuts"
+   ],
+   "kcal": 596.0,
+   "protein_g": 25.0,
+   "carb_g": 16.0,
+   "fat_g": 48.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-cashew-nuts",
+   "name_zh": "腰果",
+   "name_en": "Cashew Nuts",
+   "aliases_zh": [
+    "腰果仁"
+   ],
+   "aliases_en": [
+    "cashew"
+   ],
+   "kcal": 606.0,
+   "protein_g": 18.0,
+   "carb_g": 30.0,
+   "fat_g": 46.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-almonds",
+   "name_zh": "杏仁",
+   "name_en": "Almonds",
+   "aliases_zh": [
+    "巴旦木",
+    "扁桃仁"
+   ],
+   "aliases_en": [
+    "almond"
+   ],
+   "kcal": 658.0,
+   "protein_g": 21.0,
+   "carb_g": 22.0,
+   "fat_g": 54.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-walnut-kernel",
+   "name_zh": "核桃仁",
+   "name_en": "Walnut Kernel",
+   "aliases_zh": [
+    "核桃肉"
+   ],
+   "aliases_en": [
+    "walnut"
+   ],
+   "kcal": 701.0,
+   "protein_g": 15.0,
+   "carb_g": 14.0,
+   "fat_g": 65.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-daily-mixed-nuts",
+   "name_zh": "每日坚果",
+   "name_en": "Daily Mixed Nuts",
+   "aliases_zh": [
+    "混合坚果",
+    "坚果包"
+   ],
+   "aliases_en": [
+    "mixed nuts pack"
+   ],
+   "kcal": 579.0,
+   "protein_g": 17.0,
+   "carb_g": 22.0,
+   "fat_g": 47.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-pecan",
+   "name_zh": "碧根果",
+   "name_en": "Pecan",
+   "aliases_zh": [
+    "长寿果"
+   ],
+   "aliases_en": [
+    "pecan"
+   ],
+   "kcal": 722.0,
+   "protein_g": 9.0,
+   "carb_g": 14.0,
+   "fat_g": 70.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-macadamia",
+   "name_zh": "夏威夷果",
+   "name_en": "Macadamia",
+   "aliases_zh": [
+    "澳洲坚果"
+   ],
+   "aliases_en": [
+    "macadamia"
+   ],
+   "kcal": 772.0,
+   "protein_g": 8.0,
+   "carb_g": 14.0,
+   "fat_g": 76.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-beef-jerky",
+   "name_zh": "牛肉干",
+   "name_en": "Beef Jerky",
+   "aliases_zh": [
+    "风干牛肉",
+    "牛肉脯"
+   ],
+   "aliases_en": [
+    "beef jerky"
+   ],
+   "kcal": 300.0,
+   "protein_g": 45.0,
+   "carb_g": 12.0,
+   "fat_g": 8.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-pork-jerky",
+   "name_zh": "猪肉脯",
+   "name_en": "Pork Jerky",
+   "aliases_zh": [
+    "肉脯",
+    "靖江猪肉脯"
+   ],
+   "aliases_en": [
+    "pork jerky"
+   ],
+   "kcal": 355.0,
+   "protein_g": 30.0,
+   "carb_g": 25.0,
+   "fat_g": 15.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-dried-squid-snack",
+   "name_zh": "鱿鱼丝",
+   "name_en": "Dried Squid Snack",
+   "aliases_zh": [
+    "手撕鱿鱼"
+   ],
+   "aliases_en": [
+    "dried squid snack"
+   ],
+   "kcal": 227.0,
+   "protein_g": 35.0,
+   "carb_g": 15.0,
+   "fat_g": 3.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-nori-seaweed-snack",
+   "name_zh": "海苔",
+   "name_en": "Nori / Seaweed Snack",
+   "aliases_zh": [
+    "紫菜零食",
+    "烤海苔"
+   ],
+   "aliases_en": [
+    "seaweed snack",
+    "nori"
+   ],
+   "kcal": 305.0,
+   "protein_g": 25.0,
+   "carb_g": 40.0,
+   "fat_g": 5.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-dried-tofu-snack",
+   "name_zh": "豆腐干",
+   "name_en": "Dried Tofu Snack",
+   "aliases_zh": [
+    "豆干",
+    "五香豆干"
+   ],
+   "aliases_en": [
+    "dried tofu snack"
+   ],
+   "kcal": 168.0,
+   "protein_g": 16.0,
+   "carb_g": 8.0,
+   "fat_g": 8.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-braised-chicken-feet",
+   "name_zh": "卤鸡爪",
+   "name_en": "Braised Chicken Feet",
+   "aliases_zh": [
+    "凤爪(卤)",
+    "泡椒凤爪"
+   ],
+   "aliases_en": [
+    "braised chicken feet"
+   ],
+   "kcal": 217.0,
+   "protein_g": 20.0,
+   "carb_g": 5.0,
+   "fat_g": 13.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-spicy-duck-neck",
+   "name_zh": "鸭脖",
+   "name_en": "Spicy Duck Neck",
+   "aliases_zh": [
+    "卤鸭脖",
+    "麻辣鸭脖"
+   ],
+   "aliases_en": [
+    "spicy duck neck"
+   ],
+   "kcal": 208.0,
+   "protein_g": 19.0,
+   "carb_g": 6.0,
+   "fat_g": 12.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-egg-roll-biscuit",
+   "name_zh": "蛋卷",
+   "name_en": "Egg Roll Biscuit",
+   "aliases_zh": [
+    "手工蛋卷"
+   ],
+   "aliases_en": [
+    "egg roll biscuit"
+   ],
+   "kcal": 477.0,
+   "protein_g": 8.0,
+   "carb_g": 55.0,
+   "fat_g": 25.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-rice-cracker",
+   "name_zh": "米饼",
+   "name_en": "Rice Cracker",
+   "aliases_zh": [
+    "雪饼"
+   ],
+   "aliases_en": [
+    "rice cracker"
+   ],
+   "kcal": 444.0,
+   "protein_g": 6.0,
+   "carb_g": 78.0,
+   "fat_g": 12.0,
+   "category": "零食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-cola",
+   "name_zh": "可乐",
+   "name_en": "Cola",
+   "aliases_zh": [
+    "碳酸饮料",
+    "汽水"
+   ],
+   "aliases_en": [
+    "cola",
+    "soft drink"
+   ],
+   "kcal": 42.4,
+   "protein_g": 0.0,
+   "carb_g": 10.6,
+   "fat_g": 0.0,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-sprite-lemon-lime-soda",
+   "name_zh": "雪碧",
+   "name_en": "Sprite (Lemon-lime Soda)",
+   "aliases_zh": [
+    "柠檬汽水"
+   ],
+   "aliases_en": [
+    "lemon lime soda"
+   ],
+   "kcal": 40.8,
+   "protein_g": 0.0,
+   "carb_g": 10.2,
+   "fat_g": 0.0,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-orange-soda",
+   "name_zh": "橙味汽水",
+   "name_en": "Orange Soda",
+   "aliases_zh": [
+    "芬达"
+   ],
+   "aliases_en": [
+    "orange soda",
+    "fanta"
+   ],
+   "kcal": 44.0,
+   "protein_g": 0.0,
+   "carb_g": 11.0,
+   "fat_g": 0.0,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-bubble-tea-milk-tea-with-pearls",
+   "name_zh": "珍珠奶茶",
+   "name_en": "Bubble Tea (Milk Tea with Pearls)",
+   "aliases_zh": [
+    "奶茶",
+    "波霸奶茶",
+    "珍珠"
+   ],
+   "aliases_en": [
+    "bubble tea",
+    "boba milk tea"
+   ],
+   "kcal": 79.2,
+   "protein_g": 1.5,
+   "carb_g": 12.0,
+   "fat_g": 2.8,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-milk-tea-unsweetened",
+   "name_zh": "奶茶(无糖)",
+   "name_en": "Milk Tea (Unsweetened)",
+   "aliases_zh": [
+    "无糖奶茶",
+    "鲜奶茶"
+   ],
+   "aliases_en": [
+    "unsweetened milk tea"
+   ],
+   "kcal": 54.5,
+   "protein_g": 2.0,
+   "carb_g": 6.0,
+   "fat_g": 2.5,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-americano",
+   "name_zh": "美式咖啡",
+   "name_en": "Americano",
+   "aliases_zh": [
+    "黑咖啡",
+    "美式"
+   ],
+   "aliases_en": [
+    "americano",
+    "black coffee"
+   ],
+   "kcal": 2.5,
+   "protein_g": 0.2,
+   "carb_g": 0.2,
+   "fat_g": 0.1,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-latte",
+   "name_zh": "拿铁咖啡",
+   "name_en": "Latte",
+   "aliases_zh": [
+    "拿铁",
+    "咖啡拿铁"
+   ],
+   "aliases_en": [
+    "latte"
+   ],
+   "kcal": 57.2,
+   "protein_g": 3.0,
+   "carb_g": 5.0,
+   "fat_g": 2.8,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-cappuccino",
+   "name_zh": "卡布奇诺",
+   "name_en": "Cappuccino",
+   "aliases_zh": [
+    "卡布"
+   ],
+   "aliases_en": [
+    "cappuccino"
+   ],
+   "kcal": 66.3,
+   "protein_g": 3.2,
+   "carb_g": 5.5,
+   "fat_g": 3.5,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-mocha",
+   "name_zh": "摩卡咖啡",
+   "name_en": "Mocha",
+   "aliases_zh": [
+    "摩卡"
+   ],
+   "aliases_en": [
+    "mocha"
+   ],
+   "kcal": 94.5,
+   "protein_g": 3.5,
+   "carb_g": 10.0,
+   "fat_g": 4.5,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-instant-coffee-with-sugar",
+   "name_zh": "速溶咖啡(含糖)",
+   "name_en": "Instant Coffee (with Sugar)",
+   "aliases_zh": [
+    "三合一咖啡"
+   ],
+   "aliases_en": [
+    "3-in-1 instant coffee"
+   ],
+   "kcal": 362.0,
+   "protein_g": 2.5,
+   "carb_g": 70.0,
+   "fat_g": 8.0,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-fresh-orange-juice",
+   "name_zh": "鲜榨橙汁",
+   "name_en": "Fresh Orange Juice",
+   "aliases_zh": [
+    "橙汁"
+   ],
+   "aliases_en": [
+    "orange juice"
+   ],
+   "kcal": 47.0,
+   "protein_g": 0.8,
+   "carb_g": 10.5,
+   "fat_g": 0.2,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-coconut-water",
+   "name_zh": "椰子水",
+   "name_en": "Coconut Water",
+   "aliases_zh": [
+    "椰青水"
+   ],
+   "aliases_en": [
+    "coconut water"
+   ],
+   "kcal": 20.6,
+   "protein_g": 0.7,
+   "carb_g": 4.0,
+   "fat_g": 0.2,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-coconut-milk-drink",
+   "name_zh": "椰汁",
+   "name_en": "Coconut Milk Drink",
+   "aliases_zh": [
+    "椰奶饮料"
+   ],
+   "aliases_en": [
+    "coconut drink"
+   ],
+   "kcal": 58.5,
+   "protein_g": 1.0,
+   "carb_g": 8.0,
+   "fat_g": 2.5,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-almond-milk-drink",
+   "name_zh": "杏仁露",
+   "name_en": "Almond Milk Drink",
+   "aliases_zh": [
+    "露露杏仁露"
+   ],
+   "aliases_en": [
+    "almond drink"
+   ],
+   "kcal": 60.6,
+   "protein_g": 1.2,
+   "carb_g": 9.0,
+   "fat_g": 2.2,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-soy-milk-drink",
+   "name_zh": "豆奶",
+   "name_en": "Soy Milk Drink",
+   "aliases_zh": [
+    "豆乳饮料"
+   ],
+   "aliases_en": [
+    "soy milk drink"
+   ],
+   "kcal": 54.2,
+   "protein_g": 3.0,
+   "carb_g": 6.5,
+   "fat_g": 1.8,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-sour-plum-drink-suanmeitang",
+   "name_zh": "酸梅汤",
+   "name_en": "Sour Plum Drink (Suanmeitang)",
+   "aliases_zh": [
+    "乌梅汤"
+   ],
+   "aliases_en": [
+    "sour plum drink"
+   ],
+   "kcal": 42.9,
+   "protein_g": 0.5,
+   "carb_g": 10.0,
+   "fat_g": 0.1,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-lemon-tea",
+   "name_zh": "柠檬茶",
+   "name_en": "Lemon Tea",
+   "aliases_zh": [
+    "冻柠茶"
+   ],
+   "aliases_en": [
+    "lemon tea"
+   ],
+   "kcal": 32.4,
+   "protein_g": 0.1,
+   "carb_g": 8.0,
+   "fat_g": 0.0,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-herbal-tea-cooling",
+   "name_zh": "凉茶",
+   "name_en": "Herbal Tea (Cooling)",
+   "aliases_zh": [
+    "王老吉",
+    "加多宝"
+   ],
+   "aliases_en": [
+    "herbal cooling tea"
+   ],
+   "kcal": 32.0,
+   "protein_g": 0.0,
+   "carb_g": 8.0,
+   "fat_g": 0.0,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-sports-drink",
+   "name_zh": "运动饮料",
+   "name_en": "Sports Drink",
+   "aliases_zh": [
+    "电解质饮料"
+   ],
+   "aliases_en": [
+    "sports drink",
+    "electrolyte drink"
+   ],
+   "kcal": 24.4,
+   "protein_g": 0.1,
+   "carb_g": 6.0,
+   "fat_g": 0.0,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-sparkling-water",
+   "name_zh": "气泡水",
+   "name_en": "Sparkling Water",
+   "aliases_zh": [
+    "苏打气泡水",
+    "无糖气泡水"
+   ],
+   "aliases_en": [
+    "sparkling water"
+   ],
+   "kcal": 0.0,
+   "protein_g": 0.0,
+   "carb_g": 0.0,
+   "fat_g": 0.0,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-yogurt-drink",
+   "name_zh": "酸奶饮品",
+   "name_en": "Yogurt Drink",
+   "aliases_zh": [
+    "乳酸菌饮料",
+    "养乐多"
+   ],
+   "aliases_en": [
+    "yogurt drink",
+    "lactic drink"
+   ],
+   "kcal": 56.5,
+   "protein_g": 1.0,
+   "carb_g": 12.0,
+   "fat_g": 0.5,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-tea-brewed",
+   "name_zh": "茶",
+   "name_en": "Tea (Brewed)",
+   "aliases_zh": [
+    "绿茶",
+    "红茶",
+    "茶水"
+   ],
+   "aliases_en": [
+    "brewed tea"
+   ],
+   "kcal": 0.0,
+   "protein_g": 0.0,
+   "carb_g": 0.0,
+   "fat_g": 0.0,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-beer",
+   "name_zh": "啤酒",
+   "name_en": "Beer",
+   "aliases_zh": [
+    "拉格",
+    "精酿啤酒"
+   ],
+   "aliases_en": [
+    "beer"
+   ],
+   "kcal": 15.6,
+   "protein_g": 0.4,
+   "carb_g": 3.5,
+   "fat_g": 0.0,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-red-wine",
+   "name_zh": "红酒",
+   "name_en": "Red Wine",
+   "aliases_zh": [
+    "干红葡萄酒"
+   ],
+   "aliases_en": [
+    "red wine"
+   ],
+   "kcal": 10.4,
+   "protein_g": 0.1,
+   "carb_g": 2.5,
+   "fat_g": 0.0,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-baijiu-chinese-liquor",
+   "name_zh": "白酒",
+   "name_en": "Baijiu (Chinese Liquor)",
+   "aliases_zh": [
+    "二锅头",
+    "高粱酒"
+   ],
+   "aliases_en": [
+    "baijiu"
+   ],
+   "kcal": 0.8,
+   "protein_g": 0.2,
+   "carb_g": 0.0,
+   "fat_g": 0.0,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-rice-wine",
+   "name_zh": "米酒",
+   "name_en": "Rice Wine",
+   "aliases_zh": [
+    "醪糟",
+    "酒酿"
+   ],
+   "aliases_en": [
+    "rice wine",
+    "jiuniang"
+   ],
+   "kcal": 39.8,
+   "protein_g": 1.5,
+   "carb_g": 8.0,
+   "fat_g": 0.2,
+   "category": "饮料",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-garden-salad",
+   "name_zh": "蔬菜沙拉",
+   "name_en": "Garden Salad",
+   "aliases_zh": [
+    "田园沙拉",
+    "生菜沙拉"
+   ],
+   "aliases_en": [
+    "garden salad"
+   ],
+   "kcal": 45.7,
+   "protein_g": 1.8,
+   "carb_g": 4.0,
+   "fat_g": 2.5,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-caesar-salad",
+   "name_zh": "凯撒沙拉",
+   "name_en": "Caesar Salad",
+   "aliases_zh": [
+    "凯撒鸡胸沙拉"
+   ],
+   "aliases_en": [
+    "caesar salad"
+   ],
+   "kcal": 129.0,
+   "protein_g": 6.0,
+   "carb_g": 6.0,
+   "fat_g": 9.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-tuna-salad",
+   "name_zh": "金枪鱼沙拉",
+   "name_en": "Tuna Salad",
+   "aliases_zh": [
+    "吞拿鱼沙拉"
+   ],
+   "aliases_en": [
+    "tuna salad"
+   ],
+   "kcal": 149.0,
+   "protein_g": 12.0,
+   "carb_g": 5.0,
+   "fat_g": 9.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-potato-salad",
+   "name_zh": "土豆沙拉",
+   "name_en": "Potato Salad",
+   "aliases_zh": [
+    "马铃薯沙拉"
+   ],
+   "aliases_en": [
+    "potato salad"
+   ],
+   "kcal": 122.0,
+   "protein_g": 3.0,
+   "carb_g": 14.0,
+   "fat_g": 6.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-chicken-breast-salad",
+   "name_zh": "鸡胸沙拉",
+   "name_en": "Chicken Breast Salad",
+   "aliases_zh": [
+    "鸡肉沙拉碗"
+   ],
+   "aliases_en": [
+    "chicken salad"
+   ],
+   "kcal": 125.0,
+   "protein_g": 14.0,
+   "carb_g": 6.0,
+   "fat_g": 5.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-tuna-sandwich",
+   "name_zh": "金枪鱼三明治",
+   "name_en": "Tuna Sandwich",
+   "aliases_zh": [
+    "吞拿鱼三明治"
+   ],
+   "aliases_en": [
+    "tuna sandwich"
+   ],
+   "kcal": 203.0,
+   "protein_g": 10.0,
+   "carb_g": 25.0,
+   "fat_g": 7.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-egg-sandwich",
+   "name_zh": "鸡蛋三明治",
+   "name_en": "Egg Sandwich",
+   "aliases_zh": [
+    "蛋沙拉三明治"
+   ],
+   "aliases_en": [
+    "egg sandwich"
+   ],
+   "kcal": 193.0,
+   "protein_g": 8.5,
+   "carb_g": 24.0,
+   "fat_g": 7.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-whole-wheat-sandwich",
+   "name_zh": "全麦三明治",
+   "name_en": "Whole Wheat Sandwich",
+   "aliases_zh": [
+    "全麦夹心"
+   ],
+   "aliases_en": [
+    "whole wheat sandwich"
+   ],
+   "kcal": 189.5,
+   "protein_g": 9.0,
+   "carb_g": 26.0,
+   "fat_g": 5.5,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-beef-burger",
+   "name_zh": "汉堡",
+   "name_en": "Beef Burger",
+   "aliases_zh": [
+    "牛肉汉堡",
+    "芝士汉堡"
+   ],
+   "aliases_en": [
+    "beef burger",
+    "cheeseburger"
+   ],
+   "kcal": 273.0,
+   "protein_g": 15.0,
+   "carb_g": 24.0,
+   "fat_g": 13.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-chicken-burger",
+   "name_zh": "鸡腿堡",
+   "name_en": "Chicken Burger",
+   "aliases_zh": [
+    "香辣鸡腿堡",
+    "炸鸡堡"
+   ],
+   "aliases_en": [
+    "chicken burger",
+    "fillet burger"
+   ],
+   "kcal": 286.0,
+   "protein_g": 14.0,
+   "carb_g": 26.0,
+   "fat_g": 14.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-margherita-pizza",
+   "name_zh": "玛格丽特披萨",
+   "name_en": "Margherita Pizza",
+   "aliases_zh": [
+    "披萨",
+    "芝士披萨"
+   ],
+   "aliases_en": [
+    "margherita pizza"
+   ],
+   "kcal": 258.0,
+   "protein_g": 11.0,
+   "carb_g": 31.0,
+   "fat_g": 10.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-supreme-pizza",
+   "name_zh": "超级披萨",
+   "name_en": "Supreme Pizza",
+   "aliases_zh": [
+    "什锦披萨",
+    "肉披萨"
+   ],
+   "aliases_en": [
+    "supreme pizza"
+   ],
+   "kcal": 272.0,
+   "protein_g": 12.0,
+   "carb_g": 29.0,
+   "fat_g": 12.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-spaghetti-bolognese",
+   "name_zh": "肉酱意面",
+   "name_en": "Spaghetti Bolognese",
+   "aliases_zh": [
+    "意大利面",
+    "番茄肉酱面"
+   ],
+   "aliases_en": [
+    "spaghetti bolognese"
+   ],
+   "kcal": 177.0,
+   "protein_g": 9.0,
+   "carb_g": 24.0,
+   "fat_g": 5.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-alfredo-pasta",
+   "name_zh": "奶油意面",
+   "name_en": "Alfredo Pasta",
+   "aliases_zh": [
+    "白酱意面",
+    "奶油培根面"
+   ],
+   "aliases_en": [
+    "alfredo pasta"
+   ],
+   "kcal": 205.0,
+   "protein_g": 8.0,
+   "carb_g": 23.0,
+   "fat_g": 9.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-pan-seared-sirloin-steak",
+   "name_zh": "煎西冷牛排",
+   "name_en": "Pan-seared Sirloin Steak",
+   "aliases_zh": [
+    "牛排",
+    "西冷"
+   ],
+   "aliases_en": [
+    "sirloin steak"
+   ],
+   "kcal": 221.0,
+   "protein_g": 26.0,
+   "carb_g": 0.0,
+   "fat_g": 13.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-salmon-nigiri",
+   "name_zh": "三文鱼寿司",
+   "name_en": "Salmon Nigiri",
+   "aliases_zh": [
+    "三文鱼握寿司",
+    "寿司"
+   ],
+   "aliases_en": [
+    "salmon nigiri",
+    "sushi"
+   ],
+   "kcal": 167.5,
+   "protein_g": 12.0,
+   "carb_g": 22.0,
+   "fat_g": 3.5,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-california-roll",
+   "name_zh": "加州卷",
+   "name_en": "California Roll",
+   "aliases_zh": [
+    "寿司卷"
+   ],
+   "aliases_en": [
+    "california roll"
+   ],
+   "kcal": 163.0,
+   "protein_g": 9.0,
+   "carb_g": 25.0,
+   "fat_g": 3.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-poke-bowl",
+   "name_zh": "波奇饭",
+   "name_en": "Poke Bowl",
+   "aliases_zh": [
+    "夏威夷盖饭",
+    "三文鱼波奇"
+   ],
+   "aliases_en": [
+    "poke bowl"
+   ],
+   "kcal": 160.0,
+   "protein_g": 9.0,
+   "carb_g": 22.0,
+   "fat_g": 4.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-quinoa-bowl",
+   "name_zh": "藜麦饭",
+   "name_en": "Quinoa Bowl",
+   "aliases_zh": [
+    "藜麦碗"
+   ],
+   "aliases_en": [
+    "quinoa bowl"
+   ],
+   "kcal": 118.2,
+   "protein_g": 4.5,
+   "carb_g": 21.0,
+   "fat_g": 1.8,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-avocado-toast",
+   "name_zh": "牛油果吐司",
+   "name_en": "Avocado Toast",
+   "aliases_zh": [
+    "酪梨吐司"
+   ],
+   "aliases_en": [
+    "avocado toast"
+   ],
+   "kcal": 207.0,
+   "protein_g": 5.0,
+   "carb_g": 22.0,
+   "fat_g": 11.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-energy-bar",
+   "name_zh": "能量棒",
+   "name_en": "Energy Bar",
+   "aliases_zh": [
+    "谷物棒"
+   ],
+   "aliases_en": [
+    "energy bar"
+   ],
+   "kcal": 358.0,
+   "protein_g": 8.0,
+   "carb_g": 50.0,
+   "fat_g": 14.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-protein-bar",
+   "name_zh": "蛋白棒",
+   "name_en": "Protein Bar",
+   "aliases_zh": [
+    "蛋白质棒"
+   ],
+   "aliases_en": [
+    "protein bar"
+   ],
+   "kcal": 321.0,
+   "protein_g": 20.0,
+   "carb_g": 40.0,
+   "fat_g": 9.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-french-fries",
+   "name_zh": "薯条",
+   "name_en": "French Fries",
+   "aliases_zh": [
+    "炸薯条"
+   ],
+   "aliases_en": [
+    "french fries"
+   ],
+   "kcal": 317.0,
+   "protein_g": 3.5,
+   "carb_g": 42.0,
+   "fat_g": 15.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-chicken-nuggets",
+   "name_zh": "鸡块",
+   "name_en": "Chicken Nuggets",
+   "aliases_zh": [
+    "麦乐鸡",
+    "上校鸡块"
+   ],
+   "aliases_en": [
+    "chicken nuggets"
+   ],
+   "kcal": 259.0,
+   "protein_g": 13.0,
+   "carb_g": 18.0,
+   "fat_g": 15.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-cream-of-mushroom-soup",
+   "name_zh": "奶油蘑菇汤",
+   "name_en": "Cream of Mushroom Soup",
+   "aliases_zh": [
+    "蘑菇浓汤"
+   ],
+   "aliases_en": [
+    "mushroom soup"
+   ],
+   "kcal": 97.0,
+   "protein_g": 2.5,
+   "carb_g": 6.0,
+   "fat_g": 7.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-corn-chowder",
+   "name_zh": "玉米浓汤",
+   "name_en": "Corn Chowder",
+   "aliases_zh": [
+    "玉米奶油汤"
+   ],
+   "aliases_en": [
+    "corn chowder"
+   ],
+   "kcal": 97.0,
+   "protein_g": 3.0,
+   "carb_g": 10.0,
+   "fat_g": 5.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-borscht",
+   "name_zh": "罗宋汤",
+   "name_en": "Borscht",
+   "aliases_zh": [
+    "红菜汤"
+   ],
+   "aliases_en": [
+    "borscht"
+   ],
+   "kcal": 52.0,
+   "protein_g": 1.5,
+   "carb_g": 7.0,
+   "fat_g": 2.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-croissant",
+   "name_zh": "可颂",
+   "name_en": "Croissant",
+   "aliases_zh": [
+    "牛角包",
+    "羊角面包"
+   ],
+   "aliases_en": [
+    "croissant"
+   ],
+   "kcal": 408.0,
+   "protein_g": 8.0,
+   "carb_g": 40.0,
+   "fat_g": 24.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-bagel",
+   "name_zh": "贝果",
+   "name_en": "Bagel",
+   "aliases_zh": [
+    "贝果面包"
+   ],
+   "aliases_en": [
+    "bagel"
+   ],
+   "kcal": 245.5,
+   "protein_g": 10.0,
+   "carb_g": 48.0,
+   "fat_g": 1.5,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-baguette",
+   "name_zh": "法棍",
+   "name_en": "Baguette",
+   "aliases_zh": [
+    "法式长棍"
+   ],
+   "aliases_en": [
+    "baguette"
+   ],
+   "kcal": 237.0,
+   "protein_g": 9.0,
+   "carb_g": 48.0,
+   "fat_g": 1.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-pancake",
+   "name_zh": "松饼",
+   "name_en": "Pancake",
+   "aliases_zh": [
+    "班戟",
+    "美式松饼"
+   ],
+   "aliases_en": [
+    "pancake"
+   ],
+   "kcal": 239.0,
+   "protein_g": 6.0,
+   "carb_g": 38.0,
+   "fat_g": 7.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-waffle",
+   "name_zh": "华夫饼",
+   "name_en": "Waffle",
+   "aliases_zh": [
+    "窝夫"
+   ],
+   "aliases_en": [
+    "waffle"
+   ],
+   "kcal": 359.0,
+   "protein_g": 6.5,
+   "carb_g": 45.0,
+   "fat_g": 17.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-donut",
+   "name_zh": "甜甜圈",
+   "name_en": "Donut",
+   "aliases_zh": [
+    "冬甩",
+    "多拿滋"
+   ],
+   "aliases_en": [
+    "donut",
+    "doughnut"
+   ],
+   "kcal": 419.0,
+   "protein_g": 5.0,
+   "carb_g": 48.0,
+   "fat_g": 23.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-tiramisu",
+   "name_zh": "提拉米苏",
+   "name_en": "Tiramisu",
+   "aliases_zh": [
+    "提拉米苏蛋糕"
+   ],
+   "aliases_en": [
+    "tiramisu"
+   ],
+   "kcal": 298.0,
+   "protein_g": 6.0,
+   "carb_g": 28.0,
+   "fat_g": 18.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-cheesecake",
+   "name_zh": "芝士蛋糕",
+   "name_en": "Cheesecake",
+   "aliases_zh": [
+    "奶酪蛋糕"
+   ],
+   "aliases_en": [
+    "cheesecake"
+   ],
+   "kcal": 326.0,
+   "protein_g": 7.0,
+   "carb_g": 25.0,
+   "fat_g": 22.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-mousse-cake",
+   "name_zh": "慕斯蛋糕",
+   "name_en": "Mousse Cake",
+   "aliases_zh": [
+    "巧克力慕斯"
+   ],
+   "aliases_en": [
+    "mousse cake"
+   ],
+   "kcal": 312.0,
+   "protein_g": 5.0,
+   "carb_g": 28.0,
+   "fat_g": 20.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-lasagna",
+   "name_zh": "千层面",
+   "name_en": "Lasagna",
+   "aliases_zh": [
+    "意大利千层"
+   ],
+   "aliases_en": [
+    "lasagna"
+   ],
+   "kcal": 202.0,
+   "protein_g": 10.0,
+   "carb_g": 18.0,
+   "fat_g": 10.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-baked-rice-gratin",
+   "name_zh": "焗饭",
+   "name_en": "Baked Rice Gratin",
+   "aliases_zh": [
+    "芝士焗饭"
+   ],
+   "aliases_en": [
+    "baked rice gratin"
+   ],
+   "kcal": 209.0,
+   "protein_g": 8.0,
+   "carb_g": 24.0,
+   "fat_g": 9.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-german-sausage",
+   "name_zh": "德式香肠",
+   "name_en": "German Sausage",
+   "aliases_zh": [
+    "烤肠",
+    "香肠(西式)"
+   ],
+   "aliases_en": [
+    "bratwurst",
+    "german sausage"
+   ],
+   "kcal": 299.0,
+   "protein_g": 12.0,
+   "carb_g": 2.0,
+   "fat_g": 27.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-mashed-potato",
+   "name_zh": "土豆泥",
+   "name_en": "Mashed Potato",
+   "aliases_zh": [
+    "马铃薯泥"
+   ],
+   "aliases_en": [
+    "mashed potato"
+   ],
+   "kcal": 101.6,
+   "protein_g": 2.4,
+   "carb_g": 14.0,
+   "fat_g": 4.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-hot-dog",
+   "name_zh": "热狗",
+   "name_en": "Hot Dog",
+   "aliases_zh": [
+    "热狗面包"
+   ],
+   "aliases_en": [
+    "hot dog"
+   ],
+   "kcal": 253.0,
+   "protein_g": 10.0,
+   "carb_g": 24.0,
+   "fat_g": 13.0,
+   "category": "轻食",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-chicken-curry-rice",
+   "name_zh": "咖喱鸡肉饭",
+   "name_en": "Chicken Curry Rice",
+   "aliases_zh": [
+    "咖喱饭"
+   ],
+   "aliases_en": [
+    "chicken curry rice"
+   ],
+   "kcal": 178.0,
+   "protein_g": 7.0,
+   "carb_g": 24.0,
+   "fat_g": 6.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-braised-pork-rice",
+   "name_zh": "卤肉饭",
+   "name_en": "Braised Pork Rice",
+   "aliases_zh": [
+    "肉燥饭"
+   ],
+   "aliases_en": [
+    "braised pork rice"
+   ],
+   "kcal": 187.5,
+   "protein_g": 6.0,
+   "carb_g": 24.0,
+   "fat_g": 7.5,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-rice-with-topped-stir-fry",
+   "name_zh": "盖浇饭",
+   "name_en": "Rice with Topped Stir-fry",
+   "aliases_zh": [
+    "盖饭"
+   ],
+   "aliases_en": [
+    "rice with stir-fry topping"
+   ],
+   "kcal": 167.5,
+   "protein_g": 5.5,
+   "carb_g": 24.0,
+   "fat_g": 5.5,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-braised-chicken-rice-huangmenji",
+   "name_zh": "黄焖鸡米饭",
+   "name_en": "Braised Chicken Rice (Huangmenji)",
+   "aliases_zh": [
+    "黄焖鸡"
+   ],
+   "aliases_en": [
+    "braised chicken rice"
+   ],
+   "kcal": 187.0,
+   "protein_g": 9.0,
+   "carb_g": 22.0,
+   "fat_g": 7.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-yu-sheng-shredded-pork",
+   "name_zh": "鱼香肉丝",
+   "name_en": "Yu Sheng Shredded Pork",
+   "aliases_zh": [
+    "鱼香肉丝(川菜)"
+   ],
+   "aliases_en": [
+    "fish-fragrant shredded pork"
+   ],
+   "kcal": 168.0,
+   "protein_g": 12.0,
+   "carb_g": 12.0,
+   "fat_g": 8.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-stir-fried-tomato-and-egg",
+   "name_zh": "西红柿炒鸡蛋",
+   "name_en": "Stir-fried Tomato and Egg",
+   "aliases_zh": [
+    "番茄炒蛋",
+    "番茄炒鸡蛋"
+   ],
+   "aliases_en": [
+    "tomato egg stir-fry"
+   ],
+   "kcal": 107.0,
+   "protein_g": 6.0,
+   "carb_g": 5.0,
+   "fat_g": 7.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-shredded-pork-with-green-pepper",
+   "name_zh": "青椒肉丝",
+   "name_en": "Shredded Pork with Green Pepper",
+   "aliases_zh": [
+    "辣椒炒肉丝"
+   ],
+   "aliases_en": [
+    "shredded pork with pepper"
+   ],
+   "kcal": 165.0,
+   "protein_g": 13.0,
+   "carb_g": 8.0,
+   "fat_g": 9.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-stir-fried-eggplant-potato-pepper",
+   "name_zh": "地三鲜",
+   "name_en": "Stir-fried Eggplant Potato Pepper",
+   "aliases_zh": [
+    "地三鲜(东北)"
+   ],
+   "aliases_en": [
+    "di san xian"
+   ],
+   "kcal": 137.0,
+   "protein_g": 2.0,
+   "carb_g": 12.0,
+   "fat_g": 9.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-shredded-potato-hot-sour-stir-fry",
+   "name_zh": "酸辣土豆丝",
+   "name_en": "Shredded Potato Hot-sour Stir-fry",
+   "aliases_zh": [
+    "土豆丝"
+   ],
+   "aliases_en": [
+    "shredded potato"
+   ],
+   "kcal": 92.0,
+   "protein_g": 2.0,
+   "carb_g": 12.0,
+   "fat_g": 4.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-dry-fried-green-beans",
+   "name_zh": "干煸四季豆",
+   "name_en": "Dry-fried Green Beans",
+   "aliases_zh": [
+    "干煸豆角"
+   ],
+   "aliases_en": [
+    "dry-fried green beans"
+   ],
+   "kcal": 120.0,
+   "protein_g": 3.0,
+   "carb_g": 9.0,
+   "fat_g": 8.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-braised-pork-belly-hongshaorou",
+   "name_zh": "红烧肉",
+   "name_en": "Braised Pork Belly (Hongshaorou)",
+   "aliases_zh": [
+    "东坡肉",
+    "焖肉"
+   ],
+   "aliases_en": [
+    "braised pork belly"
+   ],
+   "kcal": 417.0,
+   "protein_g": 13.0,
+   "carb_g": 8.0,
+   "fat_g": 37.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-sweet-and-sour-pork",
+   "name_zh": "糖醋里脊",
+   "name_en": "Sweet and Sour Pork",
+   "aliases_zh": [
+    "咕咾肉",
+    "咕噜肉"
+   ],
+   "aliases_en": [
+    "sweet and sour pork"
+   ],
+   "kcal": 217.0,
+   "protein_g": 12.0,
+   "carb_g": 22.0,
+   "fat_g": 9.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-steamed-pork-with-preserved-vegetables",
+   "name_zh": "梅菜扣肉",
+   "name_en": "Steamed Pork with Preserved Vegetables",
+   "aliases_zh": [
+    "扣肉"
+   ],
+   "aliases_en": [
+    "steamed pork with meicai"
+   ],
+   "kcal": 350.0,
+   "protein_g": 12.0,
+   "carb_g": 8.0,
+   "fat_g": 30.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-braised-spare-ribs",
+   "name_zh": "红烧排骨",
+   "name_en": "Braised Spare Ribs",
+   "aliases_zh": [
+    "糖醋排骨"
+   ],
+   "aliases_en": [
+    "braised spare ribs"
+   ],
+   "kcal": 280.0,
+   "protein_g": 16.0,
+   "carb_g": 9.0,
+   "fat_g": 20.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-chongqing-spicy-chicken",
+   "name_zh": "辣子鸡",
+   "name_en": "Chongqing Spicy Chicken",
+   "aliases_zh": [
+    "重庆辣子鸡"
+   ],
+   "aliases_en": [
+    "spicy diced chicken"
+   ],
+   "kcal": 256.0,
+   "protein_g": 20.0,
+   "carb_g": 8.0,
+   "fat_g": 16.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-poached-fish-in-chili-oil",
+   "name_zh": "水煮鱼",
+   "name_en": "Poached Fish in Chili Oil",
+   "aliases_zh": [
+    "水煮肉片"
+   ],
+   "aliases_en": [
+    "poached fish chili oil"
+   ],
+   "kcal": 189.0,
+   "protein_g": 14.0,
+   "carb_g": 4.0,
+   "fat_g": 13.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-fish-with-pickled-cabbage",
+   "name_zh": "酸菜鱼",
+   "name_en": "Fish with Pickled Cabbage",
+   "aliases_zh": [
+    "老坛酸菜鱼"
+   ],
+   "aliases_en": [
+    "pickled cabbage fish"
+   ],
+   "kcal": 145.0,
+   "protein_g": 12.0,
+   "carb_g": 4.0,
+   "fat_g": 9.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-mao-xue-wang-spicy-blood-curd",
+   "name_zh": "毛血旺",
+   "name_en": "Mao Xue Wang (Spicy Blood Curd)",
+   "aliases_zh": [
+    "血旺"
+   ],
+   "aliases_en": [
+    "mao xue wang"
+   ],
+   "kcal": 151.0,
+   "protein_g": 8.0,
+   "carb_g": 5.0,
+   "fat_g": 11.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-steamed-sea-bass",
+   "name_zh": "清蒸鲈鱼",
+   "name_en": "Steamed Sea Bass",
+   "aliases_zh": [
+    "清蒸鱼"
+   ],
+   "aliases_en": [
+    "steamed sea bass"
+   ],
+   "kcal": 120.5,
+   "protein_g": 19.0,
+   "carb_g": 1.0,
+   "fat_g": 4.5,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-lamb-skewer",
+   "name_zh": "烤羊肉串",
+   "name_en": "Lamb Skewer",
+   "aliases_zh": [
+    "羊肉串"
+   ],
+   "aliases_en": [
+    "lamb skewer"
+   ],
+   "kcal": 213.0,
+   "protein_g": 20.0,
+   "carb_g": 4.0,
+   "fat_g": 13.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-iron-plate-tofu",
+   "name_zh": "铁板豆腐",
+   "name_en": "Iron-plate Tofu",
+   "aliases_zh": [
+    "铁板日本豆腐"
+   ],
+   "aliases_en": [
+    "iron plate tofu"
+   ],
+   "kcal": 128.0,
+   "protein_g": 8.0,
+   "carb_g": 6.0,
+   "fat_g": 8.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-beef-noodle-soup",
+   "name_zh": "牛肉面",
+   "name_en": "Beef Noodle Soup",
+   "aliases_zh": [
+    "红烧牛肉面",
+    "牛肉拉面"
+   ],
+   "aliases_en": [
+    "beef noodle soup"
+   ],
+   "kcal": 137.5,
+   "protein_g": 6.5,
+   "carb_g": 20.0,
+   "fat_g": 3.5,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-zhajiang-noodles",
+   "name_zh": "炸酱面",
+   "name_en": "Zhajiang Noodles",
+   "aliases_zh": [
+    "老北京炸酱面"
+   ],
+   "aliases_en": [
+    "zhajiang noodles"
+   ],
+   "kcal": 173.0,
+   "protein_g": 7.0,
+   "carb_g": 25.0,
+   "fat_g": 5.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-hot-dry-noodles-wuhan",
+   "name_zh": "热干面",
+   "name_en": "Hot Dry Noodles (Wuhan)",
+   "aliases_zh": [
+    "武汉热干面"
+   ],
+   "aliases_en": [
+    "hot dry noodles"
+   ],
+   "kcal": 207.0,
+   "protein_g": 8.0,
+   "carb_g": 28.0,
+   "fat_g": 7.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-chongqing-noodles",
+   "name_zh": "重庆小面",
+   "name_en": "Chongqing Noodles",
+   "aliases_zh": [
+    "麻辣小面"
+   ],
+   "aliases_en": [
+    "chongqing noodles"
+   ],
+   "kcal": 174.0,
+   "protein_g": 6.0,
+   "carb_g": 24.0,
+   "fat_g": 6.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-tomato-egg-noodle-soup",
+   "name_zh": "番茄鸡蛋面",
+   "name_en": "Tomato Egg Noodle Soup",
+   "aliases_zh": [
+    "西红柿鸡蛋面"
+   ],
+   "aliases_en": [
+    "tomato egg noodle"
+   ],
+   "kcal": 135.0,
+   "protein_g": 5.0,
+   "carb_g": 22.0,
+   "fat_g": 3.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-rice-noodle-soup",
+   "name_zh": "米线",
+   "name_en": "Rice Noodle Soup",
+   "aliases_zh": [
+    "云南米线",
+    "过桥米线"
+   ],
+   "aliases_en": [
+    "rice noodles"
+   ],
+   "kcal": 118.0,
+   "protein_g": 3.0,
+   "carb_g": 22.0,
+   "fat_g": 2.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-liuzhou-snail-rice-noodles",
+   "name_zh": "螺蛳粉",
+   "name_en": "Liuzhou Snail Rice Noodles",
+   "aliases_zh": [
+    "柳州螺蛳粉"
+   ],
+   "aliases_en": [
+    "luosifen",
+    "snail noodles"
+   ],
+   "kcal": 144.0,
+   "protein_g": 5.0,
+   "carb_g": 22.0,
+   "fat_g": 4.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-hot-and-sour-glass-noodles",
+   "name_zh": "酸辣粉",
+   "name_en": "Hot and Sour Glass Noodles",
+   "aliases_zh": [
+    "重庆酸辣粉"
+   ],
+   "aliases_en": [
+    "hot sour glass noodles"
+   ],
+   "kcal": 144.0,
+   "protein_g": 3.0,
+   "carb_g": 24.0,
+   "fat_g": 4.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-spicy-hot-pot-mala-tang",
+   "name_zh": "麻辣烫",
+   "name_en": "Spicy Hot Pot (Mala Tang)",
+   "aliases_zh": [
+    "串签麻辣烫"
+   ],
+   "aliases_en": [
+    "mala tang"
+   ],
+   "kcal": 110.0,
+   "protein_g": 6.0,
+   "carb_g": 8.0,
+   "fat_g": 6.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-maocai-sichuan-spicy-pot",
+   "name_zh": "冒菜",
+   "name_en": "Maocai (Sichuan Spicy Pot)",
+   "aliases_zh": [
+    "成都冒菜"
+   ],
+   "aliases_en": [
+    "maocai"
+   ],
+   "kcal": 123.0,
+   "protein_g": 7.0,
+   "carb_g": 8.0,
+   "fat_g": 7.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-hot-pot-beef-slices",
+   "name_zh": "火锅肥牛",
+   "name_en": "Hot Pot Beef Slices",
+   "aliases_zh": [
+    "肥牛卷",
+    "涮肥牛"
+   ],
+   "aliases_en": [
+    "hot pot beef"
+   ],
+   "kcal": 230.0,
+   "protein_g": 15.0,
+   "carb_g": 2.0,
+   "fat_g": 18.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-grilled-cold-noodles",
+   "name_zh": "烤冷面",
+   "name_en": "Grilled Cold Noodles",
+   "aliases_zh": [
+    "东北烤冷面"
+   ],
+   "aliases_en": [
+    "grilled cold noodles"
+   ],
+   "kcal": 215.0,
+   "protein_g": 8.0,
+   "carb_g": 30.0,
+   "fat_g": 7.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-iron-pot-stewed-fish",
+   "name_zh": "铁锅炖鱼",
+   "name_en": "Iron-pot Stewed Fish",
+   "aliases_zh": [
+    "东北铁锅炖"
+   ],
+   "aliases_en": [
+    "iron pot stewed fish"
+   ],
+   "kcal": 153.0,
+   "protein_g": 13.0,
+   "carb_g": 5.0,
+   "fat_g": 9.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-pork-rib-soup",
+   "name_zh": "炖排骨汤",
+   "name_en": "Pork Rib Soup",
+   "aliases_zh": [
+    "排骨汤",
+    "玉米排骨汤"
+   ],
+   "aliases_en": [
+    "pork rib soup"
+   ],
+   "kcal": 125.0,
+   "protein_g": 8.0,
+   "carb_g": 3.0,
+   "fat_g": 9.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-chicken-soup",
+   "name_zh": "鸡汤",
+   "name_en": "Chicken Soup",
+   "aliases_zh": [
+    "老母鸡汤"
+   ],
+   "aliases_en": [
+    "chicken soup"
+   ],
+   "kcal": 77.0,
+   "protein_g": 6.0,
+   "carb_g": 2.0,
+   "fat_g": 5.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-egg-drop-soup",
+   "name_zh": "蛋花汤",
+   "name_en": "Egg Drop Soup",
+   "aliases_zh": [
+    "番茄蛋花汤"
+   ],
+   "aliases_en": [
+    "egg drop soup"
+   ],
+   "kcal": 40.0,
+   "protein_g": 2.5,
+   "carb_g": 3.0,
+   "fat_g": 2.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-seaweed-egg-soup",
+   "name_zh": "紫菜蛋花汤",
+   "name_en": "Seaweed Egg Soup",
+   "aliases_zh": [
+    "紫菜汤"
+   ],
+   "aliases_en": [
+    "seaweed egg soup"
+   ],
+   "kcal": 38.2,
+   "protein_g": 2.5,
+   "carb_g": 3.0,
+   "fat_g": 1.8,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-poached-chicken-bai-qie-ji",
+   "name_zh": "白切鸡",
+   "name_en": "Poached Chicken (Bai Qie Ji)",
+   "aliases_zh": [
+    "白斩鸡"
+   ],
+   "aliases_en": [
+    "poached chicken"
+   ],
+   "kcal": 165.0,
+   "protein_g": 20.0,
+   "carb_g": 1.0,
+   "fat_g": 9.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-honey-bbq-pork-char-siu",
+   "name_zh": "蜜汁叉烧",
+   "name_en": "Honey BBQ Pork (Char Siu)",
+   "aliases_zh": [
+    "叉烧",
+    "蜜汁叉烧肉"
+   ],
+   "aliases_en": [
+    "char siu"
+   ],
+   "kcal": 218.0,
+   "protein_g": 20.0,
+   "carb_g": 12.0,
+   "fat_g": 10.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-peking-duck",
+   "name_zh": "北京烤鸭",
+   "name_en": "Peking Duck",
+   "aliases_zh": [
+    "烤鸭"
+   ],
+   "aliases_en": [
+    "peking duck"
+   ],
+   "kcal": 294.0,
+   "protein_g": 19.0,
+   "carb_g": 5.0,
+   "fat_g": 22.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-crayfish-spicy",
+   "name_zh": "小龙虾",
+   "name_en": "Crayfish (Spicy)",
+   "aliases_zh": [
+    "麻辣小龙虾",
+    "十三香小龙虾"
+   ],
+   "aliases_en": [
+    "crayfish"
+   ],
+   "kcal": 152.0,
+   "protein_g": 18.0,
+   "carb_g": 2.0,
+   "fat_g": 8.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-steamed-shrimp-with-garlic-vermicelli",
+   "name_zh": "蒜蓉粉丝虾",
+   "name_en": "Steamed Shrimp with Garlic Vermicelli",
+   "aliases_zh": [
+    "粉丝蒸虾"
+   ],
+   "aliases_en": [
+    "garlic shrimp vermicelli"
+   ],
+   "kcal": 119.0,
+   "protein_g": 15.0,
+   "carb_g": 8.0,
+   "fat_g": 3.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  },
+  {
+   "id": "curated-fish-head-with-chopped-chili",
+   "name_zh": "剁椒鱼头",
+   "name_en": "Fish Head with Chopped Chili",
+   "aliases_zh": [
+    "剁椒鱼头(湘菜)"
+   ],
+   "aliases_en": [
+    "chopped chili fish head"
+   ],
+   "kcal": 153.0,
+   "protein_g": 15.0,
+   "carb_g": 3.0,
+   "fat_g": 9.0,
+   "category": "中餐",
+   "source": "curated",
+   "zh_verified": true
+  }
+ ]
+}

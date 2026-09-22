@@ -29,9 +29,10 @@ HERE = Path(__file__).resolve().parent
 DATA_DIR = HERE.parent
 REPO_ROOT = DATA_DIR.parent
 
-SEED_VERSION = "2026.07.1"
+SEED_VERSION = "2026.09.1"
 USDA_GLOB = "raw/sr_legacy/*.json"
 CURATED_PATH = DATA_DIR / "curated" / "zh_common_foods.json"
+CFCT_PATH = DATA_DIR / "cfct" / "cfct_foods.json"
 SEED_PATH = DATA_DIR / "foods.seed.json"
 REPORT_PATH = DATA_DIR / "reports" / "validation_report.json"
 APP_ASSET_PATH = REPO_ROOT / "eatwise_app" / "assets" / "foods" / "foods.seed.json"
@@ -84,7 +85,20 @@ def usda_entries(raw_path: Path) -> list[dict]:
 
 
 def curated_entries() -> list[dict]:
-    doc = json.loads(CURATED_PATH.read_text(encoding="utf-8"))
+    foods: list[dict] = []
+    for path in sorted((DATA_DIR / "curated").glob("*.json")):
+        foods.extend(json.loads(path.read_text(encoding="utf-8"))["foods"])
+    return foods
+
+
+def cfct_entries() -> list[dict]:
+    """《中国食物成分表 第6版》全量（scripts/import_cfct.py 预转换产物）。
+
+    文件缺失静默跳过（CI 样本模式 --skip-usda 同样不受影响）。"""
+    if not CFCT_PATH.exists():
+        print("[build] WARNING: cfct/cfct_foods.json not found, skipping", file=sys.stderr)
+        return []
+    doc = json.loads(CFCT_PATH.read_text(encoding="utf-8"))
     return doc["foods"]
 
 
@@ -139,6 +153,8 @@ def main() -> int:
 
     started = time.time()
     entries: list[dict] = curated_entries()
+    cfct = cfct_entries()
+    entries.extend(cfct)
     usda_count = 0
     usda_path = args.raw
     if not args.skip_usda:
@@ -155,7 +171,7 @@ def main() -> int:
     slug_free(entries)
     errors, warnings = validate(entries)
 
-    curated_count = len(entries) - usda_count
+    curated_count = len(entries) - usda_count - len(cfct)
     zh_count = sum(1 for e in entries if e.get("name_zh"))
     report = {
         "seedVersion": SEED_VERSION,
@@ -163,6 +179,7 @@ def main() -> int:
         "counts": {
             "total": len(entries),
             "usda-sr": usda_count,
+            "cfct": len(cfct),
             "curated": curated_count,
             "bilingual": zh_count,
             "zh_verified_true": sum(1 for e in entries if e.get("zh_verified")),
@@ -181,8 +198,11 @@ def main() -> int:
     seed = {
         "version": SEED_VERSION,
         "generatedAt": report["generatedAt"],
-        "sources": ["curated"] + (["usda-sr"] if usda_count else []),
-        "note": "USDA SR Legacy = 公共真实数据；curated = 人工策展〔假设〕估值，待营养侧校对。",
+        "sources": (
+            ["curated"] + (["cfct"] if cfct else []) + (["usda-sr"] if usda_count else [])
+        ),
+        "note": "cfct = 《中国食物成分表 标准版(第6版)》每100g 实测权威值；"
+        "USDA SR Legacy = 公共真实数据；curated = 人工策展〔假设〕估值，待营养侧校对。",
         "counts": report["counts"],
         "foods": entries,
     }
