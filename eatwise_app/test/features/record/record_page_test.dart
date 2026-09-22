@@ -177,7 +177,9 @@ void main() {
     expect(find.text('已记录'), findsOneWidget);
     expect(find.text('撤销'), findsOneWidget);
     expect(find.text('还有 1 条记录在路上，联网后自动同步'), findsOneWidget);
-    expect(find.text('今日已记 1 笔 · 今日约 232 千卡（待云端校准）'), findsOneWidget);
+    // 走查后契约：校准标注拆为独立徽标（防窄屏折行），主句单行。
+    expect(find.text('今日已记 1 笔 · 今日约 232 千卡'), findsOneWidget);
+    expect(find.text('待校准'), findsOneWidget);
 
     // 撤销 → 记录撤回，角标消失（等吐司入场动画结束再点，否则命中失败）。
     await tester.pump(const Duration(milliseconds: 500));

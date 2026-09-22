@@ -37,13 +37,17 @@ class LightRecordSection extends ConsumerWidget {
         AppSpacing.s4,
         AppSpacing.s2,
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Expanded(flex: 3, child: _WaterCard()),
-          SizedBox(width: AppSpacing.s2),
-          Expanded(flex: 2, child: _WeightCard()),
-        ],
+      // 走查：两卡片高度/样式不一致——stretch + IntrinsicHeight 拉平到
+      // 同高（体重卡内容用 Spacer 贴底），值行字号与饮水卡统一 textSm。
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Expanded(flex: 3, child: _WaterCard()),
+            SizedBox(width: AppSpacing.s2),
+            Expanded(flex: 2, child: _WeightCard()),
+          ],
+        ),
       ),
     );
   }
@@ -339,10 +343,22 @@ class _WeightCard extends ConsumerWidget {
                   weight == null
                       ? s.weightNotLogged
                       : s.weightCurrent(weight.kg.toStringAsFixed(1)),
-                  style: textStyles.textBase.copyWith(
+                  style: textStyles.textSm.copyWith(
                     color: weight == null
                         ? colors.textSecondary
                         : colors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                // 操作提示（走查：体重卡与饮水卡信息密度/高度不一致）：
+                // 体重卡原只有两行文字，与饮水卡（标题+进度+快捷档位）
+                // 并排时矮一截且看不出可点——补同饮水卡风格的灰色小字。
+                const Spacer(),
+                Text(
+                  s.weightTapToEdit,
+                  style: textStyles.textXs.copyWith(
+                    color: colors.textSecondary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

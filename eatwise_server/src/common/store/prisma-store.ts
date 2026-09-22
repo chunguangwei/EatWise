@@ -1071,12 +1071,14 @@ export class PrismaStore extends StoreDriver {
     userId?: string,
     _locale?: string,
     limit?: number,
+    adminView?: boolean,
   ): Promise<FoodSearchHit[]> {
     const raw = q.trim();
     const ql = raw.toLowerCase();
     if (!ql) return [];
     try {
-      // SQL 层只做可见性过滤（内置/共享 + 本人自定义）；命中判定在 JS 侧完成——
+      // SQL 层只做可见性过滤（内置/共享 + 本人自定义；adminView 追加全部自定义）；
+      // 命中判定在 JS 侧完成——
       // aliases 为字符串数组，Prisma 标量列表无子串匹配能力，且 nameZh 需与内存
       // includes 同口径（区分大小写），统一交给 toSearchHit 一份逻辑（同内存全表扫描）。
       const rows = await this.prisma.food.findMany({
@@ -1084,7 +1086,11 @@ export class PrismaStore extends StoreDriver {
           deletedAt: null, // 软删行（自定义删除）对搜索隐藏
           OR: [
             { isCustom: false },
-            ...(userId ? [{ isCustom: true, createdByUserId: userId }] : []),
+            ...(adminView
+              ? [{ isCustom: true }]
+              : userId
+                ? [{ isCustom: true, createdByUserId: userId }]
+                : []),
           ],
         },
       });
@@ -1251,6 +1257,22 @@ export class PrismaStore extends StoreDriver {
     }
   }
 
+  /**
+   * 管理端删除：软删任意食物行（内置/共享/自定义均可，不区分 isCustom）。
+   * 缺行/已软删 → NOT_FOUND（与 softDeleteCustomFood 同口径）。
+   */
+  async softDeleteFoodById(id: string): Promise<void> {
+    try {
+      const updated = await this.prisma.food.updateMany({
+        where: { id, deletedAt: null },
+        data: { deletedAt: new Date() },
+      });
+      if (updated.count === 0) throw err.notFound();
+    } catch (e) {
+      throw this.fail('softDeleteFoodById', e);
+    }
+  }
+
   // ===== 饮食记录 =====
 
   async findFoodEntryById(id: string): Promise<FoodEntryEntity | null> {
@@ -1312,6 +1334,20 @@ export class PrismaStore extends StoreDriver {
       return result.count;
     } catch (e) {
       throw this.fail('softDeleteFoodEntriesByFood', e);
+    }
+  }
+
+  /** 管理端删除级联：跨用户 tombstone（软删语义同 softDeleteFoodEntriesByFood） */
+  async softDeleteAllFoodEntriesByFood(foodId: string): Promise<number> {
+    try {
+      const result = await this.prisma.foodEntry.updateMany({
+        where: { foodId, deletedAt: null },
+        // updatedAt 显式赋值：sync/pull 增量游标依赖它（同 softDeleteFoodEntriesByFood）
+        data: { deletedAt: new Date(), updatedAt: new Date(), version: { increment: 1 } },
+      });
+      return result.count;
+    } catch (e) {
+      throw this.fail('softDeleteAllFoodEntriesByFood', e);
     }
   }
 

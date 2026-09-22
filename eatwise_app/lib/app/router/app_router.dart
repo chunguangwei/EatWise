@@ -49,7 +49,13 @@ GoRouter createAppRouter({
   return GoRouter(
     initialLocation: '/',
     observers: observers,
-    refreshListenable: Listenable.merge(<Listenable?>[authGate, privacyGate]),
+    // OnboardingGate 一并监听：restore 回填（重装后异步补写引导完成态）
+    // 在首帧后翻转，须触发 redirect 重算把用户送出 /onboarding。
+    refreshListenable: Listenable.merge(<Listenable?>[
+      authGate,
+      privacyGate,
+      gate,
+    ]),
     redirect: (context, state) {
       final privacyAgreed = privacyGate?.agreed ?? true;
       final location = state.matchedLocation;

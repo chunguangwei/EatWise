@@ -169,7 +169,8 @@
       "title": "记录",
       "confirm": "确认记录",
       "loggedToday": "今日已记 ${count} 笔",
-      "todayKcal": "今日约 ${kcal} 千卡（待云端校准）"
+      "todayKcal": "今日约 ${kcal} 千卡",
+      "calibrationBadge": "待校准"
     },
     "meal": {
       "label": "餐次",
@@ -409,7 +410,8 @@
       "unitKg": "千克",
       "unitJin": "斤",
       "bodyFatLabel": "体脂率（%，可不填）",
-      "bodyFatInvalid": "体脂率需在 1–70% 之间"
+      "bodyFatInvalid": "体脂率需在 1–70% 之间",
+      "tapToEdit": "点按记录或修改"
     },
     "exercise": {
       "title": "记运动",
@@ -867,7 +869,9 @@
       "deletionCancelled": "已撤销删除申请，账号恢复正常",
       "deletionScheduled": "删除已预约，${days} 日后执行，到期前可撤销",
       "logout": "登出",
-      "notLoggedIn": "未登录"
+      "notLoggedIn": "未登录",
+      "login": "登录",
+      "retryIdentity": "点击重试"
     },
     "privacy": {
       "privacyPolicy": "隐私政策",

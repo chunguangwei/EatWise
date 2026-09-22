@@ -277,12 +277,14 @@ export abstract class StoreDriver {
    * matchAll 同口径）：q 匹配 nameZh 原文 / nameEn / aliases 大小写不敏感；
    * 内置（含审核晋升共享）排前、自定义排后，组内 score 降序（前缀 3 > 子串 2 > 别名 1）、
    * 同分 nameZh 升序。空/全空白 q 返回 []。locale 仅语言偏好（D-15），不参与过滤。
+   * adminView=true（管理端食物库）：自定义行不限创建者——返回全部用户的自定义食物。
    */
   abstract searchFoods(
     q: string,
     userId?: string,
     locale?: string,
     limit?: number,
+    adminView?: boolean,
   ): Promise<FoodSearchHit[]>;
 
   // ===== 食物候选审核（food_candidates；既有 create/findByRequestId/updateStatus 之外的读路径）=====
@@ -337,6 +339,13 @@ export abstract class StoreDriver {
    */
   abstract softDeleteCustomFood(id: string): Promise<void>;
 
+  /**
+   * 管理端食物库删除：软删任意食物行（内置/共享/自定义均可），不区分 isCustom。
+   * prisma：deletedAt=now（读路径 deletedAt:null 即时隐藏）；内存驱动：移除行
+   * （与 softDeleteCustomFood 同语义）。行不存在/已软删 → NOT_FOUND。
+   */
+  abstract softDeleteFoodById(id: string): Promise<void>;
+
   // ===== 饮食记录（food_entries；批量上行走 PrismaStore.pushFoodEntries 既有路径）=====
 
   abstract findFoodEntryById(id: string): Promise<FoodEntryEntity | null>;
@@ -358,6 +367,13 @@ export abstract class StoreDriver {
    * 返回受影响条数；重复调用对已删记录幂等（不再变动）。
    */
   abstract softDeleteFoodEntriesByFood(userId: string, foodId: string): Promise<number>;
+
+  /**
+   * 管理端食物库删除级联：跨用户软删引用 foodId 的全部饮食记录（不限 userId）。
+   * tombstone 语义同 softDeleteFoodEntriesByFood（version+1、updatedAt=now，
+   * sync/pull 增量下行清其它设备）。返回受影响条数；对已删记录幂等。
+   */
+  abstract softDeleteAllFoodEntriesByFood(foodId: string): Promise<number>;
 
   // ===== Streak（streaks，业务键 userId @unique）=====
 
@@ -970,11 +986,19 @@ export class MemoryStoreDriver extends StoreDriver {
     return Promise.resolve();
   }
 
+  /** 管理端删除：移除任意食物行（共享 foods + 自定义 customFoods 都查；缺行 → NOT_FOUND） */
+  softDeleteFoodById(id: string): Promise<void> {
+    const removed = this.store.foods.delete(id) || this.store.customFoods.delete(id);
+    if (!removed) return Promise.reject(err.notFound());
+    return Promise.resolve();
+  }
+
   searchFoods(
     q: string,
     userId?: string,
     _locale?: string,
     limit?: number,
+    adminView?: boolean,
   ): Promise<FoodSearchHit[]> {
     const ql = q.trim().toLowerCase();
     if (!ql) return Promise.resolve([]);
@@ -986,9 +1010,9 @@ export class MemoryStoreDriver extends StoreDriver {
     }
     builtIn.sort((a, b) => b.score - a.score || a.food.nameZh.localeCompare(b.food.nameZh));
     const custom: FoodSearchHit[] = [];
-    if (userId) {
+    if (userId || adminView) {
       for (const food of this.store.customFoods.values()) {
-        if (food.userId !== userId) continue;
+        if (!adminView && food.userId !== userId) continue;
         const hit = this.matchFood(food, raw, ql, true);
         if (hit) custom.push(hit);
       }
@@ -1099,10 +1123,19 @@ export class MemoryStoreDriver extends StoreDriver {
   }
 
   softDeleteFoodEntriesByFood(userId: string, foodId: string): Promise<number> {
+    return this.softDeleteEntriesWhere((e) => e.userId === userId && e.foodId === foodId);
+  }
+
+  softDeleteAllFoodEntriesByFood(foodId: string): Promise<number> {
+    return this.softDeleteEntriesWhere((e) => e.foodId === foodId);
+  }
+
+  /** tombstone 落库收口：未删命中行 version+1 / updatedAt=deletedAt=now，返回条数 */
+  private softDeleteEntriesWhere(match: (e: FoodEntryEntity) => boolean): Promise<number> {
     const now = new Date();
     let affected = 0;
     for (const entry of this.store.foodEntries.values()) {
-      if (entry.userId !== userId || entry.foodId !== foodId || entry.deletedAt) continue;
+      if (!match(entry) || entry.deletedAt) continue;
       entry.deletedAt = now;
       entry.version += 1;
       entry.updatedAt = now;

@@ -678,11 +678,30 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         spacing: AppSpacing.s2,
                         children: <Widget>[
+                          // 走查：整句「今日约 xx 千卡（待云端校准）」在
+                          // 窄屏折行——校准标注拆成独立描边小徽标，主句
+                          // 缩短后单行稳定。
                           Text(
                             '${s.loggedToday(today.entryCount)} · '
                             '${s.todayKcal(today.kcal.round())}',
                             style: textStyles.textSm.copyWith(
                               color: colors.textSecondary,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.s2,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: colors.border),
+                              borderRadius: radii.rSm,
+                            ),
+                            child: Text(
+                              s.calibrationBadge,
+                              style: textStyles.textXs.copyWith(
+                                color: colors.textSecondary,
+                              ),
                             ),
                           ),
                           // 断食期用餐标记（阶段 C：当日含断食窗口内入账记录时展示）。

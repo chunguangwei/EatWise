@@ -87,6 +87,110 @@ void main() {
       expect(controller.state.status, AuthStatus.loggedIn);
       expect(controller.state.userId, isNull);
     });
+
+    // v1.13.13 重装恢复：Keychain 令牌存活 + 本地引导标记被清（重装），
+    // restore 后异步拉 /users/me 回填引导完成态（登录响应双写无触发点）。
+    test('restore 后本地引导未完成 → 拉 /users/me completed 回填双写', () async {
+      final onboardingStore = InMemoryOnboardingStore();
+      final onboardingGate = OnboardingGate(completed: false);
+      controller = AuthController(
+        api: AuthApi(
+          createApiDio(config: ApiConfig(), tokenStore: tokenStore)
+            ..httpClientAdapter = adapter,
+        ),
+        tokenStore: tokenStore,
+        gate: gate,
+        onboardingGate: onboardingGate,
+        onboardingStore: onboardingStore,
+      );
+      await tokenStore.saveTokens(accessToken: 'a', refreshToken: 'r');
+      adapter.stub(
+        '/users/me',
+        StubResponse.json(
+          200,
+          StubResponse.envelope(<String, dynamic>{
+            'user': <String, dynamic>{
+              'id': 'u-1',
+              'onboardingStatus': 'completed',
+            },
+          }),
+        ),
+      );
+
+      await controller.restore();
+      // fire-and-forget 回填：等一个事件循环让 /users/me 响应落地。
+      await pumpEventQueue();
+
+      expect(onboardingGate.completed, isTrue);
+      expect(onboardingStore.isOnboardingCompleted, isTrue);
+    });
+
+    test('restore 回填：服务端 none → 保持引导；网络失败静默不抛出', () async {
+      final onboardingStore = InMemoryOnboardingStore();
+      final onboardingGate = OnboardingGate(completed: false);
+      controller = AuthController(
+        api: AuthApi(
+          createApiDio(config: ApiConfig(), tokenStore: tokenStore)
+            ..httpClientAdapter = adapter,
+        ),
+        tokenStore: tokenStore,
+        gate: gate,
+        onboardingGate: onboardingGate,
+        onboardingStore: onboardingStore,
+      );
+      await tokenStore.saveTokens(accessToken: 'a', refreshToken: 'r');
+      adapter.stub(
+        '/users/me',
+        StubResponse.json(
+          200,
+          StubResponse.envelope(<String, dynamic>{
+            'user': <String, dynamic>{'id': 'u-1', 'onboardingStatus': 'none'},
+          }),
+        ),
+      );
+      await controller.restore();
+      await pumpEventQueue();
+      expect(onboardingGate.completed, isFalse);
+      expect(onboardingStore.isOnboardingCompleted, isFalse);
+
+      // 网络异常（未注册路径 → adapter 抛错）：restore 不挂、门禁不动。
+      final gate2 = OnboardingGate(completed: false);
+      controller = AuthController(
+        api: AuthApi(
+          createApiDio(config: ApiConfig(), tokenStore: tokenStore)
+            ..httpClientAdapter = FakeHttpAdapter(),
+        ),
+        tokenStore: tokenStore,
+        gate: gate,
+        onboardingGate: gate2,
+        onboardingStore: onboardingStore,
+      );
+      await controller.restore();
+      await pumpEventQueue();
+      expect(controller.state.status, AuthStatus.loggedIn);
+      expect(gate2.completed, isFalse);
+    });
+
+    test('本地引导已完成 → restore 不额外请求 /users/me', () async {
+      final onboardingStore = InMemoryOnboardingStore()
+        ..markOnboardingCompleted();
+      final onboardingGate = OnboardingGate(completed: true);
+      controller = AuthController(
+        api: AuthApi(
+          createApiDio(config: ApiConfig(), tokenStore: tokenStore)
+            ..httpClientAdapter = adapter,
+        ),
+        tokenStore: tokenStore,
+        gate: gate,
+        onboardingGate: onboardingGate,
+        onboardingStore: onboardingStore,
+      );
+      await tokenStore.saveTokens(accessToken: 'a', refreshToken: 'r');
+
+      await controller.restore();
+      await pumpEventQueue();
+      expect(adapter.requestsTo('/users/me'), 0);
+    });
   });
 
   group('sendCode', () {

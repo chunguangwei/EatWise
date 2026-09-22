@@ -51,17 +51,38 @@ export class FoodService {
     limit = clampPageLimit(limit, 20, 50); // 非法 limit（负数/NaN/小数）回落默认，上限 50
     const offset = cursor ? parseOffsetCursor(cursor) : 0;
     const hits = await this.driver.searchFoods(q, userId);
-    const page = hits.slice(offset, offset + limit);
+    return {
+      items: hits.slice(offset, offset + limit).map((h) => this.hitView(h)),
+      pageInfo: this.pageInfo(offset, limit, hits.length),
+    };
+  }
+
+  /**
+   * 管理端食物库搜索（删重复条目入口）：共享/内置 + 全部用户的自定义食物
+   * （driver adminView），分页/视图同 search（hitView 已含 id/kcalPer100g/source/isCustom，
+   * deletedAt:null 过滤在驱动读路径，deleted 恒 false）。
+   */
+  async adminSearchFoods(q: string, limit = 20, cursor?: string) {
+    limit = clampPageLimit(limit, 20, 50);
+    const offset = cursor ? parseOffsetCursor(cursor) : 0;
+    const hits = await this.driver.searchFoods(q, undefined, undefined, undefined, true);
+    return {
+      items: hits
+        .slice(offset, offset + limit)
+        .map((h) => ({ ...this.hitView(h), deleted: false })),
+      pageInfo: this.pageInfo(offset, limit, hits.length),
+    };
+  }
+
+  /** offset 分页游标（base64 JSON），hasMore = 还有下一页 */
+  private pageInfo(offset: number, limit: number, total: number) {
     const nextOffset = offset + limit;
     return {
-      items: page.map((h) => this.hitView(h)),
-      pageInfo: {
-        nextCursor:
-          nextOffset < hits.length
-            ? Buffer.from(JSON.stringify({ offset: nextOffset })).toString('base64')
-            : null,
-        hasMore: nextOffset < hits.length,
-      },
+      nextCursor:
+        nextOffset < total
+          ? Buffer.from(JSON.stringify({ offset: nextOffset })).toString('base64')
+          : null,
+      hasMore: nextOffset < total,
     };
   }
 
@@ -163,6 +184,21 @@ export class FoodService {
 
     await this.driver.softDeleteCustomFood(foodId);
     const deletedEntries = await this.driver.softDeleteFoodEntriesByFood(userId, foodId);
+    return { deleted: true, deletedEntries };
+  }
+
+  /**
+   * 管理端删除食物（食物库去重）：软删任意来源行（内置/共享/自定义），
+   * 级联软删全部用户引用该食物的饮食记录（tombstone 随 sync/pull 下行清各设备）。
+   * pending 候选关联（审核中，结论要回写该食物行）→ 409 FOOD_UNDER_REVIEW（同
+   * deleteCustomFood 口径，先撤销/等审核落定）；行不存在/已删 → 404（重删 404）。
+   */
+  async adminDeleteFood(foodId: string) {
+    const candidate = await this.driver.findFoodCandidateByFoodId(foodId);
+    if (candidate?.status === 'pending') throw err.foodUnderReview();
+
+    await this.driver.softDeleteFoodById(foodId);
+    const deletedEntries = await this.driver.softDeleteAllFoodEntriesByFood(foodId);
     return { deleted: true, deletedEntries };
   }
 

@@ -695,8 +695,11 @@ class Translations$record$page$zh_CN {
 	/// zh-CN: '今日已记 ${count} 笔'
 	String loggedToday({required Object count}) => '今日已记 ${count} 笔';
 
-	/// zh-CN: '今日约 ${kcal} 千卡（待云端校准）'
-	String todayKcal({required Object kcal}) => '今日约 ${kcal} 千卡（待云端校准）';
+	/// zh-CN: '今日约 ${kcal} 千卡'
+	String todayKcal({required Object kcal}) => '今日约 ${kcal} 千卡';
+
+	/// zh-CN: '待校准'
+	String get calibrationBadge => '待校准';
 }
 
 // Path: record.meal
@@ -1347,6 +1350,9 @@ class Translations$record$weight$zh_CN {
 
 	/// zh-CN: '体脂率需在 1–70% 之间'
 	String get bodyFatInvalid => '体脂率需在 1–70% 之间';
+
+	/// zh-CN: '点按记录或修改'
+	String get tapToEdit => '点按记录或修改';
 }
 
 // Path: record.exercise
@@ -2243,6 +2249,12 @@ class Translations$settings$account$zh_CN {
 
 	/// zh-CN: '未登录'
 	String get notLoggedIn => '未登录';
+
+	/// zh-CN: '登录'
+	String get login => '登录';
+
+	/// zh-CN: '点击重试'
+	String get retryIdentity => '点击重试';
 }
 
 // Path: settings.privacy
@@ -4349,7 +4361,8 @@ extension on Translations {
 			'record.page.title' => '记录',
 			'record.page.confirm' => '确认记录',
 			'record.page.loggedToday' => ({required Object count}) => '今日已记 ${count} 笔',
-			'record.page.todayKcal' => ({required Object kcal}) => '今日约 ${kcal} 千卡（待云端校准）',
+			'record.page.todayKcal' => ({required Object kcal}) => '今日约 ${kcal} 千卡',
+			'record.page.calibrationBadge' => '待校准',
 			'record.meal.label' => '餐次',
 			'record.meal.breakfast' => '早餐',
 			'record.meal.lunch' => '午餐',
@@ -4546,6 +4559,7 @@ extension on Translations {
 			'record.weight.unitJin' => '斤',
 			'record.weight.bodyFatLabel' => '体脂率（%，可不填）',
 			'record.weight.bodyFatInvalid' => '体脂率需在 1–70% 之间',
+			'record.weight.tapToEdit' => '点按记录或修改',
 			'record.exercise.title' => '记运动',
 			'record.exercise.typeLabel' => '运动类型',
 			'record.exercise.durationLabel' => '时长（分钟）',
@@ -4745,10 +4759,10 @@ extension on Translations {
 			'nutrition.signalCard.advice.protein.redHigh' => ({required Object meal_action}) => '蛋白质有点多啦，${meal_action}，均衡一点更舒服。',
 			'nutrition.signalCard.advice.protein.zero' => '好像还没记到蛋白质哦，是不是漏了一餐？',
 			'nutrition.signalCard.advice.carb.green' => '碳水刚刚好，能量供应稳稳的。',
-			'nutrition.signalCard.advice.carb.yellowLow' => ({required Object meal_action}) => '碳水略少，${meal_action}，下午不容易犯困哦。',
-			'nutrition.signalCard.advice.carb.yellowHigh' => ({required Object meal_action}) => '碳水略高，${meal_action}，让血糖稳一点。',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.signalCard.advice.carb.yellowLow' => ({required Object meal_action}) => '碳水略少，${meal_action}，下午不容易犯困哦。',
+			'nutrition.signalCard.advice.carb.yellowHigh' => ({required Object meal_action}) => '碳水略高，${meal_action}，让血糖稳一点。',
 			'nutrition.signalCard.advice.carb.redLow' => ({required Object meal_action}) => '今天碳水太少了，${meal_action}，别亏待身体。',
 			'nutrition.signalCard.advice.carb.redHigh' => ({required Object meal_action}) => '碳水超得有点多，${meal_action}，让血糖稳一点。',
 			'nutrition.signalCard.advice.carb.zero' => '好像还没记到碳水哦，是不是漏了一餐？',
@@ -4884,6 +4898,8 @@ extension on Translations {
 			'settings.account.deletionScheduled' => ({required Object days}) => '删除已预约，${days} 日后执行，到期前可撤销',
 			'settings.account.logout' => '登出',
 			'settings.account.notLoggedIn' => '未登录',
+			'settings.account.login' => '登录',
+			'settings.account.retryIdentity' => '点击重试',
 			'settings.privacy.privacyPolicy' => '隐私政策',
 			'settings.privacy.userAgreement' => '用户协议',
 			'settings.privacy.exportData' => '导出我的数据',

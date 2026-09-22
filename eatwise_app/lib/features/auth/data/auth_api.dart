@@ -197,4 +197,20 @@ final class AuthApi {
       throw toApiException(e);
     }
   }
+
+  /// U1 轻量读取（restore 回填专用）：当前账号引导完成态。
+  /// 重装后 Keychain 令牌存活但 SharedPreferences（本地引导标记）被清，
+  /// 登录/注册响应不再发生，v1.12.4 的双写没有触发点——须在会话恢复后
+  /// 主动拉一次（失败由调用方静默吞掉）。
+  Future<String?> fetchOnboardingStatus() async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>('/users/me');
+      final user = response.data?['user'];
+      return user is Map<String, dynamic>
+          ? user['onboardingStatus'] as String?
+          : null;
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
 }

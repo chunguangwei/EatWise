@@ -169,7 +169,8 @@
       "title": "Records",
       "confirm": "Log it",
       "loggedToday": "${count} logged today",
-      "todayKcal": "~${kcal} kcal today (to be calibrated)"
+      "todayKcal": "~${kcal} kcal today",
+      "calibrationBadge": "unverified"
     },
     "meal": {
       "label": "Meal",
@@ -409,7 +410,8 @@
       "unitKg": "kg",
       "unitJin": "jin",
       "bodyFatLabel": "Body fat (%, optional)",
-      "bodyFatInvalid": "Enter a body fat between 1% and 70%"
+      "bodyFatInvalid": "Enter a body fat between 1% and 70%",
+      "tapToEdit": "Tap to log or edit"
     },
     "exercise": {
       "title": "Log exercise",
@@ -868,7 +870,9 @@
       "deletionCancelled": "Deletion cancelled — your account is back to normal",
       "deletionScheduled": "Deletion scheduled in ${days} day(s) — you can cancel before then",
       "logout": "Sign out",
-      "notLoggedIn": "Not signed in"
+      "notLoggedIn": "Not signed in",
+      "login": "Sign in",
+      "retryIdentity": "Tap to retry"
     },
     "privacy": {
       "privacyPolicy": "Privacy Policy",

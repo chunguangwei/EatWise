@@ -28,6 +28,9 @@ final class RecordStrings {
   /// record.page.todayKcal
   String todayKcal(int kcal) => _t.record.page.todayKcal(kcal: kcal);
 
+  /// record.page.calibrationBadge
+  String get calibrationBadge => _t.record.page.calibrationBadge;
+
   /// record.entries.photo
   String get entryPhoto => _t.record.entries.photo;
 
@@ -270,6 +273,9 @@ final class RecordStrings {
 
   /// record.weight.current
   String weightCurrent(String kg) => _t.record.weight.current(kg: kg);
+
+  /// record.weight.tapToEdit
+  String get weightTapToEdit => _t.record.weight.tapToEdit;
 
   /// record.weight.dialogTitle
   String get weightDialogTitle => _t.record.weight.dialogTitle;

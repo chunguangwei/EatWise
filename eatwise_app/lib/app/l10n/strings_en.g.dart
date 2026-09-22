@@ -467,7 +467,8 @@ class _Translations$record$page$en extends Translations$record$page$zh_CN {
 	@override String get title => 'Records';
 	@override String get confirm => 'Log it';
 	@override String loggedToday({required Object count}) => '${count} logged today';
-	@override String todayKcal({required Object kcal}) => '~${kcal} kcal today (to be calibrated)';
+	@override String todayKcal({required Object kcal}) => '~${kcal} kcal today';
+	@override String get calibrationBadge => 'unverified';
 }
 
 // Path: record.meal
@@ -786,6 +787,7 @@ class _Translations$record$weight$en extends Translations$record$weight$zh_CN {
 	@override String get unitJin => 'jin';
 	@override String get bodyFatLabel => 'Body fat (%, optional)';
 	@override String get bodyFatInvalid => 'Enter a body fat between 1% and 70%';
+	@override String get tapToEdit => 'Tap to log or edit';
 }
 
 // Path: record.exercise
@@ -1276,6 +1278,8 @@ class _Translations$settings$account$en extends Translations$settings$account$zh
 	@override String deletionScheduled({required Object days}) => 'Deletion scheduled in ${days} day(s) — you can cancel before then';
 	@override String get logout => 'Sign out';
 	@override String get notLoggedIn => 'Not signed in';
+	@override String get login => 'Sign in';
+	@override String get retryIdentity => 'Tap to retry';
 }
 
 // Path: settings.privacy
@@ -2456,7 +2460,8 @@ extension on TranslationsEn {
 			'record.page.title' => 'Records',
 			'record.page.confirm' => 'Log it',
 			'record.page.loggedToday' => ({required Object count}) => '${count} logged today',
-			'record.page.todayKcal' => ({required Object kcal}) => '~${kcal} kcal today (to be calibrated)',
+			'record.page.todayKcal' => ({required Object kcal}) => '~${kcal} kcal today',
+			'record.page.calibrationBadge' => 'unverified',
 			'record.meal.label' => 'Meal',
 			'record.meal.breakfast' => 'Breakfast',
 			'record.meal.lunch' => 'Lunch',
@@ -2653,6 +2658,7 @@ extension on TranslationsEn {
 			'record.weight.unitJin' => 'jin',
 			'record.weight.bodyFatLabel' => 'Body fat (%, optional)',
 			'record.weight.bodyFatInvalid' => 'Enter a body fat between 1% and 70%',
+			'record.weight.tapToEdit' => 'Tap to log or edit',
 			'record.exercise.title' => 'Log exercise',
 			'record.exercise.typeLabel' => 'Exercise type',
 			'record.exercise.durationLabel' => 'Duration (min)',
@@ -2852,10 +2858,10 @@ extension on TranslationsEn {
 			'nutrition.signalCard.advice.protein.redHigh' => ({required Object meal_action}) => 'A little much protein today — ${meal_action} for a comfier balance.',
 			'nutrition.signalCard.advice.protein.zero' => 'No protein logged yet — did a meal slip by?',
 			'nutrition.signalCard.advice.carb.green' => 'Carbs are just right — steady energy all the way.',
-			'nutrition.signalCard.advice.carb.yellowLow' => ({required Object meal_action}) => 'Carbs are a bit low — ${meal_action} to keep the afternoon slump away.',
-			'nutrition.signalCard.advice.carb.yellowHigh' => ({required Object meal_action}) => 'Carbs are a touch high — ${meal_action} to keep your blood sugar steady.',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.signalCard.advice.carb.yellowLow' => ({required Object meal_action}) => 'Carbs are a bit low — ${meal_action} to keep the afternoon slump away.',
+			'nutrition.signalCard.advice.carb.yellowHigh' => ({required Object meal_action}) => 'Carbs are a touch high — ${meal_action} to keep your blood sugar steady.',
 			'nutrition.signalCard.advice.carb.redLow' => ({required Object meal_action}) => 'Carbs are well under today — ${meal_action}. Don\'t shortchange your body.',
 			'nutrition.signalCard.advice.carb.redHigh' => ({required Object meal_action}) => 'Carbs ran quite high — ${meal_action} to keep your blood sugar steadier.',
 			'nutrition.signalCard.advice.carb.zero' => 'No carbs logged yet — did a meal slip by?',
@@ -2991,6 +2997,8 @@ extension on TranslationsEn {
 			'settings.account.deletionScheduled' => ({required Object days}) => 'Deletion scheduled in ${days} day(s) — you can cancel before then',
 			'settings.account.logout' => 'Sign out',
 			'settings.account.notLoggedIn' => 'Not signed in',
+			'settings.account.login' => 'Sign in',
+			'settings.account.retryIdentity' => 'Tap to retry',
 			'settings.privacy.privacyPolicy' => 'Privacy Policy',
 			'settings.privacy.userAgreement' => 'Terms of Service',
 			'settings.privacy.exportData' => 'Export my data',

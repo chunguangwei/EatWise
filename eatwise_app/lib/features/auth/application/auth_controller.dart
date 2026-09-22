@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/token_store.dart';
 import 'package:eatwise/features/auth/application/auth_gate.dart';
@@ -120,8 +122,31 @@ final class AuthController extends StateNotifier<AuthState> {
         status: AuthStatus.loggedIn,
         userId: await tokenStore.userId,
       );
+      // 重装恢复（v1.13.13）：iOS Keychain 令牌卸载重装后存活，但引导
+      // 完成标记在 SharedPreferences 里被清——登录/注册响应不再发生，
+      // v1.12.4 的 _applySession 双写没有触发点，老用户被重弹引导。
+      // 本地标记未完成时主动拉一次服务端 onboardingStatus 补写（内存
+      // 门禁翻转经 ChangeNotifier 触发路由重算，用户即刻被送出引导页）；
+      // 失败/离线静默（下次启动再试），不阻断会话恢复。
+      final onboardingGate = this.onboardingGate;
+      if (onboardingGate != null && !onboardingGate.completed) {
+        unawaited(_backfillOnboardingStatus(onboardingGate));
+      }
     } else {
       state = state.copyWith(status: AuthStatus.loggedOut);
+    }
+  }
+
+  /// 会话恢复后的引导态回填（fire-and-forget；任何异常静默）。
+  Future<void> _backfillOnboardingStatus(OnboardingGate onboardingGate) async {
+    try {
+      final status = await api.fetchOnboardingStatus();
+      if (status == 'completed' || status == 'skipped') {
+        onboardingStore?.markOnboardingCompleted();
+        onboardingGate.completed = true;
+      }
+    } on Object {
+      // 静默：网络/会话异常不影响启动。
     }
   }
 

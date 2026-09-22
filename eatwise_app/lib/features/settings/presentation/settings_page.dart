@@ -58,6 +58,10 @@ class SettingsPage extends ConsumerWidget {
       privacyConsentControllerProvider.select((s) => s.healthDataGranted),
     );
     final analyticsGranted = ref.watch(analyticsEnabledProvider);
+    // 登录态门控（走查：iOS 重装清 Keychain 后会话丢失，页面却仍显示
+    // 登出/删除账号/修改密码——未登录点的全是死路）。口径与路由门禁同源
+    // （AuthGate，restore/登录/登出翻转）；登出后 redirect 即离开本页。
+    final loggedIn = ref.watch(authGateProvider).loggedIn;
     final themeMode = ref.watch(themeModeProvider);
     final languageMode = ref.watch(languageModeProvider);
 
@@ -79,14 +83,21 @@ class SettingsPage extends ConsumerWidget {
               children: <Widget>[
                 // 账号标识展示（D-13 v2：username 主路径优先，其次 U1
                 // 脱敏手机号，合规 §6）；兜底链：实时值 → 本地缓存
-                // （离线兜底）→ 未登录占位。
+                // （离线兜底）→ 未登录占位。已登录但标识取不到（重装清
+                // 缓存 + U1 失败）时不显「未登录」（与登录态矛盾），改
+                // 「点击重试」重拉 U1。
                 _SettingsTile(
                   title: t.settings.account.account,
                   trailing: identity.isNotEmpty
                       ? identity
                       : cachedIdentity.isNotEmpty
                       ? cachedIdentity
+                      : loggedIn
+                      ? t.settings.account.retryIdentity
                       : t.settings.account.notLoggedIn,
+                  onTap: loggedIn && identity.isEmpty && cachedIdentity.isEmpty
+                      ? () => ref.invalidate(userMeProvider)
+                      : null,
                 ),
                 // 冷静期内账号：状态行 + 撤销按钮（U6）。
                 if (userMe?.deletionStatus == 'pending')
@@ -100,10 +111,16 @@ class SettingsPage extends ConsumerWidget {
                       child: Text(t.settings.account.cancelDeletion),
                     ),
                   ),
-                _SettingsTile(
-                  title: t.settings.account.changePassword,
-                  onTap: () => context.push('/settings/change-password'),
-                ),
+                if (loggedIn) ...<Widget>[
+                  _SettingsTile(
+                    title: t.settings.account.changePassword,
+                    onTap: () => context.push('/settings/change-password'),
+                  ),
+                ] else
+                  _SettingsTile(
+                    title: t.settings.account.login,
+                    onTap: () => context.push('/login'),
+                  ),
                 // 阶段 A：身体档案（性别/出生年/身高体重/活动水平，
                 // D-18 敏感信息可留空），保存即重算营养目标。
                 _SettingsTile(
@@ -123,15 +140,17 @@ class SettingsPage extends ConsumerWidget {
                     subtitle: t.moderation.subtitle,
                     onTap: () => context.push('/moderation/food-candidates'),
                   ),
-                _SettingsTile(
-                  title: t.settings.account.logout,
-                  onTap: () => _confirmLogout(context, ref),
-                ),
-                _SettingsTile(
-                  title: t.settings.account.deleteAccount,
-                  titleColor: colors.signalRed,
-                  onTap: () => _confirmDeleteAccount(context, ref),
-                ),
+                if (loggedIn) ...<Widget>[
+                  _SettingsTile(
+                    title: t.settings.account.logout,
+                    onTap: () => _confirmLogout(context, ref),
+                  ),
+                  _SettingsTile(
+                    title: t.settings.account.deleteAccount,
+                    titleColor: colors.signalRed,
+                    onTap: () => _confirmDeleteAccount(context, ref),
+                  ),
+                ],
               ],
             ),
             _SettingsGroup(

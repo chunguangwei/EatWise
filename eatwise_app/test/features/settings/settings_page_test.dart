@@ -359,9 +359,9 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('账号标识兜底：U1 失败且本地有 userId 时显示未登录占位（不回退展示原始 userId）', (
-    tester,
-  ) async {
+  // v1.13.13 契约：已登录（restore 成功）但 U1 失败/标识为空时不再显
+  // 「未登录」（与登录态矛盾），改「点击重试」；原始 userId 永不上屏。
+  testWidgets('账号标识兜底：已登录且 U1 失败时显示点击重试（不回退展示原始 userId）', (tester) async {
     const uuid = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
     await tokenStore.saveTokens(
       accessToken: 'a-test',
@@ -375,7 +375,8 @@ void main() {
     await container.read(authControllerProvider.notifier).restore();
     await tester.pumpAndSettle();
 
-    expect(find.text('未登录'), findsOneWidget);
+    expect(find.text('点击重试'), findsOneWidget);
+    expect(find.text('未登录'), findsNothing);
     expect(find.text(uuid), findsNothing);
 
     await unmount(tester);
@@ -413,6 +414,20 @@ void main() {
     expect(prefs.getString(AccountIdentityStore.key), isNull);
 
     await unmount(tester);
+  });
+
+  // 走查（iOS 重装清 Keychain 会话丢失）：未登录态不得出现登出/删除账号/
+  // 修改密码死路入口，改为「登录」入口。
+  testWidgets('未登录态：隐藏登出/删除账号/修改密码，显示登录入口', (tester) async {
+    authGate.loggedIn = false;
+    await pumpSettings(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('登出'), findsNothing);
+    expect(find.text('删除账号'), findsNothing);
+    expect(find.text('修改密码'), findsNothing);
+    expect(find.text('登录'), findsOneWidget);
+    expect(find.text('未登录'), findsOneWidget);
   });
 
   testWidgets('冷静期内账号：显示删除预约状态，撤销（U6）后提示并刷新', (tester) async {

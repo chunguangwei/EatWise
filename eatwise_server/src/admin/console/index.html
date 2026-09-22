@@ -286,6 +286,7 @@
         <button id="tabReview" class="active" onclick="switchTab('review')">食物审核</button>
         <button id="tabPosts" onclick="switchTab('posts')">打卡审核</button>
         <button id="tabUsers" onclick="switchTab('users')">用户</button>
+        <button id="tabFoods" onclick="switchTab('foods')">食物库</button>
       </div>
 
       <!-- 食物审核 -->
@@ -413,6 +414,46 @@
           <span id="userPageInfo" class="muted"></span>
           <button id="userNextBtn" class="btn ghost" onclick="loadUsers(userState.page + 1)">
             下一页
+          </button>
+        </div>
+      </section>
+
+      <!-- 食物库 -->
+      <section id="panelFoods" class="panel" style="display: none">
+        <div class="filters">
+          <input
+            id="foodKeyword"
+            type="text"
+            placeholder="食物名称（中文 / 英文 / 别名）"
+            style="
+              padding: 6px 12px;
+              border: 1px solid #d5ddd9;
+              border-radius: 999px;
+              font-size: 13px;
+              width: 240px;
+            "
+            onkeydown="if (event.key === 'Enter') searchFoods();"
+          />
+          <button class="btn" onclick="searchFoods()">搜索</button>
+        </div>
+        <div id="foodsMsg" class="msg"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>id</th>
+              <th>名称</th>
+              <th>热量 /100g</th>
+              <th>来源</th>
+              <th>类型</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="foodRows"></tbody>
+        </table>
+        <div id="foodEmpty" class="empty" style="display: none">暂无数据（输入名称搜索）</div>
+        <div style="margin-top: 12px; text-align: center">
+          <button id="foodMoreBtn" class="btn ghost" style="display: none" onclick="loadFoods(true)">
+            加载更多
           </button>
         </div>
       </section>
@@ -579,12 +620,15 @@
         document.getElementById('tabReview').className = name === 'review' ? 'active' : '';
         document.getElementById('tabPosts').className = name === 'posts' ? 'active' : '';
         document.getElementById('tabUsers').className = name === 'users' ? 'active' : '';
+        document.getElementById('tabFoods').className = name === 'foods' ? 'active' : '';
         document.getElementById('panelReview').style.display = name === 'review' ? '' : 'none';
         document.getElementById('panelPosts').style.display = name === 'posts' ? '' : 'none';
         document.getElementById('panelUsers').style.display = name === 'users' ? '' : 'none';
+        document.getElementById('panelFoods').style.display = name === 'foods' ? '' : 'none';
         if (name === 'review') loadCandidates(false);
         if (name === 'posts') loadPosts(false);
         if (name === 'users') loadUsers(1);
+        if (name === 'foods') loadFoods(false);
       }
 
       function setStatus(s) {
@@ -1035,6 +1079,91 @@
           roleCell.appendChild(select);
           tbody.appendChild(tr);
         });
+      }
+
+      /* ===== 食物库 ===== */
+
+      var foodState = { keyword: '', cursor: null, hasMore: false };
+
+      function searchFoods() {
+        foodState.keyword = document.getElementById('foodKeyword').value.trim();
+        loadFoods(false);
+      }
+
+      async function loadFoods(append) {
+        if (!append) {
+          foodState.cursor = null;
+          document.getElementById('foodRows').innerHTML = '';
+        }
+        if (!foodState.keyword) {
+          document.getElementById('foodEmpty').style.display = '';
+          document.getElementById('foodMoreBtn').style.display = 'none';
+          return;
+        }
+        try {
+          var url = '/admin/foods?q=' + encodeURIComponent(foodState.keyword) + '&limit=20';
+          if (append && foodState.cursor) url += '&cursor=' + encodeURIComponent(foodState.cursor);
+          var data = await api(url);
+          foodState.cursor = data.pageInfo.nextCursor;
+          foodState.hasMore = data.pageInfo.hasMore;
+          renderFoodRows(data.items, append);
+          document.getElementById('foodMoreBtn').style.display = foodState.hasMore ? '' : 'none';
+          var rows = document.getElementById('foodRows').children.length;
+          document.getElementById('foodEmpty').style.display = rows === 0 ? '' : 'none';
+        } catch (e) {
+          flash('foodsMsg', e.message, false);
+        }
+      }
+
+      function renderFoodRows(items, append) {
+        var tbody = document.getElementById('foodRows');
+        if (!append) tbody.innerHTML = '';
+        items.forEach(function (f) {
+          var tr = document.createElement('tr');
+          // 删除仅 admin 角色可操作（reviewer 按钮禁用；服务端 @AdminRole('admin') 双重把关）
+          var actions = canSetUserRole()
+            ? '<button class="btn danger" onclick="deleteFood(\'' +
+              esc(f.id) +
+              "', '" +
+              esc(f.nameZh) +
+              "')\">删除</button>"
+            : '<span class="muted">仅管理员可删</span>';
+          tr.innerHTML =
+            '<td><span class="muted">' + esc(f.id) + '</span></td>' +
+            '<td><strong>' + esc(f.nameZh) + '</strong>' +
+            (f.nameEn ? '<br><span class="muted">' + esc(f.nameEn) + '</span>' : '') +
+            '</td>' +
+            '<td>' + f.kcalPer100g + ' kcal</td>' +
+            '<td><span class="muted">' + esc(f.source) + '</span></td>' +
+            '<td>' +
+            (f.isCustom ? '<span class="badge pending">自定义</span>' : '<span class="muted">共享库</span>') +
+            '</td>' +
+            '<td style="white-space:nowrap">' + actions + '</td>';
+          tbody.appendChild(tr);
+        });
+      }
+
+      async function deleteFood(id, name) {
+        // 级联条数删除前拿不到（接口只回传 deletedEntries），confirm 说明后果
+        if (
+          !window.confirm(
+            '删除食物「' + name + '」（' + id + '）？\n' +
+              '软删该条目，并级联删除所有用户引用它的饮食记录。不可恢复。',
+          )
+        )
+          return;
+        try {
+          var res = await api('/admin/foods/' + encodeURIComponent(id), { method: 'DELETE' });
+          flash(
+            'foodsMsg',
+            '已删除' + (res && res.deletedEntries ? '，级联清理饮食记录 ' + res.deletedEntries + ' 条' : ''),
+            true,
+          );
+          loadFoods(false);
+        } catch (e) {
+          flash('foodsMsg', e.message, false);
+          loadFoods(false);
+        }
       }
 
       refreshMe().then(function () {
