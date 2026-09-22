@@ -379,13 +379,20 @@ class _CollapsibleText extends StatelessWidget {
               overflow: expanded ? null : TextOverflow.ellipsis,
             ),
             if (overflows)
-              GestureDetector(
-                onTap: onToggle,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.s1),
-                  child: Text(
-                    expanded ? collapseLabel : expandLabel,
-                    style: style.copyWith(color: linkColor),
+              // InkWell 带水波纹（走查：裸 GestureDetector 无按下反馈，
+              // 读起来像正文不像链接）。
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onToggle,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.s1,
+                    ),
+                    child: Text(
+                      expanded ? collapseLabel : expandLabel,
+                      style: style.copyWith(color: linkColor),
+                    ),
                   ),
                 ),
               ),

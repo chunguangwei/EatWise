@@ -202,19 +202,36 @@ final class RecordRepository {
     await _push(localId);
   }
 
-  /// 批量上行全部 pending（T8：网络恢复 / 手动「立即重试」）。
+  /// 批量上行全部未同步记录（T8：网络恢复 / 手动「立即重试」/ 引擎每轮）。
   /// 先扫已删除待 delete op 的 tombstone 行（用户删除已上行记录，
-  /// ack/NOT_FOUND 后物理清除），再上行普通 pending。返回尝试条数。
+  /// ack/NOT_FOUND 后物理清除），再上行 pending + submitting + conflicted：
+  /// - submitting = 在线入账等待撤销窗 Timer——进程被杀 Timer 即丢失，行会
+  ///   永久滞留「待同步」（换机丢失，走查 L1）；上行 Timer 仍在内存
+  ///   （_pushTimers 命中）的行跳过，保 D-11 语义、Timer 到点自己上行
+  ///   （_undoDeadlines 离线入账也登记且无 Timer，不能作跳过依据）；
+  /// - conflicted = 409 冲突行，重试以记录的 serverVersion 为新基线上行，
+  ///   服务端 LWW 收敛（走查 L3：旧逻辑 conflicted 无任何出口）。
+  /// 返回尝试条数。
   Future<int> retryPending() async {
     final deletePendings = await db.foodEntryDao.deletePendingEntries(userId);
     for (final entry in deletePendings) {
       await _push(entry.localId);
     }
-    final pendings = await db.foodEntryDao.pendingEntries(userId);
+    final pendings = await db.foodEntryDao.pendingEntries(
+      userId,
+      statuses: const <SyncStatus>{
+        SyncStatus.pending,
+        SyncStatus.submitting,
+        SyncStatus.conflicted,
+      },
+    );
+    var attempted = deletePendings.length;
     for (final entry in pendings) {
+      if (_pushTimers.containsKey(entry.localId)) continue;
       await _push(entry.localId);
+      attempted += 1;
     }
-    return deletePendings.length + pendings.length;
+    return attempted;
   }
 
   /// 「待同步 N 条」计数流（§4.1）。
@@ -329,11 +346,14 @@ final class RecordRepository {
         await _recompute(DateTime.parse(entry.datetimeUtc));
         _failures.add(RecordSyncFailure(localId: localId, code: outcome.code));
       case PushConflict():
-        // T6/T11：409 且自动合并未覆盖 → conflicted 入冲突队列。
+        // T6/T11：409 且自动合并未覆盖 → conflicted 入冲突队列。记下响应
+        // 里的服务端最新 version 作基线，retryPending 重试以本地内容上行
+        // （后写者胜收敛；不记则 baseVersion 永旧、重试永撞 409，走查 L3）。
         await db.foodEntryDao.updateEntry(
           localId,
           FoodEntriesCompanion(
             syncStatus: const Value(SyncStatus.conflicted),
+            serverVersion: Value(outcome.serverVersion),
             lastError: const Value('VERSION_CONFLICT'),
           ),
         );

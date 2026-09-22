@@ -110,14 +110,22 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// 指定用户全部待上行记录（重试用，按创建时间升序，§2.3 批内顺序）。
-  Future<List<FoodEntry>> pendingEntries(String userId) {
+  /// [statuses] 默认仅 pending；retryPending 传 pending+submitting+conflicted
+  /// ——submitting 行进程被杀后 Timer 丢失无恢复路径（永久滞留「待同步」，
+  /// 真机走查），conflicted 行纳入重试以本地为准收敛。
+  Future<List<FoodEntry>> pendingEntries(
+    String userId, {
+    Set<SyncStatus> statuses = const <SyncStatus>{SyncStatus.pending},
+  }) {
     return (select(foodEntries)
-          ..where(
-            (e) =>
-                e.userId.equals(userId) &
-                e.syncStatus.equalsValue(SyncStatus.pending) &
-                e.deleted.equals(false),
-          )
+          ..where((e) {
+            // textEnum 默认按枚举索引落库（非 name）——多值匹配用
+            // equalsValue OR，不能 isIn(names)（存储口径错位永不命中）。
+            final status = statuses
+                .map((final s) => e.syncStatus.equalsValue(s))
+                .reduce((final a, final b) => a | b);
+            return e.userId.equals(userId) & status & e.deleted.equals(false);
+          })
           ..orderBy(<OrderingTerm Function(FoodEntries)>[
             (e) => OrderingTerm.asc(e.createdAtUtc),
           ]))

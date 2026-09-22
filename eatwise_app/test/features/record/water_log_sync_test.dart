@@ -162,6 +162,23 @@ void main() {
 
       expect(await db.waterLogDao.getByLocalId(log.localId), isNull);
     });
+
+    test('create 被 VALIDATION_ERROR 永久拒绝 → 本地清除不再重试', () async {
+      final log = await repo.add(9999); // 超服务端 5000ml 硬上限
+      stubPush(<Map<String, dynamic>>[
+        <String, dynamic>{
+          'clientRequestId': log.clientRequestId,
+          'status': 'error',
+          'error': <String, dynamic>{'code': 'VALIDATION_ERROR'},
+        },
+      ]);
+
+      await waterSync.pushPending(db, 'anonymous');
+
+      // 永久拒绝行保留 pending 会每轮重复上行（永不归零）；必须清出。
+      expect(await db.waterLogDao.getByLocalId(log.localId), isNull);
+      expect(await db.waterLogDao.pendingForUser('anonymous'), isEmpty);
+    });
   });
 
   group('下行 waterLogChanges（/sync/pull 随行）', () {

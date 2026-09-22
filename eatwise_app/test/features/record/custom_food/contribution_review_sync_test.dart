@@ -33,11 +33,13 @@ void main() {
     String id,
     FoodContributionStatus status, {
     String foodId = 'cf-1',
+    FoodContributionKind kind = FoodContributionKind.custom,
   }) {
     return FoodContribution(
       id: id,
       foodId: foodId,
       status: status,
+      kind: kind,
       reason: status == FoodContributionStatus.rejected ? '营养数据存疑' : null,
       createdAt: DateTime.utc(2026, 9, 1),
       updatedAt: DateTime.utc(2026, 9, 19),
@@ -140,9 +142,43 @@ void main() {
     final daily = await db.foodEntryDao.getDailyNutrition(userId, today);
     expect(daily?.entryCount, 0);
     expect(daily?.kcal, 0);
-    // 通知入队待 UI drain；取走即清空（一次性）。
-    expect(await store.drainNotices(), <String>['私房臊子面']);
+    // 通知入队待 UI drain；取走即清空（一次性）。custom 贡献驳回
+    // correction=false（文案=「记录已移除」口径）。
+    final queued = await store.drainNotices();
+    expect(queued.map((final n) => (n.name, n.correction)).toList(), const [
+      ('私房臊子面', false),
+    ]);
     expect(await store.drainNotices(), isEmpty);
+  });
+
+  test('纠错驳回：记录保留不清理，通知 correction=true', () async {
+    await addEntry();
+    // 基线：纠错贡献 pending（对既有食物 cf-1 的数据纠错建议）。
+    remote.contributions = <FoodContribution>[
+      contribution(
+        'k-1',
+        FoodContributionStatus.pending,
+        kind: FoodContributionKind.correction,
+      ),
+    ];
+    await sync.syncNow();
+
+    // 驳回：服务端 reject correction 不清贡献者记录（food.service 口径），
+    // 客户端同样不得清理——通知只提示「建议未采纳」。
+    remote.contributions = <FoodContribution>[
+      contribution(
+        'k-1',
+        FoodContributionStatus.rejected,
+        kind: FoodContributionKind.correction,
+      ),
+    ];
+    final notices = await sync.syncNow();
+
+    expect(notices, <String>['私房臊子面']);
+    expect(tick, 1);
+    expect(await db.foodEntryDao.entriesForFood(userId, 'cf-1'), hasLength(1));
+    final queued = await store.drainNotices();
+    expect(queued.single.correction, isTrue);
   });
 
   test('驳回幂等：下一轮同状态不重复清理、不重复通知', () async {

@@ -72,13 +72,19 @@ final class SettingsPrefsSync {
     if (!isLoggedIn()) return;
     final syncedAt = _now().toUtc();
     try {
-      await api.patchMe(<String, Object?>{
+      final me = await api.patchMe(<String, Object?>{
         'settingsPrefs': <String, Object?>{
           ...collectLocal(),
           'syncedAt': syncedAt.toIso8601String(),
         },
       });
-      await saveLastSyncedAt(syncedAt);
+      // LWW 基线用服务端回包的权威 syncedAt（服务端对 settingsPrefs 统一
+      // 打戳，忽略本端墙钟）：设备时钟超前者不再永久压制其他设备的改动
+      // （走查 L6）；老服务端/老响应无回包时回落本地时刻。
+      final stamped = DateTime.tryParse(
+        me.settingsPrefs?['syncedAt'] as String? ?? '',
+      );
+      await saveLastSyncedAt(stamped ?? syncedAt);
     } on Object catch (e) {
       // 失败静默：离线场景下次变更/启动再推，不阻塞 UI。
       debugPrint('SettingsPrefsSync: 偏好上行失败（已忽略） $e');

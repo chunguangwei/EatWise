@@ -179,6 +179,29 @@ void main() {
 
       expect(await db.exerciseLogDao.getByLocalId(log.localId), isNull);
     });
+
+    test('create 被 VALIDATION_ERROR 永久拒绝 → 本地清除不再重试', () async {
+      // 步数超服务端 200000 硬上限等硬边界校验＝永久拒绝；保留 pending 会
+      // 每轮 syncNow 重复上行永不归零（走查 L4），必须本地清出。
+      final log = await repo.add(
+        typeKey: 'walk',
+        durationMin: 30,
+        kcal: 120,
+        steps: 300000,
+      );
+      stubPush(<Map<String, dynamic>>[
+        <String, dynamic>{
+          'clientRequestId': log.clientRequestId,
+          'status': 'error',
+          'error': <String, dynamic>{'code': 'VALIDATION_ERROR'},
+        },
+      ]);
+
+      await exerciseSync.pushPending(db, 'anonymous');
+
+      expect(await db.exerciseLogDao.getByLocalId(log.localId), isNull);
+      expect(await db.exerciseLogDao.pendingForUser('anonymous'), isEmpty);
+    });
   });
 
   group('下行 exerciseLogChanges（/sync/pull 随行，跨端合并）', () {

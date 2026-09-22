@@ -353,24 +353,26 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
                           ),
                       ],
                     ),
-                    // 「数据有误？」纠错入口（薄荷走查 P3：低权重文本按钮，
-                    // 复用众包审核链路——建议值入审核池，管理台原值 vs 建议值）。
+                    // 「数据有误？」纠错入口（薄荷走查 P3：复用众包审核链路——
+                    // 建议值入审核池，管理台原值 vs 建议值）。主色 + 铅笔图标
+                    // 给足可点击感知（走查：曾被 textSecondary+textXs 压成注释
+                    // 文本没人点）。
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: TextButton(
+                      child: TextButton.icon(
                         style: TextButton.styleFrom(
-                          foregroundColor: colors.textSecondary,
+                          foregroundColor: colors.brandPrimary,
                           minimumSize: const Size(44, 44),
                           padding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
                         ),
                         onPressed: () => unawaited(
                           startFoodCorrectionFlow(context, ref, food),
                         ),
-                        child: Text(
+                        icon: const Icon(Icons.edit_outlined, size: 16),
+                        label: Text(
                           t.record.foodDetail.reportIssue,
-                          style: textStyles.textXs.copyWith(
-                            color: colors.textSecondary,
-                          ),
+                          style: textStyles.textSm,
                         ),
                       ),
                     ),

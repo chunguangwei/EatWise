@@ -82,6 +82,10 @@ final class RemoteWaterLogSync {
       } else if (row.deleted && code == 'NOT_FOUND') {
         // 服务端本无此行（create 未到达）：tombstone 无意义，本地清除。
         await db.waterLogDao.deleteLog(row.localId);
+      } else if (!row.deleted && code == 'VALIDATION_ERROR') {
+        // 硬边界校验（amountMl>5000 等）＝永久拒绝：保留 pending 每轮重复
+        // 上行永不归零（走查 L4）——同延长队列终态丢弃口径，本地清除。
+        await db.waterLogDao.deleteLog(row.localId);
       }
       // 其余 error/conflict：保持 pending，下轮重试。
     }

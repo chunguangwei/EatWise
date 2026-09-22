@@ -412,4 +412,21 @@ void main() {
       await repository.dispose();
     });
   });
+
+  group('进程重建恢复（走查 L1）', () {
+    test('撤销窗 Timer 随进程丢失的 submitting 行由 retryPending 恢复上行', () async {
+      final first = repo(undoWindow: const Duration(seconds: 30));
+      final entry = await first.addEntry(draft());
+      expect(entry.syncStatus, SyncStatus.submitting);
+      // 模拟进程被杀：dispose 取消 pending Timer，新实例没有任何撤销窗状态。
+      await first.dispose();
+
+      final reopened = repo();
+      final n = await reopened.retryPending();
+      expect(n, 1, reason: 'submitting 行必须纳入重试（旧逻辑只扫 pending，永久滞留）');
+      final after = await db.foodEntryDao.getByLocalId(entry.localId);
+      expect(after!.syncStatus, SyncStatus.synced);
+      await reopened.dispose();
+    });
+  });
 }

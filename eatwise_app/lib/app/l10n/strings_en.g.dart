@@ -731,6 +731,7 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get badgeRejected => 'Not approved';
 	@override String get badgeCommunity => 'Community';
 	@override String reviewRejectedNotice({required Object name}) => 'Your submitted food "${name}" was not approved; related records have been removed';
+	@override String correctionRejectedNotice({required Object name}) => 'Your correction for "${name}" was not accepted; the food data stays unchanged';
 	@override String get editTitle => 'Edit custom food';
 	@override String get editAction => 'Edit';
 	@override String get editSave => 'Save changes';
@@ -1905,6 +1906,7 @@ class _Translations$record$customFood$contributions$en extends Translations$reco
 	@override String get kindBarcode => 'Barcode product';
 	@override String barcodeLabel({required Object code}) => 'Barcode ${code}';
 	@override String get kindCorrection => 'Correction';
+	@override String get addAction => 'Add contribution';
 }
 
 // Path: record.customFood.correction
@@ -2604,6 +2606,7 @@ extension on TranslationsEn {
 			'record.customFood.badgeRejected' => 'Not approved',
 			'record.customFood.badgeCommunity' => 'Community',
 			'record.customFood.reviewRejectedNotice' => ({required Object name}) => 'Your submitted food "${name}" was not approved; related records have been removed',
+			'record.customFood.correctionRejectedNotice' => ({required Object name}) => 'Your correction for "${name}" was not accepted; the food data stays unchanged',
 			'record.customFood.editTitle' => 'Edit custom food',
 			'record.customFood.editAction' => 'Edit',
 			'record.customFood.editSave' => 'Save changes',
@@ -2626,6 +2629,7 @@ extension on TranslationsEn {
 			'record.customFood.contributions.kindBarcode' => 'Barcode product',
 			'record.customFood.contributions.barcodeLabel' => ({required Object code}) => 'Barcode ${code}',
 			'record.customFood.contributions.kindCorrection' => 'Correction',
+			'record.customFood.contributions.addAction' => 'Add contribution',
 			'record.customFood.correction.title' => 'Correct food data',
 			'record.customFood.correction.subtitle' => 'Changes go through review and apply to everyone once approved',
 			'record.customFood.correction.submit' => 'Submit correction',
@@ -2850,10 +2854,10 @@ extension on TranslationsEn {
 			'nutrition.signalCard.advice.carb.green' => 'Carbs are just right — steady energy all the way.',
 			'nutrition.signalCard.advice.carb.yellowLow' => ({required Object meal_action}) => 'Carbs are a bit low — ${meal_action} to keep the afternoon slump away.',
 			'nutrition.signalCard.advice.carb.yellowHigh' => ({required Object meal_action}) => 'Carbs are a touch high — ${meal_action} to keep your blood sugar steady.',
-			'nutrition.signalCard.advice.carb.redLow' => ({required Object meal_action}) => 'Carbs are well under today — ${meal_action}. Don\'t shortchange your body.',
-			'nutrition.signalCard.advice.carb.redHigh' => ({required Object meal_action}) => 'Carbs ran quite high — ${meal_action} to keep your blood sugar steadier.',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.signalCard.advice.carb.redLow' => ({required Object meal_action}) => 'Carbs are well under today — ${meal_action}. Don\'t shortchange your body.',
+			'nutrition.signalCard.advice.carb.redHigh' => ({required Object meal_action}) => 'Carbs ran quite high — ${meal_action} to keep your blood sugar steadier.',
 			'nutrition.signalCard.advice.carb.zero' => 'No carbs logged yet — did a meal slip by?',
 			'nutrition.signalCard.advice.fat.green' => 'Healthy fat intake — your skin and glow will love it.',
 			'nutrition.signalCard.advice.fat.yellowLow' => ({required Object meal_action}) => 'Good fats are a bit low — ${meal_action}; they help absorb vitamins.',

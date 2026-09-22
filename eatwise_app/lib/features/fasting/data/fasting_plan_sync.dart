@@ -187,24 +187,40 @@ class FastingPlanSync {
     if (putFailure != null) throw putFailure;
   }
 
+  bool _flushing = false;
+
   Future<void> _flushDirtyPlan(String uid) async {
-    final key = _dirtyKey(uid);
-    var raw = prefs.getString(key);
-    if (raw == null) {
-      // 登录迁移：匿名期写入的脏方案/延长队列换挂到真实 userId 后上行。
-      final anonKey = _dirtyKey('anonymous');
-      raw = prefs.getString(anonKey);
-      if (raw == null) return;
-      await prefs.setString(key, raw);
-      await prefs.remove(anonKey);
+    // 串行化：并发两次 flush（写入即 flush 与引擎同步轮同时触发）时，
+    // 两个 PUT 到达服务端的顺序不定——旧 PUT 后到会用旧方案覆盖新方案，
+    // 且其后的 remove 误擦新脏标记，两端永久分叉（走查 L5）。在途时后来
+    // 者直接返回（脏标记保留，下一同步轮重试）。
+    if (_flushing) return;
+    _flushing = true;
+    try {
+      final key = _dirtyKey(uid);
+      var raw = prefs.getString(key);
+      if (raw == null) {
+        // 登录迁移：匿名期写入的脏方案/延长队列换挂到真实 userId 后上行。
+        final anonKey = _dirtyKey('anonymous');
+        raw = prefs.getString(anonKey);
+        if (raw == null) return;
+        await prefs.setString(key, raw);
+        await prefs.remove(anonKey);
+      }
+      final plan = _decode(raw);
+      if (plan == null) {
+        await prefs.remove(key); // 脏数据损坏：清掉，等下次方案写入重落
+        return;
+      }
+      await api.putCurrent(plan);
+      // compare-and-delete：PUT 在途期间用户又改方案（raw 被覆写）时保留
+      // 脏标记给下一轮，绝不误擦未上行的新方案。
+      if (prefs.getString(key) == raw) {
+        await prefs.remove(key);
+      }
+    } finally {
+      _flushing = false;
     }
-    final plan = _decode(raw);
-    if (plan == null) {
-      await prefs.remove(key); // 脏数据损坏：清掉，等下次方案写入重落
-      return;
-    }
-    await api.putCurrent(plan);
-    await prefs.remove(key);
   }
 
   /// 重放延长队列：成功清项；[kExtendTerminalCodes] 终态丢弃（重放必然

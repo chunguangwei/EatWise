@@ -12,6 +12,7 @@ final class ContributionTransition {
     required this.candidateId,
     required this.foodId,
     required this.to,
+    required this.kind,
   });
 
   /// 候选 id。
@@ -22,6 +23,10 @@ final class ContributionTransition {
 
   /// 迁移到的终态（仅 approved / rejected）。
   final FoodContributionStatus to;
+
+  /// 贡献类型：rejected 时 correction 只落状态**不清记录**（目标食物仍在
+  /// 共享库，服务端同口径）；custom/barcode 才清（走查：纠错驳回误删历史）。
+  final FoodContributionKind kind;
 }
 
 /// 已知状态表（candidateId → 上次同步时的状态字符串，与
@@ -42,6 +47,7 @@ List<ContributionTransition> diffContributionTransitions(
           candidateId: c.id,
           foodId: c.foodId,
           to: c.status,
+          kind: c.kind,
         ),
       );
     }

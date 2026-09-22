@@ -59,6 +59,14 @@ class _MyContributionsPageState extends ConsumerState<MyContributionsPage> {
     }
   }
 
+  /// 顶栏「+」：弹新建自定义食物流程，返回后刷新列表（成功/离线 pending
+  /// 都刷一次；网络失败错误态自带重试入口）。
+  Future<void> _openNewContribution() async {
+    await startCustomFoodFlow(context, ref);
+    if (!mounted) return;
+    await ref.read(contributionsControllerProvider.notifier).refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
@@ -72,6 +80,16 @@ class _MyContributionsPageState extends ConsumerState<MyContributionsPage> {
       appBar: AppBar(
         backgroundColor: colors.bgPrimary,
         title: Text(c.title, style: textStyles.textXl),
+        // 顶栏常驻新建入口（真机走查：空态 CTA 只在 0 条时可见，有贡献后
+        // 再想新增只能退回记录页绕路）。
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.add),
+            color: colors.brandPrimary,
+            tooltip: c.addAction,
+            onPressed: () => unawaited(_openNewContribution()),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(

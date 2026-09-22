@@ -1234,6 +1234,9 @@ class Translations$record$customFood$zh_CN {
 	/// zh-CN: '你提交的食品「${name}」未通过审核，相关记录已移除'
 	String reviewRejectedNotice({required Object name}) => '你提交的食品「${name}」未通过审核，相关记录已移除';
 
+	/// zh-CN: '你为「${name}」提交的数据纠错未通过审核，库内数据保持不变'
+	String correctionRejectedNotice({required Object name}) => '你为「${name}」提交的数据纠错未通过审核，库内数据保持不变';
+
 	/// zh-CN: '编辑自定义食物'
 	String get editTitle => '编辑自定义食物';
 
@@ -3476,6 +3479,9 @@ class Translations$record$customFood$contributions$zh_CN {
 
 	/// zh-CN: '纠错'
 	String get kindCorrection => '纠错';
+
+	/// zh-CN: '新增贡献'
+	String get addAction => '新增贡献';
 }
 
 // Path: record.customFood.correction
@@ -4493,6 +4499,7 @@ extension on Translations {
 			'record.customFood.badgeRejected' => '未通过',
 			'record.customFood.badgeCommunity' => '社区',
 			'record.customFood.reviewRejectedNotice' => ({required Object name}) => '你提交的食品「${name}」未通过审核，相关记录已移除',
+			'record.customFood.correctionRejectedNotice' => ({required Object name}) => '你为「${name}」提交的数据纠错未通过审核，库内数据保持不变',
 			'record.customFood.editTitle' => '编辑自定义食物',
 			'record.customFood.editAction' => '编辑',
 			'record.customFood.editSave' => '保存修改',
@@ -4515,6 +4522,7 @@ extension on Translations {
 			'record.customFood.contributions.kindBarcode' => '条码商品',
 			'record.customFood.contributions.barcodeLabel' => ({required Object code}) => '条码 ${code}',
 			'record.customFood.contributions.kindCorrection' => '纠错',
+			'record.customFood.contributions.addAction' => '新增贡献',
 			'record.customFood.correction.title' => '数据纠错',
 			'record.customFood.correction.subtitle' => '改动会提交审核，通过后全用户生效',
 			'record.customFood.correction.submit' => '提交纠错',
@@ -4739,10 +4747,10 @@ extension on Translations {
 			'nutrition.signalCard.advice.carb.green' => '碳水刚刚好，能量供应稳稳的。',
 			'nutrition.signalCard.advice.carb.yellowLow' => ({required Object meal_action}) => '碳水略少，${meal_action}，下午不容易犯困哦。',
 			'nutrition.signalCard.advice.carb.yellowHigh' => ({required Object meal_action}) => '碳水略高，${meal_action}，让血糖稳一点。',
-			'nutrition.signalCard.advice.carb.redLow' => ({required Object meal_action}) => '今天碳水太少了，${meal_action}，别亏待身体。',
-			'nutrition.signalCard.advice.carb.redHigh' => ({required Object meal_action}) => '碳水超得有点多，${meal_action}，让血糖稳一点。',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.signalCard.advice.carb.redLow' => ({required Object meal_action}) => '今天碳水太少了，${meal_action}，别亏待身体。',
+			'nutrition.signalCard.advice.carb.redHigh' => ({required Object meal_action}) => '碳水超得有点多，${meal_action}，让血糖稳一点。',
 			'nutrition.signalCard.advice.carb.zero' => '好像还没记到碳水哦，是不是漏了一餐？',
 			'nutrition.signalCard.advice.fat.green' => '脂肪摄入很健康，皮肤和气色都会喜欢。',
 			'nutrition.signalCard.advice.fat.yellowLow' => ({required Object meal_action}) => '好脂肪有点少，${meal_action}，帮助吸收维生素。',

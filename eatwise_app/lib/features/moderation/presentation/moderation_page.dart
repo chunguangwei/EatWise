@@ -312,6 +312,11 @@ class _CandidateCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // 整卡可点展开/收起——chevron 指示（走查：卡面无展开暗示）。
+                  Icon(
+                    expanded ? Icons.expand_less : Icons.expand_more,
+                    color: colors.textSecondary,
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.s1),

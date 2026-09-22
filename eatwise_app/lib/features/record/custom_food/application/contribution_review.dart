@@ -9,8 +9,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// 贡献审核状态本地存储（按用户命名空间，与 WeightLogStore 同法）。
 ///
 /// - 已知状态表（candidateId → 上次同步状态）：pending→终态迁移 diff 基线；
-/// - 待提示驳回通知队列（食物名列表）：状态迁移时追加，记录页下次展示时
-///   取走并清空（一次性提示，跨页面生命周期不丢）。
+/// - 待提示驳回通知队列（食物名 + correction 标记）：状态迁移时追加，
+///   记录页下次展示时取走清空。
+
+/// 驳回一次性通知（食物展示名 + 是否纠错类：correction 驳回不动记录，
+/// 文案区分）。
+final class RejectedNotice {
+  const RejectedNotice({required this.name, this.correction = false});
+
+  final String name;
+  final bool correction;
+}
+
+/// 贡献审核状态本地存储（按用户命名空间，与 WeightLogStore 同法）。
 final class ContributionStatusStore {
   ContributionStatusStore(SharedPreferences prefs, {this.userId = 'anonymous'})
     : readFn = prefs.getString,
@@ -68,29 +79,47 @@ final class ContributionStatusStore {
     return writeFn(_statusKey, jsonEncode(known));
   }
 
-  /// 追加驳回通知（食物展示名）。
-  Future<void> appendNotices(List<String> names) async {
-    if (names.isEmpty) return;
-    final pending = _loadNotices()..addAll(names);
-    await writeFn(_noticeKey, jsonEncode(pending));
+  /// 追加驳回通知（食物展示名 + 是否纠错类——文案区分「记录已移除」与
+  /// 「数据未改动」）。
+  Future<void> appendNotices(List<RejectedNotice> notices) async {
+    if (notices.isEmpty) return;
+    final pending = _loadNotices()..addAll(notices);
+    await writeFn(
+      _noticeKey,
+      jsonEncode(<List<Object?>>[
+        for (final n in pending) <Object?>[n.name, n.correction],
+      ]),
+    );
   }
 
   /// 取走全部待提示通知并清空（一次性提示）。
-  Future<List<String>> drainNotices() async {
+  Future<List<RejectedNotice>> drainNotices() async {
     final pending = _loadNotices();
     if (pending.isNotEmpty) await writeFn(_noticeKey, '[]');
     return pending;
   }
 
-  List<String> _loadNotices() {
+  List<RejectedNotice> _loadNotices() {
     final raw = readFn(_noticeKey);
-    if (raw == null || raw.isEmpty) return <String>[];
+    if (raw == null || raw.isEmpty) return <RejectedNotice>[];
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is! List) return <String>[];
-      return decoded.whereType<String>().toList();
+      if (decoded is! List) return <RejectedNotice>[];
+      // 兼容旧格式（纯食物名字符串 = 自定义食物驳回，无 correction 标记）。
+      return decoded
+          .map(
+            (final e) => switch (e) {
+              final String name => RejectedNotice(name: name),
+              [final Object? name, final Object? correction]
+                  when name is String =>
+                RejectedNotice(name: name, correction: correction == true),
+              _ => null,
+            },
+          )
+          .nonNulls
+          .toList();
     } on FormatException {
-      return <String>[];
+      return <RejectedNotice>[];
     }
   }
 
@@ -127,12 +156,14 @@ final class ContributionStatusStore {
         }
         merged = jsonEncode(map);
       } else {
-        final list = <String>[];
+        // 通知元素两种格式（旧 String / 新 [name, correction]）原样搬运，
+        // 解析延迟到 _loadNotices。
+        final list = <Object?>[];
         for (final src in <String?>[ownRaw, raw]) {
           if (src == null || src.isEmpty) continue;
           try {
             final decoded = jsonDecode(src);
-            if (decoded is List) list.addAll(decoded.whereType<String>());
+            if (decoded is List) list.addAll(decoded);
           } on FormatException {
             // 脏键忽略。
           }
@@ -193,13 +224,23 @@ final class ContributionReviewSync {
       final current = await _fetchAll();
       final known = store.loadKnown();
       final transitions = diffContributionTransitions(known, current);
-      final notices = <String>[];
+      final notices = <RejectedNotice>[];
       for (final t in transitions) {
         switch (t.to) {
           case FoodContributionStatus.approved:
             await db.foodDao.setContributionStatus(t.foodId, 'approved');
           case FoodContributionStatus.rejected:
-            notices.add(await _applyRejection(t.foodId));
+            // 纠错驳回：目标食物仍在共享库、记录不动（服务端同口径）——
+            // 只提示「建议未采纳」；自定义/条码驳回才清记录（走查修复：
+            // 旧逻辑误删纠错用户的全部历史饮食）。
+            notices.add(
+              t.kind == FoodContributionKind.correction
+                  ? RejectedNotice(
+                      name: await _foodDisplayName(t.foodId),
+                      correction: true,
+                    )
+                  : await _applyRejection(t.foodId),
+            );
           case FoodContributionStatus.pending:
             break; // diff 只产出终态迁移，防御性穷尽
         }
@@ -218,10 +259,14 @@ final class ContributionReviewSync {
         await store.appendNotices(notices);
         onNoticesAdded?.call();
       }
-      return notices;
+      return notices.map((final n) => n.name).toList();
     } finally {
       _syncing = false;
     }
+  }
+
+  Future<String> _foodDisplayName(String foodId) async {
+    return (await db.foodDao.getById(foodId))?.nameZh ?? foodId;
   }
 
   /// 本地行存在且停在 pending 才覆写终态；null/已终态行不动。
@@ -243,9 +288,9 @@ final class ContributionReviewSync {
     }
   }
 
-  /// 驳回落地：删记录 + 重算聚合 + 标记食物；返回通知用的食物展示名
+  /// 驳回落地：删记录 + 重算聚合 + 标记食物；返回驳回通知
   ///（食物行缺失回退 foodId，不隐藏事件）。
-  Future<String> _applyRejection(String foodId) async {
+  Future<RejectedNotice> _applyRejection(String foodId) async {
     final food = await db.foodDao.getById(foodId);
     final entries = await db.foodEntryDao.entriesForFood(userId, foodId);
     final dates = <String>{};
@@ -262,6 +307,6 @@ final class ContributionReviewSync {
       );
     }
     await db.foodDao.setContributionStatus(foodId, 'rejected');
-    return food?.nameZh ?? foodId;
+    return RejectedNotice(name: food?.nameZh ?? foodId);
   }
 }

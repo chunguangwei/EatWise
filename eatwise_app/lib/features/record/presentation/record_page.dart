@@ -88,18 +88,24 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     });
   }
 
-  /// 驳回一次性提示：取走待提示队列逐条 snackbar（「未通过审核，
-  /// 相关记录已移除」），取走即清空不重复打扰。
+  /// 驳回一次性提示：取走待提示队列逐条 snackbar（自定义食物驳回=「记录
+  /// 已移除」，纠错驳回=「建议未采纳，数据不变」），取走即清空不重复打扰。
   Future<void> _drainRejectedNotices() async {
-    final names = await ref
+    final notices = await ref
         .read(contributionStatusStoreProvider)
         .drainNotices();
-    if (!mounted || names.isEmpty) return;
+    if (!mounted || notices.isEmpty) return;
     final cs = CustomFoodStrings.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    for (final name in names) {
+    for (final n in notices) {
       messenger.showSnackBar(
-        SnackBar(content: Text(cs.reviewRejectedNotice(name))),
+        SnackBar(
+          content: Text(
+            n.correction
+                ? cs.correctionRejectedNotice(n.name)
+                : cs.reviewRejectedNotice(n.name),
+          ),
+        ),
       );
     }
   }
@@ -489,7 +495,9 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.s2),
-                // 搜索结果列表。
+                // 搜索结果列表（与确认卡并存时 1:3 分享高度——确认为主操作
+                // 占大头；确认卡内部可滚，小屏键盘顶起时按钮不再被顶出屏幕，
+                // 真机走查）。
                 Expanded(
                   child: results.when(
                     data: (foods) {
@@ -710,21 +718,32 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                   ),
                 // 可编辑识别结果卡（食物名 + 份量 + 实时营养预览 + 确认）。
                 if (selected != null)
-                  _SelectedFoodCard(
-                    food: selected,
-                    isEn: isEn,
-                    amountController: _amountController,
-                    onConfirm: () => unawaited(_confirm(s)),
-                    onClose: () {
-                      ref.read(recordSelectedFoodProvider.notifier).state =
-                          null;
-                      ref.read(recordEntrySourceProvider.notifier).state =
-                          EntrySource.manual;
-                      ref.read(recordLowConfidenceProvider.notifier).state =
-                          false;
-                      ref.read(recordMealTypeProvider.notifier).state = null;
-                    },
-                    shadows: shadows,
+                  // 自然高度优先（Column 非 flex 子先布局，主操作不被挤压）；
+                  // 内容超过 90% 可用高度时内部滚动兜底——旧实现无上限时
+                  // 卡片溢出屏幕、确认按钮被裁半无法点击（真机走查）。
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: constraints.maxHeight * 0.9,
+                    ),
+                    child: SingleChildScrollView(
+                      child: _SelectedFoodCard(
+                        food: selected,
+                        isEn: isEn,
+                        amountController: _amountController,
+                        onConfirm: () => unawaited(_confirm(s)),
+                        onClose: () {
+                          ref.read(recordSelectedFoodProvider.notifier).state =
+                              null;
+                          ref.read(recordEntrySourceProvider.notifier).state =
+                              EntrySource.manual;
+                          ref.read(recordLowConfidenceProvider.notifier).state =
+                              false;
+                          ref.read(recordMealTypeProvider.notifier).state =
+                              null;
+                        },
+                        shadows: shadows,
+                      ),
+                    ),
                   ),
               ],
             );

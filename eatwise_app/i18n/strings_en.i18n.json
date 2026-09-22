@@ -349,6 +349,7 @@
       "badgeRejected": "Not approved",
       "badgeCommunity": "Community",
       "reviewRejectedNotice": "Your submitted food \"${name}\" was not approved; related records have been removed",
+      "correctionRejectedNotice": "Your correction for \"${name}\" was not accepted; the food data stays unchanged",
       "editTitle": "Edit custom food",
       "editAction": "Edit",
       "editSave": "Save changes",
@@ -377,7 +378,8 @@
         "loadFailed": "Failed to load — please try again later",
         "kindBarcode": "Barcode product",
         "barcodeLabel": "Barcode ${code}",
-        "kindCorrection": "Correction"
+        "kindCorrection": "Correction",
+        "addAction": "Add contribution"
       },
       "correction": {
         "title": "Correct food data",

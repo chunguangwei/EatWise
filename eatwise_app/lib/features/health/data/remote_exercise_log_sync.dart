@@ -83,6 +83,11 @@ final class RemoteExerciseLogSync {
       } else if (row.deleted && code == 'NOT_FOUND') {
         // 服务端本无此行（create 未到达）：tombstone 无意义，本地清除。
         await db.exerciseLogDao.deleteLog(row.localId);
+      } else if (!row.deleted && code == 'VALIDATION_ERROR') {
+        // 硬边界校验（kcal>10000 / steps>200000 / durationMin>1440）＝永久
+        // 拒绝：保留 pending 每轮重复上行永不归零（走查 L4）——同延长队列
+        // 终态丢弃口径，本地清除。
+        await db.exerciseLogDao.deleteLog(row.localId);
       }
       // 其余 error/conflict：保持 pending，下轮重试。
     }

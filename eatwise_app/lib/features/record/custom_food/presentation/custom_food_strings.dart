@@ -127,6 +127,10 @@ final class CustomFoodStrings {
   String reviewRejectedNotice(String name) =>
       _t.record.customFood.reviewRejectedNotice(name: name);
 
+  /// record.customFood.correctionRejectedNotice（纠错驳回：数据保持不变）
+  String correctionRejectedNotice(String name) =>
+      _t.record.customFood.correctionRejectedNotice(name: name);
+
   /// record.customFood.editTitle
   String get editTitle => _t.record.customFood.editTitle;
 

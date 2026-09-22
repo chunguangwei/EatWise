@@ -320,11 +320,9 @@ class SignalCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Icon(
-                        Icons.info_outline,
-                        color: colors.textSecondary,
-                        size: 14,
-                      ),
+                      // 提示图标取落区色（与徽标同色系）——旧 textSecondary
+                      // 灰与正文同色，可点击感知弱（走查）。
+                      Icon(Icons.info_outline, color: zoneColor, size: 14),
                     ],
                   ),
                 ),

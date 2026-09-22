@@ -349,6 +349,7 @@
       "badgeRejected": "未通过",
       "badgeCommunity": "社区",
       "reviewRejectedNotice": "你提交的食品「${name}」未通过审核，相关记录已移除",
+      "correctionRejectedNotice": "你为「${name}」提交的数据纠错未通过审核，库内数据保持不变",
       "editTitle": "编辑自定义食物",
       "editAction": "编辑",
       "editSave": "保存修改",
@@ -377,7 +378,8 @@
         "loadFailed": "加载失败，请稍后重试",
         "kindBarcode": "条码商品",
         "barcodeLabel": "条码 ${code}",
-        "kindCorrection": "纠错"
+        "kindCorrection": "纠错",
+        "addAction": "新增贡献"
       },
       "correction": {
         "title": "数据纠错",
