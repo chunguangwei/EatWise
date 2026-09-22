@@ -106,9 +106,7 @@ describe('User profile patch validation (e2e)', () => {
     const stamped = res.body.data.user.settingsPrefs;
     expect(stamped).toEqual({ ...prefs, syncedAt: expect.any(String) });
     expect(stamped.syncedAt).not.toBe(prefs.syncedAt);
-    expect(Math.abs(Date.parse(stamped.syncedAt) - Date.now())).toBeLessThan(
-      60_000,
-    );
+    expect(Math.abs(Date.parse(stamped.syncedAt) - Date.now())).toBeLessThan(60_000);
 
     // 字段级 LWW：只改部分键时整个 JSON 包整体替换（客户端约定整包推送）
     const next = { ...prefs, theme: 'dark', syncedAt: '2026-09-18T09:00:00.000Z' };
@@ -121,9 +119,7 @@ describe('User profile patch validation (e2e)', () => {
     const res2 = await patch({ settingsPrefs: next }).expect(200);
     const stamped2 = res2.body.data.user.settingsPrefs;
     expect(stamped2).toEqual({ ...next, syncedAt: expect.any(String) });
-    expect(Date.parse(stamped2.syncedAt)).toBeGreaterThanOrEqual(
-      Date.parse(stamped.syncedAt),
-    );
+    expect(Date.parse(stamped2.syncedAt)).toBeGreaterThanOrEqual(Date.parse(stamped.syncedAt));
 
     // 非对象类型 → DTO 校验拒绝
     expect((await patch({ settingsPrefs: 'dark' })).status).toBe(400);

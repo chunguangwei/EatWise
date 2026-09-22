@@ -28,9 +28,7 @@ import { WeightModule } from './weight/weight.module';
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        throttlers: [
-          { ttl: 60_000, limit: Number(config.get('THROTTLE_LIMIT', 300)) },
-        ],
+        throttlers: [{ ttl: 60_000, limit: Number(config.get('THROTTLE_LIMIT', 300)) }],
       }),
     }),
     InfraModule,

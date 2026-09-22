@@ -41,10 +41,7 @@ export class AuthService implements OnApplicationBootstrap {
 
   /** 生产环境 mock 短信（固定码 123456）绝不可用：启动即拒绝，不留运行期侥幸 */
   onApplicationBootstrap() {
-    if (
-      this.config.get<string>('NODE_ENV') === 'production' &&
-      this.smsMockEnabled()
-    ) {
+    if (this.config.get<string>('NODE_ENV') === 'production' && this.smsMockEnabled()) {
       throw new Error(
         'SMS_MOCK_ENABLED must be false when NODE_ENV=production (fixed code 123456 accepts any phone login)',
       );

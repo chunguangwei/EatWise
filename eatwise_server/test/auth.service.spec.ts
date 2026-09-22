@@ -131,7 +131,7 @@ describe('AuthService 短信 mock 开关（SMS_MOCK_ENABLED=false 关闭验证�
     });
   });
 
-  it('白名单判定 fail-closed：\'False\'/\'0\'/空串等非精确 \'true\' 一律关闭', () => {
+  it("白名单判定 fail-closed：'False'/'0'/空串等非精确 'true' 一律关闭", () => {
     for (const raw of ['False', 'FALSE', '0', 'yes', '']) {
       const svc = new AuthService(
         new DataStore(),

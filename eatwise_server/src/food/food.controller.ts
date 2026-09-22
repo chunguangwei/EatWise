@@ -36,9 +36,7 @@ export class FoodController {
   @Post('batch-get')
   @HttpCode(200)
   async batchGet(@CurrentUser() user: AuthUser, @Body() dto: BatchGetFoodsDto) {
-    const found = await Promise.all(
-      dto.ids.map((id) => this.food.getById(id, user.userId)),
-    );
+    const found = await Promise.all(dto.ids.map((id) => this.food.getById(id, user.userId)));
     return { items: found.filter((f): f is NonNullable<typeof f> => Boolean(f)) };
   }
 

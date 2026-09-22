@@ -994,7 +994,9 @@ export class PrismaStore extends StoreDriver {
   async findFoodById(id: string): Promise<FoodEntity | null> {
     try {
       // 仅内置/共享库（自定义食物行 isCustom=true，走 findCustomFoodById）；软删行隐藏
-      const row = await this.prisma.food.findFirst({ where: { id, isCustom: false, deletedAt: null } });
+      const row = await this.prisma.food.findFirst({
+        where: { id, isCustom: false, deletedAt: null },
+      });
       return row ? toFoodEntity(row) : null;
     } catch (e) {
       throw this.fail('findFoodById', e);
@@ -1004,7 +1006,9 @@ export class PrismaStore extends StoreDriver {
   /** 共享库按条码精确命中（foods_barcode_idx；与内存同口径排除 isCustom 行） */
   async findFoodByBarcode(barcode: string): Promise<FoodEntity | null> {
     try {
-      const row = await this.prisma.food.findFirst({ where: { barcode, isCustom: false, deletedAt: null } });
+      const row = await this.prisma.food.findFirst({
+        where: { barcode, isCustom: false, deletedAt: null },
+      });
       return row ? toFoodEntity(row) : null;
     } catch (e) {
       throw this.fail('findFoodByBarcode', e);
@@ -1038,7 +1042,9 @@ export class PrismaStore extends StoreDriver {
 
   async findCustomFoodById(id: string): Promise<CustomFoodEntity | null> {
     try {
-      const row = await this.prisma.food.findFirst({ where: { id, isCustom: true, deletedAt: null } });
+      const row = await this.prisma.food.findFirst({
+        where: { id, isCustom: true, deletedAt: null },
+      });
       return row ? toCustomFoodEntity(row) : null;
     } catch (e) {
       throw this.fail('findCustomFoodById', e);

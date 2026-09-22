@@ -98,12 +98,16 @@ describe('自定义食物改/删（FoodService.updateCustomFood / deleteCustomFo
   // ===== PATCH =====
 
   it('PATCH owner 改值成功：视图返回新值，读回（search/get）即新值', async () => {
-    const res = (await food.updateCustomFood(OWNER, FOOD_ID, patchDto({
-      nameZh: ' 自制鸡胸肉 ',
-      nameEn: 'Chicken Breast',
-      aliasesZh: [' 鸡胸 ', ''],
-      per100g: { kcal: 165, proteinG: 31, carbG: 0, fatG: 3.6 },
-    }))) as CustomView;
+    const res = (await food.updateCustomFood(
+      OWNER,
+      FOOD_ID,
+      patchDto({
+        nameZh: ' 自制鸡胸肉 ',
+        nameEn: 'Chicken Breast',
+        aliasesZh: [' 鸡胸 ', ''],
+        per100g: { kcal: 165, proteinG: 31, carbG: 0, fatG: 3.6 },
+      }),
+    )) as CustomView;
     expect(res).toMatchObject({
       id: FOOD_ID,
       nameZh: '自制鸡胸肉',
@@ -125,23 +129,19 @@ describe('自定义食物改/删（FoodService.updateCustomFood / deleteCustomFo
   });
 
   it('PATCH 非 owner / 不存在 → 404（不泄露存在性）', async () => {
-    await expectBusiness(
-      food.updateCustomFood(OTHER, FOOD_ID, patchDto()),
-      'NOT_FOUND',
-      404,
-    );
-    await expectBusiness(
-      food.updateCustomFood(OWNER, 'cf_missing', patchDto()),
-      'NOT_FOUND',
-      404,
-    );
+    await expectBusiness(food.updateCustomFood(OTHER, FOOD_ID, patchDto()), 'NOT_FOUND', 404);
+    await expectBusiness(food.updateCustomFood(OWNER, 'cf_missing', patchDto()), 'NOT_FOUND', 404);
     // 非 owner 改不动
     expect((await driver.findCustomFoodById(FOOD_ID))?.nameZh).toBe('自制酸奶');
   });
 
   it('PATCH 营养越界 / 名称 trim 后超 50 字 → 400 VALIDATION_ERROR', async () => {
     await expectBusiness(
-      food.updateCustomFood(OWNER, FOOD_ID, patchDto({ per100g: { kcal: 1000, proteinG: 0, carbG: 0, fatG: 0 } })),
+      food.updateCustomFood(
+        OWNER,
+        FOOD_ID,
+        patchDto({ per100g: { kcal: 1000, proteinG: 0, carbG: 0, fatG: 0 } }),
+      ),
       'VALIDATION_ERROR',
       400,
     );
@@ -157,11 +157,7 @@ describe('自定义食物改/删（FoodService.updateCustomFood / deleteCustomFo
 
   it('DELETE pending 候选（审核中）→ 409 FOOD_UNDER_REVIEW，食物未删', async () => {
     await food.contributeCustomFood(OWNER, FOOD_ID, { clientRequestId: randomUUID() });
-    await expectBusiness(
-      food.deleteCustomFood(OWNER, FOOD_ID),
-      'FOOD_UNDER_REVIEW',
-      409,
-    );
+    await expectBusiness(food.deleteCustomFood(OWNER, FOOD_ID), 'FOOD_UNDER_REVIEW', 409);
     expect(await driver.findCustomFoodById(FOOD_ID)).not.toBeNull();
   });
 
@@ -190,11 +186,7 @@ describe('自定义食物改/删（FoodService.updateCustomFood / deleteCustomFo
     expect(resubmitted.reviewedBy).toBeNull();
 
     // 重置后回到审核中语义：删除再次 409
-    await expectBusiness(
-      food.deleteCustomFood(OWNER, FOOD_ID),
-      'FOOD_UNDER_REVIEW',
-      409,
-    );
+    await expectBusiness(food.deleteCustomFood(OWNER, FOOD_ID), 'FOOD_UNDER_REVIEW', 409);
   });
 
   it('DELETE 非 owner / 共享食物 → 404；删除后 search/get 不再命中', async () => {
