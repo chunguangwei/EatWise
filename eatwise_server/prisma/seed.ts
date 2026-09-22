@@ -66,7 +66,9 @@ async function main(): Promise<void> {
         return prisma.food.upsert({
           where: { id: f.id },
           create: { id: f.id, ...data },
-          update: data,
+          // deletedAt:null 复位：历史版本软删过的 id 若在本版 seed 复活
+          //（对账方向翻转等场景），不清 tombstone 会「导入即死」。
+          update: { ...data, deletedAt: null },
         });
       }),
     );

@@ -13,7 +13,10 @@
   E1 四营养值非负                    → error
   E2 id 全局唯一                     → error
   E3 双语条目（name_zh 非空）别名非空 → error（aliases_zh/aliases_en 均须 ≥1）
+  E4 双语条目 name_en/aliases_en 禁中文 → error
   W1 kcal 与 4P+4C+9F 偏差 >20%      → warning（USDA 允许酒精/膳食纤维偏差，仅报告）
+  W2 出 seed 行同名残留（|kcal 偏差|>30% 的有意并存，或 cfct 内部品种粒度
+     双胞胎）                        → warning（>30% 并存行必须带状态限定词，见对账）
 任何 error 导致退出码非 0。
 """
 from __future__ import annotations
@@ -29,7 +32,7 @@ HERE = Path(__file__).resolve().parent
 DATA_DIR = HERE.parent
 REPO_ROOT = DATA_DIR.parent
 
-SEED_VERSION = "2026.09.22"
+SEED_VERSION = "2026.09.23"
 USDA_GLOB = "raw/sr_legacy/*.json"
 CURATED_PATH = DATA_DIR / "curated" / "zh_common_foods.json"
 CFCT_PATH = DATA_DIR / "cfct" / "cfct_foods.json"
@@ -105,31 +108,37 @@ def cfct_entries() -> list[dict]:
 # ── cfct × curated 同名对账 ──────────────────────────────────────────────
 # 成分表条目常为 生/干 态（米粉 dried, raw ≈349），curated 同名常为 熟/即食 态
 # （≈108）。两行并存 = 搜「米粉」双命中不同值，用户误点生态行 = 3 倍热量事故。
-# 口径（v1.13.10，走查 advisory）：
-#   · 偏差 <30% → 值近似，curated 冗余行吸收进 cfct 行（别名并入，curated 行出 seed）；
+# 口径（v1.13.11 修订，advisory：FK 暴露最小化）：
+#   · 偏差 <30% → 值近似：保留 **curated 行身份**（id 月龄大、有存量 FoodEntry
+#     引用；cfct id 仅一日龄 ≈零引用），数值覆写为 cfct 权威值，cfct 行出 seed；
 #   · 偏差 ≥30% → 两种形态都有价值，两行并存，但 cfct 行加状态限定词消歧
 #     （米粉→米粉(干/生)），基名保留在 aliases 里搜单名照样命中。
-# 限定词依据 = 成分表行内证据（englishName 的 dried/raw/flour/roasted/whole、
-# 同组分脂肪含量），不伪造原书副标题。key 为 cfct foodCode（=id 后缀）。
+# 限定词依据 = 该行 name_en 自身文本证据（dried/raw/flour/roasted/whole/
+# semisoft），不含营养推断；数值可疑但名字无状态证据的（虾仁 199kcal）
+# 只入 note 存疑，不改显示名。key 为 cfct foodCode（=id 后缀）。
 CFCT_STATE_SUFFIX = {
     "012410": "干/生",  # Rice noodle, dried, raw
     "012411": "干/生",  # Rice noodle, flattened, dried, raw
-    "019010": "干",  # Buckwheat flour, refined
-    "122206": "干/制品",  # 虾仁 199kcal 远超生鲜虾 ~85（本行碳水 27.7 → 裹粉干制）
-    "031529": "油炸/香",  # 豆腐干 427kcal、脂肪 35.2g/100g
+    "019010": "粉",  # Buckwheat flour, refined
+    "031529": "半干",  # Soybean curd slab, semisoft
     "082303": "干",  # Beef, dried（名字已含干，保留原名只吸收语义，不改写）
-    "092301": "整只带皮",  # Beijing white duck, roasted, whole（带皮整只热量远高于去皮）
+    "092301": "整只",  # Beijing white duck, roasted, whole
+}
+# 名字无状态证据但数值异常：显示名不动，note 存疑（不改口待营养背书）。
+CFCT_DOUBTFUL_NOTE = {
+    "122206": "存疑：199kcal/碳水27.7 远超生鲜虾(~85/≈0)，Peeled shrimp 无干制"
+    "证据，疑罐头/裹粉制品〔待营养背书〕",
 }
 CFCT_ABSORB_THRESHOLD = 0.30
 
 
 def reconcile_cfct_curated(cfct: list[dict], curated: list[dict]) -> tuple[set[str], list[dict]]:
-    """同名对账：返回（应出 seed 的 curated id 集，对账日志）。原地修改 cfct 行。"""
+    """同名对账：返回（应出 seed 的 cfct id 集，对账日志）。原地修改 curated/cfct 行。"""
     by_name: dict[str, list[dict]] = {}
     for e in cfct:
         if e.get("name_zh"):
             by_name.setdefault(e["name_zh"], []).append(e)
-    removed: set[str] = set()
+    dropped_cfct: set[str] = set()
     log: list[dict] = []
     for c in curated:
         name = c.get("name_zh")
@@ -142,24 +151,33 @@ def reconcile_cfct_curated(cfct: list[dict], curated: list[dict]) -> tuple[set[s
                 else 0.0
             )
             if dev < CFCT_ABSORB_THRESHOLD:
-                # 近似同值：curated 行出 seed，别名全部并入 cfct 行。
-                removed.add(c["id"])
-                merged = dict.fromkeys([*cf["aliases_zh"], *c["aliases_zh"], name])
-                cf["aliases_zh"] = sorted(merged)
-                cf["aliases_en"] = sorted(
-                    dict.fromkeys([*cf["aliases_en"], *c["aliases_en"], c["name_en"].lower()])
+                # 近似同值：curated 行留身份、数值覆写为 cfct 权威值；
+                # cfct 行出 seed（新 id 无引用，prune 零 FK 暴露）。
+                dropped_cfct.add(cf["id"])
+                for k in ("kcal", "protein_g", "carb_g", "fat_g"):
+                    c[k] = cf[k]
+                c["source"] = cf["source"]
+                c["zh_verified"] = cf.get("zh_verified", True)
+                c["note"] = (c.get("note") or "") + f"同名吸收自 {cf['id']}（成分表权威值）"
+                c["aliases_zh"] = sorted(dict.fromkeys([*c["aliases_zh"], *cf["aliases_zh"], name]))
+                c["aliases_en"] = sorted(
+                    dict.fromkeys([*c["aliases_en"], *cf["aliases_en"], cf["name_en"].lower()])
                 )
                 log.append({"name": name, "action": "absorb", "cfct": cf["id"],
                             "curated": c["id"], "dev": round(dev, 3)})
             else:
                 # 形态差异：两行并存，cfct 行加状态限定词（幂等：已有括号不重复加）。
-                suffix = CFCT_STATE_SUFFIX.get(cf["id"].removeprefix("cfct-"))
+                code = cf["id"].removeprefix("cfct-")
+                suffix = CFCT_STATE_SUFFIX.get(code)
                 if suffix and "(" not in cf["name_zh"]:
                     cf["name_zh"] = f"{name}({suffix})"
                     cf["aliases_zh"] = sorted({*cf["aliases_zh"], name})
-                    log.append({"name": name, "action": "qualify", "cfct": cf["id"],
-                                "as": cf["name_zh"], "dev": round(dev, 3)})
-    return removed, log
+                note = CFCT_DOUBTFUL_NOTE.get(code)
+                if note and "存疑" not in (cf.get("note") or ""):
+                    cf["note"] = ((cf.get("note") + "；") if cf.get("note") else "") + note
+                log.append({"name": name, "action": "qualify", "cfct": cf["id"],
+                            "as": cf["name_zh"], "dev": round(dev, 3)})
+    return dropped_cfct, log
 
 
 def slug_free(entries: list[dict]) -> list[dict]:
@@ -210,6 +228,28 @@ def validate(entries: list[dict]) -> tuple[list[dict], list[dict]]:
                         "(USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)",
                     }
                 )
+    # W2 同名残留检测：出 seed 行里的完全同名对。对账（<30% 吸收）之后仍同名
+    # 的只剩两类——≥30% 有意并存（应有状态限定词）、cfct 内部品种粒度双胞胎
+    # （栗子×5 等）。后者无害（别名互不包含，搜索并显），前者忘加限定词=误点
+    # 高热量生态行的事故面。CI data job 跟踪此计数，防下批数据静默回归。
+    by_name: dict[str, list[dict]] = {}
+    for e in entries:
+        if e.get("name_zh"):
+            by_name.setdefault(e["name_zh"], []).append(e)
+    for name, group in by_name.items():
+        if len(group) < 2:
+            continue
+        for i in range(len(group)):
+            for j in range(i + 1, len(group)):
+                warnings.append(
+                    {
+                        "rule": "W2",
+                        "ids": [group[i]["id"], group[j]["id"]],
+                        "name_zh": name,
+                        "kcal": [group[i]["kcal"], group[j]["kcal"]],
+                        "msg": "exact name_zh duplicate survives into seed",
+                    }
+                )
     return errors, warnings
 
 
@@ -226,8 +266,8 @@ def main() -> int:
     cfct = cfct_entries()
     slug_free(cfct)
     slug_free(entries)
-    absorbed, recon_log = reconcile_cfct_curated(cfct, entries)
-    entries = [e for e in entries if e["id"] not in absorbed]
+    dropped_cfct, recon_log = reconcile_cfct_curated(cfct, entries)
+    cfct = [e for e in cfct if e["id"] not in dropped_cfct]
     entries.extend(cfct)
     usda_count = 0
     usda_path = args.raw
@@ -249,14 +289,16 @@ def main() -> int:
     zh_count = sum(1 for e in entries if e.get("name_zh"))
     # 收敛清单：对比上一版 seed 的 id 集 → removedIds（累计并集，幂等可
     # 重放）。无条件并入 prev.removedIds——同版本重跑也必须保留历史累计，
-    # 否则清残差链条断裂。
+    # 否则清残差链条断裂；本版又发回来的 id 摘出清单（prune 不得删活行）。
     removed_ids: list[str] = []
     if SEED_PATH.exists():
         try:
             prev = json.loads(SEED_PATH.read_text(encoding="utf-8"))
             new_ids = {e["id"] for e in entries}
             stale = [f["id"] for f in prev.get("foods", []) if f["id"] not in new_ids]
-            removed_ids = sorted(set(prev.get("removedIds", [])) | set(stale) | absorbed)
+            removed_ids = sorted(
+                (set(prev.get("removedIds", [])) | set(stale) | dropped_cfct) - new_ids
+            )
         except (json.JSONDecodeError, OSError, KeyError):
             print("[build] WARNING: previous seed unreadable, removedIds starts empty",
                   file=sys.stderr)
@@ -276,7 +318,10 @@ def main() -> int:
         "removedIds": removed_ids,
         "errors": errors,
         "warnings": warnings,
-        "warningSummary": {"W1_kcal_deviation_gt_20pct": len(warnings)},
+        "warningSummary": {
+            "W1_kcal_deviation_gt_20pct": len(warnings),
+            "W2_exact_name_dup": sum(1 for w in warnings if w["rule"] == "W2"),
+        },
     }
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -305,7 +350,7 @@ def main() -> int:
     print(
         f"[build] OK in {time.time()-started:.1f}s: total={len(entries)} "
         f"(usda-sr={usda_count}, curated={curated_count}, bilingual={zh_count}), "
-        f"absorbed={len(absorbed)}, qualified={sum(1 for r in recon_log if r['action']=='qualify')}, "
+        f"absorbed={len(dropped_cfct)}, qualified={sum(1 for r in recon_log if r['action']=='qualify')}, "
         f"removedIds={len(removed_ids)}, warnings={len(warnings)} -> {SEED_PATH}"
     )
     return 0

@@ -75,17 +75,22 @@ CFCT 源数据中的 433 行 `englishName` 缺失（曾静默回退中文名，�
 
 ## 同名对账（build_seed.py `reconcile_cfct_curated`）
 
-同一食物在策展与 CFCT 各有一行时（旧 seed 双行并存=冗余）三分法：
+同一食物在策展与 CFCT 各有一行时（旧 seed 双行并存=冗余）三分法
+（v1.13.11 修订：吸收方向保留 **curated id**——月龄大、有存量 FoodEntry 引用，
+数值覆写为 CFCT 权威值；cfct 孪生行出 seed，prune 零 FK 暴露）：
 
-1. **值近似（偏差 <30%）→ 吸收**：curated 行并入 cfct 行别名后出 seed
-   （id 进 removedIds）；
+1. **值近似（偏差 <30%）→ 吸收**：curated 行留身份、数值覆写为 cfct 权威值
+   （source 改标 cfct、别名互并）；cfct 孪生行出 seed（id 进 removedIds）；
 2. **形态差（≥30%）→ 限定并存**：cfct 行加状态限定词（`CFCT_STATE_SUFFIX`，
-   如 米粉(干/生) 349 vs 米粉〔熟〕108），基名留别名，两行语义不再混淆；
-3. **CFCT 内部品种粒度**（栗子[板栗] 等）：有意保留，不并。
+   如 米粉(干/生) 349 vs 米粉〔熟〕108），基名留别名，两行语义不再混淆。
+   限定词**只取该行 `name_en` 自身文本证据**（dried/raw/flour/roasted/whole/
+   semisoft），不含营养推断——数值可疑但名字无证据的（虾仁 199kcal）只进
+   `note` 存疑〔待营养背书〕，不改显示名；
+3. **CFCT 内部品种粒度**（栗子[板栗] 等）：有意保留，不并（W2 warning 跟踪）。
 
-禁止用 CFCT 生/干值覆写 curated 熟态值（3 倍热量事故，v1.13.8 走查）。
 生成侧（gen_dishes_snacks.py 同名即丢弃）+ 构建侧兜底双层防御；旧行优先
-（已随旧 seed 出厂，删了造成双端残差）。
+（已随旧 seed 出厂，删了造成双端残差）。prisma seed upsert 带 `deletedAt:null`
+复位——历史软删 id 在本版复活时防「导入即死」。
 
 ## 校验规则（build_seed.py 内置）
 
@@ -96,6 +101,7 @@ CFCT 源数据中的 433 行 `englishName` 缺失（曾静默回退中文名，�
 | E3 | error | 双语条目（name_zh 非空）的中英别名均非空 |
 | E4 | error | 双语条目 `name_en`/`aliases_en` 不得含中文（双语硬约束） |
 | W1 | warning | kcal 与 4P+4C+9F 估算偏差 >20%（酒精/膳食纤维/糖醇可致合理偏差，仅报告不拦截） |
+| W2 | warning | 出 seed 行同名残留（≥30% 有意并存应有状态限定词 / cfct 内部品种双胞胎）——CI data job 跟踪计数，防下批数据静默回归 |
 
 任何 error 使构建以非 0 退出；报告写入 `reports/validation_report.json`。
 
@@ -123,11 +129,13 @@ python3 scripts/build_seed.py --include-usda   # 并入 USDA（历史模式）
 - App：启动 `FoodSeedLoader.ensureSeeded()`（`lib/core/storage/food_seed_loader.dart`）
   把 `assets/foods/foods.seed.json` 灌入 drift，按版本号幂等 + prune。
 
-## 规模现状（2026-09-22 构建，版本 2026.09.22）
+## 规模现状（2026-09-22 构建，版本 2026.09.23）
 
-- **总计 1958 条，双语 1958（100%）**：CFCT 1644 + 策展 314。
-- 收敛清单 removedIds=7326（同名吸收 43 + USDA 裁剪 7283）。
-- 校验：0 error；46 条 W1 warning。
+- **总计 1956 条，双语 1956（100%）**：CFCT 1616 + 策展 340（同名吸收 28 组
+  保留 curated 身份、数值覆写为 CFCT 权威值）。
+- 收敛清单 removedIds=7328（USDA 裁剪 7283 + 同名吸收 cfct 孪生 + 历史散行；
+  与本版 foods id 交集恒为空——复活行自动摘出清单）。
+- 校验：0 error；W1 46 + W2 28（后者全为 cfct 内部品种粒度双胞胎/≥30% 限定并存）。
 - 搜索实测：drift 全库四列 LIKE 全表扫描 <7ms（无需 FTS 索引）。
 
 ## 双语运营口径

@@ -1,13 +1,13 @@
 {
-  "seedVersion": "2026.09.22",
-  "generatedAt": "2026-09-22T05:27:10Z",
+  "seedVersion": "2026.09.23",
+  "generatedAt": "2026-09-22T06:03:37Z",
   "counts": {
-    "total": 1958,
+    "total": 1956,
     "usda-sr": 0,
-    "cfct": 1644,
-    "curated": 314,
-    "bilingual": 1958,
-    "zh_verified_true": 1958
+    "cfct": 1616,
+    "curated": 340,
+    "bilingual": 1956,
+    "zh_verified_true": 1956
   },
   "reconcile": [
     {
@@ -28,7 +28,7 @@
       "name": "荞麦面",
       "action": "qualify",
       "cfct": "cfct-019010",
-      "as": "荞麦面(干)",
+      "as": "荞麦面(粉)",
       "dev": 0.709
     },
     {
@@ -84,7 +84,7 @@
       "name": "虾仁",
       "action": "qualify",
       "cfct": "cfct-122206",
-      "as": "虾仁(干/制品)",
+      "as": "虾仁",
       "dev": 0.759
     },
     {
@@ -133,7 +133,7 @@
       "name": "豆腐干",
       "action": "qualify",
       "cfct": "cfct-031529",
-      "as": "豆腐干(油炸/香)",
+      "as": "豆腐干(半干)",
       "dev": 0.667
     },
     {
@@ -225,7 +225,7 @@
       "action": "absorb",
       "cfct": "cfct-065021",
       "curated": "curated-longan-dry",
-      "dev": 0.144
+      "dev": 0.132
     },
     {
       "name": "杏仁",
@@ -243,49 +243,51 @@
     }
   ],
   "removedIds": [
-    "curated-almond",
+    "cfct-011401",
+    "cfct-011409",
+    "cfct-015103",
+    "cfct-031405",
+    "cfct-031507",
+    "cfct-031528",
+    "cfct-041204",
+    "cfct-042206",
+    "cfct-043221",
+    "cfct-043228",
+    "cfct-044404",
+    "cfct-052008",
+    "cfct-062902",
+    "cfct-064302",
+    "cfct-065007",
+    "cfct-065021",
+    "cfct-065025",
+    "cfct-066103",
+    "cfct-071014",
+    "cfct-081214",
+    "cfct-081413",
+    "cfct-091114",
+    "cfct-105004",
+    "cfct-111105",
+    "cfct-111107",
+    "cfct-112101",
+    "cfct-114101",
+    "cfct-121102",
     "curated-almonds",
     "curated-baked-sesame-flatbread",
-    "curated-bean-sprouts",
     "curated-beef-jerky",
     "curated-braised-chicken-rice-huangmenji",
     "curated-braised-pork-belly-hongshaorou",
-    "curated-butter",
-    "curated-carrot",
     "curated-cashew-nuts",
-    "curated-cherry",
-    "curated-chicken-wing",
-    "curated-chives",
-    "curated-dried-laver",
     "curated-dried-tofu-snack",
-    "curated-duck-egg",
-    "curated-durian",
-    "curated-egg-white",
-    "curated-egg-yolk",
     "curated-fried-flatbread",
-    "curated-grass-carp",
-    "curated-hami-melon",
-    "curated-huajuan",
-    "curated-lemon",
-    "curated-longan-dry",
-    "curated-loofah",
-    "curated-millet-congee",
     "curated-peking-duck",
     "curated-poached-chicken-bai-qie-ji",
     "curated-poached-fish-in-chili-oil",
     "curated-pork-jerky",
-    "curated-pork-liver",
-    "curated-quail-egg",
-    "curated-sausage",
     "curated-shredded-pork-with-green-pepper",
     "curated-shredded-potato-hot-sour-stir-fry",
-    "curated-soy-milk",
     "curated-sweet-and-sour-pork",
-    "curated-winter-melon",
     "curated-wonton-soup",
-    "curated-youtiao",
     "curated-yu-sheng-shredded-pork",
-    "curated-yuba",
     "usda-167512",
     "usda-167513",
     "usda-167514",
@@ -7590,6 +7592,14 @@
     },
     {
       "rule": "W1",
+      "id": "curated-chives",
+      "kcal": 25.0,
+      "est_4_4_9": 31.2,
+      "deviation": 0.248,
+      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W1",
       "id": "curated-green-pepper",
       "kcal": 22.0,
       "est_4_4_9": 28.3,
@@ -7894,14 +7904,6 @@
     },
     {
       "rule": "W1",
-      "id": "cfct-044404",
-      "kcal": 25.0,
-      "est_4_4_9": 31.2,
-      "deviation": 0.248,
-      "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
-    },
-    {
-      "rule": "W1",
       "id": "cfct-048008",
       "kcal": 69.0,
       "est_4_4_9": 84.2,
@@ -7939,9 +7941,374 @@
       "est_4_4_9": 190.0,
       "deviation": 0.979,
       "msg": "kcal deviates from 4P+4C+9F by >20% (USDA: alcohol/fiber/sugar-alcohol may legitimately cause this)"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "curated-shrimp-meat",
+        "cfct-122206"
+      ],
+      "name_zh": "虾仁",
+      "kcal": [
+        48.0,
+        199.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-105001",
+        "cfct-105008"
+      ],
+      "name_zh": "奶油",
+      "kcal": [
+        879.0,
+        785.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-105007",
+        "cfct-105009"
+      ],
+      "name_zh": "酥油",
+      "kcal": [
+        860.0,
+        718.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-071027",
+        "cfct-071028"
+      ],
+      "name_zh": "栗子[板栗]",
+      "kcal": [
+        186.0,
+        192.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-071027",
+        "cfct-071029"
+      ],
+      "name_zh": "栗子[板栗]",
+      "kcal": [
+        186.0,
+        168.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-071027",
+        "cfct-071030"
+      ],
+      "name_zh": "栗子[板栗]",
+      "kcal": [
+        186.0,
+        182.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-071027",
+        "cfct-071031"
+      ],
+      "name_zh": "栗子[板栗]",
+      "kcal": [
+        186.0,
+        183.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-071028",
+        "cfct-071029"
+      ],
+      "name_zh": "栗子[板栗]",
+      "kcal": [
+        192.0,
+        168.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-071028",
+        "cfct-071030"
+      ],
+      "name_zh": "栗子[板栗]",
+      "kcal": [
+        192.0,
+        182.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-071028",
+        "cfct-071031"
+      ],
+      "name_zh": "栗子[板栗]",
+      "kcal": [
+        192.0,
+        183.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-071029",
+        "cfct-071030"
+      ],
+      "name_zh": "栗子[板栗]",
+      "kcal": [
+        168.0,
+        182.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-071029",
+        "cfct-071031"
+      ],
+      "name_zh": "栗子[板栗]",
+      "kcal": [
+        168.0,
+        183.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-071030",
+        "cfct-071031"
+      ],
+      "name_zh": "栗子[板栗]",
+      "kcal": [
+        182.0,
+        183.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-064303",
+        "cfct-064304"
+      ],
+      "name_zh": "葡萄柚[西柚]",
+      "kcal": [
+        33.0,
+        40.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-065012",
+        "cfct-065027"
+      ],
+      "name_zh": "木瓜[番木瓜]",
+      "kcal": [
+        29.0,
+        30.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-065031",
+        "cfct-065032"
+      ],
+      "name_zh": "香蕉(红皮)",
+      "kcal": [
+        86.0,
+        81.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-082105",
+        "cfct-082112"
+      ],
+      "name_zh": "牛肉(里脊肉)[牛柳]",
+      "kcal": [
+        107.0,
+        134.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-081202",
+        "cfct-081213"
+      ],
+      "name_zh": "猪肚",
+      "kcal": [
+        110.0,
+        97.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-051006",
+        "cfct-051034"
+      ],
+      "name_zh": "黄蘑(干)",
+      "kcal": [
+        203.0,
+        284.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-041105",
+        "cfct-041110"
+      ],
+      "name_zh": "红心萝卜[心里美]",
+      "kcal": [
+        41.0,
+        23.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-042202",
+        "cfct-042205"
+      ],
+      "name_zh": "黄豆芽",
+      "kcal": [
+        47.0,
+        39.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-019013",
+        "cfct-019014"
+      ],
+      "name_zh": "藜麦(散装)",
+      "kcal": [
+        357.0,
+        367.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-012213",
+        "cfct-012215"
+      ],
+      "name_zh": "香米",
+      "kcal": [
+        347.0,
+        342.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-129002",
+        "cfct-129020"
+      ],
+      "name_zh": "海参(干)",
+      "kcal": [
+        262.0,
+        302.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-121106",
+        "cfct-121137"
+      ],
+      "name_zh": "黄颡鱼[戈牙鱼、黄鳍鱼]",
+      "kcal": [
+        124.0,
+        161.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-121122",
+        "cfct-121132"
+      ],
+      "name_zh": "鲢鱼[白鲢、胖子、连子鱼]",
+      "kcal": [
+        104.0,
+        84.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-121123",
+        "cfct-121133"
+      ],
+      "name_zh": "鲫鱼[喜头鱼、海附鱼]",
+      "kcal": [
+        108.0,
+        89.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
+    },
+    {
+      "rule": "W2",
+      "ids": [
+        "cfct-121126",
+        "cfct-121146"
+      ],
+      "name_zh": "鳊鱼[鲂鱼、武昌鱼]",
+      "kcal": [
+        135.0,
+        142.0
+      ],
+      "msg": "exact name_zh duplicate survives into seed"
     }
   ],
   "warningSummary": {
-    "W1_kcal_deviation_gt_20pct": 46
+    "W1_kcal_deviation_gt_20pct": 74,
+    "W2_exact_name_dup": 28
   }
 }

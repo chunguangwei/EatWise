@@ -99,8 +99,16 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
     final refSet = rows.map((r) => r.read<String>('food_id')).toSet();
     final targets = ids.where((id) => !refSet.contains(id)).toList();
     if (targets.isEmpty) return;
-    await (delete(
-      foods,
-    )..where((f) => f.id.isIn(targets) & f.isCustom.equals(false))).go();
+    // Android 11 及以下 SQLite 变量上限 999：7000+ id 单条 isIn 直接
+    // too many SQL variables 崩导入，按 500 分块（与 seed upsert 同口径）。
+    for (var i = 0; i < targets.length; i += 500) {
+      final chunk = targets.sublist(
+        i,
+        i + 500 > targets.length ? targets.length : i + 500,
+      );
+      await (delete(
+        foods,
+      )..where((f) => f.id.isIn(chunk) & f.isCustom.equals(false))).go();
+    }
   }
 }

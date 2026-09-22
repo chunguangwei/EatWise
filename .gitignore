@@ -6,3 +6,4 @@ eatwise_data/raw/
 
 # 本地机密文档（部署凭证等），禁止入库
 docs/tech/*机密*
+__pycache__/
