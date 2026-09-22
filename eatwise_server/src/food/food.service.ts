@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { err } from '../common/errors/business.exception';
+import { BusinessException, err } from '../common/errors/business.exception';
 import {
   CustomFoodEntity,
   FoodCandidateEntity,
@@ -506,6 +506,44 @@ export class FoodService {
     );
     await this.driver.updateFoodCandidateStatus(candidateId, 'approved', undefined, reviewedBy);
     return this.candidateView(await this.mustGetCandidate(candidateId));
+  }
+
+  /**
+   * 审核内容删除（审批中心/管理台「删除」）：物理移除候选行，食物行/记录级联
+   * 按状态语义编排（对齐 review 既有口径）：
+   * - kind=correction：任何状态只删建议本身（目标食物在共享库，reject 同口径）；
+   * - custom/barcode：软删贡献者引用该食物的记录（tombstone 下行清各端）+
+   *   软删食物行（pending=撤下待审内容 / rejected=清理驳回痕迹残留 /
+   *   approved=整条内容下架，对齐 adminDeleteFood 软删+级联口径）；
+   *   食物行已缺（如自定义食物已删的遗留痕迹）容忍收敛。
+   * 候选不存在 → 404（重删 404 自然语义，不做幂等）。
+   */
+  async deleteFoodCandidate(candidateId: string) {
+    const candidate = await this.driver.findFoodCandidateById(candidateId);
+    if (!candidate) throw err.notFound();
+
+    if (candidate.kind !== 'correction') {
+      // 同食物行还有其它 pending 候选时不动内容（审核结论要回写该行），
+      // 同 adminDeleteFood 的 FOOD_UNDER_REVIEW 守卫口径。
+      const other = await this.driver.findFoodCandidateByFoodId(candidate.foodId);
+      if (other && other.id !== candidateId && other.status === 'pending') {
+        throw err.foodUnderReview();
+      }
+      // approved 行已晋升共享、可被任意用户记录引用：下架=跨用户级联
+      // （adminDeleteFood 同口径）；pending/rejected 仍是贡献者私有行。
+      if (candidate.status === 'approved') {
+        await this.driver.softDeleteAllFoodEntriesByFood(candidate.foodId);
+      } else {
+        await this.driver.softDeleteFoodEntriesByFood(candidate.userId, candidate.foodId);
+      }
+      try {
+        await this.driver.softDeleteFoodById(candidate.foodId);
+      } catch (e) {
+        if (!(e instanceof BusinessException) || e.code !== 'NOT_FOUND') throw e;
+      }
+    }
+    await this.driver.deleteFoodCandidateById(candidateId);
+    return { deleted: true };
   }
 
   /** 状态落库后回读（驱动侧 version+1 / updatedAt 已生效），不存在视为内部异常 */

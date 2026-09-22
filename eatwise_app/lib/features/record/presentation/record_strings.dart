@@ -28,9 +28,6 @@ final class RecordStrings {
   /// record.page.todayKcal
   String todayKcal(int kcal) => _t.record.page.todayKcal(kcal: kcal);
 
-  /// record.page.calibrationBadge
-  String get calibrationBadge => _t.record.page.calibrationBadge;
-
   /// record.entries.photo
   String get entryPhoto => _t.record.entries.photo;
 

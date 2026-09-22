@@ -149,3 +149,84 @@ describe('乐观入账与审核联动（候选驳回级联清除记录）', () =
     expect(activeEntries()).toHaveLength(1);
   });
 });
+
+describe('审核内容删除（审批中心「删除」：候选 + 食物行 + 记录级联）', () => {
+  let store: DataStore;
+  let driver: MemoryStoreDriver;
+  let food: FoodService;
+  let sync: SyncService;
+  let userId: string;
+
+  beforeEach(() => {
+    store = new DataStore();
+    driver = new MemoryStoreDriver(store);
+    food = new FoodService(driver, new StubModerationService());
+    sync = new SyncService(driver, new NutritionService(driver));
+    userId = store.createUser({ phone: '+8613800138100' }).id;
+  });
+
+  const contribute = async (nameZh = '待删沙拉') => {
+    const custom = (await food.createCustomFood(userId, {
+      clientRequestId: randomUUID(),
+      nameZh,
+      per100g: { kcal: 20, proteinG: 1, carbG: 3, fatG: 0.5 },
+      source: 'manual',
+    })) as { id: string };
+    const candidate = (await food.contributeCustomFood(userId, custom.id, {
+      clientRequestId: randomUUID(),
+    })) as { id: string };
+    return { foodId: custom.id, candidateId: candidate.id };
+  };
+
+  const activeEntries = () =>
+    [...store.foodEntries.values()].filter((e) => e.userId === userId && !e.deletedAt);
+
+  it('pending 候选删除 = 撤下待审内容：候选 + 自定义食物行消失，重删 404', async () => {
+    const { foodId, candidateId } = await contribute();
+    await expect(food.deleteFoodCandidate(candidateId)).resolves.toEqual({ deleted: true });
+    expect(await driver.findFoodCandidateById(candidateId)).toBeNull();
+    expect(await driver.findCustomFoodById(foodId)).toBeNull();
+    await expect(food.deleteFoodCandidate(candidateId)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('approved 候选删除 = 内容下架：共享行软删 + 记录级联 tombstone 下行（同管理端口径）', async () => {
+    const { foodId, candidateId } = await contribute();
+    await sync.push(userId, [
+      {
+        clientRequestId: randomUUID(),
+        entity: 'foodEntry',
+        op: 'create',
+        payload: {
+          eatenAt: '2026-09-21T04:10:00.000Z',
+          foodId,
+          grams: 100,
+          inputMethod: 'manual',
+        },
+      },
+    ]);
+    expect(activeEntries()).toHaveLength(1);
+
+    await food.reviewFoodCandidate(candidateId, { action: 'approve' }, null);
+    expect(await driver.findFoodById(foodId)).not.toBeNull(); // 已晋升共享
+
+    await expect(food.deleteFoodCandidate(candidateId)).resolves.toEqual({ deleted: true });
+    expect(await driver.findFoodById(foodId)).toBeNull(); // 共享行已软删
+    expect(activeEntries()).toHaveLength(0);
+    const pull = await sync.pull(userId, undefined);
+    expect(pull.changes.filter((c) => 'tombstone' in c)).toHaveLength(1);
+  });
+
+  it('kind=correction 删除只删建议痕迹：目标共享食物不动', async () => {
+    const builtin = [...store.foods.values()][0];
+    const candidate = (await food.createFoodCorrection(userId, builtin.id, {
+      clientRequestId: randomUUID(),
+      per100g: { kcal: 130, proteinG: 2.7, carbG: 28, fatG: 0.3 },
+    })) as { id: string };
+
+    await expect(food.deleteFoodCandidate(candidate.id)).resolves.toEqual({ deleted: true });
+    expect(await driver.findFoodCandidateById(candidate.id)).toBeNull();
+    expect(await driver.findFoodById(builtin.id)).not.toBeNull();
+  });
+});

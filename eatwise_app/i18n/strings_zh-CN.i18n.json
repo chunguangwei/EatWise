@@ -169,8 +169,7 @@
       "title": "记录",
       "confirm": "确认记录",
       "loggedToday": "今日已记 ${count} 笔",
-      "todayKcal": "今日约 ${kcal} 千卡",
-      "calibrationBadge": "待校准"
+      "todayKcal": "今日约 ${kcal} 千卡"
     },
     "meal": {
       "label": "餐次",
@@ -351,6 +350,8 @@
       "badgeCommunity": "社区",
       "reviewRejectedNotice": "你提交的食品「${name}」未通过审核，相关记录已移除",
       "correctionRejectedNotice": "你为「${name}」提交的数据纠错未通过审核，库内数据保持不变",
+      "foodRemovedNotice": "你提交的食品「${name}」已被管理员下架，相关记录已移除",
+      "correctionRemovedNotice": "你为「${name}」提交的数据纠错已被管理员删除",
       "editTitle": "编辑自定义食物",
       "editAction": "编辑",
       "editSave": "保存修改",
@@ -1205,6 +1206,9 @@
     "reasonHint": "驳回原因（可选）",
     "approved": "已通过",
     "rejected": "已驳回",
+    "delete": "删除",
+    "deleteConfirm": "删除后该候选将被移除：已入库的食品下架、提交者的相关记录一并清除，且不可恢复。确认删除？",
+    "deleted": "已删除",
     "kindCustom": "自定义食品",
     "kindBarcode": "条码商品",
     "kindCorrection": "数据纠错",

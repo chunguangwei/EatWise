@@ -129,6 +129,7 @@ class _ModerationPageState extends ConsumerState<ModerationPage> {
                         onApprove: () =>
                             unawaited(_approve(context, candidate)),
                         onReject: () => unawaited(_reject(context, candidate)),
+                        onDelete: () => unawaited(_delete(context, candidate)),
                       );
                     },
                   ),
@@ -207,6 +208,48 @@ class _ModerationPageState extends ConsumerState<ModerationPage> {
     await _doReview(candidate, approve: false, reason: reasonController.text);
   }
 
+  /// 删除：确认弹窗 → 删除 → 反馈 snackbar（候选 + 内容级联下架，不可恢复）。
+  Future<void> _delete(
+    BuildContext context,
+    ModerationCandidate candidate,
+  ) async {
+    final ms = ModerationStrings.of(context);
+    final t = Translations.of(context);
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        content: Text(ms.deleteConfirm),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(t.common.action.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(foregroundColor: colors.signalRed),
+            child: Text(ms.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref
+          .read(moderationControllerProvider.notifier)
+          .delete(candidate.id);
+      messenger.showSnackBar(SnackBar(content: Text(ms.deleted)));
+    } on ApiException catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(apiErrorDisplayMessage(t, e))),
+      );
+      unawaited(ref.read(moderationControllerProvider.notifier).refresh());
+    } on StateError {
+      // 操作在途（防连点兜底）：静默。
+    }
+  }
+
   Future<void> _doReview(
     ModerationCandidate candidate, {
     required bool approve,
@@ -244,6 +287,7 @@ class _CandidateCard extends StatelessWidget {
     required this.onToggle,
     required this.onApprove,
     required this.onReject,
+    required this.onDelete,
   });
 
   final ModerationCandidate candidate;
@@ -254,6 +298,7 @@ class _CandidateCard extends StatelessWidget {
   final VoidCallback onToggle;
   final VoidCallback onApprove;
   final VoidCallback onReject;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -411,6 +456,25 @@ class _CandidateCard extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+                // 删除（下架/清痕迹）：破坏性三级动作，独立整行弱化为文字钮，
+                // 与通过/驳回主操作分层，防误触。
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: acting ? null : onDelete,
+                    icon: Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: colors.signalRed,
+                    ),
+                    label: Text(
+                      ms.delete,
+                      style: textStyles.textSm.copyWith(
+                        color: colors.signalRed,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ],

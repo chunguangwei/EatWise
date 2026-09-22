@@ -47,6 +47,15 @@ final class ModerationStrings {
   /// moderation.rejected
   String get rejected => _t.moderation.rejected;
 
+  /// moderation.delete
+  String get delete => _t.moderation.delete;
+
+  /// moderation.deleteConfirm
+  String get deleteConfirm => _t.moderation.deleteConfirm;
+
+  /// moderation.deleted
+  String get deleted => _t.moderation.deleted;
+
   /// moderation.loadFailed
   String get loadFailed => _t.moderation.loadFailed;
 

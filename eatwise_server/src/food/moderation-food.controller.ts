@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { UserAdminGuard } from '../admin/user-admin.guard';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { err } from '../common/errors/business.exception';
@@ -45,5 +45,12 @@ export class ModerationFoodController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.food.reviewFoodCandidate(candidateId, dto, user.userId);
+  }
+
+  /** 删除审核内容：候选行 + 食物行/记录级联（语义见 FoodService.deleteFoodCandidate） */
+  @Delete(':id')
+  @HttpCode(200)
+  remove(@Param('id') candidateId: string) {
+    return this.food.deleteFoodCandidate(candidateId);
   }
 }

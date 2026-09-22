@@ -15,10 +15,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// 驳回一次性通知（食物展示名 + 是否纠错类：correction 驳回不动记录，
 /// 文案区分）。
 final class RejectedNotice {
-  const RejectedNotice({required this.name, this.correction = false});
+  const RejectedNotice({
+    required this.name,
+    this.correction = false,
+    this.removed = false,
+  });
 
   final String name;
   final bool correction;
+
+  /// 管理员删除审核内容（下架/清痕迹）触发，非审核驳回——文案区分。
+  final bool removed;
 }
 
 /// 贡献审核状态本地存储（按用户命名空间，与 WeightLogStore 同法）。
@@ -79,15 +86,15 @@ final class ContributionStatusStore {
     return writeFn(_statusKey, jsonEncode(known));
   }
 
-  /// 追加驳回通知（食物展示名 + 是否纠错类——文案区分「记录已移除」与
-  /// 「数据未改动」）。
+  /// 追加通知（食物展示名 + 是否纠错类 + 是否管理员下架——文案区分
+  /// 「记录已移除」「数据未改动」「已下架」）。落库三元组。
   Future<void> appendNotices(List<RejectedNotice> notices) async {
     if (notices.isEmpty) return;
     final pending = _loadNotices()..addAll(notices);
     await writeFn(
       _noticeKey,
       jsonEncode(<List<Object?>>[
-        for (final n in pending) <Object?>[n.name, n.correction],
+        for (final n in pending) <Object?>[n.name, n.correction, n.removed],
       ]),
     );
   }
@@ -105,7 +112,7 @@ final class ContributionStatusStore {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! List) return <RejectedNotice>[];
-      // 兼容旧格式（纯食物名字符串 = 自定义食物驳回，无 correction 标记）。
+      // 兼容读：v1 纯字符串 / v2 二元组 [name, correction] / v3 三元组。
       return decoded
           .map(
             (final e) => switch (e) {
@@ -113,6 +120,17 @@ final class ContributionStatusStore {
               [final Object? name, final Object? correction]
                   when name is String =>
                 RejectedNotice(name: name, correction: correction == true),
+              [
+                final Object? name,
+                final Object? correction,
+                final Object? removed,
+              ]
+                  when name is String =>
+                RejectedNotice(
+                  name: name,
+                  correction: correction == true,
+                  removed: removed == true,
+                ),
               _ => null,
             },
           )
@@ -274,6 +292,27 @@ final class ContributionReviewSync {
           foodContributionStatusName(entry.value.status),
         );
       }
+      // 已下架收敛（走查②「服务端删了客户端还在」）：行级反查——本地带
+      // 贡献状态的自定义行不在服务端「我的贡献」foodId 全集 = 管理员已删
+      // 审核内容（候选行消失，状态 diff 无从感知）。清记录 + 删行 +
+      // 下架通知；共享行（isCustom=false，仅纠错终态徽标残留）只清徽标。
+      final serverFoodIds = <String>{for (final c in current) c.foodId};
+      final ghosts = findGhostContributionFoodIds(
+        localRows: (await db.foodDao.contributedRows()).map(
+          (final r) => (id: r.id, contributionStatus: r.contributionStatus),
+        ),
+        serverFoodIds: serverFoodIds,
+      );
+      for (final foodId in ghosts) {
+        final row = await db.foodDao.getById(foodId);
+        if (row == null) continue;
+        if (!row.isCustom) {
+          await db.foodDao.setContributionStatus(foodId, null);
+          onStatusApplied?.call(foodId);
+          continue;
+        }
+        notices.add(await _applyRemoval(foodId, row.nameZh));
+      }
       await store.saveKnown(knownStatusMapOf(current));
       if (notices.isNotEmpty) {
         await store.appendNotices(notices);
@@ -330,5 +369,28 @@ final class ContributionReviewSync {
     await db.foodDao.setContributionStatus(foodId, 'rejected');
     onStatusApplied?.call(foodId);
     return RejectedNotice(name: food?.nameZh ?? foodId);
+  }
+
+  /// 下架落地（对齐服务端删候选级联：软删记录 + 软删食物行）：删记录 +
+  /// 重算聚合 + 删本地食物行；返回下架通知（custom/barcode 内容下架语义，
+  /// 记录清法同驳回——tombstone/物理删口径由 foodEntryDao.deleteEntry 承担）。
+  Future<RejectedNotice> _applyRemoval(String foodId, String name) async {
+    final entries = await db.foodEntryDao.entriesForFood(userId, foodId);
+    final dates = <String>{};
+    for (final entry in entries) {
+      await db.foodEntryDao.deleteEntry(entry.localId);
+      dates.add(entry.localDate);
+    }
+    final nowIso = _clock().toUtc().toIso8601String();
+    for (final date in dates) {
+      await db.foodEntryDao.recomputeDailyNutrition(
+        userId,
+        date,
+        updatedAtUtc: nowIso,
+      );
+    }
+    await db.foodDao.deleteById(foodId);
+    onStatusApplied?.call(foodId);
+    return RejectedNotice(name: name, removed: true);
   }
 }

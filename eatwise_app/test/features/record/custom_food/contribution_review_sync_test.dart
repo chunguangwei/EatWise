@@ -302,6 +302,64 @@ void main() {
 
     expect((await db.foodDao.getById('cf-1'))?.contributionStatus, 'approved');
   });
+
+  // 已下架收敛（走查②「服务端删了客户端还在」）：管理员删候选后
+  // 「我的贡献」不再返回，本地带状态的自定义行=幽灵，行级反查清行清记录。
+  test('已下架收敛：approved 自定义行不在服务端列表 → 清记录 + 删行 + 下架通知', () async {
+    await db.foodDao.setContributionStatus('cf-1', 'approved');
+    await addEntry();
+    final today = localDateKey(DateTime.now());
+    expect(
+      (await db.foodEntryDao.getDailyNutrition(userId, today))?.kcal,
+      greaterThan(0),
+    );
+    remote.contributions = <FoodContribution>[]; // 候选已被管理员删除
+
+    final notices = await sync.syncNow();
+
+    expect(notices, <String>['私房臊子面']);
+    expect(await db.foodDao.getById('cf-1'), isNull);
+    expect(await db.foodEntryDao.entriesForFood(userId, 'cf-1'), isEmpty);
+    final drained = await store.drainNotices();
+    expect(drained.single.removed, isTrue);
+    expect(drained.single.correction, isFalse);
+    // 聚合随记录清除重算
+    final after = await db.foodEntryDao.getDailyNutrition(userId, today);
+    expect(after?.kcal, 0);
+  });
+
+  test('已下架收敛覆盖 pending 起点：管理员撤下 pending 候选 → 本地行同清（服务端级联同口径）', () async {
+    remote.contributions = <FoodContribution>[]; // pending 候选整行消失
+
+    final notices = await sync.syncNow();
+
+    expect(await db.foodDao.getById('cf-1'), isNull);
+    expect((await store.drainNotices()).single.removed, isTrue);
+    expect(notices, <String>['私房臊子面']);
+  });
+
+  test('共享行徽标残留：isCustom=false 且不在列表 → 只清徽标不删行', () async {
+    await db.foodDao.upsertAll(<FoodsCompanion>[
+      const FoodsCompanion(
+        id: Value('seed-1'),
+        nameZh: Value('共享粥'),
+        nameEn: Value('Congee'),
+        kcalPer100g: Value(30),
+        proteinPer100g: Value(1),
+        carbPer100g: Value(6),
+        fatPer100g: Value(0.2),
+        contributionStatus: Value('rejected'),
+      ),
+    ]);
+    remote.contributions = <FoodContribution>[
+      contribution('c-1', FoodContributionStatus.approved), // cf-1 在集合内
+    ];
+
+    await sync.syncNow();
+
+    expect((await db.foodDao.getById('seed-1'))?.contributionStatus, isNull);
+    expect(await db.foodDao.getById('cf-1'), isNotNull); // 集合内行不动
+  });
   test('匿名用户跳过（贡献需登录，无候选可拉）', () async {
     final anonymous = ContributionReviewSync(
       db: db,

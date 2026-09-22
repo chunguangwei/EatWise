@@ -72,11 +72,20 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
     );
   }
 
-  /// 写入共享贡献审核状态（贡献成功/拒收时落本地，搜索行状态标签数据源）。
-  Future<void> setContributionStatus(String id, String status) {
+  /// 写入共享贡献审核状态（贡献成功/拒收时落本地，搜索行状态标签数据源）；
+  /// null=清除标记（幽灵贡献行收敛：候选已被管理员删除，痕迹复位）。
+  Future<void> setContributionStatus(String id, String? status) {
     return (update(foods)..where((f) => f.id.equals(id))).write(
       FoodsCompanion(contributionStatus: Value(status)),
     );
+  }
+
+  /// 带贡献审核状态的食物行（幽灵收敛扫描：状态非空即曾走过贡献链路；
+  /// 共享行的徽标残留也在列，由调用方按 isCustom 分流）。
+  Future<List<Food>> contributedRows() {
+    return (select(
+      foods,
+    )..where((f) => f.contributionStatus.isNotNull())).get();
   }
 
   /// 物理删除食物行（自定义食物删除用；调用方须先处理引用它的

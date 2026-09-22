@@ -96,4 +96,37 @@ void main() {
       expect(map, <String, String>{'fc-1': 'pending', 'fc-2': 'approved'});
     });
   });
+
+  group('findGhostContributionFoodIds', () {
+    ({String id, String? contributionStatus}) row(
+      String id, {
+      String? contributionStatus,
+    }) {
+      return (id: id, contributionStatus: contributionStatus);
+    }
+
+    test('带状态行不在服务端集合 → 幽灵（pending/approved/rejected 同口径；无状态行不参与）', () {
+      final ghosts = findGhostContributionFoodIds(
+        localRows: <({String id, String? contributionStatus})>[
+          row('cf-keep', contributionStatus: 'pending'),
+          row('cf-gone', contributionStatus: 'approved'),
+          row('cf-rej', contributionStatus: 'rejected'),
+          row('cf-plain'), // 无状态=普通行，不参与
+        ],
+        serverFoodIds: <String>{'cf-keep'},
+      );
+      expect(ghosts, <String>['cf-gone', 'cf-rej']);
+    });
+
+    test('服务端全删 → 全部带状态行是幽灵；纯本地行不动', () {
+      final ghosts = findGhostContributionFoodIds(
+        localRows: <({String id, String? contributionStatus})>[
+          row('cf-1', contributionStatus: 'approved'),
+          row('cf-2'),
+        ],
+        serverFoodIds: <String>{},
+      );
+      expect(ghosts, <String>['cf-1']);
+    });
+  });
 }

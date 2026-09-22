@@ -373,6 +373,15 @@ class Translations$moderation$zh_CN {
 	/// zh-CN: '已驳回'
 	String get rejected => '已驳回';
 
+	/// zh-CN: '删除'
+	String get delete => '删除';
+
+	/// zh-CN: '删除后该候选将被移除：已入库的食品下架、提交者的相关记录一并清除，且不可恢复。确认删除？'
+	String get deleteConfirm => '删除后该候选将被移除：已入库的食品下架、提交者的相关记录一并清除，且不可恢复。确认删除？';
+
+	/// zh-CN: '已删除'
+	String get deleted => '已删除';
+
 	/// zh-CN: '自定义食品'
 	String get kindCustom => '自定义食品';
 
@@ -697,9 +706,6 @@ class Translations$record$page$zh_CN {
 
 	/// zh-CN: '今日约 ${kcal} 千卡'
 	String todayKcal({required Object kcal}) => '今日约 ${kcal} 千卡';
-
-	/// zh-CN: '待校准'
-	String get calibrationBadge => '待校准';
 }
 
 // Path: record.meal
@@ -1239,6 +1245,12 @@ class Translations$record$customFood$zh_CN {
 
 	/// zh-CN: '你为「${name}」提交的数据纠错未通过审核，库内数据保持不变'
 	String correctionRejectedNotice({required Object name}) => '你为「${name}」提交的数据纠错未通过审核，库内数据保持不变';
+
+	/// zh-CN: '你提交的食品「${name}」已被管理员下架，相关记录已移除'
+	String foodRemovedNotice({required Object name}) => '你提交的食品「${name}」已被管理员下架，相关记录已移除';
+
+	/// zh-CN: '你为「${name}」提交的数据纠错已被管理员删除'
+	String correctionRemovedNotice({required Object name}) => '你为「${name}」提交的数据纠错已被管理员删除';
 
 	/// zh-CN: '编辑自定义食物'
 	String get editTitle => '编辑自定义食物';
@@ -4362,7 +4374,6 @@ extension on Translations {
 			'record.page.confirm' => '确认记录',
 			'record.page.loggedToday' => ({required Object count}) => '今日已记 ${count} 笔',
 			'record.page.todayKcal' => ({required Object kcal}) => '今日约 ${kcal} 千卡',
-			'record.page.calibrationBadge' => '待校准',
 			'record.meal.label' => '餐次',
 			'record.meal.breakfast' => '早餐',
 			'record.meal.lunch' => '午餐',
@@ -4513,6 +4524,8 @@ extension on Translations {
 			'record.customFood.badgeCommunity' => '社区',
 			'record.customFood.reviewRejectedNotice' => ({required Object name}) => '你提交的食品「${name}」未通过审核，相关记录已移除',
 			'record.customFood.correctionRejectedNotice' => ({required Object name}) => '你为「${name}」提交的数据纠错未通过审核，库内数据保持不变',
+			'record.customFood.foodRemovedNotice' => ({required Object name}) => '你提交的食品「${name}」已被管理员下架，相关记录已移除',
+			'record.customFood.correctionRemovedNotice' => ({required Object name}) => '你为「${name}」提交的数据纠错已被管理员删除',
 			'record.customFood.editTitle' => '编辑自定义食物',
 			'record.customFood.editAction' => '编辑',
 			'record.customFood.editSave' => '保存修改',
@@ -4758,9 +4771,9 @@ extension on Translations {
 			'nutrition.signalCard.advice.protein.redLow' => ({required Object meal_action}) => '今天蛋白质有点少 🟡 ${meal_action}，给身体加点料。',
 			'nutrition.signalCard.advice.protein.redHigh' => ({required Object meal_action}) => '蛋白质有点多啦，${meal_action}，均衡一点更舒服。',
 			'nutrition.signalCard.advice.protein.zero' => '好像还没记到蛋白质哦，是不是漏了一餐？',
-			'nutrition.signalCard.advice.carb.green' => '碳水刚刚好，能量供应稳稳的。',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.signalCard.advice.carb.green' => '碳水刚刚好，能量供应稳稳的。',
 			'nutrition.signalCard.advice.carb.yellowLow' => ({required Object meal_action}) => '碳水略少，${meal_action}，下午不容易犯困哦。',
 			'nutrition.signalCard.advice.carb.yellowHigh' => ({required Object meal_action}) => '碳水略高，${meal_action}，让血糖稳一点。',
 			'nutrition.signalCard.advice.carb.redLow' => ({required Object meal_action}) => '今天碳水太少了，${meal_action}，别亏待身体。',
@@ -5178,6 +5191,9 @@ extension on Translations {
 			'moderation.reasonHint' => '驳回原因（可选）',
 			'moderation.approved' => '已通过',
 			'moderation.rejected' => '已驳回',
+			'moderation.delete' => '删除',
+			'moderation.deleteConfirm' => '删除后该候选将被移除：已入库的食品下架、提交者的相关记录一并清除，且不可恢复。确认删除？',
+			'moderation.deleted' => '已删除',
 			'moderation.kindCustom' => '自定义食品',
 			'moderation.kindBarcode' => '条码商品',
 			'moderation.kindCorrection' => '数据纠错',

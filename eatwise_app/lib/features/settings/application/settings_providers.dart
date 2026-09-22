@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -207,9 +208,20 @@ final accountIdentityStoreProvider = Provider<AccountIdentityStore?>((ref) {
 
 /// 当前用户视图（设置页账号区：账号标识 + 删除预约状态）；
 /// 未登录/离线/接口失败回落 null（UI 降级显示）。
+///
+/// 失败自愈（真机走查③「账号行永显点击重试」）：吞错返回 null 会被
+/// Riverpod 当**成功值**永久缓存——冷启动撞上服务端重启窗（502/连接拒）
+/// 后，除非手动进设置页点重试，任何页面都不会再拉。失败时调度一次
+/// 延迟 `invalidateSelf`（30s，够瞬时故障恢复；模块级标志保证单次装配
+/// 只挂一个定时器，持续失败=每 30s 一次廉价重试，成功后自然停止）。
+bool _userMeRetryScheduled = false;
+
 final userMeProvider = FutureProvider<UserMeView?>((ref) async {
+  var disposed = false;
+  ref.onDispose(() => disposed = true);
   try {
     final me = await ref.watch(userApiProvider).getMe();
+    _userMeRetryScheduled = false;
     // 账号标识本地兜底：成功拉取即缓存显示值（username 优先，其次
     // 脱敏手机号——已掩码，合规 §6）。
     final identity = me.username.isNotEmpty ? me.username : me.maskedPhone;
@@ -218,6 +230,19 @@ final userMeProvider = FutureProvider<UserMeView?>((ref) async {
     }
     return me;
   } on Object {
+    // 装配已销毁（container.dispose 后 future 才落地）不再挂定时器。
+    if (!_userMeRetryScheduled && !disposed) {
+      late final Timer timer;
+      timer = Timer(const Duration(seconds: 30), () {
+        _userMeRetryScheduled = false;
+        ref.invalidateSelf();
+      });
+      // 装配被销毁（登出/热重载）时取消并复位标志，否则永久压制后续自愈。
+      ref.onDispose(() {
+        timer.cancel();
+        _userMeRetryScheduled = false;
+      });
+    }
     return null;
   }
 });

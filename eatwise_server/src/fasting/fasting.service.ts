@@ -141,14 +141,28 @@ export class FastingService {
     const now = new Date();
     const plan = await this.getCurrentPlan(userId, tz);
     const win = computeWindow(plan, tz, now);
-    // 进行中的记录优先于 plan 窗口：延长会后移 plannedEndAt，脱离窗口精确匹配口径
-    let activeRecord: FastingRecordEntity | null =
-      await this.driver.findOngoingFastingRecord(userId);
+    // 进行中的记录优先于 plan 窗口：延长会后移 plannedEndAt，脱离窗口精确匹配口径。
+    // 过期 on_track（客户端杀进程漏报 F2 的 ghost）：无提前结束上报=无中断证据，
+    // 按计划终点自动结算为自然结束（completed）——否则 ghost 永久劫持后续窗口的
+    // 物化（findOrCreate 命中 ongoing 直接返回）且 streak 永不自愈（真机走查）。
+    let activeRecord: FastingRecordEntity | null = null;
+    let settled: FastingRecordEntity | null = null;
+    const ongoing = await this.driver.findOngoingFastingRecord(userId);
+    if (ongoing) {
+      if (ongoing.plannedEndAt.getTime() > now.getTime()) {
+        activeRecord = ongoing;
+      } else {
+        settled = await this.autoCloseExpired(ongoing, now);
+      }
+    }
     if (!activeRecord) {
       if (win.state === 'fasting') {
         activeRecord = await this.findOrCreateActiveRecord(userId, plan, win, tz, now);
       } else {
-        activeRecord = await this.driver.findFastingRecordByPlannedEnd(userId, win.eatingStartAt);
+        // 延长后 plannedEndAt 偏离口径时回显刚自动结算的记录（不重复建档）
+        activeRecord =
+          (await this.driver.findFastingRecordByPlannedEnd(userId, win.eatingStartAt)) ??
+          settled;
       }
     }
     // 延长覆盖名义进食窗口（on_track 且 plannedEndAt>now）→ 仍在断食，状态不消失
@@ -173,6 +187,31 @@ export class FastingService {
         : MAX_EXTEND_MINUTES,
       streak: { currentStreak: streak.currentStreak },
     };
+  }
+
+  /** ghost 自动结算：completed 达标（口径=到点自然结束；手动中断由客户端 F2 实时上报） */
+  private async autoCloseExpired(record: FastingRecordEntity, now: Date) {
+    record.result = 'completed';
+    record.isQualified = true;
+    record.actualEndAt = record.plannedEndAt;
+    record.fastedMinutes = Math.max(
+      0,
+      Math.round(
+        (record.plannedEndAt.getTime() -
+          (record.actualStartAt ?? record.plannedStartAt).getTime()) /
+          60000,
+      ),
+    );
+    record.version += 1;
+    record.updatedAt = now;
+    record.eventLog.push({
+      at: now.toISOString(),
+      event: 'auto_closed',
+      detail: { result: record.result, isQualified: record.isQualified },
+    });
+    await this.driver.saveFastingRecord(record);
+    await this.streak.recompute(record.userId);
+    return record;
   }
 
   /** 进行中的断食记录 find-or-create（〔假设〕随首次状态查询物化，归属日服务端算，D-07） */

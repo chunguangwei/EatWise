@@ -169,8 +169,7 @@
       "title": "Records",
       "confirm": "Log it",
       "loggedToday": "${count} logged today",
-      "todayKcal": "~${kcal} kcal today",
-      "calibrationBadge": "unverified"
+      "todayKcal": "~${kcal} kcal today"
     },
     "meal": {
       "label": "Meal",
@@ -351,6 +350,8 @@
       "badgeCommunity": "Community",
       "reviewRejectedNotice": "Your submitted food \"${name}\" was not approved; related records have been removed",
       "correctionRejectedNotice": "Your correction for \"${name}\" was not accepted; the food data stays unchanged",
+      "foodRemovedNotice": "The food \"${name}\" you submitted was delisted by an admin; related records have been removed",
+      "correctionRemovedNotice": "Your correction for \"${name}\" was deleted by an admin",
       "editTitle": "Edit custom food",
       "editAction": "Edit",
       "editSave": "Save changes",
@@ -1206,6 +1207,9 @@
     "reasonHint": "Reason (optional)",
     "approved": "Approved",
     "rejected": "Rejected",
+    "delete": "Delete",
+    "deleteConfirm": "Deleting removes this candidate: an accepted food will be delisted and the submitter’s related records cleared. This cannot be undone. Delete it?",
+    "deleted": "Deleted",
     "kindCustom": "Custom food",
     "kindBarcode": "Barcode product",
     "kindCorrection": "Data correction",

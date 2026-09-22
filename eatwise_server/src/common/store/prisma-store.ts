@@ -1214,6 +1214,16 @@ export class PrismaStore extends StoreDriver {
     }
   }
 
+  /** 物理移除候选行（审核内容删除；缺行 → NOT_FOUND） */
+  async deleteFoodCandidateById(id: string): Promise<void> {
+    try {
+      const deleted = await this.prisma.foodCandidate.deleteMany({ where: { id } });
+      if (deleted.count === 0) throw err.notFound();
+    } catch (e) {
+      throw this.fail('deleteFoodCandidateById', e);
+    }
+  }
+
   /** PATCH 合并写回（LWW）：仅覆盖 patch 给出的字段；非自定义/已软删/缺行 → NOT_FOUND */
   async updateCustomFood(id: string, patch: Partial<CustomFoodEntity>): Promise<void> {
     try {

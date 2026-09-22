@@ -61,3 +61,25 @@ Map<String, String> knownStatusMapOf(List<FoodContribution> current) {
     for (final c in current) c.id: foodContributionStatusName(c.status),
   };
 }
+
+/// 幽灵贡献行 id（已下架收敛，走查②「服务端删了客户端还在」）：本地行
+/// 带贡献审核状态（contributionStatus 非空）但不在服务端「我的贡献」
+/// foodId 全集——管理员删除审核内容后候选不再返回，本地贡献物是幽灵。
+/// 调用方按 isCustom 分流：自定义行=清记录+删行（同服务端级联口径），
+/// 共享行=仅清徽标残留（纠错终态写在共享行上，候选删除后徽标须复位）。
+///
+/// 行级反查（不依赖 known 表基线）的原因：
+/// - 覆盖 pending 起点（管理员删 pending 候选=撤下内容，服务端同口径
+///   软删食物行；状态迁移 diff 只认 pending→终态，候选整行消失无迁移可 diff）；
+/// - 不依赖基线格式/首轮时序，升级设备与全新安装行为一致。
+/// 首轮安全：服务端列表是全量分页拉取，foodId 集合完整；本地行只可能
+/// 因「自己提交过贡献」带状态，服务端缺席即已删，无误清窗口。
+List<String> findGhostContributionFoodIds({
+  required Iterable<({String id, String? contributionStatus})> localRows,
+  required Set<String> serverFoodIds,
+}) {
+  return <String>[
+    for (final r in localRows)
+      if (r.contributionStatus != null && !serverFoodIds.contains(r.id)) r.id,
+  ];
+}

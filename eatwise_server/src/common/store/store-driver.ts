@@ -303,6 +303,10 @@ export abstract class StoreDriver {
   /** contribute 幂等定位：同一食物只允许一个候选 */
   abstract findFoodCandidateByFoodId(foodId: string): Promise<FoodCandidateEntity | null>;
 
+  /** 审核内容删除：物理移除候选行（行不存在 → NOT_FOUND）；
+   *  食物行/记录级联由 FoodService.deleteFoodCandidate 按 kind/status 编排 */
+  abstract deleteFoodCandidateById(id: string): Promise<void>;
+
   /**
    * 条码贡献查重：返回该条码的阻断性候选（status pending/approved；pending 优先、
    * 其次 approved，同级按 createdAt 升序取最早一条）。rejected 不阻断重提交，返回 null。
@@ -1041,6 +1045,12 @@ export class MemoryStoreDriver extends StoreDriver {
       .filter((c) => c.userId === userId && (!status || c.status === status))
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id));
     return Promise.resolve(rows);
+  }
+
+  /** 物理移除候选行（无 tombstone；与 updateFoodCandidateStatus 的缺行口径一致） */
+  deleteFoodCandidateById(id: string): Promise<void> {
+    if (!this.store.foodCandidates.delete(id)) return Promise.reject(err.notFound());
+    return Promise.resolve();
   }
 
   findFoodCandidateByFoodId(foodId: string): Promise<FoodCandidateEntity | null> {

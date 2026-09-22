@@ -304,6 +304,9 @@ class _Translations$moderation$en extends Translations$moderation$zh_CN {
 	@override String get reasonHint => 'Reason (optional)';
 	@override String get approved => 'Approved';
 	@override String get rejected => 'Rejected';
+	@override String get delete => 'Delete';
+	@override String get deleteConfirm => 'Deleting removes this candidate: an accepted food will be delisted and the submitter’s related records cleared. This cannot be undone. Delete it?';
+	@override String get deleted => 'Deleted';
 	@override String get kindCustom => 'Custom food';
 	@override String get kindBarcode => 'Barcode product';
 	@override String get kindCorrection => 'Data correction';
@@ -468,7 +471,6 @@ class _Translations$record$page$en extends Translations$record$page$zh_CN {
 	@override String get confirm => 'Log it';
 	@override String loggedToday({required Object count}) => '${count} logged today';
 	@override String todayKcal({required Object kcal}) => '~${kcal} kcal today';
-	@override String get calibrationBadge => 'unverified';
 }
 
 // Path: record.meal
@@ -733,6 +735,8 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get badgeCommunity => 'Community';
 	@override String reviewRejectedNotice({required Object name}) => 'Your submitted food "${name}" was not approved; related records have been removed';
 	@override String correctionRejectedNotice({required Object name}) => 'Your correction for "${name}" was not accepted; the food data stays unchanged';
+	@override String foodRemovedNotice({required Object name}) => 'The food "${name}" you submitted was delisted by an admin; related records have been removed';
+	@override String correctionRemovedNotice({required Object name}) => 'Your correction for "${name}" was deleted by an admin';
 	@override String get editTitle => 'Edit custom food';
 	@override String get editAction => 'Edit';
 	@override String get editSave => 'Save changes';
@@ -2461,7 +2465,6 @@ extension on TranslationsEn {
 			'record.page.confirm' => 'Log it',
 			'record.page.loggedToday' => ({required Object count}) => '${count} logged today',
 			'record.page.todayKcal' => ({required Object kcal}) => '~${kcal} kcal today',
-			'record.page.calibrationBadge' => 'unverified',
 			'record.meal.label' => 'Meal',
 			'record.meal.breakfast' => 'Breakfast',
 			'record.meal.lunch' => 'Lunch',
@@ -2612,6 +2615,8 @@ extension on TranslationsEn {
 			'record.customFood.badgeCommunity' => 'Community',
 			'record.customFood.reviewRejectedNotice' => ({required Object name}) => 'Your submitted food "${name}" was not approved; related records have been removed',
 			'record.customFood.correctionRejectedNotice' => ({required Object name}) => 'Your correction for "${name}" was not accepted; the food data stays unchanged',
+			'record.customFood.foodRemovedNotice' => ({required Object name}) => 'The food "${name}" you submitted was delisted by an admin; related records have been removed',
+			'record.customFood.correctionRemovedNotice' => ({required Object name}) => 'Your correction for "${name}" was deleted by an admin',
 			'record.customFood.editTitle' => 'Edit custom food',
 			'record.customFood.editAction' => 'Edit',
 			'record.customFood.editSave' => 'Save changes',
@@ -2857,9 +2862,9 @@ extension on TranslationsEn {
 			'nutrition.signalCard.advice.protein.redLow' => ({required Object meal_action}) => 'Protein\'s on the low side today — ${meal_action} to give your body a boost.',
 			'nutrition.signalCard.advice.protein.redHigh' => ({required Object meal_action}) => 'A little much protein today — ${meal_action} for a comfier balance.',
 			'nutrition.signalCard.advice.protein.zero' => 'No protein logged yet — did a meal slip by?',
-			'nutrition.signalCard.advice.carb.green' => 'Carbs are just right — steady energy all the way.',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.signalCard.advice.carb.green' => 'Carbs are just right — steady energy all the way.',
 			'nutrition.signalCard.advice.carb.yellowLow' => ({required Object meal_action}) => 'Carbs are a bit low — ${meal_action} to keep the afternoon slump away.',
 			'nutrition.signalCard.advice.carb.yellowHigh' => ({required Object meal_action}) => 'Carbs are a touch high — ${meal_action} to keep your blood sugar steady.',
 			'nutrition.signalCard.advice.carb.redLow' => ({required Object meal_action}) => 'Carbs are well under today — ${meal_action}. Don\'t shortchange your body.',
@@ -3277,6 +3282,9 @@ extension on TranslationsEn {
 			'moderation.reasonHint' => 'Reason (optional)',
 			'moderation.approved' => 'Approved',
 			'moderation.rejected' => 'Rejected',
+			'moderation.delete' => 'Delete',
+			'moderation.deleteConfirm' => 'Deleting removes this candidate: an accepted food will be delisted and the submitter’s related records cleared. This cannot be undone. Delete it?',
+			'moderation.deleted' => 'Deleted',
 			'moderation.kindCustom' => 'Custom food',
 			'moderation.kindBarcode' => 'Barcode product',
 			'moderation.kindCorrection' => 'Data correction',

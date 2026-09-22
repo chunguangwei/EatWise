@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { AdminAuthGuard } from '../admin/admin-auth.guard';
 import { AdminRole } from '../admin/admin-role.decorator';
 import { CurrentAdmin } from '../admin/current-admin.decorator';
@@ -49,5 +49,12 @@ export class AdminFoodController {
     @CurrentAdmin() admin: AdminRequestContext,
   ) {
     return this.food.reviewFoodCandidate(candidateId, dto, admin.id);
+  }
+
+  /** 删除审核内容：候选行 + 食物行/记录级联（同移动端审批中心口径；reviewer/admin 均可） */
+  @Delete(':id')
+  @HttpCode(200)
+  remove(@Param('id') candidateId: string) {
+    return this.food.deleteFoodCandidate(candidateId);
   }
 }

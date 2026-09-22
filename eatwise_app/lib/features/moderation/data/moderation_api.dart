@@ -114,6 +114,10 @@ abstract interface class ModerationRemote {
     required String action,
     String? reason,
   });
+
+  /// 删除审核内容（候选 + 食物行/记录级联，语义见服务端
+  /// FoodService.deleteFoodCandidate）。
+  Future<void> delete(String candidateId);
 }
 
 /// REST 实现（信封已由 EnvelopeInterceptor 解包）。
@@ -173,6 +177,17 @@ final class RemoteModerationApi implements ModerationRemote {
       throw toApiException(e);
     }
   }
+
+  @override
+  Future<void> delete(String candidateId) async {
+    try {
+      await dio.delete<Map<String, dynamic>>(
+        '/moderation/food-candidates/$candidateId',
+      );
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
 }
 
 /// 内存 Fake（测试注入；审核动作按 id 从队列移除，与服务端终态出队同口径）。
@@ -183,11 +198,17 @@ final class FakeModerationRemote implements ModerationRemote {
   /// 已收到的审核动作（`id:action:reason`）。
   final List<String> receivedReviews = <String>[];
 
+  /// 已收到的删除动作（候选 id）。
+  final List<String> receivedDeletes = <String>[];
+
   /// 注入审核失败（业务错误原样上抛 UI 提示）。
   Object? reviewError;
 
   /// 注入列表失败。
   Object? listError;
+
+  /// 注入删除失败。
+  Object? deleteError;
 
   @override
   Future<ModerationCandidatePage> listPending({
@@ -214,6 +235,13 @@ final class FakeModerationRemote implements ModerationRemote {
   }) async {
     if (reviewError != null) throw reviewError!;
     receivedReviews.add('$candidateId:$action:${reason ?? ''}');
+    pending = pending.where((c) => c.id != candidateId).toList();
+  }
+
+  @override
+  Future<void> delete(String candidateId) async {
+    if (deleteError != null) throw deleteError!;
+    receivedDeletes.add(candidateId);
     pending = pending.where((c) => c.id != candidateId).toList();
   }
 }

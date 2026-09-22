@@ -256,6 +256,33 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
         jest.useRealTimers();
       }
     });
+
+    it('ghost 自动结算：过期 on_track（客户端漏报 F2）→ 下次 F1 按自然结束 completed，新窗口正常建档', async () => {
+      // 生产走查根因钉死：旧版客户端（X-Timezone 误报 UTC）自动对账链路断了 F2 上报时，
+      // on_track 行永久劫持 findOrCreateActiveRecord，后续窗口不再建档、streak 永不自愈。
+      jest.useFakeTimers().setSystemTime(new Date('2026-07-27T01:00:00.000Z')); // 09:00 断食中
+      try {
+        const s1 = await fasting.getStatus(userId, TZ);
+        const ghostId = s1.activeRecord!.id;
+
+        // 窗口结束（12:00 本地）后客户端始终没报 F2 → ghost 过期
+        jest.setSystemTime(new Date('2026-07-27T05:00:00.000Z')); // 13:00 进食中
+        const s2 = await fasting.getStatus(userId, TZ);
+        expect(s2.state).toBe('eating');
+        expect(s2.activeRecord?.id).toBe(ghostId); // 回显刚结算的记录
+        expect(s2.activeRecord?.result).toBe('completed'); // 无中断证据 = 自然结束
+        expect(s2.activeRecord?.fastedMinutes).toBe(16 * 60);
+        expect(s2.streak.currentStreak).toBe(1); // 达标入 streak（原 bug：永不达标）
+
+        // 下一断食窗口正常建档（ghost 不再劫持）
+        jest.setSystemTime(new Date('2026-07-27T14:00:00.000Z')); // 22:00 断食中
+        const s3 = await fasting.getStatus(userId, TZ);
+        expect(s3.activeRecord?.id).not.toBe(ghostId);
+        expect(store.fastingRecords.size).toBe(2);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
   });
 
   describe('方案窗口与 planType 一致性校验（自选进食窗口）', () => {

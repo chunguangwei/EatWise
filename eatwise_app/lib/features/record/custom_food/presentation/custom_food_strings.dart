@@ -131,6 +131,14 @@ final class CustomFoodStrings {
   String correctionRejectedNotice(String name) =>
       _t.record.customFood.correctionRejectedNotice(name: name);
 
+  /// record.customFood.foodRemovedNotice（管理员下架：相关记录已移除）
+  String foodRemovedNotice(String name) =>
+      _t.record.customFood.foodRemovedNotice(name: name);
+
+  /// record.customFood.correctionRemovedNotice（纠错痕迹被删）
+  String correctionRemovedNotice(String name) =>
+      _t.record.customFood.correctionRemovedNotice(name: name);
+
   /// record.customFood.editTitle
   String get editTitle => _t.record.customFood.editTitle;
 
