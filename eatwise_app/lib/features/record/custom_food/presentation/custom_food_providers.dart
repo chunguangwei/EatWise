@@ -94,7 +94,10 @@ final Provider<ContributionReviewSync> contributionReviewSyncProvider =
             ref.read(contributionNoticeTickProvider.notifier).state++,
         // 徽标即时消失：本地行 contributionStatus 被改写后失效记录行食物
         // 缓存（entryFoodProvider 非 autoDispose 一次性读，不失效则本会话
-        // 内「审核中」徽标常驻——真机走查缺陷）。
-        onStatusApplied: (_) => ref.invalidate(entryFoodProvider),
+        // 内「审核中」徽标常驻——真机走查缺陷）；搜索常驻流缓存行一并失效。
+        onStatusApplied: (_) {
+          ref.invalidate(entryFoodProvider);
+          ref.invalidate(recordFoodSearchProvider);
+        },
       );
     });

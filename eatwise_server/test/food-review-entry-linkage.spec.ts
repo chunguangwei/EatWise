@@ -218,6 +218,21 @@ describe('审核内容删除（审批中心「删除」：候选 + 食物行 + �
     expect(pull.changes.filter((c) => 'tombstone' in c)).toHaveLength(1);
   });
 
+  it('同 foodId 挂 pending 纠错候选时删 approved 行 = 409（findFirst 盲点回归：孪生晚于被删行）', async () => {
+    const { foodId, candidateId } = await contribute();
+    await food.reviewFoodCandidate(candidateId, { action: 'approve' }, null);
+    // 审核通过之后再提纠错 → pending 孪生候选 createdAt 晚于被删行，
+    // findFirst(createdAt asc) 会先命中 approved 本身而漏检。
+    await food.createFoodCorrection(userId, foodId, {
+      clientRequestId: randomUUID(),
+      per100g: { kcal: 15, proteinG: 1, carbG: 2, fatG: 0.5 },
+    });
+    await expect(food.deleteFoodCandidate(candidateId)).rejects.toMatchObject({
+      code: 'FOOD_UNDER_REVIEW',
+    });
+    expect(await driver.findFoodById(foodId)).not.toBeNull(); // 内容未动
+  });
+
   it('kind=correction 删除只删建议痕迹：目标共享食物不动', async () => {
     const builtin = [...store.foods.values()][0];
     const candidate = (await food.createFoodCorrection(userId, builtin.id, {

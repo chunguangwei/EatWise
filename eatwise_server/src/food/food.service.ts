@@ -524,9 +524,12 @@ export class FoodService {
 
     if (candidate.kind !== 'correction') {
       // 同食物行还有其它 pending 候选时不动内容（审核结论要回写该行），
-      // 同 adminDeleteFood 的 FOOD_UNDER_REVIEW 守卫口径。
-      const other = await this.driver.findFoodCandidateByFoodId(candidate.foodId);
-      if (other && other.id !== candidateId && other.status === 'pending') {
+      // 同 adminDeleteFood 的 FOOD_UNDER_REVIEW 守卫口径。不能用
+      // findFoodCandidateByFoodId（findFirst createdAt 升序，命中的可能恰
+      // 是被删行本身，漏掉后来的 pending 孪生）——扫 pending 审核池，
+      // 含指向同一食物行的纠错候选（审核结论同样要回写该行）。
+      const pending = await this.driver.listFoodCandidates('pending');
+      if (pending.some((c) => c.foodId === candidate.foodId && c.id !== candidateId)) {
         throw err.foodUnderReview();
       }
       // approved 行已晋升共享、可被任意用户记录引用：下架=跨用户级联

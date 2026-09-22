@@ -242,6 +242,8 @@ final class ModerationController extends Notifier<ModerationState> {
         }
       }
       ref.invalidate(entryFoodProvider(candidate.foodId));
+      // 搜索结果缓存行同步失效（常驻流不会自刷已删行）。
+      ref.invalidate(recordFoodSearchProvider);
     } on Object {
       // 本机直清失败不影响删除结果（同步轮兜底）。
     }
