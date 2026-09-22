@@ -6,8 +6,6 @@ import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
-import 'package:eatwise/features/record/data/water_log_repository.dart'
-    show localDateKey;
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -48,7 +46,7 @@ void main() {
   }
 
   /// 落一条引用 cf-1 的今日记录（离线 pending，模拟乐观入账未上行）。
-  Future<void> addEntry({String foodId = 'cf-1'}) {
+  Future<FoodEntry> addEntry({String foodId = 'cf-1'}) {
     return repository.addEntry(
       RecordDraft(
         foodId: foodId,
@@ -118,7 +116,7 @@ void main() {
   });
 
   test('pending → rejected：本地记录清除 + 聚合重算 + 食物标记 rejected + 一次性通知', () async {
-    await addEntry();
+    final first = await addEntry();
     await addEntry();
     // 首轮：pending 建基线（用户提交贡献后同步过一轮）。
     remote.contributions = <FoodContribution>[
@@ -139,7 +137,9 @@ void main() {
     final food = await db.foodDao.getById('cf-1');
     expect(food?.contributionStatus, 'rejected');
     // 聚合已重算为 0。
-    final today = localDateKey(DateTime.now());
+    // 归属日取记录自身 localDate，别二次 DateTime.now()——跨 UTC 午夜
+    // 时第二个 now 已换日，聚合重算的行永远查不到（CI 竞态）。
+    final today = first.localDate;
     final daily = await db.foodEntryDao.getDailyNutrition(userId, today);
     expect(daily?.entryCount, 0);
     expect(daily?.kcal, 0);
@@ -307,8 +307,7 @@ void main() {
   // 「我的贡献」不再返回，本地带状态的自定义行=幽灵，行级反查清行清记录。
   test('已下架收敛：approved 自定义行不在服务端列表 → 清记录 + 删行 + 下架通知', () async {
     await db.foodDao.setContributionStatus('cf-1', 'approved');
-    await addEntry();
-    final today = localDateKey(DateTime.now());
+    final today = (await addEntry()).localDate; // 归属日钉在记录自身（防 UTC 午夜竞态）
     expect(
       (await db.foodEntryDao.getDailyNutrition(userId, today))?.kcal,
       greaterThan(0),
