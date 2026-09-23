@@ -405,6 +405,49 @@ void main() {
       );
     });
 
+    testWidgets('404 NOT_FOUND（服务端已删的幽灵行）：本地直清 + 友好提示，不当错误', (tester) async {
+      await seedFoodWithEntry();
+      remote.deleteFoodError = const BusinessApiException(
+        httpStatus: 404,
+        code: 'NOT_FOUND',
+        message: '资源不存在',
+      );
+      await pumpSheet(
+        tester,
+        onConfirm: (_) {},
+        extraOverrides: adminOverrides,
+      );
+
+      final entry = find.byKey(
+        const ValueKey<String>('foodDetail.adminDelete'),
+      );
+      await tester.ensureVisible(entry);
+      await tester.pump();
+      await tester.tap(entry);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('删除'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // 不弹原始错误；友好文案 + 弹层关闭 + 本机照样直清。
+      expect(find.text('资源不存在'), findsNothing);
+      expect(find.text('该食品已不存在，已从本地移除'), findsOneWidget);
+      expect(find.text('删除该食品？'), findsNothing);
+      expect(await db.foodDao.getById('f-rice'), isNull);
+      expect(
+        await db.foodEntryDao.entriesForFood('anonymous', 'f-rice'),
+        isEmpty,
+      );
+
+      ScaffoldMessenger.of(
+        tester.element(find.byType(Scaffold).first),
+      ).hideCurrentSnackBar();
+      await tester.pump();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+
     testWidgets('409 FOOD_UNDER_REVIEW：提示等待审核，弹层不关闭，本机不清理', (tester) async {
       await seedFoodWithEntry();
       remote.deleteFoodError = const BusinessApiException(

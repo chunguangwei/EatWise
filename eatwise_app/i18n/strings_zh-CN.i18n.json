@@ -371,6 +371,7 @@
       "adminDeleteConfirmTitle": "删除该食品？",
       "adminDeleteConfirmBody": "将删除该食品及所有用户的相关饮食记录，不可撤销。",
       "adminDeleteDone": "已删除，级联清理 ${n} 条记录",
+      "adminDeleteAlreadyGone": "该食品已不存在，已从本地移除",
       "contributions": {
         "title": "我的贡献",
         "filterAll": "全部",

@@ -1,9 +1,22 @@
 import 'dart:async';
 
+import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/features/moderation/application/moderation_controller.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// 管理员删除食品结果（404 目标已不在服务端按「已从本地移除」处理，
+/// 不当错误抛出——本地缓存可能滞留服务端已删行，见 v1.13.18 走查）。
+final class AdminFoodDeleteResult {
+  const AdminFoodDeleteResult({this.deletedEntries, this.alreadyGone = false});
+
+  /// 服务端级联清理的记录条数（alreadyGone 时为 null——服务端本无此行）。
+  final int? deletedEntries;
+
+  /// 服务端已不存在该行（404 NOT_FOUND）：本地照样直清，提示用友好文案。
+  final bool alreadyGone;
+}
 
 /// 管理员删除食品（移动端；服务端 DELETE /v1/moderation/foods/:id，
 /// 与管理台 adminDeleteFood 同口径：软删任意来源食物行 + 跨用户级联
@@ -20,14 +33,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// - 触发一轮同步（下行 tombstone 收敛他端；他端记录由级联 tombstone
 ///   下行清理）。
 ///
-/// 返回服务端级联清理的记录条数（deletedEntries，snackbar 文案用）。
-/// 失败上抛（409 FOOD_UNDER_REVIEW / 404 等由调用方提示），本机不做任何清理。
-Future<int> deleteFoodAsAdmin(WidgetRef ref, Food food) async {
-  final deletedEntries = await ref
-      .read(moderationRemoteProvider)
-      .deleteFood(food.id);
-  await _clearLocalFoodReferences(ref, food);
-  return deletedEntries;
+/// 404 NOT_FOUND（服务端已删，本地幽灵行滞留）：按已删除处理——照样本机
+/// 直清并返回 alreadyGone（UI 提示「已从本地移除」）。其余失败上抛
+/// （409 FOOD_UNDER_REVIEW 等由调用方提示），本机不做任何清理。
+Future<AdminFoodDeleteResult> deleteFoodAsAdmin(
+  WidgetRef ref,
+  Food food,
+) async {
+  try {
+    final deletedEntries = await ref
+        .read(moderationRemoteProvider)
+        .deleteFood(food.id);
+    await _clearLocalFoodReferences(ref, food);
+    return AdminFoodDeleteResult(deletedEntries: deletedEntries);
+  } on BusinessApiException catch (e) {
+    if (e.code != 'NOT_FOUND') rethrow;
+    // 目标已不在服务端（如管理台手工软删过的重复行）：本地直清收敛幽灵。
+    await _clearLocalFoodReferences(ref, food);
+    return const AdminFoodDeleteResult(alreadyGone: true);
+  }
 }
 
 /// 本机直清（失败静默：远端已删，后续同步轮 ghost 收敛兜底）。

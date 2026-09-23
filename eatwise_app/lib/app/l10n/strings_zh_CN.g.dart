@@ -1298,6 +1298,9 @@ class Translations$record$customFood$zh_CN {
 	/// zh-CN: '已删除，级联清理 ${n} 条记录'
 	String adminDeleteDone({required Object n}) => '已删除，级联清理 ${n} 条记录';
 
+	/// zh-CN: '该食品已不存在，已从本地移除'
+	String get adminDeleteAlreadyGone => '该食品已不存在，已从本地移除';
+
 	late final Translations$record$customFood$contributions$zh_CN contributions = Translations$record$customFood$contributions$zh_CN.internal(_root);
 	late final Translations$record$customFood$correction$zh_CN correction = Translations$record$customFood$correction$zh_CN.internal(_root);
 
@@ -4555,6 +4558,7 @@ extension on Translations {
 			'record.customFood.adminDeleteConfirmTitle' => '删除该食品？',
 			'record.customFood.adminDeleteConfirmBody' => '将删除该食品及所有用户的相关饮食记录，不可撤销。',
 			'record.customFood.adminDeleteDone' => ({required Object n}) => '已删除，级联清理 ${n} 条记录',
+			'record.customFood.adminDeleteAlreadyGone' => '该食品已不存在，已从本地移除',
 			'record.customFood.contributions.title' => '我的贡献',
 			'record.customFood.contributions.filterAll' => '全部',
 			'record.customFood.contributions.empty' => '暂无贡献记录',
@@ -4786,9 +4790,9 @@ extension on Translations {
 			'nutrition.signalCard.advice.kcal.yellowHigh' => ({required Object meal_action}) => '热量有一点点高，${meal_action}，就回来啦。',
 			'nutrition.signalCard.advice.kcal.redLow' => ({required Object meal_action}) => '今天摄入太少了，断食之外也要好好吃饭哦，${meal_action}。',
 			'nutrition.signalCard.advice.kcal.redHigh' => ({required Object meal_action}) => '热量小超啦，别焦虑，${meal_action}，明天又是新的一天。',
-			'nutrition.signalCard.advice.kcal.zero' => '好像还没记到今天的热量哦，是不是漏了一餐？',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.signalCard.advice.kcal.zero' => '好像还没记到今天的热量哦，是不是漏了一餐？',
 			'nutrition.signalCard.advice.protein.green' => '蛋白质满分！肌肉群给你比心 💪',
 			'nutrition.signalCard.advice.protein.yellowLow' => ({required Object meal_action}) => '蛋白质还差一点，${meal_action}，就够啦。',
 			'nutrition.signalCard.advice.protein.redLow' => ({required Object meal_action}) => '今天蛋白质有点少 🟡 ${meal_action}，给身体加点料。',

@@ -4,6 +4,7 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
 import 'package:eatwise/features/record/custom_food/domain/contribution_review_logic.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
+import 'package:eatwise/features/record/domain/placeholder_food.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 贡献审核状态本地存储（按用户命名空间，与 WeightLogStore 同法）。
@@ -212,6 +213,7 @@ final class ContributionReviewSync {
     this.userId = 'anonymous',
     this.onNoticesAdded,
     this.onStatusApplied,
+    this.existingFoodIdsFn,
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now;
 
@@ -234,6 +236,12 @@ final class ContributionReviewSync {
   /// entryFoodProvider——记录行「审核中」徽标的数据源是一次性 FutureProvider
   /// 缓存，不失效则本会话内徽标永不消失，真机走查缺陷）。
   final void Function(String foodId)? onStatusApplied;
+
+  /// 幽灵共享行服务端核验（v1.13.18 走查：管理台手工软删的共享行本地
+  /// 滞留）。仅当本轮存在非自定义幽灵行时调用（罕见且廉价）；返回服务端
+  /// 仍存在的 id 集合（生产 = POST /foods/batch-get 命中集）。
+  /// null = 未装配/不核验（保持旧口径：共享行只清徽标）；调用异常同上。
+  final Future<Set<String>> Function(List<String> foodIds)? existingFoodIdsFn;
 
   final DateTime Function() _clock;
 
@@ -295,7 +303,8 @@ final class ContributionReviewSync {
       // 已下架收敛（走查②「服务端删了客户端还在」）：行级反查——本地带
       // 贡献状态的自定义行不在服务端「我的贡献」foodId 全集 = 管理员已删
       // 审核内容（候选行消失，状态 diff 无从感知）。清记录 + 删行 +
-      // 下架通知；共享行（isCustom=false，仅纠错终态徽标残留）只清徽标。
+      // 下架通知；共享行（isCustom=false）先清徽标，再经
+      // [existingFoodIdsFn] 核验服务端存续决定整行移除（见下）。
       final serverFoodIds = <String>{for (final c in current) c.foodId};
       final ghosts = findGhostContributionFoodIds(
         localRows: (await db.foodDao.contributedRows()).map(
@@ -303,15 +312,40 @@ final class ContributionReviewSync {
         ),
         serverFoodIds: serverFoodIds,
       );
+      final sharedGhosts = <String>{};
       for (final foodId in ghosts) {
         final row = await db.foodDao.getById(foodId);
         if (row == null) continue;
         if (!row.isCustom) {
+          // 共享/社区行：先清徽标残留（纠错终态写在共享行上，候选删除后
+          // 徽标须复位）；再核验服务端是否还有此行——管理台/管理员删除后
+          // 行已软删（v1.13.18 走查：「已共享」行客户端滞留可搜可点开），
+          // 查无此行 → 整行移除（引用记录物理删+聚合重算，静默不通知——
+          // 非本人贡献物，下架通知只对贡献者有意义）。
+          // 占位行（名称==id，下行合成）永不在此路径（contributionStatus
+          // 恒 null 进不了 ghost 集），双保险显式排除。
           await db.foodDao.setContributionStatus(foodId, null);
           onStatusApplied?.call(foodId);
+          if (isPlaceholderFood(row)) continue;
+          sharedGhosts.add(foodId);
           continue;
         }
         notices.add(await _applyRemoval(foodId, row.nameZh));
+      }
+      // 幽灵共享行服务端核验：查无此行 → 整行移除（一次性 batch-get，
+      // 仅本轮有幽灵时才调，廉价）；核验失败（离线/未装配）保持只清徽标。
+      if (sharedGhosts.isNotEmpty && existingFoodIdsFn != null) {
+        try {
+          final existing = await existingFoodIdsFn!(sharedGhosts.toList());
+          for (final foodId in sharedGhosts) {
+            if (existing.contains(foodId)) continue;
+            final row = await db.foodDao.getById(foodId);
+            if (row == null) continue;
+            await _removeSharedGhost(foodId);
+          }
+        } on Object {
+          // 核验失败：本轮只清徽标，下轮重试。
+        }
       }
       await store.saveKnown(knownStatusMapOf(current));
       if (notices.isNotEmpty) {
@@ -392,5 +426,28 @@ final class ContributionReviewSync {
     await db.foodDao.deleteById(foodId);
     onStatusApplied?.call(foodId);
     return RejectedNotice(name: name, removed: true);
+  }
+
+  /// 幽灵共享行整行移除（服务端已删核验后）：引用记录物理删 + 归属日聚合
+  /// 重算 + 删行 + 失效名称缓存。静默（不下架通知——非本人贡献物）。
+  /// 服务端级联 tombstone 尚未下行的记录：下轮 pull tombstone 对账已无
+  /// 本地行，幂等空转。
+  Future<void> _removeSharedGhost(String foodId) async {
+    final entries = await db.foodEntryDao.entriesForFood(userId, foodId);
+    final dates = <String>{};
+    for (final entry in entries) {
+      await db.foodEntryDao.deleteEntry(entry.localId);
+      dates.add(entry.localDate);
+    }
+    final nowIso = _clock().toUtc().toIso8601String();
+    for (final date in dates) {
+      await db.foodEntryDao.recomputeDailyNutrition(
+        userId,
+        date,
+        updatedAtUtc: nowIso,
+      );
+    }
+    await db.foodDao.deleteById(foodId);
+    onStatusApplied?.call(foodId);
   }
 }

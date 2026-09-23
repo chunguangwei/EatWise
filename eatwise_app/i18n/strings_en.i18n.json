@@ -371,6 +371,7 @@
       "adminDeleteConfirmTitle": "Delete this food?",
       "adminDeleteConfirmBody": "This deletes the food and all related diet records for every user. This cannot be undone.",
       "adminDeleteDone": "Deleted — ${n} related records cleaned up",
+      "adminDeleteAlreadyGone": "Already gone on the server — removed locally",
       "contributions": {
         "title": "My contributions",
         "filterAll": "All",

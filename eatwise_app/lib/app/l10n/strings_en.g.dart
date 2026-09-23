@@ -756,6 +756,7 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get adminDeleteConfirmTitle => 'Delete this food?';
 	@override String get adminDeleteConfirmBody => 'This deletes the food and all related diet records for every user. This cannot be undone.';
 	@override String adminDeleteDone({required Object n}) => 'Deleted — ${n} related records cleaned up';
+	@override String get adminDeleteAlreadyGone => 'Already gone on the server — removed locally';
 	@override late final _Translations$record$customFood$contributions$en contributions = _Translations$record$customFood$contributions$en._(_root);
 	@override late final _Translations$record$customFood$correction$en correction = _Translations$record$customFood$correction$en._(_root);
 	@override String get photoOcr => 'Scan nutrition label';
@@ -2635,6 +2636,7 @@ extension on TranslationsEn {
 			'record.customFood.adminDeleteConfirmTitle' => 'Delete this food?',
 			'record.customFood.adminDeleteConfirmBody' => 'This deletes the food and all related diet records for every user. This cannot be undone.',
 			'record.customFood.adminDeleteDone' => ({required Object n}) => 'Deleted — ${n} related records cleaned up',
+			'record.customFood.adminDeleteAlreadyGone' => 'Already gone on the server — removed locally',
 			'record.customFood.contributions.title' => 'My contributions',
 			'record.customFood.contributions.filterAll' => 'All',
 			'record.customFood.contributions.empty' => 'No contributions yet',
@@ -2866,9 +2868,9 @@ extension on TranslationsEn {
 			'nutrition.signalCard.advice.kcal.yellowHigh' => ({required Object meal_action}) => 'Calories are a touch high — ${meal_action} and you\'re right back on track.',
 			'nutrition.signalCard.advice.kcal.redLow' => ({required Object meal_action}) => 'You\'re well under today — outside your fasting window, do eat well: ${meal_action}.',
 			'nutrition.signalCard.advice.kcal.redHigh' => ({required Object meal_action}) => 'A bit over on calories — no stress! ${meal_action}. Tomorrow\'s a fresh day.',
-			'nutrition.signalCard.advice.kcal.zero' => 'No calories logged yet — did a meal slip by?',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.signalCard.advice.kcal.zero' => 'No calories logged yet — did a meal slip by?',
 			'nutrition.signalCard.advice.protein.green' => 'Protein nailed it! Your muscles are sending you a heart 💪',
 			'nutrition.signalCard.advice.protein.yellowLow' => ({required Object meal_action}) => 'Protein is almost there — ${meal_action} and you\'ve got it.',
 			'nutrition.signalCard.advice.protein.redLow' => ({required Object meal_action}) => 'Protein\'s on the low side today — ${meal_action} to give your body a boost.',

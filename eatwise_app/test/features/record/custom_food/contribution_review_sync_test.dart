@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/record/custom_food/application/contribution_review.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
@@ -358,6 +359,144 @@ void main() {
 
     expect((await db.foodDao.getById('seed-1'))?.contributionStatus, isNull);
     expect(await db.foodDao.getById('cf-1'), isNotNull); // 集合内行不动
+  });
+
+  // 幽灵共享行服务端核验（v1.13.18 走查：管理台手工软删的「已共享」行
+  // 客户端滞留可搜可点开——徽标清掉行还在）。核验函数 = /foods/batch-get。
+  test('幽灵共享行 + 服务端仍有 → 清徽标保行（不误删真实共享食物）', () async {
+    await db.foodDao.upsertAll(<FoodsCompanion>[
+      const FoodsCompanion(
+        id: Value('com-1'),
+        nameZh: Value('蔬菜沙拉'),
+        nameEn: Value('Garden Salad'),
+        kcalPer100g: Value(50),
+        proteinPer100g: Value(2),
+        carbPer100g: Value(5),
+        fatPer100g: Value(2),
+        contributionStatus: Value('approved'),
+      ),
+    ]);
+    remote.contributions = <FoodContribution>[
+      contribution('c-1', FoodContributionStatus.approved), // cf-1 在集合内
+    ];
+    var calls = 0;
+    sync = ContributionReviewSync(
+      db: db,
+      remote: remote,
+      store: store,
+      userId: userId,
+      existingFoodIdsFn: (ids) async {
+        calls++;
+        return ids.toSet(); // 服务端仍有
+      },
+    );
+
+    await sync.syncNow();
+
+    expect(calls, 1);
+    final row = await db.foodDao.getById('com-1');
+    expect(row, isNotNull); // 行保留
+    expect(row!.contributionStatus, isNull); // 徽标清掉
+  });
+
+  test('幽灵共享行 + 服务端查无 → 整行移除 + 引用记录清理 + 聚合重算，静默无通知', () async {
+    // 「蔬菜沙拉（已共享）」服务端已软删；本机还有一条引用记录。
+    await db.foodDao.upsertAll(<FoodsCompanion>[
+      const FoodsCompanion(
+        id: Value('com-deleted'),
+        nameZh: Value('蔬菜沙拉'),
+        nameEn: Value('Garden Salad'),
+        kcalPer100g: Value(50),
+        proteinPer100g: Value(15),
+        carbPer100g: Value(5),
+        fatPer100g: Value(2),
+        contributionStatus: Value('approved'),
+      ),
+    ]);
+    final localDate = DateTime.now().toLocal().toIso8601String().substring(
+      0,
+      10,
+    );
+    await db.foodEntryDao.insertEntry(
+      FoodEntriesCompanion(
+        localId: const Value('l-ghost'),
+        userId: const Value(userId),
+        clientRequestId: const Value('cr-ghost'),
+        syncStatus: const Value(SyncStatus.synced),
+        serverId: const Value('srv-ghost'),
+        datetimeUtc: Value(DateTime.now().toUtc().toIso8601String()),
+        localDate: Value(localDate),
+        foodId: const Value('com-deleted'),
+        amountG: const Value(100),
+        kcal: const Value(50),
+        proteinG: const Value(2),
+        carbG: const Value(5),
+        fatG: const Value(2),
+        source: const Value(EntrySource.manual),
+        createdAtUtc: Value(DateTime.now().toUtc().toIso8601String()),
+        updatedAtUtc: Value(DateTime.now().toUtc().toIso8601String()),
+      ),
+    );
+    await db.foodEntryDao.recomputeDailyNutrition(
+      userId,
+      localDate,
+      updatedAtUtc: DateTime.now().toUtc().toIso8601String(),
+    );
+    remote.contributions = <FoodContribution>[
+      contribution('c-1', FoodContributionStatus.approved),
+    ];
+    sync = ContributionReviewSync(
+      db: db,
+      remote: remote,
+      store: store,
+      userId: userId,
+      existingFoodIdsFn: (ids) async => <String>{}, // 服务端查无此行
+    );
+
+    final notices = await sync.syncNow();
+
+    expect(notices, isEmpty); // 静默：非本人贡献物不弹下架通知
+    expect(await db.foodDao.getById('com-deleted'), isNull);
+    expect(
+      await db.foodEntryDao.entriesForFood(userId, 'com-deleted'),
+      isEmpty,
+    );
+    expect(
+      (await db.foodEntryDao.getDailyNutrition(userId, localDate))?.kcal,
+      0,
+    );
+    expect(await store.drainNotices(), isEmpty);
+  });
+
+  test('占位行（名称==id）双保险排除：即使被误纳入幽灵核验也不删', () async {
+    // 占位行 contributionStatus 恒 null（进不了 ghost 集）；防御性构造
+    // 带状态的占位行，核验返回空集也不应被删（占位回查机制还要靠它补名）。
+    await db.foodDao.upsertAll(<FoodsCompanion>[
+      const FoodsCompanion(
+        id: Value('cf_placeholder'),
+        nameZh: Value('cf_placeholder'),
+        nameEn: Value('cf_placeholder'),
+        kcalPer100g: Value(100),
+        proteinPer100g: Value(1),
+        carbPer100g: Value(1),
+        fatPer100g: Value(1),
+        contributionStatus: Value('approved'),
+      ),
+    ]);
+    remote.contributions = <FoodContribution>[
+      contribution('c-1', FoodContributionStatus.approved),
+    ];
+    sync = ContributionReviewSync(
+      db: db,
+      remote: remote,
+      store: store,
+      userId: userId,
+      existingFoodIdsFn: (ids) async => <String>{},
+    );
+
+    await sync.syncNow();
+
+    expect(await db.foodDao.getById('cf_placeholder'), isNotNull);
   });
   test('匿名用户跳过（贡献需登录，无候选可拉）', () async {
     final anonymous = ContributionReviewSync(

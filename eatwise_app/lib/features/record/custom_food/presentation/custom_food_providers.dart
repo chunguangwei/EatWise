@@ -99,5 +99,21 @@ final Provider<ContributionReviewSync> contributionReviewSyncProvider =
           ref.invalidate(entryFoodProvider);
           ref.invalidate(recordFoodSearchProvider);
         },
+        // 幽灵共享行服务端存续核验（POST /foods/batch-get 命中集；
+        // 仅本轮有幽灵共享行时才发起，罕见且廉价）。
+        existingFoodIdsFn: (foodIds) async {
+          final dio = ref.read(apiDioProvider);
+          final response = await dio.post<Map<String, dynamic>>(
+            '/foods/batch-get',
+            data: <String, dynamic>{'ids': foodIds},
+          );
+          final items =
+              (response.data?['items'] as List<dynamic>? ?? const <dynamic>[])
+                  .cast<Map<String, dynamic>>();
+          return <String>{
+            for (final item in items)
+              if (item['id'] case final String id) id,
+          };
+        },
       );
     });

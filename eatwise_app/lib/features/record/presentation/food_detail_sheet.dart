@@ -607,8 +607,18 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     );
     if (confirmed != true || !mounted) return;
     try {
-      final n = await deleteFoodAsAdmin(ref, _food);
-      messenger.showSnackBar(SnackBar(content: Text(cs.adminDeleteDone(n))));
+      final result = await deleteFoodAsAdmin(ref, _food);
+      // 404 友好口径：目标已不在服务端 → 本地已移除提示（v1.13.18 走查：
+      // 管理台手工软删过的行客户端滞留，点删除曾弹原始「资源不存在」）。
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            result.alreadyGone
+                ? cs.adminDeleteAlreadyGone
+                : cs.adminDeleteDone(result.deletedEntries ?? 0),
+          ),
+        ),
+      );
       if (mounted) Navigator.of(context).pop();
     } on ApiException catch (e) {
       messenger.showSnackBar(
