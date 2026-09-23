@@ -129,6 +129,43 @@ describe('Food contributions list (e2e)', () => {
     expect(typeof item.updatedAt).toBe('string');
   });
 
+  it('列表带关联食物名（v1.13.22 走查：纠错类候选裸 foodId 上屏）——自定义候选名=食物名；纠错候选名=目标共享食物名；已删食物 name 为 null 客户端回退', async () => {
+    const me = await login(nextPhone());
+    // 自定义贡献（审核前在个人库）。
+    const foodA = await createCustom(me, '带名贡献甲');
+    await contribute(me, foodA);
+    // 纠错候选：目标是共享库食物（先提一个并通过审核晋升）。
+    const sharedFood = await createCustom(me, '纠错目标菜');
+    const sharedCandidate = await contribute(me, sharedFood);
+    await review(sharedCandidate, 'approve');
+    const res = await request(server)
+      .post(`/v1/foods/${sharedFood}/correction`)
+      .set(auth(me))
+      .send({
+        clientRequestId: nextUuid(),
+        nameZh: '纠错目标菜（修订）',
+        per100g: { kcal: 100, proteinG: 5, carbG: 10, fatG: 2 },
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe('pending');
+
+    const list = await request(server).get('/v1/foods/contributions').set(auth(me)).expect(200);
+    const items = list.body.data.items as Array<{
+      id: string;
+      kind: string;
+      nameZh: string | null;
+      nameEn: string | null;
+    }>;
+    const custom = items.find((i) => i.nameZh === '带名贡献甲');
+    expect(custom?.nameZh).toBe('带名贡献甲');
+    const correction = items.find((i) => i.kind === 'correction');
+    expect(correction).toBeDefined();
+    // 纠错候选显示被纠错食物的真名（不是 cf_ 裸 id）。
+    expect(correction!.nameZh).toBe('纠错目标菜');
+    expect(correction!.nameEn).toBeTruthy();
+    expect(correction!.nameZh).not.toMatch(/^cf_/);
+  });
+
   it('status 过滤：pending / approved / rejected', async () => {
     const me = await login(nextPhone());
     const pendingFood = await createCustom(me, '过滤待审');

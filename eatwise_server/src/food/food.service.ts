@@ -429,7 +429,10 @@ export class FoodService {
   /**
    * 用户端：我的贡献批量查询（众包状态列表）。只返回本人候选；
    * status 缺省返回全部状态；createdAt 降序（最新在前），页码分页（page 从 1 起）。
-   * 返回精简视图（不含营养/名称——食物名由客户端按 foodId 本地解析）。
+   * 返回精简视图（不含营养），**带关联食物名**（nameZh/nameEn，按 foodId 反查
+   * 个人库/共享库；食物已删为 null）——纠错类候选目标是共享库食物，客户端
+   * 本地库未必有该行（离线未同步/他端贡献），不带名则裸 foodId 上屏
+   *（v1.13.22 走查：我的贡献页显示 cf_d661fdaa）。
    */
   async findContributionsByUser(
     userId: string,
@@ -440,14 +443,29 @@ export class FoodService {
     // 驱动侧按 (createdAt, id) 降序返回本人候选（最新在前）
     const all = await this.driver.findFoodCandidatesByUser(userId, status);
     const offset = (page - 1) * pageSize;
+    const pageItems = all.slice(offset, offset + pageSize);
+    // 每 id 只查一次（同一食物多条纠错候选常见）；审核前在个人库、
+    // 晋升后在共享库，两处都查（与 candidateView 同口径）。
+    const nameByFoodId = new Map<string, { nameZh: string; nameEn: string }>();
+    for (const c of pageItems) {
+      if (nameByFoodId.has(c.foodId)) continue;
+      const food =
+        (await this.driver.findCustomFoodById(c.foodId)) ??
+        (await this.driver.findFoodById(c.foodId));
+      if (food) {
+        nameByFoodId.set(c.foodId, { nameZh: food.nameZh, nameEn: food.nameEn });
+      }
+    }
     return {
-      items: all.slice(offset, offset + pageSize).map((c) => ({
+      items: pageItems.map((c) => ({
         id: c.id,
         foodId: c.foodId,
         status: c.status,
         reason: c.reason,
         kind: c.kind,
         barcode: c.barcode,
+        nameZh: nameByFoodId.get(c.foodId)?.nameZh ?? null,
+        nameEn: nameByFoodId.get(c.foodId)?.nameEn ?? null,
         createdAt: c.createdAt.toISOString(),
         updatedAt: c.updatedAt.toISOString(),
       })),

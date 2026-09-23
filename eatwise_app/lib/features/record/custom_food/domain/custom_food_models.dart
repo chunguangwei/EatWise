@@ -106,8 +106,11 @@ FoodContributionKind foodContributionKindFrom(String? raw) => switch (raw) {
   _ => FoodContributionKind.custom,
 };
 
-/// 我的贡献条目（GET /foods/contributions 精简视图；食物名由本地库按
-/// [foodId] 解析，解析不到时 UI 回退展示 [foodId]）。
+/// 我的贡献条目（GET /foods/contributions 精简视图；v1.13.23 起服务端带
+/// 关联食物名 [nameZh]/[nameEn]——纠错类候选目标是共享库食物，本地库未必
+/// 有该行，裸 foodId 上屏是底线问题（v1.13.22 走查 cf_d661fdaa）；
+/// 旧服务端/已删食物为 null 时客户端回退本地库按 [foodId] 解析，再不行
+/// 回退展示 [foodId]）。
 final class FoodContribution {
   const FoodContribution({
     required this.id,
@@ -118,6 +121,8 @@ final class FoodContribution {
     required this.updatedAt,
     this.kind = FoodContributionKind.custom,
     this.barcode,
+    this.nameZh,
+    this.nameEn,
   });
 
   /// 候选 id。
@@ -144,6 +149,12 @@ final class FoodContribution {
   /// 条码号（仅 kind=barcode 有值）。
   final String? barcode;
 
+  /// 关联食物中文名（服务端视图带；null = 旧服务端或食物已删）。
+  final String? nameZh;
+
+  /// 关联食物英文名（同上）。
+  final String? nameEn;
+
   /// 服务端 JSON → 模型（信封已由 EnvelopeInterceptor 解包后的 item）。
   factory FoodContribution.fromJson(Map<String, dynamic> json) {
     return FoodContribution(
@@ -159,6 +170,8 @@ final class FoodContribution {
           DateTime.fromMillisecondsSinceEpoch(0),
       kind: foodContributionKindFrom(json['kind'] as String?),
       barcode: json['barcode'] as String?,
+      nameZh: json['nameZh'] as String?,
+      nameEn: json['nameEn'] as String?,
     );
   }
 }

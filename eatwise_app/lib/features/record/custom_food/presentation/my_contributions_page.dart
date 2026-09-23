@@ -233,6 +233,9 @@ class _MyContributionsPageState extends ConsumerState<MyContributionsPage> {
 }
 
 /// 状态过滤条（全部 / 审核中 / 已通过 / 已拒绝）。
+///
+/// 视觉分隔（v1.13.22 走查：列表首项滚到顶部时与 chips 无分隔，读起来像
+/// 被 chips 压住/裁掉）：底色 + 底部发线，列表始终从分隔线之下开始。
 class _FilterBar extends StatelessWidget {
   const _FilterBar({required this.selected, required this.onChanged});
 
@@ -242,22 +245,29 @@ class _FilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = Translations.of(context).record.customFood.contributions;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.s4,
-        vertical: AppSpacing.s2,
+    final colors = Theme.of(context).extension<AppColors>()!;
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.bgPrimary,
+        border: Border(bottom: BorderSide(color: colors.border, width: 0.5)),
       ),
-      child: Row(
-        children: <Widget>[
-          _chip(context, c.filterAll, null),
-          const SizedBox(width: AppSpacing.s2),
-          _chip(context, c.statusPending, FoodContributionStatus.pending),
-          const SizedBox(width: AppSpacing.s2),
-          _chip(context, c.statusApproved, FoodContributionStatus.approved),
-          const SizedBox(width: AppSpacing.s2),
-          _chip(context, c.statusRejected, FoodContributionStatus.rejected),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s4,
+          vertical: AppSpacing.s2,
+        ),
+        child: Row(
+          children: <Widget>[
+            _chip(context, c.filterAll, null),
+            const SizedBox(width: AppSpacing.s2),
+            _chip(context, c.statusPending, FoodContributionStatus.pending),
+            const SizedBox(width: AppSpacing.s2),
+            _chip(context, c.statusApproved, FoodContributionStatus.approved),
+            const SizedBox(width: AppSpacing.s2),
+            _chip(context, c.statusRejected, FoodContributionStatus.rejected),
+          ],
+        ),
       ),
     );
   }
@@ -299,6 +309,11 @@ class _ContributionCard extends ConsumerWidget {
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final radii = Theme.of(context).extension<AppRadii>()!;
     final name =
+        // 服务端视图带的关联食物名优先（纠错类目标是共享库食物，本地库
+        // 未必有该行）；null → 本地库按 foodId 解析；再不行回退 foodId。
+        (LocaleSettings.currentLocale == AppLocale.en
+            ? (item.nameEn ?? item.nameZh)
+            : (item.nameZh ?? item.nameEn)) ??
         ref.watch(contributionFoodNameProvider(item.foodId)).value ??
         item.foodId;
 

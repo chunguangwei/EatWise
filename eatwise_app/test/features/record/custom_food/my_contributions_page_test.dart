@@ -50,6 +50,8 @@ void main() {
     String? reason,
     FoodContributionKind kind = FoodContributionKind.custom,
     String? barcode,
+    String? nameZh,
+    String? nameEn,
     String createdAt = '2026-09-01T02:30:00.000Z',
   }) {
     return FoodContribution(
@@ -59,6 +61,8 @@ void main() {
       reason: reason,
       kind: kind,
       barcode: barcode,
+      nameZh: nameZh,
+      nameEn: nameEn,
       createdAt: DateTime.parse(createdAt),
       updatedAt: DateTime.parse(createdAt),
     );
@@ -224,5 +228,77 @@ void main() {
 
     expect(find.text('白米饭'), findsOneWidget);
     expect(find.text('加载失败，请稍后重试'), findsNothing);
+  });
+
+  testWidgets('纠错类候选：服务端带名显示真名（不再裸 cf_ id 上屏）', (tester) async {
+    // v1.13.22 走查：纠错目标是共享库食物，本地库无该行（cf_d661fdaa
+    // 本地解析不到曾回退裸 id）；v1.13.23 起服务端视图带 nameZh/nameEn。
+    customRemote.contributions = <FoodContribution>[
+      contribution(
+        id: 'fc-c1',
+        foodId: 'cf_d661fdaa',
+        status: FoodContributionStatus.approved,
+        kind: FoodContributionKind.correction,
+        nameZh: '番茄鸡蛋汤',
+        nameEn: 'Tomato Egg Soup',
+      ),
+      contribution(
+        id: 'fc-c2',
+        foodId: 'cf_d661fdaa',
+        status: FoodContributionStatus.approved,
+        kind: FoodContributionKind.correction,
+        nameZh: '番茄鸡蛋汤',
+        nameEn: 'Tomato Egg Soup',
+      ),
+    ];
+    await pumpPage(tester);
+
+    expect(find.text('番茄鸡蛋汤'), findsNWidgets(2));
+    expect(find.text('cf_d661fdaa'), findsNothing);
+    // 本地库没有该行也显示真名（服务端名为准）。
+    expect(await db.foodDao.getById('cf_d661fdaa'), isNull);
+  });
+
+  testWidgets('旧服务端（视图不带名）：本地库解析兜底，仍不裸 id 上屏', (tester) async {
+    customRemote.contributions = <FoodContribution>[
+      contribution(
+        id: 'fc-1',
+        foodId: 'f-rice', // 本地库有 → 本地解析
+        status: FoodContributionStatus.approved,
+      ),
+      contribution(
+        id: 'fc-2',
+        foodId: 'cf-missing', // 本地无 → 回退 foodId（旧服务端底线）
+        status: FoodContributionStatus.pending,
+      ),
+    ];
+    await pumpPage(tester);
+
+    expect(find.text('白米饭'), findsOneWidget);
+    expect(find.text('cf-missing'), findsOneWidget);
+  });
+
+  testWidgets('筛选条与列表首项几何分隔：chips 底缘 < 首卡标题顶缘（小屏 360x640）', (tester) async {
+    customRemote.contributions = <FoodContribution>[
+      contribution(
+        id: 'fc-1',
+        foodId: 'f-egg',
+        status: FoodContributionStatus.approved,
+      ),
+      contribution(
+        id: 'fc-2',
+        foodId: 'f-rice',
+        status: FoodContributionStatus.rejected,
+        reason: 'x',
+      ),
+    ];
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pumpPage(tester);
+
+    final chipBottom = tester.getRect(find.byType(ChoiceChip).first).bottom;
+    final firstTitleTop = tester.getRect(find.text('鸡蛋')).top;
+    expect(firstTitleTop, greaterThan(chipBottom));
   });
 }
