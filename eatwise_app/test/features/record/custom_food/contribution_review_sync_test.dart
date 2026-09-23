@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart' show Value;
+import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/core/storage/tables.dart';
@@ -450,7 +451,9 @@ void main() {
       remote: remote,
       store: store,
       userId: userId,
-      existingFoodIdsFn: (ids) async => <String>{}, // 服务端查无此行
+      existingFoodIdsFn: (ids) async => <String>{
+        'cf-1', // 在列贡献行服务端仍在（本例只缺 com-deleted）
+      }, // 服务端查无此行
     );
 
     final notices = await sync.syncNow();
@@ -497,6 +500,69 @@ void main() {
     await sync.syncNow();
 
     expect(await db.foodDao.getById('cf_placeholder'), isNotNull);
+  });
+
+  // 在列行核验（v1.13.20 走查盲区：「蔬菜沙拉（已共享）」为本人贡献
+  // approved 行，foodId 在「我的贡献」集合内永不成 ghost；食物行被管理台
+  // 手工软删、候选行未删 → 旧反查结构性看不到）。
+  test('在列行核验：本人 approved 贡献行服务端食物已删（候选还在）→ 清记录+删行+下架通知', () async {
+    await db.foodDao.setContributionStatus('cf-1', 'approved');
+    final today = (await addEntry()).localDate;
+    remote.contributions = <FoodContribution>[
+      contribution('c-1', FoodContributionStatus.approved), // 候选还在
+    ];
+    sync = ContributionReviewSync(
+      db: db,
+      remote: remote,
+      store: store,
+      userId: userId,
+      existingFoodIdsFn: (ids) async => <String>{}, // 服务端食物行已删
+    );
+
+    final notices = await sync.syncNow();
+
+    expect(notices, <String>['私房臊子面']); // 下架通知（同管理员删候选）
+    expect(await db.foodDao.getById('cf-1'), isNull);
+    expect(await db.foodEntryDao.entriesForFood(userId, 'cf-1'), isEmpty);
+    expect((await db.foodEntryDao.getDailyNutrition(userId, today))?.kcal, 0);
+    expect((await store.drainNotices()).single.removed, isTrue);
+  });
+
+  test('在列行核验：服务端食物仍在 → 行保留不动，无通知', () async {
+    await db.foodDao.setContributionStatus('cf-1', 'approved');
+    remote.contributions = <FoodContribution>[
+      contribution('c-1', FoodContributionStatus.approved),
+    ];
+    sync = ContributionReviewSync(
+      db: db,
+      remote: remote,
+      store: store,
+      userId: userId,
+      existingFoodIdsFn: (ids) async => ids.toSet(), // 服务端仍有
+    );
+
+    final notices = await sync.syncNow();
+
+    expect(notices, isEmpty);
+    expect(await db.foodDao.getById('cf-1'), isNotNull);
+  });
+
+  test('在列行核验失败（离线/接口异常）→ 行保留，下轮重试', () async {
+    await db.foodDao.setContributionStatus('cf-1', 'approved');
+    remote.contributions = <FoodContribution>[
+      contribution('c-1', FoodContributionStatus.approved),
+    ];
+    sync = ContributionReviewSync(
+      db: db,
+      remote: remote,
+      store: store,
+      userId: userId,
+      existingFoodIdsFn: (ids) => throw const NetworkApiException(),
+    );
+
+    await sync.syncNow();
+
+    expect(await db.foodDao.getById('cf-1'), isNotNull);
   });
   test('匿名用户跳过（贡献需登录，无候选可拉）', () async {
     final anonymous = ContributionReviewSync(

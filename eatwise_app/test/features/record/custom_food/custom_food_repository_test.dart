@@ -334,7 +334,8 @@ void main() {
       userId: 'u-1',
     );
 
-    expect(deleted, 2);
+    expect(deleted.removed, 2);
+    expect(deleted.alreadyGone, isFalse);
     expect(remote.receivedDeleteIds, <String>[saved.food.id]);
     // 食物行移除 + 搜索不再命中。
     expect(await db.foodDao.getById(saved.food.id), isNull);
@@ -450,6 +451,77 @@ void main() {
     final row = await db.foodDao.getById(saved.food.id);
     expect(row!.contributionStatus, 'approved');
     expect(await db.foodEntryDao.getByLocalId('l-entry-1'), isNotNull);
+  });
+
+  test('删除命中 404 + 核验服务端仍在（晋升共享）→ 旧口径：自愈写 approved，本地不动', () async {
+    final saved = await repository.save(draft);
+    await insertEntry(
+      'l-entry-1',
+      foodId: saved.food.id,
+      syncStatus: SyncStatus.pending,
+    );
+    remote.approvedShared = true;
+    // 核验装配且服务端仍有该行（晋升共享后共享库可查）。
+    repository = CustomFoodRepository(
+      db: db,
+      remote: remote,
+      existingFoodIdsFn: (ids) async => ids.toSet(),
+    );
+    final recordRepo = RecordRepository(
+      db: db,
+      remote: FakeRecordRemote(mode: FakeRemoteMode.offline),
+      location: tz.getLocation('Asia/Shanghai'),
+      userId: 'u-1',
+    );
+    addTearDown(recordRepo.dispose);
+
+    await expectLater(
+      repository.delete(
+        saved.food,
+        recordRepository: recordRepo,
+        userId: 'u-1',
+      ),
+      throwsA(isA<FoodApprovedSharedApiException>()),
+    );
+    expect(
+      (await db.foodDao.getById(saved.food.id))!.contributionStatus,
+      'approved',
+    );
+    expect(await db.foodEntryDao.getByLocalId('l-entry-1'), isNotNull);
+  });
+
+  test('删除命中 404 + 核验查无（管理台手工软删/他端已删）→ 按已删除级联清理（alreadyGone）', () async {
+    final saved = await repository.save(draft);
+    await insertEntry(
+      'l-entry-1',
+      foodId: saved.food.id,
+      syncStatus: SyncStatus.pending,
+    );
+    remote.approvedShared = true; // fake 的 404 注入（语义：服务端行已不在）
+    repository = CustomFoodRepository(
+      db: db,
+      remote: remote,
+      existingFoodIdsFn: (ids) async => <String>{}, // 服务端查无此行
+    );
+    final recordRepo = RecordRepository(
+      db: db,
+      remote: FakeRecordRemote(mode: FakeRemoteMode.offline),
+      location: tz.getLocation('Asia/Shanghai'),
+      userId: 'u-1',
+    );
+    addTearDown(recordRepo.dispose);
+
+    final result = await repository.delete(
+      saved.food,
+      recordRepository: recordRepo,
+      userId: 'u-1',
+    );
+
+    expect(result.alreadyGone, isTrue);
+    expect(result.removed, 1);
+    // 本地照样级联：食物行删除 + 记录清理 + 不再误戴「已共享」徽标。
+    expect(await db.foodDao.getById(saved.food.id), isNull);
+    expect(await db.foodEntryDao.getByLocalId('l-entry-1'), isNull);
   });
 }
 

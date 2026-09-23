@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../core/widgets/status_bar_test_helper.dart';
 import '../fasting/presentation/fasting_presentation_test_helper.dart';
 import '../fasting/tz_test_helper.dart';
 import '../social/social_test_fakes.dart';
@@ -38,10 +39,19 @@ void main() {
     });
   });
 
-  Future<void> pumpApp(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1170, 2532);
-    tester.view.devicePixelRatio = 3;
-    addTearDown(tester.view.reset);
+  Future<void> pumpApp(
+    WidgetTester tester, {
+    bool statusBarViewport = false,
+  }) async {
+    if (statusBarViewport) {
+      // 真机走查基线：360x640 小屏 + 系统大字体 1.3 + 顶部 24pt 状态栏
+      // （helper 内注册 tearDown 还原）。
+      simulateStatusBarViewport(tester);
+    } else {
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+    }
     await tester.pumpWidget(
       TranslationProvider(
         child: ProviderScope(
@@ -163,5 +173,42 @@ void main() {
 
     await unmount(tester);
     await LocaleSettings.setLocale(AppLocale.zhCn);
+  });
+
+  testWidgets('状态栏重叠回归：五个 Tab 顶部内容均不侵入状态栏（360x640 + 大字体 1.3）', (tester) async {
+    // 真机走查「内容与状态栏重叠」回归防线：模拟 24pt 状态栏，逐 Tab 断言
+    // AppBar 标题与首屏内容顶边在状态栏之下。完整 EatWiseApp + HomeShell
+    // 嵌套 Scaffold 拓扑，与真机渲染路径一致。
+    await pumpApp(tester, statusBarViewport: true);
+
+    // 首页：AppBar 标题 + 问候语副标题（真机截图「被切掉一半」点位）。
+    expectBelowStatusBar(tester, appBarTitle('断食计时'));
+    expectBelowStatusBar(tester, find.text('早上好'));
+
+    // 记录 Tab。
+    await tester.tap(find.text('记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expectBelowStatusBar(tester, appBarTitle('记录'));
+
+    // 数据 Tab。
+    await tester.tap(find.text('数据'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expectBelowStatusBar(tester, appBarTitle('数据'));
+
+    // 社区 Tab。
+    await tester.tap(find.text('社区'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expectBelowStatusBar(tester, appBarTitle('社区'));
+
+    // 我的 Tab（设置页）。
+    await tester.tap(find.text('我的'));
+    await tester.pump();
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+    expectBelowStatusBar(tester, appBarTitle('设置'));
+
+    await unmount(tester);
   });
 }

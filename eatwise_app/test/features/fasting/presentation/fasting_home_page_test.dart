@@ -19,6 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:visibility_detector/visibility_detector.dart';
 
+import '../../../core/widgets/status_bar_test_helper.dart';
 import '../tz_test_helper.dart';
 import 'fasting_presentation_test_helper.dart';
 
@@ -79,10 +80,22 @@ void main() {
     WidgetTester tester, {
     bool reduceMotion = false,
     double? textScaler,
+    bool statusBarViewport = false,
   }) async {
-    tester.view.physicalSize = const Size(1170, 2532);
-    tester.view.devicePixelRatio = 3;
-    addTearDown(tester.view.reset);
+    if (statusBarViewport) {
+      // 真机走查基线：360x640 小屏 + 大字体 1.3 + 顶部 24pt 状态栏。
+      simulateStatusBarViewport(tester);
+    } else {
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+    }
+    if (textScaler != null) {
+      // 经平台通道注入字号缩放——旧写法 MediaQuery(data: MediaQueryData(...))
+      // 整包覆盖会把视图 padding（状态栏）一并清零，顶部重叠永远测不出来。
+      tester.platformDispatcher.textScaleFactorTestValue = textScaler;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    }
     Widget app = TranslationProvider(
       child: ProviderScope(
         overrides: <Override>[
@@ -104,12 +117,6 @@ void main() {
     if (reduceMotion) {
       app = MediaQuery(
         data: const MediaQueryData(disableAnimations: true),
-        child: app,
-      );
-    }
-    if (textScaler != null) {
-      app = MediaQuery(
-        data: MediaQueryData(textScaler: TextScaler.linear(textScaler)),
         child: app,
       );
     }
@@ -352,6 +359,17 @@ void main() {
     expect(find.byType(CountdownText), findsOneWidget);
     final boxWidth = tester.getSize(find.byType(CountdownText)).width;
     expect(boxWidth, lessThanOrEqualTo(CountdownText.maxWidth));
+
+    await unmount(tester);
+  });
+
+  testWidgets('状态栏重叠回归：标题与问候语副标题不侵入状态栏（360x640 + 大字体 1.3）', (tester) async {
+    // 真机走查「晚上好被顶部切掉一半」点位：模拟 24pt 状态栏，断言 AppBar
+    // 标题与问候语顶边均在状态栏之下（ListView 可滚动，大字体不裁切）。
+    await pumpHome(tester, statusBarViewport: true);
+
+    expectBelowStatusBar(tester, appBarTitle('断食计时'));
+    expectBelowStatusBar(tester, find.text('早上好'));
 
     await unmount(tester);
   });

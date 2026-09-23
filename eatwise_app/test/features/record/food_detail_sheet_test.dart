@@ -448,6 +448,40 @@ void main() {
       await tester.pump();
     });
 
+    testWidgets('非 ApiException 异常：给可见错误提示而非静默（「点了没反应」防线）', (tester) async {
+      await seedFoodWithEntry();
+      remote.deleteFoodError = StateError('unexpected parse boom');
+      await pumpSheet(
+        tester,
+        onConfirm: (_) {},
+        extraOverrides: adminOverrides,
+      );
+
+      final entry = find.byKey(
+        const ValueKey<String>('foodDetail.adminDelete'),
+      );
+      await tester.ensureVisible(entry);
+      await tester.pump();
+      await tester.tap(entry);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('删除'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // 兜底错误提示可见（不再静默）；详情仍在（未清理）。
+      final scaffold = tester.element(find.byType(Scaffold).first);
+      final messenger = ScaffoldMessenger.of(scaffold);
+      expect(messenger, isNotNull);
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(await db.foodDao.getById('f-rice'), isNotNull);
+
+      messenger.hideCurrentSnackBar();
+      await tester.pump();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+
     testWidgets('409 FOOD_UNDER_REVIEW：提示等待审核，弹层不关闭，本机不清理', (tester) async {
       await seedFoodWithEntry();
       remote.deleteFoodError = const BusinessApiException(

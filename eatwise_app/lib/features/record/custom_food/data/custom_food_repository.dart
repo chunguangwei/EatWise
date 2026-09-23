@@ -31,6 +31,21 @@ final class CustomFoodSaveResult {
   final bool contributionFailed;
 }
 
+/// 自定义食物删除结果（404 服务端已不存在时按「已删除」级联清理，
+/// alreadyGone 供 UI 出「已从本地移除」友好文案，与管理员删除同口径）。
+final class CustomFoodDeleteResult {
+  const CustomFoodDeleteResult({
+    required this.removed,
+    this.alreadyGone = false,
+  });
+
+  /// 本地级联删除的历史记录条数。
+  final int removed;
+
+  /// 服务端已不存在该行（404 核验查无）——本地已按已删除清理。
+  final bool alreadyGone;
+}
+
 /// 自定义食物仓储（K2：远端直调 + 本地 drift 落库）。
 ///
 /// 离线策略〔假设〕：/sync/push ops 协议未支持 foodCustom entity（服务端
@@ -39,13 +54,25 @@ final class CustomFoodSaveResult {
 /// [retryPending] 以原 clientRequestId 幂等重试（由自定义食物流程入口
 ///  opportunistic 触发，待主代理决定是否挂进 syncNow 链路）。
 final class CustomFoodRepository {
-  CustomFoodRepository({required this.db, required this.remote});
+  CustomFoodRepository({
+    required this.db,
+    required this.remote,
+    this.existingFoodIdsFn,
+  });
 
   /// 本地库。
   final AppDatabase db;
 
   /// 远程端（生产 RemoteCustomFoodApi；测试 Fake）。
   final CustomFoodRemote remote;
+
+  /// 服务端存续核验（POST /foods/batch-get 命中集；null = 不核验，
+  /// 404 一律按「同步时窗晋升共享」旧口径处理）。
+  ///
+  /// 为什么需要核验（走查）：owner 删除吃 404 的旧假设「404 ⇒ 晋升共享」
+  /// 在「管理台手工软删该行 / 他端已删」时不成立——已删食物会被错误地
+  /// 戴上「已共享」徽标留在库里。核验仅在 404 时发起（廉价）。
+  final Future<Set<String>> Function(List<String> foodIds)? existingFoodIdsFn;
 
   static final Random _random = Random.secure();
 
@@ -183,7 +210,13 @@ final class CustomFoodRepository {
   /// 两态 + 逐条归属日聚合重算），最后物理删食物行。返回本地删除的
   /// 历史记录条数（提示文案用；服务端 deletedEntries 为权威口径，本地
   /// 条数用于即时反馈）。
-  Future<int> delete(
+  ///
+  /// 404 NOT_FOUND（行已不在服务端）：核验存续后分流——仍在=同步时窗
+  /// 晋升共享（自愈写 approved + 抛专用码，本地不动）；查无=按「已删除」
+  /// 处理，本地照样级联清理并返回 alreadyGone（与管理员删除 404 友好
+  /// 口径对齐，v1.13.20 走查：管理台手工软删的行 owner 删除曾假戴
+  /// 「已共享」徽标滞留）。
+  Future<CustomFoodDeleteResult> delete(
     Food food, {
     required RecordRepository recordRepository,
     required String userId,
@@ -191,14 +224,39 @@ final class CustomFoodRepository {
     try {
       await remote.deleteCustom(food.id);
     } on ApiException catch (e) {
-      // 同 update：同步时窗内服务端已晋升共享 → 404。自愈写 approved，
-      // 本地行/历史记录一律不动（共享食物不该被本地删除）。
       if (e is BusinessApiException && e.code == 'NOT_FOUND') {
+        final verify = existingFoodIdsFn;
+        if (verify != null) {
+          final existing = await verify(<String>[food.id]);
+          if (existing.contains(food.id)) {
+            // 同步时窗内服务端已晋升共享 → 404：自愈写 approved，
+            // 本地行/历史记录一律不动（共享食物不该被本地删除）。
+            await db.foodDao.setContributionStatus(food.id, 'approved');
+            throw const FoodApprovedSharedApiException();
+          }
+          return CustomFoodDeleteResult(
+            removed: await _cascadeLocalDelete(food, recordRepository, userId),
+            alreadyGone: true,
+          );
+        }
+        // 未装配核验：保持旧口径（一律按晋升共享处理）。
         await db.foodDao.setContributionStatus(food.id, 'approved');
         throw const FoodApprovedSharedApiException();
       }
       rethrow;
     }
+    return CustomFoodDeleteResult(
+      removed: await _cascadeLocalDelete(food, recordRepository, userId),
+    );
+  }
+
+  /// 本地两态级联：记录逐条 [RecordRepository.deleteEntry]（含 tombstone/
+  /// 物理删 + 逐条归属日聚合重算）+ 物理删食物行。返回删除条数。
+  Future<int> _cascadeLocalDelete(
+    Food food,
+    RecordRepository recordRepository,
+    String userId,
+  ) async {
     final entries = await db.foodEntryDao.entriesForFood(userId, food.id);
     for (final e in entries) {
       await recordRepository.deleteEntry(e.localId);

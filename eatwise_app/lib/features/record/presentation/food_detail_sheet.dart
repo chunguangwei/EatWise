@@ -540,7 +540,7 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     );
     if (confirmed != true || !mounted) return;
     try {
-      final n = await ref
+      final result = await ref
           .read(customFoodRepositoryProvider)
           .delete(
             _food,
@@ -554,7 +554,17 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
       } on Object {
         // 网络层未装配（测试只注入仓储）时降级纯本地。
       }
-      messenger.showSnackBar(SnackBar(content: Text(cs.deleteDone(n))));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            // 404 核验查无（管理台手工软删/他端已删）→「已从本地移除」，
+            // 与管理员删除 404 友好口径对齐（v1.13.20 走查）。
+            result.alreadyGone
+                ? cs.adminDeleteAlreadyGone
+                : cs.deleteDone(result.removed),
+          ),
+        ),
+      );
       if (mounted) Navigator.of(context).pop();
     } on ApiException catch (e) {
       if (e is FoodApprovedSharedApiException) {
@@ -605,7 +615,14 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
         ],
       ),
     );
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !mounted) {
+      // 诊断留痕：弹层在确认窗开着时被销毁（下拉/系统返回）后点删除，
+      // 此前为完全静默路径（真机「点了没反应」嫌疑路径之一）。
+      debugPrint(
+        '[FoodDetail] adminDelete 提前返回：confirmed=$confirmed mounted=$mounted',
+      );
+      return;
+    }
     try {
       final result = await deleteFoodAsAdmin(ref, _food);
       // 404 友好口径：目标已不在服务端 → 本地已移除提示（v1.13.18 走查：
@@ -630,6 +647,11 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
           ),
         ),
       );
+    } on Object catch (e) {
+      // 非 ApiException（信封解析/装配异常等）经 unawaited 逃逸后在 release
+      // 包完全静默（真机「点了毫无反应」根因候选）——统一给可见反馈。
+      debugPrint('[FoodDetail] adminDelete 未预期异常：$e');
+      messenger.showSnackBar(SnackBar(content: Text(t.common.error.network)));
     }
   }
 

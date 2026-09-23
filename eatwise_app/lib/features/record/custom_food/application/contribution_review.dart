@@ -5,6 +5,7 @@ import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart
 import 'package:eatwise/features/record/custom_food/domain/contribution_review_logic.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
 import 'package:eatwise/features/record/domain/placeholder_food.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 贡献审核状态本地存储（按用户命名空间，与 WeightLogStore 同法）。
@@ -334,17 +335,39 @@ final class ContributionReviewSync {
       }
       // 幽灵共享行服务端核验：查无此行 → 整行移除（一次性 batch-get，
       // 仅本轮有幽灵时才调，廉价）；核验失败（离线/未装配）保持只清徽标。
-      if (sharedGhosts.isNotEmpty && existingFoodIdsFn != null) {
+      // 合并核验「在列行」（在「我的贡献」集合内 = 非 ghost，但食物行本身
+      // 已被管理台手工软删而候选行未删——v1.13.20 走查盲区：「蔬菜沙拉
+      // （已共享）」为本人贡献 approved 行，foodId 在集合内永不成 ghost，
+      // 旧反查结构性看不到它）：同一批 batch-get，查无 → 自定义行按
+      // 下架口径清记录+删行+通知（同管理员删候选），共享行整行静默移除。
+      final inListIds = <String>[];
+      for (final r in await db.foodDao.contributedRows()) {
+        if (serverFoodIds.contains(r.id)) inListIds.add(r.id);
+      }
+      final verifyIds = <String>{...sharedGhosts, ...inListIds}.toList();
+      if (verifyIds.isNotEmpty && existingFoodIdsFn != null) {
         try {
-          final existing = await existingFoodIdsFn!(sharedGhosts.toList());
+          final existing = await existingFoodIdsFn!(verifyIds);
           for (final foodId in sharedGhosts) {
             if (existing.contains(foodId)) continue;
             final row = await db.foodDao.getById(foodId);
             if (row == null) continue;
             await _removeSharedGhost(foodId);
           }
-        } on Object {
-          // 核验失败：本轮只清徽标，下轮重试。
+          for (final foodId in inListIds) {
+            if (existing.contains(foodId)) continue;
+            final row = await db.foodDao.getById(foodId);
+            if (row == null || isPlaceholderFood(row)) continue;
+            if (row.isCustom) {
+              notices.add(await _applyRemoval(foodId, row.nameZh));
+            } else {
+              await _removeSharedGhost(foodId);
+            }
+          }
+        } on Object catch (e) {
+          // 核验失败：本轮只清徽标，下轮重试。留痕便于真机诊断
+          // 「幽灵行为何还在」（batch-get 路由未部署/401/离线都会落这里）。
+          debugPrint('[ContributionReview] 幽灵共享行核验失败（下轮重试）：$e');
         }
       }
       await store.saveKnown(knownStatusMapOf(current));
