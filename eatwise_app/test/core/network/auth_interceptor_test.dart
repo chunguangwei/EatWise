@@ -259,6 +259,90 @@ void main() {
       expect(adapter.requestsTo('/sync/pull'), 1);
     });
 
+    test(
+      'refresh 遇网络错误（弱网/部署重启窗）→ 保留会话不清，原请求按原错误抛出（真机走查：App 内更新后冷启动误清登录态根因）',
+      () async {
+        await tokenStore.saveTokens(
+          accessToken: 'at-old',
+          refreshToken: 'rt-x',
+        );
+        adapter.stub(
+          '/sync/pull',
+          StubResponse.json(
+            401,
+            StubResponse.errorEnvelope('AUTH_TOKEN_EXPIRED', '令牌已过期'),
+          ),
+        );
+        adapter.stub('/auth/refresh', StubResponse.networkError('boom'));
+
+        try {
+          await dio.get<void>('/sync/pull');
+          fail('应抛出');
+        } on DioException catch (e) {
+          expect(
+            (toApiException(e) as BusinessApiException).code,
+            'AUTH_TOKEN_EXPIRED',
+          );
+        }
+        // 会话保留：下次冷启动/请求还能续期。
+        expect(await tokenStore.accessToken, 'at-old');
+        expect(await tokenStore.refreshToken, 'rt-x');
+        expect(sessionClearedCount, 0);
+        expect(adapter.requestsTo('/sync/pull'), 1);
+      },
+    );
+
+    test('refresh 遇 5xx（服务端重启中）→ 保留会话不清', () async {
+      await tokenStore.saveTokens(accessToken: 'at-old', refreshToken: 'rt-x');
+      adapter.stub(
+        '/sync/pull',
+        StubResponse.json(
+          401,
+          StubResponse.errorEnvelope('AUTH_TOKEN_EXPIRED', '令牌已过期'),
+        ),
+      );
+      adapter.stub(
+        '/auth/refresh',
+        StubResponse.json(
+          502,
+          StubResponse.errorEnvelope('INTERNAL_ERROR', 'x'),
+        ),
+      );
+
+      try {
+        await dio.get<void>('/sync/pull');
+        fail('应抛出');
+      } on DioException {
+        // 原请求错误原样抛出。
+      }
+      expect(await tokenStore.refreshToken, 'rt-x');
+      expect(sessionClearedCount, 0);
+    });
+
+    test('refresh 响应形态非法（200 但非约定信封）→ 保留会话不清', () async {
+      await tokenStore.saveTokens(accessToken: 'at-old', refreshToken: 'rt-x');
+      adapter.stub(
+        '/sync/pull',
+        StubResponse.json(
+          401,
+          StubResponse.errorEnvelope('AUTH_TOKEN_EXPIRED', '令牌已过期'),
+        ),
+      );
+      adapter.stub(
+        '/auth/refresh',
+        StubResponse.json(200, <String, dynamic>{'unexpected': true}),
+      );
+
+      try {
+        await dio.get<void>('/sync/pull');
+        fail('应抛出');
+      } on DioException {
+        // 原请求错误原样抛出。
+      }
+      expect(await tokenStore.refreshToken, 'rt-x');
+      expect(sessionClearedCount, 0);
+    });
+
     test('refresh 轮换后后续请求自动携带新 accessToken（不重复 refresh）', () async {
       await tokenStore.saveTokens(accessToken: 'at-old', refreshToken: 'rt-1');
       adapter.stub(

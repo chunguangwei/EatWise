@@ -118,12 +118,21 @@ final class AuthInterceptor extends QueuedInterceptor {
         );
         return true;
       }
-    } on DioException {
-      // 刷新失败（过期/吊销/重放）→ 走下方清会话。
+      // 响应形态非法（非约定信封）：服务端异常版本/中间件——保守保留
+      // 会话下轮重试，不按「失效」误清。
+      return false;
+    } on DioException catch (e) {
+      // 只在服务端明确拒绝时清会话（401：令牌失效/重放/吊销，契约 §1.2）；
+      // 网络错误/超时/5xx（弱网、服务端部署重启窗）保留会话下轮重试——
+      // 旧实现 catch 所有 DioException 都清会话，App 内更新后的冷启动若
+      // 撞上部署重启窗/弱网，refresh 单次失败即误清登录态（真机走查：
+      // v1.13.21 更新后「登录态丢失需要重新登录」根因）。
+      if (e.response?.statusCode == 401) {
+        await tokenStore.clear();
+        onSessionCleared?.call();
+      }
+      return false;
     }
-    await tokenStore.clear();
-    onSessionCleared?.call();
-    return false;
   }
 
   /// 重放原请求一次：标记 retried 防循环，token 由 onRequest 重新注入。
