@@ -15,6 +15,7 @@ import 'package:eatwise/core/widgets/app_bottom_sheet.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_rule_config.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
+import 'package:eatwise/features/moderation/application/admin_food_delete.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_sheet.dart';
@@ -27,6 +28,7 @@ import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:eatwise/features/record/recognition/domain/nutrition_label_ocr_logic.dart'
     show kKjPerKcal;
+import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -107,6 +109,8 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     final isEn = LocaleSettings.currentLocale == AppLocale.en;
     final messenger = ScaffoldMessenger.of(context);
     final food = _food;
+    // 管理员角色（审批中心同一 role 口径：userMeProvider，不新造）。
+    final isAdmin = ref.watch(userMeProvider).value?.role == 'admin';
 
     final goal = ref.watch(nutritionGoalProvider);
     final verdict = evaluateFoodSignal(
@@ -428,6 +432,28 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
                 ),
               ],
             ),
+          ]
+          // 管理员删除（role==admin 对任意食品可见；自定义食物 owner 删除
+          // 入口保留不动、与管理员入口互斥避免双删除钮）——服务端软删 +
+          // 跨用户级联 tombstone（共享库重复/存疑行治理，对齐 web 管理台）。
+          else if (isAdmin) ...<Widget>[
+            const SizedBox(height: AppSpacing.s1),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: const ValueKey<String>('foodDetail.adminDelete'),
+                style: TextButton.styleFrom(
+                  foregroundColor: colors.signalRed,
+                  minimumSize: const Size(44, 44),
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                ),
+                onPressed: () =>
+                    unawaited(_onAdminDelete(t, cs, messenger, textStyles)),
+                icon: const Icon(Icons.delete_forever_outlined, size: 16),
+                label: Text(cs.adminDeleteAction, style: textStyles.textSm),
+              ),
+            ),
           ],
         ],
       ),
@@ -528,6 +554,52 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
           ),
         );
       }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            e is BusinessApiException && e.code == 'FOOD_UNDER_REVIEW'
+                ? cs.underReviewDeleteBlocked
+                : apiErrorDisplayMessage(t, e),
+          ),
+        ),
+      );
+    }
+  }
+
+  /// 管理员删除（role==admin，任意食品）：确认弹窗明示级联后果 →
+  /// DELETE /v1/moderation/foods/:id（服务端软删 + 跨用户级联 tombstone）→
+  /// 本机直清（记录两态删 + 聚合重算 + 本地行删除 + 搜索/条目缓存失效 +
+  /// syncNow 收敛他端）→ snackbar 带服务端级联条数 + 收起详情。
+  /// 409 FOOD_UNDER_REVIEW（该食物有 pending 审核）提示等待审核。
+  Future<void> _onAdminDelete(
+    Translations t,
+    CustomFoodStrings cs,
+    ScaffoldMessengerState messenger,
+    AppTextStyles textStyles,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(cs.adminDeleteConfirmTitle),
+        content: Text(cs.adminDeleteConfirmBody),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(t.common.action.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(cs.deleteAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      final n = await deleteFoodAsAdmin(ref, _food);
+      messenger.showSnackBar(SnackBar(content: Text(cs.adminDeleteDone(n))));
+      if (mounted) Navigator.of(context).pop();
+    } on ApiException catch (e) {
       messenger.showSnackBar(
         SnackBar(
           content: Text(

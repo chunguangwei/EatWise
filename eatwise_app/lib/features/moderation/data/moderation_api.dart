@@ -118,6 +118,11 @@ abstract interface class ModerationRemote {
   /// 删除审核内容（候选 + 食物行/记录级联，语义见服务端
   /// FoodService.deleteFoodCandidate）。
   Future<void> delete(String candidateId);
+
+  /// 管理员删除食物（DELETE /v1/moderation/foods/:id，与管理台
+  /// adminDeleteFood 同口径：软删 + 跨用户级联 tombstone）。
+  /// 返回服务端级联清理的记录条数（deletedEntries）。
+  Future<int> deleteFood(String foodId);
 }
 
 /// REST 实现（信封已由 EnvelopeInterceptor 解包）。
@@ -188,6 +193,18 @@ final class RemoteModerationApi implements ModerationRemote {
       throw toApiException(e);
     }
   }
+
+  @override
+  Future<int> deleteFood(String foodId) async {
+    try {
+      final response = await dio.delete<Map<String, dynamic>>(
+        '/moderation/foods/$foodId',
+      );
+      return (response.data?['deletedEntries'] as num?)?.toInt() ?? 0;
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
 }
 
 /// 内存 Fake（测试注入；审核动作按 id 从队列移除，与服务端终态出队同口径）。
@@ -201,6 +218,9 @@ final class FakeModerationRemote implements ModerationRemote {
   /// 已收到的删除动作（候选 id）。
   final List<String> receivedDeletes = <String>[];
 
+  /// 已收到的管理员删除食物动作（foodId）。
+  final List<String> receivedFoodDeletes = <String>[];
+
   /// 注入审核失败（业务错误原样上抛 UI 提示）。
   Object? reviewError;
 
@@ -209,6 +229,10 @@ final class FakeModerationRemote implements ModerationRemote {
 
   /// 注入删除失败。
   Object? deleteError;
+
+  /// 注入管理员删除食物失败 / 返回的级联条数。
+  Object? deleteFoodError;
+  int deleteFoodResult = 0;
 
   @override
   Future<ModerationCandidatePage> listPending({
@@ -243,5 +267,12 @@ final class FakeModerationRemote implements ModerationRemote {
     if (deleteError != null) throw deleteError!;
     receivedDeletes.add(candidateId);
     pending = pending.where((c) => c.id != candidateId).toList();
+  }
+
+  @override
+  Future<int> deleteFood(String foodId) async {
+    if (deleteFoodError != null) throw deleteFoodError!;
+    receivedFoodDeletes.add(foodId);
+    return deleteFoodResult;
   }
 }

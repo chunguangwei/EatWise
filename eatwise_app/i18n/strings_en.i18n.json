@@ -366,6 +366,10 @@
         "other": "Deleted (including ${n} logs)"
       },
       "underReviewDeleteBlocked": "This food is under review and can't be deleted yet. Please wait for the review to finish.",
+      "adminDeleteAction": "Delete (admin)",
+      "adminDeleteConfirmTitle": "Delete this food?",
+      "adminDeleteConfirmBody": "This deletes the food and all related diet records for every user. This cannot be undone.",
+      "adminDeleteDone": "Deleted — ${n} related records cleaned up",
       "contributions": {
         "title": "My contributions",
         "filterAll": "All",

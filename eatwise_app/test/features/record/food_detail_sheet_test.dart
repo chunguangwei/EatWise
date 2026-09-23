@@ -1,13 +1,24 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/storage/sync_status.dart';
+import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
+import 'package:eatwise/features/moderation/application/moderation_controller.dart';
+import 'package:eatwise/features/moderation/data/moderation_api.dart';
+import 'package:eatwise/features/record/data/record_remote.dart';
+import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/presentation/food_detail_sheet.dart';
+import 'package:eatwise/features/record/presentation/record_providers.dart';
+import 'package:eatwise/features/settings/application/settings_providers.dart';
+import 'package:eatwise/features/settings/data/user_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 /// 阶段 E 食物详情弹层 widget 测试：信息分层（名称/热量大字/供能三圆环/
 /// 红绿灯徽标/明细折叠区）+ 份量输入实时预览 + 确认回调。
@@ -48,11 +59,18 @@ void main() {
     required ValueChanged<String> onConfirm,
     AppLocale locale = AppLocale.zhCn,
     Food food = food,
+    List<Override> extraOverrides = const <Override>[],
   }) async {
     await LocaleSettings.setLocale(locale);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: <Override>[nutritionGoalProvider.overrideWithValue(goal)],
+        overrides: <Override>[
+          nutritionGoalProvider.overrideWithValue(goal),
+          // userMeProvider 默认回落 null（非管理员视角；失败重试 timer
+          // 会在假时钟区挂 pending，见 settings_providers 注释）。
+          userMeProvider.overrideWith((ref) => Future<UserMeView?>.value()),
+          ...extraOverrides,
+        ],
         child: TranslationProvider(
           child: MaterialApp(
             theme: AppTheme.light(),
@@ -226,5 +244,184 @@ void main() {
       find.byKey(const ValueKey<String>('foodDetail.delete')),
       findsNothing,
     );
+  });
+
+  group('管理员删除（role==admin，DELETE /v1/moderation/foods/:id）', () {
+    const adminMe = UserMeView(
+      id: 'u-admin',
+      username: 'boss',
+      maskedPhone: '',
+      role: 'admin',
+    );
+
+    late AppDatabase db;
+    late RecordRepository repo;
+    late FakeModerationRemote remote;
+    late List<Override> adminOverrides;
+
+    setUp(() async {
+      db = AppDatabase.memory();
+      repo = RecordRepository(
+        db: db,
+        remote: FakeRecordRemote(),
+        location: tz.UTC,
+      );
+      remote = FakeModerationRemote();
+      adminOverrides = <Override>[
+        recordRepositoryProvider.overrideWithValue(repo),
+        moderationRemoteProvider.overrideWithValue(remote),
+        userMeProvider.overrideWith((ref) => Future.value(adminMe)),
+      ];
+      addTearDown(() async {
+        await repo.dispose();
+        await db.close();
+      });
+    });
+
+    /// 落共享食物行 + 一条本机引用记录（admin 直清断言用）。
+    Future<void> seedFoodWithEntry() async {
+      await db.foodDao.upsertAll(<FoodsCompanion>[food.toCompanion(true)]);
+      await db.foodEntryDao.insertEntry(
+        FoodEntriesCompanion(
+          localId: const Value('l-1'),
+          userId: const Value('anonymous'),
+          clientRequestId: const Value('cr-1'),
+          syncStatus: const Value(SyncStatus.synced),
+          serverId: const Value('srv-1'),
+          datetimeUtc: const Value('2026-09-23T01:00:00.000Z'),
+          localDate: Value(
+            DateTime.now().toLocal().toIso8601String().substring(0, 10),
+          ),
+          foodId: const Value('f-rice'),
+          amountG: const Value(200),
+          kcal: const Value(232),
+          proteinG: const Value(5.2),
+          carbG: const Value(51.8),
+          fatG: const Value(0.6),
+          source: const Value(EntrySource.manual),
+          createdAtUtc: const Value('2026-09-23T01:00:00.000Z'),
+          updatedAtUtc: const Value('2026-09-23T01:00:00.000Z'),
+        ),
+      );
+    }
+
+    testWidgets('admin 共享食物见「删除（管理员）」；确认弹窗明示级联；删除成功直清+提示条数', (tester) async {
+      await seedFoodWithEntry();
+      remote.deleteFoodResult = 3;
+      await pumpSheet(
+        tester,
+        onConfirm: (_) {},
+        extraOverrides: adminOverrides,
+      );
+
+      final entry = find.byKey(
+        const ValueKey<String>('foodDetail.adminDelete'),
+      );
+      expect(entry, findsOneWidget);
+      expect(find.text('删除（管理员）'), findsOneWidget);
+
+      // 确认弹窗：明示级联后果；取消不调用。
+      await tester.ensureVisible(entry);
+      await tester.pump();
+      await tester.tap(entry);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('删除该食品？'), findsOneWidget);
+      expect(find.text('将删除该食品及所有用户的相关饮食记录，不可撤销。'), findsOneWidget);
+      await tester.tap(find.text('取消'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(remote.receivedFoodDeletes, isEmpty);
+
+      // 确认 → 远端删除 + 本机直清 + snackbar 带级联条数 + 弹层关闭。
+      await tester.ensureVisible(entry);
+      await tester.pump();
+      await tester.tap(entry);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('删除'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(remote.receivedFoodDeletes, <String>['f-rice']);
+      expect(find.text('已删除，级联清理 3 条记录'), findsOneWidget);
+      expect(find.text('删除该食品？'), findsNothing); // 详情弹层已关闭
+      // 本机直清：食物行删除 + 引用记录删除 + 聚合重算归零。
+      expect(await db.foodDao.getById('f-rice'), isNull);
+      expect(
+        await db.foodEntryDao.entriesForFood('anonymous', 'f-rice'),
+        isEmpty,
+      );
+
+      ScaffoldMessenger.of(
+        tester.element(find.byType(Scaffold).first),
+      ).hideCurrentSnackBar();
+      await tester.pump();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+
+    testWidgets('admin 查看自定义 owner 食物：仍是 owner 动作行，不显示管理员删除（互斥）', (
+      tester,
+    ) async {
+      await pumpSheet(
+        tester,
+        onConfirm: (_) {},
+        food: customFood,
+        extraOverrides: adminOverrides,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('foodDetail.edit')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('foodDetail.delete')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('foodDetail.adminDelete')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('409 FOOD_UNDER_REVIEW：提示等待审核，弹层不关闭，本机不清理', (tester) async {
+      await seedFoodWithEntry();
+      remote.deleteFoodError = const BusinessApiException(
+        httpStatus: 409,
+        code: 'FOOD_UNDER_REVIEW',
+        message: 'under review',
+      );
+      await pumpSheet(
+        tester,
+        onConfirm: (_) {},
+        extraOverrides: adminOverrides,
+      );
+
+      final entry = find.byKey(
+        const ValueKey<String>('foodDetail.adminDelete'),
+      );
+      await tester.ensureVisible(entry);
+      await tester.pump();
+      await tester.tap(entry);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('删除'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('该食物正在审核中，暂时无法删除，请先等待审核完成'), findsOneWidget);
+      expect(find.text('删除（管理员）'), findsOneWidget); // 详情仍在
+      expect(await db.foodDao.getById('f-rice'), isNotNull);
+      expect(
+        await db.foodEntryDao.entriesForFood('anonymous', 'f-rice'),
+        hasLength(1),
+      );
+
+      ScaffoldMessenger.of(
+        tester.element(find.byType(Scaffold).first),
+      ).hideCurrentSnackBar();
+      await tester.pump();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
   });
 }

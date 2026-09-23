@@ -1282,6 +1282,18 @@ class Translations$record$customFood$zh_CN {
 	/// zh-CN: '该食物正在审核中，暂时无法删除，请先等待审核完成'
 	String get underReviewDeleteBlocked => '该食物正在审核中，暂时无法删除，请先等待审核完成';
 
+	/// zh-CN: '删除（管理员）'
+	String get adminDeleteAction => '删除（管理员）';
+
+	/// zh-CN: '删除该食品？'
+	String get adminDeleteConfirmTitle => '删除该食品？';
+
+	/// zh-CN: '将删除该食品及所有用户的相关饮食记录，不可撤销。'
+	String get adminDeleteConfirmBody => '将删除该食品及所有用户的相关饮食记录，不可撤销。';
+
+	/// zh-CN: '已删除，级联清理 ${n} 条记录'
+	String adminDeleteDone({required Object n}) => '已删除，级联清理 ${n} 条记录';
+
 	late final Translations$record$customFood$contributions$zh_CN contributions = Translations$record$customFood$contributions$zh_CN.internal(_root);
 	late final Translations$record$customFood$correction$zh_CN correction = Translations$record$customFood$correction$zh_CN.internal(_root);
 
@@ -4534,6 +4546,10 @@ extension on Translations {
 			'record.customFood.deleteConfirmBody' => ({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('zh'))(n, one: '将同时删除 ${n} 条相关历史记录，此操作不可撤销', other: '将同时删除 ${n} 条相关历史记录，此操作不可撤销', ), 
 			'record.customFood.deleteDone' => ({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('zh'))(n, one: '已删除（含 ${n} 条记录）', other: '已删除（含 ${n} 条记录）', ), 
 			'record.customFood.underReviewDeleteBlocked' => '该食物正在审核中，暂时无法删除，请先等待审核完成',
+			'record.customFood.adminDeleteAction' => '删除（管理员）',
+			'record.customFood.adminDeleteConfirmTitle' => '删除该食品？',
+			'record.customFood.adminDeleteConfirmBody' => '将删除该食品及所有用户的相关饮食记录，不可撤销。',
+			'record.customFood.adminDeleteDone' => ({required Object n}) => '已删除，级联清理 ${n} 条记录',
 			'record.customFood.contributions.title' => '我的贡献',
 			'record.customFood.contributions.filterAll' => '全部',
 			'record.customFood.contributions.empty' => '暂无贡献记录',
@@ -4767,12 +4783,12 @@ extension on Translations {
 			'nutrition.signalCard.advice.kcal.redHigh' => ({required Object meal_action}) => '热量小超啦，别焦虑，${meal_action}，明天又是新的一天。',
 			'nutrition.signalCard.advice.kcal.zero' => '好像还没记到今天的热量哦，是不是漏了一餐？',
 			'nutrition.signalCard.advice.protein.green' => '蛋白质满分！肌肉群给你比心 💪',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.signalCard.advice.protein.yellowLow' => ({required Object meal_action}) => '蛋白质还差一点，${meal_action}，就够啦。',
 			'nutrition.signalCard.advice.protein.redLow' => ({required Object meal_action}) => '今天蛋白质有点少 🟡 ${meal_action}，给身体加点料。',
 			'nutrition.signalCard.advice.protein.redHigh' => ({required Object meal_action}) => '蛋白质有点多啦，${meal_action}，均衡一点更舒服。',
 			'nutrition.signalCard.advice.protein.zero' => '好像还没记到蛋白质哦，是不是漏了一餐？',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.signalCard.advice.carb.green' => '碳水刚刚好，能量供应稳稳的。',
 			'nutrition.signalCard.advice.carb.yellowLow' => ({required Object meal_action}) => '碳水略少，${meal_action}，下午不容易犯困哦。',
 			'nutrition.signalCard.advice.carb.yellowHigh' => ({required Object meal_action}) => '碳水略高，${meal_action}，让血糖稳一点。',

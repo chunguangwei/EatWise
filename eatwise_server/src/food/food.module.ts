@@ -5,6 +5,7 @@ import { AdminFoodsController } from './admin-foods.controller';
 import { BarcodeService } from './barcode/barcode.service';
 import { FoodController } from './food.controller';
 import { ModerationFoodController } from './moderation-food.controller';
+import { ModerationFoodsController } from './moderation-foods.controller';
 import { FoodService } from './food.service';
 
 @Module({
@@ -15,6 +16,7 @@ import { FoodService } from './food.service';
     AdminFoodController,
     AdminFoodsController,
     ModerationFoodController,
+    ModerationFoodsController,
   ],
   providers: [FoodService, BarcodeService],
   exports: [FoodService],

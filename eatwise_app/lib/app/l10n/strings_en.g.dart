@@ -751,6 +751,10 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 		other: 'Deleted (including ${n} logs)',
 	);
 	@override String get underReviewDeleteBlocked => 'This food is under review and can\'t be deleted yet. Please wait for the review to finish.';
+	@override String get adminDeleteAction => 'Delete (admin)';
+	@override String get adminDeleteConfirmTitle => 'Delete this food?';
+	@override String get adminDeleteConfirmBody => 'This deletes the food and all related diet records for every user. This cannot be undone.';
+	@override String adminDeleteDone({required Object n}) => 'Deleted — ${n} related records cleaned up';
 	@override late final _Translations$record$customFood$contributions$en contributions = _Translations$record$customFood$contributions$en._(_root);
 	@override late final _Translations$record$customFood$correction$en correction = _Translations$record$customFood$correction$en._(_root);
 	@override String get photoOcr => 'Scan nutrition label';
@@ -2625,6 +2629,10 @@ extension on TranslationsEn {
 			'record.customFood.deleteConfirmBody' => ({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(n, one: '${n} related log will also be deleted. This can\'t be undone.', other: '${n} related logs will also be deleted. This can\'t be undone.', ), 
 			'record.customFood.deleteDone' => ({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(n, one: 'Deleted (including ${n} log)', other: 'Deleted (including ${n} logs)', ), 
 			'record.customFood.underReviewDeleteBlocked' => 'This food is under review and can\'t be deleted yet. Please wait for the review to finish.',
+			'record.customFood.adminDeleteAction' => 'Delete (admin)',
+			'record.customFood.adminDeleteConfirmTitle' => 'Delete this food?',
+			'record.customFood.adminDeleteConfirmBody' => 'This deletes the food and all related diet records for every user. This cannot be undone.',
+			'record.customFood.adminDeleteDone' => ({required Object n}) => 'Deleted — ${n} related records cleaned up',
 			'record.customFood.contributions.title' => 'My contributions',
 			'record.customFood.contributions.filterAll' => 'All',
 			'record.customFood.contributions.empty' => 'No contributions yet',
@@ -2858,12 +2866,12 @@ extension on TranslationsEn {
 			'nutrition.signalCard.advice.kcal.redHigh' => ({required Object meal_action}) => 'A bit over on calories — no stress! ${meal_action}. Tomorrow\'s a fresh day.',
 			'nutrition.signalCard.advice.kcal.zero' => 'No calories logged yet — did a meal slip by?',
 			'nutrition.signalCard.advice.protein.green' => 'Protein nailed it! Your muscles are sending you a heart 💪',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.signalCard.advice.protein.yellowLow' => ({required Object meal_action}) => 'Protein is almost there — ${meal_action} and you\'ve got it.',
 			'nutrition.signalCard.advice.protein.redLow' => ({required Object meal_action}) => 'Protein\'s on the low side today — ${meal_action} to give your body a boost.',
 			'nutrition.signalCard.advice.protein.redHigh' => ({required Object meal_action}) => 'A little much protein today — ${meal_action} for a comfier balance.',
 			'nutrition.signalCard.advice.protein.zero' => 'No protein logged yet — did a meal slip by?',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.signalCard.advice.carb.green' => 'Carbs are just right — steady energy all the way.',
 			'nutrition.signalCard.advice.carb.yellowLow' => ({required Object meal_action}) => 'Carbs are a bit low — ${meal_action} to keep the afternoon slump away.',
 			'nutrition.signalCard.advice.carb.yellowHigh' => ({required Object meal_action}) => 'Carbs are a touch high — ${meal_action} to keep your blood sugar steady.',

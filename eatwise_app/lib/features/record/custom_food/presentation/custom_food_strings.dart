@@ -165,6 +165,20 @@ final class CustomFoodStrings {
   String get underReviewDeleteBlocked =>
       _t.record.customFood.underReviewDeleteBlocked;
 
+  /// record.customFood.adminDeleteAction（管理员删除任意食品入口）
+  String get adminDeleteAction => _t.record.customFood.adminDeleteAction;
+
+  /// record.customFood.adminDeleteConfirmTitle
+  String get adminDeleteConfirmTitle =>
+      _t.record.customFood.adminDeleteConfirmTitle;
+
+  /// record.customFood.adminDeleteConfirmBody（明示级联后果）
+  String get adminDeleteConfirmBody =>
+      _t.record.customFood.adminDeleteConfirmBody;
+
+  /// record.customFood.adminDeleteDone（服务端级联条数）
+  String adminDeleteDone(int n) => _t.record.customFood.adminDeleteDone(n: n);
+
   /// 搜索结果行状态标签（K2 众包；null = 不显示标签）：
   /// 自定义食物按贡献状态分「自定义/审核中/已共享/未通过」；
   /// 非自定义但下行标记 approved 的为他人贡献的社区食物（「社区」）。
