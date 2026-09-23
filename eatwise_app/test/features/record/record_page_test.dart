@@ -18,6 +18,7 @@ import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/data/water_log_repository.dart';
+import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/presentation/record_page.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/recognition/domain/engine_availability.dart';
@@ -467,6 +468,39 @@ void main() {
     expect(successes[1].properties['step_count'], 2);
 
     // 冲刷 10s 撤销窗上行 Timer（D-11），避免测试结束挂起 Timer。
+    await tester.pump(const Duration(seconds: 11));
+    await settleUi(tester);
+  });
+
+  testWidgets('今日记录：占位食物行（名称==id）显示「未知食物」而非原始 id', (tester) async {
+    // 下行合成占位行（cf_ 前缀自定义食物本机缺行；v1.13.18 走查「记录页
+    // 显示 cf_223767c7」）。
+    await db.foodDao.upsertAll(<FoodsCompanion>[
+      FoodsCompanion.insert(
+        id: 'cf_223767c7',
+        nameZh: 'cf_223767c7',
+        nameEn: 'cf_223767c7',
+        kcalPer100g: 250,
+        proteinPer100g: 10,
+        carbPer100g: 5,
+        fatPer100g: 20,
+      ),
+    ]);
+    await repository.addEntry(
+      RecordDraft(
+        foodId: 'cf_223767c7',
+        amountG: 150,
+        mealUtc: DateTime.now().toUtc(),
+        source: EntrySource.manual,
+      ),
+    );
+
+    await pumpPage(tester);
+
+    expect(find.text('今日记录'), findsOneWidget);
+    expect(find.text('未知食物'), findsOneWidget);
+    expect(find.text('cf_223767c7'), findsNothing);
+
     await tester.pump(const Duration(seconds: 11));
     await settleUi(tester);
   });

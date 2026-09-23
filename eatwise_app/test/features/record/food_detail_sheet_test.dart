@@ -246,6 +246,28 @@ void main() {
     );
   });
 
+  testWidgets('占位食物行（名称==id）：标题回退「未知食物」+ id 小字可查', (tester) async {
+    // v1.13.18 走查：详情页同样不能把原始 id 当名字（回查补名前的兜底）。
+    const placeholder = Food(
+      id: 'cf_223767c7',
+      nameZh: 'cf_223767c7',
+      nameEn: 'cf_223767c7',
+      aliasesZh: '[]',
+      aliasesEn: '[]',
+      kcalPer100g: 250,
+      proteinPer100g: 10,
+      carbPer100g: 5,
+      fatPer100g: 20,
+      isCustom: false,
+      customSyncPending: false,
+      customClientRequestId: '',
+    );
+    await pumpSheet(tester, onConfirm: (_) {}, food: placeholder);
+
+    expect(find.text('未知食物'), findsOneWidget);
+    expect(find.text('cf_223767c7'), findsOneWidget); // id 小字保留可查
+  });
+
   group('管理员删除（role==admin，DELETE /v1/moderation/foods/:id）', () {
     const adminMe = UserMeView(
       id: 'u-admin',

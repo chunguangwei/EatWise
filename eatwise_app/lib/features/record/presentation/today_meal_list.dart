@@ -7,6 +7,7 @@ import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
 import 'package:eatwise/features/record/domain/meal_type.dart';
+import 'package:eatwise/features/record/domain/placeholder_food.dart';
 import 'package:eatwise/features/record/presentation/meal_type_chips.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
@@ -90,10 +91,11 @@ class _EntryRow extends ConsumerWidget {
     final radii = Theme.of(context).extension<AppRadii>()!;
     final isEn = LocaleSettings.currentLocale == AppLocale.en;
     final food = ref.watch(entryFoodProvider(entry.foodId)).value;
-    // 食物行缺失（库下行未覆盖等异常）回退 foodId，不隐藏记录。
+    // 食物行缺失（库下行未覆盖等异常）回退 foodId；占位行（名称==id，
+    // 下行合成）回退「未知食物」（id 仍可在详情页查，回查补名后自动恢复）。
     final name = food == null
         ? entry.foodId
-        : (isEn ? food.nameEn : food.nameZh);
+        : displayFoodName(t, food, isEn: isEn);
     // 乐观入账（未入库食品先记）：该食物贡献审核中 → 条目带「审核中」标记。
     final underReview =
         food?.isCustom == true && food?.contributionStatus == 'pending';

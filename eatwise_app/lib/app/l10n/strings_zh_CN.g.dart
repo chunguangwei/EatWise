@@ -98,6 +98,10 @@ class Translations$record$zh_CN {
 	// Translations
 	late final Translations$record$page$zh_CN page = Translations$record$page$zh_CN.internal(_root);
 	late final Translations$record$meal$zh_CN meal = Translations$record$meal$zh_CN.internal(_root);
+
+	/// zh-CN: '未知食物'
+	String get unknownFood => '未知食物';
+
 	late final Translations$record$today$zh_CN today = Translations$record$today$zh_CN.internal(_root);
 	late final Translations$record$entries$zh_CN entries = Translations$record$entries$zh_CN.internal(_root);
 	late final Translations$record$pending$zh_CN pending = Translations$record$pending$zh_CN.internal(_root);
@@ -4392,6 +4396,7 @@ extension on Translations {
 			'record.meal.dinner' => '晚餐',
 			'record.meal.snack' => '加餐',
 			'record.meal.other' => '其他',
+			'record.unknownFood' => '未知食物',
 			'record.today.title' => '今日记录',
 			'record.today.deleteEntry' => '删除这条记录？',
 			'record.today.deleteConfirmAction' => '删除',
@@ -4782,9 +4787,9 @@ extension on Translations {
 			'nutrition.signalCard.advice.kcal.redLow' => ({required Object meal_action}) => '今天摄入太少了，断食之外也要好好吃饭哦，${meal_action}。',
 			'nutrition.signalCard.advice.kcal.redHigh' => ({required Object meal_action}) => '热量小超啦，别焦虑，${meal_action}，明天又是新的一天。',
 			'nutrition.signalCard.advice.kcal.zero' => '好像还没记到今天的热量哦，是不是漏了一餐？',
-			'nutrition.signalCard.advice.protein.green' => '蛋白质满分！肌肉群给你比心 💪',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.signalCard.advice.protein.green' => '蛋白质满分！肌肉群给你比心 💪',
 			'nutrition.signalCard.advice.protein.yellowLow' => ({required Object meal_action}) => '蛋白质还差一点，${meal_action}，就够啦。',
 			'nutrition.signalCard.advice.protein.redLow' => ({required Object meal_action}) => '今天蛋白质有点少 🟡 ${meal_action}，给身体加点料。',
 			'nutrition.signalCard.advice.protein.redHigh' => ({required Object meal_action}) => '蛋白质有点多啦，${meal_action}，均衡一点更舒服。',

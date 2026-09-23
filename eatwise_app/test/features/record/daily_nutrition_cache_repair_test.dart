@@ -1,4 +1,6 @@
 import 'package:drift/drift.dart' show Value;
+import 'package:eatwise/core/network/api_client.dart';
+import 'package:eatwise/core/network/api_config.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/core/storage/tables.dart';
@@ -6,11 +8,13 @@ import 'package:eatwise/features/record/data/daily_nutrition_cache_repair.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/data/record_sync_engine.dart';
+import 'package:eatwise/features/record/data/remote_record_sync.dart';
 import 'package:eatwise/features/record/data/water_log_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../core/network/fake_http_adapter.dart';
 import 'record_test_helper.dart';
 
 /// 聚合缓存存量回填修复测试（v1.12.5 走查盲区：旧版本下行遗留记录
@@ -207,6 +211,121 @@ void main() {
       final refreshed = await db.foodEntryDao.getDailyNutrition('u-1', today);
       expect(refreshed!.kcal, 500);
 
+      await repo.dispose();
+    });
+
+    test('登录态 syncNow：存量占位行回查补名 + onFoodsBackfilled 回调', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final prefs = await SharedPreferences.getInstance();
+      // 升级前遗留占位行（名称=foodId，华为端 CFCT 自定义食物在 iOS 缺行）。
+      await db.foodDao.upsertAll(<FoodsCompanion>[
+        FoodsCompanion.insert(
+          id: 'cf_223767c7',
+          nameZh: 'cf_223767c7',
+          nameEn: 'cf_223767c7',
+          kcalPer100g: 250,
+          proteinPer100g: 10,
+          carbPer100g: 5,
+          fatPer100g: 20,
+        ),
+      ]);
+      final adapter = FakeHttpAdapter();
+      final dio = createApiDio(config: ApiConfig());
+      dio.httpClientAdapter = adapter;
+      final remote = RemoteRecordSync(dio: dio, location: tz.UTC);
+      // 下行 0 变更（游标已越过）；回查接口返回真名。
+      adapter.stub(
+        '/sync/pull',
+        StubResponse.json(
+          200,
+          StubResponse.envelope(<String, dynamic>{
+            'changes': const <dynamic>[],
+            'syncToken': 'st_1',
+            'hasMore': false,
+          }),
+        ),
+      );
+      adapter.stub(
+        '/foods/batch-get',
+        StubResponse.json(
+          200,
+          StubResponse.envelope(<String, dynamic>{
+            'items': <dynamic>[
+              <String, dynamic>{
+                'id': 'cf_223767c7',
+                'nameZh': '麻辣牛肉干',
+                'nameEn': 'Spicy Beef Jerky',
+                'aliases': <dynamic>[],
+                'kcalPer100g': 500,
+                'proteinPer100g': 30,
+                'carbsPer100g': 10,
+                'fatPer100g': 35,
+                'isCustom': true,
+              },
+            ],
+          }),
+        ),
+      );
+      var callbackCount = 0;
+      final repo = RecordRepository(
+        db: db,
+        remote: remote,
+        location: tz.UTC,
+        userId: 'u-1',
+      );
+      final engine = RecordSyncEngine(
+        repository: repo,
+        prefs: prefs,
+        onFoodsBackfilled: () => callbackCount++,
+      );
+
+      await engine.syncNow();
+
+      final food = (await db.foodDao.getById('cf_223767c7'))!;
+      expect(food.nameZh, '麻辣牛肉干');
+      expect(food.isCustom, isTrue);
+      expect(callbackCount, 1);
+      // 回查载荷按缺失 foodId 批量回查（requests 与 requestBodies 同序，
+      // 跳过 GET /sync/pull 的 null body）。
+      final batchIdx = adapter.requests.indexWhere(
+        (r) => r.path == '/foods/batch-get',
+      );
+      expect(batchIdx, greaterThanOrEqualTo(0));
+      final body = adapter.requestBodies[batchIdx] as Map<dynamic, dynamic>;
+      expect(body['ids'], <String>['cf_223767c7']);
+
+      await repo.dispose();
+    });
+
+    test('匿名态 syncNow：占位行不回查（batch-get 需 JWT），保留待登录', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final prefs = await SharedPreferences.getInstance();
+      await db.foodDao.upsertAll(<FoodsCompanion>[
+        FoodsCompanion.insert(
+          id: 'cf_anon',
+          nameZh: 'cf_anon',
+          nameEn: 'cf_anon',
+          kcalPer100g: 1,
+          proteinPer100g: 1,
+          carbPer100g: 1,
+          fatPer100g: 1,
+        ),
+      ]);
+      final adapter = FakeHttpAdapter();
+      final dio = createApiDio(config: ApiConfig());
+      dio.httpClientAdapter = adapter;
+      final repo = RecordRepository(
+        db: db,
+        remote: RemoteRecordSync(dio: dio, location: tz.UTC),
+        location: tz.UTC,
+        userId: 'anonymous',
+      );
+      final engine = RecordSyncEngine(repository: repo, prefs: prefs);
+
+      await engine.syncNow();
+
+      expect(adapter.requestsTo('/foods/batch-get'), 0);
+      expect((await db.foodDao.getById('cf_anon'))!.nameZh, 'cf_anon');
       await repo.dispose();
     });
   });

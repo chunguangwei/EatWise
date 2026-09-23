@@ -23,6 +23,7 @@ import 'package:eatwise/features/record/custom_food/presentation/custom_food_str
 import 'package:eatwise/features/record/domain/food_signal.dart';
 import 'package:eatwise/features/record/domain/macro_energy.dart';
 import 'package:eatwise/features/record/domain/nrv_reference.dart';
+import 'package:eatwise/features/record/domain/placeholder_food.dart';
 import 'package:eatwise/features/record/presentation/meal_type_chips.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
@@ -153,12 +154,13 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          // 头部：名称 + 自定义/社区状态标签。
+          // 头部：名称 + 自定义/社区状态标签。占位行（名称==id，下行合成）
+          // 展示回退「未知食物」+ id 小字可查（回查补名后自动恢复真名）。
           Row(
             children: <Widget>[
               Expanded(
                 child: Text(
-                  isEn ? food.nameEn : food.nameZh,
+                  displayFoodName(t, food, isEn: isEn),
                   style: textStyles.textXl,
                 ),
               ),
@@ -180,6 +182,15 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
                 ),
             ],
           ),
+          // 占位行：id 小字可查（「未知食物」回退下仍可按 id 追溯）。
+          if (isPlaceholderFood(food))
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.s1),
+              child: Text(
+                food.id,
+                style: textStyles.textXs.copyWith(color: colors.textSecondary),
+              ),
+            ),
           const SizedBox(height: AppSpacing.s2),
           // 红绿灯评价徽标（颜色 + 图标 + 文字三重编码，PRD M8/§3.3）。
           _SignalBadge(verdict: verdict),

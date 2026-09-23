@@ -20,6 +20,7 @@ import 'package:eatwise/features/record/custom_food/presentation/custom_food_pro
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_sheet.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
+import 'package:eatwise/features/record/domain/placeholder_food.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/presentation/food_detail_sheet.dart';
 import 'package:eatwise/features/record/presentation/light_record_section.dart';
@@ -320,6 +321,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
       if (next != previous) unawaited(_drainRejectedNotices());
     });
     final s = RecordStrings.of(context);
+    final t = Translations.of(context);
     final cs = CustomFoodStrings.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
@@ -617,7 +619,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                               children: <Widget>[
                                 Flexible(
                                   child: Text(
-                                    isEn ? food.nameEn : food.nameZh,
+                                    // 占位行（名称==id）回退「未知食物」。
+                                    displayFoodName(t, food, isEn: isEn),
                                     style: textStyles.textBase,
                                   ),
                                 ),

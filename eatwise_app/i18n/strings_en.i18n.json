@@ -179,6 +179,7 @@
       "snack": "Snack",
       "other": "Other"
     },
+    "unknownFood": "Unknown food",
     "today": {
       "title": "Today's log",
       "deleteEntry": "Delete this entry?",

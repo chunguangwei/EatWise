@@ -35,6 +35,7 @@ final class RecordSyncEngine {
     this.planSync,
     this.cacheRepair,
     this.anonymousMigrator,
+    this.onFoodsBackfilled,
   });
 
   /// 记录仓储。
@@ -72,6 +73,10 @@ final class RecordSyncEngine {
   /// 匿名数据换挂迁移器（可选：审计#1——登录首轮同步前把 anonymous 名下
   /// 记录/prefs 并入真实 uid；未装配为 null 跳过）。
   final AnonymousDataMigrator? anonymousMigrator;
+
+  /// 占位食物行回查补名成功回调（>0 行时触发；调用方失效
+  /// entryFoodProvider / recordFoodSearchProvider 等名称缓存）。
+  final void Function()? onFoodsBackfilled;
 
   static const String _tokenKeyPrefix = 'record_sync_token_';
 
@@ -161,6 +166,20 @@ final class RecordSyncEngine {
         );
         if (token != null) {
           await prefs.setString(_tokenKey, token);
+        }
+        // 占位食物行回查（仅登录态——batch-get 需 JWT；匿名占位行保留待
+        // 登录后同步轮补名）：本轮下行新落的占位 + 存量「名称=foodId」行
+        // 一并扫描（升级自愈），命中即写真名，失效 UI 缓存。
+        if (repository.userId != 'anonymous') {
+          try {
+            final resolved = await remote.backfillPlaceholderFoods(
+              repository.db,
+            );
+            if (resolved > 0) onFoodsBackfilled?.call();
+          } on Object catch (e) {
+            // 失败保留下轮重试（占位行不动，不阻断下行主链）。
+            debugPrint('[Sync] placeholder food backfill 失败（下轮重试）：$e');
+          }
         }
       }
     } on ApiException {

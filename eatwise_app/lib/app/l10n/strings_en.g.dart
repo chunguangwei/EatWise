@@ -93,6 +93,7 @@ class _Translations$record$en extends Translations$record$zh_CN {
 	// Translations
 	@override late final _Translations$record$page$en page = _Translations$record$page$en._(_root);
 	@override late final _Translations$record$meal$en meal = _Translations$record$meal$en._(_root);
+	@override String get unknownFood => 'Unknown food';
 	@override late final _Translations$record$today$en today = _Translations$record$today$en._(_root);
 	@override late final _Translations$record$entries$en entries = _Translations$record$entries$en._(_root);
 	@override late final _Translations$record$pending$en pending = _Translations$record$pending$en._(_root);
@@ -2475,6 +2476,7 @@ extension on TranslationsEn {
 			'record.meal.dinner' => 'Dinner',
 			'record.meal.snack' => 'Snack',
 			'record.meal.other' => 'Other',
+			'record.unknownFood' => 'Unknown food',
 			'record.today.title' => 'Today\'s log',
 			'record.today.deleteEntry' => 'Delete this entry?',
 			'record.today.deleteConfirmAction' => 'Delete',
@@ -2865,9 +2867,9 @@ extension on TranslationsEn {
 			'nutrition.signalCard.advice.kcal.redLow' => ({required Object meal_action}) => 'You\'re well under today — outside your fasting window, do eat well: ${meal_action}.',
 			'nutrition.signalCard.advice.kcal.redHigh' => ({required Object meal_action}) => 'A bit over on calories — no stress! ${meal_action}. Tomorrow\'s a fresh day.',
 			'nutrition.signalCard.advice.kcal.zero' => 'No calories logged yet — did a meal slip by?',
-			'nutrition.signalCard.advice.protein.green' => 'Protein nailed it! Your muscles are sending you a heart 💪',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.signalCard.advice.protein.green' => 'Protein nailed it! Your muscles are sending you a heart 💪',
 			'nutrition.signalCard.advice.protein.yellowLow' => ({required Object meal_action}) => 'Protein is almost there — ${meal_action} and you\'ve got it.',
 			'nutrition.signalCard.advice.protein.redLow' => ({required Object meal_action}) => 'Protein\'s on the low side today — ${meal_action} to give your body a boost.',
 			'nutrition.signalCard.advice.protein.redHigh' => ({required Object meal_action}) => 'A little much protein today — ${meal_action} for a comfier balance.',

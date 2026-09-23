@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:dio/dio.dart';
@@ -229,6 +230,75 @@ final class RemoteRecordSync implements RecordRemote {
       }
       throw error;
     }
+  }
+
+  /// 占位食物行回查（名称==id 双列标记，见 domain/placeholder_food.dart）：
+  /// 按缺失 foodId 批量调 POST /foods/batch-get（≤200/批）补真实名称/营养，
+  /// 命中即 upsert 更新占位行（幂等）。查不到的（服务端真删的）保留占位
+  /// ——名称仍是 id 标记，下轮再查；UI 层回退「未知食物」展示。
+  ///
+  /// 触发时机：pullDown 完成后（本轮新落的占位）+ 同步引擎每轮 syncNow
+  /// 全量扫存量占位（升级自愈：旧版本落的「名称=foodId」行补名）。
+  /// 返回本轮补名成功的条数（>0 时调用方失效相关 UI 缓存）。
+  /// 离线/未登录/接口失败 → 返回 0，占位保留下轮重试（不阻断下行主链）。
+  Future<int> backfillPlaceholderFoods(AppDatabase db) async {
+    final rows = await db.foodDao.placeholderRows();
+    if (rows.isEmpty) return 0;
+    var resolved = 0;
+    for (var i = 0; i < rows.length; i += 200) {
+      final chunk = rows.sublist(
+        i,
+        i + 200 > rows.length ? rows.length : i + 200,
+      );
+      resolved += await _backfillChunk(db, chunk);
+    }
+    return resolved;
+  }
+
+  Future<int> _backfillChunk(AppDatabase db, List<Food> chunk) async {
+    final List<Map<String, dynamic>> items;
+    try {
+      final response = await dio.post<Map<String, dynamic>>(
+        '/foods/batch-get',
+        data: <String, dynamic>{'ids': chunk.map((f) => f.id).toList()},
+      );
+      _online = true;
+      items = (response.data?['items'] as List<dynamic>? ?? const <dynamic>[])
+          .cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      final error = toApiException(e);
+      if (error is NetworkApiException || error is TimeoutApiException) {
+        _online = false;
+      }
+      return 0; // 失败保留占位，下轮 syncNow 重试
+    }
+    if (items.isEmpty) return 0;
+    final companions = <FoodsCompanion>[];
+    for (final item in items) {
+      final id = item['id'] as String?;
+      final nameZh = item['nameZh'] as String?;
+      final nameEn = item['nameEn'] as String?;
+      if (id == null || nameZh == null || nameEn == null) continue;
+      companions.add(
+        FoodsCompanion(
+          id: Value(id),
+          nameZh: Value(nameZh),
+          nameEn: Value(nameEn),
+          aliasesZh: Value(jsonEncode(item['aliases'] ?? const <dynamic>[])),
+          kcalPer100g: Value((item['kcalPer100g'] as num?)?.toDouble() ?? 0),
+          proteinPer100g: Value(
+            (item['proteinPer100g'] as num?)?.toDouble() ?? 0,
+          ),
+          carbPer100g: Value((item['carbsPer100g'] as num?)?.toDouble() ?? 0),
+          fatPer100g: Value((item['fatPer100g'] as num?)?.toDouble() ?? 0),
+          // 占位行 isCustom=false；服务端真身是本人自定义食物（他端创建）
+          // 时翻正（「自定义」标签口径与搜索合入一致）。
+          isCustom: Value(item['isCustom'] == true),
+        ),
+      );
+    }
+    await db.foodDao.upsertAll(companions);
+    return companions.length;
   }
 
   /// 增量下行入库：游标翻页直到 hasMore=false，返回最新 syncToken

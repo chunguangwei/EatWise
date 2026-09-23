@@ -474,6 +474,123 @@ void main() {
       entries = await db.foodEntryDao.entriesForDate('u-1', '2026-07-27');
       expect(entries, hasLength(1));
     });
+
+    group('占位食物行回查补名（名称=foodId 占位，/foods/batch-get）', () {
+      void stubBatchGet(List<Map<String, dynamic>> items) {
+        adapter.stub(
+          '/foods/batch-get',
+          StubResponse.json(
+            200,
+            StubResponse.envelope(<String, dynamic>{'items': items}),
+          ),
+        );
+      }
+
+      Map<String, dynamic> batchGetItem(String id, String nameZh) {
+        return <String, dynamic>{
+          'id': id,
+          'nameZh': nameZh,
+          'nameEn': 'Real Food EN',
+          'aliases': <dynamic>['别名'],
+          'kcalPer100g': 500,
+          'proteinPer100g': 30,
+          'carbsPer100g': 10,
+          'fatPer100g': 35,
+          'category': '自定义',
+          'source': 'manual',
+          'isCustom': true,
+        };
+      }
+
+      test('占位行回查命中 → 补真名/真营养/翻正 isCustom；引用记录不动', () async {
+        // 下行缺失食物 → 占位行（名称=id）。
+        stubPull(<Map<String, dynamic>>[
+          entryView(id: 'srv-9', clientRequestId: 'c-9', foodId: 'cf_abc123'),
+        ], syncToken: 'st_1');
+        await remote.pullDown(db, 'u-1', 'st_0');
+        expect((await db.foodDao.getById('cf_abc123'))!.nameZh, 'cf_abc123');
+        expect(await db.foodDao.placeholderRows(), hasLength(1));
+
+        // 回查命中 → 占位行更新为真名真营养；条目行不变。
+        stubBatchGet(<Map<String, dynamic>>[batchGetItem('cf_abc123', '牛肉干')]);
+        final resolved = await remote.backfillPlaceholderFoods(db);
+        expect(resolved, 1);
+        final food = (await db.foodDao.getById('cf_abc123'))!;
+        expect(food.nameZh, '牛肉干');
+        expect(food.nameEn, 'Real Food EN');
+        expect(food.kcalPer100g, 500);
+        expect(food.isCustom, isTrue);
+        expect(food.aliasesZh, '["别名"]');
+        expect(await db.foodDao.placeholderRows(), isEmpty);
+        // 引用记录的营养快照不受补名影响（快照口径不回溯）。
+        final entry = (await db.foodEntryDao.entriesForDate(
+          'u-1',
+          '2026-07-27',
+        )).single;
+        expect(entry.kcal, 232);
+      });
+
+      test('回查为空（服务端真删）→ 占位保留，名称仍是 id 标记，下轮再查', () async {
+        stubPull(<Map<String, dynamic>>[
+          entryView(id: 'srv-9', clientRequestId: 'c-9', foodId: 'cf_gone'),
+        ], syncToken: 'st_1');
+        await remote.pullDown(db, 'u-1', 'st_0');
+
+        stubBatchGet(const <Map<String, dynamic>>[]);
+        expect(await remote.backfillPlaceholderFoods(db), 0);
+        expect((await db.foodDao.getById('cf_gone'))!.nameZh, 'cf_gone');
+        expect(await db.foodDao.placeholderRows(), hasLength(1));
+      });
+
+      test('离线/接口失败 → 占位保留不报错，返回 0', () async {
+        stubPull(<Map<String, dynamic>>[
+          entryView(id: 'srv-9', clientRequestId: 'c-9', foodId: 'cf_offline'),
+        ], syncToken: 'st_1');
+        await remote.pullDown(db, 'u-1', 'st_0');
+
+        adapter.stub('/foods/batch-get', StubResponse.networkError('boom'));
+        expect(await remote.backfillPlaceholderFoods(db), 0);
+        expect(remote.isOnline, isFalse);
+        expect(await db.foodDao.placeholderRows(), hasLength(1));
+      });
+
+      test('存量自愈：升级前落的「名称=foodId」行被扫描回查（不靠本轮下行）', () async {
+        // 直接落一个旧版本遗留占位行（无本轮下行）。
+        await db.foodDao.upsertAll(<FoodsCompanion>[
+          FoodsCompanion.insert(
+            id: 'cf_legacy99',
+            nameZh: 'cf_legacy99',
+            nameEn: 'cf_legacy99',
+            kcalPer100g: 100,
+            proteinPer100g: 1,
+            carbPer100g: 1,
+            fatPer100g: 1,
+          ),
+        ]);
+        stubBatchGet(<Map<String, dynamic>>[
+          batchGetItem('cf_legacy99', '燕麦片'),
+        ]);
+        expect(await remote.backfillPlaceholderFoods(db), 1);
+        expect((await db.foodDao.getById('cf_legacy99'))!.nameZh, '燕麦片');
+      });
+
+      test('placeholderRows 只认名称==id 双列行（正常行不误伤）', () async {
+        // f-rice/f-egg/f-chicken 为正常行（seedFoods），不应被扫入。
+        expect(await db.foodDao.placeholderRows(), isEmpty);
+        await db.foodDao.upsertAll(<FoodsCompanion>[
+          FoodsCompanion.insert(
+            id: 'cf_marker',
+            nameZh: 'cf_marker',
+            nameEn: '真名误伤不得发生', // 只有 nameZh==id：不算占位
+            kcalPer100g: 1,
+            proteinPer100g: 1,
+            carbPer100g: 1,
+            fatPer100g: 1,
+          ),
+        ]);
+        expect(await db.foodDao.placeholderRows(), isEmpty);
+      });
+    });
   });
 }
 

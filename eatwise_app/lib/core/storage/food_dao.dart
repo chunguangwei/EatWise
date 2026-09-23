@@ -88,6 +88,18 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
     )..where((f) => f.contributionStatus.isNotNull())).get();
   }
 
+  /// 占位行（名称==id 双列）：下行记录引用的食物行本地缺失时合成的占位
+  ///（见 RemoteRecordSync._ensurePlaceholderFood）。占位回查/存量自愈扫描用。
+  Future<List<Food>> placeholderRows() async {
+    final rows = await db
+        .customSelect(
+          'SELECT * FROM foods WHERE name_zh = id AND name_en = id',
+          readsFrom: {foods},
+        )
+        .get();
+    return rows.map((row) => foods.map(row.data)).toList();
+  }
+
   /// 物理删除食物行（自定义食物删除用；调用方须先处理引用它的
   /// food_entries——两态删除/tombstone 由 CustomFoodRepository.delete 负责）。
   Future<void> deleteById(String id) {

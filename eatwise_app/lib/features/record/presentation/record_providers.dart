@@ -157,6 +157,12 @@ final Provider<RecordSyncEngine> recordSyncEngineProvider =
         planSync: ref.watch(fastingPlanSyncProvider),
         cacheRepair: ref.watch(dailyNutritionCacheRepairProvider),
         anonymousMigrator: ref.watch(anonymousDataMigratorProvider),
+        // 占位食物行补名成功 → 失效名称缓存（今日记录 entryFoodProvider
+        // 家族 / 搜索结果常驻流），UI 立即显示真名。
+        onFoodsBackfilled: () {
+          ref.invalidate(entryFoodProvider);
+          ref.invalidate(recordFoodSearchProvider);
+        },
       );
     });
 

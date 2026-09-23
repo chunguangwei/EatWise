@@ -179,6 +179,7 @@
       "snack": "加餐",
       "other": "其他"
     },
+    "unknownFood": "未知食物",
     "today": {
       "title": "今日记录",
       "deleteEntry": "删除这条记录？",
