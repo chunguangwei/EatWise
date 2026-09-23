@@ -13,6 +13,12 @@ on:
 permissions:
   contents: write
 
+# 同一 tag 重复触发（branch+tag 同事务推送偶发双 webhook）时串行，
+# 后到者等先到者发完，见「release already exists」不再报红。
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release-apk:
     name: 构建 APK 并发布 GitHub Release

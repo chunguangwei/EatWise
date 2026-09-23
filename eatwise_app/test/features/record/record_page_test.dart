@@ -158,17 +158,21 @@ void main() {
     expect(find.text('确认记录'), findsOneWidget);
     expect(find.text('热量 116 千卡'), findsNothing);
 
-    // 空份量点确认 → 拦截提示，不入账（弹层关闭，结果卡接管份量编辑）。
-    await tester.tap(find.text('确认记录'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    // 空份量：确认按钮禁用 + 行内「请输入大于 0 的份量」引导（替代旧的
+    // 「点了才弹错误吐司」截停链；弹层留在原地不丢上下文）。
+    FilledButton confirmBtn() =>
+        tester.widget<FilledButton>(find.widgetWithText(FilledButton, '确认记录'));
+    expect(confirmBtn().onPressed, isNull);
     expect(find.text('请输入大于 0 的份量'), findsOneWidget);
+    await tester.tap(find.text('确认记录'), warnIfMissed: false);
+    await tester.pump();
     expect(await repository.entriesForDate(DateTime.now().toUtc()), isEmpty);
 
-    // 份量修改 → 营养实时重算（US-3.1）。
+    // 份量修改 → 营养实时重算 + 按钮转为可用（US-3.1）。
     await tester.enterText(find.byType(TextField).last, '200');
     await tester.pump();
     expect(find.text('热量 232 千卡'), findsOneWidget);
+    expect(confirmBtn().onPressed, isNotNull);
 
     // 确认 → 乐观更新：「已记录·撤销」吐司 + 待同步角标。
     await tester.tap(find.text('确认记录'));
@@ -191,6 +195,50 @@ void main() {
     expect(await repository.entriesForDate(DateTime.now().toUtc()), isEmpty);
 
     // 收尾：隐藏吐司 + 失焦输入框（不卸载页面，见 settleUi 注释）。
+    await settleUi(tester);
+  });
+
+  testWidgets('状态机闭环：确认后搜索清空 → 今日记录可见 → 可连记下一笔', (tester) async {
+    await pumpPage(tester);
+
+    // 第一笔：搜索 → 弹层 → 份量 → 确认。
+    await tester.enterText(find.byType(TextField).first, '米饭');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('白米饭'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.enterText(find.byType(TextField).last, '200');
+    await tester.pump();
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('已记录'), findsOneWidget);
+
+    // 确认后回到可连记状态：搜索框已清空（重搜即可）、结果卡关闭、
+    // 空查询下展示「今日记录」分组列表（薄荷式反馈：刚记的就在列表里）。
+    expect(
+      tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+      '',
+    );
+    expect(find.text('今日记录'), findsOneWidget);
+    expect(find.text('白米饭'), findsOneWidget);
+
+    // 连记第二笔：换食物重搜 → 弹层确认 → 入账叠加（薄荷「回列表继续加」）。
+    await tester.enterText(find.byType(TextField).first, '鸡蛋');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.widgetWithText(ListTile, '鸡蛋'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.enterText(find.byType(TextField).last, '50');
+    await tester.pump();
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('今日已记 2 笔 · 今日约 304 千卡'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 11));
     await settleUi(tester);
   });
 

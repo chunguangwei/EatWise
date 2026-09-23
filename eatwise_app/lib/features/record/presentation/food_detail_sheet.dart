@@ -128,12 +128,17 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     final preview = amount != null && amount > 0 ? amount / 100 : null;
     // 「大约需走 N 步」随选中份量实时联动；未输入份量时按每 100g 展示。
     final walkSteps = stepsFromKcal(food.kcalPer100g * (preview ?? 1));
+    // 份量必填引导（走查「不知道下一步干嘛」）：空/非法份量 → 确认禁用 +
+    // 行内提示，替代「按钮看似可点、点了才报错」的截停链。
+    final amountValid = preview != null;
 
     // 统一弹层骨架（封顶 90% + 内容内滚 + 确认按钮常驻底部，真机走查：
     // 小屏/大字体/键盘下按钮不可被顶出）。
     return AppBottomSheet(
       bottomBar: FilledButton(
-        onPressed: () => widget.onConfirm(_amountController.text.trim()),
+        onPressed: amountValid
+            ? () => widget.onConfirm(_amountController.text.trim())
+            : null,
         style: FilledButton.styleFrom(
           backgroundColor: colors.brandPrimary,
           minimumSize: const Size.fromHeight(AppSpacing.s12),
@@ -268,6 +273,8 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
             style: textStyles.textBase,
             decoration: InputDecoration(
               labelText: s.amountLabel,
+              // 份量必填行内引导（空/非法时提示，与确认禁用态联动）。
+              helperText: amountValid ? null : s.amountInvalid,
               filled: true,
               fillColor: colors.bgSecondary,
               border: OutlineInputBorder(

@@ -865,6 +865,11 @@ class _SelectedFoodCard extends ConsumerWidget {
     final radii = Theme.of(context).extension<AppRadii>()!;
     final nutrition = ref.watch(recordDraftNutritionProvider);
     final lowConfidence = ref.watch(recordLowConfidenceProvider);
+    // 份量必填引导（走查「选中后不知道下一步干嘛」）：空/非法份量 →
+    // 确认禁用 + 行内提示，替代「按钮看似可点、点了才弹错误吐司」。
+    final amountText = ref.watch(recordAmountTextProvider);
+    final parsedAmount = double.tryParse(amountText);
+    final amountValid = parsedAmount != null && parsedAmount > 0;
 
     return Container(
       margin: const EdgeInsets.all(AppSpacing.s4),
@@ -931,6 +936,8 @@ class _SelectedFoodCard extends ConsumerWidget {
                     style: textStyles.textBase,
                     decoration: InputDecoration(
                       labelText: s.amountLabel,
+                      // 份量必填行内引导（空/非法时提示，与确认禁用态联动）。
+                      helperText: amountValid ? null : s.amountInvalid,
                       filled: true,
                       fillColor: colors.bgPrimary,
                       border: OutlineInputBorder(
@@ -982,7 +989,7 @@ class _SelectedFoodCard extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.s3),
           FilledButton(
-            onPressed: onConfirm,
+            onPressed: amountValid ? onConfirm : null,
             style: FilledButton.styleFrom(
               backgroundColor: colors.brandPrimary,
               minimumSize: const Size.fromHeight(AppSpacing.s12),
