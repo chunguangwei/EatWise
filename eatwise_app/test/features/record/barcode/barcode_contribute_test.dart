@@ -185,6 +185,31 @@ void main() {
     return ProviderScope.containerOf(tester.element(find.byType(RecordPage)));
   }
 
+  testWidgets('小屏（360x640）+ 大字体 + 键盘：提交按钮常驻屏内（表单内滚）', (tester) async {
+    await pumpPage(tester);
+
+    // 三条件复现：先小屏打开弹层，再模拟键盘弹起（真实用户顺序——
+    // 打开态骤变尺寸会撞弹层入场动画的过渡帧）。
+    // 条码卡 + 5 字段 + 照片区把内容撑高，
+    // 提交按钮不得随内容滚出/被键盘顶出。
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    await tester.pump();
+    await openContributeSheet(tester);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final submit = find.widgetWithText(FilledButton, '提交补录');
+    expect(submit, findsOneWidget);
+    final rect = tester.getRect(submit);
+    expect(rect.right, lessThanOrEqualTo(360));
+    expect(rect.bottom, lessThanOrEqualTo(640));
+
+    await settleUi(tester);
+  });
+
   testWidgets('未命中卡主行动「补充商品信息」可见 → 表单打开（条码只读展示）', (tester) async {
     await pumpPage(tester);
 

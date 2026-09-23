@@ -137,6 +137,39 @@ void main() {
     await settleUi(tester);
   });
 
+  testWidgets('弹层：小屏（360x640）+ 大字体 + 键盘，保存按钮常驻屏内可点', (tester) async {
+    await pumpEntry(tester);
+    await openSheet(tester);
+
+    // 三条件复现（真机走查同款）：17 个类型 chips + 走路步数字段把内容
+    // 撑高，确认记录按钮不得随内容滚出/被键盘顶出。
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final save = find.byKey(const ValueKey<String>('exercise.save'));
+    expect(save, findsOneWidget);
+    final rect = tester.getRect(save);
+    expect(rect.right, lessThanOrEqualTo(360));
+    expect(rect.bottom, lessThanOrEqualTo(640));
+
+    // 可点：步数录入保存成功。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('exercise.steps')),
+      '1466',
+    );
+    await tester.pump();
+    await tester.tap(save);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect((await repo.logsForDate(todayKey())).single.steps, 1466);
+
+    await settleUi(tester);
+  });
+
   testWidgets('弹层：走路按步数录入 —— 自动换算热量，时长可留空，步数落库', (tester) async {
     await pumpEntry(tester);
     await openSheet(tester);

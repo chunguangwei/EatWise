@@ -11,6 +11,7 @@ import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/app_bottom_sheet.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
@@ -44,15 +45,9 @@ Future<void> startCustomFoodFlow(
   final result = await showModalBottomSheet<CustomFoodSaveResult>(
     context: context,
     isScrollControlled: true,
-    builder: (sheetContext) => Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-      ),
-      child: CustomFoodSheet(
-        initialAlias: barcodeAlias,
-        initialName: initialName,
-      ),
-    ),
+    // 键盘避让已收进 AppBottomSheet 骨架（外层再垫会双倍扣高）。
+    builder: (_) =>
+        CustomFoodSheet(initialAlias: barcodeAlias, initialName: initialName),
   );
   if (result == null || !context.mounted) return;
   ref.read(recordSelectedFoodProvider.notifier).state = result.food;
@@ -95,12 +90,8 @@ Future<void> startFoodCorrectionFlow(
   final submitted = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
-    builder: (sheetContext) => Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-      ),
-      child: CustomFoodSheet(correctionTarget: food),
-    ),
+    // 键盘避让已收进 AppBottomSheet 骨架（外层再垫会双倍扣高）。
+    builder: (_) => CustomFoodSheet(correctionTarget: food),
   );
   if (submitted == true && context.mounted) {
     ScaffoldMessenger.of(
@@ -564,60 +555,103 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
       FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
     ];
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.s4),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Text(
-                _isCorrection
-                    ? cs.correctionTitle
-                    : _isEdit
-                    ? cs.editTitle
-                    : cs.title,
-                style: textStyles.textLg,
-              ),
-              if (_isCorrection)
-                Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.s1),
-                  child: Text(
-                    cs.correctionSubtitle,
-                    style: textStyles.textXs.copyWith(
-                      color: colors.textSecondary,
-                    ),
+    // 统一弹层骨架（封顶 90% + 表单内滚 + 保存按钮常驻底部——真机走查：
+    // 字段多/键盘弹起时保存按钮曾随内容滚出可视区）。
+    return AppBottomSheet(
+      bottomBar: FilledButton(
+        onPressed: _saving ? null : () => unawaited(_onSave()),
+        style: FilledButton.styleFrom(
+          backgroundColor: colors.brandPrimary,
+          minimumSize: const Size.fromHeight(AppSpacing.s12),
+        ),
+        child: Text(
+          _isCorrection
+              ? cs.correctionSubmit
+              : _isEdit
+              ? cs.editSave
+              : cs.saveAction,
+          style: textStyles.textBase,
+        ),
+      ),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              _isCorrection
+                  ? cs.correctionTitle
+                  : _isEdit
+                  ? cs.editTitle
+                  : cs.title,
+              style: textStyles.textLg,
+            ),
+            if (_isCorrection)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s1),
+                child: Text(
+                  cs.correctionSubtitle,
+                  style: textStyles.textXs.copyWith(
+                    color: colors.textSecondary,
                   ),
                 ),
-              const SizedBox(height: AppSpacing.s4),
-              TextFormField(
-                controller: _nameController,
-                style: textStyles.textBase,
-                decoration: _fieldDecoration(colors, radii, cs.nameLabel),
-                validator: (value) =>
-                    (value ?? '').trim().isEmpty ? cs.nameRequired : null,
               ),
-              if (!_isCorrection) ...<Widget>[
-                const SizedBox(height: AppSpacing.s3),
-                TextFormField(
-                  controller: _aliasController,
-                  style: textStyles.textBase,
-                  decoration: _fieldDecoration(colors, radii, cs.aliasLabel),
+            const SizedBox(height: AppSpacing.s4),
+            TextFormField(
+              controller: _nameController,
+              style: textStyles.textBase,
+              decoration: _fieldDecoration(colors, radii, cs.nameLabel),
+              validator: (value) =>
+                  (value ?? '').trim().isEmpty ? cs.nameRequired : null,
+            ),
+            if (!_isCorrection) ...<Widget>[
+              const SizedBox(height: AppSpacing.s3),
+              TextFormField(
+                controller: _aliasController,
+                style: textStyles.textBase,
+                decoration: _fieldDecoration(colors, radii, cs.aliasLabel),
+              ),
+              const SizedBox(height: AppSpacing.s3),
+              // AI 估算按钮（≥44px；在途转 loading 防连点）。
+              OutlinedButton.icon(
+                onPressed: _estimating ? null : () => unawaited(_onEstimate()),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(AppSpacing.s12),
+                  foregroundColor: colors.brandPrimary,
+                  side: BorderSide(color: colors.brandPrimary),
                 ),
-                const SizedBox(height: AppSpacing.s3),
-                // AI 估算按钮（≥44px；在途转 loading 防连点）。
-                OutlinedButton.icon(
-                  onPressed: _estimating
+                icon: _estimating
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colors.brandPrimary,
+                        ),
+                      )
+                    : const Icon(Icons.auto_awesome_outlined),
+                label: Text(
+                  _estimating ? cs.estimating : cs.estimate,
+                  style: textStyles.textBase,
+                ),
+              ),
+            ],
+            // 拍营养表（端侧 OCR 可用时才渲染；不可用隐藏不误导）。
+            if (!_isCorrection &&
+                ref.watch(nutritionLabelOcrServiceProvider) != null)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s2),
+                child: OutlinedButton.icon(
+                  onPressed: _ocrReading
                       ? null
-                      : () => unawaited(_onEstimate()),
+                      : () => unawaited(_onPhotoOcr()),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(AppSpacing.s12),
                     foregroundColor: colors.brandPrimary,
                     side: BorderSide(color: colors.brandPrimary),
                   ),
-                  icon: _estimating
+                  icon: _ocrReading
                       ? SizedBox(
                           width: 18,
                           height: 18,
@@ -626,167 +660,119 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                             color: colors.brandPrimary,
                           ),
                         )
-                      : const Icon(Icons.auto_awesome_outlined),
+                      : const Icon(Icons.document_scanner_outlined),
                   label: Text(
-                    _estimating ? cs.estimating : cs.estimate,
+                    _ocrReading ? cs.photoOcrReading : cs.photoOcr,
                     style: textStyles.textBase,
                   ),
                 ),
-              ],
-              // 拍营养表（端侧 OCR 可用时才渲染；不可用隐藏不误导）。
-              if (!_isCorrection &&
-                  ref.watch(nutritionLabelOcrServiceProvider) != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.s2),
-                  child: OutlinedButton.icon(
-                    onPressed: _ocrReading
-                        ? null
-                        : () => unawaited(_onPhotoOcr()),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(AppSpacing.s12),
-                      foregroundColor: colors.brandPrimary,
-                      side: BorderSide(color: colors.brandPrimary),
-                    ),
-                    icon: _ocrReading
-                        ? SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: colors.brandPrimary,
-                            ),
-                          )
-                        : const Icon(Icons.document_scanner_outlined),
-                    label: Text(
-                      _ocrReading ? cs.photoOcrReading : cs.photoOcr,
-                      style: textStyles.textBase,
-                    ),
+              ),
+            // 估算不可用降级提示（双语，不阻断手动填写）。
+            if (_estimateUnavailable)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s2),
+                child: Text(
+                  cs.estimateUnavailable,
+                  style: textStyles.textSm.copyWith(
+                    color: colors.textSecondary,
                   ),
                 ),
-              // 估算不可用降级提示（双语，不阻断手动填写）。
-              if (_estimateUnavailable)
-                Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.s2),
-                  child: Text(
-                    cs.estimateUnavailable,
-                    style: textStyles.textSm.copyWith(
-                      color: colors.textSecondary,
-                    ),
+              ),
+            // 估算徽标按来源两态（端侧/自定义 API 一眼可辨）；
+            // low 置信度 / 端侧 dubious 额外提示核对（文案按来源区分）。
+            if (_estimateApplied)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s3),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s3,
+                    vertical: AppSpacing.s2,
                   ),
-                ),
-              // 估算徽标按来源两态（端侧/自定义 API 一眼可辨）；
-              // low 置信度 / 端侧 dubious 额外提示核对（文案按来源区分）。
-              if (_estimateApplied)
-                Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.s3),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.s3,
-                      vertical: AppSpacing.s2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colors.brandAccent,
-                      borderRadius: radii.rSm,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
+                  decoration: BoxDecoration(
+                    color: colors.brandAccent,
+                    borderRadius: radii.rSm,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        switch (_estimateSource) {
+                          FoodEstimateSource.ondevice =>
+                            cs.estimateBadgeOnDevice,
+                          FoodEstimateSource.userApi => cs.estimateBadgeUserApi,
+                          FoodEstimateSource.photoOcr => cs.estimateBadgeOcr,
+                        },
+                        style: textStyles.textSm.copyWith(
+                          color: colors.bgSecondary,
+                        ),
+                      ),
+                      if (_estimateLow)
                         Text(
-                          switch (_estimateSource) {
-                            FoodEstimateSource.ondevice =>
-                              cs.estimateBadgeOnDevice,
-                            FoodEstimateSource.userApi =>
-                              cs.estimateBadgeUserApi,
-                            FoodEstimateSource.photoOcr => cs.estimateBadgeOcr,
-                          },
-                          style: textStyles.textSm.copyWith(
+                          _estimateSource == FoodEstimateSource.ondevice
+                              ? cs.estimateDubious
+                              : cs.estimateLow,
+                          style: textStyles.textXs.copyWith(
                             color: colors.bgSecondary,
                           ),
                         ),
-                        if (_estimateLow)
-                          Text(
-                            _estimateSource == FoodEstimateSource.ondevice
-                                ? cs.estimateDubious
-                                : cs.estimateLow,
-                            style: textStyles.textXs.copyWith(
-                              color: colors.bgSecondary,
-                            ),
-                          ),
-                      ],
-                    ),
+                    ],
                   ),
                 ),
-              const SizedBox(height: AppSpacing.s3),
-              // 四营养输入（每 100g；全部必填 >0，热量 ≤900 / 宏量 ≤100）。
-              TextFormField(
-                controller: _kcalController,
-                keyboardType: numberKeyboard,
-                inputFormatters: numberFormatters,
-                style: textStyles.textBase,
-                decoration: _fieldDecoration(colors, radii, cs.kcalLabel),
-                validator: _nutritionValidator(cs, 900, cs.kcalRange),
-                onChanged: _onNutritionEdited,
               ),
-              const SizedBox(height: AppSpacing.s3),
-              TextFormField(
-                controller: _proteinController,
-                keyboardType: numberKeyboard,
-                inputFormatters: numberFormatters,
-                style: textStyles.textBase,
-                decoration: _fieldDecoration(colors, radii, cs.proteinLabel),
-                validator: _nutritionValidator(cs, 100, cs.macroRange),
-                onChanged: _onNutritionEdited,
+            const SizedBox(height: AppSpacing.s3),
+            // 四营养输入（每 100g；全部必填 >0，热量 ≤900 / 宏量 ≤100）。
+            TextFormField(
+              controller: _kcalController,
+              keyboardType: numberKeyboard,
+              inputFormatters: numberFormatters,
+              style: textStyles.textBase,
+              decoration: _fieldDecoration(colors, radii, cs.kcalLabel),
+              validator: _nutritionValidator(cs, 900, cs.kcalRange),
+              onChanged: _onNutritionEdited,
+            ),
+            const SizedBox(height: AppSpacing.s3),
+            TextFormField(
+              controller: _proteinController,
+              keyboardType: numberKeyboard,
+              inputFormatters: numberFormatters,
+              style: textStyles.textBase,
+              decoration: _fieldDecoration(colors, radii, cs.proteinLabel),
+              validator: _nutritionValidator(cs, 100, cs.macroRange),
+              onChanged: _onNutritionEdited,
+            ),
+            const SizedBox(height: AppSpacing.s3),
+            TextFormField(
+              controller: _carbController,
+              keyboardType: numberKeyboard,
+              inputFormatters: numberFormatters,
+              style: textStyles.textBase,
+              decoration: _fieldDecoration(colors, radii, cs.carbLabel),
+              validator: _nutritionValidator(cs, 100, cs.macroRange),
+              onChanged: _onNutritionEdited,
+            ),
+            const SizedBox(height: AppSpacing.s3),
+            TextFormField(
+              controller: _fatController,
+              keyboardType: numberKeyboard,
+              inputFormatters: numberFormatters,
+              style: textStyles.textBase,
+              decoration: _fieldDecoration(colors, radii, cs.fatLabel),
+              validator: _nutritionValidator(cs, 100, cs.macroRange),
+              onChanged: _onNutritionEdited,
+            ),
+            const SizedBox(height: AppSpacing.s3),
+            // 贡献开关（默认不勾）：保存成功后提交共享候选审核。
+            // 编辑态不做分享：分享走详情页按钮（此处勾选仅针对新建）。
+            if (!_isCorrection && !_isEdit)
+              CheckboxListTile(
+                value: _shareToAll,
+                onChanged: (value) =>
+                    setState(() => _shareToAll = value ?? false),
+                title: Text(cs.shareOptIn, style: textStyles.textSm),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
               ),
-              const SizedBox(height: AppSpacing.s3),
-              TextFormField(
-                controller: _carbController,
-                keyboardType: numberKeyboard,
-                inputFormatters: numberFormatters,
-                style: textStyles.textBase,
-                decoration: _fieldDecoration(colors, radii, cs.carbLabel),
-                validator: _nutritionValidator(cs, 100, cs.macroRange),
-                onChanged: _onNutritionEdited,
-              ),
-              const SizedBox(height: AppSpacing.s3),
-              TextFormField(
-                controller: _fatController,
-                keyboardType: numberKeyboard,
-                inputFormatters: numberFormatters,
-                style: textStyles.textBase,
-                decoration: _fieldDecoration(colors, radii, cs.fatLabel),
-                validator: _nutritionValidator(cs, 100, cs.macroRange),
-                onChanged: _onNutritionEdited,
-              ),
-              const SizedBox(height: AppSpacing.s3),
-              // 贡献开关（默认不勾）：保存成功后提交共享候选审核。
-              // 编辑态不做分享：分享走详情页按钮（此处勾选仅针对新建）。
-              if (!_isCorrection && !_isEdit)
-                CheckboxListTile(
-                  value: _shareToAll,
-                  onChanged: (value) =>
-                      setState(() => _shareToAll = value ?? false),
-                  title: Text(cs.shareOptIn, style: textStyles.textSm),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              const SizedBox(height: AppSpacing.s4),
-              FilledButton(
-                onPressed: _saving ? null : () => unawaited(_onSave()),
-                style: FilledButton.styleFrom(
-                  backgroundColor: colors.brandPrimary,
-                  minimumSize: const Size.fromHeight(AppSpacing.s12),
-                ),
-                child: Text(
-                  _isCorrection
-                      ? cs.correctionSubmit
-                      : _isEdit
-                      ? cs.editSave
-                      : cs.saveAction,
-                  style: textStyles.textBase,
-                ),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );

@@ -9,6 +9,7 @@ import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/app_bottom_sheet.dart';
 import 'package:eatwise/features/health/application/exercise_log_providers.dart';
 import 'package:eatwise/features/health/data/exercise_log_repository.dart';
 import 'package:eatwise/features/health/domain/exercise_types.dart';
@@ -247,194 +248,177 @@ class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
     final todayLogs =
         ref.watch(todayExerciseLogsProvider).value ?? const <ExerciseLog>[];
 
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: AppSpacing.s4,
-          right: AppSpacing.s4,
-          top: AppSpacing.s4,
-          bottom: AppSpacing.s4 + MediaQuery.viewInsetsOf(context).bottom,
+    // 统一弹层骨架（封顶 90% + 内容内滚 + 保存按钮常驻底部——真机走查：
+    // 类型 chips 多/今日列表长/键盘弹起时保存按钮曾随内容滚出可视区）。
+    return AppBottomSheet(
+      bottomBar: FilledButton(
+        key: const ValueKey<String>('exercise.save'),
+        onPressed: () => unawaited(_save(t)),
+        style: FilledButton.styleFrom(
+          backgroundColor: colors.brandPrimary,
+          minimumSize: const Size.fromHeight(AppSpacing.s12),
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: Text(t.record.page.confirm, style: textStyles.textBase),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(t.record.exercise.title, style: textStyles.textLg),
+          const SizedBox(height: AppSpacing.s2),
+          // 截图导入入口（华为运动健康「我的数据」/单次运动记录截图 →
+          // 端侧视觉识别 → 可编辑确认弹层；复用拍照记选图通道）。
+          Row(
             children: <Widget>[
-              Text(t.record.exercise.title, style: textStyles.textLg),
-              const SizedBox(height: AppSpacing.s2),
-              // 截图导入入口（华为运动健康「我的数据」/单次运动记录截图 →
-              // 端侧视觉识别 → 可编辑确认弹层；复用拍照记选图通道）。
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      key: const ValueKey<String>('exercise.screenshot.camera'),
-                      onPressed: () => unawaited(
-                        startExerciseScreenshotImport(
-                          context,
-                          ref,
-                          PhotoSource.camera,
-                        ),
-                      ),
-                      icon: const Icon(Icons.photo_camera_outlined, size: 18),
-                      label: Text(
-                        t.record.exercise.screenshot.entryCamera,
-                        style: textStyles.textSm,
-                      ),
+              Expanded(
+                child: OutlinedButton.icon(
+                  key: const ValueKey<String>('exercise.screenshot.camera'),
+                  onPressed: () => unawaited(
+                    startExerciseScreenshotImport(
+                      context,
+                      ref,
+                      PhotoSource.camera,
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.s2),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      key: const ValueKey<String>(
-                        'exercise.screenshot.gallery',
-                      ),
-                      onPressed: () => unawaited(
-                        startExerciseScreenshotImport(
-                          context,
-                          ref,
-                          PhotoSource.gallery,
-                        ),
-                      ),
-                      icon: const Icon(Icons.photo_library_outlined, size: 18),
-                      label: Text(
-                        t.record.exercise.screenshot.entryGallery,
-                        style: textStyles.textSm,
-                      ),
+                  icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                  label: Text(
+                    t.record.exercise.screenshot.entryCamera,
+                    style: textStyles.textSm,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s2),
+              Expanded(
+                child: OutlinedButton.icon(
+                  key: const ValueKey<String>('exercise.screenshot.gallery'),
+                  onPressed: () => unawaited(
+                    startExerciseScreenshotImport(
+                      context,
+                      ref,
+                      PhotoSource.gallery,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.s3),
-              Text(
-                t.record.exercise.typeLabel,
-                style: textStyles.textSm.copyWith(color: colors.textSecondary),
-              ),
-              const SizedBox(height: AppSpacing.s1),
-              // 类型 chips 单选。
-              Wrap(
-                spacing: AppSpacing.s2,
-                runSpacing: AppSpacing.s1,
-                children: <Widget>[
-                  for (final type in exerciseTypes)
-                    ChoiceChip(
-                      key: ValueKey<String>('exercise.type.${type.key}'),
-                      label: Text(exerciseTypeName(t, type.key)),
-                      selected: _type.key == type.key,
-                      onSelected: (_) {
-                        setState(() {
-                          _type = type;
-                          _error = null;
-                        });
-                        _recomputeEstimate();
-                      },
-                    ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.s3),
-              // 时长（分钟）。
-              TextField(
-                key: const ValueKey<String>('exercise.duration'),
-                controller: _durationController,
-                keyboardType: TextInputType.number,
-                style: textStyles.textBase,
-                onChanged: (_) {
-                  setState(() => _error = null);
-                  _recomputeEstimate();
-                },
-                decoration: InputDecoration(
-                  labelText: t.record.exercise.durationLabel,
-                  filled: true,
-                  fillColor: colors.bgSecondary,
-                  border: OutlineInputBorder(
-                    borderRadius: radii.rMd,
-                    borderSide: BorderSide.none,
+                  icon: const Icon(Icons.photo_library_outlined, size: 18),
+                  label: Text(
+                    t.record.exercise.screenshot.entryGallery,
+                    style: textStyles.textSm,
                   ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.s2),
-              // 走路专属：步数录入（填了则按步数估算距离与热量，时长可留空）。
-              if (_type.key == 'walk') ...<Widget>[
-                TextField(
-                  key: const ValueKey<String>('exercise.steps'),
-                  controller: _stepsController,
-                  keyboardType: TextInputType.number,
-                  style: textStyles.textBase,
-                  onChanged: (_) {
-                    setState(() => _error = null);
-                    _recomputeEstimate();
-                  },
-                  decoration: InputDecoration(
-                    labelText: t.record.exercise.stepsLabel,
-                    helperText: t.record.exercise.stepsEstimateHint,
-                    filled: true,
-                    fillColor: colors.bgSecondary,
-                    border: OutlineInputBorder(
-                      borderRadius: radii.rMd,
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.s2),
-              ],
-              // 预估消耗（可编辑覆盖）。
-              TextField(
-                key: const ValueKey<String>('exercise.kcal'),
-                controller: _kcalController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                style: textStyles.textBase,
-                onChanged: (_) {
-                  _kcalOverridden = true;
-                  setState(() => _error = null);
-                },
-                decoration: InputDecoration(
-                  labelText: t.record.exercise.kcalLabel,
-                  errorText: _error,
-                  filled: true,
-                  fillColor: colors.bgSecondary,
-                  border: OutlineInputBorder(
-                    borderRadius: radii.rMd,
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              // 档案未填体重 → 按 60kg 估算标注。
-              if (_profileWeightKg == null) ...<Widget>[
-                const SizedBox(height: AppSpacing.s1),
-                Text(
-                  t.record.exercise.estimatedWeightHint,
-                  style: textStyles.textXs.copyWith(
-                    color: colors.textSecondary,
-                  ),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.s3),
-              FilledButton(
-                key: const ValueKey<String>('exercise.save'),
-                onPressed: () => unawaited(_save(t)),
-                style: FilledButton.styleFrom(
-                  backgroundColor: colors.brandPrimary,
-                  minimumSize: const Size.fromHeight(AppSpacing.s12),
-                ),
-                child: Text(t.record.page.confirm, style: textStyles.textBase),
-              ),
-              // 今日运动列表（可删）。
-              if (todayLogs.isNotEmpty) ...<Widget>[
-                const SizedBox(height: AppSpacing.s4),
-                Text(
-                  t.record.exercise.todayList,
-                  style: textStyles.textSm.copyWith(
-                    color: colors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.s1),
-                for (final log in todayLogs) _TodayExerciseTile(log: log, t: t),
-              ],
             ],
           ),
-        ),
+          const SizedBox(height: AppSpacing.s3),
+          Text(
+            t.record.exercise.typeLabel,
+            style: textStyles.textSm.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.s1),
+          // 类型 chips 单选。
+          Wrap(
+            spacing: AppSpacing.s2,
+            runSpacing: AppSpacing.s1,
+            children: <Widget>[
+              for (final type in exerciseTypes)
+                ChoiceChip(
+                  key: ValueKey<String>('exercise.type.${type.key}'),
+                  label: Text(exerciseTypeName(t, type.key)),
+                  selected: _type.key == type.key,
+                  onSelected: (_) {
+                    setState(() {
+                      _type = type;
+                      _error = null;
+                    });
+                    _recomputeEstimate();
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s3),
+          // 时长（分钟）。
+          TextField(
+            key: const ValueKey<String>('exercise.duration'),
+            controller: _durationController,
+            keyboardType: TextInputType.number,
+            style: textStyles.textBase,
+            onChanged: (_) {
+              setState(() => _error = null);
+              _recomputeEstimate();
+            },
+            decoration: InputDecoration(
+              labelText: t.record.exercise.durationLabel,
+              filled: true,
+              fillColor: colors.bgSecondary,
+              border: OutlineInputBorder(
+                borderRadius: radii.rMd,
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s2),
+          // 走路专属：步数录入（填了则按步数估算距离与热量，时长可留空）。
+          if (_type.key == 'walk') ...<Widget>[
+            TextField(
+              key: const ValueKey<String>('exercise.steps'),
+              controller: _stepsController,
+              keyboardType: TextInputType.number,
+              style: textStyles.textBase,
+              onChanged: (_) {
+                setState(() => _error = null);
+                _recomputeEstimate();
+              },
+              decoration: InputDecoration(
+                labelText: t.record.exercise.stepsLabel,
+                helperText: t.record.exercise.stepsEstimateHint,
+                filled: true,
+                fillColor: colors.bgSecondary,
+                border: OutlineInputBorder(
+                  borderRadius: radii.rMd,
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s2),
+          ],
+          // 预估消耗（可编辑覆盖）。
+          TextField(
+            key: const ValueKey<String>('exercise.kcal'),
+            controller: _kcalController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: textStyles.textBase,
+            onChanged: (_) {
+              _kcalOverridden = true;
+              setState(() => _error = null);
+            },
+            decoration: InputDecoration(
+              labelText: t.record.exercise.kcalLabel,
+              errorText: _error,
+              filled: true,
+              fillColor: colors.bgSecondary,
+              border: OutlineInputBorder(
+                borderRadius: radii.rMd,
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          // 档案未填体重 → 按 60kg 估算标注。
+          if (_profileWeightKg == null) ...<Widget>[
+            const SizedBox(height: AppSpacing.s1),
+            Text(
+              t.record.exercise.estimatedWeightHint,
+              style: textStyles.textXs.copyWith(color: colors.textSecondary),
+            ),
+          ],
+          // 今日运动列表（可删）。
+          if (todayLogs.isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppSpacing.s4),
+            Text(
+              t.record.exercise.todayList,
+              style: textStyles.textSm.copyWith(color: colors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.s1),
+            for (final log in todayLogs) _TodayExerciseTile(log: log, t: t),
+          ],
+        ],
       ),
     );
   }

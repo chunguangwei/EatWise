@@ -18,6 +18,7 @@ import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/app_bottom_sheet.dart';
 import 'package:eatwise/features/health/application/exercise_log_providers.dart';
 import 'package:eatwise/features/health/data/exercise_log_repository.dart';
 import 'package:eatwise/features/health/data/exercise_screenshot_service.dart';
@@ -286,12 +287,8 @@ Future<ExerciseSaveResult?> showExerciseScreenshotConfirmSheet(
   return showModalBottomSheet<ExerciseSaveResult>(
     context: context,
     isScrollControlled: true,
-    builder: (sheetContext) => Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-      ),
-      child: ExerciseScreenshotConfirmSheet(data: data),
-    ),
+    // 键盘避让已收进 AppBottomSheet 骨架（外层再垫会双倍扣高）。
+    builder: (_) => ExerciseScreenshotConfirmSheet(data: data),
   );
 }
 
@@ -481,139 +478,133 @@ class _ExerciseScreenshotConfirmSheetState
       ),
     );
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.s4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              _isSummary
-                  ? t.record.exercise.screenshot.confirmTitleSummary
-                  : t.record.exercise.screenshot.confirmTitleWorkout,
-              style: textStyles.textLg,
-            ),
-            const SizedBox(height: AppSpacing.s3),
-            if (_isSummary) ...<Widget>[
-              // 汇总页字段：步数/距离/爬楼/活动热量（全部可编辑；爬楼仅展示）。
-              TextField(
-                key: const ValueKey<String>('screenshot.steps'),
-                controller: _stepsController,
-                keyboardType: TextInputType.number,
-                style: textStyles.textBase,
-                decoration: deco(t.record.exercise.screenshot.stepsLabel),
-                onChanged: (_) => _recomputeKcal(),
-              ),
-              const SizedBox(height: AppSpacing.s2),
-              TextField(
-                key: const ValueKey<String>('screenshot.distance'),
-                controller: _distanceController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                style: textStyles.textBase,
-                decoration: deco(t.record.exercise.screenshot.distanceLabel),
-                onChanged: (_) => _recomputeKcal(),
-              ),
-              const SizedBox(height: AppSpacing.s2),
-              TextField(
-                key: const ValueKey<String>('screenshot.floors'),
-                controller: _floorsController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                style: textStyles.textBase,
-                decoration: deco(t.record.exercise.screenshot.floorsLabel),
-              ),
-              const SizedBox(height: AppSpacing.s2),
-              TextField(
-                key: const ValueKey<String>('screenshot.activeKcal'),
-                controller: _activeKcalController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                style: textStyles.textBase,
-                decoration: deco(t.record.exercise.screenshot.activeKcalLabel),
-                onChanged: (_) => _recomputeKcal(),
-              ),
-            ] else ...<Widget>[
-              // 单次运动字段：类型 chips（other 未选中须手选）+ 时长。
-              Wrap(
-                spacing: AppSpacing.s2,
-                runSpacing: AppSpacing.s1,
-                children: <Widget>[
-                  for (final type in exerciseTypes)
-                    ChoiceChip(
-                      key: ValueKey<String>('screenshot.type.${type.key}'),
-                      label: Text(exerciseTypeName(t, type.key)),
-                      selected: _selectedType?.key == type.key,
-                      onSelected: (_) {
-                        setState(() {
-                          _selectedType = type;
-                          _error = null;
-                        });
-                        _recomputeKcal();
-                      },
-                    ),
-                ],
-              ),
-              if (widget.data.exerciseTypeKey == 'other') ...<Widget>[
-                const SizedBox(height: AppSpacing.s1),
-                Text(
-                  t.record.exercise.screenshot.pickTypeHint,
-                  style: textStyles.textXs.copyWith(
-                    color: colors.textSecondary,
-                  ),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.s2),
-              TextField(
-                key: const ValueKey<String>('screenshot.duration'),
-                controller: _durationController,
-                keyboardType: TextInputType.number,
-                style: textStyles.textBase,
-                decoration: deco(t.record.exercise.durationLabel),
-                onChanged: (_) => _recomputeKcal(),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.s2),
-            // 计入消耗（可编辑覆盖；未手改时随上方字段联动）。
+    // 统一弹层骨架（封顶 90% + 字段内滚 + 确认按钮常驻底部——真机走查：
+    // 类型 chips 多/键盘弹起时确认按钮曾随内容滚出可视区）。
+    return AppBottomSheet(
+      bottomBar: FilledButton(
+        key: const ValueKey<String>('screenshot.save'),
+        onPressed: () => unawaited(_save(t)),
+        style: FilledButton.styleFrom(
+          backgroundColor: colors.brandPrimary,
+          minimumSize: const Size.fromHeight(AppSpacing.s12),
+        ),
+        child: Text(t.record.page.confirm, style: textStyles.textBase),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            _isSummary
+                ? t.record.exercise.screenshot.confirmTitleSummary
+                : t.record.exercise.screenshot.confirmTitleWorkout,
+            style: textStyles.textLg,
+          ),
+          const SizedBox(height: AppSpacing.s3),
+          if (_isSummary) ...<Widget>[
+            // 汇总页字段：步数/距离/爬楼/活动热量（全部可编辑；爬楼仅展示）。
             TextField(
-              key: const ValueKey<String>('screenshot.kcal'),
-              controller: _kcalController,
+              key: const ValueKey<String>('screenshot.steps'),
+              controller: _stepsController,
+              keyboardType: TextInputType.number,
+              style: textStyles.textBase,
+              decoration: deco(t.record.exercise.screenshot.stepsLabel),
+              onChanged: (_) => _recomputeKcal(),
+            ),
+            const SizedBox(height: AppSpacing.s2),
+            TextField(
+              key: const ValueKey<String>('screenshot.distance'),
+              controller: _distanceController,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
               style: textStyles.textBase,
-              decoration: deco(
-                t.record.exercise.screenshot.burnLabel,
-              ).copyWith(errorText: _error),
-              onChanged: (_) {
-                _kcalOverridden = true;
-                setState(() => _error = null);
-              },
+              decoration: deco(t.record.exercise.screenshot.distanceLabel),
+              onChanged: (_) => _recomputeKcal(),
             ),
-            // 估算标注（60kg 兜底 / MET / 步数口径）。
-            if (_profileWeightKg == null) ...<Widget>[
+            const SizedBox(height: AppSpacing.s2),
+            TextField(
+              key: const ValueKey<String>('screenshot.floors'),
+              controller: _floorsController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: textStyles.textBase,
+              decoration: deco(t.record.exercise.screenshot.floorsLabel),
+            ),
+            const SizedBox(height: AppSpacing.s2),
+            TextField(
+              key: const ValueKey<String>('screenshot.activeKcal'),
+              controller: _activeKcalController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: textStyles.textBase,
+              decoration: deco(t.record.exercise.screenshot.activeKcalLabel),
+              onChanged: (_) => _recomputeKcal(),
+            ),
+          ] else ...<Widget>[
+            // 单次运动字段：类型 chips（other 未选中须手选）+ 时长。
+            Wrap(
+              spacing: AppSpacing.s2,
+              runSpacing: AppSpacing.s1,
+              children: <Widget>[
+                for (final type in exerciseTypes)
+                  ChoiceChip(
+                    key: ValueKey<String>('screenshot.type.${type.key}'),
+                    label: Text(exerciseTypeName(t, type.key)),
+                    selected: _selectedType?.key == type.key,
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedType = type;
+                        _error = null;
+                      });
+                      _recomputeKcal();
+                    },
+                  ),
+              ],
+            ),
+            if (widget.data.exerciseTypeKey == 'other') ...<Widget>[
               const SizedBox(height: AppSpacing.s1),
               Text(
-                t.record.exercise.estimatedWeightHint,
+                t.record.exercise.screenshot.pickTypeHint,
                 style: textStyles.textXs.copyWith(color: colors.textSecondary),
               ),
             ],
-            const SizedBox(height: AppSpacing.s3),
-            FilledButton(
-              key: const ValueKey<String>('screenshot.save'),
-              onPressed: () => unawaited(_save(t)),
-              style: FilledButton.styleFrom(
-                backgroundColor: colors.brandPrimary,
-                minimumSize: const Size.fromHeight(AppSpacing.s12),
-              ),
-              child: Text(t.record.page.confirm, style: textStyles.textBase),
+            const SizedBox(height: AppSpacing.s2),
+            TextField(
+              key: const ValueKey<String>('screenshot.duration'),
+              controller: _durationController,
+              keyboardType: TextInputType.number,
+              style: textStyles.textBase,
+              decoration: deco(t.record.exercise.durationLabel),
+              onChanged: (_) => _recomputeKcal(),
             ),
           ],
-        ),
+          const SizedBox(height: AppSpacing.s2),
+          // 计入消耗（可编辑覆盖；未手改时随上方字段联动）。
+          TextField(
+            key: const ValueKey<String>('screenshot.kcal'),
+            controller: _kcalController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: textStyles.textBase,
+            decoration: deco(
+              t.record.exercise.screenshot.burnLabel,
+            ).copyWith(errorText: _error),
+            onChanged: (_) {
+              _kcalOverridden = true;
+              setState(() => _error = null);
+            },
+          ),
+          // 估算标注（60kg 兜底 / MET / 步数口径）。
+          if (_profileWeightKg == null) ...<Widget>[
+            const SizedBox(height: AppSpacing.s1),
+            Text(
+              t.record.exercise.estimatedWeightHint,
+              style: textStyles.textXs.copyWith(color: colors.textSecondary),
+            ),
+          ],
+        ],
       ),
     );
   }

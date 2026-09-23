@@ -406,60 +406,63 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                 // 故不放搜索框右侧图标（与三入口同排样式，层级一致）。
                 // 薄荷走查 P2：拍照记为最高频 AI 入口，主色描边 + 浅主色底
                 // 提升视觉权重，其余三格保持原样。
-                Padding(
-                  padding: const EdgeInsets.all(AppSpacing.s4),
-                  child: Row(
-                    children: <Widget>[
-                      _EntryCard(
-                        icon: Icons.photo_camera_outlined,
-                        label: s.entryPhoto,
-                        highlighted: true,
-                        onTap: () => _onEntryTap(
-                          'camera',
-                          () => unawaited(startPhotoRecognition(context, ref)),
+                // 键盘弹起时整行让位结果卡主流程（小屏 + 键盘下非 flex 兄弟
+                // 会挤压结果卡把确认按钮顶出屏，真机走查）。
+                if (!keyboardVisible)
+                  Padding(
+                    padding: const EdgeInsets.all(AppSpacing.s4),
+                    child: Row(
+                      children: <Widget>[
+                        _EntryCard(
+                          icon: Icons.photo_camera_outlined,
+                          label: s.entryPhoto,
+                          highlighted: true,
+                          onTap: () => _onEntryTap(
+                            'camera',
+                            () =>
+                                unawaited(startPhotoRecognition(context, ref)),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: AppSpacing.s2),
-                      _EntryCard(
-                        icon: Icons.mic_none_outlined,
-                        label: s.entryVoice,
-                        onTap: () => _onEntryTap(
-                          'voice',
-                          () => unawaited(startVoiceInput(context, ref)),
+                        const SizedBox(width: AppSpacing.s2),
+                        _EntryCard(
+                          icon: Icons.mic_none_outlined,
+                          label: s.entryVoice,
+                          onTap: () => _onEntryTap(
+                            'voice',
+                            () => unawaited(startVoiceInput(context, ref)),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: AppSpacing.s2),
-                      _EntryCard(
-                        icon: Icons.favorite_border_outlined,
-                        label: s.entryFrequent,
-                        onTap: () => _onEntryTap(
-                          'frequent',
-                          () => unawaited(startFrequentPick(context)),
+                        const SizedBox(width: AppSpacing.s2),
+                        _EntryCard(
+                          icon: Icons.favorite_border_outlined,
+                          label: s.entryFrequent,
+                          onTap: () => _onEntryTap(
+                            'frequent',
+                            () => unawaited(startFrequentPick(context)),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: AppSpacing.s2),
-                      _EntryCard(
-                        icon: Icons.qr_code_scanner_outlined,
-                        label: BarcodeStrings.of(context).entry,
-                        onTap: () => _onEntryTap(
-                          'barcode',
-                          () => unawaited(startBarcodeScan(context, ref)),
+                        const SizedBox(width: AppSpacing.s2),
+                        _EntryCard(
+                          icon: Icons.qr_code_scanner_outlined,
+                          label: BarcodeStrings.of(context).entry,
+                          onTap: () => _onEntryTap(
+                            'barcode',
+                            () => unawaited(startBarcodeScan(context, ref)),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: AppSpacing.s2),
-                      // 记运动（无 GMS 设备手动兜底；设备级纯本地不上行）。
-                      _EntryCard(
-                        icon: Icons.directions_run_outlined,
-                        label: s.entryExercise,
-                        onTap: () => _onEntryTap(
-                          'exercise',
-                          () => unawaited(startExerciseLog(context, ref)),
+                        const SizedBox(width: AppSpacing.s2),
+                        // 记运动（无 GMS 设备手动兜底；设备级纯本地不上行）。
+                        _EntryCard(
+                          icon: Icons.directions_run_outlined,
+                          label: s.entryExercise,
+                          onTap: () => _onEntryTap(
+                            'exercise',
+                            () => unawaited(startExerciseLog(context, ref)),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                // 饮水 / 体重轻量记录区（PRD M3 功能点 4；空间不足时让位主流程）。
                 if (showLightSection) const LightRecordSection(),
                 // 食物搜索（双语匹配，D-15/D-16）。
                 Padding(
@@ -715,31 +718,30 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                   ),
                 // 可编辑识别结果卡（食物名 + 份量 + 实时营养预览 + 确认）。
                 if (selected != null)
-                  // 自然高度优先（Column 非 flex 子先布局，主操作不被挤压）；
-                  // 内容超过 90% 可用高度时内部滚动兜底——旧实现无上限时
-                  // 卡片溢出屏幕、确认按钮被裁半无法点击（真机走查）。
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxHeight: constraints.maxHeight * 0.9,
-                    ),
-                    child: SingleChildScrollView(
-                      child: _SelectedFoodCard(
-                        food: selected,
-                        isEn: isEn,
-                        amountController: _amountController,
-                        onConfirm: () => unawaited(_confirm(s)),
-                        onClose: () {
-                          ref.read(recordSelectedFoodProvider.notifier).state =
-                              null;
-                          ref.read(recordEntrySourceProvider.notifier).state =
-                              EntrySource.manual;
-                          ref.read(recordLowConfidenceProvider.notifier).state =
-                              false;
-                          ref.read(recordMealTypeProvider.notifier).state =
-                              null;
-                        },
-                        shadows: shadows,
-                      ),
+                  // 结果卡占剩余空间的大头（Flexible flex 3 vs 结果列表 1）：
+                  // 小屏/键盘顶起时卡内内容区内部滚动、确认按钮常驻卡底
+                  // （见 _SelectedFoodCard）。旧实现：无上限 → 卡片溢出屏幕、
+                  // 按钮被裁半（真机走查）；v1.13.9 ConstrainedBox(90%)+整卡
+                  // 内滚 → 键盘下非 flex 兄弟（入口行/搜索框）+ 卡仍超 body
+                  // 高，页面 Column 溢出、按钮随内容滚出卡可视区
+                  // （360x640+键盘复现）。
+                  Flexible(
+                    flex: 3,
+                    child: _SelectedFoodCard(
+                      food: selected,
+                      isEn: isEn,
+                      amountController: _amountController,
+                      onConfirm: () => unawaited(_confirm(s)),
+                      onClose: () {
+                        ref.read(recordSelectedFoodProvider.notifier).state =
+                            null;
+                        ref.read(recordEntrySourceProvider.notifier).state =
+                            EntrySource.manual;
+                        ref.read(recordLowConfidenceProvider.notifier).state =
+                            false;
+                        ref.read(recordMealTypeProvider.notifier).state = null;
+                      },
+                      shadows: shadows,
                     ),
                   ),
               ],
@@ -876,87 +878,108 @@ class _SelectedFoodCard extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          // 低置信度标「请确认」（PRD M3：不直接入账高风险结果）。
-          if (lowConfidence)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.s2),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.s2,
-                  vertical: AppSpacing.s1,
-                ),
-                decoration: BoxDecoration(
-                  color: colors.brandAccent,
-                  borderRadius: radii.rSm,
-                ),
-                child: Text(
-                  s.cardPleaseConfirm,
-                  style: textStyles.textXs.copyWith(color: colors.bgPrimary),
-                ),
+          // 内容区超高（小屏/大字体/键盘）内部滚动；确认按钮固定在滚动区外
+          // 常驻卡底——v1.13.9 封顶内滚后按钮仍可能随内容滚出（真机走查）。
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  // 低置信度标「请确认」（PRD M3：不直接入账高风险结果）。
+                  if (lowConfidence)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.s2,
+                          vertical: AppSpacing.s1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colors.brandAccent,
+                          borderRadius: radii.rSm,
+                        ),
+                        child: Text(
+                          s.cardPleaseConfirm,
+                          style: textStyles.textXs.copyWith(
+                            color: colors.bgPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          isEn ? food.nameEn : food.nameZh,
+                          style: textStyles.textLg,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: onClose,
+                        tooltip: s.confirm,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.s2),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    style: textStyles.textBase,
+                    decoration: InputDecoration(
+                      labelText: s.amountLabel,
+                      filled: true,
+                      fillColor: colors.bgPrimary,
+                      border: OutlineInputBorder(
+                        borderRadius: radii.rMd,
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    onChanged: (value) =>
+                        ref.read(recordAmountTextProvider.notifier).state =
+                            value,
+                  ),
+                  const SizedBox(height: AppSpacing.s2),
+                  // 份量修改 → 营养换算实时更新（US-3.1）。
+                  if (nutrition != null)
+                    Wrap(
+                      spacing: AppSpacing.s2,
+                      runSpacing: AppSpacing.s1,
+                      children: <Widget>[
+                        _NutritionChip(
+                          label: s.nutritionKcal,
+                          value: '${nutrition.kcal.round()} ${s.kcalUnit}',
+                        ),
+                        _NutritionChip(
+                          label: s.nutritionProtein,
+                          value:
+                              '${nutrition.proteinG.toStringAsFixed(1)} '
+                              '${s.gramUnit}',
+                        ),
+                        _NutritionChip(
+                          label: s.nutritionCarb,
+                          value:
+                              '${nutrition.carbG.toStringAsFixed(1)} '
+                              '${s.gramUnit}',
+                        ),
+                        _NutritionChip(
+                          label: s.nutritionFat,
+                          value:
+                              '${nutrition.fatG.toStringAsFixed(1)} '
+                              '${s.gramUnit}',
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: AppSpacing.s2),
+                  // 餐次选择（优化点 2：默认按当前时间智能预判，可点选修改）。
+                  const MealTypeChips(),
+                ],
               ),
             ),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  isEn ? food.nameEn : food.nameZh,
-                  style: textStyles.textLg,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: onClose,
-                tooltip: s.confirm,
-              ),
-            ],
           ),
-          const SizedBox(height: AppSpacing.s2),
-          TextField(
-            controller: amountController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: textStyles.textBase,
-            decoration: InputDecoration(
-              labelText: s.amountLabel,
-              filled: true,
-              fillColor: colors.bgPrimary,
-              border: OutlineInputBorder(
-                borderRadius: radii.rMd,
-                borderSide: BorderSide.none,
-              ),
-            ),
-            onChanged: (value) =>
-                ref.read(recordAmountTextProvider.notifier).state = value,
-          ),
-          const SizedBox(height: AppSpacing.s2),
-          // 份量修改 → 营养换算实时更新（US-3.1）。
-          if (nutrition != null)
-            Wrap(
-              spacing: AppSpacing.s2,
-              runSpacing: AppSpacing.s1,
-              children: <Widget>[
-                _NutritionChip(
-                  label: s.nutritionKcal,
-                  value: '${nutrition.kcal.round()} ${s.kcalUnit}',
-                ),
-                _NutritionChip(
-                  label: s.nutritionProtein,
-                  value:
-                      '${nutrition.proteinG.toStringAsFixed(1)} '
-                      '${s.gramUnit}',
-                ),
-                _NutritionChip(
-                  label: s.nutritionCarb,
-                  value: '${nutrition.carbG.toStringAsFixed(1)} ${s.gramUnit}',
-                ),
-                _NutritionChip(
-                  label: s.nutritionFat,
-                  value: '${nutrition.fatG.toStringAsFixed(1)} ${s.gramUnit}',
-                ),
-              ],
-            ),
-          const SizedBox(height: AppSpacing.s2),
-          // 餐次选择（优化点 2：默认按当前时间智能预判，可点选修改）。
-          const MealTypeChips(),
           const SizedBox(height: AppSpacing.s3),
           FilledButton(
             onPressed: onConfirm,

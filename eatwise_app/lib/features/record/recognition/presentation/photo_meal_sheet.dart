@@ -16,6 +16,7 @@ import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/app_bottom_sheet.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
@@ -59,15 +60,11 @@ Future<PhotoMealResult?> showPhotoMealConfirmSheet(
   return showModalBottomSheet<PhotoMealResult>(
     context: context,
     isScrollControlled: true,
-    builder: (sheetContext) => Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-      ),
-      child: PhotoMealConfirmSheet(
-        items: items,
-        entrySource: entrySource,
-        showRetake: showRetake,
-      ),
+    // 键盘避让已收进 AppBottomSheet 骨架（外层再垫会双倍扣高）。
+    builder: (_) => PhotoMealConfirmSheet(
+      items: items,
+      entrySource: entrySource,
+      showRetake: showRetake,
     ),
   );
 }
@@ -278,58 +275,53 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final radii = Theme.of(context).extension<AppRadii>()!;
 
-    return SafeArea(
-      // 与自定义食物弹层同款布局：整体可滚（条目多/键盘弹起时不溢出），
-      // 明细行少时自然贴合内容高度。
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.s4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Text(s.photoMealConfirmTitle, style: textStyles.textLg),
-            const SizedBox(height: AppSpacing.s3),
-            for (final row in _rows) ...<Widget>[
-              _buildRow(s, colors, textStyles, radii, row),
-              const SizedBox(height: AppSpacing.s2),
-            ],
-            // 餐次选择（与搜索确认卡/详情弹层同款；整批条目共用一个餐次）。
-            const MealTypeChips(),
-            const SizedBox(height: AppSpacing.s2),
-            const SizedBox(height: AppSpacing.s1),
-            Row(
-              children: <Widget>[
-                if (widget.showRetake)
-                  TextButton(
-                    onPressed: _saving
-                        ? null
-                        : () => Navigator.of(
-                            context,
-                          ).pop(const PhotoMealResult(retake: true)),
-                    child: Text(s.photoRetake),
-                  ),
-                TextButton(
-                  onPressed: _saving
-                      ? null
-                      : () =>
-                            Navigator.of(context).pop(const PhotoMealResult()),
-                  child: Text(s.cancelAction),
-                ),
-                const Spacer(),
-                FilledButton(
-                  onPressed: _saving || _rows.isEmpty
-                      ? null
-                      : () => unawaited(_logAll()),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: colors.brandPrimary,
-                    minimumSize: const Size(0, AppSpacing.s12),
-                  ),
-                  child: Text(s.photoLogAll, style: textStyles.textBase),
-                ),
-              ],
+    // 统一弹层骨架（封顶 90% + 明细内滚 + 动作行常驻底部——真机走查：
+    // 条目多/键盘弹起时「全部记录」曾随内容滚出可视区）。
+    return AppBottomSheet(
+      bottomBar: Row(
+        children: <Widget>[
+          if (widget.showRetake)
+            TextButton(
+              onPressed: _saving
+                  ? null
+                  : () => Navigator.of(
+                      context,
+                    ).pop(const PhotoMealResult(retake: true)),
+              child: Text(s.photoRetake),
             ),
+          TextButton(
+            onPressed: _saving
+                ? null
+                : () => Navigator.of(context).pop(const PhotoMealResult()),
+            child: Text(s.cancelAction),
+          ),
+          const Spacer(),
+          FilledButton(
+            onPressed: _saving || _rows.isEmpty
+                ? null
+                : () => unawaited(_logAll()),
+            style: FilledButton.styleFrom(
+              backgroundColor: colors.brandPrimary,
+              minimumSize: const Size(0, AppSpacing.s12),
+            ),
+            child: Text(s.photoLogAll, style: textStyles.textBase),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(s.photoMealConfirmTitle, style: textStyles.textLg),
+          const SizedBox(height: AppSpacing.s3),
+          for (final row in _rows) ...<Widget>[
+            _buildRow(s, colors, textStyles, radii, row),
+            const SizedBox(height: AppSpacing.s2),
           ],
-        ),
+          // 餐次选择（与搜索确认卡/详情弹层同款；整批条目共用一个餐次）。
+          const MealTypeChips(),
+          const SizedBox(height: AppSpacing.s2),
+        ],
       ),
     );
   }

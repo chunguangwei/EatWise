@@ -422,4 +422,42 @@ void main() {
     await tester.pump(const Duration(seconds: 11));
     await settleUi(tester);
   });
+
+  testWidgets('结果卡：小屏（360x640）+ 键盘，确认按钮常驻卡底在屏内可点（不再随内容滚出）', (tester) async {
+    await pumpPage(tester);
+
+    // 直接置选中态（绕过详情弹层）：选中白米饭 + 份量 100 → 结果卡出现。
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordPage)),
+    );
+    final food = (await repository.searchFoods('米饭')).first;
+    container.read(recordSelectedFoodProvider.notifier).state = food;
+    container.read(recordAmountTextProvider.notifier).state = '100';
+    await tester.pump();
+    expect(find.text('确认记录'), findsOneWidget);
+
+    // 三条件复现：小屏 + 键盘顶起（页面 body 压缩，卡片封顶 90% 内滚，
+    // 确认按钮固定于滚动区外常驻卡底）。
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final confirm = find.widgetWithText(FilledButton, '确认记录');
+    expect(confirm, findsOneWidget);
+    final rect = tester.getRect(confirm);
+    expect(rect.right, lessThanOrEqualTo(360));
+    expect(rect.bottom, lessThanOrEqualTo(640));
+
+    // 可点：确认入账成功。
+    await tester.tap(confirm);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('已记录'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 11));
+    await settleUi(tester);
+  });
 }

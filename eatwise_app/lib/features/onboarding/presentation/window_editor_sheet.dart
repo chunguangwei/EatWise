@@ -2,6 +2,7 @@ import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/app_bottom_sheet.dart';
 import 'package:eatwise/features/fasting/domain/window_rules.dart';
 import 'package:eatwise/features/onboarding/domain/plan_recommendation.dart';
 import 'package:flutter/material.dart';
@@ -65,98 +66,91 @@ class _WindowEditorSheetState extends State<WindowEditorSheet> {
       startMinutes: _startMinutes,
     );
 
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.s4,
-          AppSpacing.s4,
-          AppSpacing.s4,
-          AppSpacing.s4 + MediaQuery.viewInsetsOf(context).bottom,
+    // 统一弹层骨架（封顶 90% + 内容内滚 + 确认按钮常驻底部——小屏/大字体/
+    // 时间选择器键盘弹起时按钮不被顶出）。
+    return AppBottomSheet(
+      bottomBar: FilledButton(
+        key: const ValueKey<String>('fasting.windowEditor.confirm'),
+        onPressed: () => Navigator.of(context).pop(draft),
+        style: FilledButton.styleFrom(
+          backgroundColor: colors.brandPrimary,
+          minimumSize: const Size.fromHeight(AppSpacing.s12),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              t.fasting.window.title,
-              style: textStyles.textLg.copyWith(color: colors.textPrimary),
-            ),
-            const SizedBox(height: AppSpacing.s4),
-            Text(
-              t.fasting.window.duration,
-              style: textStyles.textSm.copyWith(color: colors.textSecondary),
-            ),
-            const SizedBox(height: AppSpacing.s2),
-            Wrap(
-              spacing: AppSpacing.s2,
-              children: <Widget>[
-                for (final hours in WindowEditorSheet._hourChoices)
-                  FilterChip(
-                    key: ValueKey<String>('fasting.windowEditor.hours.$hours'),
-                    label: Text(t.fasting.window.hoursOption(hours: hours)),
-                    selected: hours == _eatingHours,
-                    onSelected: (_) => setState(() => _eatingHours = hours),
-                  ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.s2),
-            InkWell(
-              key: const ValueKey<String>('fasting.windowEditor.start'),
-              onTap: _pickStartTime,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.s2),
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        t.fasting.window.start,
-                        style: textStyles.textBase.copyWith(
-                          color: colors.textPrimary,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      formatClock(_startMinutes),
+        child: Text(t.fasting.window.confirm, style: textStyles.textBase),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            t.fasting.window.title,
+            style: textStyles.textLg.copyWith(color: colors.textPrimary),
+          ),
+          const SizedBox(height: AppSpacing.s4),
+          Text(
+            t.fasting.window.duration,
+            style: textStyles.textSm.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.s2),
+          Wrap(
+            spacing: AppSpacing.s2,
+            children: <Widget>[
+              for (final hours in WindowEditorSheet._hourChoices)
+                FilterChip(
+                  key: ValueKey<String>('fasting.windowEditor.hours.$hours'),
+                  label: Text(t.fasting.window.hoursOption(hours: hours)),
+                  selected: hours == _eatingHours,
+                  onSelected: (_) => setState(() => _eatingHours = hours),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s2),
+          InkWell(
+            key: const ValueKey<String>('fasting.windowEditor.start'),
+            onTap: _pickStartTime,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.s2),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      t.fasting.window.start,
                       style: textStyles.textBase.copyWith(
-                        color: colors.brandPrimary,
+                        color: colors.textPrimary,
                       ),
                     ),
-                    const Icon(Icons.expand_more),
-                  ],
-                ),
+                  ),
+                  Text(
+                    formatClock(_startMinutes),
+                    style: textStyles.textBase.copyWith(
+                      color: colors.brandPrimary,
+                    ),
+                  ),
+                  const Icon(Icons.expand_more),
+                ],
               ),
             ),
-            const SizedBox(height: AppSpacing.s2),
-            Text(
-              t.fasting.window.preview(
-                window: formatWindow(draft.startMinutes, draft.endMinutes),
-                hours: draft.fastingHours,
-              ),
-              key: const ValueKey<String>('fasting.windowEditor.preview'),
-              style: textStyles.textSm.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.s2),
+          Text(
+            t.fasting.window.preview(
+              window: formatWindow(draft.startMinutes, draft.endMinutes),
+              hours: draft.fastingHours,
             ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                key: const ValueKey<String>('fasting.windowEditor.reset'),
-                onPressed: () => setState(
-                  () => _startMinutes = recommendedStartMinutes(_eatingHours),
-                ),
-                child: Text(t.fasting.window.resetRecommended),
+            key: const ValueKey<String>('fasting.windowEditor.preview'),
+            style: textStyles.textSm.copyWith(color: colors.textSecondary),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              key: const ValueKey<String>('fasting.windowEditor.reset'),
+              onPressed: () => setState(
+                () => _startMinutes = recommendedStartMinutes(_eatingHours),
               ),
+              child: Text(t.fasting.window.resetRecommended),
             ),
-            const SizedBox(height: AppSpacing.s2),
-            FilledButton(
-              key: const ValueKey<String>('fasting.windowEditor.confirm'),
-              onPressed: () => Navigator.of(context).pop(draft),
-              style: FilledButton.styleFrom(
-                backgroundColor: colors.brandPrimary,
-                minimumSize: const Size.fromHeight(AppSpacing.s12),
-              ),
-              child: Text(t.fasting.window.confirm, style: textStyles.textBase),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -11,6 +11,7 @@ import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/app_bottom_sheet.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_rule_config.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
@@ -128,342 +129,300 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     // 「大约需走 N 步」随选中份量实时联动；未输入份量时按每 100g 展示。
     final walkSteps = stepsFromKcal(food.kcalPer100g * (preview ?? 1));
 
-    return SafeArea(
-      child: Padding(
-        // 键盘顶起时整体上移（isScrollControlled 下 viewInsets 不被消化）。
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
+    // 统一弹层骨架（封顶 90% + 内容内滚 + 确认按钮常驻底部，真机走查：
+    // 小屏/大字体/键盘下按钮不可被顶出）。
+    return AppBottomSheet(
+      bottomBar: FilledButton(
+        onPressed: () => widget.onConfirm(_amountController.text.trim()),
+        style: FilledButton.styleFrom(
+          backgroundColor: colors.brandPrimary,
+          minimumSize: const Size.fromHeight(AppSpacing.s12),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.s4),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        child: Text(s.confirm, style: textStyles.textBase),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          // 头部：名称 + 自定义/社区状态标签。
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  isEn ? food.nameEn : food.nameZh,
+                  style: textStyles.textXl,
+                ),
+              ),
+              if (cs.badgeFor(food) case final badgeText?)
+                Container(
+                  margin: const EdgeInsets.only(left: AppSpacing.s2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s2,
+                    vertical: AppSpacing.s1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colors.brandAccent,
+                    borderRadius: radii.rSm,
+                  ),
+                  child: Text(
+                    badgeText,
+                    style: textStyles.textXs.copyWith(color: colors.bgPrimary),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s2),
+          // 红绿灯评价徽标（颜色 + 图标 + 文字三重编码，PRD M8/§3.3）。
+          _SignalBadge(verdict: verdict),
+          const SizedBox(height: AppSpacing.s1),
+          Text(
+            t.record.foodDetail.badgeBasis,
+            style: textStyles.textXs.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.s3),
+          // 显著热量卡（用户最关心，薄荷分层第一位）：千卡/千焦并列。
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.s4),
+            decoration: BoxDecoration(
+              color: colors.bgSecondary,
+              borderRadius: radii.rLg,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
                   children: <Widget>[
-                    // 头部：名称 + 自定义/社区状态标签。
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: Text(
-                            isEn ? food.nameEn : food.nameZh,
-                            style: textStyles.textXl,
-                          ),
-                        ),
-                        if (cs.badgeFor(food) case final badgeText?)
-                          Container(
-                            margin: const EdgeInsets.only(left: AppSpacing.s2),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.s2,
-                              vertical: AppSpacing.s1,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colors.brandAccent,
-                              borderRadius: radii.rSm,
-                            ),
-                            child: Text(
-                              badgeText,
-                              style: textStyles.textXs.copyWith(
-                                color: colors.bgPrimary,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.s2),
-                    // 红绿灯评价徽标（颜色 + 图标 + 文字三重编码，PRD M8/§3.3）。
-                    _SignalBadge(verdict: verdict),
-                    const SizedBox(height: AppSpacing.s1),
                     Text(
-                      t.record.foodDetail.badgeBasis,
-                      style: textStyles.textXs.copyWith(
-                        color: colors.textSecondary,
+                      '${food.kcalPer100g.round()}',
+                      style: textStyles.textTimer.copyWith(
+                        color: colors.brandAccent,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.s3),
-                    // 显著热量卡（用户最关心，薄荷分层第一位）：千卡/千焦并列。
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(AppSpacing.s4),
-                      decoration: BoxDecoration(
-                        color: colors.bgSecondary,
-                        borderRadius: radii.rLg,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: <Widget>[
-                              Text(
-                                '${food.kcalPer100g.round()}',
-                                style: textStyles.textTimer.copyWith(
-                                  color: colors.brandAccent,
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.s2),
-                              Text(
-                                t.record.foodDetail.kcalKj(
-                                  kj: (food.kcalPer100g * kKjPerKcal).round(),
-                                ),
-                                style: textStyles.textSm.copyWith(
-                                  color: colors.textSecondary,
-                                ),
-                              ),
-                            ],
+                    const SizedBox(width: AppSpacing.s2),
+                    // 窄屏 + 大字体下千卡/千焦并列行横向溢出（360dp 真机走查
+                    // 复现）：Expanded 给足宽度上限，FittedBox 等比缩小不溢出。
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          t.record.foodDetail.kcalKj(
+                            kj: (food.kcalPer100g * kKjPerKcal).round(),
                           ),
-                          const SizedBox(height: AppSpacing.s1),
-                          // 「大约需走 N 步」（薄荷口径估算，随份量联动）。
-                          Text(
-                            t.record.foodDetail.walkSteps(steps: walkSteps),
-                            style: textStyles.textXs.copyWith(
-                              color: colors.textSecondary,
-                            ),
+                          maxLines: 1,
+                          style: textStyles.textSm.copyWith(
+                            color: colors.textSecondary,
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.s4),
-                    // 三大营养素供能比例三圆环（供能占比，非重量占比）。
-                    Text(
-                      t.record.foodDetail.macrosTitle,
-                      style: textStyles.textBase,
-                    ),
-                    const SizedBox(height: AppSpacing.s1),
-                    Text(
-                      t.record.foodDetail.energyShareNote,
-                      style: textStyles.textXs.copyWith(
-                        color: colors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.s2),
-                    Row(
-                      children: <Widget>[
-                        _MacroRing(
-                          label: s.nutritionProtein,
-                          energy: breakdown.protein,
-                          color: colors.brandPrimary,
-                        ),
-                        _MacroRing(
-                          label: s.nutritionCarb,
-                          energy: breakdown.carb,
-                          color: colors.brandAccent,
-                        ),
-                        _MacroRing(
-                          label: s.nutritionFat,
-                          energy: breakdown.fat,
-                          color: colors.brandPrimaryPressed,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.s3),
-                    // 份量输入 + 营养预览（与记录页结果卡同格式）。
-                    TextField(
-                      controller: _amountController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      style: textStyles.textBase,
-                      decoration: InputDecoration(
-                        labelText: s.amountLabel,
-                        filled: true,
-                        fillColor: colors.bgSecondary,
-                        border: OutlineInputBorder(
-                          borderRadius: radii.rMd,
-                          borderSide: BorderSide.none,
                         ),
                       ),
                     ),
-                    if (preview != null) ...<Widget>[
-                      const SizedBox(height: AppSpacing.s2),
-                      Wrap(
-                        spacing: AppSpacing.s2,
-                        runSpacing: AppSpacing.s1,
-                        children: <Widget>[
-                          _PreviewChip(
-                            text:
-                                '${s.nutritionKcal} '
-                                '${(food.kcalPer100g * preview).round()} '
-                                '${s.kcalUnit}',
-                          ),
-                          _PreviewChip(
-                            text:
-                                '${s.nutritionProtein} '
-                                '${(food.proteinPer100g * preview).toStringAsFixed(1)}'
-                                ' ${s.gramUnit}',
-                          ),
-                          _PreviewChip(
-                            text:
-                                '${s.nutritionCarb} '
-                                '${(food.carbPer100g * preview).toStringAsFixed(1)}'
-                                ' ${s.gramUnit}',
-                          ),
-                          _PreviewChip(
-                            text:
-                                '${s.nutritionFat} '
-                                '${(food.fatPer100g * preview).toStringAsFixed(1)}'
-                                ' ${s.gramUnit}',
-                          ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: AppSpacing.s2),
-                    // 餐次选择（优化点 2：默认按当前时间智能预判，可点选修改）。
-                    const MealTypeChips(),
-                    const SizedBox(height: AppSpacing.s2),
-                    // 其余明细折叠区（次级信息，默认收起）。
-                    ExpansionTile(
-                      title: Text(
-                        t.record.foodDetail.moreTitle,
-                        style: textStyles.textSm,
-                      ),
-                      tilePadding: EdgeInsets.zero,
-                      childrenPadding: const EdgeInsets.only(
-                        bottom: AppSpacing.s2,
-                      ),
-                      children: <Widget>[
-                        // NRV% 表（GB 28050 国标 NRV 值；只有库里有的营养素出行）。
-                        _NrvTable(
-                          rows: computeNrvRows(
-                            kcalPer100g: food.kcalPer100g,
-                            proteinPer100g: food.proteinPer100g,
-                            carbPer100g: food.carbPer100g,
-                            fatPer100g: food.fatPer100g,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.s2),
-                        for (final row in <(String, MacroEnergy)>[
-                          (s.nutritionProtein, breakdown.protein),
-                          (s.nutritionCarb, breakdown.carb),
-                          (s.nutritionFat, breakdown.fat),
-                        ])
-                          _DetailRow(
-                            text:
-                                '${row.$1} '
-                                '${row.$2.grams.toStringAsFixed(1)} ${s.gramUnit} · '
-                                '${t.record.foodDetail.supplyKcal(kcal: row.$2.kcal.round())}',
-                          ),
-                        if (_aliasText(food, isEn) case final aliasText?)
-                          _DetailRow(
-                            text: t.record.foodDetail.aliases(names: aliasText),
-                          ),
-                      ],
-                    ),
-                    // 「数据有误？」纠错入口（薄荷走查 P3：复用众包审核链路——
-                    // 建议值入审核池，管理台原值 vs 建议值）。主色 + 铅笔图标
-                    // 给足可点击感知（走查：曾被 textSecondary+textXs 压成注释
-                    // 文本没人点）。
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        style: TextButton.styleFrom(
-                          foregroundColor: colors.brandPrimary,
-                          minimumSize: const Size(44, 44),
-                          padding: EdgeInsets.zero,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        onPressed: () => unawaited(
-                          startFoodCorrectionFlow(context, ref, food),
-                        ),
-                        icon: const Icon(Icons.edit_outlined, size: 16),
-                        label: Text(
-                          t.record.foodDetail.reportIssue,
-                          style: textStyles.textSm,
-                        ),
-                      ),
-                    ),
-                    // 自定义食物动作行（编辑 / 分享给所有用户 / 删除）；
-                    // 共享/社区食物无此三能力不渲染。**approved 后也不渲染**：
-                    // 服务端晋升就地翻 isCustom=false，贡献者失去改删权（本地行
-                    // 标记不回翻，若放行 PATCH/DELETE 必 404「资源不存在」）；
-                    // 共享库改动走「数据有误？」纠错入口。审核中不提供分享入口
-                    // （头部徽标已显示「审核中」），删除仍可用（服务端 409
-                    // 兜底并提示等待审核）。
-                    if (food.isCustom &&
-                        food.contributionStatus != 'approved') ...<Widget>[
-                      const SizedBox(height: AppSpacing.s1),
-                      Wrap(
-                        spacing: AppSpacing.s1,
-                        children: <Widget>[
-                          TextButton(
-                            key: const ValueKey<String>('foodDetail.edit'),
-                            style: TextButton.styleFrom(
-                              minimumSize: const Size(44, 44),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.s2,
-                              ),
-                            ),
-                            onPressed: () =>
-                                unawaited(_onEdit(messenger, cs, textStyles)),
-                            child: Text(
-                              cs.editAction,
-                              style: textStyles.textSm,
-                            ),
-                          ),
-                          if (food.contributionStatus != 'pending')
-                            TextButton(
-                              key: const ValueKey<String>('foodDetail.share'),
-                              style: TextButton.styleFrom(
-                                minimumSize: const Size(44, 44),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.s2,
-                                ),
-                              ),
-                              onPressed: () => unawaited(_onShare()),
-                              child: Text(
-                                cs.shareAction,
-                                style: textStyles.textSm,
-                              ),
-                            ),
-                          TextButton(
-                            key: const ValueKey<String>('foodDetail.delete'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: colors.signalRed,
-                              minimumSize: const Size(44, 44),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.s2,
-                              ),
-                            ),
-                            onPressed: () => unawaited(
-                              _onDelete(t, cs, messenger, textStyles),
-                            ),
-                            child: Text(
-                              cs.deleteAction,
-                              style: textStyles.textSm,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
                 ),
+                const SizedBox(height: AppSpacing.s1),
+                // 「大约需走 N 步」（薄荷口径估算，随份量联动）。
+                Text(
+                  t.record.foodDetail.walkSteps(steps: walkSteps),
+                  style: textStyles.textXs.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s4),
+          // 三大营养素供能比例三圆环（供能占比，非重量占比）。
+          Text(t.record.foodDetail.macrosTitle, style: textStyles.textBase),
+          const SizedBox(height: AppSpacing.s1),
+          Text(
+            t.record.foodDetail.energyShareNote,
+            style: textStyles.textXs.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.s2),
+          Row(
+            children: <Widget>[
+              _MacroRing(
+                label: s.nutritionProtein,
+                energy: breakdown.protein,
+                color: colors.brandPrimary,
+              ),
+              _MacroRing(
+                label: s.nutritionCarb,
+                energy: breakdown.carb,
+                color: colors.brandAccent,
+              ),
+              _MacroRing(
+                label: s.nutritionFat,
+                energy: breakdown.fat,
+                color: colors.brandPrimaryPressed,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s3),
+          // 份量输入 + 营养预览（与记录页结果卡同格式）。
+          TextField(
+            controller: _amountController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: textStyles.textBase,
+            decoration: InputDecoration(
+              labelText: s.amountLabel,
+              filled: true,
+              fillColor: colors.bgSecondary,
+              border: OutlineInputBorder(
+                borderRadius: radii.rMd,
+                borderSide: BorderSide.none,
               ),
             ),
-            // 直接入账按钮固定在滚动区外（小屏/键盘下恒可见；接既有记录
-            // 确认流程：乐观更新 + D-11 撤销吐司）。
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.s4,
-                AppSpacing.s2,
-                AppSpacing.s4,
-                AppSpacing.s4,
-              ),
-              child: FilledButton(
-                onPressed: () =>
-                    widget.onConfirm(_amountController.text.trim()),
-                style: FilledButton.styleFrom(
-                  backgroundColor: colors.brandPrimary,
-                  minimumSize: const Size.fromHeight(AppSpacing.s12),
+          ),
+          if (preview != null) ...<Widget>[
+            const SizedBox(height: AppSpacing.s2),
+            Wrap(
+              spacing: AppSpacing.s2,
+              runSpacing: AppSpacing.s1,
+              children: <Widget>[
+                _PreviewChip(
+                  text:
+                      '${s.nutritionKcal} '
+                      '${(food.kcalPer100g * preview).round()} '
+                      '${s.kcalUnit}',
                 ),
-                child: Text(s.confirm, style: textStyles.textBase),
-              ),
+                _PreviewChip(
+                  text:
+                      '${s.nutritionProtein} '
+                      '${(food.proteinPer100g * preview).toStringAsFixed(1)}'
+                      ' ${s.gramUnit}',
+                ),
+                _PreviewChip(
+                  text:
+                      '${s.nutritionCarb} '
+                      '${(food.carbPer100g * preview).toStringAsFixed(1)}'
+                      ' ${s.gramUnit}',
+                ),
+                _PreviewChip(
+                  text:
+                      '${s.nutritionFat} '
+                      '${(food.fatPer100g * preview).toStringAsFixed(1)}'
+                      ' ${s.gramUnit}',
+                ),
+              ],
             ),
           ],
-        ),
+          const SizedBox(height: AppSpacing.s2),
+          // 餐次选择（优化点 2：默认按当前时间智能预判，可点选修改）。
+          const MealTypeChips(),
+          const SizedBox(height: AppSpacing.s2),
+          // 其余明细折叠区（次级信息，默认收起）。
+          ExpansionTile(
+            title: Text(
+              t.record.foodDetail.moreTitle,
+              style: textStyles.textSm,
+            ),
+            tilePadding: EdgeInsets.zero,
+            childrenPadding: const EdgeInsets.only(bottom: AppSpacing.s2),
+            children: <Widget>[
+              // NRV% 表（GB 28050 国标 NRV 值；只有库里有的营养素出行）。
+              _NrvTable(
+                rows: computeNrvRows(
+                  kcalPer100g: food.kcalPer100g,
+                  proteinPer100g: food.proteinPer100g,
+                  carbPer100g: food.carbPer100g,
+                  fatPer100g: food.fatPer100g,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.s2),
+              for (final row in <(String, MacroEnergy)>[
+                (s.nutritionProtein, breakdown.protein),
+                (s.nutritionCarb, breakdown.carb),
+                (s.nutritionFat, breakdown.fat),
+              ])
+                _DetailRow(
+                  text:
+                      '${row.$1} '
+                      '${row.$2.grams.toStringAsFixed(1)} ${s.gramUnit} · '
+                      '${t.record.foodDetail.supplyKcal(kcal: row.$2.kcal.round())}',
+                ),
+              if (_aliasText(food, isEn) case final aliasText?)
+                _DetailRow(text: t.record.foodDetail.aliases(names: aliasText)),
+            ],
+          ),
+          // 「数据有误？」纠错入口（薄荷走查 P3：复用众包审核链路——
+          // 建议值入审核池，管理台原值 vs 建议值）。主色 + 铅笔图标
+          // 给足可点击感知（走查：曾被 textSecondary+textXs 压成注释
+          // 文本没人点）。
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              style: TextButton.styleFrom(
+                foregroundColor: colors.brandPrimary,
+                minimumSize: const Size(44, 44),
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+              ),
+              onPressed: () =>
+                  unawaited(startFoodCorrectionFlow(context, ref, food)),
+              icon: const Icon(Icons.edit_outlined, size: 16),
+              label: Text(
+                t.record.foodDetail.reportIssue,
+                style: textStyles.textSm,
+              ),
+            ),
+          ),
+          // 自定义食物动作行（编辑 / 分享给所有用户 / 删除）；
+          // 共享/社区食物无此三能力不渲染。**approved 后也不渲染**：
+          // 服务端晋升就地翻 isCustom=false，贡献者失去改删权（本地行
+          // 标记不回翻，若放行 PATCH/DELETE 必 404「资源不存在」）；
+          // 共享库改动走「数据有误？」纠错入口。审核中不提供分享入口
+          // （头部徽标已显示「审核中」），删除仍可用（服务端 409
+          // 兜底并提示等待审核）。
+          if (food.isCustom &&
+              food.contributionStatus != 'approved') ...<Widget>[
+            const SizedBox(height: AppSpacing.s1),
+            Wrap(
+              spacing: AppSpacing.s1,
+              children: <Widget>[
+                TextButton(
+                  key: const ValueKey<String>('foodDetail.edit'),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(44, 44),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s2,
+                    ),
+                  ),
+                  onPressed: () =>
+                      unawaited(_onEdit(messenger, cs, textStyles)),
+                  child: Text(cs.editAction, style: textStyles.textSm),
+                ),
+                if (food.contributionStatus != 'pending')
+                  TextButton(
+                    key: const ValueKey<String>('foodDetail.share'),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(44, 44),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.s2,
+                      ),
+                    ),
+                    onPressed: () => unawaited(_onShare()),
+                    child: Text(cs.shareAction, style: textStyles.textSm),
+                  ),
+                TextButton(
+                  key: const ValueKey<String>('foodDetail.delete'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: colors.signalRed,
+                    minimumSize: const Size(44, 44),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s2,
+                    ),
+                  ),
+                  onPressed: () =>
+                      unawaited(_onDelete(t, cs, messenger, textStyles)),
+                  child: Text(cs.deleteAction, style: textStyles.textSm),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -478,12 +437,8 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     final result = await showModalBottomSheet<CustomFoodSaveResult>(
       context: context,
       isScrollControlled: true,
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-        ),
-        child: CustomFoodSheet(editTarget: _food),
-      ),
+      // 键盘避让已收进 AppBottomSheet 骨架（外层再垫会双倍扣高）。
+      builder: (_) => CustomFoodSheet(editTarget: _food),
     );
     if (result == null) return;
     ref.invalidate(recordFoodSearchProvider);

@@ -11,6 +11,7 @@ import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/app_bottom_sheet.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
@@ -76,12 +77,8 @@ Future<void> startBarcodeContributeFlow(
   final result = await showModalBottomSheet<BarcodeContributeResult>(
     context: context,
     isScrollControlled: true,
-    builder: (sheetContext) => Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-      ),
-      child: BarcodeContributeSheet(barcode: code),
-    ),
+    // 键盘避让已收进 AppBottomSheet 骨架（外层再垫会双倍扣高）。
+    builder: (_) => BarcodeContributeSheet(barcode: code),
   );
   if (result == null || !context.mounted) return;
   // 各结局食物都已落本地：回填结果卡，份量必填留空（与其他入口口径一致）。
@@ -577,131 +574,123 @@ class _BarcodeContributeSheetState
       FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
     ];
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.s4),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Text(t.title, style: textStyles.textLg),
-              const SizedBox(height: AppSpacing.s4),
-              // 条码只读展示（来自扫码上下文，贡献时原样上行）。
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.s3,
-                  vertical: AppSpacing.s2,
-                ),
-                decoration: BoxDecoration(
-                  color: colors.bgSecondary,
-                  borderRadius: radii.rSm,
-                ),
-                child: Row(
-                  children: <Widget>[
-                    Icon(
-                      Icons.qr_code_2,
-                      size: 18,
-                      color: colors.textSecondary,
-                    ),
-                    const SizedBox(width: AppSpacing.s2),
-                    Expanded(
-                      child: Text(
-                        t.barcodeLabel(code: widget.barcode),
-                        style: textStyles.textSm.copyWith(
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+    // 统一弹层骨架（封顶 90% + 表单内滚 + 提交按钮常驻底部——真机走查：
+    // 字段多/键盘弹起时提交按钮曾随内容滚出可视区）。
+    return AppBottomSheet(
+      bottomBar: FilledButton(
+        onPressed: _saving || _uploading ? null : () => unawaited(_onSubmit()),
+        style: FilledButton.styleFrom(
+          backgroundColor: colors.brandPrimary,
+          minimumSize: const Size.fromHeight(AppSpacing.s12),
+        ),
+        child: Text(t.submitAction, style: textStyles.textBase),
+      ),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(t.title, style: textStyles.textLg),
+            const SizedBox(height: AppSpacing.s4),
+            // 条码只读展示（来自扫码上下文，贡献时原样上行）。
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s3,
+                vertical: AppSpacing.s2,
               ),
-              const SizedBox(height: AppSpacing.s3),
-              TextFormField(
-                controller: _nameController,
-                style: textStyles.textBase,
-                decoration: _fieldDecoration(colors, radii, t.nameLabel),
-                validator: (value) =>
-                    (value ?? '').trim().isEmpty ? t.nameRequired : null,
+              decoration: BoxDecoration(
+                color: colors.bgSecondary,
+                borderRadius: radii.rSm,
               ),
-              const SizedBox(height: AppSpacing.s3),
-              // 四营养输入（每 100g；全部必填 >0，热量 ≤900 / 宏量 ≤100）。
-              TextFormField(
-                controller: _kcalController,
-                keyboardType: numberKeyboard,
-                inputFormatters: numberFormatters,
-                style: textStyles.textBase,
-                decoration: _fieldDecoration(colors, radii, cs.kcalLabel),
-                validator: _nutritionValidator(cs, 900, cs.kcalRange),
-                onChanged: (_) => _clearOcrBadge(),
-              ),
-              const SizedBox(height: AppSpacing.s3),
-              TextFormField(
-                controller: _proteinController,
-                keyboardType: numberKeyboard,
-                inputFormatters: numberFormatters,
-                style: textStyles.textBase,
-                decoration: _fieldDecoration(colors, radii, cs.proteinLabel),
-                validator: _nutritionValidator(cs, 100, cs.macroRange),
-                onChanged: (_) => _clearOcrBadge(),
-              ),
-              const SizedBox(height: AppSpacing.s3),
-              TextFormField(
-                controller: _carbController,
-                keyboardType: numberKeyboard,
-                inputFormatters: numberFormatters,
-                style: textStyles.textBase,
-                decoration: _fieldDecoration(colors, radii, cs.carbLabel),
-                validator: _nutritionValidator(cs, 100, cs.macroRange),
-                onChanged: (_) => _clearOcrBadge(),
-              ),
-              const SizedBox(height: AppSpacing.s3),
-              TextFormField(
-                controller: _fatController,
-                keyboardType: numberKeyboard,
-                inputFormatters: numberFormatters,
-                style: textStyles.textBase,
-                decoration: _fieldDecoration(colors, radii, cs.fatLabel),
-                validator: _nutritionValidator(cs, 100, cs.macroRange),
-                onChanged: (_) => _clearOcrBadge(),
-              ),
-              // 「AI 读表，请核对」徽标（读表预填时展示；改值即消）。
-              if (_ocrApplied)
-                Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.s3),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.s3,
-                      vertical: AppSpacing.s2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colors.brandAccent,
-                      borderRadius: radii.rSm,
-                    ),
+              child: Row(
+                children: <Widget>[
+                  Icon(Icons.qr_code_2, size: 18, color: colors.textSecondary),
+                  const SizedBox(width: AppSpacing.s2),
+                  Expanded(
                     child: Text(
-                      cs.estimateBadgeOcr,
+                      t.barcodeLabel(code: widget.barcode),
                       style: textStyles.textSm.copyWith(
-                        color: colors.bgSecondary,
+                        color: colors.textSecondary,
                       ),
                     ),
                   ),
-                ),
-              const SizedBox(height: AppSpacing.s4),
-              _buildPhotoSection(context, colors, textStyles, radii),
-              const SizedBox(height: AppSpacing.s4),
-              FilledButton(
-                onPressed: _saving || _uploading
-                    ? null
-                    : () => unawaited(_onSubmit()),
-                style: FilledButton.styleFrom(
-                  backgroundColor: colors.brandPrimary,
-                  minimumSize: const Size.fromHeight(AppSpacing.s12),
-                ),
-                child: Text(t.submitAction, style: textStyles.textBase),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: AppSpacing.s3),
+            TextFormField(
+              controller: _nameController,
+              style: textStyles.textBase,
+              decoration: _fieldDecoration(colors, radii, t.nameLabel),
+              validator: (value) =>
+                  (value ?? '').trim().isEmpty ? t.nameRequired : null,
+            ),
+            const SizedBox(height: AppSpacing.s3),
+            // 四营养输入（每 100g；全部必填 >0，热量 ≤900 / 宏量 ≤100）。
+            TextFormField(
+              controller: _kcalController,
+              keyboardType: numberKeyboard,
+              inputFormatters: numberFormatters,
+              style: textStyles.textBase,
+              decoration: _fieldDecoration(colors, radii, cs.kcalLabel),
+              validator: _nutritionValidator(cs, 900, cs.kcalRange),
+              onChanged: (_) => _clearOcrBadge(),
+            ),
+            const SizedBox(height: AppSpacing.s3),
+            TextFormField(
+              controller: _proteinController,
+              keyboardType: numberKeyboard,
+              inputFormatters: numberFormatters,
+              style: textStyles.textBase,
+              decoration: _fieldDecoration(colors, radii, cs.proteinLabel),
+              validator: _nutritionValidator(cs, 100, cs.macroRange),
+              onChanged: (_) => _clearOcrBadge(),
+            ),
+            const SizedBox(height: AppSpacing.s3),
+            TextFormField(
+              controller: _carbController,
+              keyboardType: numberKeyboard,
+              inputFormatters: numberFormatters,
+              style: textStyles.textBase,
+              decoration: _fieldDecoration(colors, radii, cs.carbLabel),
+              validator: _nutritionValidator(cs, 100, cs.macroRange),
+              onChanged: (_) => _clearOcrBadge(),
+            ),
+            const SizedBox(height: AppSpacing.s3),
+            TextFormField(
+              controller: _fatController,
+              keyboardType: numberKeyboard,
+              inputFormatters: numberFormatters,
+              style: textStyles.textBase,
+              decoration: _fieldDecoration(colors, radii, cs.fatLabel),
+              validator: _nutritionValidator(cs, 100, cs.macroRange),
+              onChanged: (_) => _clearOcrBadge(),
+            ),
+            // 「AI 读表，请核对」徽标（读表预填时展示；改值即消）。
+            if (_ocrApplied)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s3),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s3,
+                    vertical: AppSpacing.s2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colors.brandAccent,
+                    borderRadius: radii.rSm,
+                  ),
+                  child: Text(
+                    cs.estimateBadgeOcr,
+                    style: textStyles.textSm.copyWith(
+                      color: colors.bgSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            const SizedBox(height: AppSpacing.s4),
+            _buildPhotoSection(context, colors, textStyles, radii),
+          ],
         ),
       ),
     );
