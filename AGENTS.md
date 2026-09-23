@@ -9,6 +9,7 @@
   `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`。
 - **国内网络**：Android 依赖下载慢/卡死时 `export USE_CN_MIRRORS=1`（阿里云镜像）。CI（海外 runner）严禁开启。
 - **iOS 真机**：Xcode → Settings → Accounts 需登录 Apple ID；项目签名团队 `L35RLT89XN`（注：实际现行团队 CCTFP9X3SW "jing chang"，bundleId com.jingchang.eatwise）；部署目标 iOS 15.0。
+- **iOS 装机必须带生产地址**：`ApiConfig` 默认 dev=localhost（真机上 localhost 是手机自己，全站网络请求必失败——症状：设置页账号「点击重试」+社区「网络连接失败」）。真机 release 构建命令固定 `flutter build ios --release --dart-define=API_BASE_URL=https://wcg.polin.tech:8443/v1`（局域网调试用 `http://<Mac局域网IP>:3000/v1`）。安卓无此坑（CI 走仓库变量 API_BASE_URL）。
 - **iOS 构建（2026-09-18 起 CocoaPods 回归）**：`open_filex` 无 SPM 支持，Pods 重新启用（仅此一个 pod）。Podfile 必须保持 `platform :ios, '15.0'` + post_install 强制 IPHONEOS_DEPLOYMENT_TARGET=15.0——低版本会造成 release 构建/签名静默失败（踩过）。新增只支持 CocoaPods 的插件时：pod install → 真机构建验证 → 提交 Podfile/Podfile.lock/pbxproj/workspace（Pods/ 目录本身 gitignored）。
 
 ## 客户端（eatwise_app/）
