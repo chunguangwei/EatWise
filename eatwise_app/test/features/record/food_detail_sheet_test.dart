@@ -165,6 +165,13 @@ void main() {
     expect(find.text('大约需走 8584 步'), findsOneWidget);
     expect(find.text('大约需走 4292 步'), findsNothing);
 
+    // 明确输入框形态（真机走查「份量看不出可点改」）：「克」单位后缀 +
+    // 可见描边（enabledBorder 非 BorderSide.none）。
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.decoration!.suffixText, '克');
+    final border = field.decoration!.enabledBorder! as OutlineInputBorder;
+    expect(border.borderSide.style, BorderStyle.solid);
+
     await tester.tap(find.text('确认记录'));
     await tester.pump();
     expect(confirmed, '200');

@@ -25,6 +25,7 @@ import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/presentation/food_detail_sheet.dart';
 import 'package:eatwise/features/record/presentation/light_record_section.dart';
 import 'package:eatwise/features/record/presentation/meal_type_chips.dart';
+import 'package:eatwise/features/record/presentation/portion_input.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:eatwise/features/record/presentation/today_meal_list.dart';
@@ -937,16 +938,13 @@ class _SelectedFoodCard extends ConsumerWidget {
                       decimal: true,
                     ),
                     style: textStyles.textBase,
-                    decoration: InputDecoration(
-                      labelText: s.amountLabel,
-                      // 份量必填行内引导（空/非法时提示，与确认禁用态联动）。
+                    decoration: portionInputDecoration(
+                      t: t,
+                      colors: colors,
+                      radii: radii,
                       helperText: amountValid ? null : s.amountInvalid,
-                      filled: true,
+                      // 卡片底色 bgSecondary：输入框回填 bgPrimary 保持分层。
                       fillColor: colors.bgPrimary,
-                      border: OutlineInputBorder(
-                        borderRadius: radii.rMd,
-                        borderSide: BorderSide.none,
-                      ),
                     ),
                     onChanged: (value) =>
                         ref.read(recordAmountTextProvider.notifier).state =

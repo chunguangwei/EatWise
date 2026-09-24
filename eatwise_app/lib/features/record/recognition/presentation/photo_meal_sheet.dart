@@ -10,6 +10,7 @@ library;
 
 import 'dart:async';
 
+import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
@@ -22,6 +23,7 @@ import 'package:eatwise/features/record/custom_food/domain/custom_food_models.da
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/presentation/meal_type_chips.dart';
+import 'package:eatwise/features/record/presentation/portion_input.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:eatwise/features/record/recognition/domain/photo_recognition_logic.dart';
@@ -270,6 +272,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = Translations.of(context);
     final s = RecordStrings.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
@@ -315,7 +318,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
           Text(s.photoMealConfirmTitle, style: textStyles.textLg),
           const SizedBox(height: AppSpacing.s3),
           for (final row in _rows) ...<Widget>[
-            _buildRow(s, colors, textStyles, radii, row),
+            _buildRow(t, s, colors, textStyles, radii, row),
             const SizedBox(height: AppSpacing.s2),
           ],
           // 餐次选择（与搜索确认卡/详情弹层同款；整批条目共用一个餐次）。
@@ -330,6 +333,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
   /// 名称与删除钮被标记挤出不可见，故标记移到独立行）+ 标记行（库未收录/
   /// 请确认）+ 克数输入与实时营养行。
   Widget _buildRow(
+    Translations t,
     RecordStrings s,
     AppColors colors,
     AppTextStyles textStyles,
@@ -402,7 +406,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               SizedBox(
-                width: 96,
+                width: 112,
                 child: TextField(
                   controller: row.gramsController,
                   keyboardType: const TextInputType.numberWithOptions(
@@ -412,20 +416,19 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
                     FilteringTextInputFormatter.allow(RegExp('[0-9.]')),
                   ],
                   style: textStyles.textBase,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    filled: true,
+                  // 明确输入框形态（与详情弹层/结果卡同一装饰）：可见描边 +
+                  // 「克」后缀，去掉框外散落的单位文本。
+                  decoration: portionInputDecoration(
+                    t: t,
+                    colors: colors,
+                    radii: radii,
+                    dense: true,
                     fillColor: colors.bgPrimary,
-                    border: OutlineInputBorder(
-                      borderRadius: radii.rSm,
-                      borderSide: BorderSide.none,
-                    ),
+                    showLabel: false,
                   ),
                   onChanged: (_) => setState(() {}), // 营养实时重算
                 ),
               ),
-              const SizedBox(width: AppSpacing.s1),
-              Text(s.gramUnit, style: textStyles.textSm),
               const SizedBox(width: AppSpacing.s2),
               Expanded(
                 child: Text(

@@ -25,6 +25,7 @@ import 'package:eatwise/features/record/domain/macro_energy.dart';
 import 'package:eatwise/features/record/domain/nrv_reference.dart';
 import 'package:eatwise/features/record/domain/placeholder_food.dart';
 import 'package:eatwise/features/record/presentation/meal_type_chips.dart';
+import 'package:eatwise/features/record/presentation/portion_input.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:eatwise/features/record/recognition/domain/nutrition_label_ocr_logic.dart'
@@ -281,21 +282,17 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
             ],
           ),
           const SizedBox(height: AppSpacing.s3),
-          // 份量输入 + 营养预览（与记录页结果卡同格式）。
+          // 份量输入 + 营养预览（与记录页结果卡同格式；明确输入框形态：
+          // 可见描边 +「克」后缀，走查「看不出份量可点改」修复）。
           TextField(
             controller: _amountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             style: textStyles.textBase,
-            decoration: InputDecoration(
-              labelText: s.amountLabel,
-              // 份量必填行内引导（空/非法时提示，与确认禁用态联动）。
+            decoration: portionInputDecoration(
+              t: t,
+              colors: colors,
+              radii: radii,
               helperText: amountValid ? null : s.amountInvalid,
-              filled: true,
-              fillColor: colors.bgSecondary,
-              border: OutlineInputBorder(
-                borderRadius: radii.rMd,
-                borderSide: BorderSide.none,
-              ),
             ),
           ),
           if (preview != null) ...<Widget>[

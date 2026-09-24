@@ -529,6 +529,15 @@ void main() {
 
     final confirm = find.widgetWithText(FilledButton, '确认记录');
     expect(confirm, findsOneWidget);
+    // 明确输入框形态（与详情弹层同一装饰）：「克」单位后缀 + 可见描边。
+    final cardField = tester.widget<TextField>(find.byType(TextField).last);
+    expect(cardField.decoration!.suffixText, '克');
+    expect(
+      (cardField.decoration!.enabledBorder! as OutlineInputBorder)
+          .borderSide
+          .style,
+      BorderStyle.solid,
+    );
     final rect = tester.getRect(confirm);
     expect(rect.right, lessThanOrEqualTo(360));
     expect(rect.bottom, lessThanOrEqualTo(640));
