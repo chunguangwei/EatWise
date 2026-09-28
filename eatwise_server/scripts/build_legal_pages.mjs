@@ -30,7 +30,7 @@ const PAGES = [
   },
 ];
 
-const CONTACT = 'support@polin.tech';
+const CONTACT = 'chunguangwee@gmail.com';
 
 function escapeHtml(s) {
   return s

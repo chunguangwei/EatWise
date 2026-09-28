@@ -33,7 +33,7 @@ describe('Legal pages (e2e)', () => {
     expect(res.text).toContain('隐私政策');
     expect(res.text).toContain('Privacy Policy');
     expect(res.text).toContain('2026-09-28'); // 生效日期
-    expect(res.text).toContain('support@polin.tech');
+    expect(res.text).toContain('chunguangwee@gmail.com');
     expect(res.text).toContain('美国');
     expect(res.text).toContain('United States');
   });
@@ -43,7 +43,7 @@ describe('Legal pages (e2e)', () => {
     expect(res.headers['content-type']).toContain('text/html');
     expect(res.text).toContain('用户协议');
     expect(res.text).toContain('Terms of Use');
-    expect(res.text).toContain('support@polin.tech');
+    expect(res.text).toContain('chunguangwee@gmail.com');
     await request(server).get('/v1/terms').expect(404);
   });
 });

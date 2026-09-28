@@ -303,7 +303,7 @@ class SettingsPage extends ConsumerWidget {
                 ),
                 _SettingsTile(
                   title: t.settings.about.contact,
-                  trailing: 'support@polin.tech',
+                  trailing: 'chunguangwee@gmail.com',
                   onTap: () => unawaited(_contactSupport(context)),
                 ),
               ],
@@ -376,7 +376,7 @@ class SettingsPage extends ConsumerWidget {
 
   /// 「联系我们」mailto 唤起（上架法务统一联系方式）。
   Future<void> _contactSupport(BuildContext context) async {
-    await launchUrl(Uri.parse('mailto:support@polin.tech'));
+    await launchUrl(Uri.parse('mailto:chunguangwee@gmail.com'));
   }
 
   Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
