@@ -84,6 +84,9 @@ class FoodDetailSheet extends ConsumerStatefulWidget {
 class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
   final TextEditingController _amountController = TextEditingController();
 
+  /// owner/管理员删除在途（确认窗「删除」防连点）。
+  bool _deleting = false;
+
   /// 当前展示行：分享/编辑后原地刷新（编辑/删除成功则收起弹层）。
   late Food _food = widget.food;
 
@@ -536,6 +539,8 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
       ),
     );
     if (confirmed != true || !mounted) return;
+    if (_deleting) return;
+    _deleting = true;
     try {
       final result = await ref
           .read(customFoodRepositoryProvider)
@@ -581,6 +586,8 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
           ),
         ),
       );
+    } finally {
+      _deleting = false;
     }
   }
 
@@ -620,6 +627,9 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
       );
       return;
     }
+    // 删除在途防连点（重复确认窗二次提交曾触发重复 DELETE + 双 snackbar）。
+    if (_deleting) return;
+    _deleting = true;
     try {
       final result = await deleteFoodAsAdmin(ref, _food);
       // 404 友好口径：目标已不在服务端 → 本地已移除提示（v1.13.18 走查：
@@ -649,6 +659,8 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
       // 包完全静默（真机「点了毫无反应」根因候选）——统一给可见反馈。
       debugPrint('[FoodDetail] adminDelete 未预期异常：$e');
       messenger.showSnackBar(SnackBar(content: Text(t.common.error.network)));
+    } finally {
+      _deleting = false;
     }
   }
 

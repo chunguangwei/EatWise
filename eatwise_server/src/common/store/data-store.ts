@@ -314,6 +314,14 @@ export interface PostReportEntity {
   createdAt: Date;
 }
 
+/** UGC 屏蔽关系（App Store 条例 1.2）：userId 屏蔽 blockedUserId；prisma 模式对应 user_blocks 表 */
+export interface UserBlockEntity {
+  id: string;
+  userId: string;
+  blockedUserId: string;
+  createdAt: Date;
+}
+
 /** 审核队列条目（机审异常/疑似 与 举报复核共用，D-17 转人工） */
 export interface ModerationQueueItem {
   postId: string;
@@ -370,6 +378,9 @@ export class DataStore {
 
   /** 管理员账号（控制台登录体系；key: id，按 username 查找走 findAdminByUsername） */
   readonly adminUsers = new Map<string, AdminUserEntity>();
+
+  /** UGC 屏蔽关系（App Store 条例 1.2）；key: id，按 (userId, blockedUserId) 幂等定位 */
+  readonly userBlocks = new Map<string, UserBlockEntity>();
 
   findAdminByUsername(username: string): AdminUserEntity | undefined {
     const name = username.trim().toLowerCase();

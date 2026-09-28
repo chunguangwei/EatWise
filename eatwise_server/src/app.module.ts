@@ -11,6 +11,7 @@ import { FastingModule } from './fasting/fasting.module';
 import { FoodModule } from './food/food.module';
 import { HealthController } from './health/health.controller';
 import { InfraModule } from './infra/infra.module';
+import { LegalModule } from './legal/legal.module';
 import { NutritionModule } from './nutrition/nutrition.module';
 import { SocialModule } from './social/social.module';
 import { StreakModule } from './streak/streak.module';
@@ -35,6 +36,7 @@ import { WeightModule } from './weight/weight.module';
     AdminModule,
     AppVersionModule,
     AuthModule,
+    LegalModule,
     UserModule,
     FastingModule,
     FoodModule,

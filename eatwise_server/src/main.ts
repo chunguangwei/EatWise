@@ -21,8 +21,15 @@ async function bootstrap() {
     }
   }
   app.use(helmet());
-  // 所有路径以 /v1 为版本前缀（契约 §1.1）；/admin 管理控制台静态页除外
-  app.setGlobalPrefix('v1', { exclude: [{ path: 'admin', method: RequestMethod.GET }] });
+  // 所有路径以 /v1 为版本前缀（契约 §1.1）；/admin 管理控制台与 /privacy、/terms
+  // 法务静态页除外（App Store 要求公网可访问的根级 URL）
+  app.setGlobalPrefix('v1', {
+    exclude: [
+      { path: 'admin', method: RequestMethod.GET },
+      { path: 'privacy', method: RequestMethod.GET },
+      { path: 'terms', method: RequestMethod.GET },
+    ],
+  });
   // 防腐层：class-validator 全量校验（规格 §5）
   app.useGlobalPipes(
     new ValidationPipe({

@@ -123,6 +123,16 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
+    // 法务加固：确认弹窗（2.4GB + Wi-Fi 建议 + Gemma 条款链接）。
+    expect(find.text('下载端侧模型？'), findsOneWidget);
+    expect(find.textContaining('2.4GB'), findsOneWidget);
+    expect(find.text('查看 Gemma 使用条款'), findsOneWidget);
+    expect(actions.ensureCalls, 0);
+    await tester.tap(find.text('下载'));
+    await tester.pump();
+    // 弹窗退出动画走完整（中途帧新旧「取消」会同屏）。
+    await tester.pump(const Duration(milliseconds: 500));
+
     expect(actions.ensureCalls, 1);
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
     expect(find.text('下载中 50%'), findsOneWidget);
@@ -155,6 +165,12 @@ void main() {
       return '/fake/model.litertlm';
     };
     await tester.tap(find.text('继续下载'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // 确认弹窗同弹（断点续传同一路径）。
+    expect(find.text('下载端侧模型？'), findsOneWidget);
+    await tester.tap(find.text('下载'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
@@ -213,6 +229,10 @@ void main() {
     expect(find.text('重试'), findsOneWidget);
 
     await tester.tap(find.text('重试'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('下载端侧模型？'), findsOneWidget);
+    await tester.tap(find.text('下载'));
     await tester.pump();
     expect(actions.ensureCalls, 1);
   });

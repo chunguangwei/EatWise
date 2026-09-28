@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { PatchUserDto } from './user.dto';
 import { UserService } from './user.service';
@@ -35,5 +35,25 @@ export class UserController {
   @Delete('me/deletion')
   cancelDeletion(@CurrentUser() user: AuthUser) {
     return this.users.cancelDeletion(user.userId);
+  }
+
+  /** UGC 屏蔽（App Store 条例 1.2）：屏蔽用户（幂等；不能屏蔽自己 400） */
+  @Post(':id/block')
+  @HttpCode(200)
+  blockUser(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.users.blockUser(user.userId, id);
+  }
+
+  /** 解除屏蔽（幂等） */
+  @Delete(':id/block')
+  @HttpCode(200)
+  unblockUser(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.users.unblockUser(user.userId, id);
+  }
+
+  /** 我屏蔽的用户列表（带昵称；「已屏蔽用户」管理页数据源） */
+  @Get('me/blocks')
+  listBlockedUsers(@CurrentUser() user: AuthUser) {
+    return this.users.listBlockedUsers(user.userId);
   }
 }

@@ -55,6 +55,10 @@ model User {
   waterLogs      WaterLog[]
   weightLogs     WeightLog[]
   exerciseLogs   ExerciseLog[]
+
+  // UGC 屏蔽（App Store 条例 1.2）：我屏蔽的人 / 屏蔽我的人
+  userBlocks  UserBlock[] @relation("blocksByMe")
+  blockedByMe UserBlock[] @relation("blocksOfMe")
   @@map("users")
 }
 
@@ -286,6 +290,23 @@ model PostReport {
 
   @@unique([postId, userId])
   @@map("post_reports")
+}
+
+// UGC 屏蔽关系（App Store 审核条例 1.2：用户可屏蔽滥用用户）：
+// 我屏蔽的作者不出现在我的信息流；双向屏蔽任一方存在时互动（点赞/举报/详情）404。
+// (userId, blockedUserId) 唯一 = 屏蔽幂等；purgeUserData 双向清除相关行。
+model UserBlock {
+  id            String   @id @default(uuid())
+  userId        String // 发起屏蔽的用户
+  blockedUserId String // 被屏蔽的用户
+  createdAt     DateTime @default(now())
+
+  user        User @relation("blocksByMe", fields: [userId], references: [id])
+  blockedUser User @relation("blocksOfMe", fields: [blockedUserId], references: [id])
+
+  @@unique([userId, blockedUserId])
+  @@index([blockedUserId])
+  @@map("user_blocks")
 }
 
 // 人工审核队列（机审异常/疑似 与 举报复核共用，D-17 转人工；seq 保入队顺序）

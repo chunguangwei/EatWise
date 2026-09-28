@@ -4,6 +4,9 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": true,
-    "assets": [{ "include": "admin/console/index.html", "watchAssets": true }]
+    "assets": [
+      { "include": "admin/console/index.html", "watchAssets": true },
+      { "include": "../public/*.html", "outDir": "dist/public", "watchAssets": true }
+    ]
   }
 }

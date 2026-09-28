@@ -5,3 +5,9 @@
 "NSMicrophoneUsageDescription" = "语音录入需要用到麦克风";
 /* 阶段 D：HealthKit 运动数据（D-19 翻案，仅读取，数据不出端） */
 "NSHealthShareUsageDescription" = "读取 Apple 健康中的步数、活动能量与体重，用于展示今日活动消耗";
+/* 里程碑分享卡/食物照片保存到相册（add-only） */
+"NSPhotoLibraryAddUsageDescription" = "将您的里程碑卡片与食物照片保存到相册。";
+/* image_picker 运行期走 PHPicker 不弹此权限，仅满足上架静态校验 */
+"NSPhotoLibraryUsageDescription" = "从相册选择照片，用于拍照识别与记录饮食。";
+/* 自定义局域网 LLM 端点 */
+"NSLocalNetworkUsageDescription" = "连接您局域网内自建的大模型服务。";

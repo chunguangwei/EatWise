@@ -40,9 +40,15 @@ void main() {
   Future<({OnboardingGate gate, OnboardingStore store})> pumpApp(
     WidgetTester tester, {
     required bool completed,
+    bool ageConfirmed = true,
     Map<String, Object> initialPrefs = const <String, Object>{},
   }) async {
-    SharedPreferences.setMockInitialValues(initialPrefs);
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      // 上架法务年龄确认：默认预置已确认（各历史用例不重复走勾选流；
+      // 专项用例传 ageConfirmed: false 走真实勾选）。
+      if (ageConfirmed) 'onboarding.ageConfirmed.v1': true,
+      ...initialPrefs,
+    });
     final prefs = await SharedPreferences.getInstance();
     final store = SharedPreferencesOnboardingStore(prefs);
     final gate = OnboardingGate(completed: completed);
@@ -470,5 +476,51 @@ void main() {
     // 旧 bug：/onboarding/science 命中 redirect 前缀被弹回首页。
     expect(find.text('断食原理小科普'), findsOneWidget);
     expect(find.text('断食计时'), findsNothing);
+  });
+
+  testWidgets('上架法务年龄确认：一键启动先弹 13 岁勾选；未勾禁用继续，勾选后放行完成引导', (tester) async {
+    final fixture = await pumpApp(
+      tester,
+      completed: false,
+      ageConfirmed: false,
+    );
+    // 走完 3 题 + 档案/目标页跳过到推荐页（与主流程用例同路径）。
+    await answerAndNext(tester, 'loseWeight');
+    await answerAndNext(tester, 'regular');
+    await answerAndNext(tester, 'beginner');
+    await skipProfile(tester);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.goal.skip')),
+    );
+    await pumpFrames(tester);
+    expect(find.text('为你推荐的方案'), findsOneWidget);
+
+    // 一键启动 → 年龄确认弹窗；「继续」未勾时禁用。
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.recommendation.start')),
+    );
+    await pumpFrames(tester);
+    expect(find.text('年龄确认'), findsOneWidget);
+    expect(find.text('我确认已年满 13 岁'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const ValueKey<String>('onboarding.ageConfirm.confirm')),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    // 勾选 → 放行 → 完成引导进首页。
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.ageConfirm.checkbox')),
+    );
+    await pumpFrames(tester);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('onboarding.ageConfirm.confirm')),
+    );
+    await pumpFrames(tester);
+    expect(fixture.gate.completed, isTrue);
+    expect(fixture.store.isOnboardingCompleted, isTrue);
   });
 }

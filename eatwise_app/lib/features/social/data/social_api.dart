@@ -16,6 +16,7 @@ final class ServerPost {
     required this.createdAtUtc,
     this.anonymous = false,
     this.avatarId,
+    this.authorId,
   });
 
   final String id;
@@ -30,6 +31,9 @@ final class ServerPost {
   /// 审核状态（pending / approved / rejected，先审后发 D-17）。
   final String auditStatus;
   final bool isAuthor;
+
+  /// 作者 id（匿名帖对他人为 null——服务端已抹除作者身份，不可屏蔽）。
+  final String? authorId;
 
   /// 作者昵称（可为 null，UI 兜底「EatWise 伙伴」〔假设〕）。
   final String? authorNickname;
@@ -54,6 +58,7 @@ final class ServerPost {
       authorNickname: authorNickname,
       anonymous: anonymous,
       avatarId: avatarId,
+      authorId: authorId,
       createdAtUtc: createdAtUtc,
     );
   }
@@ -74,6 +79,7 @@ final class ServerPost {
       authorNickname: author['nickname'] as String?,
       anonymous: json['anonymous'] as bool? ?? false,
       avatarId: (json['avatarId'] as num?)?.toInt(),
+      authorId: author['id'] as String?,
       createdAtUtc:
           DateTime.tryParse(json['createdAt'] as String? ?? '')?.toUtc() ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
@@ -199,5 +205,54 @@ class SocialApi {
     } on DioException catch (e) {
       throw toApiException(e);
     }
+  }
+
+  /// UGC 屏蔽（App Store 条例 1.2）：屏蔽用户（幂等）。
+  Future<void> blockUser(String userId) async {
+    try {
+      await _dio.post<Map<String, dynamic>>('/users/$userId/block');
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
+  /// 解除屏蔽（幂等）。
+  Future<void> unblockUser(String userId) async {
+    try {
+      await _dio.delete<Map<String, dynamic>>('/users/$userId/block');
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
+  /// 我屏蔽的用户列表（「已屏蔽用户」管理页数据源）。
+  Future<List<BlockedUser>> fetchBlockedUsers() async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>('/users/me/blocks');
+      final data = response.data ?? const <String, dynamic>{};
+      return (data['items'] as List<dynamic>? ?? const <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .map(BlockedUser.fromJson)
+          .toList();
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+}
+
+/// 已屏蔽用户条目（GET /users/me/blocks）。
+final class BlockedUser {
+  const BlockedUser({required this.userId, this.nickname});
+
+  final String userId;
+
+  /// 被屏蔽者昵称（可为 null，UI 兜底占位）。
+  final String? nickname;
+
+  factory BlockedUser.fromJson(Map<String, dynamic> json) {
+    return BlockedUser(
+      userId: json['userId'] as String? ?? '',
+      nickname: json['nickname'] as String?,
+    );
   }
 }

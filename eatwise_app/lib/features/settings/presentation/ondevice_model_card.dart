@@ -10,6 +10,7 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// 卡片动作窄接口（widget 测试注入 Fake；模式同 LlmConnectionTester）。
 /// 状态流仍走 [onDeviceModelSnapshotProvider]，本接口只承载「意图」与
@@ -63,7 +64,57 @@ class OnDeviceModelCard extends ConsumerWidget {
   const OnDeviceModelCard({super.key});
 
   /// 下载/重试：失败状态经 snapshot 流呈现，这里只吞 typed 异常防未处理。
-  void _startDownload(WidgetRef ref) {
+  ///
+  /// 法务加固（无 connectivity_plus 的简单方案）：每次发起下载前确认——
+  /// 明示文件约 2.4GB、建议 Wi-Fi（继续将消耗移动数据）+ Gemma 使用
+  /// 条款链接（首次下载同步完成条款告知义务）。
+  void _startDownload(BuildContext context, WidgetRef ref) {
+    unawaited(_confirmAndDownload(context, ref));
+  }
+
+  Future<void> _confirmAndDownload(BuildContext context, WidgetRef ref) async {
+    final t = Translations.of(context);
+    final m = t.settings.onDevice;
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(m.downloadConfirmTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(m.downloadConfirmBody),
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: colors.brandPrimary,
+                minimumSize: const Size(44, 44),
+                padding: EdgeInsets.zero,
+              ),
+              onPressed: () => unawaited(
+                launchUrl(
+                  Uri.parse('https://ai.google.dev/gemma/terms'),
+                  mode: LaunchMode.externalApplication,
+                ),
+              ),
+              child: Text(m.downloadTermsLink),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(t.common.action.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(backgroundColor: colors.brandPrimary),
+            child: Text(m.downloadConfirmAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
     unawaited(
       ref
           .read(onDeviceModelActionsProvider)
@@ -208,7 +259,7 @@ class OnDeviceModelCard extends ConsumerWidget {
         const SizedBox(height: AppSpacing.s3),
         FilledButton(
           style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-          onPressed: () => _startDownload(ref),
+          onPressed: () => _startDownload(context, ref),
           child: Text(m.download),
         ),
       ],
@@ -230,7 +281,7 @@ class OnDeviceModelCard extends ConsumerWidget {
         const SizedBox(height: AppSpacing.s2),
         FilledButton.tonal(
           style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-          onPressed: () => _startDownload(ref),
+          onPressed: () => _startDownload(context, ref),
           child: Text(m.resume),
         ),
         TextButton(
@@ -310,7 +361,7 @@ class OnDeviceModelCard extends ConsumerWidget {
         const SizedBox(height: AppSpacing.s2),
         FilledButton.tonal(
           style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-          onPressed: () => _startDownload(ref),
+          onPressed: () => _startDownload(context, ref),
           child: Text(m.retry),
         ),
       ],

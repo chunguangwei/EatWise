@@ -3,7 +3,6 @@ import 'package:eatwise/features/auth/application/auth_gate.dart';
 import 'package:eatwise/features/auth/presentation/change_password_page.dart';
 import 'package:eatwise/features/auth/presentation/login_page.dart';
 import 'package:eatwise/features/auth/presentation/register_page.dart';
-import 'package:eatwise/features/demo/presentation/demo_home_screen.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_home_page.dart';
 import 'package:eatwise/features/home/presentation/home_shell.dart';
 import 'package:eatwise/features/legal/application/privacy_gate.dart';
@@ -23,6 +22,7 @@ import 'package:eatwise/features/reports/presentation/reports_page.dart';
 import 'package:eatwise/features/settings/presentation/ai_model_settings_page.dart';
 import 'package:eatwise/features/settings/presentation/body_profile_page.dart';
 import 'package:eatwise/features/settings/presentation/settings_page.dart';
+import 'package:eatwise/features/social/presentation/blocked_users_page.dart';
 import 'package:eatwise/features/social/presentation/community_feed_page.dart';
 import 'package:eatwise/features/social/presentation/compose_page.dart';
 import 'package:flutter/widgets.dart';
@@ -214,14 +214,14 @@ GoRouter createAppRouter({
                 path: '/moderation/food-candidates',
                 builder: (context, state) => const ModerationPage(),
               ),
+              // 已屏蔽用户（UGC 条例 1.2，设置页隐私组入口）。
+              GoRoute(
+                path: '/settings/blocked-users',
+                builder: (context, state) => const BlockedUsersPage(),
+              ),
             ],
           ),
         ],
-      ),
-      // M0 基建演示页保留在次要路由（Token/双语示例）。
-      GoRoute(
-        path: '/demo',
-        builder: (context, state) => const DemoHomeScreen(),
       ),
       GoRoute(
         path: '/onboarding',

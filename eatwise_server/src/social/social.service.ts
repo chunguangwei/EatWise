@@ -86,13 +86,16 @@ export class SocialService {
     return response;
   }
 
-  /** C2 打卡流：他人仅 approved；本人 pending/approved 也可见（带审核中标记）。 */
+  /** C2 打卡流：他人仅 approved；本人 pending/approved 也可见（带审核中标记）。
+   * UGC 屏蔽（App Store 条例 1.2）：我屏蔽的作者不出现在我的信息流（单向过滤）。 */
   async feed(viewerId: string, limit = 20, cursor?: string) {
     limit = clampPageLimit(limit, 20, FEED_PAGE_MAX); // 非法 limit（负数/NaN）回落默认，防游标死循环
     const after = this.parseCursor(cursor);
 
     // 可见集 + 倒序（createdAt, id）由驱动给出口径（未删除 && (approved || 本人)）。
-    const visible = await this.driver.findFeedPosts(viewerId);
+    const all = await this.driver.findFeedPosts(viewerId);
+    const blockedIds = new Set(await this.driver.listUserBlockedIds(viewerId));
+    const visible = blockedIds.size === 0 ? all : all.filter((p) => !blockedIds.has(p.userId));
 
     let start = 0;
     if (after) {
@@ -120,13 +123,14 @@ export class SocialService {
     };
   }
 
-  /** C3 单帖详情：pending/rejected 仅作者可见，他人 404。 */
+  /** C3 单帖详情：pending/rejected 仅作者可见，他人 404；我屏蔽的作者帖 404。 */
   async getById(viewerId: string, id: string) {
     const post = await this.driver.findPostById(id);
     if (!post || post.deletedAt) throw err.notFound();
     if (post.userId !== viewerId && post.auditStatus !== 'approved') {
       throw err.notFound();
     }
+    if (await this.isBlockedBetween(viewerId, post.userId)) throw err.notFound();
     const [view] = await this.postViews([post], viewerId);
     return view;
   }
@@ -172,6 +176,8 @@ export class SocialService {
     if (post.userId !== userId && post.auditStatus !== 'approved') {
       throw err.notFound();
     }
+    // 屏蔽关系存在时不允许举报（被屏蔽者不能借举报下架我的帖；同一 404 口径防探测）
+    if (await this.isBlockedBetween(userId, post.userId)) throw err.notFound();
     await this.driver.createPostReport(post.id, userId, reason ?? null);
     // 举报计数（reportCount/reportedAt）由驱动落库，避免与并发举报互相覆盖
     await this.driver.incrementPostReportCount(post.id);
@@ -310,7 +316,7 @@ export class SocialService {
     };
   }
 
-  /** 互动前置：存在、未删除（410）、对当前用户可见。 */
+  /** 互动前置：存在、未删除（410）、对当前用户可见、无双向屏蔽。 */
   private async visibleForInteract(userId: string, id: string): Promise<PostEntity> {
     const post = await this.driver.findPostById(id);
     if (!post) throw err.notFound();
@@ -318,7 +324,16 @@ export class SocialService {
     if (post.userId !== userId && post.auditStatus !== 'approved') {
       throw err.notFound();
     }
+    // UGC 屏蔽（App Store 条例 1.2）：我屏蔽的作者帖互动 404；
+    // 被屏蔽者也不能再给我发的帖点赞/举报（双向拦截，同一 404 口径防探测）。
+    if (await this.isBlockedBetween(userId, post.userId)) throw err.notFound();
     return post;
+  }
+
+  /** 双向屏蔽判定：任一方屏蔽另一方即视为隔离（匿名化帖 userId='' 恒不命中）。 */
+  private async isBlockedBetween(a: string, b: string): Promise<boolean> {
+    if (!a || !b || a === b) return false;
+    return (await this.driver.hasUserBlock(a, b)) || (await this.driver.hasUserBlock(b, a));
   }
 
   /** 视图组装（详情/打卡流共用）：作者摘要按作者去重查询，likedByMe 逐帖判定。 */

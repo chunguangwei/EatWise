@@ -82,6 +82,7 @@ class _Translations$onboarding$en extends Translations$onboarding$zh_CN {
 	@override late final _Translations$onboarding$science$en science = _Translations$onboarding$science$en._(_root);
 	@override late final _Translations$onboarding$profile$en profile = _Translations$onboarding$profile$en._(_root);
 	@override late final _Translations$onboarding$goal$en goal = _Translations$onboarding$goal$en._(_root);
+	@override late final _Translations$onboarding$ageConfirm$en ageConfirm = _Translations$onboarding$ageConfirm$en._(_root);
 }
 
 // Path: record
@@ -234,7 +235,7 @@ class _Translations$legal$en extends Translations$legal$zh_CN {
 	final TranslationsEn _root; // ignore: unused_field
 
 	// Translations
-	@override String get draftNote => '[Pending external confirmation: final legal copy]';
+	@override String get draftNote => 'Effective date: 2026-09-28 | Version 2.0';
 	@override late final _Translations$legal$consent$en consent = _Translations$legal$consent$en._(_root);
 	@override late final _Translations$legal$disclaimer$en disclaimer = _Translations$legal$disclaimer$en._(_root);
 	@override late final _Translations$legal$privacyPolicy$en privacyPolicy = _Translations$legal$privacyPolicy$en._(_root);
@@ -249,6 +250,7 @@ class _Translations$social$en extends Translations$social$zh_CN {
 
 	// Translations
 	@override late final _Translations$social$feed$en feed = _Translations$social$feed$en._(_root);
+	@override late final _Translations$social$blockedUsers$en blockedUsers = _Translations$social$blockedUsers$en._(_root);
 	@override late final _Translations$social$compose$en compose = _Translations$social$compose$en._(_root);
 }
 
@@ -459,6 +461,19 @@ class _Translations$onboarding$goal$en extends Translations$onboarding$goal$zh_C
 	@override String get clearDate => 'Clear date';
 	@override String get save => 'Save & continue';
 	@override String get skip => 'Skip';
+}
+
+// Path: onboarding.ageConfirm
+class _Translations$onboarding$ageConfirm$en extends Translations$onboarding$ageConfirm$zh_CN {
+	_Translations$onboarding$ageConfirm$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Age confirmation';
+	@override String get body => 'This app is not directed to children under 13, and fasting features are not recommended for minors.';
+	@override String get checkbox => 'I confirm that I am at least 13 years old';
+	@override String get confirm => 'Continue';
 }
 
 // Path: record.page
@@ -1308,6 +1323,8 @@ class _Translations$settings$privacy$en extends Translations$settings$privacy$zh
 	@override String get healthDataRevoked => 'Health data consent withdrawn — nutrition targets will use defaults';
 	@override String get analytics => 'Analytics consent';
 	@override String get analyticsSubtitle => 'Anonymous usage stats that help us improve — no health data included';
+	@override String get blockedUsers => 'Blocked users';
+	@override String get blockedUsersSubtitle => 'You won\'t see posts from blocked users';
 	@override String get exportFailed => 'Export failed. Check your connection and try again.';
 }
 
@@ -1412,6 +1429,14 @@ class _Translations$settings$about$en extends Translations$settings$about$zh_CN 
 	@override String get version => 'Version';
 	@override String get disclaimer => 'Disclaimer & special groups';
 	@override String get checkUpdate => 'Check for updates';
+	@override String get licenses => 'Open source licenses';
+	@override String get dataAi => 'Data & AI notes';
+	@override String get dataAiNutritionTitle => 'Nutrition data';
+	@override String get dataAiNutritionBody => 'Nutrition data sources: Chinese Food Composition Tables and USDA FoodData Central. Calorie and nutrient values are estimates from generic formulas, for general lifestyle reference only — not medical advice.';
+	@override String get dataAiModelTitle => 'On-device AI model';
+	@override String get dataAiModelBody => 'Photo, voice and barcode recognition and nutrition estimation may use the Gemma model (Google), with all inference running locally on your device. Use of Gemma is subject to the Gemma Terms of Use and Prohibited Use Policy.';
+	@override String get gemmaTerms => 'View Gemma Terms of Use';
+	@override String get contact => 'Contact us';
 }
 
 // Path: settings.aiModel
@@ -1477,6 +1502,10 @@ class _Translations$settings$onDevice$en extends Translations$settings$onDevice$
 	@override String get oomDisabled => 'On-device estimates disabled — not enough device memory';
 	@override String get statusFailed => 'Failed to read model status';
 	@override String errorResumeHint({required Object percent}) => '${percent}% downloaded — retry resumes from where it stopped';
+	@override String get downloadConfirmTitle => 'Download on-device model?';
+	@override String get downloadConfirmBody => 'The model file is approx. 2.4 GB. We recommend downloading over Wi-Fi — continuing will use mobile data. The model is Gemma (Google); by downloading and using it you agree to the Gemma Terms of Use and Prohibited Use Policy.';
+	@override String get downloadConfirmAction => 'Download';
+	@override String get downloadTermsLink => 'View Gemma Terms of Use';
 }
 
 // Path: settings.chain
@@ -1509,10 +1538,10 @@ class _Translations$legal$consent$en extends Translations$legal$consent$zh_CN {
 
 	// Translations
 	@override String get title => 'Welcome to EatWise';
-	@override String get summary => 'We collect and use your information as described in the Privacy Policy to provide core features like fasting timers, meal logging, and nutrition feedback. Your data is stored securely in mainland China. Please review and confirm:';
+	@override String get summary => 'We collect and use your information per the Privacy Policy to provide fasting timers, diet logging and nutrition feedback. Data is stored in the United States with encrypted transmission. Please review and confirm the following consents:';
 	@override String get agreeMain => 'I have read and agree to the Terms of Service and Privacy Policy';
 	@override String get healthTitle => 'Separate consent for health data (optional)';
-	@override String get healthBody => 'Your height, weight, age, gender, and meal/fasting records are sensitive personal information. With your separate consent, we use them to calculate personalized nutrition targets and feedback, stored encrypted in mainland China. You may decline (targets will use default values) or withdraw anytime in Settings > Privacy.';
+	@override String get healthBody => 'Your height, weight, age, gender, diet and fasting records are sensitive personal information. With your separate consent we use them to compute personalized nutrition goals and feedback, stored in the United States. You may decline (default goals will be used) without affecting basic logging.';
 	@override String get disclaimerSummary => 'Note: EatWise content is general healthy-lifestyle reference only — not medical advice, diagnosis, or treatment.';
 	@override String get specialGroupsEntry => 'See who should not fast';
 	@override String get viewPrivacyPolicy => 'Read the full Privacy Policy';
@@ -1544,7 +1573,7 @@ class _Translations$legal$privacyPolicy$en extends Translations$legal$privacyPol
 
 	// Translations
 	@override String get title => 'Privacy Policy';
-	@override String get body => 'Effective: 2026-07-27 | Version 1.0.0 [Pending external confirmation: final legal copy]\n\nEatWise ("we") provides services in mainland China only. This policy explains how we collect, use, store, and protect your personal information, and the rights you have.\n\n1. Information We Collect\n1) Phone number: for registration, sign-in, and account recovery; stored encrypted in mainland China.\n2) Height, weight, age, gender: used to compute daily nutrition targets; sensitive personal information requiring your separate consent.\n3) Meal and fasting records: required for core features; sensitive personal information.\n4) Goal, schedule, and fasting experience (3-question quiz): used for plan recommendation.\n5) Nickname and avatar: optional, for personalization and community display.\n6) Device info and push token: for notification delivery and crash analysis; we never collect IMEI/IMSI/MAC.\n7) Crash and performance logs: de-identified, retained for 6 months.\n8) Analytics events: event-level usage stats only; can be turned off in Settings > Privacy.\nWe do NOT collect: location, contacts, Bluetooth, or HealthKit/Health Connect data.\n\n2. Separate Consent for Sensitive Personal Information\nHealth-related data (height/weight, meal/fasting records) is processed only with your separate consent under PIPL Article 29. Declining does not affect account features — nutrition targets fall back to defaults — and you may withdraw anytime in Settings > Privacy.\n\n3. Storage and Security\nAll data is stored on servers in mainland China; transmission uses TLS 1.2+; phone numbers and health data use field-level encryption; the local database is fully encrypted. No data crosses borders.\n\n4. Third-Party SDKs\nWe use WeChat Login, Sign in with Apple, aggregated push, content safety, and crash monitoring SDKs, all operating within mainland China. No SDK ever receives your raw health data.\n\n5. Your Rights\n1) Access & copy: request a full export of your personal data (JSON+CSV) in Settings > Privacy > Export my data.\n2) Deletion: Settings > Account > Delete account starts a 7-day cooling-off period; signing in during this period cancels the deletion.\n3) Withdraw consent: you may withdraw health data consent and analytics consent anytime in Settings > Privacy.\n\n6. Minors\nThis product is not intended for children under 14.\n\n7. Policy Updates\nIf this policy changes materially, we will ask for your consent again.\n\n8. Contact Us\nFor questions about this policy, reach us via Settings > About in the app.';
+	@override String get body => 'Effective date: 2026-09-28 | Version 2.0\n\nEatWise ("we", "us") is a fasting and nutrition app for users outside mainland China and the European Union. This policy explains how we collect, use, store and protect your information.\n\n1. Where we operate\nThis app is offered to users in overseas markets, Hong Kong, Macau and Taiwan. We do not actively target users in the European Union or mainland China. If you are located in those regions, local law may not apply to this service.\n\n2. Information we collect\n- Account: username and password (stored encrypted). Phone-number login is not currently enabled.\n- Health and usage data: height, weight, age, gender, diet records, fasting records, water intake records, exercise and step records. These are required to provide account features (cross-device sync, nutrition goal calculation and feedback) and are stored on our servers.\n- Device and usage information: anonymized product interaction events (see Section 6).\n\n3. System health data (Apple HealthKit / Health Connect)\nWith your separate authorization, we read steps, active energy and latest weight in read-only mode, solely to display them on your device and include them in your daily burn total. This data never leaves your device: we do not upload, store or share it with any third party. You can revoke this authorization at any time in system settings or in the app.\n\n4. On-device AI and your own AI endpoint\n- On-device model (optional): you may download the Gemma model (Google, approx. 2.4 GB). Photo recognition, voice recognition, barcode recognition and nutrition estimation all run locally on your device. Photos, screenshots and audio never leave your device.\n- Your own endpoint (optional): if you configure an OpenAI-compatible endpoint, the API key is stored only on your device, and recognition/estimation requests go directly to your endpoint, governed by your own relationship with that provider. We do not relay or retain such content.\n\n5. Community content\nPosts you publish (text and images) are uploaded to and stored on our servers. Content is reviewed before it becomes visible to other users. Other users may report content, which triggers a re-review.\n\n6. Product analytics\nWe collect anonymized product interaction events (such as page visits and feature usage paths, using HMAC-based anonymous identifiers, without health details) solely to improve the product. You can turn off analytics collection at any time in Settings.\n\n7. Data storage and security\nData is stored in the United States (HostEONS VPS, wcg.polin.tech). Transmissions are encrypted. We apply reasonable technical and organizational measures, but no internet transmission or electronic storage is ever fully secure. Account data is retained while you use the service; after account deletion, Section 8 applies.\n\n8. Your rights and account deletion\nYou can review and correct your profile, and export your data in the app. You can delete your account in Settings: your sessions are revoked immediately, a 7-day cooling-off period begins (during which you can undo), and after that period your account data is physically deleted. Depending on your jurisdiction, you may also have rights of access, portability, restriction and objection, which you can exercise via the contact below.\n\n9. Children\nThis app is not directed to children under 13, and fasting features are not recommended for minors. If we learn that we have collected personal information from a child under 13, we will delete it promptly.\n\n10. Jurisdiction notes\nTaiwan: under the Personal Data Protection Act (PDPA), you have the right to access, obtain copies of, supplement, correct, and request cessation of processing or deletion of your personal data. Hong Kong SAR: under the Personal Data (Privacy) Ordinance (PDPO), you have the right to access and correct your personal data. You may exercise these rights via the contact below, and we will respond within a reasonable period.\nEuropean Union: this app does not actively offer services to, or target, users in the EU.\n\n11. Governing law and disputes\nThis policy and any disputes are governed by the mandatory laws of your jurisdiction; absent such rules, disputes shall be resolved through friendly consultation.\n\n12. Changes and contact\nIf this policy changes, we will publish the updated version in the app. For any questions about this policy or our data practices, contact: support@polin.tech.';
 }
 
 // Path: legal.userAgreement
@@ -1555,7 +1584,7 @@ class _Translations$legal$userAgreement$en extends Translations$legal$userAgreem
 
 	// Translations
 	@override String get title => 'Terms of Service';
-	@override String get body => 'Effective: 2026-07-27 | Version 1.0.0 [Pending external confirmation: final legal copy]\n\nWelcome to EatWise (the "App"). Please read these terms carefully before using the App.\n\n1. Services\nThe App provides healthy-lifestyle tools including intermittent fasting timers, meal logging, nutrition target estimates with signal-light feedback, trend reports, and community check-ins.\n\n2. Account\nYou may register and sign in via phone verification code, WeChat, or Sign in with Apple. Keep your account secure; you are responsible for activity under it.\n\n3. Not Medical Advice\nAll content in the App is general healthy-lifestyle reference only and is not medical advice, diagnosis, or treatment. See the Disclaimer for details.\n\n4. User Conduct\nYou agree that content you post complies with applicable laws and does not infringe others\' rights. Violating content may be removed and account features restricted.\n\n5. Intellectual Property\nThe App\'s content and software are owned by us; you receive a personal, non-commercial license to use them.\n\n6. Limitation of Liability\nWe assume no medical liability for health consequences arising from use of the App\'s information, and no liability for service interruptions caused by force majeure or third parties.\n\n7. Changes and Termination\nWe will notify you of changes to these terms via in-app notices. You may stop using the App at any time by deleting your account.\n\n8. Governing Law\nThese terms are governed by the laws of the People\'s Republic of China.';
+	@override String get body => 'Effective date: 2026-09-28 | Version 2.0\n\nWelcome to EatWise (the "App"). Please read these Terms of Use ("Terms") carefully before using the App. By using the App you accept these Terms in full.\n\n1. Scope\nThese Terms govern your use of the fasting timer, diet and exercise logging, nutrition feedback and community features (the "Service").\n\n2. Account and registration\n- You register and sign in with a username and password. Phone-number login is not currently enabled.\n- You are responsible for the accuracy of your account information and for keeping your password secure; losses caused by your own disclosure are your responsibility.\n- You confirm that you are at least 13 years old. Children under 13 may not use the App, and fasting features are not recommended for minors.\n\n3. Service content and changes\n- Nutrition goals, calorie and nutrient values, fasting plans and exercise burn figures are estimates produced by generic formulas and may vary by individual.\n- We may improve, add, suspend or discontinue features from time to time, with reasonable notice in the App.\n- Some features depend on the network and on your device data; we are not liable for interruptions caused by your device, network or third-party services (app stores, OS health services).\n\n4. Acceptable use\nWhen using community features you must not:\n- post content that is illegal, fraudulent, defamatory, harassing, discriminatory, obscene or infringing;\n- post medical diagnoses, treatment advice, prescription-drug or supplement promotion, or other content that may mislead;\n- post false nutrition data, advertising spam or content that disrupts the community;\n- scrape, reverse engineer or interfere with the Service by technical means;\n- infringe others\' intellectual property, privacy or personal data rights.\nViolating content may be removed, and accounts may be restricted or terminated.\n\n5. Content license and intellectual property\n- You retain ownership of your posts. You grant us a non-exclusive, royalty-free, revocable license to store, display, reproduce and distribute your posts as necessary to provide and improve the Service (the license ends when you delete the content, except for reasonably retained caches).\n- The App\'s software, interface, text and design are owned by us or the respective rights holders and may not be used without permission.\n- The Gemma on-device model is owned by Google; use is subject to the Gemma Terms of Use and Prohibited Use Policy (https://ai.google.dev/gemma/terms).\n\n6. Health disclaimer\nNutrition goals, signal-light feedback, fasting plans, and nutrition and exercise figures provided by the App are general lifestyle references only and do not constitute medical advice, diagnosis or treatment, and are no substitute for a physician or registered dietitian. If you are pregnant or breastfeeding, a minor, have a history of or high risk for eating disorders, diabetes or other chronic conditions, are underweight or malnourished, or are recovering from surgery or serious illness, do not fast on your own or use the App only under medical guidance. You are solely responsible for health decisions made using the App.\n\n7. Privacy\nYour personal information is handled per the Privacy Policy. System health data (Apple HealthKit / Health Connect) is used only on your device and is never uploaded.\n\n8. Account deletion and termination\n- You can delete your account in Settings: sessions are revoked immediately, a 7-day cooling-off period applies (undo available), after which your data is physically deleted.\n- If you breach these Terms we may suspend or terminate the Service to you; you may also stop using the App and delete your account at any time.\n\n9. Limitation of liability\nTo the maximum extent permitted by law, we are not liable for indirect, incidental, special or punitive damages (including data loss, lost profits, or health harm); our aggregate liability is limited to the fees you paid for the App (if any) in the last 12 months.\n\n10. Governing law and disputes\nThese Terms and any disputes are governed by the mandatory laws of your jurisdiction; absent such rules, disputes shall be resolved through friendly consultation.\n\n11. Changes and contact\nIf these Terms change, we will publish the updated version in the App; continued use constitutes acceptance. Questions: support@polin.tech.';
 }
 
 // Path: social.feed
@@ -1589,6 +1618,27 @@ class _Translations$social$feed$en extends Translations$social$feed$zh_CN {
 	@override String get deleted => 'Deleted';
 	@override String get deleteFailed => 'Couldn\'t delete. Please try again later.';
 	@override String get anonymousPoster => 'Anonymous buddy';
+	@override String get block => 'Block this user';
+	@override String get blockConfirm => 'You won\'t see their posts anymore. You can unblock them anytime in Settings - Blocked users.';
+	@override String get blocked => 'Blocked. Their posts are now hidden.';
+	@override String get blockFailed => 'Couldn\'t block. Please try again later.';
+}
+
+// Path: social.blockedUsers
+class _Translations$social$blockedUsers$en extends Translations$social$blockedUsers$zh_CN {
+	_Translations$social$blockedUsers$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Blocked users';
+	@override String get empty => 'No blocked users. Posts from people you block won\'t show up in your feed.';
+	@override String get unknownUser => 'EatWise buddy';
+	@override String get unblock => 'Unblock';
+	@override String get unblockConfirm => 'Their posts will show up in your feed again after unblocking.';
+	@override String get unblocked => 'Unblocked';
+	@override String get unblockFailed => 'Something went wrong. Please try again later.';
+	@override String get loadError => 'Couldn\'t load the list. Please try again.';
 }
 
 // Path: social.compose
@@ -2467,6 +2517,10 @@ extension on TranslationsEn {
 			'onboarding.goal.clearDate' => 'Clear date',
 			'onboarding.goal.save' => 'Save & continue',
 			'onboarding.goal.skip' => 'Skip',
+			'onboarding.ageConfirm.title' => 'Age confirmation',
+			'onboarding.ageConfirm.body' => 'This app is not directed to children under 13, and fasting features are not recommended for minors.',
+			'onboarding.ageConfirm.checkbox' => 'I confirm that I am at least 13 years old',
+			'onboarding.ageConfirm.confirm' => 'Continue',
 			'record.page.title' => 'Records',
 			'record.page.confirm' => 'Log it',
 			'record.page.loggedToday' => ({required Object count}) => '${count} logged today',
@@ -2864,12 +2918,12 @@ extension on TranslationsEn {
 			'nutrition.signalCard.zone.yellow' => 'Heads-up',
 			'nutrition.signalCard.zone.red' => 'Warning',
 			'nutrition.signalCard.advice.kcal.green' => 'Your calories are right on track today — nice and steady, keep it up! 🌱',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.signalCard.advice.kcal.yellowLow' => ({required Object meal_action}) => 'You\'re a bit under on calories — ${meal_action}. Your body will thank you.',
 			'nutrition.signalCard.advice.kcal.yellowHigh' => ({required Object meal_action}) => 'Calories are a touch high — ${meal_action} and you\'re right back on track.',
 			'nutrition.signalCard.advice.kcal.redLow' => ({required Object meal_action}) => 'You\'re well under today — outside your fasting window, do eat well: ${meal_action}.',
 			'nutrition.signalCard.advice.kcal.redHigh' => ({required Object meal_action}) => 'A bit over on calories — no stress! ${meal_action}. Tomorrow\'s a fresh day.',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.signalCard.advice.kcal.zero' => 'No calories logged yet — did a meal slip by?',
 			'nutrition.signalCard.advice.protein.green' => 'Protein nailed it! Your muscles are sending you a heart 💪',
 			'nutrition.signalCard.advice.protein.yellowLow' => ({required Object meal_action}) => 'Protein is almost there — ${meal_action} and you\'ve got it.',
@@ -3025,6 +3079,8 @@ extension on TranslationsEn {
 			'settings.privacy.healthDataRevoked' => 'Health data consent withdrawn — nutrition targets will use defaults',
 			'settings.privacy.analytics' => 'Analytics consent',
 			'settings.privacy.analyticsSubtitle' => 'Anonymous usage stats that help us improve — no health data included',
+			'settings.privacy.blockedUsers' => 'Blocked users',
+			'settings.privacy.blockedUsersSubtitle' => 'You won\'t see posts from blocked users',
 			'settings.privacy.exportFailed' => 'Export failed. Check your connection and try again.',
 			'settings.health.group' => 'Activity data',
 			'settings.health.sync' => 'Sync activity data',
@@ -3081,6 +3137,14 @@ extension on TranslationsEn {
 			'settings.about.version' => 'Version',
 			'settings.about.disclaimer' => 'Disclaimer & special groups',
 			'settings.about.checkUpdate' => 'Check for updates',
+			'settings.about.licenses' => 'Open source licenses',
+			'settings.about.dataAi' => 'Data & AI notes',
+			'settings.about.dataAiNutritionTitle' => 'Nutrition data',
+			'settings.about.dataAiNutritionBody' => 'Nutrition data sources: Chinese Food Composition Tables and USDA FoodData Central. Calorie and nutrient values are estimates from generic formulas, for general lifestyle reference only — not medical advice.',
+			'settings.about.dataAiModelTitle' => 'On-device AI model',
+			'settings.about.dataAiModelBody' => 'Photo, voice and barcode recognition and nutrition estimation may use the Gemma model (Google), with all inference running locally on your device. Use of Gemma is subject to the Gemma Terms of Use and Prohibited Use Policy.',
+			'settings.about.gemmaTerms' => 'View Gemma Terms of Use',
+			'settings.about.contact' => 'Contact us',
 			'settings.aiModel.title' => 'AI Model',
 			'settings.aiModel.provider' => 'Provider',
 			'settings.aiModel.providers.custom' => 'Custom',
@@ -3131,6 +3195,10 @@ extension on TranslationsEn {
 			'settings.onDevice.oomDisabled' => 'On-device estimates disabled — not enough device memory',
 			'settings.onDevice.statusFailed' => 'Failed to read model status',
 			'settings.onDevice.errorResumeHint' => ({required Object percent}) => '${percent}% downloaded — retry resumes from where it stopped',
+			'settings.onDevice.downloadConfirmTitle' => 'Download on-device model?',
+			'settings.onDevice.downloadConfirmBody' => 'The model file is approx. 2.4 GB. We recommend downloading over Wi-Fi — continuing will use mobile data. The model is Gemma (Google); by downloading and using it you agree to the Gemma Terms of Use and Prohibited Use Policy.',
+			'settings.onDevice.downloadConfirmAction' => 'Download',
+			'settings.onDevice.downloadTermsLink' => 'View Gemma Terms of Use',
 			'settings.chain.title' => 'Estimate routing',
 			'settings.chain.onDevice' => 'On-device model',
 			'settings.chain.userApi' => 'Custom API',
@@ -3144,12 +3212,12 @@ extension on TranslationsEn {
 			'settings.chain.statusConfigured' => 'Configured',
 			'settings.chain.statusNotConfigured' => 'Not configured',
 			'settings.chain.current' => 'Active',
-			'legal.draftNote' => '[Pending external confirmation: final legal copy]',
+			'legal.draftNote' => 'Effective date: 2026-09-28 | Version 2.0',
 			'legal.consent.title' => 'Welcome to EatWise',
-			'legal.consent.summary' => 'We collect and use your information as described in the Privacy Policy to provide core features like fasting timers, meal logging, and nutrition feedback. Your data is stored securely in mainland China. Please review and confirm:',
+			'legal.consent.summary' => 'We collect and use your information per the Privacy Policy to provide fasting timers, diet logging and nutrition feedback. Data is stored in the United States with encrypted transmission. Please review and confirm the following consents:',
 			'legal.consent.agreeMain' => 'I have read and agree to the Terms of Service and Privacy Policy',
 			'legal.consent.healthTitle' => 'Separate consent for health data (optional)',
-			'legal.consent.healthBody' => 'Your height, weight, age, gender, and meal/fasting records are sensitive personal information. With your separate consent, we use them to calculate personalized nutrition targets and feedback, stored encrypted in mainland China. You may decline (targets will use default values) or withdraw anytime in Settings > Privacy.',
+			'legal.consent.healthBody' => 'Your height, weight, age, gender, diet and fasting records are sensitive personal information. With your separate consent we use them to compute personalized nutrition goals and feedback, stored in the United States. You may decline (default goals will be used) without affecting basic logging.',
 			'legal.consent.disclaimerSummary' => 'Note: EatWise content is general healthy-lifestyle reference only — not medical advice, diagnosis, or treatment.',
 			'legal.consent.specialGroupsEntry' => 'See who should not fast',
 			'legal.consent.viewPrivacyPolicy' => 'Read the full Privacy Policy',
@@ -3163,9 +3231,9 @@ extension on TranslationsEn {
 			'legal.disclaimer.specialGroupsBody' => '⚠️ Intermittent fasting is not recommended for the following groups, or should only be done under medical supervision: pregnant or breastfeeding women; minors (under 18); people with a history of or at risk for eating disorders (e.g., anorexia, bulimia); people with diabetes (especially those using insulin or glucose-lowering medication); people with hypoglycemia or hypotension; people who are underweight (BMI < 18.5); people with chronic conditions such as gout, kidney or liver disease; people recovering from recent surgery or illness; and frail older adults. If you fall into any of these categories, do not start a fasting plan and consult your doctor first.',
 			'legal.disclaimer.short' => 'EatWise content is not medical advice',
 			'legal.privacyPolicy.title' => 'Privacy Policy',
-			'legal.privacyPolicy.body' => 'Effective: 2026-07-27 | Version 1.0.0 [Pending external confirmation: final legal copy]\n\nEatWise ("we") provides services in mainland China only. This policy explains how we collect, use, store, and protect your personal information, and the rights you have.\n\n1. Information We Collect\n1) Phone number: for registration, sign-in, and account recovery; stored encrypted in mainland China.\n2) Height, weight, age, gender: used to compute daily nutrition targets; sensitive personal information requiring your separate consent.\n3) Meal and fasting records: required for core features; sensitive personal information.\n4) Goal, schedule, and fasting experience (3-question quiz): used for plan recommendation.\n5) Nickname and avatar: optional, for personalization and community display.\n6) Device info and push token: for notification delivery and crash analysis; we never collect IMEI/IMSI/MAC.\n7) Crash and performance logs: de-identified, retained for 6 months.\n8) Analytics events: event-level usage stats only; can be turned off in Settings > Privacy.\nWe do NOT collect: location, contacts, Bluetooth, or HealthKit/Health Connect data.\n\n2. Separate Consent for Sensitive Personal Information\nHealth-related data (height/weight, meal/fasting records) is processed only with your separate consent under PIPL Article 29. Declining does not affect account features — nutrition targets fall back to defaults — and you may withdraw anytime in Settings > Privacy.\n\n3. Storage and Security\nAll data is stored on servers in mainland China; transmission uses TLS 1.2+; phone numbers and health data use field-level encryption; the local database is fully encrypted. No data crosses borders.\n\n4. Third-Party SDKs\nWe use WeChat Login, Sign in with Apple, aggregated push, content safety, and crash monitoring SDKs, all operating within mainland China. No SDK ever receives your raw health data.\n\n5. Your Rights\n1) Access & copy: request a full export of your personal data (JSON+CSV) in Settings > Privacy > Export my data.\n2) Deletion: Settings > Account > Delete account starts a 7-day cooling-off period; signing in during this period cancels the deletion.\n3) Withdraw consent: you may withdraw health data consent and analytics consent anytime in Settings > Privacy.\n\n6. Minors\nThis product is not intended for children under 14.\n\n7. Policy Updates\nIf this policy changes materially, we will ask for your consent again.\n\n8. Contact Us\nFor questions about this policy, reach us via Settings > About in the app.',
+			'legal.privacyPolicy.body' => 'Effective date: 2026-09-28 | Version 2.0\n\nEatWise ("we", "us") is a fasting and nutrition app for users outside mainland China and the European Union. This policy explains how we collect, use, store and protect your information.\n\n1. Where we operate\nThis app is offered to users in overseas markets, Hong Kong, Macau and Taiwan. We do not actively target users in the European Union or mainland China. If you are located in those regions, local law may not apply to this service.\n\n2. Information we collect\n- Account: username and password (stored encrypted). Phone-number login is not currently enabled.\n- Health and usage data: height, weight, age, gender, diet records, fasting records, water intake records, exercise and step records. These are required to provide account features (cross-device sync, nutrition goal calculation and feedback) and are stored on our servers.\n- Device and usage information: anonymized product interaction events (see Section 6).\n\n3. System health data (Apple HealthKit / Health Connect)\nWith your separate authorization, we read steps, active energy and latest weight in read-only mode, solely to display them on your device and include them in your daily burn total. This data never leaves your device: we do not upload, store or share it with any third party. You can revoke this authorization at any time in system settings or in the app.\n\n4. On-device AI and your own AI endpoint\n- On-device model (optional): you may download the Gemma model (Google, approx. 2.4 GB). Photo recognition, voice recognition, barcode recognition and nutrition estimation all run locally on your device. Photos, screenshots and audio never leave your device.\n- Your own endpoint (optional): if you configure an OpenAI-compatible endpoint, the API key is stored only on your device, and recognition/estimation requests go directly to your endpoint, governed by your own relationship with that provider. We do not relay or retain such content.\n\n5. Community content\nPosts you publish (text and images) are uploaded to and stored on our servers. Content is reviewed before it becomes visible to other users. Other users may report content, which triggers a re-review.\n\n6. Product analytics\nWe collect anonymized product interaction events (such as page visits and feature usage paths, using HMAC-based anonymous identifiers, without health details) solely to improve the product. You can turn off analytics collection at any time in Settings.\n\n7. Data storage and security\nData is stored in the United States (HostEONS VPS, wcg.polin.tech). Transmissions are encrypted. We apply reasonable technical and organizational measures, but no internet transmission or electronic storage is ever fully secure. Account data is retained while you use the service; after account deletion, Section 8 applies.\n\n8. Your rights and account deletion\nYou can review and correct your profile, and export your data in the app. You can delete your account in Settings: your sessions are revoked immediately, a 7-day cooling-off period begins (during which you can undo), and after that period your account data is physically deleted. Depending on your jurisdiction, you may also have rights of access, portability, restriction and objection, which you can exercise via the contact below.\n\n9. Children\nThis app is not directed to children under 13, and fasting features are not recommended for minors. If we learn that we have collected personal information from a child under 13, we will delete it promptly.\n\n10. Jurisdiction notes\nTaiwan: under the Personal Data Protection Act (PDPA), you have the right to access, obtain copies of, supplement, correct, and request cessation of processing or deletion of your personal data. Hong Kong SAR: under the Personal Data (Privacy) Ordinance (PDPO), you have the right to access and correct your personal data. You may exercise these rights via the contact below, and we will respond within a reasonable period.\nEuropean Union: this app does not actively offer services to, or target, users in the EU.\n\n11. Governing law and disputes\nThis policy and any disputes are governed by the mandatory laws of your jurisdiction; absent such rules, disputes shall be resolved through friendly consultation.\n\n12. Changes and contact\nIf this policy changes, we will publish the updated version in the app. For any questions about this policy or our data practices, contact: support@polin.tech.',
 			'legal.userAgreement.title' => 'Terms of Service',
-			'legal.userAgreement.body' => 'Effective: 2026-07-27 | Version 1.0.0 [Pending external confirmation: final legal copy]\n\nWelcome to EatWise (the "App"). Please read these terms carefully before using the App.\n\n1. Services\nThe App provides healthy-lifestyle tools including intermittent fasting timers, meal logging, nutrition target estimates with signal-light feedback, trend reports, and community check-ins.\n\n2. Account\nYou may register and sign in via phone verification code, WeChat, or Sign in with Apple. Keep your account secure; you are responsible for activity under it.\n\n3. Not Medical Advice\nAll content in the App is general healthy-lifestyle reference only and is not medical advice, diagnosis, or treatment. See the Disclaimer for details.\n\n4. User Conduct\nYou agree that content you post complies with applicable laws and does not infringe others\' rights. Violating content may be removed and account features restricted.\n\n5. Intellectual Property\nThe App\'s content and software are owned by us; you receive a personal, non-commercial license to use them.\n\n6. Limitation of Liability\nWe assume no medical liability for health consequences arising from use of the App\'s information, and no liability for service interruptions caused by force majeure or third parties.\n\n7. Changes and Termination\nWe will notify you of changes to these terms via in-app notices. You may stop using the App at any time by deleting your account.\n\n8. Governing Law\nThese terms are governed by the laws of the People\'s Republic of China.',
+			'legal.userAgreement.body' => 'Effective date: 2026-09-28 | Version 2.0\n\nWelcome to EatWise (the "App"). Please read these Terms of Use ("Terms") carefully before using the App. By using the App you accept these Terms in full.\n\n1. Scope\nThese Terms govern your use of the fasting timer, diet and exercise logging, nutrition feedback and community features (the "Service").\n\n2. Account and registration\n- You register and sign in with a username and password. Phone-number login is not currently enabled.\n- You are responsible for the accuracy of your account information and for keeping your password secure; losses caused by your own disclosure are your responsibility.\n- You confirm that you are at least 13 years old. Children under 13 may not use the App, and fasting features are not recommended for minors.\n\n3. Service content and changes\n- Nutrition goals, calorie and nutrient values, fasting plans and exercise burn figures are estimates produced by generic formulas and may vary by individual.\n- We may improve, add, suspend or discontinue features from time to time, with reasonable notice in the App.\n- Some features depend on the network and on your device data; we are not liable for interruptions caused by your device, network or third-party services (app stores, OS health services).\n\n4. Acceptable use\nWhen using community features you must not:\n- post content that is illegal, fraudulent, defamatory, harassing, discriminatory, obscene or infringing;\n- post medical diagnoses, treatment advice, prescription-drug or supplement promotion, or other content that may mislead;\n- post false nutrition data, advertising spam or content that disrupts the community;\n- scrape, reverse engineer or interfere with the Service by technical means;\n- infringe others\' intellectual property, privacy or personal data rights.\nViolating content may be removed, and accounts may be restricted or terminated.\n\n5. Content license and intellectual property\n- You retain ownership of your posts. You grant us a non-exclusive, royalty-free, revocable license to store, display, reproduce and distribute your posts as necessary to provide and improve the Service (the license ends when you delete the content, except for reasonably retained caches).\n- The App\'s software, interface, text and design are owned by us or the respective rights holders and may not be used without permission.\n- The Gemma on-device model is owned by Google; use is subject to the Gemma Terms of Use and Prohibited Use Policy (https://ai.google.dev/gemma/terms).\n\n6. Health disclaimer\nNutrition goals, signal-light feedback, fasting plans, and nutrition and exercise figures provided by the App are general lifestyle references only and do not constitute medical advice, diagnosis or treatment, and are no substitute for a physician or registered dietitian. If you are pregnant or breastfeeding, a minor, have a history of or high risk for eating disorders, diabetes or other chronic conditions, are underweight or malnourished, or are recovering from surgery or serious illness, do not fast on your own or use the App only under medical guidance. You are solely responsible for health decisions made using the App.\n\n7. Privacy\nYour personal information is handled per the Privacy Policy. System health data (Apple HealthKit / Health Connect) is used only on your device and is never uploaded.\n\n8. Account deletion and termination\n- You can delete your account in Settings: sessions are revoked immediately, a 7-day cooling-off period applies (undo available), after which your data is physically deleted.\n- If you breach these Terms we may suspend or terminate the Service to you; you may also stop using the App and delete your account at any time.\n\n9. Limitation of liability\nTo the maximum extent permitted by law, we are not liable for indirect, incidental, special or punitive damages (including data loss, lost profits, or health harm); our aggregate liability is limited to the fees you paid for the App (if any) in the last 12 months.\n\n10. Governing law and disputes\nThese Terms and any disputes are governed by the mandatory laws of your jurisdiction; absent such rules, disputes shall be resolved through friendly consultation.\n\n11. Changes and contact\nIf these Terms change, we will publish the updated version in the App; continued use constitutes acceptance. Questions: support@polin.tech.',
 			'social.feed.title' => 'Community',
 			'social.feed.emptyTitle' => 'Waiting for today\'s first check-in to show up.',
 			'social.feed.emptySubtitle' => 'Post your first check-in and light the way for others.',
@@ -3190,6 +3258,18 @@ extension on TranslationsEn {
 			'social.feed.deleted' => 'Deleted',
 			'social.feed.deleteFailed' => 'Couldn\'t delete. Please try again later.',
 			'social.feed.anonymousPoster' => 'Anonymous buddy',
+			'social.feed.block' => 'Block this user',
+			'social.feed.blockConfirm' => 'You won\'t see their posts anymore. You can unblock them anytime in Settings - Blocked users.',
+			'social.feed.blocked' => 'Blocked. Their posts are now hidden.',
+			'social.feed.blockFailed' => 'Couldn\'t block. Please try again later.',
+			'social.blockedUsers.title' => 'Blocked users',
+			'social.blockedUsers.empty' => 'No blocked users. Posts from people you block won\'t show up in your feed.',
+			'social.blockedUsers.unknownUser' => 'EatWise buddy',
+			'social.blockedUsers.unblock' => 'Unblock',
+			'social.blockedUsers.unblockConfirm' => 'Their posts will show up in your feed again after unblocking.',
+			'social.blockedUsers.unblocked' => 'Unblocked',
+			'social.blockedUsers.unblockFailed' => 'Something went wrong. Please try again later.',
+			'social.blockedUsers.loadError' => 'Couldn\'t load the list. Please try again.',
 			'social.compose.title' => 'New check-in',
 			'social.compose.hint' => 'Capture this moment of persistence…',
 			'social.compose.charCount' => ({required Object n}) => '${n}/500',

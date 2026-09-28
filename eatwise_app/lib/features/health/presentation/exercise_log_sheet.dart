@@ -164,6 +164,9 @@ class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
   /// kcal 被用户手改后为 true（不再随类型/时长联动重算）。
   bool _kcalOverridden = false;
 
+  /// 入账在途（防连点）。
+  bool _saving = false;
+
   /// 校验错误文案（null 为无错误）。
   String? _error;
 
@@ -207,6 +210,16 @@ class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
   }
 
   Future<void> _save(Translations t) async {
+    if (_saving) return; // 防连点重复入账（本地落库快但窗口真实存在）
+    _saving = true;
+    try {
+      await _doSave(t);
+    } finally {
+      _saving = false;
+    }
+  }
+
+  Future<void> _doSave(Translations t) async {
     final steps = int.tryParse(_stepsController.text.trim());
     final bySteps = _type.key == 'walk' && steps != null && steps > 0;
     // 走路按步数录入时长可留空（无时长口径，落 0）；其余时长必填。

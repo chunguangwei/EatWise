@@ -352,6 +352,23 @@ final class FeedController extends Notifier<FeedState> {
     }
   }
 
+  /// 屏蔽作者（App Store 条例 1.2）：服务端落屏蔽关系，本地即时移除该作者
+  /// 全部帖（不等整流刷新）；失败回滚 = 整流 refresh 拉回权威口径。
+  Future<bool> blockAuthor(String authorId) async {
+    state = state.copyWith(
+      items: state.items
+          .where((i) => i.post.isAuthor || i.post.authorId != authorId)
+          .toList(),
+    );
+    try {
+      await _api.blockUser(authorId);
+      return true;
+    } on ApiException {
+      await refresh();
+      return false;
+    }
+  }
+
   /// 按 postId 重定位替换（找不到说明条目已被移除/刷新，丢弃本次回写）。
   void _replaceById(String postId, FeedItem item) {
     final index = state.items.indexWhere((i) => i.post.id == postId);

@@ -472,6 +472,51 @@ void main() {
     await settleUi(tester);
   });
 
+  testWidgets('暗色模式冒烟：搜索/结果卡/弹层渲染无异常（Token 全覆盖）', (tester) async {
+    // 上架终审：暗色 Token 下主流程页面不崩（无硬编码底色/文字冲突）。
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          recordRepositoryProvider.overrideWithValue(repository),
+          aiEngineAvailabilityFnProvider.overrideWithValue(
+            () async => AiEngineAvailability.ondeviceReady,
+          ),
+          waterLogRepositoryProvider.overrideWithValue(
+            WaterLogRepository(db: db),
+          ),
+          nutritionGoalProvider.overrideWithValue(
+            const NutritionGoal(
+              bmr: null,
+              tdee: null,
+              targetKcal: 2000,
+              proteinG: 125,
+              carbG: 225,
+              fatG: 67,
+              usedFallback: true,
+              configVersion: '1.0.0',
+            ),
+          ),
+        ],
+        child: TranslationProvider(
+          child: MaterialApp(theme: AppTheme.dark(), home: const RecordPage()),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.enterText(find.byType(TextField).first, '米饭');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('白米饭'), findsOneWidget);
+    await tester.tap(find.text('白米饭'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('确认记录'), findsOneWidget);
+
+    await settleUi(tester);
+  });
+
   testWidgets('今日记录：占位食物行（名称==id）显示「未知食物」而非原始 id', (tester) async {
     // 下行合成占位行（cf_ 前缀自定义食物本机缺行；v1.13.18 走查「记录页
     // 显示 cf_223767c7」）。

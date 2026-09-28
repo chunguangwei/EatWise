@@ -132,7 +132,20 @@ class _PostCardState extends ConsumerState<PostCard> {
                       tooltip: t.social.feed.delete,
                       onPressed: () => _confirmDelete(context),
                     ),
-                ] else
+                ] else ...<Widget>[
+                  // 屏蔽作者（App Store 条例 1.2）：匿名帖作者身份已被服务端
+                  // 抹除（authorId 为 null），不提供屏蔽入口。
+                  if (post.authorId != null)
+                    IconButton(
+                      icon: Icon(
+                        Icons.block_outlined,
+                        color: colors.textSecondary,
+                      ),
+                      tooltip: t.social.feed.block,
+                      onPressed: item.pendingSync
+                          ? null
+                          : () => _confirmBlock(context),
+                    ),
                   IconButton(
                     icon: Icon(
                       Icons.flag_outlined,
@@ -141,6 +154,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                     tooltip: t.social.feed.report,
                     onPressed: () => _confirmReport(context),
                   ),
+                ],
               ],
             ),
             const SizedBox(height: AppSpacing.s2),
@@ -269,6 +283,38 @@ class _PostCardState extends ConsumerState<PostCard> {
     messenger.showSnackBar(
       SnackBar(
         content: Text(ok ? t.social.feed.reported : t.social.feed.reportFailed),
+      ),
+    );
+  }
+
+  Future<void> _confirmBlock(BuildContext context) async {
+    final t = Translations.of(context);
+    final authorId = widget.item.post.authorId;
+    if (authorId == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        content: Text(t.social.feed.blockConfirm),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(t.common.action.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(t.social.feed.block),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await ref
+        .read(feedControllerProvider.notifier)
+        .blockAuthor(authorId);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(ok ? t.social.feed.blocked : t.social.feed.blockFailed),
       ),
     );
   }

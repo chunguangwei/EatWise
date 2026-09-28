@@ -87,6 +87,7 @@ class Translations$onboarding$zh_CN {
 	late final Translations$onboarding$science$zh_CN science = Translations$onboarding$science$zh_CN.internal(_root);
 	late final Translations$onboarding$profile$zh_CN profile = Translations$onboarding$profile$zh_CN.internal(_root);
 	late final Translations$onboarding$goal$zh_CN goal = Translations$onboarding$goal$zh_CN.internal(_root);
+	late final Translations$onboarding$ageConfirm$zh_CN ageConfirm = Translations$onboarding$ageConfirm$zh_CN.internal(_root);
 }
 
 // Path: record
@@ -254,8 +255,8 @@ class Translations$legal$zh_CN {
 
 	// Translations
 
-	/// zh-CN: '〔待外部确认：法务终稿〕'
-	String get draftNote => '〔待外部确认：法务终稿〕';
+	/// zh-CN: '生效日期：2026-09-28｜版本 2.0'
+	String get draftNote => '生效日期：2026-09-28｜版本 2.0';
 
 	late final Translations$legal$consent$zh_CN consent = Translations$legal$consent$zh_CN.internal(_root);
 	late final Translations$legal$disclaimer$zh_CN disclaimer = Translations$legal$disclaimer$zh_CN.internal(_root);
@@ -271,6 +272,7 @@ class Translations$social$zh_CN {
 
 	// Translations
 	late final Translations$social$feed$zh_CN feed = Translations$social$feed$zh_CN.internal(_root);
+	late final Translations$social$blockedUsers$zh_CN blockedUsers = Translations$social$blockedUsers$zh_CN.internal(_root);
 	late final Translations$social$compose$zh_CN compose = Translations$social$compose$zh_CN.internal(_root);
 }
 
@@ -689,6 +691,27 @@ class Translations$onboarding$goal$zh_CN {
 
 	/// zh-CN: '跳过'
 	String get skip => '跳过';
+}
+
+// Path: onboarding.ageConfirm
+class Translations$onboarding$ageConfirm$zh_CN {
+	Translations$onboarding$ageConfirm$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '年龄确认'
+	String get title => '年龄确认';
+
+	/// zh-CN: '本应用不面向 13 岁以下儿童，断食功能不建议未成年人使用。'
+	String get body => '本应用不面向 13 岁以下儿童，断食功能不建议未成年人使用。';
+
+	/// zh-CN: '我确认已年满 13 岁'
+	String get checkbox => '我确认已年满 13 岁';
+
+	/// zh-CN: '继续'
+	String get confirm => '继续';
 }
 
 // Path: record.page
@@ -2323,6 +2346,12 @@ class Translations$settings$privacy$zh_CN {
 	/// zh-CN: '匿名行为统计，帮助我们改进产品，不含健康数据'
 	String get analyticsSubtitle => '匿名行为统计，帮助我们改进产品，不含健康数据';
 
+	/// zh-CN: '已屏蔽用户'
+	String get blockedUsers => '已屏蔽用户';
+
+	/// zh-CN: '屏蔽后不再看到对方发布的内容'
+	String get blockedUsersSubtitle => '屏蔽后不再看到对方发布的内容';
+
 	/// zh-CN: '导出失败，请检查网络后重试'
 	String get exportFailed => '导出失败，请检查网络后重试';
 }
@@ -2525,6 +2554,30 @@ class Translations$settings$about$zh_CN {
 
 	/// zh-CN: '检查更新'
 	String get checkUpdate => '检查更新';
+
+	/// zh-CN: '开源许可'
+	String get licenses => '开源许可';
+
+	/// zh-CN: '数据与 AI 说明'
+	String get dataAi => '数据与 AI 说明';
+
+	/// zh-CN: '营养数据'
+	String get dataAiNutritionTitle => '营养数据';
+
+	/// zh-CN: '营养数据来源：中国食物成分表与 USDA FoodData Central。热量与营养素数值为通用公式估算，仅供健康生活方式参考，不构成医疗建议。'
+	String get dataAiNutritionBody => '营养数据来源：中国食物成分表与 USDA FoodData Central。热量与营养素数值为通用公式估算，仅供健康生活方式参考，不构成医疗建议。';
+
+	/// zh-CN: '端侧 AI 模型'
+	String get dataAiModelTitle => '端侧 AI 模型';
+
+	/// zh-CN: '本应用的拍照/语音/条码识别与营养估算可选使用 Gemma 模型（Google），推理全部在你的设备本地完成。使用 Gemma 须遵守 Gemma Terms of Use 与 Prohibited Use Policy。'
+	String get dataAiModelBody => '本应用的拍照/语音/条码识别与营养估算可选使用 Gemma 模型（Google），推理全部在你的设备本地完成。使用 Gemma 须遵守 Gemma Terms of Use 与 Prohibited Use Policy。';
+
+	/// zh-CN: '查看 Gemma 使用条款'
+	String get gemmaTerms => '查看 Gemma 使用条款';
+
+	/// zh-CN: '联系我们'
+	String get contact => '联系我们';
 }
 
 // Path: settings.aiModel
@@ -2683,6 +2736,18 @@ class Translations$settings$onDevice$zh_CN {
 
 	/// zh-CN: '已下载 ${percent}%，重试将从断点继续'
 	String errorResumeHint({required Object percent}) => '已下载 ${percent}%，重试将从断点继续';
+
+	/// zh-CN: '下载端侧模型？'
+	String get downloadConfirmTitle => '下载端侧模型？';
+
+	/// zh-CN: '模型文件约 2.4GB，建议在 Wi-Fi 环境下载，继续将消耗移动数据。模型为 Gemma（Google），下载并使用即表示你同意遵守 Gemma Terms of Use 与 Prohibited Use Policy。'
+	String get downloadConfirmBody => '模型文件约 2.4GB，建议在 Wi-Fi 环境下载，继续将消耗移动数据。模型为 Gemma（Google），下载并使用即表示你同意遵守 Gemma Terms of Use 与 Prohibited Use Policy。';
+
+	/// zh-CN: '下载'
+	String get downloadConfirmAction => '下载';
+
+	/// zh-CN: '查看 Gemma 使用条款'
+	String get downloadTermsLink => '查看 Gemma 使用条款';
 }
 
 // Path: settings.chain
@@ -2744,8 +2809,8 @@ class Translations$legal$consent$zh_CN {
 	/// zh-CN: '欢迎使用 EatWise'
 	String get title => '欢迎使用 EatWise';
 
-	/// zh-CN: '我们会按照《隐私政策》收集和使用你的信息，用于提供断食计时、饮食记录与营养反馈等核心功能；数据存储于中国境内并加密保护。请阅读并确认以下授权：'
-	String get summary => '我们会按照《隐私政策》收集和使用你的信息，用于提供断食计时、饮食记录与营养反馈等核心功能；数据存储于中国境内并加密保护。请阅读并确认以下授权：';
+	/// zh-CN: '我们会按照《隐私政策》收集和使用你的信息，用于提供断食计时、饮食记录与营养反馈等核心功能；数据存储于美国并加密传输。请阅读并确认以下授权：'
+	String get summary => '我们会按照《隐私政策》收集和使用你的信息，用于提供断食计时、饮食记录与营养反馈等核心功能；数据存储于美国并加密传输。请阅读并确认以下授权：';
 
 	/// zh-CN: '我已阅读并同意《用户协议》与《隐私政策》'
 	String get agreeMain => '我已阅读并同意《用户协议》与《隐私政策》';
@@ -2753,8 +2818,8 @@ class Translations$legal$consent$zh_CN {
 	/// zh-CN: '健康数据单独同意（可选）'
 	String get healthTitle => '健康数据单独同意（可选）';
 
-	/// zh-CN: '你的身高、体重、年龄、性别及饮食、断食记录属于敏感个人信息。单独同意后，我们将其用于计算个性化营养目标与反馈，境内加密存储。你可以拒绝（营养目标将使用默认值），或随时在「设置-隐私」中撤回。'
-	String get healthBody => '你的身高、体重、年龄、性别及饮食、断食记录属于敏感个人信息。单独同意后，我们将其用于计算个性化营养目标与反馈，境内加密存储。你可以拒绝（营养目标将使用默认值），或随时在「设置-隐私」中撤回。';
+	/// zh-CN: '你的身高、体重、年龄、性别及饮食、断食记录属于敏感个人信息。单独同意后，我们将其用于计算个性化营养目标与反馈，存储于美国。你可以拒绝（营养目标将使用默认值），拒绝不影响基础记录功能。'
+	String get healthBody => '你的身高、体重、年龄、性别及饮食、断食记录属于敏感个人信息。单独同意后，我们将其用于计算个性化营养目标与反馈，存储于美国。你可以拒绝（营养目标将使用默认值），拒绝不影响基础记录功能。';
 
 	/// zh-CN: '免责提示：本应用内容仅为健康生活方式的一般性参考，不构成医疗建议、诊断或治疗。'
 	String get disclaimerSummary => '免责提示：本应用内容仅为健康生活方式的一般性参考，不构成医疗建议、诊断或治疗。';
@@ -2813,8 +2878,8 @@ class Translations$legal$privacyPolicy$zh_CN {
 	/// zh-CN: '隐私政策'
 	String get title => '隐私政策';
 
-	/// zh-CN: '生效日期：2026-07-27｜版本 1.0.0〔待外部确认：法务终稿〕 明食 · EatWise（下称「我们」）仅面向中国大陆地区提供服务。本政策说明我们如何收集、使用、存储和保护你的个人信息，以及你享有的权利。 一、我们收集的信息 1. 手机号：用于注册、登录与账号找回，境内加密存储。 2. 身高、体重、年龄、性别：用于计算每日营养目标，属敏感个人信息，需你单独同意。 3. 饮食记录与断食记录：核心功能所需，属敏感个人信息。 4. 目标、作息、断食经验（问卷 3 题）：用于方案推荐。 5. 昵称、头像：可选，用于个性化与社区展示。 6. 设备信息与推送 token：用于推送送达与崩溃分析；不收集 IMEI/IMSI/MAC。 7. 崩溃与性能日志：脱敏处理，留存 6 个月。 8. 埋点行为数据：仅事件级行为统计，可在「设置-隐私」中关闭。 我们不收集：位置信息、通讯录、蓝牙及 HealthKit/Health Connect 健康平台数据。 二、敏感个人信息单独同意 健康相关数据（身高体重、饮食/断食记录等）依据《个人信息保护法》第 29 条取得你的单独同意；拒绝不影响账号功能，营养目标将使用默认值；你可随时在「设置-隐私」中撤回。 三、存储与安全 全部数据存储于中国境内服务器；传输使用 TLS 1.2+ 加密；手机号与健康数据采用字段级加密存储；本地数据库全库加密。无任何数据出境。 四、第三方 SDK 我们使用微信登录、Sign in with Apple、聚合推送、内容安全、崩溃监控等境内 SDK；任何 SDK 均不接收你的健康数据原文。 五、你的权利 1. 查阅复制：「设置-隐私-导出我的数据」申请导出全量个人数据（JSON+CSV）。 2. 删除：「设置-账号-删除账号」，申请后进入 7 天冷静期，冷静期内登录即撤销。 3. 撤回同意：「设置-隐私」中可随时撤回健康数据授权与数据分析授权。 六、未成年人 本产品不面向 14 岁以下儿童。 七、政策更新 本政策发生重大变更时，我们将重新征得你的同意。 八、联系我们 如对本政策有任何疑问，可通过 App 内「设置-关于」与我们联系。'
-	String get body => '生效日期：2026-07-27｜版本 1.0.0〔待外部确认：法务终稿〕\n\n明食 · EatWise（下称「我们」）仅面向中国大陆地区提供服务。本政策说明我们如何收集、使用、存储和保护你的个人信息，以及你享有的权利。\n\n一、我们收集的信息\n1. 手机号：用于注册、登录与账号找回，境内加密存储。\n2. 身高、体重、年龄、性别：用于计算每日营养目标，属敏感个人信息，需你单独同意。\n3. 饮食记录与断食记录：核心功能所需，属敏感个人信息。\n4. 目标、作息、断食经验（问卷 3 题）：用于方案推荐。\n5. 昵称、头像：可选，用于个性化与社区展示。\n6. 设备信息与推送 token：用于推送送达与崩溃分析；不收集 IMEI/IMSI/MAC。\n7. 崩溃与性能日志：脱敏处理，留存 6 个月。\n8. 埋点行为数据：仅事件级行为统计，可在「设置-隐私」中关闭。\n我们不收集：位置信息、通讯录、蓝牙及 HealthKit/Health Connect 健康平台数据。\n\n二、敏感个人信息单独同意\n健康相关数据（身高体重、饮食/断食记录等）依据《个人信息保护法》第 29 条取得你的单独同意；拒绝不影响账号功能，营养目标将使用默认值；你可随时在「设置-隐私」中撤回。\n\n三、存储与安全\n全部数据存储于中国境内服务器；传输使用 TLS 1.2+ 加密；手机号与健康数据采用字段级加密存储；本地数据库全库加密。无任何数据出境。\n\n四、第三方 SDK\n我们使用微信登录、Sign in with Apple、聚合推送、内容安全、崩溃监控等境内 SDK；任何 SDK 均不接收你的健康数据原文。\n\n五、你的权利\n1. 查阅复制：「设置-隐私-导出我的数据」申请导出全量个人数据（JSON+CSV）。\n2. 删除：「设置-账号-删除账号」，申请后进入 7 天冷静期，冷静期内登录即撤销。\n3. 撤回同意：「设置-隐私」中可随时撤回健康数据授权与数据分析授权。\n\n六、未成年人\n本产品不面向 14 岁以下儿童。\n\n七、政策更新\n本政策发生重大变更时，我们将重新征得你的同意。\n\n八、联系我们\n如对本政策有任何疑问，可通过 App 内「设置-关于」与我们联系。';
+	/// zh-CN: '生效日期：2026-09-28｜版本 2.0 EatWise（下称「我们」）为面向海外及港澳台地区用户的轻断食与健康饮食应用。本政策说明我们如何收集、使用、存储和保护你的信息。 一、服务区域 本应用面向海外国家及港澳台地区提供服务，不主动面向欧盟与中国大陆用户。如你位于上述地区，请注意当地法律可能不适用于本服务。 二、我们收集的信息 1. 账号信息：用户名与密码（加密存储）。手机号验证码登录当前未启用。 2. 健康与使用数据：身高、体重、年龄、性别、饮食记录、断食记录、饮水记录、运动与步数记录。这些数据是提供账号功能（跨设备同步、营养目标计算与反馈）所必需，存储于服务端。 3. 设备与使用信息：匿名化的产品交互事件（见第六条）。 三、系统健康数据（Apple HealthKit / Health Connect） 经你单独授权后，我们仅以只读方式读取步数、活动能量与最近体重，用于在你的设备本地展示并计入当日消耗合计。此类数据不离开你的设备：我们不上传、不存储、不分享给任何第三方。你可随时在系统设置或应用内关闭授权。 四、端侧 AI 与自配 AI 端点 1. 端侧模型（可选）：你可选择下载 Gemma 模型（Google，约 2.4GB）。拍照识别、语音识别、条码识别与营养估算的推理全部在你的设备本地完成，照片、截图与音频不会离开你的设备。 2. 自配云端端点（可选）：如你自行配置 OpenAI 兼容端点，API 密钥仅存储于你的设备；识别与估算请求直接发送到你配置的端点，由你与该服务方之间的关系约束，我们不中转也不留存相关内容。 五、社区内容 你发布帖子（文字与图片）将上传并存储于我们的服务器。内容遵循先审后发机制，经审核通过后对其他用户可见。其他用户可对内容进行举报，举报将触发复核。 六、产品分析（埋点） 我们收集匿名化的产品交互事件（如页面访问、功能使用路径，使用 HMAC 匿名标识，不含健康明细数据），仅用于改进产品体验。你可以在「设置」中随时关闭产品分析数据收集。 七、数据存储与安全 数据存储于美国（HostEONS VPS，域名 wcg.polin.tech）。传输过程使用加密通道。我们采取合理的技术与管理措施保护你的信息，但请注意互联网传输与电子存储无法保证绝对安全。账号数据在你使用服务期间持续保留；删除账号后按第八条处理。 八、你的权利与账号删除 你可以查阅与更正你的资料，在应用内导出你的数据。你可以在「设置」中删除账号：删除后立即吊销登录会话，进入 7 天冷静期（期间可撤销），期满后我们物理删除你的账号数据。依据你所在法域，你可能还享有访问权、可携带权、限制处理权与反对权等权利，可通过下方联系方式行使。 九、未成年人 本应用不面向 13 岁以下儿童。断食功能不建议未成年人使用。如我们获知收集了 13 岁以下儿童的个人信息，将尽快删除。 十、法域附注 台湾地区用户：依《个人资料保护法》（PDPA），你有权查阅、请求复制、补充、更正、停止处理利用及删除你的个人资料。香港特别行政区用户：依《个人资料（私隐）条例》（PDPO），你有权查阅及更正你的个人资料。你可以通过下方联系方式行使上述权利，我们将在合理期限内回应。 欧盟用户：本应用不主动面向欧盟用户提供服务，不以欧盟用户为目标客户。 十一、适用法律与争议 本政策的订立、效力与争议解决，适用你所在法域的强制性法律规定；无强制性规定时，由双方友好协商解决。 十二、政策变更与联系我们 本政策如有变更，我们将在应用内公示更新版本。如对本政策或个人信息处理有任何疑问，请联系：support@polin.tech。'
+	String get body => '生效日期：2026-09-28｜版本 2.0\n\nEatWise（下称「我们」）为面向海外及港澳台地区用户的轻断食与健康饮食应用。本政策说明我们如何收集、使用、存储和保护你的信息。\n\n一、服务区域\n本应用面向海外国家及港澳台地区提供服务，不主动面向欧盟与中国大陆用户。如你位于上述地区，请注意当地法律可能不适用于本服务。\n\n二、我们收集的信息\n1. 账号信息：用户名与密码（加密存储）。手机号验证码登录当前未启用。\n2. 健康与使用数据：身高、体重、年龄、性别、饮食记录、断食记录、饮水记录、运动与步数记录。这些数据是提供账号功能（跨设备同步、营养目标计算与反馈）所必需，存储于服务端。\n3. 设备与使用信息：匿名化的产品交互事件（见第六条）。\n\n三、系统健康数据（Apple HealthKit / Health Connect）\n经你单独授权后，我们仅以只读方式读取步数、活动能量与最近体重，用于在你的设备本地展示并计入当日消耗合计。此类数据不离开你的设备：我们不上传、不存储、不分享给任何第三方。你可随时在系统设置或应用内关闭授权。\n\n四、端侧 AI 与自配 AI 端点\n1. 端侧模型（可选）：你可选择下载 Gemma 模型（Google，约 2.4GB）。拍照识别、语音识别、条码识别与营养估算的推理全部在你的设备本地完成，照片、截图与音频不会离开你的设备。\n2. 自配云端端点（可选）：如你自行配置 OpenAI 兼容端点，API 密钥仅存储于你的设备；识别与估算请求直接发送到你配置的端点，由你与该服务方之间的关系约束，我们不中转也不留存相关内容。\n\n五、社区内容\n你发布帖子（文字与图片）将上传并存储于我们的服务器。内容遵循先审后发机制，经审核通过后对其他用户可见。其他用户可对内容进行举报，举报将触发复核。\n\n六、产品分析（埋点）\n我们收集匿名化的产品交互事件（如页面访问、功能使用路径，使用 HMAC 匿名标识，不含健康明细数据），仅用于改进产品体验。你可以在「设置」中随时关闭产品分析数据收集。\n\n七、数据存储与安全\n数据存储于美国（HostEONS VPS，域名 wcg.polin.tech）。传输过程使用加密通道。我们采取合理的技术与管理措施保护你的信息，但请注意互联网传输与电子存储无法保证绝对安全。账号数据在你使用服务期间持续保留；删除账号后按第八条处理。\n\n八、你的权利与账号删除\n你可以查阅与更正你的资料，在应用内导出你的数据。你可以在「设置」中删除账号：删除后立即吊销登录会话，进入 7 天冷静期（期间可撤销），期满后我们物理删除你的账号数据。依据你所在法域，你可能还享有访问权、可携带权、限制处理权与反对权等权利，可通过下方联系方式行使。\n\n九、未成年人\n本应用不面向 13 岁以下儿童。断食功能不建议未成年人使用。如我们获知收集了 13 岁以下儿童的个人信息，将尽快删除。\n\n十、法域附注\n台湾地区用户：依《个人资料保护法》（PDPA），你有权查阅、请求复制、补充、更正、停止处理利用及删除你的个人资料。香港特别行政区用户：依《个人资料（私隐）条例》（PDPO），你有权查阅及更正你的个人资料。你可以通过下方联系方式行使上述权利，我们将在合理期限内回应。\n欧盟用户：本应用不主动面向欧盟用户提供服务，不以欧盟用户为目标客户。\n\n十一、适用法律与争议\n本政策的订立、效力与争议解决，适用你所在法域的强制性法律规定；无强制性规定时，由双方友好协商解决。\n\n十二、政策变更与联系我们\n本政策如有变更，我们将在应用内公示更新版本。如对本政策或个人信息处理有任何疑问，请联系：support@polin.tech。';
 }
 
 // Path: legal.userAgreement
@@ -2828,8 +2893,8 @@ class Translations$legal$userAgreement$zh_CN {
 	/// zh-CN: '用户协议'
 	String get title => '用户协议';
 
-	/// zh-CN: '生效日期：2026-07-27｜版本 1.0.0〔待外部确认：法务终稿〕 欢迎使用明食 · EatWise（下称「本应用」）。使用本应用前，请仔细阅读本协议。 一、服务内容 本应用提供间歇性断食计时、饮食记录、营养目标估算与信号灯反馈、趋势报告及社区打卡等健康生活方式工具服务。 二、账号 你可通过手机号验证码、微信或 Sign in with Apple 注册登录。你应妥善保管账号，并对账号下的行为负责。 三、非医疗建议 本应用提供的全部内容仅为一般性健康生活方式参考，不构成医疗建议、诊断或治疗，详见《免责声明》。 四、用户行为规范 你承诺发布的内容不违反法律法规、不侵犯他人权益；违规内容将被下架并可能限制账号功能。 五、知识产权 本应用的内容与程序知识产权归我们所有，你仅获得个人非商业性使用许可。 六、责任限制 因使用本应用信息产生的健康后果，我们不承担医疗责任；因不可抗力或第三方原因造成的服务中断，我们不承担责任。 七、协议变更与终止 本协议变更将以页面提示等方式通知；你可随时通过删除账号终止使用。 八、适用法律 本协议适用中华人民共和国法律。'
-	String get body => '生效日期：2026-07-27｜版本 1.0.0〔待外部确认：法务终稿〕\n\n欢迎使用明食 · EatWise（下称「本应用」）。使用本应用前，请仔细阅读本协议。\n\n一、服务内容\n本应用提供间歇性断食计时、饮食记录、营养目标估算与信号灯反馈、趋势报告及社区打卡等健康生活方式工具服务。\n\n二、账号\n你可通过手机号验证码、微信或 Sign in with Apple 注册登录。你应妥善保管账号，并对账号下的行为负责。\n\n三、非医疗建议\n本应用提供的全部内容仅为一般性健康生活方式参考，不构成医疗建议、诊断或治疗，详见《免责声明》。\n\n四、用户行为规范\n你承诺发布的内容不违反法律法规、不侵犯他人权益；违规内容将被下架并可能限制账号功能。\n\n五、知识产权\n本应用的内容与程序知识产权归我们所有，你仅获得个人非商业性使用许可。\n\n六、责任限制\n因使用本应用信息产生的健康后果，我们不承担医疗责任；因不可抗力或第三方原因造成的服务中断，我们不承担责任。\n\n七、协议变更与终止\n本协议变更将以页面提示等方式通知；你可随时通过删除账号终止使用。\n\n八、适用法律\n本协议适用中华人民共和国法律。';
+	/// zh-CN: '生效日期：2026-09-28｜版本 2.0 欢迎使用 EatWise（下称「本应用」）。使用本应用前，请仔细阅读本协议。你使用本应用即表示接受本协议全部条款。 一、协议范围 本协议适用于你使用本应用提供的轻断食计时、饮食与运动记录、营养反馈、社区交流等服务（统称「服务」）。 二、账号与注册 1. 你以用户名和密码注册并登录账号。手机号验证码登录当前未启用。 2. 你应对账号信息的真实性和账号安全负责，妥善保管密码；因你主动泄露导致的损失由你承担。 3. 你确认已年满 13 岁；13 岁以下儿童不得使用本应用，断食功能不建议未成年人使用。 三、服务内容与变更 1. 营养目标、热量与营养素数值、断食方案与运动消耗均为通用公式的估算结果，会因个体差异存在误差。 2. 我们可能不时改进、增加、暂停或终止部分功能，并在应用内合理告知。 3. 部分功能依赖网络与你设备上的数据；因你的设备、网络或第三方服务（如应用商店、操作系统健康服务）原因导致的服务中断，我们不承担责任。 四、用户行为规范 你在使用社区功能时不得： 1. 发布违法、欺诈、诽谤、骚扰、歧视、淫秽或侵犯他人权益的内容； 2. 发布医疗诊断、治疗建议、处方药或保健品推销等可能误导他人的内容； 3. 发布虚假营养数据、广告刷屏或干扰社区秩序的内容； 4. 以技术手段抓取、反向工程或干扰服务运行； 5. 侵犯他人知识产权、隐私或个人信息权益。 违反上述规范的内容可能被删除，账号可能被限制或终止。 五、内容授权与知识产权 1. 你保留对其发布内容的所有权。你授予我们在提供与改进服务所必需的范围内，对你的内容进行存储、展示、复制与传播的非独占、免费、可撤销的许可（删除内容后终止，已合理留存的缓存除外）。 2. 本应用及其软件、界面、文本与设计的知识产权归我们或相关权利人所有，未经许可不得使用。 3. 端侧 AI 模型 Gemma 的权利归 Google 所有，使用须遵守 Gemma Terms of Use 与 Prohibited Use Policy（https://ai.google.dev/gemma/terms）。 六、健康与免责声明 本应用提供的营养目标、信号灯反馈、断食方案、营养与运动数值等内容仅为健康生活方式的一般性参考，不构成医疗建议、诊断或治疗，不能替代医生或注册营养师意见。孕期哺乳期、未成年人、进食障碍病史或高风险人群、糖尿病等慢性疾病患者、体重过低或营养不良者、近期手术或重疾康复期人群，请勿自行断食或在医生指导下使用。你应自行判断并承担使用本应用作出健康决策的责任。 七、隐私 你的个人信息处理遵循《隐私政策》。系统健康数据（Apple HealthKit / Health Connect）仅在你的设备本地使用，从不上传。 八、账号删除与服务终止 1. 你可在「设置」中删除账号：立即吊销会话，7 天冷静期后可撤销，期满后物理删除。 2. 你违反本协议时，我们可暂停或终止向你提供服务；你也可随时停止使用并删除账号。 九、责任限制 在适用法律允许的最大范围内，我们不对间接、附带、特殊或惩罚性损害（包括数据丢失、利润损失、健康损害）承担责任；我们的累计责任以你最近 12 个月为本应用支付的费用（如有）为限。 十、适用法律与争议 本协议的订立、效力与争议解决，适用你所在法域的强制性法律规定；无强制性规定时，由双方友好协商解决。 十一、协议变更与联系我们 本协议如有变更，我们将在应用内公示更新版本，继续使用即视为接受。如对本协议有任何疑问，请联系：support@polin.tech。'
+	String get body => '生效日期：2026-09-28｜版本 2.0\n\n欢迎使用 EatWise（下称「本应用」）。使用本应用前，请仔细阅读本协议。你使用本应用即表示接受本协议全部条款。\n\n一、协议范围\n本协议适用于你使用本应用提供的轻断食计时、饮食与运动记录、营养反馈、社区交流等服务（统称「服务」）。\n\n二、账号与注册\n1. 你以用户名和密码注册并登录账号。手机号验证码登录当前未启用。\n2. 你应对账号信息的真实性和账号安全负责，妥善保管密码；因你主动泄露导致的损失由你承担。\n3. 你确认已年满 13 岁；13 岁以下儿童不得使用本应用，断食功能不建议未成年人使用。\n\n三、服务内容与变更\n1. 营养目标、热量与营养素数值、断食方案与运动消耗均为通用公式的估算结果，会因个体差异存在误差。\n2. 我们可能不时改进、增加、暂停或终止部分功能，并在应用内合理告知。\n3. 部分功能依赖网络与你设备上的数据；因你的设备、网络或第三方服务（如应用商店、操作系统健康服务）原因导致的服务中断，我们不承担责任。\n\n四、用户行为规范\n你在使用社区功能时不得：\n1. 发布违法、欺诈、诽谤、骚扰、歧视、淫秽或侵犯他人权益的内容；\n2. 发布医疗诊断、治疗建议、处方药或保健品推销等可能误导他人的内容；\n3. 发布虚假营养数据、广告刷屏或干扰社区秩序的内容；\n4. 以技术手段抓取、反向工程或干扰服务运行；\n5. 侵犯他人知识产权、隐私或个人信息权益。\n违反上述规范的内容可能被删除，账号可能被限制或终止。\n\n五、内容授权与知识产权\n1. 你保留对其发布内容的所有权。你授予我们在提供与改进服务所必需的范围内，对你的内容进行存储、展示、复制与传播的非独占、免费、可撤销的许可（删除内容后终止，已合理留存的缓存除外）。\n2. 本应用及其软件、界面、文本与设计的知识产权归我们或相关权利人所有，未经许可不得使用。\n3. 端侧 AI 模型 Gemma 的权利归 Google 所有，使用须遵守 Gemma Terms of Use 与 Prohibited Use Policy（https://ai.google.dev/gemma/terms）。\n\n六、健康与免责声明\n本应用提供的营养目标、信号灯反馈、断食方案、营养与运动数值等内容仅为健康生活方式的一般性参考，不构成医疗建议、诊断或治疗，不能替代医生或注册营养师意见。孕期哺乳期、未成年人、进食障碍病史或高风险人群、糖尿病等慢性疾病患者、体重过低或营养不良者、近期手术或重疾康复期人群，请勿自行断食或在医生指导下使用。你应自行判断并承担使用本应用作出健康决策的责任。\n\n七、隐私\n你的个人信息处理遵循《隐私政策》。系统健康数据（Apple HealthKit / Health Connect）仅在你的设备本地使用，从不上传。\n\n八、账号删除与服务终止\n1. 你可在「设置」中删除账号：立即吊销会话，7 天冷静期后可撤销，期满后物理删除。\n2. 你违反本协议时，我们可暂停或终止向你提供服务；你也可随时停止使用并删除账号。\n\n九、责任限制\n在适用法律允许的最大范围内，我们不对间接、附带、特殊或惩罚性损害（包括数据丢失、利润损失、健康损害）承担责任；我们的累计责任以你最近 12 个月为本应用支付的费用（如有）为限。\n\n十、适用法律与争议\n本协议的订立、效力与争议解决，适用你所在法域的强制性法律规定；无强制性规定时，由双方友好协商解决。\n\n十一、协议变更与联系我们\n本协议如有变更，我们将在应用内公示更新版本，继续使用即视为接受。如对本协议有任何疑问，请联系：support@polin.tech。';
 }
 
 // Path: social.feed
@@ -2911,6 +2976,51 @@ class Translations$social$feed$zh_CN {
 
 	/// zh-CN: '匿名伙伴'
 	String get anonymousPoster => '匿名伙伴';
+
+	/// zh-CN: '屏蔽该用户'
+	String get block => '屏蔽该用户';
+
+	/// zh-CN: '屏蔽后将不再看到 TA 发布的内容。可随时在「设置 - 已屏蔽用户」中解除。'
+	String get blockConfirm => '屏蔽后将不再看到 TA 发布的内容。可随时在「设置 - 已屏蔽用户」中解除。';
+
+	/// zh-CN: '已屏蔽，不再显示 TA 的内容'
+	String get blocked => '已屏蔽，不再显示 TA 的内容';
+
+	/// zh-CN: '屏蔽失败，请稍后重试'
+	String get blockFailed => '屏蔽失败，请稍后重试';
+}
+
+// Path: social.blockedUsers
+class Translations$social$blockedUsers$zh_CN {
+	Translations$social$blockedUsers$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '已屏蔽用户'
+	String get title => '已屏蔽用户';
+
+	/// zh-CN: '暂无屏蔽的用户。屏蔽后对方发布的内容不会出现在你的打卡流中。'
+	String get empty => '暂无屏蔽的用户。屏蔽后对方发布的内容不会出现在你的打卡流中。';
+
+	/// zh-CN: 'EatWise 伙伴'
+	String get unknownUser => 'EatWise 伙伴';
+
+	/// zh-CN: '解除屏蔽'
+	String get unblock => '解除屏蔽';
+
+	/// zh-CN: '解除屏蔽后，TA 发布的内容会重新出现在你的打卡流中。'
+	String get unblockConfirm => '解除屏蔽后，TA 发布的内容会重新出现在你的打卡流中。';
+
+	/// zh-CN: '已解除屏蔽'
+	String get unblocked => '已解除屏蔽';
+
+	/// zh-CN: '操作失败，请稍后重试'
+	String get unblockFailed => '操作失败，请稍后重试';
+
+	/// zh-CN: '列表加载失败，请稍后重试'
+	String get loadError => '列表加载失败，请稍后重试';
 }
 
 // Path: social.compose
@@ -4389,6 +4499,10 @@ extension on Translations {
 			'onboarding.goal.clearDate' => '清除日期',
 			'onboarding.goal.save' => '保存并继续',
 			'onboarding.goal.skip' => '跳过',
+			'onboarding.ageConfirm.title' => '年龄确认',
+			'onboarding.ageConfirm.body' => '本应用不面向 13 岁以下儿童，断食功能不建议未成年人使用。',
+			'onboarding.ageConfirm.checkbox' => '我确认已年满 13 岁',
+			'onboarding.ageConfirm.confirm' => '继续',
 			'record.page.title' => '记录',
 			'record.page.confirm' => '确认记录',
 			'record.page.loggedToday' => ({required Object count}) => '今日已记 ${count} 笔',
@@ -4786,12 +4900,12 @@ extension on Translations {
 			'nutrition.signalCard.zone.yellow' => '适量提醒',
 			'nutrition.signalCard.zone.red' => '警示',
 			'nutrition.signalCard.advice.kcal.green' => '今天热量刚刚好，节奏很稳，继续保持～ 🌱',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.signalCard.advice.kcal.yellowLow' => ({required Object meal_action}) => '今天吃得有点少，${meal_action}，身体会感谢你的。',
 			'nutrition.signalCard.advice.kcal.yellowHigh' => ({required Object meal_action}) => '热量有一点点高，${meal_action}，就回来啦。',
 			'nutrition.signalCard.advice.kcal.redLow' => ({required Object meal_action}) => '今天摄入太少了，断食之外也要好好吃饭哦，${meal_action}。',
 			'nutrition.signalCard.advice.kcal.redHigh' => ({required Object meal_action}) => '热量小超啦，别焦虑，${meal_action}，明天又是新的一天。',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.signalCard.advice.kcal.zero' => '好像还没记到今天的热量哦，是不是漏了一餐？',
 			'nutrition.signalCard.advice.protein.green' => '蛋白质满分！肌肉群给你比心 💪',
 			'nutrition.signalCard.advice.protein.yellowLow' => ({required Object meal_action}) => '蛋白质还差一点，${meal_action}，就够啦。',
@@ -4947,6 +5061,8 @@ extension on Translations {
 			'settings.privacy.healthDataRevoked' => '已撤回健康数据授权，营养目标将使用默认值',
 			'settings.privacy.analytics' => '数据分析授权',
 			'settings.privacy.analyticsSubtitle' => '匿名行为统计，帮助我们改进产品，不含健康数据',
+			'settings.privacy.blockedUsers' => '已屏蔽用户',
+			'settings.privacy.blockedUsersSubtitle' => '屏蔽后不再看到对方发布的内容',
 			'settings.privacy.exportFailed' => '导出失败，请检查网络后重试',
 			'settings.health.group' => '运动数据',
 			'settings.health.sync' => '同步运动数据',
@@ -5003,6 +5119,14 @@ extension on Translations {
 			'settings.about.version' => '版本',
 			'settings.about.disclaimer' => '免责声明与特殊人群提示',
 			'settings.about.checkUpdate' => '检查更新',
+			'settings.about.licenses' => '开源许可',
+			'settings.about.dataAi' => '数据与 AI 说明',
+			'settings.about.dataAiNutritionTitle' => '营养数据',
+			'settings.about.dataAiNutritionBody' => '营养数据来源：中国食物成分表与 USDA FoodData Central。热量与营养素数值为通用公式估算，仅供健康生活方式参考，不构成医疗建议。',
+			'settings.about.dataAiModelTitle' => '端侧 AI 模型',
+			'settings.about.dataAiModelBody' => '本应用的拍照/语音/条码识别与营养估算可选使用 Gemma 模型（Google），推理全部在你的设备本地完成。使用 Gemma 须遵守 Gemma Terms of Use 与 Prohibited Use Policy。',
+			'settings.about.gemmaTerms' => '查看 Gemma 使用条款',
+			'settings.about.contact' => '联系我们',
 			'settings.aiModel.title' => 'AI 模型',
 			'settings.aiModel.provider' => '服务商',
 			'settings.aiModel.providers.custom' => '自定义',
@@ -5053,6 +5177,10 @@ extension on Translations {
 			'settings.onDevice.oomDisabled' => '设备内存不足，端侧估算已停用',
 			'settings.onDevice.statusFailed' => '模型状态读取失败',
 			'settings.onDevice.errorResumeHint' => ({required Object percent}) => '已下载 ${percent}%，重试将从断点继续',
+			'settings.onDevice.downloadConfirmTitle' => '下载端侧模型？',
+			'settings.onDevice.downloadConfirmBody' => '模型文件约 2.4GB，建议在 Wi-Fi 环境下载，继续将消耗移动数据。模型为 Gemma（Google），下载并使用即表示你同意遵守 Gemma Terms of Use 与 Prohibited Use Policy。',
+			'settings.onDevice.downloadConfirmAction' => '下载',
+			'settings.onDevice.downloadTermsLink' => '查看 Gemma 使用条款',
 			'settings.chain.title' => '估算生效链路',
 			'settings.chain.onDevice' => '端侧小模型',
 			'settings.chain.userApi' => '自定义 API',
@@ -5066,12 +5194,12 @@ extension on Translations {
 			'settings.chain.statusConfigured' => '已配置',
 			'settings.chain.statusNotConfigured' => '未配置',
 			'settings.chain.current' => '当前生效',
-			'legal.draftNote' => '〔待外部确认：法务终稿〕',
+			'legal.draftNote' => '生效日期：2026-09-28｜版本 2.0',
 			'legal.consent.title' => '欢迎使用 EatWise',
-			'legal.consent.summary' => '我们会按照《隐私政策》收集和使用你的信息，用于提供断食计时、饮食记录与营养反馈等核心功能；数据存储于中国境内并加密保护。请阅读并确认以下授权：',
+			'legal.consent.summary' => '我们会按照《隐私政策》收集和使用你的信息，用于提供断食计时、饮食记录与营养反馈等核心功能；数据存储于美国并加密传输。请阅读并确认以下授权：',
 			'legal.consent.agreeMain' => '我已阅读并同意《用户协议》与《隐私政策》',
 			'legal.consent.healthTitle' => '健康数据单独同意（可选）',
-			'legal.consent.healthBody' => '你的身高、体重、年龄、性别及饮食、断食记录属于敏感个人信息。单独同意后，我们将其用于计算个性化营养目标与反馈，境内加密存储。你可以拒绝（营养目标将使用默认值），或随时在「设置-隐私」中撤回。',
+			'legal.consent.healthBody' => '你的身高、体重、年龄、性别及饮食、断食记录属于敏感个人信息。单独同意后，我们将其用于计算个性化营养目标与反馈，存储于美国。你可以拒绝（营养目标将使用默认值），拒绝不影响基础记录功能。',
 			'legal.consent.disclaimerSummary' => '免责提示：本应用内容仅为健康生活方式的一般性参考，不构成医疗建议、诊断或治疗。',
 			'legal.consent.specialGroupsEntry' => '查看不适宜断食人群提示',
 			'legal.consent.viewPrivacyPolicy' => '查看《隐私政策》全文',
@@ -5085,9 +5213,9 @@ extension on Translations {
 			'legal.disclaimer.specialGroupsBody' => '⚠️ 以下人群不建议进行间歇性断食，或须在医生指导下进行：孕期及哺乳期女性；未成年人（18 岁以下）；有进食障碍（如厌食症、暴食症）病史或高风险人群；糖尿病患者（尤其使用胰岛素或降糖药者）；低血糖、低血压患者；体重过低（BMI < 18.5）者；痛风、肾病、肝病等慢性疾病患者；近期手术或处于疾病恢复期者；老年体弱者。如果您属于以上任何一类，请不要开始断食方案，并咨询医生。',
 			'legal.disclaimer.short' => '本应用内容不构成医疗建议',
 			'legal.privacyPolicy.title' => '隐私政策',
-			'legal.privacyPolicy.body' => '生效日期：2026-07-27｜版本 1.0.0〔待外部确认：法务终稿〕\n\n明食 · EatWise（下称「我们」）仅面向中国大陆地区提供服务。本政策说明我们如何收集、使用、存储和保护你的个人信息，以及你享有的权利。\n\n一、我们收集的信息\n1. 手机号：用于注册、登录与账号找回，境内加密存储。\n2. 身高、体重、年龄、性别：用于计算每日营养目标，属敏感个人信息，需你单独同意。\n3. 饮食记录与断食记录：核心功能所需，属敏感个人信息。\n4. 目标、作息、断食经验（问卷 3 题）：用于方案推荐。\n5. 昵称、头像：可选，用于个性化与社区展示。\n6. 设备信息与推送 token：用于推送送达与崩溃分析；不收集 IMEI/IMSI/MAC。\n7. 崩溃与性能日志：脱敏处理，留存 6 个月。\n8. 埋点行为数据：仅事件级行为统计，可在「设置-隐私」中关闭。\n我们不收集：位置信息、通讯录、蓝牙及 HealthKit/Health Connect 健康平台数据。\n\n二、敏感个人信息单独同意\n健康相关数据（身高体重、饮食/断食记录等）依据《个人信息保护法》第 29 条取得你的单独同意；拒绝不影响账号功能，营养目标将使用默认值；你可随时在「设置-隐私」中撤回。\n\n三、存储与安全\n全部数据存储于中国境内服务器；传输使用 TLS 1.2+ 加密；手机号与健康数据采用字段级加密存储；本地数据库全库加密。无任何数据出境。\n\n四、第三方 SDK\n我们使用微信登录、Sign in with Apple、聚合推送、内容安全、崩溃监控等境内 SDK；任何 SDK 均不接收你的健康数据原文。\n\n五、你的权利\n1. 查阅复制：「设置-隐私-导出我的数据」申请导出全量个人数据（JSON+CSV）。\n2. 删除：「设置-账号-删除账号」，申请后进入 7 天冷静期，冷静期内登录即撤销。\n3. 撤回同意：「设置-隐私」中可随时撤回健康数据授权与数据分析授权。\n\n六、未成年人\n本产品不面向 14 岁以下儿童。\n\n七、政策更新\n本政策发生重大变更时，我们将重新征得你的同意。\n\n八、联系我们\n如对本政策有任何疑问，可通过 App 内「设置-关于」与我们联系。',
+			'legal.privacyPolicy.body' => '生效日期：2026-09-28｜版本 2.0\n\nEatWise（下称「我们」）为面向海外及港澳台地区用户的轻断食与健康饮食应用。本政策说明我们如何收集、使用、存储和保护你的信息。\n\n一、服务区域\n本应用面向海外国家及港澳台地区提供服务，不主动面向欧盟与中国大陆用户。如你位于上述地区，请注意当地法律可能不适用于本服务。\n\n二、我们收集的信息\n1. 账号信息：用户名与密码（加密存储）。手机号验证码登录当前未启用。\n2. 健康与使用数据：身高、体重、年龄、性别、饮食记录、断食记录、饮水记录、运动与步数记录。这些数据是提供账号功能（跨设备同步、营养目标计算与反馈）所必需，存储于服务端。\n3. 设备与使用信息：匿名化的产品交互事件（见第六条）。\n\n三、系统健康数据（Apple HealthKit / Health Connect）\n经你单独授权后，我们仅以只读方式读取步数、活动能量与最近体重，用于在你的设备本地展示并计入当日消耗合计。此类数据不离开你的设备：我们不上传、不存储、不分享给任何第三方。你可随时在系统设置或应用内关闭授权。\n\n四、端侧 AI 与自配 AI 端点\n1. 端侧模型（可选）：你可选择下载 Gemma 模型（Google，约 2.4GB）。拍照识别、语音识别、条码识别与营养估算的推理全部在你的设备本地完成，照片、截图与音频不会离开你的设备。\n2. 自配云端端点（可选）：如你自行配置 OpenAI 兼容端点，API 密钥仅存储于你的设备；识别与估算请求直接发送到你配置的端点，由你与该服务方之间的关系约束，我们不中转也不留存相关内容。\n\n五、社区内容\n你发布帖子（文字与图片）将上传并存储于我们的服务器。内容遵循先审后发机制，经审核通过后对其他用户可见。其他用户可对内容进行举报，举报将触发复核。\n\n六、产品分析（埋点）\n我们收集匿名化的产品交互事件（如页面访问、功能使用路径，使用 HMAC 匿名标识，不含健康明细数据），仅用于改进产品体验。你可以在「设置」中随时关闭产品分析数据收集。\n\n七、数据存储与安全\n数据存储于美国（HostEONS VPS，域名 wcg.polin.tech）。传输过程使用加密通道。我们采取合理的技术与管理措施保护你的信息，但请注意互联网传输与电子存储无法保证绝对安全。账号数据在你使用服务期间持续保留；删除账号后按第八条处理。\n\n八、你的权利与账号删除\n你可以查阅与更正你的资料，在应用内导出你的数据。你可以在「设置」中删除账号：删除后立即吊销登录会话，进入 7 天冷静期（期间可撤销），期满后我们物理删除你的账号数据。依据你所在法域，你可能还享有访问权、可携带权、限制处理权与反对权等权利，可通过下方联系方式行使。\n\n九、未成年人\n本应用不面向 13 岁以下儿童。断食功能不建议未成年人使用。如我们获知收集了 13 岁以下儿童的个人信息，将尽快删除。\n\n十、法域附注\n台湾地区用户：依《个人资料保护法》（PDPA），你有权查阅、请求复制、补充、更正、停止处理利用及删除你的个人资料。香港特别行政区用户：依《个人资料（私隐）条例》（PDPO），你有权查阅及更正你的个人资料。你可以通过下方联系方式行使上述权利，我们将在合理期限内回应。\n欧盟用户：本应用不主动面向欧盟用户提供服务，不以欧盟用户为目标客户。\n\n十一、适用法律与争议\n本政策的订立、效力与争议解决，适用你所在法域的强制性法律规定；无强制性规定时，由双方友好协商解决。\n\n十二、政策变更与联系我们\n本政策如有变更，我们将在应用内公示更新版本。如对本政策或个人信息处理有任何疑问，请联系：support@polin.tech。',
 			'legal.userAgreement.title' => '用户协议',
-			'legal.userAgreement.body' => '生效日期：2026-07-27｜版本 1.0.0〔待外部确认：法务终稿〕\n\n欢迎使用明食 · EatWise（下称「本应用」）。使用本应用前，请仔细阅读本协议。\n\n一、服务内容\n本应用提供间歇性断食计时、饮食记录、营养目标估算与信号灯反馈、趋势报告及社区打卡等健康生活方式工具服务。\n\n二、账号\n你可通过手机号验证码、微信或 Sign in with Apple 注册登录。你应妥善保管账号，并对账号下的行为负责。\n\n三、非医疗建议\n本应用提供的全部内容仅为一般性健康生活方式参考，不构成医疗建议、诊断或治疗，详见《免责声明》。\n\n四、用户行为规范\n你承诺发布的内容不违反法律法规、不侵犯他人权益；违规内容将被下架并可能限制账号功能。\n\n五、知识产权\n本应用的内容与程序知识产权归我们所有，你仅获得个人非商业性使用许可。\n\n六、责任限制\n因使用本应用信息产生的健康后果，我们不承担医疗责任；因不可抗力或第三方原因造成的服务中断，我们不承担责任。\n\n七、协议变更与终止\n本协议变更将以页面提示等方式通知；你可随时通过删除账号终止使用。\n\n八、适用法律\n本协议适用中华人民共和国法律。',
+			'legal.userAgreement.body' => '生效日期：2026-09-28｜版本 2.0\n\n欢迎使用 EatWise（下称「本应用」）。使用本应用前，请仔细阅读本协议。你使用本应用即表示接受本协议全部条款。\n\n一、协议范围\n本协议适用于你使用本应用提供的轻断食计时、饮食与运动记录、营养反馈、社区交流等服务（统称「服务」）。\n\n二、账号与注册\n1. 你以用户名和密码注册并登录账号。手机号验证码登录当前未启用。\n2. 你应对账号信息的真实性和账号安全负责，妥善保管密码；因你主动泄露导致的损失由你承担。\n3. 你确认已年满 13 岁；13 岁以下儿童不得使用本应用，断食功能不建议未成年人使用。\n\n三、服务内容与变更\n1. 营养目标、热量与营养素数值、断食方案与运动消耗均为通用公式的估算结果，会因个体差异存在误差。\n2. 我们可能不时改进、增加、暂停或终止部分功能，并在应用内合理告知。\n3. 部分功能依赖网络与你设备上的数据；因你的设备、网络或第三方服务（如应用商店、操作系统健康服务）原因导致的服务中断，我们不承担责任。\n\n四、用户行为规范\n你在使用社区功能时不得：\n1. 发布违法、欺诈、诽谤、骚扰、歧视、淫秽或侵犯他人权益的内容；\n2. 发布医疗诊断、治疗建议、处方药或保健品推销等可能误导他人的内容；\n3. 发布虚假营养数据、广告刷屏或干扰社区秩序的内容；\n4. 以技术手段抓取、反向工程或干扰服务运行；\n5. 侵犯他人知识产权、隐私或个人信息权益。\n违反上述规范的内容可能被删除，账号可能被限制或终止。\n\n五、内容授权与知识产权\n1. 你保留对其发布内容的所有权。你授予我们在提供与改进服务所必需的范围内，对你的内容进行存储、展示、复制与传播的非独占、免费、可撤销的许可（删除内容后终止，已合理留存的缓存除外）。\n2. 本应用及其软件、界面、文本与设计的知识产权归我们或相关权利人所有，未经许可不得使用。\n3. 端侧 AI 模型 Gemma 的权利归 Google 所有，使用须遵守 Gemma Terms of Use 与 Prohibited Use Policy（https://ai.google.dev/gemma/terms）。\n\n六、健康与免责声明\n本应用提供的营养目标、信号灯反馈、断食方案、营养与运动数值等内容仅为健康生活方式的一般性参考，不构成医疗建议、诊断或治疗，不能替代医生或注册营养师意见。孕期哺乳期、未成年人、进食障碍病史或高风险人群、糖尿病等慢性疾病患者、体重过低或营养不良者、近期手术或重疾康复期人群，请勿自行断食或在医生指导下使用。你应自行判断并承担使用本应用作出健康决策的责任。\n\n七、隐私\n你的个人信息处理遵循《隐私政策》。系统健康数据（Apple HealthKit / Health Connect）仅在你的设备本地使用，从不上传。\n\n八、账号删除与服务终止\n1. 你可在「设置」中删除账号：立即吊销会话，7 天冷静期后可撤销，期满后物理删除。\n2. 你违反本协议时，我们可暂停或终止向你提供服务；你也可随时停止使用并删除账号。\n\n九、责任限制\n在适用法律允许的最大范围内，我们不对间接、附带、特殊或惩罚性损害（包括数据丢失、利润损失、健康损害）承担责任；我们的累计责任以你最近 12 个月为本应用支付的费用（如有）为限。\n\n十、适用法律与争议\n本协议的订立、效力与争议解决，适用你所在法域的强制性法律规定；无强制性规定时，由双方友好协商解决。\n\n十一、协议变更与联系我们\n本协议如有变更，我们将在应用内公示更新版本，继续使用即视为接受。如对本协议有任何疑问，请联系：support@polin.tech。',
 			'social.feed.title' => '社区',
 			'social.feed.emptyTitle' => '这里在等今天第一口美食登场。',
 			'social.feed.emptySubtitle' => '发布你的第一条打卡，给同样在坚持的人一点光。',
@@ -5112,6 +5240,18 @@ extension on Translations {
 			'social.feed.deleted' => '已删除',
 			'social.feed.deleteFailed' => '删除失败，请稍后重试',
 			'social.feed.anonymousPoster' => '匿名伙伴',
+			'social.feed.block' => '屏蔽该用户',
+			'social.feed.blockConfirm' => '屏蔽后将不再看到 TA 发布的内容。可随时在「设置 - 已屏蔽用户」中解除。',
+			'social.feed.blocked' => '已屏蔽，不再显示 TA 的内容',
+			'social.feed.blockFailed' => '屏蔽失败，请稍后重试',
+			'social.blockedUsers.title' => '已屏蔽用户',
+			'social.blockedUsers.empty' => '暂无屏蔽的用户。屏蔽后对方发布的内容不会出现在你的打卡流中。',
+			'social.blockedUsers.unknownUser' => 'EatWise 伙伴',
+			'social.blockedUsers.unblock' => '解除屏蔽',
+			'social.blockedUsers.unblockConfirm' => '解除屏蔽后，TA 发布的内容会重新出现在你的打卡流中。',
+			'social.blockedUsers.unblocked' => '已解除屏蔽',
+			'social.blockedUsers.unblockFailed' => '操作失败，请稍后重试',
+			'social.blockedUsers.loadError' => '列表加载失败，请稍后重试',
 			'social.compose.title' => '发布打卡',
 			'social.compose.hint' => '记录这一刻的坚持…',
 			'social.compose.charCount' => ({required Object n}) => '${n}/500',

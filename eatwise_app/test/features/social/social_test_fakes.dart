@@ -23,6 +23,7 @@ ServerPost stubPost({
   List<String> imageUrls = const <String>[],
   bool anonymous = false,
   int? avatarId,
+  String? authorId,
 }) {
   return ServerPost(
     id: id,
@@ -36,6 +37,7 @@ ServerPost stubPost({
     authorNickname: nickname,
     anonymous: anonymous,
     avatarId: avatarId,
+    authorId: authorId,
     createdAtUtc: createdAtUtc ?? DateTime.utc(2026, 7, 28, 12),
   );
 }
@@ -160,6 +162,37 @@ final class FakeSocialApi extends SocialApi {
     if (pending != null) await pending.future;
     if (deleteError != null) throw deleteError!;
     deleted.add(postId);
+  }
+
+  // ===== UGC 屏蔽（App Store 条例 1.2）=====
+
+  Object? blockError;
+  Object? unblockError;
+  Object? blockedUsersError;
+
+  final List<String> blockedCalls = <String>[];
+  final List<String> unblockedCalls = <String>[];
+
+  /// 「已屏蔽用户」页列表数据源（服务端权威）。
+  List<BlockedUser> blockedUsers = <BlockedUser>[];
+
+  @override
+  Future<void> blockUser(String userId) async {
+    if (blockError != null) throw blockError!;
+    blockedCalls.add(userId);
+  }
+
+  @override
+  Future<void> unblockUser(String userId) async {
+    if (unblockError != null) throw unblockError!;
+    unblockedCalls.add(userId);
+    blockedUsers = blockedUsers.where((u) => u.userId != userId).toList();
+  }
+
+  @override
+  Future<List<BlockedUser>> fetchBlockedUsers() async {
+    if (blockedUsersError != null) throw blockedUsersError!;
+    return blockedUsers;
   }
 }
 

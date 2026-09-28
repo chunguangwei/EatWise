@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app_settings/app_settings.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
@@ -23,6 +25,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// 关于区版本号（package_info_plus：`version (buildNumber)`，与
 /// core/update/update_providers.dart 同源；测试注入固定值）。
@@ -169,6 +172,11 @@ class SettingsPage extends ConsumerWidget {
                   onTap: () => _exportData(context, ref),
                 ),
                 _SettingsTile(
+                  title: t.settings.privacy.blockedUsers,
+                  subtitle: t.settings.privacy.blockedUsersSubtitle,
+                  onTap: () => context.push('/settings/blocked-users'),
+                ),
+                _SettingsTile(
                   title: t.settings.privacy.healthData,
                   subtitle: t.settings.privacy.healthDataSubtitle,
                   trailingWidget: Switch(
@@ -280,12 +288,95 @@ class SettingsPage extends ConsumerWidget {
                   title: t.settings.about.disclaimer,
                   onTap: () => context.push('/legal/disclaimer'),
                 ),
+                // 法务上架补齐：数据与 AI 说明（营养来源 + Gemma 条款链接）。
+                _SettingsTile(
+                  title: t.settings.about.dataAi,
+                  onTap: () => unawaited(_showDataAiNotes(context)),
+                ),
+                // Flutter 官方开源许可页。
+                _SettingsTile(
+                  title: t.settings.about.licenses,
+                  onTap: () => showLicensePage(
+                    context: context,
+                    applicationName: Translations.of(context).common.appName,
+                  ),
+                ),
+                _SettingsTile(
+                  title: t.settings.about.contact,
+                  trailing: 'support@polin.tech',
+                  onTap: () => unawaited(_contactSupport(context)),
+                ),
               ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// 「数据与 AI 说明」对话框（营养数据来源 + Gemma 使用条款链接，法务上架补齐）。
+  Future<void> _showDataAiNotes(BuildContext context) async {
+    final t = Translations.of(context);
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: colors.bgPrimary,
+        title: Text(t.settings.about.dataAi, style: textStyles.textLg),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              t.settings.about.dataAiNutritionTitle,
+              style: textStyles.textBase,
+            ),
+            const SizedBox(height: AppSpacing.s1),
+            Text(
+              t.settings.about.dataAiNutritionBody,
+              style: textStyles.textSm.copyWith(color: colors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.s4),
+            Text(t.settings.about.dataAiModelTitle, style: textStyles.textBase),
+            const SizedBox(height: AppSpacing.s1),
+            Text(
+              t.settings.about.dataAiModelBody,
+              style: textStyles.textSm.copyWith(color: colors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.s2),
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: colors.brandPrimary,
+                minimumSize: const Size(44, 44),
+                padding: EdgeInsets.zero,
+              ),
+              onPressed: () => unawaited(
+                launchUrl(
+                  Uri.parse('https://ai.google.dev/gemma/terms'),
+                  mode: LaunchMode.externalApplication,
+                ),
+              ),
+              child: Text(
+                t.settings.about.gemmaTerms,
+                style: textStyles.textSm,
+              ),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(t.common.action.cancel),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 「联系我们」mailto 唤起（上架法务统一联系方式）。
+  Future<void> _contactSupport(BuildContext context) async {
+    await launchUrl(Uri.parse('mailto:support@polin.tech'));
   }
 
   Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {

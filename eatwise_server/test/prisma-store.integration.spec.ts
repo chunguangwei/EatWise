@@ -1569,3 +1569,64 @@ describePg('PrismaStore 体重记录（集成，真实 PostgreSQL）', () => {
     expect(user.id).toBe(userId);
   });
 });
+
+/** UGC 屏蔽用户（user_blocks）：幂等 + 列表 + has 判定 + purge 双向清除（独立用户） */
+describePg('PrismaStore 屏蔽用户（集成，真实 PostgreSQL）', () => {
+  let prisma: PrismaService;
+  let store: PrismaStore;
+  let userId: string;
+  let otherId: string;
+  let thirdId: string;
+
+  beforeAll(async () => {
+    prisma = new PrismaService(new ConfigService());
+    await prisma.$connect();
+    store = new PrismaStore(prisma);
+    userId = (await prisma.user.create({ data: { phone: '+86137TEST0007' } })).id;
+    otherId = (await prisma.user.create({ data: { phone: '+86137TEST0008' } })).id;
+    thirdId = (await prisma.user.create({ data: { phone: '+86137TEST0009' } })).id;
+  });
+
+  afterAll(async () => {
+    await prisma.userBlock.deleteMany({
+      where: {
+        OR: [
+          { userId: { in: [userId, otherId, thirdId] } },
+          { blockedUserId: { in: [userId, otherId, thirdId] } },
+        ],
+      },
+    });
+    await prisma.user.deleteMany({ where: { id: { in: [userId, otherId, thirdId] } } });
+    await prisma.$disconnect();
+  });
+
+  it('屏蔽：upsert 幂等（重复屏蔽同一对返回既有行，不重复落库）', async () => {
+    const first = await store.addUserBlock(userId, otherId);
+    const replay = await store.addUserBlock(userId, otherId);
+    expect(replay.id).toBe(first.id);
+    expect(await prisma.userBlock.count({ where: { userId } })).toBe(1);
+    expect(await store.hasUserBlock(userId, otherId)).toBe(true);
+    expect(await store.hasUserBlock(otherId, userId)).toBe(false); // 单向
+    expect(await store.listUserBlockedIds(userId)).toEqual([otherId]);
+  });
+
+  it('解除：幂等静默；list/has 随即翻负', async () => {
+    await store.removeUserBlock(userId, otherId);
+    await store.removeUserBlock(userId, otherId); // 无记录幂等
+    expect(await store.hasUserBlock(userId, otherId)).toBe(false);
+    expect(await store.listUserBlockedIds(userId)).toEqual([]);
+  });
+
+  it('purgeUserData：双向清除屏蔽关系（我屏蔽的 + 屏蔽我的）', async () => {
+    await store.addUserBlock(userId, otherId); // 我屏蔽别人
+    await store.addUserBlock(thirdId, userId); // 别人屏蔽我
+    await store.addUserBlock(otherId, thirdId); // 无关对（应保留）
+    expect(await prisma.userBlock.count()).toBe(3);
+
+    await store.purgeUserData(userId);
+    expect(await prisma.userBlock.count()).toBe(1);
+    const remaining = await prisma.userBlock.findFirst();
+    expect(remaining!.userId).toBe(otherId);
+    expect(remaining!.blockedUserId).toBe(thirdId);
+  });
+});

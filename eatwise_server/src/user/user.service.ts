@@ -88,6 +88,37 @@ export class UserService {
     return this.deletionView(updated);
   }
 
+  /**
+   * UGC 屏蔽（App Store 条例 1.2）：屏蔽后对方的帖不再出现在我的信息流，
+   * 双向任一方存在屏蔽时互动（点赞/举报/详情）404（见 SocialService）。
+   * 幂等：重复屏蔽返回当前状态；不能屏蔽自己（400）。
+   */
+  async blockUser(userId: string, targetId: string) {
+    if (userId === targetId) throw err.validation({ userId: 'cannot block self' });
+    const target = await this.driver.findUserById(targetId);
+    if (!target || target.deletedAt) throw err.notFound();
+    const block = await this.driver.addUserBlock(userId, targetId);
+    return { blocked: true, blockedUserId: block.blockedUserId };
+  }
+
+  /** 解除屏蔽（幂等：无屏蔽关系也返回 200） */
+  async unblockUser(userId: string, targetId: string) {
+    await this.driver.removeUserBlock(userId, targetId);
+    return { blocked: false, blockedUserId: targetId };
+  }
+
+  /** 我屏蔽的用户列表（管理页用；带昵称，按屏蔽时间倒序由调用方不要求则按 id 序） */
+  async listBlockedUsers(userId: string) {
+    const ids = await this.driver.listUserBlockedIds(userId);
+    const items = await Promise.all(
+      ids.map(async (id) => {
+        const target = await this.driver.findUserById(id);
+        return { userId: id, nickname: target?.nickname ?? null };
+      }),
+    );
+    return { items };
+  }
+
   /** U6 撤销删除申请（冷静期内）；幂等：非 pending 直接返回当前状态 */
   async cancelDeletion(userId: string) {
     const user = await this.mustGet(userId);

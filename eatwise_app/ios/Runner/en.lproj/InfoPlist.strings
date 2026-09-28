@@ -5,3 +5,9 @@
 "NSMicrophoneUsageDescription" = "Voice logging needs access to your microphone";
 /* 阶段 D：HealthKit 运动数据（D-19 翻案，仅读取，数据不出端） */
 "NSHealthShareUsageDescription" = "Read your steps, active energy and weight from Apple Health to show today's activity burn";
+/* Milestone share cards / food photos saved to photo library (add-only) */
+"NSPhotoLibraryAddUsageDescription" = "Save your milestone cards and food photos to your photo library.";
+/* image_picker uses PHPicker at runtime (no prompt); this string only satisfies App Store static validation */
+"NSPhotoLibraryUsageDescription" = "Pick photos from your photo library to log meals and recognize food.";
+/* Custom LAN LLM endpoint */
+"NSLocalNetworkUsageDescription" = "Connect to a self-hosted AI model server on your local network.";

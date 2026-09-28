@@ -220,8 +220,10 @@ void main() {
     await pumpSettings(tester);
     expect(consentStore.analyticsGranted, isFalse);
 
-    // 两个 Switch：①健康数据授权 ②数据分析授权。
+    // 两个 Switch：①健康数据授权 ②数据分析授权。隐私组新增「已屏蔽用户」
+    // 行后开关落在视口外，先滚动到可见（与主题行同款处理）。
     final analyticsSwitch = find.byType(Switch).at(1);
+    await scrollTo(tester, analyticsSwitch);
     await tester.tap(analyticsSwitch);
     await tester.pump();
     await tester.pump();

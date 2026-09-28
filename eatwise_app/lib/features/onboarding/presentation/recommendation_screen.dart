@@ -136,11 +136,15 @@ class RecommendationScreen extends ConsumerWidget {
   /// 「一键启动」与「自定义窗口确认」共用入口：已有生效方案且目标窗口
   /// 不同时先弹 T12 确认（「新方案将于次日 0:00 生效」，D-06），确认后
   /// 写入；首次启动立即生效。[window] 非空 = 自定义进食窗口草稿。
+  ///
+  /// 上架法务：引导未完成时先过年龄确认（13 岁勾选，未勾不让完成）；
+  /// 确认一次持久化，后续换方案路径不再询问。
   Future<void> _startWith(
     BuildContext context,
     WidgetRef ref, {
     FastingWindowDraft? window,
   }) async {
+    if (!await _ensureAgeConfirmed(context, ref) || !context.mounted) return;
     final t = Translations.of(context);
     final controller = ref.read(onboardingControllerProvider.notifier);
     final plan = window?.toFastingPlan();
@@ -199,6 +203,62 @@ class RecommendationScreen extends ConsumerWidget {
     if (context.mounted) {
       context.go('/');
     }
+  }
+
+  /// 年龄确认（上架法务）：引导未完成且未确认过时弹必填勾选框；
+  /// 确认后持久化（`onboarding.ageConfirmed.v1`），换方案路径（引导已
+  /// 完成）不再询问。
+  static const String _kAgeConfirmedKey = 'onboarding.ageConfirmed.v1';
+
+  Future<bool> _ensureAgeConfirmed(BuildContext context, WidgetRef ref) async {
+    if (ref.read(onboardingGateProvider).completed) return true;
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (prefs.getBool(_kAgeConfirmedKey) ?? false) return true;
+    final t = Translations.of(context);
+    final colors = Theme.of(context).extension<AppColors>()!;
+    var checked = false;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(t.onboarding.ageConfirm.title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(t.onboarding.ageConfirm.body),
+              const SizedBox(height: AppSpacing.s2),
+              CheckboxListTile(
+                key: const ValueKey<String>('onboarding.ageConfirm.checkbox'),
+                value: checked,
+                onChanged: (value) => setState(() => checked = value ?? false),
+                title: Text(t.onboarding.ageConfirm.checkbox),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(t.common.action.cancel),
+            ),
+            FilledButton(
+              key: const ValueKey<String>('onboarding.ageConfirm.confirm'),
+              onPressed: checked
+                  ? () => Navigator.pop(dialogContext, true)
+                  : null,
+              style: FilledButton.styleFrom(
+                backgroundColor: colors.brandPrimary,
+              ),
+              child: Text(t.onboarding.ageConfirm.confirm),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true) return false;
+    await prefs.setBool(_kAgeConfirmedKey, true);
+    return true;
   }
 
   /// 一键启动（主推荐口径）。

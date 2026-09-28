@@ -22,6 +22,7 @@ import {
   StreakEntity,
   UserEntity,
   UserRoleName,
+  UserBlockEntity,
   WaterLogEntity,
   ExerciseLogEntity,
   WeightLogEntity,
@@ -134,6 +135,8 @@ export class PrismaStore extends StoreDriver {
       await tx.idempotencyKey.deleteMany({ where: { userId } });
       await tx.postLike.deleteMany({ where: { userId } }); // 点赞/举报幂等记录随账号清除（内存模式同口径）
       await tx.postReport.deleteMany({ where: { userId } });
+      // 屏蔽关系随账号清除（双向：我屏蔽的 + 屏蔽我的；users FK 须先于用户行删除）
+      await tx.userBlock.deleteMany({ where: { OR: [{ userId }, { blockedUserId: userId }] } });
       const tokens = await tx.refreshToken.deleteMany({ where: { userId } });
       await tx.user.deleteMany({ where: { id: userId } }); // 物理删除（幂等：不存在不报错）
       return {
@@ -835,6 +838,54 @@ export class PrismaStore extends StoreDriver {
       return toUserEntity(user!);
     } catch (e) {
       throw this.fail('updateUserRole', e);
+    }
+  }
+
+  // ===== UGC 屏蔽用户（user_blocks）=====
+
+  async addUserBlock(userId: string, blockedUserId: string): Promise<UserBlockEntity> {
+    try {
+      // (userId, blockedUserId) 唯一约束 = 幂等；重复屏蔽返回既有行
+      const row = await this.prisma.userBlock.upsert({
+        where: { userId_blockedUserId: { userId, blockedUserId } },
+        create: { id: newId(), userId, blockedUserId },
+        update: {},
+      });
+      return toUserBlockEntity(row);
+    } catch (e) {
+      throw this.fail('addUserBlock', e);
+    }
+  }
+
+  async removeUserBlock(userId: string, blockedUserId: string): Promise<void> {
+    try {
+      await this.prisma.userBlock.deleteMany({ where: { userId, blockedUserId } });
+    } catch (e) {
+      throw this.fail('removeUserBlock', e);
+    }
+  }
+
+  async listUserBlockedIds(userId: string): Promise<string[]> {
+    try {
+      const rows = await this.prisma.userBlock.findMany({
+        where: { userId },
+        select: { blockedUserId: true },
+      });
+      return rows.map((r) => r.blockedUserId);
+    } catch (e) {
+      throw this.fail('listUserBlockedIds', e);
+    }
+  }
+
+  async hasUserBlock(userId: string, blockedUserId: string): Promise<boolean> {
+    try {
+      const row = await this.prisma.userBlock.findFirst({
+        where: { userId, blockedUserId },
+        select: { id: true },
+      });
+      return row !== null;
+    } catch (e) {
+      throw this.fail('hasUserBlock', e);
     }
   }
 
@@ -1689,6 +1740,10 @@ export class PrismaStore extends StoreDriver {
 }
 
 // ===== Prisma row → 实体映射（Json 字段按内存实体类型收窄）=====
+
+function toUserBlockEntity(b: Prisma.UserBlockGetPayload<object>): UserBlockEntity {
+  return { id: b.id, userId: b.userId, blockedUserId: b.blockedUserId, createdAt: b.createdAt };
+}
 
 function toUserEntity(u: Prisma.UserGetPayload<object>): UserEntity {
   return {

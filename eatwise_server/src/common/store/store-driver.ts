@@ -1,4 +1,5 @@
 import { err } from '../errors/business.exception';
+import { newId } from '../utils/id.util';
 import {
   AdminUserEntity,
   CustomFoodEntity,
@@ -17,6 +18,7 @@ import {
   StreakEntity,
   UserEntity,
   UserRoleName,
+  UserBlockEntity,
   WaterLogEntity,
   WeightLogEntity,
   ExerciseLogEntity,
@@ -177,6 +179,20 @@ export abstract class StoreDriver {
 
   /** reportCount+1 且 reportedAt=now；帖子不存在抛 NOT_FOUND */
   abstract incrementPostReportCount(postId: string): Promise<void>;
+
+  // ===== UGC 屏蔽用户（App Store 条例 1.2：user_blocks；单向屏蔽，双向拦截互动）=====
+
+  /** 屏蔽：幂等（同 (userId, blockedUserId) 重复调用静默成功）；返回屏蔽记录 */
+  abstract addUserBlock(userId: string, blockedUserId: string): Promise<UserBlockEntity>;
+
+  /** 解除屏蔽：幂等（无记录静默成功） */
+  abstract removeUserBlock(userId: string, blockedUserId: string): Promise<void>;
+
+  /** 我屏蔽的用户 id 列表（信息流过滤用） */
+  abstract listUserBlockedIds(userId: string): Promise<string[]>;
+
+  /** 屏蔽关系存在性（互动拦截：双向各查一次） */
+  abstract hasUserBlock(userId: string, blockedUserId: string): Promise<boolean>;
 
   // ===== 用户（U2 资料 LWW / U5 删除状态机；findUserById 原始读取含软删，调用方自判）=====
 
@@ -604,6 +620,10 @@ export class MemoryStoreDriver extends StoreDriver {
     for (const [key, rec] of this.store.idempotency) {
       if (rec.userId === userId) this.store.idempotency.delete(key);
     }
+    // 屏蔽关系随账号清除（双向：我屏蔽的 + 屏蔽我的）
+    for (const [id, b] of this.store.userBlocks) {
+      if (b.userId === userId || b.blockedUserId === userId) this.store.userBlocks.delete(id);
+    }
     const user = this.store.users.get(userId);
     if (user?.phone) this.store.smsCodes.delete(user.phone);
     this.store.users.delete(userId); // 物理删除（合规 §4.3）
@@ -779,6 +799,46 @@ export class MemoryStoreDriver extends StoreDriver {
     post.reportCount += 1;
     post.reportedAt = new Date();
     return Promise.resolve();
+  }
+
+  // ===== UGC 屏蔽用户 =====
+
+  addUserBlock(userId: string, blockedUserId: string): Promise<UserBlockEntity> {
+    const existing = [...this.store.userBlocks.values()].find(
+      (b) => b.userId === userId && b.blockedUserId === blockedUserId,
+    );
+    if (existing) return Promise.resolve(existing); // 幂等：重复屏蔽返回原记录
+    const block: UserBlockEntity = {
+      id: newId(),
+      userId,
+      blockedUserId,
+      createdAt: new Date(),
+    };
+    this.store.userBlocks.set(block.id, block);
+    return Promise.resolve(block);
+  }
+
+  removeUserBlock(userId: string, blockedUserId: string): Promise<void> {
+    for (const [id, b] of this.store.userBlocks) {
+      if (b.userId === userId && b.blockedUserId === blockedUserId) {
+        this.store.userBlocks.delete(id);
+      }
+    }
+    return Promise.resolve(); // 无记录：幂等静默
+  }
+
+  listUserBlockedIds(userId: string): Promise<string[]> {
+    const ids = [...this.store.userBlocks.values()]
+      .filter((b) => b.userId === userId)
+      .map((b) => b.blockedUserId);
+    return Promise.resolve(ids);
+  }
+
+  hasUserBlock(userId: string, blockedUserId: string): Promise<boolean> {
+    const hit = [...this.store.userBlocks.values()].some(
+      (b) => b.userId === userId && b.blockedUserId === blockedUserId,
+    );
+    return Promise.resolve(hit);
   }
 
   // ===== 用户 =====

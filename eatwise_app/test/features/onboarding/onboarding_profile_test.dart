@@ -38,7 +38,9 @@ void main() {
   Future<({OnboardingStore store, _RecordingProfileSync sync})> pumpApp(
     WidgetTester tester,
   ) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'onboarding.ageConfirmed.v1': true,
+    });
     final prefs = await SharedPreferences.getInstance();
     final store = SharedPreferencesOnboardingStore(prefs);
     final gate = OnboardingGate(completed: false);

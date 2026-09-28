@@ -37,6 +37,21 @@
 	<!-- 阶段 D：HealthKit 运动数据接入（D-19 翻案，仅读取步数/活动能量/体重，数据不出端）；双语文案见 InfoPlist.strings -->
 	<key>NSHealthShareUsageDescription</key>
 	<string>Read your steps, active energy and weight from Apple Health to show today's activity burn</string>
+	<!-- saver_gallery 保存里程碑分享卡到相册（add-only 权限，缺此 key 保存必崩）；双语文案见 InfoPlist.strings -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save your milestone cards and food photos to your photo library.</string>
+	<!-- image_picker 运行期走 PHPicker（iOS 14+，不弹此权限），但其二进制含 PHPhotoLibrary.requestAuthorization 符号，App Store 上传静态校验 ITMS-90683 要求此 key -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Pick photos from your photo library to log meals and recognize food.</string>
+	<!-- 自定义局域网 LLM 端点（如 192.168.x.x 自建大模型服务）；双语文案见 InfoPlist.strings -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Connect to a self-hosted AI model server on your local network.</string>
+	<!-- 仅使用系统加密（HTTPS/Keychain），免出口合规问卷 -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!-- iPad 分屏/多任务未适配，先全屏止血（TARGETED_DEVICE_FAMILY 保持 1,2 不动） -->
+	<key>UIRequiresFullScreen</key>
+	<true/>
 	<!-- 用户自定义 LLM 估算：允许直连局域网/本地 http 端点（如 192.168.x.x、localhost） -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
@@ -73,8 +88,6 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
