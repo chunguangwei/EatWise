@@ -2172,6 +2172,9 @@ class Translations$streak$kBreak$zh_CN {
 	/// zh-CN: '断签已超过 7 天，补签窗口已关闭。从今天开始新的连胜吧！'
 	String get unmendable => '断签已超过 7 天，补签窗口已关闭。从今天开始新的连胜吧！';
 
+	/// zh-CN: '${month} 月 ${day} 日断食未达标，连胜已按服务端记录重新计算'
+	String serverRecalcNotice({required Object month, required Object day}) => '${month} 月 ${day} 日断食未达标，连胜已按服务端记录重新计算';
+
 	/// zh-CN: '知道了，重新开始'
 	String get dismiss => '知道了，重新开始';
 }
@@ -5017,6 +5020,7 @@ extension on Translations {
 			'streak.kBreak.mendFailed' => '补签失败，请稍后重试',
 			'streak.kBreak.exhausted' => '本月补签卡已用完，下月 1 日将发放 2 张新卡',
 			'streak.kBreak.unmendable' => '断签已超过 7 天，补签窗口已关闭。从今天开始新的连胜吧！',
+			'streak.kBreak.serverRecalcNotice' => ({required Object month, required Object day}) => '${month} 月 ${day} 日断食未达标，连胜已按服务端记录重新计算',
 			'streak.kBreak.dismiss' => '知道了，重新开始',
 			'streak.profile.title' => '连胜',
 			'streak.profile.current' => '当前连胜',

@@ -1235,6 +1235,7 @@ class _Translations$streak$kBreak$en extends Translations$streak$kBreak$zh_CN {
 	@override String get mendFailed => 'Couldn\'t use the Mend Card. Please try again later.';
 	@override String get exhausted => 'No Mend Cards left this month. You\'ll get 2 new ones on the 1st.';
 	@override String get unmendable => 'This miss is over 7 days old and can no longer be mended. Start a fresh streak today!';
+	@override String serverRecalcNotice({required Object month, required Object day}) => 'Your fast on ${month}/${day} didn\'t qualify — your streak was recalculated from server records';
 	@override String get dismiss => 'Got it, start fresh';
 }
 
@@ -3035,6 +3036,7 @@ extension on TranslationsEn {
 			'streak.kBreak.mendFailed' => 'Couldn\'t use the Mend Card. Please try again later.',
 			'streak.kBreak.exhausted' => 'No Mend Cards left this month. You\'ll get 2 new ones on the 1st.',
 			'streak.kBreak.unmendable' => 'This miss is over 7 days old and can no longer be mended. Start a fresh streak today!',
+			'streak.kBreak.serverRecalcNotice' => ({required Object month, required Object day}) => 'Your fast on ${month}/${day} didn\'t qualify — your streak was recalculated from server records',
 			'streak.kBreak.dismiss' => 'Got it, start fresh',
 			'streak.profile.title' => 'Streak',
 			'streak.profile.current' => 'Current streak',

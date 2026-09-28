@@ -134,6 +134,79 @@ void main() {
       expect(rows.single.syncStatus, SyncStatus.synced);
     });
 
+    test('归属日不一致：跳过 F2 上报（防误判 broken），本地结算不受影响', () async {
+      // 前台对账补关闭的是上一周期（昨天），服务端物化的是当前窗口（今天）
+      // ——recordId 与 endedAt 分属两个周期，上报会把当前记录误判 broken。
+      api.view = _view(currentStreak: 1, longestStreak: 1, stock: 2);
+      reportApi.active = const ServerActiveFast(
+        id: 'rec-today',
+        attributionDate: today,
+      );
+      final c = container();
+      addTearDown(c.dispose);
+      final controller = c.read(streakControllerProvider.notifier);
+
+      await controller.onFastClosed(recordOf('2026-07-27'));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      // 不发 reportEnd；本地推演照常入账（乐观）。
+      expect(reportApi.endCalls, isEmpty);
+      expect(c.read(streakControllerProvider).currentStreak, 1);
+      // 落库保留 pending（未上行标记），等后续同归属窗口或服务端 ghost 兜底。
+      final rows = await db.fastingRecordDao.recordsOf('u1');
+      expect(rows, hasLength(1));
+      expect(rows.single.attributionDate, '2026-07-27');
+      expect(rows.single.syncStatus, SyncStatus.pending);
+    });
+
+    test('服务端判分断签：streak 骤降且本地无断签弹窗 → 带日期告知一次（频控不重复）', () async {
+      // 本地推演 2 天连胜（07-26/27 达标、已结算到 07-27）；服务端权威 0
+      // ——服务端把本地认为达标的周期判了不达标（时区错配期误判场景）。
+      final engine = StreakEngine();
+      engine.applyDayAchieved('2026-07-26', today: today);
+      engine.applyDayAchieved('2026-07-27', today: today);
+      engine.lastSettledDate = '2026-07-27';
+      store.saveEngine(engine);
+      api.view = _view(
+        currentStreak: 0,
+        longestStreak: 2,
+        stock: 2,
+        lastQualifiedDate: '2026-07-25',
+      );
+      final c = container();
+      addTearDown(c.dispose);
+      final controller = c.read(streakControllerProvider.notifier);
+      // build() 的 fire-and-forget 对账先排空。
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      // 服务端权威覆盖 + 告知日 = 最后达标日次日（07-25 + 1）。
+      var state = c.read(streakControllerProvider);
+      expect(state.currentStreak, 0);
+      expect(state.serverBreakNoticeDate, '2026-07-26');
+
+      // 消费即清除；同一告知日落过频控，再次对账不再告知。
+      controller.consumeServerBreakNotice();
+      expect(c.read(streakControllerProvider).serverBreakNoticeDate, isNull);
+      await controller.refreshFromServer();
+      state = c.read(streakControllerProvider);
+      expect(state.serverBreakNoticeDate, isNull);
+      expect(state.currentStreak, 0);
+    });
+
+    test('服务端 streak 不低于本地推演 → 不告知', () async {
+      final engine = StreakEngine();
+      engine.applyDayAchieved('2026-07-27', today: today);
+      engine.lastSettledDate = '2026-07-27';
+      store.saveEngine(engine);
+      api.view = _view(currentStreak: 1, longestStreak: 1, stock: 2);
+      final c = container();
+      addTearDown(c.dispose);
+      c.read(streakControllerProvider.notifier);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(c.read(streakControllerProvider).serverBreakNoticeDate, isNull);
+    });
+
     test('补签卡在线（S2）：服务端视图对账，本地账本同步', () async {
       // 预播种：07-25/26 已达标并结算到 07-26；build 启动结算 → 07-27 断签。
       store.saveEngine(_preseededEngine());
@@ -238,11 +311,12 @@ ServerStreakView _view({
   required int currentStreak,
   required int longestStreak,
   required int stock,
+  String? lastQualifiedDate,
 }) {
   return ServerStreakView(
     currentStreak: currentStreak,
     longestStreak: longestStreak,
-    lastQualifiedDate: null,
+    lastQualifiedDate: lastQualifiedDate,
     mendCardStock: stock,
     mendCardGrantsThisMonth: 2,
     mendCardExpiresAt: '2026-07-31',

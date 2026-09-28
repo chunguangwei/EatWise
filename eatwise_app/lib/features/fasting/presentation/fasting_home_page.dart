@@ -167,6 +167,31 @@ class _TimerBody extends ConsumerWidget {
           _showBreakDialog(context, ref, popupDate);
         });
       }
+      // 服务端判分断签告知（v1.13.27：本地认为达标、服务端判不达标导致
+      // streak 下降且本地无断签弹窗时）——SnackBar 带日期补一次原因，
+      // 防「连胜莫名归零」（一次性，展示即消费）。
+      final notice = next.serverBreakNoticeDate;
+      if (notice != null && notice != previous?.serverBreakNoticeDate) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          final parts = notice.split('-');
+          if (parts.length == 3) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  t.streak.kBreak.serverRecalcNotice(
+                    month: int.parse(parts[1]),
+                    day: int.parse(parts[2]),
+                  ),
+                ),
+              ),
+            );
+          }
+          ref
+              .read(streakControllerProvider.notifier)
+              .consumeServerBreakNotice();
+        });
+      }
     });
 
     // 首页状态环曝光（§3.2 fasting_ring_expose；页面级曝光，去重键含

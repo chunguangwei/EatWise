@@ -22,6 +22,12 @@ abstract interface class StreakLocalStore {
 
   /// 记录 F2 上行幂等键。
   void saveReportRequestId(String attributionDate, String clientRequestId);
+
+  /// 已告知过的服务端判分断签日（v1.13.27；频控：同一断签日只告知 1 次）。
+  Set<String> loadShownServerBreakNotices();
+
+  /// 记录某服务端判分断签日已告知。
+  void markServerBreakNoticeShown(String date);
 }
 
 /// SharedPreferences 实现（键按用户命名空间隔离，与体重存储 WeightLogStore
@@ -40,6 +46,7 @@ final class SharedPreferencesStreakLocalStore implements StreakLocalStore {
   static const String _keyEngine = 'streak.engine';
   static const String _keyShownPopups = 'streak.shownBreakPopups';
   static const String _keyReportIds = 'streak.reportRequestIds';
+  static const String _keyShownServerNotices = 'streak.shownServerBreakNotices';
 
   /// 旧全局键（v1.13.2 及更早的无前缀形态）。
   static const List<String> _legacyKeys = <String>[
@@ -56,6 +63,7 @@ final class SharedPreferencesStreakLocalStore implements StreakLocalStore {
   String get _engineKey => '$_keyEngine.$userId';
   String get _shownPopupsKey => '$_keyShownPopups.$userId';
   String get _reportIdsKey => '$_keyReportIds.$userId';
+  String get _shownServerNoticesKey => '$_keyShownServerNotices.$userId';
 
   /// 旧全局键一次性迁入当前命名空间（仅 rename 语义：目标键缺失才搬，
   /// 旧键无论如何删除）。anonymous 态无需迁移（新键
@@ -171,6 +179,18 @@ final class SharedPreferencesStreakLocalStore implements StreakLocalStore {
     _prefs.setString(_reportIdsKey, jsonEncode(map));
   }
 
+  @override
+  Set<String> loadShownServerBreakNotices() {
+    return (_prefs.getStringList(_shownServerNoticesKey) ?? const <String>[])
+        .toSet();
+  }
+
+  @override
+  void markServerBreakNoticeShown(String date) {
+    final shown = loadShownServerBreakNotices()..add(date);
+    _prefs.setStringList(_shownServerNoticesKey, shown.toList());
+  }
+
   Map<String, String> _reportIds() {
     final raw = _prefs.getString(_reportIdsKey);
     if (raw == null) return <String, String>{};
@@ -210,4 +230,12 @@ final class InMemoryStreakLocalStore implements StreakLocalStore {
   void saveReportRequestId(String attributionDate, String clientRequestId) {
     _reportIds[attributionDate] = clientRequestId;
   }
+
+  final Set<String> _shownServerNotices = <String>{};
+
+  @override
+  Set<String> loadShownServerBreakNotices() => Set.of(_shownServerNotices);
+
+  @override
+  void markServerBreakNoticeShown(String date) => _shownServerNotices.add(date);
 }

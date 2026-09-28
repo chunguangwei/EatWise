@@ -840,6 +840,7 @@
       "mendFailed": "补签失败，请稍后重试",
       "exhausted": "本月补签卡已用完，下月 1 日将发放 2 张新卡",
       "unmendable": "断签已超过 7 天，补签窗口已关闭。从今天开始新的连胜吧！",
+      "serverRecalcNotice": "${month} 月 ${day} 日断食未达标，连胜已按服务端记录重新计算",
       "dismiss": "知道了，重新开始"
     },
     "profile": {

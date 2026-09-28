@@ -17,6 +17,7 @@ import 'package:eatwise/features/streak/data/fasting_report_api.dart';
 import 'package:eatwise/features/streak/data/streak_api.dart';
 import 'package:eatwise/features/streak/domain/streak_engine.dart';
 import 'package:eatwise/features/streak/domain/streak_types.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -33,6 +34,7 @@ final class StreakUiState {
     required this.fromServer,
     this.justUnlockedMilestone,
     this.pendingBreakPopupDate,
+    this.serverBreakNoticeDate,
   });
 
   /// 状态机四态（§2.1）。
@@ -64,6 +66,12 @@ final class StreakUiState {
 
   /// 待自动弹出的断签日（频控：每断签日只自动弹 1 次，§4.1）。
   final String? pendingBreakPopupDate;
+
+  /// 服务端对账判分断签的待告知日（v1.13.27：服务端把本地认为达标的周期
+  /// 判为不达标导致 streak 下降，而本地无断签弹窗时，首页 SnackBar 补一次
+  /// 带日期的告知，防「连胜莫名归零」；一次性，消费后由
+  /// [StreakController.consumeServerBreakNotice] 清除）。
+  final String? serverBreakNoticeDate;
 }
 
 /// 本地存储（生产 SharedPreferences，键按当前用户命名空间；未注入场景
@@ -205,18 +213,31 @@ final class StreakController extends Notifier<StreakUiState> {
       final report = ref.read(fastingReportApiProvider);
       final active = await report.fetchActiveFast();
       if (active != null) {
-        final requestId =
-            _store.loadReportRequestId(record.date) ?? newClientRequestId();
-        _store.saveReportRequestId(record.date, requestId);
-        await report.reportEnd(
-          clientRequestId: requestId,
-          recordId: active.id,
-          endedAtUtc: DateTime.fromMillisecondsSinceEpoch(
-            record.endUtc * 1000,
-            isUtc: true,
-          ),
-        );
-        await _markRecordSynced(record);
+        // 归属校验（v1.13.27 修）：fetchActiveFast 物化/返回的是「当前窗口」
+        // 记录，而本地刚关闭的可能是上一周期（前台对账补关闭）。归属日不一致
+        // 时 recordId 与 endedAt 分属两个周期，上报会把当前 on_track 记录
+        // 误判 broken（wcg 四连 broken 根因之一）；旧周期由服务端
+        // autoCloseExpired ghost 兜底结算，跳过不丢数据。
+        if (active.attributionDate.isNotEmpty &&
+            active.attributionDate != record.date) {
+          debugPrint(
+            'StreakController: 归属日不一致跳过 F2 上报 '
+            '(local=${record.date}, server=${active.attributionDate})',
+          );
+        } else {
+          final requestId =
+              _store.loadReportRequestId(record.date) ?? newClientRequestId();
+          _store.saveReportRequestId(record.date, requestId);
+          await report.reportEnd(
+            clientRequestId: requestId,
+            recordId: active.id,
+            endedAtUtc: DateTime.fromMillisecondsSinceEpoch(
+              record.endUtc * 1000,
+              isUtc: true,
+            ),
+          );
+          await _markRecordSynced(record);
+        }
       }
     } on Object {
       // 未物化/网络失败不阻断：服务端兜底结算为准（§2.4），恢复后对账。
@@ -250,6 +271,26 @@ final class StreakController extends Notifier<StreakUiState> {
   }
 
   void _reconcile(ServerStreakView view, List<ServerMilestone> milestones) {
+    // 服务端判分断签检测（v1.13.27）：服务端权威 streak 低于本地推演，且本地
+    // 引擎没有未告知的断签弹窗（有则 D-12 弹窗已覆盖原因）——说明服务端把本地
+    // 认为达标的周期判了不达标（如时区错配期的误判 broken），补一次带日期的
+    // SnackBar 告知。判定必须在覆盖 _serverCurrentStreak 之前取本地推演值。
+    final today = _today();
+    final localProjected = _engine.currentStreak(today);
+    String? noticeDate;
+    if (view.currentStreak < localProjected) {
+      final shownPopups = _store.loadShownBreakPopups();
+      final hasLocalBreakExplanation = _engine.pendingMendDates.any(
+        (d) => !shownPopups.contains(d),
+      );
+      if (!hasLocalBreakExplanation) {
+        final candidate = _serverBreakNoticeDate(view, today);
+        if (!_store.loadShownServerBreakNotices().contains(candidate)) {
+          _store.markServerBreakNoticeShown(candidate);
+          noticeDate = candidate;
+        }
+      }
+    }
     // 服务端权威：当前连胜/最长连胜/补签卡库存覆盖本地推演。
     _serverCurrentStreak = view.currentStreak;
     final engine = _engine;
@@ -265,7 +306,30 @@ final class StreakController extends Notifier<StreakUiState> {
     final newly = serverMilestones.difference(engine.unlockedMilestones);
     engine.unlockedMilestones.addAll(serverMilestones);
     _store.saveEngine(engine);
-    state = _uiState(fromServer: true, newMilestones: newly.toList()..sort());
+    state = _uiState(
+      fromServer: true,
+      newMilestones: newly.toList()..sort(),
+      serverBreakNoticeDate: noticeDate,
+    );
+  }
+
+  /// 服务端判分断签的告知日期：S1 不返回断签日〔假设〕，取「最后达标日的
+  /// 次日」（须早于今天）；无法推导（lastQualifiedDate 缺失/次日即今天）
+  /// 时退回昨天。
+  String _serverBreakNoticeDate(ServerStreakView view, String today) {
+    final lastQualified = view.lastQualifiedDate;
+    if (lastQualified != null && lastQualified.isNotEmpty) {
+      final next = addDaysToIsoDate(lastQualified, 1);
+      if (next.compareTo(today) < 0) return next;
+    }
+    return addDaysToIsoDate(today, -1);
+  }
+
+  /// 服务端判分断签提示已展示（SnackBar 一次性消费；频控落库在检测时）。
+  void consumeServerBreakNotice() {
+    if (state.serverBreakNoticeDate != null) {
+      state = _uiState(fromServer: state.fromServer);
+    }
   }
 
   /// USE_MEND_CARD（T6）：在线走 S2（服务端强制窗口/库存规则）；
@@ -337,6 +401,7 @@ final class StreakController extends Notifier<StreakUiState> {
     List<int> newMilestones = const [],
     bool clearBreakPopup = false,
     bool clearMilestone = false,
+    String? serverBreakNoticeDate,
   }) {
     final today = _today();
     final engine = _engine;
@@ -364,6 +429,7 @@ final class StreakController extends Notifier<StreakUiState> {
       pendingBreakPopupDate: clearBreakPopup
           ? null
           : popupDate ?? stateOrNull?.pendingBreakPopupDate,
+      serverBreakNoticeDate: serverBreakNoticeDate,
     );
   }
 }

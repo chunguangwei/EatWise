@@ -266,10 +266,20 @@ export class FastingService {
     if (!record || record.userId !== userId) throw err.notFound();
     if (record.result !== 'on_track') throw err.fastingAlreadyEnded();
 
+    // 归属防御（v1.13.27）：endedAt 落在本记录窗口 [实际开始−容差, 计划结束+容差]
+    // 之外 = 上报归属错误（旧周期 endedAt 错挂当前 recordId，客户端 v1.13.27
+    // 前 _reportAndRefresh 缺陷可制造）——拒绝结算，绝不把当前 on_track 记录
+    // 结掉（wcg 四连 broken 根因之二）。幂等记录不落：重放必然同样拒绝。
+    const toleranceMs = this.toleranceMinutes * 60 * 1000;
+    const windowStartMs = (record.actualStartAt ?? record.plannedStartAt).getTime() - toleranceMs;
+    const windowEndMs = record.plannedEndAt.getTime() + toleranceMs;
+    if (endedAt.getTime() < windowStartMs || endedAt.getTime() > windowEndMs) {
+      throw err.fastingEndOutOfWindow();
+    }
+
     // TODO 〔假设〕契约要求 endedAt 与服务端收到时间漂移 >5min 时采信服务端时间；骨架阶段采信客户端上报值
     const actualEnd = endedAt;
     const earlyByMs = record.plannedEndAt.getTime() - actualEnd.getTime();
-    const toleranceMs = this.toleranceMinutes * 60 * 1000;
 
     if (earlyByMs <= 0) {
       record.result = 'completed';

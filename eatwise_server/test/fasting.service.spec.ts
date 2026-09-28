@@ -170,6 +170,48 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
         expect.objectContaining({ code: 'FASTING_ALREADY_ENDED' }) as unknown as Error,
       );
     });
+
+    it('endedAt 落在记录窗口外 → 409 FASTING_END_OUT_OF_WINDOW，记录保持 on_track 不被结掉', async () => {
+      // 归属错误场景：旧周期 endedAt 错挂当前 recordId（客户端 v1.13.27 前缺陷）
+      const r = makeRecord();
+      await expect(
+        fasting.endFast(
+          userId,
+          randomUUID(),
+          r.id,
+          new Date('2026-07-26T04:00:00.000Z'), // 早于窗口开始（07-26 12:00Z）
+        ),
+      ).rejects.toThrow(
+        expect.objectContaining({ code: 'FASTING_END_OUT_OF_WINDOW' }) as unknown as Error,
+      );
+      expect(r.result).toBe('on_track');
+      expect(r.actualEndAt).toBeNull();
+      expect(r.eventLog).toHaveLength(0);
+
+      // 上界：晚于计划结束 +15min 容差同样拒绝
+      const r2 = makeRecord();
+      await expect(
+        fasting.endFast(
+          userId,
+          randomUUID(),
+          r2.id,
+          new Date('2026-07-27T04:16:00.000Z'), // plannedEnd 04:00Z + 16min
+        ),
+      ).rejects.toThrow(
+        expect.objectContaining({ code: 'FASTING_END_OUT_OF_WINDOW' }) as unknown as Error,
+      );
+      expect(r2.result).toBe('on_track');
+
+      // 窗口内下边界（开始−15min 容差）放行，破窗判定口径不变
+      const r3 = makeRecord();
+      const res = (await fasting.endFast(
+        userId,
+        randomUUID(),
+        r3.id,
+        new Date('2026-07-26T11:45:00.000Z'), // actualStart 12:00Z − 15min（边界含）
+      )) as { result: string };
+      expect(res.result).toBe('broken');
+    });
   });
 
   describe('延长（D-10：步进 30min，累计 ≤240min）', () => {

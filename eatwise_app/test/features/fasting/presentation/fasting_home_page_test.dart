@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
@@ -11,6 +12,10 @@ import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.d
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
+import 'package:eatwise/features/streak/application/streak_controller.dart';
+import 'package:eatwise/features/streak/application/streak_local_store.dart';
+import 'package:eatwise/features/streak/data/streak_api.dart';
+import 'package:eatwise/features/streak/domain/streak_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -81,6 +86,7 @@ void main() {
     bool reduceMotion = false,
     double? textScaler,
     bool statusBarViewport = false,
+    List<Override> extraOverrides = const <Override>[],
   }) async {
     if (statusBarViewport) {
       // 真机走查基线：360x640 小屏 + 大字体 1.3 + 顶部 24pt 状态栏。
@@ -107,6 +113,7 @@ void main() {
           todayNutritionCacheProvider.overrideWith(
             (ref) => Stream<DailyNutritionCache?>.value(todayCache),
           ),
+          ...extraOverrides,
         ],
         child: MaterialApp.router(
           theme: AppTheme.light(),
@@ -152,6 +159,52 @@ void main() {
     );
     // 空态信号卡（今日无记录，不出现误导性信号灯）
     expect(find.text('今天还没记录，记一笔后信号灯会亮起来'), findsOneWidget);
+
+    await unmount(tester);
+  });
+
+  testWidgets('服务端判分断签：本地达标但服务端 streak 骤降 → SnackBar 带日期告知一次', (tester) async {
+    // 本地推演 2 天连胜（07-26/27 已达标并结算），服务端权威 streak=0
+    // （服务端把本地认为达标的周期判了不达标）——本地无断签弹窗可解释。
+    final store = InMemoryStreakLocalStore();
+    final engine = StreakEngine();
+    engine.applyDayAchieved('2026-07-26', today: '2026-07-28');
+    engine.applyDayAchieved('2026-07-27', today: '2026-07-28');
+    engine.lastSettledDate = '2026-07-27';
+    store.saveEngine(engine);
+    final api = _FixedStreakApi(
+      const ServerStreakView(
+        currentStreak: 0,
+        longestStreak: 2,
+        lastQualifiedDate: '2026-07-25',
+        mendCardStock: 2,
+        mendCardGrantsThisMonth: 2,
+        mendCardExpiresAt: '2026-07-31',
+        mendCardUsableWindowDays: 7,
+        mendCardStatus: 'available',
+      ),
+    );
+
+    await pumpHome(
+      tester,
+      extraOverrides: <Override>[
+        streakLocalStoreProvider.overrideWithValue(store),
+        streakApiProvider.overrideWithValue(api),
+        streakTodayProvider.overrideWithValue(() => '2026-07-28'),
+      ],
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 告知日 = 服务端最后达标日（07-25）的次日。
+    expect(find.text('7 月 26 日断食未达标，连胜已按服务端记录重新计算'), findsOneWidget);
+    // SnackBar 展示即消费：状态里的待告知位已清除（防下一帧重弹）。
+    expect(
+      ProviderScope.containerOf(
+        tester.element(find.byType(FastingHomePage)),
+      ).read(streakControllerProvider).serverBreakNoticeDate,
+      isNull,
+    );
 
     await unmount(tester);
   });
@@ -515,4 +568,18 @@ void main() {
     );
     await unmount(tester);
   });
+}
+
+/// S1/S3 桩：返回固定 streak 视图（服务端判分断签告知用例）。
+final class _FixedStreakApi extends StreakApi {
+  _FixedStreakApi(this.view) : super(Dio());
+
+  final ServerStreakView view;
+
+  @override
+  Future<ServerStreakView> fetchStreak() async => view;
+
+  @override
+  Future<List<ServerMilestone>> fetchMilestones() async =>
+      const <ServerMilestone>[];
 }

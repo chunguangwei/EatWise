@@ -59,6 +59,9 @@ export const err = {
 
   // 断食
   fastingAlreadyEnded: () => new BusinessException('FASTING_ALREADY_ENDED', HttpStatus.CONFLICT),
+  /** 结束上报的 endedAt 落在记录窗口外：归属错误（错挂 recordId），拒绝结算当前记录 */
+  fastingEndOutOfWindow: () =>
+    new BusinessException('FASTING_END_OUT_OF_WINDOW', HttpStatus.CONFLICT),
   fastingExtendLimit: (extendRemainingMinutes: number) =>
     new BusinessException('FASTING_EXTEND_LIMIT', HttpStatus.BAD_REQUEST, {
       extendRemainingMinutes,
