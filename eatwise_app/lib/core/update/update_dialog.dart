@@ -114,6 +114,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
     final ok = await _downloader.downloadAndInstall(
       apkUrl,
       fallbackUrl: info.apkUrlFallback,
+      expectedVersion: info.latestVersion,
       onProgress: (received, total) {
         if (!mounted) return;
         setState(() {

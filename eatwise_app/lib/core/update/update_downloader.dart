@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 /// 下载进度回调：received 已收字节（跨续传/重试累计，不回退），
@@ -14,6 +15,10 @@ typedef ApkFileOpener = Future<bool> Function(String path);
 
 /// 屏幕常亮开关的抽象（默认 wakelock_plus），测试注入假实现。
 typedef WakelockAction = Future<void> Function();
+
+/// 已下载 APK 版本记录的读写抽象（默认 SharedPreferences），测试注入内存实现。
+typedef DownloadedVersionReader = Future<String?> Function();
+typedef DownloadedVersionWriter = Future<void> Function(String version);
 
 /// Content-Range 头（`bytes 100-999/2000`，416 时为 `bytes */2000`）
 /// 解析总字节数（纯函数）；缺失/非法返回 null。
@@ -46,18 +51,27 @@ final class UpdateDownloader {
     WakelockAction? acquireWakelock,
     WakelockAction? releaseWakelock,
     Future<void> Function(Duration)? sleep,
+    DownloadedVersionReader? readDownloadedVersion,
+    DownloadedVersionWriter? writeDownloadedVersion,
     this.maxAttemptsPerUrl = 3,
   }) : _openApk = openApk ?? _defaultOpenApk,
        _tempDir = tempDir ?? getTemporaryDirectory,
        _acquireWakelock = acquireWakelock ?? WakelockPlus.enable,
        _releaseWakelock = releaseWakelock ?? WakelockPlus.disable,
-       _sleep = sleep ?? Future<void>.delayed;
+       _sleep = sleep ?? Future<void>.delayed,
+       _readDownloadedVersion =
+           readDownloadedVersion ?? _defaultReadDownloadedVersion,
+       _writeDownloadedVersion =
+           writeDownloadedVersion ?? _defaultWriteDownloadedVersion;
 
   /// 临时目录下的最终文件名（.part 完成后 rename 至此，重复下载覆盖）。
   static const String apkFileName = 'eatwise-update.apk';
 
   /// 续传分片后缀（下载中的不完整文件）。
   static const String partFileSuffix = '.part';
+
+  /// 已下载 APK 对应版本号的 SharedPreferences 键（「下完未装」复用依据）。
+  static const String downloadedVersionKey = 'update.downloadedApkVersion';
 
   /// 每个 URL 的最大尝试次数（首次 + 重试）。
   final int maxAttemptsPerUrl;
@@ -68,6 +82,8 @@ final class UpdateDownloader {
   final WakelockAction _acquireWakelock;
   final WakelockAction _releaseWakelock;
   final Future<void> Function(Duration) _sleep;
+  final DownloadedVersionReader _readDownloadedVersion;
+  final DownloadedVersionWriter _writeDownloadedVersion;
 
   static Future<bool> _defaultOpenApk(String path) async {
     final result = await OpenFilex.open(
@@ -77,18 +93,43 @@ final class UpdateDownloader {
     return result.type == ResultType.done;
   }
 
+  static Future<String?> _defaultReadDownloadedVersion() async =>
+      (await SharedPreferences.getInstance()).getString(downloadedVersionKey);
+
+  static Future<void> _defaultWriteDownloadedVersion(String version) async =>
+      (await SharedPreferences.getInstance()).setString(
+        downloadedVersionKey,
+        version,
+      );
+
   /// 下载 APK（主链 [apkUrl]，连续失败切 [fallbackUrl]）并调起系统安装器。
   /// 任一步最终失败返回 false（调用方给重试入口，.part 保留可续传）；
   /// 成功以安装器是否成功调起为准。
+  ///
+  /// [expectedVersion] 为目标版本号（更新检查的 latestVersion）：缓存里已
+  /// 存在同版本完整包（上次下完未安装）时**跳过重复下载直接调起安装器**；
+  /// 否则先删除残留旧包再下载——旧包（204MB 级）留在缓存目录，会被系统
+  /// 缓存清理打断新下载，造成「再点下载必失败、清缓存才恢复」（2026-09-29
+  /// 真机案例）。
   Future<bool> downloadAndInstall(
     String apkUrl, {
     String? fallbackUrl,
+    String? expectedVersion,
     UpdateProgressCallback? onProgress,
   }) async {
     await _acquireWakelock();
     try {
       final dir = await _tempDir();
       final finalPath = '${dir.path}${Platform.pathSeparator}$apkFileName';
+      final finalFile = File(finalPath);
+      // 同版本已下载未安装：复用缓存包，不再下载。
+      if (expectedVersion != null &&
+          await finalFile.exists() &&
+          await _readDownloadedVersion() == expectedVersion) {
+        return await _openApk(finalPath);
+      }
+      // 过期/无记录残留包：先删（释放缓存 + 规避 rename 覆盖既有文件）。
+      if (await finalFile.exists()) await finalFile.delete();
       final ok = await _downloadWithResume(
         apkUrl,
         fallbackUrl,
@@ -97,6 +138,9 @@ final class UpdateDownloader {
         onProgress,
       );
       if (!ok) return false;
+      if (expectedVersion != null) {
+        await _writeDownloadedVersion(expectedVersion);
+      }
       return await _openApk(finalPath);
     } on Object {
       return false;

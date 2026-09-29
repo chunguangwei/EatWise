@@ -372,6 +372,8 @@ void main() {
 
     UpdateDownloader downloader({
       required Future<bool> Function(String) open,
+      DownloadedVersionReader? readDownloadedVersion,
+      DownloadedVersionWriter? writeDownloadedVersion,
     }) => UpdateDownloader(
       dio: dio,
       openApk: open,
@@ -379,6 +381,8 @@ void main() {
       acquireWakelock: () async => wakelockEvents.add('acquire'),
       releaseWakelock: () async => wakelockEvents.add('release'),
       sleep: (d) async => sleeps.add(d),
+      readDownloadedVersion: readDownloadedVersion ?? () async => null,
+      writeDownloadedVersion: writeDownloadedVersion ?? (v) async {},
     );
 
     test('成功：流式下载到临时目录、进度回调递增且末次满量、调起 open', () async {
@@ -620,6 +624,48 @@ void main() {
       expect(parseContentRangeTotal('bytes 0-3/*'), isNull);
       expect(parseContentRangeTotal('garbage'), isNull);
     });
+
+    test('同版本已下载未安装：跳过网络直接调起安装器（下完未装复用）', () async {
+      // 上次下完 v1.2.0 未安装：最终包 + 版本记录都在。
+      File(finalPath()).writeAsBytesSync(apkBytes);
+      final opened = <String>[];
+      final ok = await downloader(
+        open: (path) async {
+          opened.add(path);
+          return true;
+        },
+        readDownloadedVersion: () async => '1.2.0',
+      ).downloadAndInstall(apkUrl, expectedVersion: '1.2.0');
+      expect(ok, isTrue);
+      expect(opened.single, endsWith(UpdateDownloader.apkFileName));
+      expect(adapter.requests, isEmpty); // 零网络请求
+    });
+
+    test('旧版本残留包：先删再下新版本，成功后记录版本号', () async {
+      // 缓存残留 v1.1.0 旧包（真机「再下必失败」根因：旧包占缓存）。
+      File(finalPath()).writeAsBytesSync(<int>[7, 7, 7]);
+      adapter.stub(apkUrl, StubResponse.rawBytes(200, apkBytes));
+      final written = <String>[];
+      final ok = await downloader(
+        open: (path) async => true,
+        readDownloadedVersion: () async => '1.1.0',
+        writeDownloadedVersion: (v) async => written.add(v),
+      ).downloadAndInstall(apkUrl, expectedVersion: '1.2.0');
+      expect(ok, isTrue);
+      expect(File(finalPath()).readAsBytesSync(), apkBytes); // 旧包被替换
+      expect(written, <String>['1.2.0']);
+      expect(adapter.requestsTo(apkUrl), 1);
+    });
+
+    test('有残留包但未传 expectedVersion：同样先删再下（兼容旧调用）', () async {
+      File(finalPath()).writeAsBytesSync(<int>[7, 7, 7]);
+      adapter.stub(apkUrl, StubResponse.rawBytes(200, apkBytes));
+      final ok = await downloader(
+        open: (path) async => true,
+      ).downloadAndInstall(apkUrl);
+      expect(ok, isTrue);
+      expect(File(finalPath()).readAsBytesSync(), apkBytes);
+    });
   });
 
   group('更新弹窗（双语三态）', () {
@@ -667,6 +713,8 @@ void main() {
         acquireWakelock: () async {},
         releaseWakelock: () async {},
         sleep: (_) async {},
+        readDownloadedVersion: () async => null,
+        writeDownloadedVersion: (v) async {},
       );
     }
 
