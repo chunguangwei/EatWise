@@ -84,6 +84,8 @@ export interface FastingRecordEntity {
   version: number;
   createdAt: Date;
   updatedAt: Date;
+  /** 软删 tombstone（/sync fastingRecord delete op；null=存活） */
+  deletedAt: Date | null;
 }
 
 export interface FoodEntity {

@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { DataStore } from '../src/common/store/data-store';
 import { MemoryStoreDriver } from '../src/common/store/store-driver';
 import { NutritionService } from '../src/nutrition/nutrition.service';
+import { StreakService } from '../src/streak/streak.service';
 import { SyncService } from '../src/sync/sync.service';
 
 /** exerciseLog 轻量两态同步（手动记运动/截图导入上行，2026-09-19 拍板）：
@@ -14,7 +15,7 @@ describe('sync：exerciseLog op（轻量两态，无 update）', () => {
   beforeEach(() => {
     store = new DataStore();
     const driver = new MemoryStoreDriver(store);
-    sync = new SyncService(driver, new NutritionService(driver));
+    sync = new SyncService(driver, new NutritionService(driver), new StreakService(driver));
     userId = store.createUser({ phone: '+8613800138000' }).id;
   });
 

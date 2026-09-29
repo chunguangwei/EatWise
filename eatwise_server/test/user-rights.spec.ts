@@ -52,6 +52,7 @@ describe('用户权利（U1/U3/U5/U6，合规 §4.2/§4.3）', () => {
       version: 1,
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     };
     store.fastingRecords.set(record.id, record);
     store.streaks.set(userId, {

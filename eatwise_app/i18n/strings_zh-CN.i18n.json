@@ -187,6 +187,7 @@
       "other": "其他"
     },
     "unknownFood": "未知食物",
+    "syncRejectedBatch": "${count} 条记录未能通过服务器校验，已从本地移除，请重新记录",
     "today": {
       "title": "今日记录",
       "deleteEntry": "删除这条记录？",
@@ -356,6 +357,10 @@
       "badgeApproved": "已共享",
       "badgeRejected": "未通过",
       "badgeCommunity": "社区",
+      "badgeSyncFailed": "同步失败",
+      "syncFailedHint": "该食物多次未能上传到服务器，已暂停自动重试。引用它的记录已按营养快照正常同步。",
+      "retrySync": "重试同步",
+      "syncRetried": "已重新同步",
       "reviewRejectedNotice": "你提交的食品「${name}」未通过审核，相关记录已移除",
       "correctionRejectedNotice": "你为「${name}」提交的数据纠错未通过审核，库内数据保持不变",
       "foodRemovedNotice": "你提交的食品「${name}」已被管理员下架，相关记录已移除",

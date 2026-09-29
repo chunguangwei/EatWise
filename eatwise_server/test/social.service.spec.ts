@@ -43,6 +43,7 @@ describe('社区打卡（M5 P1 / D-17 先审后发）', () => {
       version: 1,
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     };
     store.fastingRecords.set(record.id, record);
   }

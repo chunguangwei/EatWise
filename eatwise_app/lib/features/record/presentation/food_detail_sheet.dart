@@ -90,6 +90,9 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
   /// 当前展示行：分享/编辑后原地刷新（编辑/删除成功则收起弹层）。
   late Food _food = widget.food;
 
+  /// 手动重试同步在途（「重试同步」防连点）。
+  bool _retryingSync = false;
+
   @override
   void initState() {
     super.initState();
@@ -391,6 +394,36 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
               ),
             ),
           ),
+          // 终态上行失败（v1.13.31）：说明行 + 手动重试（复位失败态后
+          // 立即重试一轮；引用记录已按快照口径放行上行，见
+          // CustomFoodRepository.retryPending 终态收敛）。
+          if (food.customSyncFailed) ...<Widget>[
+            const SizedBox(height: AppSpacing.s1),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    cs.syncFailedHint,
+                    style: textStyles.textXs.copyWith(color: colors.signalRed),
+                  ),
+                ),
+                TextButton(
+                  key: const ValueKey<String>('foodDetail.retrySync'),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(44, 44),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s2,
+                    ),
+                  ),
+                  onPressed: _retryingSync
+                      ? null
+                      : () => unawaited(_onRetrySync(cs, messenger)),
+                  child: Text(cs.retrySync, style: textStyles.textSm),
+                ),
+              ],
+            ),
+          ],
           // 自定义食物动作行（编辑 / 分享给所有用户 / 删除）；
           // 共享/社区食物无此三能力不渲染。**approved 后也不渲染**：
           // 服务端晋升就地翻 isCustom=false，贡献者失去改删权（本地行
@@ -489,6 +522,34 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     if (!mounted) return;
     messenger.showSnackBar(SnackBar(content: Text(cs.savedOnline)));
     Navigator.of(context).pop();
+  }
+
+  /// 手动重试终态失败同步：复位失败态 → 立即重试一轮 → 重读行刷新徽标；
+  /// 成功/失败都给可见反馈（防「点了没反应」）。
+  Future<void> _onRetrySync(
+    CustomFoodStrings cs,
+    ScaffoldMessengerState messenger,
+  ) async {
+    if (_retryingSync) return;
+    setState(() => _retryingSync = true);
+    try {
+      final ok = await ref
+          .read(customFoodRepositoryProvider)
+          .retryFailedNow(_food.id);
+      if (!mounted) return;
+      final fresh = await ref
+          .read(recordRepositoryProvider)
+          .db
+          .foodDao
+          .getById(_food.id);
+      setState(() => _food = fresh ?? _food);
+      ref.invalidate(recordFoodSearchProvider);
+      messenger.showSnackBar(
+        SnackBar(content: Text(ok ? cs.syncRetried : cs.syncFailedHint)),
+      );
+    } finally {
+      if (mounted) setState(() => _retryingSync = false);
+    }
   }
 
   /// 分享给所有用户：复用事后贡献入口（内部含结果 Toast + 搜索刷新；

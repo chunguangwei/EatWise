@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { BusinessException, err } from '../common/errors/business.exception';
 import {
   ExerciseLogEntity,
+  FastingRecordEntity,
   FoodEntryEntity,
   NutritionSnapshot,
   WaterLogEntity,
@@ -10,6 +11,7 @@ import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { newId, payloadHash } from '../common/utils/id.util';
 import { clampPageLimit } from '../common/utils/pagination.util';
 import { NutritionService, round1 } from '../nutrition/nutrition.service';
+import { StreakService } from '../streak/streak.service';
 import { localDateOf } from '../common/utils/time.util';
 import { CreateEntryDto, SyncOpDto } from './sync.dto';
 
@@ -28,6 +30,7 @@ export class SyncService {
   constructor(
     @Inject(STORE_DRIVER) private readonly driver: StoreDriver,
     private readonly nutrition: NutritionService,
+    private readonly streak: StreakService,
   ) {}
 
   // ===== E1 单条创建（幂等，D-20）=====
@@ -68,6 +71,7 @@ export class SyncService {
     try {
       if (op.entity === 'waterLog') return await this.applyWaterOp(userId, op);
       if (op.entity === 'exerciseLog') return await this.applyExerciseOp(userId, op);
+      if (op.entity === 'fastingRecord') return await this.applyFastingRecordOp(userId, op);
       if (op.entity !== 'foodEntry') {
         return {
           clientRequestId: op.clientRequestId,
@@ -135,6 +139,10 @@ export class SyncService {
       grams: op.payload.grams,
       inputMethod: op.payload.inputMethod ?? 'manual',
       photoUrl: op.payload.photoUrl,
+      snapshotKcal: op.payload.snapshotKcal,
+      snapshotProteinG: op.payload.snapshotProteinG,
+      snapshotCarbG: op.payload.snapshotCarbG,
+      snapshotFatG: op.payload.snapshotFatG,
     });
     return {
       clientRequestId: op.clientRequestId,
@@ -177,7 +185,12 @@ export class SyncService {
     if (p.grams != null) entry.grams = p.grams;
     if (p.inputMethod) entry.inputMethod = p.inputMethod;
     if (p.foodId || p.grams != null)
-      entry.nutritionSnapshot = await this.snapshotOf(userId, entry.foodId, entry.grams);
+      entry.nutritionSnapshot = await this.snapshotOf(userId, entry.foodId, entry.grams, {
+        kcal: p.snapshotKcal,
+        proteinG: p.snapshotProteinG,
+        carbG: p.snapshotCarbG,
+        fatG: p.snapshotFatG,
+      });
     entry.version += 1;
     entry.updatedAt = new Date(); // LWW 仲裁基准 = 服务端时钟（客户端时间戳不采信，防腐层）
     await this.driver.saveFoodEntry(entry);
@@ -445,6 +458,188 @@ export class SyncService {
       updatedAt: e.updatedAt.toISOString(),
     };
   }
+
+  // ===== fastingRecord 轻量同步（两态：仅 create/delete，无 update——
+  // 断食周期关闭后不可变，改 = 删了重记；归属日 attributionDate 为天然
+  // 幂等键（D-07 冻结），与 exerciseLog 同构）=====
+  //
+  // 与 F2 POST /fasting/end 的关系：F2 保留（带窗口校验 + streak 结算
+  // 语义），本通道是「记录数据通道」——换机/重装全量恢复断食历史
+  // （GET /fasting/records 仅近 62 天兜底，/sync 首轮全量下行补齐全部）。
+  // create 只在服务端无该归属日记录时落新行；已有记录（F2 结算/他端
+  // 上行/ghost 自动结算）→ 幂等返回既有视图，绝不覆盖（不裁决口径
+  // 分叉——streak 以服务端既有判定为权威，与客户端「本机为准」对齐）。
+  // 新落行/删除后重算 streak（历史达标记录并入/移出达标集合）。
+
+  private async applyFastingRecordOp(userId: string, op: SyncOpDto): Promise<OpResult> {
+    switch (op.op) {
+      case 'create':
+        return await this.applyFastingRecordCreate(userId, op);
+      case 'delete':
+        return await this.applyFastingRecordDelete(userId, op);
+      default:
+        return {
+          clientRequestId: op.clientRequestId,
+          status: 'error',
+          error: { code: 'VALIDATION_ERROR' },
+        };
+    }
+  }
+
+  /** create 允许的结果集（仅关闭周期；on_track 进行中不经本通道上行） */
+  private static readonly FASTING_SYNC_RESULTS = new Set([
+    'completed',
+    'ended_early',
+    'broken',
+    'makeup',
+  ]);
+
+  private async applyFastingRecordCreate(userId: string, op: SyncOpDto): Promise<OpResult> {
+    const p = op.payload;
+    const attributionDate = p?.attributionDate;
+    const result = p?.result;
+    if (
+      !attributionDate ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(attributionDate) ||
+      !p?.plannedStartAt ||
+      !p?.plannedEndAt ||
+      !p?.actualEndAt ||
+      typeof result !== 'string' ||
+      !SyncService.FASTING_SYNC_RESULTS.has(result) ||
+      typeof p?.isQualified !== 'boolean'
+    ) {
+      return {
+        clientRequestId: op.clientRequestId,
+        status: 'error',
+        error: { code: 'VALIDATION_ERROR' },
+      };
+    }
+    const actualEndAt = new Date(p.actualEndAt);
+    const plannedStartAt = new Date(p.plannedStartAt);
+    const plannedEndAt = new Date(p.plannedEndAt);
+    if (
+      Number.isNaN(actualEndAt.getTime()) ||
+      Number.isNaN(plannedStartAt.getTime()) ||
+      Number.isNaN(plannedEndAt.getTime())
+    ) {
+      return {
+        clientRequestId: op.clientRequestId,
+        status: 'error',
+        error: { code: 'VALIDATION_ERROR' },
+      };
+    }
+    const records = await this.driver.listFastingRecordsByUser(userId);
+    const dupByKey = records.find((r) => r.clientRequestId === op.clientRequestId);
+    if (dupByKey) {
+      // 幂等重放：同键同体返回首次结果；同键不同体 = 客户端 bug
+      const same =
+        dupByKey.attributionDate === attributionDate &&
+        dupByKey.actualEndAt?.getTime() === actualEndAt.getTime() &&
+        dupByKey.result === result;
+      if (!same) {
+        return {
+          clientRequestId: op.clientRequestId,
+          status: 'error',
+          error: { code: 'IDEMPOTENCY_PAYLOAD_MISMATCH' },
+        };
+      }
+      return {
+        clientRequestId: op.clientRequestId,
+        status: 'applied',
+        serverEntry: this.fastingRecordView(dupByKey),
+      };
+    }
+    // 归属日天然幂等键：服务端已有该日存活记录（F2 结算/他端上行/ghost
+    // 自动结算）→ 不覆盖，返回既有视图（客户端据 serverEntry 回填 serverId）。
+    const dupByDate = records.find((r) => !r.deletedAt && r.attributionDate === attributionDate);
+    if (dupByDate) {
+      return {
+        clientRequestId: op.clientRequestId,
+        status: 'applied',
+        serverEntry: this.fastingRecordView(dupByDate),
+      };
+    }
+    const now = new Date();
+    const actualStartAt = p.actualStartAt ? new Date(p.actualStartAt) : null;
+    const extendedMinutes = typeof p.extendedMinutes === 'number' ? p.extendedMinutes : 0;
+    const record: FastingRecordEntity = {
+      id: newId(),
+      userId,
+      attributionDate,
+      plannedStartAt,
+      plannedEndAt,
+      actualStartAt: actualStartAt && !Number.isNaN(actualStartAt.getTime()) ? actualStartAt : null,
+      actualEndAt,
+      extendedMinutes,
+      fastedMinutes:
+        typeof p.fastedMinutes === 'number'
+          ? p.fastedMinutes
+          : Math.max(
+              0,
+              Math.round(
+                (actualEndAt.getTime() - (actualStartAt ?? plannedStartAt).getTime()) / 60000,
+              ),
+            ),
+      result: result as FastingRecordEntity['result'],
+      isQualified: p.isQualified,
+      eventLog: [{ at: now.toISOString(), event: 'synced_create' }],
+      clientRequestId: op.clientRequestId,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    };
+    await this.driver.saveFastingRecord(record);
+    // 历史达标记录并入 streak 权威口径（换机恢复场景服务端原本缺这些日）。
+    await this.streak.recompute(userId);
+    return {
+      clientRequestId: op.clientRequestId,
+      status: 'applied',
+      serverEntry: this.fastingRecordView(record),
+    };
+  }
+
+  private async applyFastingRecordDelete(userId: string, op: SyncOpDto): Promise<OpResult> {
+    const id = op.serverId ?? op.payload?.id;
+    const records = await this.driver.listFastingRecordsByUser(userId);
+    const record =
+      (id ? records.find((r) => r.id === id) : undefined) ??
+      (op.payload?.clientRequestId
+        ? records.find((r) => r.clientRequestId === op.payload?.clientRequestId)
+        : undefined);
+    if (!record) {
+      return { clientRequestId: op.clientRequestId, status: 'error', error: { code: 'NOT_FOUND' } };
+    }
+    if (!record.deletedAt) {
+      record.deletedAt = new Date();
+      record.version += 1;
+      record.updatedAt = new Date();
+      await this.driver.saveFastingRecord(record);
+      // 删除把该日移出达标集合 → streak 重算（下行 tombstone 清他端）。
+      await this.streak.recompute(userId);
+    }
+    // 软删幂等：重复删除返回 applied
+    return { clientRequestId: op.clientRequestId, status: 'applied' };
+  }
+
+  private fastingRecordView(r: FastingRecordEntity) {
+    return {
+      entity: 'fastingRecord',
+      id: r.id,
+      clientRequestId: r.clientRequestId,
+      attributionDate: r.attributionDate,
+      plannedStartAt: r.plannedStartAt.toISOString(),
+      plannedEndAt: r.plannedEndAt.toISOString(),
+      actualStartAt: r.actualStartAt?.toISOString() ?? null,
+      actualEndAt: r.actualEndAt?.toISOString() ?? null,
+      extendedMinutes: r.extendedMinutes,
+      fastedMinutes: r.fastedMinutes,
+      result: r.result,
+      isQualified: r.isQualified,
+      version: r.version,
+      updatedAt: r.updatedAt.toISOString(),
+    };
+  }
   // ===== E6 / sync/pull 增量下行（syncToken 游标）=====
   async pull(userId: string, syncToken: string | undefined, limit = 200) {
     limit = clampPageLimit(limit, 200, 1000); // 非法 limit（负数/NaN）回落默认，防游标死循环
@@ -478,6 +673,18 @@ export class SyncService {
         : this.exerciseLogView(e),
     );
 
+    // 断食记录随行下行（2026-09-29 拍板全量进 /sync：换机全量恢复 >14 天
+    // 历史；同 waterLog 口径轻量两态，复用同一 syncToken 游标语义）
+    const fastingRecords = await this.driver.findFastingRecordsSince(
+      userId,
+      new Date(after?.ts ?? 0),
+    );
+    const fastingChanges = fastingRecords.map((r) =>
+      r.deletedAt
+        ? { tombstone: { entity: 'fastingRecord', id: r.id, deletedAt: r.deletedAt.toISOString() } }
+        : this.fastingRecordView(r),
+    );
+
     const page = all.slice(0, limit);
     const last = page[page.length - 1];
     return {
@@ -488,6 +695,7 @@ export class SyncService {
       ),
       waterLogChanges: waterChanges,
       exerciseLogChanges: exerciseChanges,
+      fastingRecordChanges: fastingChanges,
       syncToken: last
         ? this.encodeToken(last.updatedAt, last.id)
         : (syncToken ?? this.encodeToken(new Date(), '')),
@@ -516,7 +724,12 @@ export class SyncService {
   private async buildEntry(
     userId: string,
     clientRequestId: string,
-    dto: CreateEntryDto,
+    dto: CreateEntryDto & {
+      snapshotKcal?: number;
+      snapshotProteinG?: number;
+      snapshotCarbG?: number;
+      snapshotFatG?: number;
+    },
   ): Promise<FoodEntryEntity> {
     const now = new Date();
     const entry: FoodEntryEntity = {
@@ -528,7 +741,12 @@ export class SyncService {
       grams: dto.grams,
       inputMethod: dto.inputMethod,
       photoUrl: dto.photoUrl ?? null,
-      nutritionSnapshot: await this.snapshotOf(userId, dto.foodId, dto.grams),
+      nutritionSnapshot: await this.snapshotOf(userId, dto.foodId, dto.grams, {
+        kcal: dto.snapshotKcal,
+        proteinG: dto.snapshotProteinG,
+        carbG: dto.snapshotCarbG,
+        fatG: dto.snapshotFatG,
+      }),
       version: 1,
       createdAt: now,
       updatedAt: now,
@@ -548,10 +766,32 @@ export class SyncService {
     userId: string,
     foodId: string,
     grams: number,
+    fallback?: {
+      kcal?: number;
+      proteinG?: number;
+      carbG?: number;
+      fatG?: number;
+    },
   ): Promise<NutritionSnapshot> {
     const food =
       (await this.driver.findFoodById(foodId)) ?? (await this.driver.findCustomFoodById(foodId));
     if (!food || ('userId' in food && food.userId !== userId)) {
+      // 客户端快照兜底（2026-09-29 收敛）：食物行服务端查无（自定义食物
+      // 终态失败/seed 裁剪幽灵行）时按客户端入账快照接收——记录本体合法，
+      // 不该被食物行卡死 T7 静默删；四项必须齐全才采信（防半截快照）。
+      if (
+        fallback?.kcal != null &&
+        fallback.proteinG != null &&
+        fallback.carbG != null &&
+        fallback.fatG != null
+      ) {
+        return {
+          kcal: round1(fallback.kcal),
+          proteinG: round1(fallback.proteinG),
+          carbsG: round1(fallback.carbG),
+          fatG: round1(fallback.fatG),
+        };
+      }
       throw err.validation({ foodId: 'unknown food' });
     }
     const f = grams / 100;

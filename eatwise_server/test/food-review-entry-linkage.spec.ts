@@ -4,6 +4,7 @@ import { MemoryStoreDriver } from '../src/common/store/store-driver';
 import { FoodService } from '../src/food/food.service';
 import { NutritionService } from '../src/nutrition/nutrition.service';
 import { StubModerationService } from '../src/social/moderation/content-moderation.service';
+import { StreakService } from '../src/streak/streak.service';
 import { SyncService } from '../src/sync/sync.service';
 
 /**
@@ -23,7 +24,7 @@ describe('乐观入账与审核联动（候选驳回级联清除记录）', () =
     store = new DataStore();
     driver = new MemoryStoreDriver(store);
     food = new FoodService(driver, new StubModerationService());
-    sync = new SyncService(driver, new NutritionService(driver));
+    sync = new SyncService(driver, new NutritionService(driver), new StreakService(driver));
     userId = store.createUser({ phone: '+8613800138000' }).id;
   });
 
@@ -79,6 +80,80 @@ describe('乐观入账与审核联动（候选驳回级联清除记录）', () =
     const res = await pushEntry('f_not_exist');
     expect(res.results[0].status).toBe('error');
     expect(res.results[0].error?.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('未知 foodId + 客户端快照四项齐全 → applied 按快照入账（终态失败食物不卡死记录）', async () => {
+    const res = await sync.push(userId, [
+      {
+        clientRequestId: randomUUID(),
+        entity: 'foodEntry',
+        op: 'create',
+        payload: {
+          eatenAt: '2026-09-29T04:10:00.000Z',
+          foodId: 'custom-terminal-failed',
+          grams: 150,
+          inputMethod: 'manual',
+          snapshotKcal: 300,
+          snapshotProteinG: 12,
+          snapshotCarbG: 45,
+          snapshotFatG: 7.5,
+        },
+      },
+    ]);
+    expect(res.results[0].status).toBe('applied');
+    const entry = res.results[0].serverEntry as {
+      nutritionSnapshot: { kcal: number; proteinG: number; fatG: number };
+    };
+    expect(entry.nutritionSnapshot.kcal).toBe(300);
+    expect(entry.nutritionSnapshot.fatG).toBe(7.5);
+    expect(activeEntries()).toHaveLength(1);
+  });
+
+  it('未知 foodId + 半截快照（缺项）→ 仍 VALIDATION_ERROR（不采信不完整快照）', async () => {
+    const res = await sync.push(userId, [
+      {
+        clientRequestId: randomUUID(),
+        entity: 'foodEntry',
+        op: 'create',
+        payload: {
+          eatenAt: '2026-09-29T04:10:00.000Z',
+          foodId: 'custom-terminal-failed',
+          grams: 150,
+          inputMethod: 'manual',
+          snapshotKcal: 300,
+          snapshotProteinG: 12,
+        },
+      },
+    ]);
+    expect(res.results[0].status).toBe('error');
+    expect(res.results[0].error?.code).toBe('VALIDATION_ERROR');
+    expect(activeEntries()).toHaveLength(0);
+  });
+
+  it('库内命中时服务端值优先（客户端快照不覆盖库值，防回溯口径不变）', async () => {
+    const custom = (await createCustom()) as { id: string };
+    const res = await sync.push(userId, [
+      {
+        clientRequestId: randomUUID(),
+        entity: 'foodEntry',
+        op: 'create',
+        payload: {
+          eatenAt: '2026-09-29T04:10:00.000Z',
+          foodId: custom.id,
+          grams: 100,
+          inputMethod: 'manual',
+          snapshotKcal: 9999, // 不应被采信
+          snapshotProteinG: 9999,
+          snapshotCarbG: 9999,
+          snapshotFatG: 9999,
+        },
+      },
+    ]);
+    expect(res.results[0].status).toBe('applied');
+    const entry = res.results[0].serverEntry as {
+      nutritionSnapshot: { kcal: number };
+    };
+    expect(entry.nutritionSnapshot.kcal).toBe(200); // 服务端库值 200 × 1.0
   });
 
   it('reject → 贡献者引用该食物的记录级联软删，sync/pull 下行 tombstone', async () => {
@@ -161,7 +236,7 @@ describe('审核内容删除（审批中心「删除」：候选 + 食物行 + �
     store = new DataStore();
     driver = new MemoryStoreDriver(store);
     food = new FoodService(driver, new StubModerationService());
-    sync = new SyncService(driver, new NutritionService(driver));
+    sync = new SyncService(driver, new NutritionService(driver), new StreakService(driver));
     userId = store.createUser({ phone: '+8613800138100' }).id;
   });
 

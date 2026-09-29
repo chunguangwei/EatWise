@@ -187,6 +187,7 @@
       "other": "Other"
     },
     "unknownFood": "Unknown food",
+    "syncRejectedBatch": "${count} record(s) didn't pass server validation and were removed — please log them again",
     "today": {
       "title": "Today's log",
       "deleteEntry": "Delete this entry?",
@@ -356,6 +357,10 @@
       "badgeApproved": "Shared",
       "badgeRejected": "Not approved",
       "badgeCommunity": "Community",
+      "badgeSyncFailed": "Sync failed",
+      "syncFailedHint": "This food couldn't be uploaded after several attempts; auto-retry is paused. Records using it were synced with the nutrition snapshot.",
+      "retrySync": "Retry sync",
+      "syncRetried": "Synced",
       "reviewRejectedNotice": "Your submitted food \"${name}\" was not approved; related records have been removed",
       "correctionRejectedNotice": "Your correction for \"${name}\" was not accepted; the food data stays unchanged",
       "foodRemovedNotice": "The food \"${name}\" you submitted was delisted by an admin; related records have been removed",

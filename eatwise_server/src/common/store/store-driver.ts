@@ -271,6 +271,9 @@ export abstract class StoreDriver {
 
   abstract listFastingRecordsByUser(userId: string): Promise<FastingRecordEntity[]>;
 
+  /** syncToken 增量下游标：updatedAt 晚于游标的断食记录（含 tombstone），按 (updatedAt, id) 稳定升序 */
+  abstract findFastingRecordsSince(userId: string, since: Date): Promise<FastingRecordEntity[]>;
+
   /** 按 id upsert（含 eventLog 全量回写；endFast/extend/makeup 状态机落库） */
   abstract saveFastingRecord(record: FastingRecordEntity): Promise<void>;
 
@@ -516,7 +519,7 @@ export class MemoryStoreDriver extends StoreDriver {
     );
     const fastingPlans = [...this.store.fastingPlans.values()].filter((p) => p.userId === userId);
     const fastingRecords = [...this.store.fastingRecords.values()].filter(
-      (r) => r.userId === userId,
+      (r) => r.userId === userId && !r.deletedAt,
     );
     const streak = this.store.streaks.get(userId) ?? null;
     const posts = [...this.store.posts.values()].filter((p) => p.userId === userId && !p.deletedAt);
@@ -983,14 +986,15 @@ export class MemoryStoreDriver extends StoreDriver {
     plannedEndAt: Date,
   ): Promise<FastingRecordEntity | null> {
     const row = [...this.store.fastingRecords.values()].find(
-      (r) => r.userId === userId && r.plannedEndAt.getTime() === plannedEndAt.getTime(),
+      (r) =>
+        r.userId === userId && !r.deletedAt && r.plannedEndAt.getTime() === plannedEndAt.getTime(),
     );
     return Promise.resolve(row ?? null);
   }
 
   findOngoingFastingRecord(userId: string): Promise<FastingRecordEntity | null> {
     const row = [...this.store.fastingRecords.values()]
-      .filter((r) => r.userId === userId && r.result === 'on_track')
+      .filter((r) => r.userId === userId && !r.deletedAt && r.result === 'on_track')
       .sort((a, b) => b.plannedEndAt.getTime() - a.plannedEndAt.getTime())[0];
     return Promise.resolve(row ?? null);
   }
@@ -999,6 +1003,13 @@ export class MemoryStoreDriver extends StoreDriver {
     return Promise.resolve(
       [...this.store.fastingRecords.values()].filter((r) => r.userId === userId),
     );
+  }
+
+  findFastingRecordsSince(userId: string, since: Date): Promise<FastingRecordEntity[]> {
+    const rows = [...this.store.fastingRecords.values()]
+      .filter((r) => r.userId === userId && r.updatedAt.getTime() > since.getTime())
+      .sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime() || a.id.localeCompare(b.id));
+    return Promise.resolve(rows);
   }
 
   saveFastingRecord(record: FastingRecordEntity): Promise<void> {

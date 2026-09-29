@@ -315,9 +315,29 @@ final class StreakController extends Notifier<StreakUiState> {
           .read(fastingReportApiProvider)
           .fetchRecentRecords(from: addDaysToIsoDate(today, -13), to: today);
       if (records.isEmpty) return;
-      final existingDates = (await db.fastingRecordDao.recordsOf(
-        userId,
-      )).map((r) => r.attributionDate).toSet();
+      final existing = await db.fastingRecordDao.recordsOf(userId);
+      final existingDates = existing.map((r) => r.attributionDate).toSet();
+      // pending 活性收敛（审计）：F2 上行只在周期关闭当轮尝试一次，无重试
+      // 通道——上行失败/未尝试（active==null）的本地记录 syncStatus 永久
+      // 滞留 pending。服务端已有同归属日终态记录时（ghost 自动结算/他端
+      // 上报），重试上行必吃 FASTING_ALREADY_ENDED，按「服务端终态为权威」
+      // 回写 synced 收敛；内容本机为准不覆盖（见下），仅收敛同步标记。
+      final serverTerminalDates = <String>{
+        for (final r in records)
+          if (r.actualEndAt != null &&
+              r.result != 'on_track' &&
+              r.attributionDate.isNotEmpty)
+            r.attributionDate,
+      };
+      for (final local in existing) {
+        if (local.syncStatus == SyncStatus.pending &&
+            serverTerminalDates.contains(local.attributionDate)) {
+          await db.fastingRecordDao.updateSyncStatus(
+            local.localId,
+            SyncStatus.synced,
+          );
+        }
+      }
       for (final r in records) {
         if (r.actualEndAt == null || r.result == 'on_track') continue;
         if (r.attributionDate.isEmpty ||

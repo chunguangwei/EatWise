@@ -19,6 +19,8 @@ void main() {
     isCustom: false,
     customSyncPending: false,
     customClientRequestId: 'req-$id',
+    customSyncFailCount: 0,
+    customSyncFailed: false,
   );
 
   group('prompt 模板（多行明细协议）', () {

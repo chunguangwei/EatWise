@@ -277,11 +277,12 @@ void main() {
     });
 
     test('断食历史回填：本机已有关闭记录的归属日不覆盖（本机为准）', () async {
-      // 本机 07-27 周期已关闭落库（离线，F2 上行失败 → pending）。
+      // 本机 07-27/07-25 周期已关闭落库（离线，F2 上行失败 → pending）。
       reportApi.offline = true;
       final c = container();
       addTearDown(c.dispose);
       final controller = c.read(streakControllerProvider.notifier);
+      await controller.onFastClosed(recordOf('2026-07-25'));
       await controller.onFastClosed(recordOf('2026-07-27'));
       await Future<void>.delayed(const Duration(milliseconds: 10));
 
@@ -316,11 +317,20 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 10));
 
       final rows = await db.fastingRecordDao.recordsOf('u1');
-      expect(rows, hasLength(2));
+      expect(rows, hasLength(3));
       // 本机行不被服务端口径覆盖（冲突由 S1 streak 权威口径另行收口）。
       final local = rows.firstWhere((r) => r.attributionDate == '2026-07-27');
       expect(local.qualified, isTrue);
-      expect(local.syncStatus, SyncStatus.pending);
+      // 服务端已有 07-27 终态记录（broken）：F2 上行已无意义（重试必吃
+      // FASTING_ALREADY_ENDED），pending 标记收敛为 synced（仅收敛标记，
+      // 内容仍本机为准）。
+      expect(local.syncStatus, SyncStatus.synced);
+      // 服务端没有 07-25 记录的本地 pending 行保持 pending（上行仍待
+      // 下轮 onFastClosed/对账窗口，不误标）。
+      expect(
+        rows.firstWhere((r) => r.attributionDate == '2026-07-25').syncStatus,
+        SyncStatus.pending,
+      );
       expect(
         rows.firstWhere((r) => r.attributionDate == '2026-07-26').syncStatus,
         SyncStatus.synced,

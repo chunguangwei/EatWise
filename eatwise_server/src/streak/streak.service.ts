@@ -59,6 +59,7 @@ export class StreakService {
   async qualifiedDates(userId: string): Promise<Set<string>> {
     const dates = new Set<string>();
     for (const r of await this.driver.listFastingRecordsByUser(userId)) {
+      if (r.deletedAt) continue; // /sync delete tombstone 不计入达标集合
       if (r.isQualified || r.result === 'makeup') dates.add(r.attributionDate);
     }
     return dates;
@@ -148,6 +149,7 @@ export class StreakService {
       version: 1,
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     };
     await this.driver.saveFastingRecord(marker);
 

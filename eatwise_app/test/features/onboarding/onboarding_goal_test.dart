@@ -363,4 +363,10 @@ final class _RecordingProfileSync implements ProfileSyncService {
   void syncOnboardingSkipped() {
     skippedCalls += 1;
   }
+
+  @override
+  void markDirtyAndTryFlush(Map<String, Object?> patch) {}
+
+  @override
+  Future<void> flushDirty() async {}
 }

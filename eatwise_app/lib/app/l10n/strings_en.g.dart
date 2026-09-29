@@ -96,6 +96,7 @@ class _Translations$record$en extends Translations$record$zh_CN {
 	@override late final _Translations$record$page$en page = _Translations$record$page$en._(_root);
 	@override late final _Translations$record$meal$en meal = _Translations$record$meal$en._(_root);
 	@override String get unknownFood => 'Unknown food';
+	@override String syncRejectedBatch({required Object count}) => '${count} record(s) didn\'t pass server validation and were removed — please log them again';
 	@override late final _Translations$record$today$en today = _Translations$record$today$en._(_root);
 	@override late final _Translations$record$entries$en entries = _Translations$record$entries$en._(_root);
 	@override late final _Translations$record$pending$en pending = _Translations$record$pending$en._(_root);
@@ -750,6 +751,10 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get badgeApproved => 'Shared';
 	@override String get badgeRejected => 'Not approved';
 	@override String get badgeCommunity => 'Community';
+	@override String get badgeSyncFailed => 'Sync failed';
+	@override String get syncFailedHint => 'This food couldn\'t be uploaded after several attempts; auto-retry is paused. Records using it were synced with the nutrition snapshot.';
+	@override String get retrySync => 'Retry sync';
+	@override String get syncRetried => 'Synced';
 	@override String reviewRejectedNotice({required Object name}) => 'Your submitted food "${name}" was not approved; related records have been removed';
 	@override String correctionRejectedNotice({required Object name}) => 'Your correction for "${name}" was not accepted; the food data stays unchanged';
 	@override String foodRemovedNotice({required Object name}) => 'The food "${name}" you submitted was delisted by an admin; related records have been removed';
@@ -2535,6 +2540,7 @@ extension on TranslationsEn {
 			'record.meal.snack' => 'Snack',
 			'record.meal.other' => 'Other',
 			'record.unknownFood' => 'Unknown food',
+			'record.syncRejectedBatch' => ({required Object count}) => '${count} record(s) didn\'t pass server validation and were removed — please log them again',
 			'record.today.title' => 'Today\'s log',
 			'record.today.deleteEntry' => 'Delete this entry?',
 			'record.today.deleteConfirmAction' => 'Delete',
@@ -2677,6 +2683,10 @@ extension on TranslationsEn {
 			'record.customFood.badgeApproved' => 'Shared',
 			'record.customFood.badgeRejected' => 'Not approved',
 			'record.customFood.badgeCommunity' => 'Community',
+			'record.customFood.badgeSyncFailed' => 'Sync failed',
+			'record.customFood.syncFailedHint' => 'This food couldn\'t be uploaded after several attempts; auto-retry is paused. Records using it were synced with the nutrition snapshot.',
+			'record.customFood.retrySync' => 'Retry sync',
+			'record.customFood.syncRetried' => 'Synced',
 			'record.customFood.reviewRejectedNotice' => ({required Object name}) => 'Your submitted food "${name}" was not approved; related records have been removed',
 			'record.customFood.correctionRejectedNotice' => ({required Object name}) => 'Your correction for "${name}" was not accepted; the food data stays unchanged',
 			'record.customFood.foodRemovedNotice' => ({required Object name}) => 'The food "${name}" you submitted was delisted by an admin; related records have been removed',
@@ -2915,13 +2925,13 @@ extension on TranslationsEn {
 			'nutrition.data.burn.balance' => ({required Object kcal}) => 'Intake − burn balance: ${kcal} kcal',
 			'nutrition.data.burn.goalProgress' => ({required Object kcal, required Object goal}) => '${kcal} / ${goal} kcal',
 			'nutrition.data.burn.stepsGoalProgress' => ({required Object steps, required Object goal}) => '${steps} / ${goal} steps',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.data.burn.goalRingLabel' => ({required Object percent}) => 'Today\'s burn goal progress: ${percent}%',
 			'nutrition.data.burn.manualGuide' => 'Log exercise manually to count toward burn',
 			'nutrition.signalCard.zone.green' => 'On track',
 			'nutrition.signalCard.zone.yellow' => 'Heads-up',
 			'nutrition.signalCard.zone.red' => 'Warning',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.signalCard.advice.kcal.green' => 'Your calories are right on track today — nice and steady, keep it up! 🌱',
 			'nutrition.signalCard.advice.kcal.yellowLow' => ({required Object meal_action}) => 'You\'re a bit under on calories — ${meal_action}. Your body will thank you.',
 			'nutrition.signalCard.advice.kcal.yellowHigh' => ({required Object meal_action}) => 'Calories are a touch high — ${meal_action} and you\'re right back on track.',

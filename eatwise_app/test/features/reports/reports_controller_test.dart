@@ -44,6 +44,7 @@ FastingRecord _fast(String date, int actualSec, {bool qualified = true}) =>
       localId: 'anonymous-$date',
       userId: 'anonymous',
       attributionDate: date,
+      serverId: null,
       startUtc: 0,
       endUtc: actualSec,
       actualSec: actualSec,
@@ -53,6 +54,7 @@ FastingRecord _fast(String date, int actualSec, {bool qualified = true}) =>
       qualified: qualified,
       clientRequestId: 'req-$date',
       syncStatus: SyncStatus.synced,
+      deleted: false,
       createdAtUtc: '2026-07-28T00:00:00.000Z',
     );
 

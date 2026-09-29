@@ -62,10 +62,21 @@ final class BodyProfileService {
     // 体重目标线（阶段 C）：档案保存后趋势页目标参考线即刻刷新。
     _ref.invalidate(weightTargetProvider);
     if (_isLoggedIn()) {
-      await _ref
-          .read(userApiProvider)
-          .patchMe(serverProfilePatch(merged, includeNullTargets: true));
-      _ref.invalidate(userMeProvider);
+      try {
+        await _ref
+            .read(userApiProvider)
+            .patchMe(serverProfilePatch(merged, includeNullTargets: true));
+        _ref.invalidate(userMeProvider);
+      } on Object {
+        // 上行失败：置脏进同步轮重试链（v1.13.31，档案不再永久丢失），
+        // UI 报错行为不变（原样上抛由表单提示）。
+        _ref
+            .read(profileSyncServiceProvider)
+            .markDirtyAndTryFlush(
+              serverProfilePatch(merged, includeNullTargets: true),
+            );
+        rethrow;
+      }
     }
     return goal;
   }

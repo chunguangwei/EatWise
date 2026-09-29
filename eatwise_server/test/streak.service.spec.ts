@@ -39,6 +39,7 @@ describe('streak 与补签卡（D-12）', () => {
       version: 1,
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     };
     store.fastingRecords.set(record.id, record);
   }

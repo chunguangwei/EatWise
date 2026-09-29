@@ -86,6 +86,23 @@ void main() {
         5.2, 51.8, 0.6, 'manual',
         '2026-09-18T01:10:00.000Z', '2026-09-18T01:10:00.000Z')
     ''');
+    await seed.runCustom('''
+      CREATE TABLE fasting_records (
+        local_id TEXT NOT NULL PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        attribution_date TEXT NOT NULL,
+        start_utc INTEGER NOT NULL,
+        end_utc INTEGER NOT NULL,
+        actual_sec INTEGER NOT NULL,
+        planned_sec INTEGER NOT NULL,
+        extended_minutes INTEGER NOT NULL,
+        result TEXT NOT NULL,
+        qualified INTEGER NOT NULL,
+        client_request_id TEXT NOT NULL,
+        sync_status TEXT NOT NULL,
+        created_at_utc TEXT NOT NULL
+      )
+    ''');
     await seed.runCustom('PRAGMA user_version = 7');
     await seed.close();
   }
@@ -96,7 +113,7 @@ void main() {
     final db = AppDatabase(NativeDatabase(dbFile));
     addTearDown(() async => db.close());
 
-    expect(db.schemaVersion, 12);
+    expect(db.schemaVersion, 14);
 
     // 历史行完整保留，新列为 null（无餐次 → 展示归「其他」组）。
     final entry = (await db.foodEntryDao.getByLocalId('l-1'))!;
@@ -117,7 +134,7 @@ void main() {
 
     // 升级后的 user_version 落为 12（重开不再重复迁移）。
     final versionRow = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(versionRow.data['user_version'], 12);
+    expect(versionRow.data['user_version'], 14);
   });
 }
 

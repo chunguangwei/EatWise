@@ -23,6 +23,8 @@ void main() {
     isCustom: false,
     customSyncPending: false,
     customClientRequestId: '',
+    customSyncFailCount: 0,
+    customSyncFailed: false,
   );
   const egg = Food(
     id: 'f-egg',
@@ -37,6 +39,8 @@ void main() {
     isCustom: false,
     customSyncPending: false,
     customClientRequestId: '',
+    customSyncFailCount: 0,
+    customSyncFailed: false,
   );
   const milk = Food(
     id: 'f-milk',
@@ -51,6 +55,8 @@ void main() {
     isCustom: false,
     customSyncPending: false,
     customClientRequestId: '',
+    customSyncFailCount: 0,
+    customSyncFailed: false,
   );
   final foods = <Food>[rice, egg, milk];
 

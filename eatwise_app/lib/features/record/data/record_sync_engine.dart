@@ -1,6 +1,8 @@
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
+import 'package:eatwise/features/fasting/data/remote_fasting_record_sync.dart';
 import 'package:eatwise/features/health/data/remote_exercise_log_sync.dart';
+import 'package:eatwise/features/onboarding/application/profile_sync.dart';
 import 'package:eatwise/features/record/custom_food/application/contribution_review.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
 import 'package:eatwise/features/record/data/anonymous_data_migrator.dart';
@@ -32,7 +34,9 @@ final class RecordSyncEngine {
     this.weightStore,
     this.contributionReviewSync,
     this.exerciseSync,
+    this.fastingRecordSync,
     this.planSync,
+    this.profileSync,
     this.cacheRepair,
     this.anonymousMigrator,
     this.onFoodsBackfilled,
@@ -62,8 +66,15 @@ final class RecordSyncEngine {
   /// 运动记录上行同步（可选：2026-09-19 拍板上行；未装配为 null 跳过）。
   final RemoteExerciseLogSync? exerciseSync;
 
+  /// 断食记录上行同步（可选：2026-09-29 拍板 fastingRecord 全量进 /sync；
+  /// 未装配为 null 跳过）。
+  final RemoteFastingRecordSync? fastingRecordSync;
+
   /// 断食方案上行同步（可选：进食窗口自选；未装配为 null 跳过）。
   final FastingPlanSync? planSync;
+
+  /// 身体档案/引导状态上行（可选：脏标记制，v1.13.31；未装配为 null 跳过）。
+  final ProfileSyncService? profileSync;
 
   /// 每日聚合缓存回填修复（可选：v1.12.5 走查盲区——旧版本下行遗留的
   /// 存量记录不经重算、sync 游标已越过，首页/趋势假空不自愈；未装配为
@@ -122,6 +133,13 @@ final class RecordSyncEngine {
       } on Object catch (e) {
         debugPrint('[Sync] planSync.pull 失败（下轮重试）：$e');
       }
+      // 身体档案/引导状态上行（v1.13.31 脏标记制）：脏键存在时 PATCH，
+      // 失败保留下轮重试（离线期 onboarding/档案变更不再永久丢失）。
+      try {
+        await profileSync?.flushDirty();
+      } on Object catch (e) {
+        debugPrint('[Sync] profileSync.flushDirty 失败（下轮重试）：$e');
+      }
       try {
         // 自定义食物先上行（饮食记录引用其服务端 id，颠倒顺序会让
         // 引用本地临时 id 的记录上行 4xx）。
@@ -150,6 +168,19 @@ final class RecordSyncEngine {
         } on Object catch (e) {
           debugPrint('[Sync] exercise pushPending 失败（下轮重试）：$e');
           // 失败保留下次重试。
+        }
+      }
+      // 断食记录上行（2026-09-29 拍板全量进 /sync）：与运动同链仅登录态。
+      // 与 F2 并行——F2 带 streak 结算语义，本通道是记录数据通道（服务端
+      // 按归属日幂等去重，两条链不产生重复行）。
+      if (repository.userId != 'anonymous') {
+        try {
+          await fastingRecordSync?.pushPending(
+            repository.db,
+            repository.userId,
+          );
+        } on Object catch (e) {
+          debugPrint('[Sync] fastingRecord pushPending 失败（下轮重试）：$e');
         }
       }
       // 体重记录推拉（阶段 C）：仅登录态（匿名推送必 401，本地已可用）。

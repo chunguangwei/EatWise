@@ -14,6 +14,10 @@ final class CustomFoodStrings {
     return CustomFoodStrings._(Translations.of(context));
   }
 
+  /// 无 BuildContext 的纯逻辑测试入口（badgeFor 等）。
+  @visibleForTesting
+  factory CustomFoodStrings.testing(Translations t) = CustomFoodStrings._;
+
   /// record.customFood.cta
   String get cta => _t.record.customFood.cta;
 
@@ -123,6 +127,18 @@ final class CustomFoodStrings {
   /// record.customFood.badgeCommunity
   String get badgeCommunity => _t.record.customFood.badgeCommunity;
 
+  /// record.customFood.badgeSyncFailed（终态上行失败徽标）
+  String get badgeSyncFailed => _t.record.customFood.badgeSyncFailed;
+
+  /// record.customFood.syncFailedHint（详情页失败说明行）
+  String get syncFailedHint => _t.record.customFood.syncFailedHint;
+
+  /// record.customFood.retrySync（手动重试按钮）
+  String get retrySync => _t.record.customFood.retrySync;
+
+  /// record.customFood.syncRetried（重试成功反馈）
+  String get syncRetried => _t.record.customFood.syncRetried;
+
   /// record.customFood.reviewRejectedNotice（驳回一次性提示：相关记录已移除）
   String reviewRejectedNotice(String name) =>
       _t.record.customFood.reviewRejectedNotice(name: name);
@@ -186,7 +202,9 @@ final class CustomFoodStrings {
   /// 搜索结果行状态标签（K2 众包；null = 不显示标签）：
   /// 自定义食物按贡献状态分「自定义/审核中/已共享/未通过」；
   /// 非自定义但下行标记 approved 的为他人贡献的社区食物（「社区」）。
+  /// 终态上行失败（customSyncFailed）优先一切贡献状态显示「同步失败」。
   String? badgeFor(Food food) {
+    if (food.customSyncFailed) return badgeSyncFailed;
     if (food.isCustom) {
       return switch (food.contributionStatus) {
         'pending' => badgePending,

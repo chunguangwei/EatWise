@@ -36,6 +36,8 @@ void main() {
     isCustom: false,
     customSyncPending: false,
     customClientRequestId: 'req-1',
+    customSyncFailCount: 0,
+    customSyncFailed: false,
   );
 
   // 兜底口径目标（D-04 §1.6）：米饭四个 p 均远低于高侧边界 → 绿灯。
@@ -98,6 +100,8 @@ void main() {
     isCustom: true,
     customSyncPending: false,
     customClientRequestId: 'req-cf',
+    customSyncFailCount: 0,
+    customSyncFailed: false,
   );
 
   testWidgets('信息分层：名称/绿灯徽标/热量大字/三圆环/人话注释/折叠区默认收起', (tester) async {
@@ -268,6 +272,8 @@ void main() {
       isCustom: false,
       customSyncPending: false,
       customClientRequestId: '',
+      customSyncFailCount: 0,
+      customSyncFailed: false,
     );
     await pumpSheet(tester, onConfirm: (_) {}, food: placeholder);
 

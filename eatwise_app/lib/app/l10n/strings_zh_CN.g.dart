@@ -106,6 +106,9 @@ class Translations$record$zh_CN {
 	/// zh-CN: '未知食物'
 	String get unknownFood => '未知食物';
 
+	/// zh-CN: '${count} 条记录未能通过服务器校验，已从本地移除，请重新记录'
+	String syncRejectedBatch({required Object count}) => '${count} 条记录未能通过服务器校验，已从本地移除，请重新记录';
+
 	late final Translations$record$today$zh_CN today = Translations$record$today$zh_CN.internal(_root);
 	late final Translations$record$entries$zh_CN entries = Translations$record$entries$zh_CN.internal(_root);
 	late final Translations$record$pending$zh_CN pending = Translations$record$pending$zh_CN.internal(_root);
@@ -1269,6 +1272,18 @@ class Translations$record$customFood$zh_CN {
 
 	/// zh-CN: '社区'
 	String get badgeCommunity => '社区';
+
+	/// zh-CN: '同步失败'
+	String get badgeSyncFailed => '同步失败';
+
+	/// zh-CN: '该食物多次未能上传到服务器，已暂停自动重试。引用它的记录已按营养快照正常同步。'
+	String get syncFailedHint => '该食物多次未能上传到服务器，已暂停自动重试。引用它的记录已按营养快照正常同步。';
+
+	/// zh-CN: '重试同步'
+	String get retrySync => '重试同步';
+
+	/// zh-CN: '已重新同步'
+	String get syncRetried => '已重新同步';
 
 	/// zh-CN: '你提交的食品「${name}」未通过审核，相关记录已移除'
 	String reviewRejectedNotice({required Object name}) => '你提交的食品「${name}」未通过审核，相关记录已移除';
@@ -4521,6 +4536,7 @@ extension on Translations {
 			'record.meal.snack' => '加餐',
 			'record.meal.other' => '其他',
 			'record.unknownFood' => '未知食物',
+			'record.syncRejectedBatch' => ({required Object count}) => '${count} 条记录未能通过服务器校验，已从本地移除，请重新记录',
 			'record.today.title' => '今日记录',
 			'record.today.deleteEntry' => '删除这条记录？',
 			'record.today.deleteConfirmAction' => '删除',
@@ -4663,6 +4679,10 @@ extension on Translations {
 			'record.customFood.badgeApproved' => '已共享',
 			'record.customFood.badgeRejected' => '未通过',
 			'record.customFood.badgeCommunity' => '社区',
+			'record.customFood.badgeSyncFailed' => '同步失败',
+			'record.customFood.syncFailedHint' => '该食物多次未能上传到服务器，已暂停自动重试。引用它的记录已按营养快照正常同步。',
+			'record.customFood.retrySync' => '重试同步',
+			'record.customFood.syncRetried' => '已重新同步',
 			'record.customFood.reviewRejectedNotice' => ({required Object name}) => '你提交的食品「${name}」未通过审核，相关记录已移除',
 			'record.customFood.correctionRejectedNotice' => ({required Object name}) => '你为「${name}」提交的数据纠错未通过审核，库内数据保持不变',
 			'record.customFood.foodRemovedNotice' => ({required Object name}) => '你提交的食品「${name}」已被管理员下架，相关记录已移除',
@@ -4901,13 +4921,13 @@ extension on Translations {
 			'nutrition.data.burn.balance' => ({required Object kcal}) => '摄入 − 消耗结余：${kcal} kcal',
 			'nutrition.data.burn.goalProgress' => ({required Object kcal, required Object goal}) => '${kcal} / ${goal} 千卡',
 			'nutrition.data.burn.stepsGoalProgress' => ({required Object steps, required Object goal}) => '${steps} / ${goal} 步',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.data.burn.goalRingLabel' => ({required Object percent}) => '今日消耗目标进度 ${percent}%',
 			'nutrition.data.burn.manualGuide' => '手动记运动可计入消耗',
 			'nutrition.signalCard.zone.green' => '达标',
 			'nutrition.signalCard.zone.yellow' => '适量提醒',
 			'nutrition.signalCard.zone.red' => '警示',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.signalCard.advice.kcal.green' => '今天热量刚刚好，节奏很稳，继续保持～ 🌱',
 			'nutrition.signalCard.advice.kcal.yellowLow' => ({required Object meal_action}) => '今天吃得有点少，${meal_action}，身体会感谢你的。',
 			'nutrition.signalCard.advice.kcal.yellowHigh' => ({required Object meal_action}) => '热量有一点点高，${meal_action}，就回来啦。',

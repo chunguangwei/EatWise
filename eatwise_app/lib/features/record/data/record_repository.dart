@@ -301,12 +301,17 @@ final class RecordRepository {
       return;
     }
     if (!isDelete && entry.syncStatus == SyncStatus.synced) return;
-    // 乐观入账守卫：引用未上行自定义食物（customSyncPending / 本地行缺失）
-    // 的记录保持 pending 留待下轮——服务端按服务端 id 解析食物，本地临时 id
-    // 上行必 4xx，放行会走 T7 回滚静默删除（「不报错就没了」根因的客户端侧）。
+    // 乐观入账守卫：引用未上行自定义食物（customSyncPending 且未终态失败 /
+    // 本地行缺失）的记录保持 pending 留待下轮——服务端按服务端 id 解析食物，
+    // 本地临时 id 上行必 4xx，放行会走 T7 回滚静默删除（「不报错就没了」
+    // 根因的客户端侧）。终态失败（customSyncFailed）放行：payload 带客户端
+    // 营养快照，服务端 snapshotOf 有快照兜底（记录本体合法，不被食物行
+    // 卡死——v1.13.31 收敛）。
     if (!isDelete) {
       final food = await db.foodDao.getById(entry.foodId);
-      if (food == null || food.customSyncPending) return;
+      if (food == null || (food.customSyncPending && !food.customSyncFailed)) {
+        return;
+      }
     }
     final outcome = await remote.push(entry);
     switch (outcome) {

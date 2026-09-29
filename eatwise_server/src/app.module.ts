@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AdminModule } from './admin/admin.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { AppVersionModule } from './app-version/app-version.module';
 import { AuthModule } from './auth/auth.module';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
@@ -34,6 +35,7 @@ import { WeightModule } from './weight/weight.module';
     }),
     InfraModule,
     AdminModule,
+    AnalyticsModule,
     AppVersionModule,
     AuthModule,
     LegalModule,

@@ -55,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -126,6 +126,23 @@ class AppDatabase extends _$AppDatabase {
           'UPDATE exercise_logs SET client_request_id = local_id '
           "WHERE client_request_id = ''",
         );
+      }
+      // v13：FastingRecords 补两态同步字段（serverId/deleted，2026-09-29
+      // 拍板 fastingRecord 全量进 /sync；clientRequestId/syncStatus 自 v2
+      // 已有，幂等键无需回填；历史 synced 行服务端经 F2 已存在，pending
+      // 行首轮同步经 /sync 上行按归属日幂等收敛）。from<2 建表已含。
+      if (from >= 2 && from < 13) {
+        await m.addColumn(fastingRecords, fastingRecords.serverId);
+        await m.addColumn(fastingRecords, fastingRecords.deleted);
+      }
+      // v14：Foods 补自定义食物上行终态收敛字段（customSyncFailCount/
+      // customSyncFailed，2026-09-29 拍板：永败错误阈值停重试 + 失败徽标 +
+      // 引用记录快照放行）。Foods 自 v1 存在、v5/v6 只 addColumn 不重建——
+      // from<5 老库同样缺这两列，守卫必须覆盖全部 from<14（否则老库打开后
+      // 读 Foods 行时非空新列缺失直接崩溃）。
+      if (from < 14) {
+        await m.addColumn(foods, foods.customSyncFailCount);
+        await m.addColumn(foods, foods.customSyncFailed);
       }
     },
   );

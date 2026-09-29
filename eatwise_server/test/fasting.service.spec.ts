@@ -44,6 +44,7 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
       createdAt: now,
       updatedAt: now,
       ...overrides,
+      deletedAt: overrides.deletedAt ?? null,
     };
     store.fastingRecords.set(record.id, record);
     return record;

@@ -733,6 +733,7 @@ describePg('PrismaStore 全量 CRUD 基座（集成，真实 PostgreSQL）', () 
       version: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
+      deletedAt: null,
     };
     await store.saveFastingRecord(record);
     record.eventLog.push({

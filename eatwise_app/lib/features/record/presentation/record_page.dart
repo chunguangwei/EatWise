@@ -75,6 +75,17 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     super.initState();
     // 搜索框清空键显隐跟随文本（含程序化 clear）。
     _searchController.addListener(() => setState(() {}));
+    // T7 同步拒绝用户告警（v1.13.31）：服务端校验拒绝 → 本地记录被回滚
+    // 删除，此前 _failures 流无监听=数据凭空消失无任何告知。批量节流：
+    // 一次 syncNow 的成片回滚合并为一条 SnackBar（800ms 收集窗）。
+    _syncFailureSub = ref.read(recordRepositoryProvider).failures.listen((_) {
+      _syncFailureCount++;
+      _syncFailureTimer?.cancel();
+      _syncFailureTimer = Timer(
+        const Duration(milliseconds: 800),
+        _flushSyncFailureNotice,
+      );
+    });
     // 记录流程起点（§3.3 record_flow_start：进入记录页即触发一次）。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _flowId ??= _analytics.startRecordFlow();
@@ -88,6 +99,25 @@ class _RecordPageState extends ConsumerState<RecordPage> {
             .then((_) => _drainRejectedNotices()),
       );
     });
+  }
+
+  /// T7 同步拒绝事件订阅（批量节流告知用）。
+  StreamSubscription<RecordSyncFailure>? _syncFailureSub;
+
+  Timer? _syncFailureTimer;
+  int _syncFailureCount = 0;
+
+  void _flushSyncFailureNotice() {
+    if (!mounted || _syncFailureCount == 0) return;
+    final count = _syncFailureCount;
+    _syncFailureCount = 0;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          Translations.of(context).record.syncRejectedBatch(count: count),
+        ),
+      ),
+    );
   }
 
   /// 驳回一次性提示：取走待提示队列逐条 snackbar（自定义食物驳回=「记录
@@ -131,6 +161,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
       );
       _analytics.endRecordFlow(flowId);
     }
+    _syncFailureTimer?.cancel();
+    unawaited(_syncFailureSub?.cancel());
     _searchController.dispose();
     _amountController.dispose();
     _searchFocusNode.dispose();

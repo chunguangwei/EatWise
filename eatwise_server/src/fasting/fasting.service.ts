@@ -232,7 +232,7 @@ export class FastingService {
     }
     const all = await this.driver.listFastingRecordsByUser(userId);
     return all
-      .filter((r) => r.attributionDate >= from && r.attributionDate <= to)
+      .filter((r) => !r.deletedAt && r.attributionDate >= from && r.attributionDate <= to)
       .sort((a, b) => a.attributionDate.localeCompare(b.attributionDate))
       .map((r) => this.recordView(r));
   }
@@ -271,6 +271,7 @@ export class FastingService {
       version: 1,
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     };
     await this.driver.saveFastingRecord(record);
     return record;

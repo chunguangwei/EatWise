@@ -136,6 +136,31 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   }
 
+  testWidgets('T7 同步拒绝：SnackBar 批量告知一次（计数合并，不再静默消失）', (tester) async {
+    // 离线入账两条（本地乐观落库），随后上行被服务端校验拒绝（T7 回滚）。
+    remote.mode = FakeRemoteMode.offline;
+    final food = (await db.select(db.foods).get()).first;
+    final draft = RecordDraft(
+      foodId: food.id,
+      amountG: 100,
+      mealUtc: DateTime.utc(2026, 7, 28, 4),
+      source: EntrySource.manual,
+    );
+    await repository.addEntry(draft);
+    await repository.addEntry(draft);
+
+    await pumpPage(tester);
+    remote.mode = FakeRemoteMode.reject;
+    await repository.retryPending();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900)); // 800ms 批量收集窗
+
+    // 两条回滚合并为一条 SnackBar（计数 2，批量节流不连弹）。
+    expect(find.text('2 条记录未能通过服务器校验，已从本地移除，请重新记录'), findsOneWidget);
+
+    await settleUi(tester);
+  });
+
   testWidgets('主流程：搜索 → 份量重算 → 确认入账 → 撤销撤回', (tester) async {
     await pumpPage(tester);
 

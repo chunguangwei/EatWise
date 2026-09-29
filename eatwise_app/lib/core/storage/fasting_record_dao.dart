@@ -76,4 +76,58 @@ class FastingRecordDao extends DatabaseAccessor<AppDatabase>
     return (update(fastingRecords)..where((r) => r.localId.equals(localId)))
         .write(FastingRecordsCompanion(syncStatus: Value(status)));
   }
+
+  /// 按服务端主键取单条（/sync 下行 tombstone 对账）。
+  Future<FastingRecord?> getByServerId(String serverId) {
+    return (select(
+      fastingRecords,
+    )..where((r) => r.serverId.equals(serverId))).getSingleOrNull();
+  }
+
+  /// 按本地主键取单条（/sync 下行按归属日对账：localId=userId-attributionDate）。
+  Future<FastingRecord?> getByLocalId(String localId) {
+    return (select(
+      fastingRecords,
+    )..where((r) => r.localId.equals(localId))).getSingleOrNull();
+  }
+
+  /// 待上行队列（/sync fastingRecord 通道：pending 含 tombstone；
+  /// 同步引擎批量 push 数据源，口径同 WaterLogDao.pendingForUser）。
+  Future<List<FastingRecord>> pendingForUser(String userId) {
+    return (select(fastingRecords)
+          ..where(
+            (r) =>
+                r.userId.equals(userId) &
+                r.syncStatus.equalsValue(SyncStatus.pending),
+          )
+          ..orderBy(<OrderingTerm Function(FastingRecords)>[
+            (r) => OrderingTerm.asc(r.attributionDate),
+          ]))
+        .get();
+  }
+
+  /// /sync 上行 create 成功回填：serverId + synced。
+  Future<void> markSynced(String localId, String serverId) {
+    return (update(
+      fastingRecords,
+    )..where((r) => r.localId.equals(localId))).write(
+      FastingRecordsCompanion(
+        serverId: Value(serverId),
+        syncStatus: const Value(SyncStatus.synced),
+      ),
+    );
+  }
+
+  /// 下行对账回填 serverId（本地行内容「本机为准」不覆盖，仅补主键映射）。
+  Future<void> fillServerId(String localId, String serverId) {
+    return (update(fastingRecords)..where((r) => r.localId.equals(localId)))
+        .write(FastingRecordsCompanion(serverId: Value(serverId)));
+  }
+
+  /// 物理删除（tombstone 上行 ack/NOT_FOUND 后清理；下行 tombstone 应用）。
+  Future<int> deleteRecord(String localId) {
+    return (delete(
+      fastingRecords,
+    )..where((r) => r.localId.equals(localId))).go();
+  }
 }

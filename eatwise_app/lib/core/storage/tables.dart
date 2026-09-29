@@ -137,6 +137,17 @@ class Foods extends Table {
   TextColumn get customClientRequestId =>
       text().withDefault(const Constant(''))();
 
+  /// 自定义食物上行连续业务失败计数（终态收敛，v1.13.31：同一幂等键连续
+  /// ≥5 次业务错误（VALIDATION/PAYLOAD_MISMATCH 等永败码）→ 转
+  /// [customSyncFailed] 停重试，防永败项每轮重复上行 + 引用记录成片卡死）。
+  IntColumn get customSyncFailCount =>
+      integer().withDefault(const Constant(0))();
+
+  /// 自定义食物上行终态失败标记（停重试 + UI 可见失败徽标 + 可手动重试；
+  /// 引用记录按客户端快照口径放行上行——服务端 snapshotOf 有快照兜底）。
+  BoolColumn get customSyncFailed =>
+      boolean().withDefault(const Constant(false))();
+
   /// 共享贡献审核状态（K2 众包）：null=未贡献（标签「自定义」），
   /// pending=审核中 / approved=已共享 / rejected=未通过；
   /// 非自定义行下行标记 approved 时表示社区共享食物（标签「社区」）。
@@ -187,6 +198,12 @@ class FastingRecords extends Table {
 
   /// 四态同步状态（D-20）。
   TextColumn get syncStatus => textEnum<SyncStatus>()();
+
+  /// 服务端主键（/sync fastingRecord 上行成功/下行对账回填；v13 起）。
+  TextColumn get serverId => text().nullable()();
+
+  /// 本地 tombstone（/sync delete op 待上行标记；v13 起预留，当前无 UI 触发）。
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   /// 本地创建时间（UTC ISO8601）。
   TextColumn get createdAtUtc => text()();

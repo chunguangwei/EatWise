@@ -39,6 +39,8 @@ void main() {
     isCustom: false,
     customSyncPending: false,
     customClientRequestId: 'req-$id',
+    customSyncFailCount: 0,
+    customSyncFailed: false,
   );
 
   OnDeviceFoodRecognitionService makeService({

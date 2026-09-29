@@ -59,6 +59,31 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
     );
   }
 
+  /// 上行业务失败计数/终态标记回写（v1.13.31 终态收敛）。
+  Future<void> writeCustomSyncFailure(
+    String id, {
+    required int failCount,
+    required bool failed,
+  }) {
+    return (update(foods)..where((f) => f.id.equals(id))).write(
+      FoodsCompanion(
+        customSyncFailCount: Value(failCount),
+        customSyncFailed: Value(failed),
+      ),
+    );
+  }
+
+  /// 手动重试复位（pending=true、失败计数与终态标记清零）。
+  Future<void> resetCustomSyncFailure(String id) {
+    return (update(foods)..where((f) => f.id.equals(id))).write(
+      const FoodsCompanion(
+        customSyncPending: Value(true),
+        customSyncFailCount: Value(0),
+        customSyncFailed: Value(false),
+      ),
+    );
+  }
+
   /// 离线自定义食物上行成功后重映射主键：本地临时 id（custom-*）改写为
   /// 服务端 id 并清除 pending；引用级联（food_entries.foodId）由调用方
   /// 同事务更新（见 CustomFoodRepository.retryPending）。

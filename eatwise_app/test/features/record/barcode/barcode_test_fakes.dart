@@ -49,5 +49,7 @@ Food barcodeFood({
     isCustom: false,
     customSyncPending: false,
     customClientRequestId: '',
+    customSyncFailCount: 0,
+    customSyncFailed: false,
   );
 }

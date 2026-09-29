@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsIn,
   IsISO8601,
   IsInt,
@@ -59,7 +60,7 @@ export class EntryPayloadDto {
 
   @IsOptional()
   @IsString()
-  clientRequestId?: string; // waterLog/exerciseLog delete 兜底定位（create 已上行但 serverId 丢失场景）
+  clientRequestId?: string; // waterLog/exerciseLog/fastingRecord delete 兜底定位（create 已上行但 serverId 丢失场景）
 
   // ---- exerciseLog 载荷（entity=exerciseLog 时使用，与上两者二选一）----
 
@@ -88,13 +89,82 @@ export class EntryPayloadDto {
   @IsOptional()
   @IsIn(['screenshot']) // null=手动录入；'screenshot'=截图识别导入
   source?: string;
+
+  // ---- 客户端营养快照兜底（2026-09-29 收敛：四项须同传；食物行在服务端
+  // 查无（自定义食物终态失败/seed 裁剪幽灵）时按客户端快照入账——记录本体
+  // 合法，不该被食物行卡死 T7 回滚静默删；服务端库内值仍优先防回溯）----
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100000)
+  snapshotKcal?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100000)
+  snapshotProteinG?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100000)
+  snapshotCarbG?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100000)
+  snapshotFatG?: number;
+
+  // ---- fastingRecord 载荷（entity=fastingRecord 时使用；轻量两态，仅关闭周期）----
+
+  @IsOptional()
+  @IsString()
+  attributionDate?: string; // 归属日（yyyy-MM-dd，D-07 冻结，天然幂等键）
+
+  @IsOptional()
+  @IsISO8601()
+  plannedStartAt?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  plannedEndAt?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  actualStartAt?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  actualEndAt?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(240) // D-10 累计延长上限
+  extendedMinutes?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  fastedMinutes?: number;
+
+  @IsOptional()
+  @IsIn(['completed', 'ended_early', 'broken', 'makeup']) // on_track 不经本通道
+  result?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isQualified?: boolean;
 }
 
 export class SyncOpDto {
   @IsUUID('4')
   clientRequestId: string;
 
-  @IsIn(['foodEntry', 'waterLog', 'exerciseLog']) // 防腐层覆盖 FoodEntry + WaterLog/ExerciseLog（轻量两态）；fastingRecord/userProfile/fastingPlan 后续接入
+  @IsIn(['foodEntry', 'waterLog', 'exerciseLog', 'fastingRecord']) // 防腐层覆盖 FoodEntry + WaterLog/ExerciseLog/FastingRecord（轻量两态）；userProfile/fastingPlan 后续接入
   entity: string;
 
   @IsIn(['create', 'update', 'delete'])

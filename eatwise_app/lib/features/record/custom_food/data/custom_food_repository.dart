@@ -265,8 +265,14 @@ final class CustomFoodRepository {
     return entries.length;
   }
 
-  /// 联网后重试 pending 自定义食物（幂等键复用，重复上行不产生重复条目）。  /// 返回本轮上行成功条数。
+  /// 联网后重试 pending 自定义食物（幂等键复用，重复上行不产生重复条目）。
+  /// 返回本轮上行成功条数。
   ///
+  /// 终态收敛（v1.13.31）：customSyncFailed 行跳过（停重试，详情页可手动
+  /// 重试）；业务错误（VALIDATION_ERROR / IDEMPOTENCY_PAYLOAD_MISMATCH 等
+  /// 非网络类）按行累计 customSyncFailCount，连续 ≥[kTerminalFailThreshold]
+  /// 次 → 转终态失败（停重试 + UI 失败徽标）——永败项不再每轮重复上行，
+  /// 引用该食物的记录也不再被守卫口径成片卡死（快照放行）。
   /// 上行成功后以服务端返回的 id 重映射本地食物行，并同事务级联更新
   /// food_entries.foodId 引用——离线期间用临时 id（custom-*）记账的记录
   /// 上行时服务端 snapshotOf 需按服务端 id 查到食物，不重映射会让这些
@@ -275,6 +281,7 @@ final class CustomFoodRepository {
     final rows = await db.foodDao.pendingCustomFoods();
     var synced = 0;
     for (final row in rows) {
+      if (row.customSyncFailed) continue; // 终态失败：停重试（手动重试复位）
       try {
         final serverId = await remote.createCustom(
           _draftFromRow(row),
@@ -291,11 +298,33 @@ final class CustomFoodRepository {
         }
         synced++;
       } on ApiException catch (e) {
-        // 仍离线：整批留待下轮；业务错误保持 pending 下轮重试。
+        // 仍离线：整批留待下轮（不计失败数）。
         if (e is NetworkApiException || e is TimeoutApiException) break;
+        // 业务错误：累计阈值 → 终态失败（永败不收敛根因修复）。
+        final failCount = row.customSyncFailCount + 1;
+        await db.foodDao.writeCustomSyncFailure(
+          row.id,
+          failCount: failCount,
+          failed: failCount >= kTerminalFailThreshold,
+        );
       }
     }
     return synced;
+  }
+
+  /// 连续业务失败转终态的阈值（同一幂等键同一永败码重试必同样失败）。
+  static const int kTerminalFailThreshold = 5;
+
+  /// 手动重试终态失败的自定义食物（详情页「重试同步」）：复位失败态后
+  /// 立即走一轮 [retryPending]。返回是否已上行成功。
+  Future<bool> retryFailedNow(String foodId) async {
+    await db.foodDao.resetCustomSyncFailure(foodId);
+    final before = await db.foodDao.getById(foodId);
+    if (before == null) return false;
+    await retryPending();
+    final after = await db.foodDao.getById(foodId);
+    // 上行成功会 remap 主键（原 id 行消失）或清 pending（防御路径）。
+    return after == null || !after.customSyncPending;
   }
 
   /// Foods 行 → 上行草稿（retryPending 用）。

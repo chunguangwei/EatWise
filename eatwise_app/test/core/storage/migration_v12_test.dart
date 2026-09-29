@@ -49,6 +49,40 @@ void main() {
         ('3f6b1a2e-2222-4222-8222-bbbbbbbbbbb2', 'anonymous', 'jog', 30, 210,
          NULL, NULL, '2026-09-19', '2026-09-19T03:00:00.000Z')
     ''');
+    await seed.runCustom('''
+      CREATE TABLE fasting_records (
+        local_id TEXT NOT NULL PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        attribution_date TEXT NOT NULL,
+        start_utc INTEGER NOT NULL,
+        end_utc INTEGER NOT NULL,
+        actual_sec INTEGER NOT NULL,
+        planned_sec INTEGER NOT NULL,
+        extended_minutes INTEGER NOT NULL,
+        result TEXT NOT NULL,
+        qualified INTEGER NOT NULL,
+        client_request_id TEXT NOT NULL,
+        sync_status TEXT NOT NULL,
+        created_at_utc TEXT NOT NULL
+      )
+    ''');
+    await seed.runCustom('''
+      CREATE TABLE foods (
+        id TEXT NOT NULL PRIMARY KEY,
+        name_zh TEXT NOT NULL,
+        name_en TEXT NOT NULL,
+        aliases_zh TEXT NOT NULL DEFAULT '[]',
+        aliases_en TEXT NOT NULL DEFAULT '[]',
+        kcal_per100g REAL NOT NULL,
+        protein_per100g REAL NOT NULL,
+        carb_per100g REAL NOT NULL,
+        fat_per100g REAL NOT NULL,
+        is_custom INTEGER NOT NULL DEFAULT 0,
+        custom_sync_pending INTEGER NOT NULL DEFAULT 0,
+        custom_client_request_id TEXT NOT NULL DEFAULT '',
+        contribution_status TEXT
+      )
+    ''');
     await seed.runCustom('PRAGMA user_version = 11');
     await seed.close();
   }
@@ -59,7 +93,7 @@ void main() {
     final db = AppDatabase(NativeDatabase(dbFile));
     addTearDown(() async => db.close());
 
-    expect(db.schemaVersion, 12);
+    expect(db.schemaVersion, 14);
 
     // 历史行完整保留：默认 pending（待上行）+ 幂等键 = localId（UUIDv4）。
     const id1 = '3f6b1a2e-1111-4111-8111-aaaaaaaaaaa1';
@@ -96,7 +130,7 @@ void main() {
 
     // 升级后的 user_version 落为 12（重开不再重复迁移）。
     final versionRow = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(versionRow.data['user_version'], 12);
+    expect(versionRow.data['user_version'], 14);
   });
 }
 

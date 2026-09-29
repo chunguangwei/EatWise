@@ -79,7 +79,7 @@ export class PrismaStore extends StoreDriver {
     ] = await Promise.all([
       this.prisma.foodEntry.findMany({ where: { userId, deletedAt: null } }),
       this.prisma.fastingPlan.findMany({ where: { userId } }),
-      this.prisma.fastingRecord.findMany({ where: { userId } }),
+      this.prisma.fastingRecord.findMany({ where: { userId, deletedAt: null } }),
       this.prisma.streak.findUnique({ where: { userId } }),
       this.prisma.post.findMany({ where: { userId, deletedAt: null } }),
       this.prisma.waterLog.findMany({ where: { userId, deletedAt: null } }),
@@ -995,7 +995,7 @@ export class PrismaStore extends StoreDriver {
   ): Promise<FastingRecordEntity | null> {
     try {
       const row = await this.prisma.fastingRecord.findFirst({
-        where: { userId, plannedEndAt },
+        where: { userId, plannedEndAt, deletedAt: null },
       });
       return row ? toFastingRecordEntity(row) : null;
     } catch (e) {
@@ -1006,7 +1006,7 @@ export class PrismaStore extends StoreDriver {
   async findOngoingFastingRecord(userId: string): Promise<FastingRecordEntity | null> {
     try {
       const row = await this.prisma.fastingRecord.findFirst({
-        where: { userId, result: 'on_track' },
+        where: { userId, result: 'on_track', deletedAt: null },
         orderBy: { plannedEndAt: 'desc' },
       });
       return row ? toFastingRecordEntity(row) : null;
@@ -1021,6 +1021,19 @@ export class PrismaStore extends StoreDriver {
       return rows.map(toFastingRecordEntity);
     } catch (e) {
       throw this.fail('listFastingRecordsByUser', e);
+    }
+  }
+
+  /** syncToken 增量下游标：updatedAt > since（含 tombstone），按 (updatedAt, id) 稳定升序 */
+  async findFastingRecordsSince(userId: string, since: Date): Promise<FastingRecordEntity[]> {
+    try {
+      const rows = await this.prisma.fastingRecord.findMany({
+        where: { userId, updatedAt: { gt: since } },
+        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      });
+      return rows.map(toFastingRecordEntity);
+    } catch (e) {
+      throw this.fail('findFastingRecordsSince', e);
     }
   }
 
@@ -1828,6 +1841,7 @@ function toFastingRecordEntity(r: Prisma.FastingRecordGetPayload<object>): Fasti
     version: r.version,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
+    deletedAt: r.deletedAt,
   };
 }
 

@@ -108,7 +108,7 @@ describe('User profile patch validation (e2e)', () => {
     expect(stamped.syncedAt).not.toBe(prefs.syncedAt);
     expect(Math.abs(Date.parse(stamped.syncedAt) - Date.now())).toBeLessThan(60_000);
 
-    // 字段级 LWW：只改部分键时整个 JSON 包整体替换（客户端约定整包推送）
+    // 键级合并（2026-09-29 拍板）：上行键覆盖同键，未上行键保留
     const next = { ...prefs, theme: 'dark', syncedAt: '2026-09-18T09:00:00.000Z' };
     const me = await request(server)
       .get('/v1/users/me')
@@ -120,6 +120,15 @@ describe('User profile patch validation (e2e)', () => {
     const stamped2 = res2.body.data.user.settingsPrefs;
     expect(stamped2).toEqual({ ...next, syncedAt: expect.any(String) });
     expect(Date.parse(stamped2.syncedAt)).toBeGreaterThanOrEqual(Date.parse(stamped.syncedAt));
+
+    // 键级合并实证（双端各改一键）：只上行 stepsGoal 时 theme 等键保留不丢
+    const res3 = await patch({ settingsPrefs: { stepsGoal: 12000 } }).expect(200);
+    const merged = res3.body.data.user.settingsPrefs;
+    expect(merged.stepsGoal).toBe(12000); // 上行键覆盖
+    expect(merged.theme).toBe('dark'); // 未上行键保留
+    expect(merged.locale).toBe('zh-CN'); // 未上行键保留
+    expect(merged.weightUnit).toBe('jin');
+    expect(merged.burnGoalKcal).toBe(500);
 
     // 非对象类型 → DTO 校验拒绝
     expect((await patch({ settingsPrefs: 'dark' })).status).toBe(400);

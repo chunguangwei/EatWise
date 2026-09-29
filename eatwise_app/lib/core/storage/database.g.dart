@@ -145,6 +145,32 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         requiredDuringInsert: false,
         defaultValue: const Constant(''),
       );
+  static const VerificationMeta _customSyncFailCountMeta =
+      const VerificationMeta('customSyncFailCount');
+  @override
+  late final GeneratedColumn<int> customSyncFailCount = GeneratedColumn<int>(
+    'custom_sync_fail_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _customSyncFailedMeta = const VerificationMeta(
+    'customSyncFailed',
+  );
+  @override
+  late final GeneratedColumn<bool> customSyncFailed = GeneratedColumn<bool>(
+    'custom_sync_failed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("custom_sync_failed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _contributionStatusMeta =
       const VerificationMeta('contributionStatus');
   @override
@@ -170,6 +196,8 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     isCustom,
     customSyncPending,
     customClientRequestId,
+    customSyncFailCount,
+    customSyncFailed,
     contributionStatus,
   ];
   @override
@@ -282,6 +310,24 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         ),
       );
     }
+    if (data.containsKey('custom_sync_fail_count')) {
+      context.handle(
+        _customSyncFailCountMeta,
+        customSyncFailCount.isAcceptableOrUnknown(
+          data['custom_sync_fail_count']!,
+          _customSyncFailCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_sync_failed')) {
+      context.handle(
+        _customSyncFailedMeta,
+        customSyncFailed.isAcceptableOrUnknown(
+          data['custom_sync_failed']!,
+          _customSyncFailedMeta,
+        ),
+      );
+    }
     if (data.containsKey('contribution_status')) {
       context.handle(
         _contributionStatusMeta,
@@ -348,6 +394,14 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         DriftSqlType.string,
         data['${effectivePrefix}custom_client_request_id'],
       )!,
+      customSyncFailCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}custom_sync_fail_count'],
+      )!,
+      customSyncFailed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}custom_sync_failed'],
+      )!,
       contributionStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}contribution_status'],
@@ -398,6 +452,15 @@ class Food extends DataClass implements Insertable<Food> {
   /// 自定义食物上行幂等键（UUIDv4，/foods/custom 重试复用，§2.2）。
   final String customClientRequestId;
 
+  /// 自定义食物上行连续业务失败计数（终态收敛，v1.13.31：同一幂等键连续
+  /// ≥5 次业务错误（VALIDATION/PAYLOAD_MISMATCH 等永败码）→ 转
+  /// [customSyncFailed] 停重试，防永败项每轮重复上行 + 引用记录成片卡死）。
+  final int customSyncFailCount;
+
+  /// 自定义食物上行终态失败标记（停重试 + UI 可见失败徽标 + 可手动重试；
+  /// 引用记录按客户端快照口径放行上行——服务端 snapshotOf 有快照兜底）。
+  final bool customSyncFailed;
+
   /// 共享贡献审核状态（K2 众包）：null=未贡献（标签「自定义」），
   /// pending=审核中 / approved=已共享 / rejected=未通过；
   /// 非自定义行下行标记 approved 时表示社区共享食物（标签「社区」）。
@@ -415,6 +478,8 @@ class Food extends DataClass implements Insertable<Food> {
     required this.isCustom,
     required this.customSyncPending,
     required this.customClientRequestId,
+    required this.customSyncFailCount,
+    required this.customSyncFailed,
     this.contributionStatus,
   });
   @override
@@ -432,6 +497,8 @@ class Food extends DataClass implements Insertable<Food> {
     map['is_custom'] = Variable<bool>(isCustom);
     map['custom_sync_pending'] = Variable<bool>(customSyncPending);
     map['custom_client_request_id'] = Variable<String>(customClientRequestId);
+    map['custom_sync_fail_count'] = Variable<int>(customSyncFailCount);
+    map['custom_sync_failed'] = Variable<bool>(customSyncFailed);
     if (!nullToAbsent || contributionStatus != null) {
       map['contribution_status'] = Variable<String>(contributionStatus);
     }
@@ -452,6 +519,8 @@ class Food extends DataClass implements Insertable<Food> {
       isCustom: Value(isCustom),
       customSyncPending: Value(customSyncPending),
       customClientRequestId: Value(customClientRequestId),
+      customSyncFailCount: Value(customSyncFailCount),
+      customSyncFailed: Value(customSyncFailed),
       contributionStatus: contributionStatus == null && nullToAbsent
           ? const Value.absent()
           : Value(contributionStatus),
@@ -478,6 +547,10 @@ class Food extends DataClass implements Insertable<Food> {
       customClientRequestId: serializer.fromJson<String>(
         json['customClientRequestId'],
       ),
+      customSyncFailCount: serializer.fromJson<int>(
+        json['customSyncFailCount'],
+      ),
+      customSyncFailed: serializer.fromJson<bool>(json['customSyncFailed']),
       contributionStatus: serializer.fromJson<String?>(
         json['contributionStatus'],
       ),
@@ -499,6 +572,8 @@ class Food extends DataClass implements Insertable<Food> {
       'isCustom': serializer.toJson<bool>(isCustom),
       'customSyncPending': serializer.toJson<bool>(customSyncPending),
       'customClientRequestId': serializer.toJson<String>(customClientRequestId),
+      'customSyncFailCount': serializer.toJson<int>(customSyncFailCount),
+      'customSyncFailed': serializer.toJson<bool>(customSyncFailed),
       'contributionStatus': serializer.toJson<String?>(contributionStatus),
     };
   }
@@ -516,6 +591,8 @@ class Food extends DataClass implements Insertable<Food> {
     bool? isCustom,
     bool? customSyncPending,
     String? customClientRequestId,
+    int? customSyncFailCount,
+    bool? customSyncFailed,
     Value<String?> contributionStatus = const Value.absent(),
   }) => Food(
     id: id ?? this.id,
@@ -530,6 +607,8 @@ class Food extends DataClass implements Insertable<Food> {
     isCustom: isCustom ?? this.isCustom,
     customSyncPending: customSyncPending ?? this.customSyncPending,
     customClientRequestId: customClientRequestId ?? this.customClientRequestId,
+    customSyncFailCount: customSyncFailCount ?? this.customSyncFailCount,
+    customSyncFailed: customSyncFailed ?? this.customSyncFailed,
     contributionStatus: contributionStatus.present
         ? contributionStatus.value
         : this.contributionStatus,
@@ -560,6 +639,12 @@ class Food extends DataClass implements Insertable<Food> {
       customClientRequestId: data.customClientRequestId.present
           ? data.customClientRequestId.value
           : this.customClientRequestId,
+      customSyncFailCount: data.customSyncFailCount.present
+          ? data.customSyncFailCount.value
+          : this.customSyncFailCount,
+      customSyncFailed: data.customSyncFailed.present
+          ? data.customSyncFailed.value
+          : this.customSyncFailed,
       contributionStatus: data.contributionStatus.present
           ? data.contributionStatus.value
           : this.contributionStatus,
@@ -581,6 +666,8 @@ class Food extends DataClass implements Insertable<Food> {
           ..write('isCustom: $isCustom, ')
           ..write('customSyncPending: $customSyncPending, ')
           ..write('customClientRequestId: $customClientRequestId, ')
+          ..write('customSyncFailCount: $customSyncFailCount, ')
+          ..write('customSyncFailed: $customSyncFailed, ')
           ..write('contributionStatus: $contributionStatus')
           ..write(')'))
         .toString();
@@ -600,6 +687,8 @@ class Food extends DataClass implements Insertable<Food> {
     isCustom,
     customSyncPending,
     customClientRequestId,
+    customSyncFailCount,
+    customSyncFailed,
     contributionStatus,
   );
   @override
@@ -618,6 +707,8 @@ class Food extends DataClass implements Insertable<Food> {
           other.isCustom == this.isCustom &&
           other.customSyncPending == this.customSyncPending &&
           other.customClientRequestId == this.customClientRequestId &&
+          other.customSyncFailCount == this.customSyncFailCount &&
+          other.customSyncFailed == this.customSyncFailed &&
           other.contributionStatus == this.contributionStatus);
 }
 
@@ -634,6 +725,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
   final Value<bool> isCustom;
   final Value<bool> customSyncPending;
   final Value<String> customClientRequestId;
+  final Value<int> customSyncFailCount;
+  final Value<bool> customSyncFailed;
   final Value<String?> contributionStatus;
   final Value<int> rowid;
   const FoodsCompanion({
@@ -649,6 +742,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     this.isCustom = const Value.absent(),
     this.customSyncPending = const Value.absent(),
     this.customClientRequestId = const Value.absent(),
+    this.customSyncFailCount = const Value.absent(),
+    this.customSyncFailed = const Value.absent(),
     this.contributionStatus = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -665,6 +760,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     this.isCustom = const Value.absent(),
     this.customSyncPending = const Value.absent(),
     this.customClientRequestId = const Value.absent(),
+    this.customSyncFailCount = const Value.absent(),
+    this.customSyncFailed = const Value.absent(),
     this.contributionStatus = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -687,6 +784,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Expression<bool>? isCustom,
     Expression<bool>? customSyncPending,
     Expression<String>? customClientRequestId,
+    Expression<int>? customSyncFailCount,
+    Expression<bool>? customSyncFailed,
     Expression<String>? contributionStatus,
     Expression<int>? rowid,
   }) {
@@ -704,6 +803,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       if (customSyncPending != null) 'custom_sync_pending': customSyncPending,
       if (customClientRequestId != null)
         'custom_client_request_id': customClientRequestId,
+      if (customSyncFailCount != null)
+        'custom_sync_fail_count': customSyncFailCount,
+      if (customSyncFailed != null) 'custom_sync_failed': customSyncFailed,
       if (contributionStatus != null) 'contribution_status': contributionStatus,
       if (rowid != null) 'rowid': rowid,
     });
@@ -722,6 +824,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Value<bool>? isCustom,
     Value<bool>? customSyncPending,
     Value<String>? customClientRequestId,
+    Value<int>? customSyncFailCount,
+    Value<bool>? customSyncFailed,
     Value<String?>? contributionStatus,
     Value<int>? rowid,
   }) {
@@ -739,6 +843,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       customSyncPending: customSyncPending ?? this.customSyncPending,
       customClientRequestId:
           customClientRequestId ?? this.customClientRequestId,
+      customSyncFailCount: customSyncFailCount ?? this.customSyncFailCount,
+      customSyncFailed: customSyncFailed ?? this.customSyncFailed,
       contributionStatus: contributionStatus ?? this.contributionStatus,
       rowid: rowid ?? this.rowid,
     );
@@ -785,6 +891,12 @@ class FoodsCompanion extends UpdateCompanion<Food> {
         customClientRequestId.value,
       );
     }
+    if (customSyncFailCount.present) {
+      map['custom_sync_fail_count'] = Variable<int>(customSyncFailCount.value);
+    }
+    if (customSyncFailed.present) {
+      map['custom_sync_failed'] = Variable<bool>(customSyncFailed.value);
+    }
     if (contributionStatus.present) {
       map['contribution_status'] = Variable<String>(contributionStatus.value);
     }
@@ -809,6 +921,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
           ..write('isCustom: $isCustom, ')
           ..write('customSyncPending: $customSyncPending, ')
           ..write('customClientRequestId: $customClientRequestId, ')
+          ..write('customSyncFailCount: $customSyncFailCount, ')
+          ..write('customSyncFailed: $customSyncFailed, ')
           ..write('contributionStatus: $contributionStatus, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2963,6 +3077,32 @@ class $FastingRecordsTable extends FastingRecords
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<SyncStatus>($FastingRecordsTable.$convertersyncStatus);
+  static const VerificationMeta _serverIdMeta = const VerificationMeta(
+    'serverId',
+  );
+  @override
+  late final GeneratedColumn<String> serverId = GeneratedColumn<String>(
+    'server_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
     'createdAtUtc',
   );
@@ -2988,6 +3128,8 @@ class $FastingRecordsTable extends FastingRecords
     qualified,
     clientRequestId,
     syncStatus,
+    serverId,
+    deleted,
     createdAtUtc,
   ];
   @override
@@ -3099,6 +3241,18 @@ class $FastingRecordsTable extends FastingRecords
     } else if (isInserting) {
       context.missing(_clientRequestIdMeta);
     }
+    if (data.containsKey('server_id')) {
+      context.handle(
+        _serverIdMeta,
+        serverId.isAcceptableOrUnknown(data['server_id']!, _serverIdMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
     if (data.containsKey('created_at_utc')) {
       context.handle(
         _createdAtUtcMeta,
@@ -3169,6 +3323,14 @@ class $FastingRecordsTable extends FastingRecords
           data['${effectivePrefix}sync_status'],
         )!,
       ),
+      serverId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}server_id'],
+      ),
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
       createdAtUtc: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at_utc'],
@@ -3222,6 +3384,12 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
   /// 四态同步状态（D-20）。
   final SyncStatus syncStatus;
 
+  /// 服务端主键（/sync fastingRecord 上行成功/下行对账回填；v13 起）。
+  final String? serverId;
+
+  /// 本地 tombstone（/sync delete op 待上行标记；v13 起预留，当前无 UI 触发）。
+  final bool deleted;
+
   /// 本地创建时间（UTC ISO8601）。
   final String createdAtUtc;
   const FastingRecord({
@@ -3237,6 +3405,8 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
     required this.qualified,
     required this.clientRequestId,
     required this.syncStatus,
+    this.serverId,
+    required this.deleted,
     required this.createdAtUtc,
   });
   @override
@@ -3258,6 +3428,10 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
         $FastingRecordsTable.$convertersyncStatus.toSql(syncStatus),
       );
     }
+    if (!nullToAbsent || serverId != null) {
+      map['server_id'] = Variable<String>(serverId);
+    }
+    map['deleted'] = Variable<bool>(deleted);
     map['created_at_utc'] = Variable<String>(createdAtUtc);
     return map;
   }
@@ -3276,6 +3450,10 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
       qualified: Value(qualified),
       clientRequestId: Value(clientRequestId),
       syncStatus: Value(syncStatus),
+      serverId: serverId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(serverId),
+      deleted: Value(deleted),
       createdAtUtc: Value(createdAtUtc),
     );
   }
@@ -3300,6 +3478,8 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
       syncStatus: $FastingRecordsTable.$convertersyncStatus.fromJson(
         serializer.fromJson<String>(json['syncStatus']),
       ),
+      serverId: serializer.fromJson<String?>(json['serverId']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
       createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
     );
   }
@@ -3321,6 +3501,8 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
       'syncStatus': serializer.toJson<String>(
         $FastingRecordsTable.$convertersyncStatus.toJson(syncStatus),
       ),
+      'serverId': serializer.toJson<String?>(serverId),
+      'deleted': serializer.toJson<bool>(deleted),
       'createdAtUtc': serializer.toJson<String>(createdAtUtc),
     };
   }
@@ -3338,6 +3520,8 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
     bool? qualified,
     String? clientRequestId,
     SyncStatus? syncStatus,
+    Value<String?> serverId = const Value.absent(),
+    bool? deleted,
     String? createdAtUtc,
   }) => FastingRecord(
     localId: localId ?? this.localId,
@@ -3352,6 +3536,8 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
     qualified: qualified ?? this.qualified,
     clientRequestId: clientRequestId ?? this.clientRequestId,
     syncStatus: syncStatus ?? this.syncStatus,
+    serverId: serverId.present ? serverId.value : this.serverId,
+    deleted: deleted ?? this.deleted,
     createdAtUtc: createdAtUtc ?? this.createdAtUtc,
   );
   FastingRecord copyWithCompanion(FastingRecordsCompanion data) {
@@ -3378,6 +3564,8 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
+      serverId: data.serverId.present ? data.serverId.value : this.serverId,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
       createdAtUtc: data.createdAtUtc.present
           ? data.createdAtUtc.value
           : this.createdAtUtc,
@@ -3399,6 +3587,8 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
           ..write('qualified: $qualified, ')
           ..write('clientRequestId: $clientRequestId, ')
           ..write('syncStatus: $syncStatus, ')
+          ..write('serverId: $serverId, ')
+          ..write('deleted: $deleted, ')
           ..write('createdAtUtc: $createdAtUtc')
           ..write(')'))
         .toString();
@@ -3418,6 +3608,8 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
     qualified,
     clientRequestId,
     syncStatus,
+    serverId,
+    deleted,
     createdAtUtc,
   );
   @override
@@ -3436,6 +3628,8 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
           other.qualified == this.qualified &&
           other.clientRequestId == this.clientRequestId &&
           other.syncStatus == this.syncStatus &&
+          other.serverId == this.serverId &&
+          other.deleted == this.deleted &&
           other.createdAtUtc == this.createdAtUtc);
 }
 
@@ -3452,6 +3646,8 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
   final Value<bool> qualified;
   final Value<String> clientRequestId;
   final Value<SyncStatus> syncStatus;
+  final Value<String?> serverId;
+  final Value<bool> deleted;
   final Value<String> createdAtUtc;
   final Value<int> rowid;
   const FastingRecordsCompanion({
@@ -3467,6 +3663,8 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
     this.qualified = const Value.absent(),
     this.clientRequestId = const Value.absent(),
     this.syncStatus = const Value.absent(),
+    this.serverId = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -3483,6 +3681,8 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
     required bool qualified,
     required String clientRequestId,
     required SyncStatus syncStatus,
+    this.serverId = const Value.absent(),
+    this.deleted = const Value.absent(),
     required String createdAtUtc,
     this.rowid = const Value.absent(),
   }) : localId = Value(localId),
@@ -3511,6 +3711,8 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
     Expression<bool>? qualified,
     Expression<String>? clientRequestId,
     Expression<String>? syncStatus,
+    Expression<String>? serverId,
+    Expression<bool>? deleted,
     Expression<String>? createdAtUtc,
     Expression<int>? rowid,
   }) {
@@ -3527,6 +3729,8 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
       if (qualified != null) 'qualified': qualified,
       if (clientRequestId != null) 'client_request_id': clientRequestId,
       if (syncStatus != null) 'sync_status': syncStatus,
+      if (serverId != null) 'server_id': serverId,
+      if (deleted != null) 'deleted': deleted,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
       if (rowid != null) 'rowid': rowid,
     });
@@ -3545,6 +3749,8 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
     Value<bool>? qualified,
     Value<String>? clientRequestId,
     Value<SyncStatus>? syncStatus,
+    Value<String?>? serverId,
+    Value<bool>? deleted,
     Value<String>? createdAtUtc,
     Value<int>? rowid,
   }) {
@@ -3561,6 +3767,8 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
       qualified: qualified ?? this.qualified,
       clientRequestId: clientRequestId ?? this.clientRequestId,
       syncStatus: syncStatus ?? this.syncStatus,
+      serverId: serverId ?? this.serverId,
+      deleted: deleted ?? this.deleted,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
       rowid: rowid ?? this.rowid,
     );
@@ -3607,6 +3815,12 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
         $FastingRecordsTable.$convertersyncStatus.toSql(syncStatus.value),
       );
     }
+    if (serverId.present) {
+      map['server_id'] = Variable<String>(serverId.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     if (createdAtUtc.present) {
       map['created_at_utc'] = Variable<String>(createdAtUtc.value);
     }
@@ -3631,6 +3845,8 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
           ..write('qualified: $qualified, ')
           ..write('clientRequestId: $clientRequestId, ')
           ..write('syncStatus: $syncStatus, ')
+          ..write('serverId: $serverId, ')
+          ..write('deleted: $deleted, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -5136,6 +5352,8 @@ typedef $$FoodsTableCreateCompanionBuilder =
       Value<bool> isCustom,
       Value<bool> customSyncPending,
       Value<String> customClientRequestId,
+      Value<int> customSyncFailCount,
+      Value<bool> customSyncFailed,
       Value<String?> contributionStatus,
       Value<int> rowid,
     });
@@ -5153,6 +5371,8 @@ typedef $$FoodsTableUpdateCompanionBuilder =
       Value<bool> isCustom,
       Value<bool> customSyncPending,
       Value<String> customClientRequestId,
+      Value<int> customSyncFailCount,
+      Value<bool> customSyncFailed,
       Value<String?> contributionStatus,
       Value<int> rowid,
     });
@@ -5245,6 +5465,16 @@ class $$FoodsTableFilterComposer extends Composer<_$AppDatabase, $FoodsTable> {
 
   ColumnFilters<String> get customClientRequestId => $composableBuilder(
     column: $table.customClientRequestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get customSyncFailCount => $composableBuilder(
+    column: $table.customSyncFailCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get customSyncFailed => $composableBuilder(
+    column: $table.customSyncFailed,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5348,6 +5578,16 @@ class $$FoodsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get customSyncFailCount => $composableBuilder(
+    column: $table.customSyncFailCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get customSyncFailed => $composableBuilder(
+    column: $table.customSyncFailed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get contributionStatus => $composableBuilder(
     column: $table.contributionStatus,
     builder: (column) => ColumnOrderings(column),
@@ -5408,6 +5648,16 @@ class $$FoodsTableAnnotationComposer
 
   GeneratedColumn<String> get customClientRequestId => $composableBuilder(
     column: $table.customClientRequestId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get customSyncFailCount => $composableBuilder(
+    column: $table.customSyncFailCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get customSyncFailed => $composableBuilder(
+    column: $table.customSyncFailed,
     builder: (column) => column,
   );
 
@@ -5482,6 +5732,8 @@ class $$FoodsTableTableManager
                 Value<bool> isCustom = const Value.absent(),
                 Value<bool> customSyncPending = const Value.absent(),
                 Value<String> customClientRequestId = const Value.absent(),
+                Value<int> customSyncFailCount = const Value.absent(),
+                Value<bool> customSyncFailed = const Value.absent(),
                 Value<String?> contributionStatus = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FoodsCompanion(
@@ -5497,6 +5749,8 @@ class $$FoodsTableTableManager
                 isCustom: isCustom,
                 customSyncPending: customSyncPending,
                 customClientRequestId: customClientRequestId,
+                customSyncFailCount: customSyncFailCount,
+                customSyncFailed: customSyncFailed,
                 contributionStatus: contributionStatus,
                 rowid: rowid,
               ),
@@ -5514,6 +5768,8 @@ class $$FoodsTableTableManager
                 Value<bool> isCustom = const Value.absent(),
                 Value<bool> customSyncPending = const Value.absent(),
                 Value<String> customClientRequestId = const Value.absent(),
+                Value<int> customSyncFailCount = const Value.absent(),
+                Value<bool> customSyncFailed = const Value.absent(),
                 Value<String?> contributionStatus = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FoodsCompanion.insert(
@@ -5529,6 +5785,8 @@ class $$FoodsTableTableManager
                 isCustom: isCustom,
                 customSyncPending: customSyncPending,
                 customClientRequestId: customClientRequestId,
+                customSyncFailCount: customSyncFailCount,
+                customSyncFailed: customSyncFailed,
                 contributionStatus: contributionStatus,
                 rowid: rowid,
               ),
@@ -6611,6 +6869,8 @@ typedef $$FastingRecordsTableCreateCompanionBuilder =
       required bool qualified,
       required String clientRequestId,
       required SyncStatus syncStatus,
+      Value<String?> serverId,
+      Value<bool> deleted,
       required String createdAtUtc,
       Value<int> rowid,
     });
@@ -6628,6 +6888,8 @@ typedef $$FastingRecordsTableUpdateCompanionBuilder =
       Value<bool> qualified,
       Value<String> clientRequestId,
       Value<SyncStatus> syncStatus,
+      Value<String?> serverId,
+      Value<bool> deleted,
       Value<String> createdAtUtc,
       Value<int> rowid,
     });
@@ -6700,6 +6962,16 @@ class $$FastingRecordsTableFilterComposer
   get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get serverId => $composableBuilder(
+    column: $table.serverId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
   );
 
   ColumnFilters<String> get createdAtUtc => $composableBuilder(
@@ -6777,6 +7049,16 @@ class $$FastingRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get serverId => $composableBuilder(
+    column: $table.serverId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
     builder: (column) => ColumnOrderings(column),
@@ -6839,6 +7121,12 @@ class $$FastingRecordsTableAnnotationComposer
         builder: (column) => column,
       );
 
+  GeneratedColumn<String> get serverId =>
+      $composableBuilder(column: $table.serverId, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
   GeneratedColumn<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
     builder: (column) => column,
@@ -6890,6 +7178,8 @@ class $$FastingRecordsTableTableManager
                 Value<bool> qualified = const Value.absent(),
                 Value<String> clientRequestId = const Value.absent(),
                 Value<SyncStatus> syncStatus = const Value.absent(),
+                Value<String?> serverId = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<String> createdAtUtc = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FastingRecordsCompanion(
@@ -6905,6 +7195,8 @@ class $$FastingRecordsTableTableManager
                 qualified: qualified,
                 clientRequestId: clientRequestId,
                 syncStatus: syncStatus,
+                serverId: serverId,
+                deleted: deleted,
                 createdAtUtc: createdAtUtc,
                 rowid: rowid,
               ),
@@ -6922,6 +7214,8 @@ class $$FastingRecordsTableTableManager
                 required bool qualified,
                 required String clientRequestId,
                 required SyncStatus syncStatus,
+                Value<String?> serverId = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 required String createdAtUtc,
                 Value<int> rowid = const Value.absent(),
               }) => FastingRecordsCompanion.insert(
@@ -6937,6 +7231,8 @@ class $$FastingRecordsTableTableManager
                 qualified: qualified,
                 clientRequestId: clientRequestId,
                 syncStatus: syncStatus,
+                serverId: serverId,
+                deleted: deleted,
                 createdAtUtc: createdAtUtc,
                 rowid: rowid,
               ),

@@ -8,6 +8,7 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
+import 'package:eatwise/features/fasting/domain/fasting_result_mapping.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:flutter/foundation.dart';
@@ -24,6 +25,7 @@ final class SyncPullPage {
     required this.hasMore,
     this.waterLogChanges = const <Map<String, dynamic>>[],
     this.exerciseLogChanges = const <Map<String, dynamic>>[],
+    this.fastingRecordChanges = const <Map<String, dynamic>>[],
   });
 
   /// 原始 change 项（entry 全量视图或 {tombstone:{id,deletedAt}}）。
@@ -34,6 +36,9 @@ final class SyncPullPage {
 
   /// 运动记录 change 项（exerciseLog 全量视图或 {tombstone:{entity,id,deletedAt}}）。
   final List<Map<String, dynamic>> exerciseLogChanges;
+
+  /// 断食记录 change 项（fastingRecord 全量视图或 {tombstone:{entity,id,deletedAt}}）。
+  final List<Map<String, dynamic>> fastingRecordChanges;
   final String? nextSyncToken;
   final bool hasMore;
 }
@@ -133,6 +138,12 @@ final class RemoteRecordSync implements RecordRemote {
       'foodId': entry.foodId,
       'grams': entry.amountG,
       'inputMethod': entry.source.name,
+      // 客户端营养快照兜底（v1.13.31）：食物行服务端查无（自定义食物终态
+      // 失败/seed 裁剪幽灵）时服务端按快照入账；库内命中时服务端值优先。
+      'snapshotKcal': entry.kcal,
+      'snapshotProteinG': entry.proteinG,
+      'snapshotCarbG': entry.carbG,
+      'snapshotFatG': entry.fatG,
     };
     if (entry.serverId == null) {
       return <String, dynamic>{
@@ -219,6 +230,10 @@ final class RemoteRecordSync implements RecordRemote {
                 .cast<Map<String, dynamic>>(),
         exerciseLogChanges:
             (body['exerciseLogChanges'] as List<dynamic>? ?? const <dynamic>[])
+                .cast<Map<String, dynamic>>(),
+        fastingRecordChanges:
+            (body['fastingRecordChanges'] as List<dynamic>? ??
+                    const <dynamic>[])
                 .cast<Map<String, dynamic>>(),
         nextSyncToken: body['syncToken'] as String?,
         hasMore: body['hasMore'] == true,
@@ -356,6 +371,9 @@ final class RemoteRecordSync implements RecordRemote {
       }
       for (final change in page.exerciseLogChanges) {
         await _applyExerciseChange(db, userId, change);
+      }
+      for (final change in page.fastingRecordChanges) {
+        await _applyFastingRecordChange(db, userId, change);
       }
       if (pageSkipped) firstSkippedPageToken ??= pageTokenBefore;
       token = page.nextSyncToken;
@@ -616,6 +634,95 @@ final class RemoteRecordSync implements RecordRemote {
         fatPer100g: per100('fatG'),
       ),
     ]);
+  }
+
+  /// 断食记录下行入库（2026-09-29 拍板全量进 /sync：换机全量恢复 >14 天
+  /// 历史；轻量两态口径同 [_applyWaterChange]，但同日双端分叉维持「本机
+  /// 为准」——本机已有该归属日记录时**内容不覆盖**，仅收敛同步标记/
+  /// serverId 映射）：
+  /// - tombstone：仅清除已同步行（本地 pending 双份保留，同 entry 口径）；
+  /// - 本地缺失：落 synced 新行（on_track 无结束锚点跳过，与轻量回填同口径）；
+  /// - 本地 pending：服务端已有该日记录 → 上行已无意义（服务端按归属日
+  ///   幂等返回既有视图），markSynced 收敛 + 回填 serverId，内容不动；
+  /// - 本地 synced：仅回填 serverId（老版本 F2 上行行无服务端主键映射）。
+  Future<void> _applyFastingRecordChange(
+    AppDatabase db,
+    String userId,
+    Map<String, dynamic> change,
+  ) async {
+    final tombstone = change['tombstone'];
+    if (tombstone is Map<String, dynamic>) {
+      final local = await db.fastingRecordDao.getByServerId(
+        tombstone['id']! as String,
+      );
+      if (local != null && local.syncStatus == SyncStatus.synced) {
+        await db.fastingRecordDao.deleteRecord(local.localId);
+      }
+      return;
+    }
+    final serverId = change['id'] as String?;
+    final attributionDate = change['attributionDate'] as String?;
+    if (serverId == null ||
+        attributionDate == null ||
+        attributionDate.isEmpty) {
+      return;
+    }
+    final local =
+        await db.fastingRecordDao.getByServerId(serverId) ??
+        await db.fastingRecordDao.getByLocalId('$userId-$attributionDate');
+    if (local != null) {
+      if (local.syncStatus == SyncStatus.pending) {
+        // 服务端已有该归属日记录（F2 结算/他端上行/ghost 自动结算）：
+        // 收敛同步标记（内容本机为准不覆盖）。
+        await db.fastingRecordDao.markSynced(local.localId, serverId);
+      } else if (local.serverId == null) {
+        await db.fastingRecordDao.fillServerId(local.localId, serverId);
+      }
+      return;
+    }
+    // 本地缺失：落 synced 新行。on_track 无结束锚点跳过（进行中周期由
+    // F1/状态接口驱动，不经记录通道落库）。
+    final result = change['result'] as String? ?? 'on_track';
+    final actualEndAt = change['actualEndAt'] as String?;
+    if (result == 'on_track' || actualEndAt == null) return;
+    final plannedStartAt =
+        DateTime.tryParse(change['plannedStartAt'] as String? ?? '') ??
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    final plannedEndAt =
+        DateTime.tryParse(change['plannedEndAt'] as String? ?? '') ??
+        plannedStartAt;
+    final actualStartAt =
+        DateTime.tryParse(change['actualStartAt'] as String? ?? '') ??
+        plannedStartAt;
+    final end = DateTime.parse(actualEndAt);
+    final extendedMinutes = (change['extendedMinutes'] as num?)?.toInt() ?? 0;
+    final fastedMinutes = (change['fastedMinutes'] as num?)?.toInt();
+    await db.fastingRecordDao.upsertRecord(
+      FastingRecordsCompanion(
+        localId: Value('$userId-$attributionDate'),
+        userId: Value(userId),
+        attributionDate: Value(attributionDate),
+        startUtc: Value(actualStartAt.millisecondsSinceEpoch ~/ 1000),
+        endUtc: Value(end.millisecondsSinceEpoch ~/ 1000),
+        actualSec: Value(
+          fastedMinutes != null
+              ? fastedMinutes * 60
+              : end.difference(actualStartAt).inSeconds,
+        ),
+        plannedSec: Value(plannedEndAt.difference(plannedStartAt).inSeconds),
+        extendedMinutes: Value(extendedMinutes),
+        result: Value(
+          localResultNameOf(result, extendedMinutes: extendedMinutes),
+        ),
+        qualified: Value(change['isQualified'] == true),
+        clientRequestId: Value(
+          change['clientRequestId'] as String? ?? 'server-$serverId',
+        ),
+        syncStatus: const Value(SyncStatus.synced),
+        serverId: Value(serverId),
+        createdAtUtc: Value(DateTime.now().toUtc().toIso8601String()),
+      ),
+    );
   }
 
   /// 归属日 = 就餐 UTC 按设备时区换算的本地自然日（D-07）。

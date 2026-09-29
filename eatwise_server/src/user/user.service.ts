@@ -39,7 +39,7 @@ export class UserService {
 
   /** U2 修改资料：字段级 LWW（服务端 updatedAt 仲裁，无 409），触发营养目标重算（D-04） */
   async patchMe(userId: string, body: PatchUserDto) {
-    await this.mustGet(userId);
+    const existing = await this.mustGet(userId);
     const patch: Record<string, unknown> = {};
     for (const key of PATCHABLE) {
       if (body[key] !== undefined) patch[key] = body[key];
@@ -49,10 +49,16 @@ export class UserService {
     if (typeof patch['targetDate'] === 'string') {
       patch['targetDate'] = new Date(`${patch['targetDate']}T00:00:00.000Z`);
     }
-    // settingsPrefs 的 LWW 时间戳由服务端时钟统一打（忽略客户端自报值）：
-    // 各端设备墙钟有偏差，超前设备的旧偏好会永久压制他端改动（走查 L6）。
+    // settingsPrefs 键级合并（2026-09-29 拍板，替代整包 LWW 替换）：上行包
+    // 的键覆盖服务端同键，未上行的键保留——双端各改不同键不再互相覆盖
+    // （旧端整包推送天然兼容：它上行的就是它掌握的全部键）。键集合只增，
+    // 不提供删键语义。
+    // LWW 时间戳由服务端时钟统一打（忽略客户端自报值）：各端设备墙钟有偏差，
+    // 超前设备的旧偏好会永久压制他端改动（走查 L6）。
     if (patch['settingsPrefs'] && typeof patch['settingsPrefs'] === 'object') {
+      const current = (existing.settingsPrefs ?? {}) as Record<string, unknown>;
       patch['settingsPrefs'] = {
+        ...current,
         ...(patch['settingsPrefs'] as Record<string, unknown>),
         syncedAt: new Date().toISOString(),
       };

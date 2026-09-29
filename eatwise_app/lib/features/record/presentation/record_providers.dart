@@ -7,9 +7,11 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
+import 'package:eatwise/features/fasting/data/remote_fasting_record_sync.dart';
 import 'package:eatwise/features/health/application/exercise_log_providers.dart'
     show exerciseLogSyncProvider;
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/onboarding/application/profile_sync.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/data/anonymous_data_migrator.dart';
 import 'package:eatwise/features/record/data/daily_nutrition_cache_repair.dart';
@@ -154,7 +156,9 @@ final Provider<RecordSyncEngine> recordSyncEngineProvider =
         weightStore: ref.watch(weightLogStoreProvider),
         contributionReviewSync: ref.watch(contributionReviewSyncProvider),
         exerciseSync: ref.watch(exerciseLogSyncProvider),
+        fastingRecordSync: ref.watch(fastingRecordSyncProvider),
         planSync: ref.watch(fastingPlanSyncProvider),
+        profileSync: ref.watch(profileSyncServiceProvider),
         cacheRepair: ref.watch(dailyNutritionCacheRepairProvider),
         anonymousMigrator: ref.watch(anonymousDataMigratorProvider),
         // 占位食物行补名成功 → 失效名称缓存（今日记录 entryFoodProvider
