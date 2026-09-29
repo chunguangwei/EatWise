@@ -212,6 +212,47 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
       )) as { result: string };
       expect(res.result).toBe('broken');
     });
+
+    it('B2 窗口签名：一致照常结算；不一致 409 FASTING_WINDOW_MISMATCH 且记录不动；缺省兼容旧客户端', async () => {
+      // 签名一致（= 记录窗口 07-26 12:00Z → 07-27 04:00Z）→ 正常 completed
+      const r1 = makeRecord();
+      const ok = (await fasting.endFast(
+        userId,
+        randomUUID(),
+        r1.id,
+        new Date('2026-07-27T04:00:00.000Z'),
+        {
+          plannedStartAt: new Date('2026-07-26T12:00:00.000Z'),
+          plannedEndAt: new Date('2026-07-27T04:00:00.000Z'),
+        },
+      )) as { result: string };
+      expect(ok.result).toBe('completed');
+
+      // 签名不一致（分叉端本地窗口 09:00Z→01:00Z，偏 3h）→ 409，记录不动
+      const r2 = makeRecord();
+      await expect(
+        fasting.endFast(userId, randomUUID(), r2.id, new Date('2026-07-27T01:00:00.000Z'), {
+          plannedStartAt: new Date('2026-07-26T09:00:00.000Z'),
+          plannedEndAt: new Date('2026-07-27T01:00:00.000Z'),
+        }),
+      ).rejects.toThrow(
+        expect.objectContaining({ code: 'FASTING_WINDOW_MISMATCH' }) as unknown as Error,
+      );
+      expect(r2.result).toBe('on_track');
+      expect(r2.actualEndAt).toBeNull();
+      expect(r2.eventLog).toHaveLength(0);
+
+      // 部分缺省（只传一端）→ 跳过签名校验，按旧口径判定
+      const r3 = makeRecord();
+      const legacy = (await fasting.endFast(
+        userId,
+        randomUUID(),
+        r3.id,
+        new Date('2026-07-27T01:00:00.000Z'),
+        { plannedStartAt: new Date('2026-07-26T09:00:00.000Z') },
+      )) as { result: string };
+      expect(legacy.result).toBe('broken');
+    });
   });
 
   describe('F4 断食历史查询（展示兜底下行）', () => {

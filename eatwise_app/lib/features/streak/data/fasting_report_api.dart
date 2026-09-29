@@ -78,10 +78,16 @@ class FastingReportApi {
   }
 
   /// F2 手动结束断食上报（幂等：同一 clientRequestId 重放返回首次结果）。
+  ///
+  /// [plannedStartUtc]/[plannedEndUtc] 为 B2 窗口签名（本地周期计划锚点，
+  /// v1.13.28）：与服务端记录窗口不一致时服务端 409
+  /// `FASTING_WINDOW_MISMATCH` 且不动记录（多端方案分叉互踩防御）。
   Future<void> reportEnd({
     required String clientRequestId,
     required String recordId,
     required DateTime endedAtUtc,
+    DateTime? plannedStartUtc,
+    DateTime? plannedEndUtc,
   }) async {
     try {
       await _dio.post<void>(
@@ -90,6 +96,10 @@ class FastingReportApi {
           'clientRequestId': clientRequestId,
           'recordId': recordId,
           'endedAt': endedAtUtc.toIso8601String(),
+          if (plannedStartUtc != null)
+            'plannedStartAt': plannedStartUtc.toIso8601String(),
+          if (plannedEndUtc != null)
+            'plannedEndAt': plannedEndUtc.toIso8601String(),
         },
       );
     } on DioException catch (e) {

@@ -30,6 +30,7 @@ const zh: Record<string, string> = {
   INTERNAL_ERROR: '服务开小差了，请稍后重试',
   FASTING_ALREADY_ENDED: '本次断食已经结束',
   FASTING_END_OUT_OF_WINDOW: '结束时刻不属于本次断食周期，请刷新后重试',
+  FASTING_WINDOW_MISMATCH: '断食方案窗口不一致，请同步后重试',
   FASTING_EXTEND_LIMIT: '今日延长时长已达上限',
   MAKEUP_CARD_EMPTY: '本月补签卡已用完',
   MAKEUP_OUT_OF_WINDOW: '只能补最近 7 天内的断签日',
@@ -67,6 +68,7 @@ const en: Record<string, string> = {
   FASTING_ALREADY_ENDED: 'This fast has already ended',
   FASTING_END_OUT_OF_WINDOW:
     'The end time does not belong to this fasting cycle; please refresh and retry',
+  FASTING_WINDOW_MISMATCH: 'Fasting plan window mismatch; please sync your plan and retry',
   FASTING_EXTEND_LIMIT: 'Daily extension limit reached',
   MAKEUP_CARD_EMPTY: 'No makeup cards left this month',
   MAKEUP_OUT_OF_WINDOW: 'Only missed days within the last 7 days can be made up',

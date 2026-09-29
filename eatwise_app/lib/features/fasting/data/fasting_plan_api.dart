@@ -1,13 +1,18 @@
 import 'package:dio/dio.dart';
 import 'package:eatwise/core/network/api_exception.dart';
+import 'package:eatwise/core/utils/client_request_id.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/fasting/domain/window_rules.dart';
 
 /// 断食方案接口（`PUT/GET /fasting-plans/current` + F3 `POST /fasting/extend`，
 /// 契约不变形）。
 ///
-/// PUT body：`{ planType: '14:10'|'16:8'|'18:6', eatingWindow: { start, end } }`
-/// （HH:mm 本地墙钟；X-Timezone 由 apiDioProvider 拦截器统一携带，D-07）。
+/// PUT body：`{ clientRequestId, planType: '14:10'|'16:8'|'18:6',
+/// eatingWindow: { start, end } }`（HH:mm 本地墙钟；X-Timezone 由
+/// apiDioProvider 拦截器统一携带，D-07）。**clientRequestId 为服务端
+/// PutPlanDto 强制字段（@IsUUID）——v1.13.27 及以前客户端漏传，每个 PUT
+/// 都被 ValidationPipe 400 打回（生产 fasting_plans 全库 0 行的根因），
+/// 失败被脏标记静默吞掉，方案上行链因此全断。**
 /// planType 取方案 id 的 `@` 前缀（自定义窗口 id 为 `16:8@09:00` 式，
 /// 预置方案 id 即 planType 本身）；窗口时长与 planType 的一致性校验
 /// （时长 = 24h − 禁食时长，否则 400）由服务端执行，客户端经
@@ -29,6 +34,8 @@ class FastingPlanApi {
       await _dio.put<void>(
         '/fasting-plans/current',
         data: <String, dynamic>{
+          // 服务端 DTO 强制（@IsUUID），缺失必 400（历史全断根因）。
+          'clientRequestId': newClientRequestId(),
           'planType': plan.id.split('@').first,
           'eatingWindow': <String, String>{
             'start': formatClock(plan.eatStartMinutes),
@@ -48,42 +55,66 @@ class FastingPlanApi {
   /// （16:8 12:00–20:00，D-03），与客户端 [FastingPlan.plan16x8] 同窗，
   /// 一并重建（回填语义与 D-03 一致）。
   Future<FastingPlan?> fetchCurrent() async {
+    final meta = await fetchCurrentPlanMeta();
+    return meta?.plan;
+  }
+
+  /// 下行当前方案 + 服务端 updatedAt（多端收敛比较用，v1.13.28）。
+  ///
+  /// `serverUpdatedAtSec` 为 null 表示服务端**没有真实方案行**（虚拟
+  /// 'default' 兜底）——调用方不得用它覆盖本地已有方案。
+  Future<({FastingPlan plan, int? serverUpdatedAtSec})?>
+  fetchCurrentPlanMeta() async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/fasting-plans/current',
       );
       final current = response.data?['current'];
       if (current is! Map) return null;
-      final window = current['eatingWindow'];
-      if (window is! Map) return null;
-      final start = _parseClock(window['start']);
-      final end = _parseClock(window['end']);
-      if (start == null || end == null) return null;
-      // 预置窗口（planType 与墙钟一致）直接用预置 id；其余重建为
-      // `planType@HH:mm` 自定义 id（同窗口不同 id 经 sameWindow 判等，无害）。
-      for (final preset in const [
-        FastingPlan.plan16x8,
-        FastingPlan.plan14x10,
-      ]) {
-        if (preset.id == current['planType'] &&
-            preset.eatStartMinutes == start &&
-            preset.eatEndMinutes == end) {
-          return preset;
-        }
-      }
-      final eatingMinutes = end > start ? end - start : end - start + 24 * 60;
-      if (eatingMinutes % 60 != 0) return null;
-      try {
-        return buildWindow(
-          eatingHours: eatingMinutes ~/ 60,
-          startMinutes: start,
-        ).toFastingPlan();
-      } on ArgumentError {
-        // 进食时长非 6/8/10（服务端演进值）：本地引擎不识别，不回填。
-        return null;
-      }
+      final plan = _rebuildPlan(current);
+      if (plan == null) return null;
+      // 虚拟兜底行没有服务端 updatedAt（明确视为「无真实方案」）。
+      final rawUpdatedAt = current['updatedAt'];
+      final updatedAt = rawUpdatedAt is String && rawUpdatedAt.isNotEmpty
+          ? DateTime.tryParse(rawUpdatedAt)
+          : null;
+      return (
+        plan: plan,
+        serverUpdatedAtSec: updatedAt == null
+            ? null
+            : updatedAt.millisecondsSinceEpoch ~/ 1000,
+      );
     } on DioException catch (e) {
       throw toApiException(e);
+    }
+  }
+
+  /// P3 current 载荷 → 本地 [FastingPlan]（无法表达返回 null）。
+  FastingPlan? _rebuildPlan(Map<dynamic, dynamic> current) {
+    final window = current['eatingWindow'];
+    if (window is! Map) return null;
+    final start = _parseClock(window['start']);
+    final end = _parseClock(window['end']);
+    if (start == null || end == null) return null;
+    // 预置窗口（planType 与墙钟一致）直接用预置 id；其余重建为
+    // `planType@HH:mm` 自定义 id（同窗口不同 id 经 sameWindow 判等，无害）。
+    for (final preset in const [FastingPlan.plan16x8, FastingPlan.plan14x10]) {
+      if (preset.id == current['planType'] &&
+          preset.eatStartMinutes == start &&
+          preset.eatEndMinutes == end) {
+        return preset;
+      }
+    }
+    final eatingMinutes = end > start ? end - start : end - start + 24 * 60;
+    if (eatingMinutes % 60 != 0) return null;
+    try {
+      return buildWindow(
+        eatingHours: eatingMinutes ~/ 60,
+        startMinutes: start,
+      ).toFastingPlan();
+    } on ArgumentError {
+      // 进食时长非 6/8/10（服务端演进值）：本地引擎不识别，不回填。
+      return null;
     }
   }
 

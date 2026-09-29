@@ -473,6 +473,10 @@ class _FakePlanApi implements FastingPlanApi {
   Future<FastingPlan?> fetchCurrent() async => null;
 
   @override
+  Future<({FastingPlan plan, int? serverUpdatedAtSec})?>
+  fetchCurrentPlanMeta() async => null;
+
+  @override
   Future<String?> fetchActiveRecordId() async => activeRecordId;
 
   @override

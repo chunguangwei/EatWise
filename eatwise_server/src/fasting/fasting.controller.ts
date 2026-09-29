@@ -19,7 +19,7 @@ export class FastingController {
     return profileTz && isValidTimezone(profileTz) ? profileTz : 'Asia/Shanghai';
   }
 
-  /** P3 当前方案（含 pending 更换） */
+  /** P3 当前方案（含 pending 更换；current.updatedAt 供多端下行收敛比较，虚拟 default 兜底行恒 null） */
   @Get('fasting-plans/current')
   async getCurrentPlan(@CurrentUser() user: AuthUser, @Headers('x-timezone') tz?: string) {
     const plan = await this.fasting.getCurrentPlan(user.userId, await this.tz(user, tz));
@@ -33,6 +33,9 @@ export class FastingController {
         eatingWindow: { start: plan.eatingWindowStart, end: plan.eatingWindowEnd },
         effectiveDate: plan.effectiveDate,
         status: plan.status,
+        // 虚拟 default 行（从未选过方案）不算真实方案，updatedAt 恒 null——
+        // 客户端多端收敛以此区分「无服务端方案（不覆盖本地）」。
+        updatedAt: plan.id === 'default' ? null : plan.updatedAt.toISOString(),
       },
       pending,
     };
@@ -70,7 +73,7 @@ export class FastingController {
     return this.fasting.listRecords(user.userId, from ?? '', to ?? '');
   }
 
-  /** F2 手动结束断食上报 */
+  /** F2 手动结束断食上报（可带窗口签名 B2：本地周期计划锚点，不一致 409） */
   @Post('fasting/end')
   @HttpCode(200)
   end(@CurrentUser() user: AuthUser, @Body() dto: EndFastingDto) {
@@ -79,6 +82,10 @@ export class FastingController {
       dto.clientRequestId,
       dto.recordId,
       new Date(dto.endedAt),
+      {
+        plannedStartAt: dto.plannedStartAt ? new Date(dto.plannedStartAt) : null,
+        plannedEndAt: dto.plannedEndAt ? new Date(dto.plannedEndAt) : null,
+      },
     );
   }
 

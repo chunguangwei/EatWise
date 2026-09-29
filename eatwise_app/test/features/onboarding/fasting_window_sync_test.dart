@@ -19,14 +19,19 @@ import '../fasting/tz_test_helper.dart';
 
 /// 记录 PUT/GET/extend 调用并可控失败的假 API。
 class _FakeApi implements FastingPlanApi {
-  _FakeApi({this.fail = false, this.current});
+  _FakeApi({this.fail = false, this.current, this.serverUpdatedAtSec});
 
   final bool fail;
 
   /// [FastingPlanApi.fetchCurrent] 的返回值（null = 无方案可回填）。
   final FastingPlan? current;
 
-  /// 非 null 时 [FastingPlanApi.extendFast] / [fetchCurrent] 抛该异常。
+  /// [FastingPlanApi.fetchCurrentPlanMeta] 的服务端 updatedAt（null =
+  /// 虚拟 default 兜底行 = 服务端无真实方案）。
+  final int? serverUpdatedAtSec;
+
+  /// 非 null 时 [FastingPlanApi.extendFast] / [fetchCurrent] /
+  /// [fetchCurrentPlanMeta] 抛该异常。
   Object? error;
 
   /// [FastingPlanApi.fetchActiveRecordId] 的返回值。
@@ -49,6 +54,17 @@ class _FakeApi implements FastingPlanApi {
     final e = error;
     if (e != null) throw e;
     return current;
+  }
+
+  @override
+  Future<({FastingPlan plan, int? serverUpdatedAtSec})?>
+  fetchCurrentPlanMeta() async {
+    fetchCurrentCalls++;
+    final e = error;
+    if (e != null) throw e;
+    final plan = current;
+    if (plan == null) return null;
+    return (plan: plan, serverUpdatedAtSec: serverUpdatedAtSec);
   }
 
   @override
@@ -216,8 +232,8 @@ void main() {
       expect(store.loadActivePlan(), isNull);
     });
 
-    test('本地已有生效方案：不覆盖', () async {
-      final api = _FakeApi(current: custom8);
+    test('本地已有生效方案 + 服务端虚拟兜底行（无真实方案）：不覆盖', () async {
+      final api = _FakeApi(current: custom8); // serverUpdatedAtSec=null
       final store = InMemoryOnboardingStore();
       store.saveActivePlan(
         ActivePlanSnapshot(
@@ -227,8 +243,87 @@ void main() {
         ),
       );
       await buildPullSync(api, store: store).pull();
-      expect(api.fetchCurrentCalls, 0); // 存在性短路，连 GET 都不发
       expect(store.loadActivePlan()!.plan, FastingPlan.plan14x10);
+      expect(store.loadPendingPlan(), isNull);
+    });
+
+    test('本地脏标记（uid/匿名）存在：上行优先，连 GET 都不发', () async {
+      final api = _FakeApi(
+        current: custom8,
+        serverUpdatedAtSec: fixedNowUtc + 999,
+      );
+      final store = InMemoryOnboardingStore();
+      await prefs.setString(
+        dirtyKey,
+        jsonEncode(<String, Object?>{
+          'planId': '14:10',
+          'eatStartMinutes': 600,
+          'eatEndMinutes': 1200,
+        }),
+      );
+      await buildPullSync(api, store: store).pull();
+      expect(api.fetchCurrentCalls, 0);
+
+      // 匿名命名空间脏同样拦截（防覆盖匿名期未 flush 的选择）。
+      await prefs.remove(dirtyKey);
+      await prefs.setString(anonDirtyKey, '{}');
+      await buildPullSync(api, store: store).pull();
+      expect(api.fetchCurrentCalls, 0);
+    });
+
+    test('多端收敛：服务端不新于本地 / 窗口一致 → 不动', () async {
+      final store = InMemoryOnboardingStore();
+      store.saveActivePlan(
+        ActivePlanSnapshot(
+          plan: FastingPlan.plan14x10,
+          initialState: 'fasting',
+          startedAtUtc: fixedNowUtc,
+        ),
+      );
+      // 服务端更旧
+      await buildPullSync(
+        _FakeApi(current: custom8, serverUpdatedAtSec: fixedNowUtc - 10),
+        store: store,
+      ).pull();
+      expect(store.loadActivePlan()!.plan, FastingPlan.plan14x10);
+      expect(store.loadPendingPlan(), isNull);
+      // 服务端更新但窗口一致（14:10 = 10h@10:00？custom8 是 16:8@09:00，
+      // 另造同窗不同 id 方案——14:10 窗 10:00-20:00）
+      final same = FastingPlan(
+        id: '14:10@10:00',
+        eatStartMinutes: 600,
+        eatEndMinutes: 1200,
+      );
+      await buildPullSync(
+        _FakeApi(current: same, serverUpdatedAtSec: fixedNowUtc + 999),
+        store: store,
+      ).pull();
+      expect(store.loadActivePlan()!.plan, FastingPlan.plan14x10);
+      expect(store.loadPendingPlan(), isNull);
+    });
+
+    test('多端收敛：服务端更新且窗口不同 → 登记次日生效 pending，当日方案不动', () async {
+      final api = _FakeApi(
+        current: custom8,
+        serverUpdatedAtSec: fixedNowUtc + 999,
+      );
+      final store = InMemoryOnboardingStore();
+      store.saveActivePlan(
+        ActivePlanSnapshot(
+          plan: FastingPlan.plan14x10,
+          initialState: 'fasting',
+          startedAtUtc: fixedNowUtc,
+        ),
+      );
+      var applied = 0;
+      await buildPullSync(api, store: store, onApplied: () => applied++).pull();
+
+      // 当日生效方案不被打断（D-06 口径：次日 0 点生效）。
+      expect(store.loadActivePlan()!.plan, FastingPlan.plan14x10);
+      final pending = store.loadPendingPlan()!;
+      expect(pending.plan, custom8);
+      expect(pending.effectiveDate, const LocalDate(2026, 7, 29));
+      expect(applied, 1);
     });
 
     test('本地无方案：回填 + 放行引导 + 回调；重复 pull 幂等', () async {
@@ -246,9 +341,18 @@ void main() {
       expect(saved.targetUtc, expected.targetUtc);
       expect(saved.attributionDate, expected.attributionPreview?.toIsoString());
       expect(store.isOnboardingCompleted, isTrue);
-      // 二次 pull：本地已有方案 → 不再回填、不再回调。
+      // 二次 pull：本地已有方案 + 服务端虚拟兜底行（updatedAt=null）→ 早退，
+      // 不再回填、不再回调。
       await sync.pull();
       expect(applied, 1);
+    });
+
+    test('本地无方案 + 服务端真实行：startedAtUtc 与服务端 updatedAt 对齐', () async {
+      const serverTs = 1700000000;
+      final api = _FakeApi(current: custom8, serverUpdatedAtSec: serverTs);
+      final store = InMemoryOnboardingStore();
+      await buildPullSync(api, store: store).pull();
+      expect(store.loadActivePlan()!.startedAtUtc, serverTs);
     });
 
     test('服务端无可重建方案 / 拉取失败：静默不回填', () async {

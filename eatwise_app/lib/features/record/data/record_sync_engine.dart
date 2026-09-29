@@ -114,6 +114,14 @@ final class RecordSyncEngine {
         // 记录上行全部轮不到（徽标残留嫌疑路径）。
         debugPrint('[Sync] planSync.flush 失败（下轮重试）：$e');
       }
+      // 断食方案下行收敛（v1.13.28 多端一致性）：flush 后拉一轮——他端
+      // 改过方案（服务端 updatedAt 更新且窗口不同）时按 D-06 登记次日
+      // 生效 pending；本地脏标记存在时 pull 自身短路（上行为准）。
+      try {
+        await planSync?.pull();
+      } on Object catch (e) {
+        debugPrint('[Sync] planSync.pull 失败（下轮重试）：$e');
+      }
       try {
         // 自定义食物先上行（饮食记录引用其服务端 id，颠倒顺序会让
         // 引用本地临时 id 的记录上行 4xx）。

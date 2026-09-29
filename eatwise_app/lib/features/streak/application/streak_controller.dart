@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:drift/drift.dart' hide Column;
 import 'package:eatwise/core/analytics/analytics_providers.dart';
@@ -9,7 +8,9 @@ import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/storage/database.dart' hide FastingRecord;
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
+import 'package:eatwise/core/utils/client_request_id.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
+import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_record.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
@@ -21,6 +22,8 @@ import 'package:eatwise/features/streak/domain/streak_types.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
+
+export 'package:eatwise/core/utils/client_request_id.dart';
 
 /// streak UI 状态（首页横幅 / 断签弹窗 / 里程碑徽章 / 我的页卡片共用）。
 final class StreakUiState {
@@ -229,15 +232,33 @@ final class StreakController extends Notifier<StreakUiState> {
           final requestId =
               _store.loadReportRequestId(record.date) ?? newClientRequestId();
           _store.saveReportRequestId(record.date, requestId);
-          await report.reportEnd(
-            clientRequestId: requestId,
-            recordId: active.id,
-            endedAtUtc: DateTime.fromMillisecondsSinceEpoch(
-              record.endUtc * 1000,
-              isUtc: true,
-            ),
-          );
-          await _markRecordSynced(record);
+          try {
+            await report.reportEnd(
+              clientRequestId: requestId,
+              recordId: active.id,
+              endedAtUtc: DateTime.fromMillisecondsSinceEpoch(
+                record.endUtc * 1000,
+                isUtc: true,
+              ),
+              // B2 窗口签名：本地周期计划锚点（plannedEnd = start + plannedSec）。
+              plannedStartUtc: DateTime.fromMillisecondsSinceEpoch(
+                record.startUtc * 1000,
+                isUtc: true,
+              ),
+              plannedEndUtc: DateTime.fromMillisecondsSinceEpoch(
+                (record.startUtc + record.plannedSec) * 1000,
+                isUtc: true,
+              ),
+            );
+            await _markRecordSynced(record);
+          } on BusinessApiException catch (e) {
+            if (e.code == 'FASTING_WINDOW_MISMATCH') {
+              // 多端方案分叉（本机窗口 ≠ 服务端窗口）：触发一次方案下行
+              // 收敛（服务端窗口为准，按 D-06 次日生效），下轮同步再上报。
+              unawaited(ref.read(fastingPlanSyncProvider)?.pull());
+            }
+            // 其余业务拒绝（已结束/窗口外等）：本地记录保留，对账为准。
+          }
         }
       }
     } on Object {
@@ -526,15 +547,3 @@ final currentUserIdProvider = Provider<String>((ref) {
     return 'anonymous';
   }
 });
-
-/// UUIDv4 幂等键（客户端生成，D-20 / §2.2）。
-String newClientRequestId() {
-  final random = Random.secure();
-  final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
-  bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 1
-  final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-  return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
-      '${hex.substring(12, 16)}-${hex.substring(16, 20)}-'
-      '${hex.substring(20)}';
-}

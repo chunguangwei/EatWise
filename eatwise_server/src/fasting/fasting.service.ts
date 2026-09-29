@@ -276,8 +276,14 @@ export class FastingService {
     return record;
   }
 
-  /** F2 手动结束断食：幂等 + 状态机 + D-08 达标判定 */
-  async endFast(userId: string, clientRequestId: string, recordId: string, endedAt: Date) {
+  /** F2 手动结束断食：幂等 + 状态机 + D-08 达标判定 + B2 窗口签名防御 */
+  async endFast(
+    userId: string,
+    clientRequestId: string,
+    recordId: string,
+    endedAt: Date,
+    opts: { plannedStartAt?: Date | null; plannedEndAt?: Date | null } = {},
+  ) {
     const endpoint = 'fasting/end';
     const hash = payloadHash({ recordId, endedAt });
     const hit = await this.driver.findIdempotencyRecord(userId, endpoint, clientRequestId);
@@ -289,6 +295,20 @@ export class FastingService {
     const record = await this.driver.findFastingRecordById(recordId);
     if (!record || record.userId !== userId) throw err.notFound();
     if (record.result !== 'on_track') throw err.fastingAlreadyEnded();
+
+    // B2 窗口签名防御（v1.13.28）：客户端带上本地周期计划锚点时，与服务端
+    // 记录窗口不一致（>60s 容差）= 多端方案分叉互踩（分叉端按各自本地窗口
+    // 结束周期，服务端按另一窗口判定→系统性误判 broken）。明确拒绝且
+    // 不动记录，客户端吃 409 后触发方案下行收敛。缺签名（旧客户端）跳过。
+    if (opts.plannedStartAt && opts.plannedEndAt) {
+      const skewMs = 60 * 1000;
+      if (
+        Math.abs(opts.plannedStartAt.getTime() - record.plannedStartAt.getTime()) > skewMs ||
+        Math.abs(opts.plannedEndAt.getTime() - record.plannedEndAt.getTime()) > skewMs
+      ) {
+        throw err.fastingWindowMismatch();
+      }
+    }
 
     // 归属防御（v1.13.27）：endedAt 落在本记录窗口 [实际开始−容差, 计划结束+容差]
     // 之外 = 上报归属错误（旧周期 endedAt 错挂当前 recordId，客户端 v1.13.27

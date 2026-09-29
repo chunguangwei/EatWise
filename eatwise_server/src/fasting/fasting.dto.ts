@@ -5,6 +5,7 @@ import {
   IsInt,
   IsISO8601,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUUID,
   Matches,
@@ -75,6 +76,18 @@ export class EndFastingDto {
 
   @IsISO8601()
   endedAt: string;
+
+  /** 窗口签名（B2，可选）：本地周期的计划开始锚点（UTC ISO8601）。
+   *  与 plannedEndAt 同时提供时服务端校验与记录窗口一致性，不一致 409
+   *  （FASTING_WINDOW_MISMATCH，多端方案分叉互踩防御）；缺省兼容旧客户端。 */
+  @IsOptional()
+  @IsISO8601()
+  plannedStartAt?: string;
+
+  /** 窗口签名（B2，可选）：本地周期的计划结束锚点（UTC ISO8601）。 */
+  @IsOptional()
+  @IsISO8601()
+  plannedEndAt?: string;
 }
 
 export class ExtendFastingDto {

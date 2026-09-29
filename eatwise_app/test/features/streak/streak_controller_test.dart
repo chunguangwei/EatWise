@@ -3,6 +3,8 @@ import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/database.dart' hide FastingRecord;
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
+import 'package:eatwise/features/fasting/data/fasting_plan_api.dart';
+import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_record.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart';
@@ -125,6 +127,15 @@ void main() {
 
       expect(reportApi.endCalls, hasLength(1));
       expect(reportApi.endCalls.single.recordId, 'rec-1');
+      // B2 窗口签名随行：本地周期计划锚点（start=1000, plannedSec=960）。
+      expect(
+        reportApi.endCalls.single.plannedStartUtc,
+        DateTime.fromMillisecondsSinceEpoch(1000 * 1000, isUtc: true),
+      );
+      expect(
+        reportApi.endCalls.single.plannedEndUtc,
+        DateTime.fromMillisecondsSinceEpoch((1000 + 960) * 1000, isUtc: true),
+      );
       expect(api.fetchCount, greaterThanOrEqualTo(1));
       expect(c.read(streakControllerProvider).fromServer, isTrue);
       expect(c.read(streakControllerProvider).currentStreak, 3);
@@ -316,6 +327,41 @@ void main() {
       );
     });
 
+    test('F2 窗口签名不一致（FASTING_WINDOW_MISMATCH）：触发方案下行收敛，记录保持 pending', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final prefs = await SharedPreferences.getInstance();
+      final planSync = _RecordingPlanSync(prefs);
+      reportApi
+        ..active = const ServerActiveFast(id: 'rec-1', attributionDate: today)
+        ..endError = const BusinessApiException(
+          httpStatus: 409,
+          code: 'FASTING_WINDOW_MISMATCH',
+          message: 'mismatch',
+        );
+      final c = ProviderContainer(
+        overrides: <Override>[
+          streakLocalStoreProvider.overrideWithValue(store),
+          streakApiProvider.overrideWithValue(api),
+          fastingReportApiProvider.overrideWithValue(reportApi),
+          appDatabaseProvider.overrideWithValue(db),
+          streakTodayProvider.overrideWithValue(() => today),
+          currentUserIdProvider.overrideWithValue('u1'),
+          fastingPlanSyncProvider.overrideWithValue(planSync),
+        ],
+      );
+      addTearDown(c.dispose);
+      final controller = c.read(streakControllerProvider.notifier);
+
+      await controller.onFastClosed(recordOf(today));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      // 上行被拒 → 触发一次方案下行收敛（多端分叉自愈）；本地记录保持
+      // pending 等下轮窗口对齐后再上报。
+      expect(planSync.pullCalls, 1);
+      final rows = await db.fastingRecordDao.recordsOf('u1');
+      expect(rows.single.syncStatus, SyncStatus.pending);
+    });
+
     test('补签卡在线（S2）：服务端视图对账，本地账本同步', () async {
       // 预播种：07-25/26 已达标并结算到 07-26；build 启动结算 → 07-27 断签。
       store.saveEngine(_preseededEngine());
@@ -474,8 +520,26 @@ final class _FakeFastingReportApi extends FastingReportApi {
   bool offline = false;
   ServerActiveFast? active;
   List<ServerFastingRecord> recentRecords = const <ServerFastingRecord>[];
-  final List<({String recordId, String clientRequestId})> endCalls =
-      <({String recordId, String clientRequestId})>[];
+
+  /// 非 null 时 reportEnd 抛该异常（如 FASTING_WINDOW_MISMATCH 业务码）。
+  Object? endError;
+  final List<
+    ({
+      String recordId,
+      String clientRequestId,
+      DateTime? plannedStartUtc,
+      DateTime? plannedEndUtc,
+    })
+  >
+  endCalls =
+      <
+        ({
+          String recordId,
+          String clientRequestId,
+          DateTime? plannedStartUtc,
+          DateTime? plannedEndUtc,
+        })
+      >[];
 
   @override
   Future<ServerActiveFast?> fetchActiveFast() async {
@@ -488,9 +552,18 @@ final class _FakeFastingReportApi extends FastingReportApi {
     required String clientRequestId,
     required String recordId,
     required DateTime endedAtUtc,
+    DateTime? plannedStartUtc,
+    DateTime? plannedEndUtc,
   }) async {
     if (offline) throw const NetworkApiException();
-    endCalls.add((recordId: recordId, clientRequestId: clientRequestId));
+    endCalls.add((
+      recordId: recordId,
+      clientRequestId: clientRequestId,
+      plannedStartUtc: plannedStartUtc,
+      plannedEndUtc: plannedEndUtc,
+    ));
+    final e = endError;
+    if (e != null) throw e;
   }
 
   @override
@@ -500,5 +573,18 @@ final class _FakeFastingReportApi extends FastingReportApi {
   }) async {
     if (offline) throw const NetworkApiException();
     return recentRecords;
+  }
+}
+
+/// 方案下行收敛计数桩（F2 窗口签名不一致触发自愈用例）。
+final class _RecordingPlanSync extends FastingPlanSync {
+  _RecordingPlanSync(SharedPreferences prefs)
+    : super(api: FastingPlanApi(Dio()), prefs: prefs, userId: () => 'u1');
+
+  int pullCalls = 0;
+
+  @override
+  Future<void> pull() async {
+    pullCalls++;
   }
 }

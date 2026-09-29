@@ -125,4 +125,77 @@ describe('Fasting end out-of-window guard (e2e)', () => {
       .expect(400);
     expect(bad.body.error.code).toBe('VALIDATION_ERROR');
   });
+
+  it('B2 窗口签名：不一致 409 FASTING_WINDOW_MISMATCH 且记录不动；一致正常结算', async () => {
+    const token = await login('+8613911000112');
+    const nowMin = shanghaiMinutesNow();
+    await request(server)
+      .put('/v1/fasting-plans/current')
+      .set('Authorization', `Bearer ${token}`)
+      .set('X-Timezone', 'Asia/Shanghai')
+      .send({
+        clientRequestId: randomUUID(),
+        planType: '16:8',
+        eatingWindow: { start: fmt(nowMin + 60), end: fmt(nowMin + 540) },
+      })
+      .expect(200);
+    const status = await request(server)
+      .get('/v1/fasting/status')
+      .set('Authorization', `Bearer ${token}`)
+      .set('X-Timezone', 'Asia/Shanghai')
+      .expect(200);
+    const active = status.body.data.activeRecord as {
+      id: string;
+      plannedStartAt: string;
+      plannedEndAt: string;
+      result: string;
+    } | null;
+    expect(active).not.toBeNull();
+
+    // 分叉端签名（偏 3h）→ 409，记录保持 on_track
+    const skewStart = new Date(Date.parse(active!.plannedStartAt) - 3 * 3600_000).toISOString();
+    const skewEnd = new Date(Date.parse(active!.plannedEndAt) - 3 * 3600_000).toISOString();
+    const res = await request(server)
+      .post('/v1/fasting/end')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        clientRequestId: randomUUID(),
+        recordId: active!.id,
+        endedAt: new Date().toISOString(),
+        plannedStartAt: skewStart,
+        plannedEndAt: skewEnd,
+      })
+      .expect(409);
+    expect(res.body.error.code).toBe('FASTING_WINDOW_MISMATCH');
+
+    const after = await request(server)
+      .get('/v1/fasting/status')
+      .set('Authorization', `Bearer ${token}`)
+      .set('X-Timezone', 'Asia/Shanghai')
+      .expect(200);
+    expect(after.body.data.activeRecord?.result).toBe('on_track');
+
+    // 签名一致（取服务端记录窗口锚点）→ 正常结算 completed
+    await request(server)
+      .post('/v1/fasting/end')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        clientRequestId: randomUUID(),
+        recordId: active!.id,
+        endedAt: active!.plannedEndAt,
+        plannedStartAt: active!.plannedStartAt,
+        plannedEndAt: active!.plannedEndAt,
+      })
+      .expect(200);
+    const day = (offsetDays: number) =>
+      new Date(Date.now() + 8 * 3600_000 + offsetDays * 86400_000).toISOString().slice(0, 10);
+    const settled = await request(server)
+      .get(`/v1/fasting/records?from=${day(-13)}&to=${day(1)}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    const rec = ((settled.body.data ?? []) as Array<{ id: string; result: string }>).find(
+      (r) => r.id === active!.id,
+    );
+    expect(rec?.result).toBe('completed');
+  });
 });

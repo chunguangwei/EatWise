@@ -8,6 +8,7 @@ import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_api.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
+import 'package:eatwise/features/fasting/domain/window_rules.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:flutter/foundation.dart';
@@ -109,36 +110,70 @@ class FastingPlanSync {
     );
   }
 
-  /// 方案下行回填（重装/换机恢复；登录成功/恢复会话时与 settingsPrefs.pull
-  /// 同点位触发）：仅当本地**没有**生效方案时，把服务端当前方案落为
-  /// 生效快照并放行引导（本地有方案以上行为准，不覆盖）。失败静默。
+  /// 方案下行（重装/换机回填 + 多端收敛，v1.13.28 修订；登录成功/恢复会话/
+  /// 同步轮触发）：
+  /// - **本地脏方案优先**：本机/匿名命名空间有未上行脏标记时直接返回
+  ///   （防覆盖匿名期/离线期未 flush 的选择——原「存在性短路」意图保留，
+  ///   此时连 GET 都不发）；
+  /// - 本地无方案：回填服务端方案并放行引导（原语义）；
+  /// - 本地有方案：服务端无真实方案行（虚拟 default，updatedAt=null）、
+  ///   服务端 updatedAt 不新于本地快照、或窗口一致（sameWindow）→ 不动；
+  /// - 服务端更新且窗口不同（他端改过方案）：按 D-06 口径登记为**次日
+  ///   生效的 pendingPlan**（不打断本机当日进行中的周期），横幅提示。
   Future<void> pull() async {
     final uid = userId();
     // 匿名 GET 必 401；未登录无从回填。
     if (uid == 'anonymous') return;
     final store = onboardingStore;
     if (store == null) return; // 引导存储未装配：不适用
+    // 本地有未上行的方案选择：以上行为准（脏标记在 flush 成功后才会清）。
+    if (prefs.getString(_dirtyKey(uid)) != null ||
+        prefs.getString(_dirtyKey('anonymous')) != null) {
+      return;
+    }
     try {
-      if (store.loadActivePlan() != null) return;
-      final plan = await api.fetchCurrent();
-      if (plan == null) return;
-      // 回填即收敛：本机没有「更新的选择」，不再 markDirtyAndTryFlush。
+      final remote = await api.fetchCurrentPlanMeta();
+      if (remote == null) return;
+      final local = store.loadActivePlan();
+      if (local != null) {
+        final serverUpdatedAtSec = remote.serverUpdatedAtSec;
+        if (serverUpdatedAtSec == null) return; // 服务端无真实方案行
+        if (serverUpdatedAtSec <= local.startedAtUtc) return; // 本地不旧
+        if (sameWindow(
+          remote.plan.eatStartMinutes,
+          remote.plan.eatEndMinutes,
+          local.plan.eatStartMinutes,
+          local.plan.eatEndMinutes,
+        )) {
+          return; // 窗口一致：仅 id/起点元数据差异，无需落盘
+        }
+        // 多端分叉收敛：他端方案更新 → 次日 0 点生效（D-06 同口径），
+        // 不作废本机当日周期。
+        store.savePendingPlan(
+          schedulePlanChange(remote.plan, nowUtc(), location()),
+        );
+        onPlanApplied?.call(); // 横幅刷新（planVersion++）
+        return;
+      }
+      // 回填（重装/换机）：本机没有「更新的选择」，不再 markDirtyAndTryFlush。
+      // startedAtUtc 与服务端 updatedAt 对齐，供后续收敛比较（虚拟兜底行
+      // updatedAt=null 时退回本机时钟）。
       final now = nowUtc();
-      final snapshot = resolveState(now, plan, location());
+      final snapshot = resolveState(now, remote.plan, location());
       store.saveActivePlan(
         ActivePlanSnapshot(
-          plan: plan,
+          plan: remote.plan,
           initialState: snapshot.state.name,
           targetUtc: snapshot.targetUtc,
           attributionDate: snapshot.attributionPreview?.toIsoString(),
-          startedAtUtc: now,
+          startedAtUtc: remote.serverUpdatedAtSec ?? now,
         ),
       );
       store.markOnboardingCompleted();
       // gate 放行 + 计时主控重建（未装配环境内部各自吞掉）。
       onPlanApplied?.call();
     } on Object catch (e) {
-      debugPrint('FastingPlanSync.pull: 下行回填失败（已忽略） $e');
+      debugPrint('FastingPlanSync.pull: 下行失败（已忽略） $e');
     }
   }
 
