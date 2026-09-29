@@ -10,6 +10,9 @@ import { StreakService } from '../streak/streak.service';
 export const MAX_EXTEND_MINUTES = 240; // D-10：累计 ≤4h
 export const EXTEND_STEP_MINUTES = 30; // D-10：步进 30min
 
+/** F4 历史查询范围上限（天）：展示兜底用途，防全表拖取 */
+export const MAX_RECORDS_RANGE_DAYS = 62;
+
 export interface FastingWindow {
   state: 'fasting' | 'eating';
   eatingStartAt: Date;
@@ -211,6 +214,27 @@ export class FastingService {
     await this.driver.saveFastingRecord(record);
     await this.streak.recompute(record.userId);
     return record;
+  }
+
+  /**
+   * F4 断食历史查询（只读，数据页近 7 日趋势展示兜底下行——客户端 fastingRecord
+   * 无 /sync 通道，重装后本地历史全丢，经本接口按需回填）。
+   * from/to 为归属日（yyyy-MM-dd，D-07 冻结字段）闭区间，字符串比较即日期序；
+   * 范围上限 [MAX_RECORDS_RANGE_DAYS] 天防全表拖取。
+   */
+  async listRecords(userId: string, from: string, to: string) {
+    const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRe.test(from) || !dateRe.test(to) || from > to) {
+      throw err.validation({ from: 'invalid date range (yyyy-MM-dd, from <= to)' });
+    }
+    if (addDays(from, MAX_RECORDS_RANGE_DAYS) < to) {
+      throw err.validation({ to: `range must be <= ${MAX_RECORDS_RANGE_DAYS} days` });
+    }
+    const all = await this.driver.listFastingRecordsByUser(userId);
+    return all
+      .filter((r) => r.attributionDate >= from && r.attributionDate <= to)
+      .sort((a, b) => a.attributionDate.localeCompare(b.attributionDate))
+      .map((r) => this.recordView(r));
   }
 
   /** 进行中的断食记录 find-or-create（〔假设〕随首次状态查询物化，归属日服务端算，D-07） */

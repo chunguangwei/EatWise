@@ -86,4 +86,43 @@ describe('Fasting end out-of-window guard (e2e)', () => {
     expect(after.body.data.activeRecord?.id).toBe(active!.id);
     expect(after.body.data.activeRecord?.result).toBe('on_track');
   });
+
+  it('F4 断食历史：区间返回已物化记录；非法区间 400 VALIDATION_ERROR', async () => {
+    const token = await login('+8613911000111');
+    const nowMin = shanghaiMinutesNow();
+    await request(server)
+      .put('/v1/fasting-plans/current')
+      .set('Authorization', `Bearer ${token}`)
+      .set('X-Timezone', 'Asia/Shanghai')
+      .send({
+        clientRequestId: randomUUID(),
+        planType: '16:8',
+        eatingWindow: { start: fmt(nowMin + 60), end: fmt(nowMin + 540) },
+      })
+      .expect(200);
+    const status = await request(server)
+      .get('/v1/fasting/status')
+      .set('Authorization', `Bearer ${token}`)
+      .set('X-Timezone', 'Asia/Shanghai')
+      .expect(200);
+    const active = status.body.data.activeRecord as { id: string } | null;
+    expect(active).not.toBeNull();
+
+    // 上海时区自然日（to 放到明天，覆盖跨午夜归属）。
+    const day = (offsetDays: number) =>
+      new Date(Date.now() + 8 * 3600_000 + offsetDays * 86400_000).toISOString().slice(0, 10);
+    const res = await request(server)
+      .get(`/v1/fasting/records?from=${day(-13)}&to=${day(1)}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+    expect(res.body.data[0].id).toBe(active!.id);
+
+    const bad = await request(server)
+      .get(`/v1/fasting/records?from=${day(0)}&to=${day(-1)}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+    expect(bad.body.error.code).toBe('VALIDATION_ERROR');
+  });
 });

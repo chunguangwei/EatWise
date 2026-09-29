@@ -207,6 +207,115 @@ void main() {
       expect(c.read(streakControllerProvider).serverBreakNoticeDate, isNull);
     });
 
+    test('断食历史回填：补缺归属日落 drift（含服务端 broken 口径），进行中跳过', () async {
+      // 重装/换机场景：本地 drift 断食历史全空，服务端有近 7 天记录。
+      reportApi.recentRecords = <ServerFastingRecord>[
+        ServerFastingRecord(
+          id: 'r-completed',
+          attributionDate: '2026-07-26',
+          plannedStartAt: DateTime.parse('2026-07-25T12:00:00.000Z'),
+          plannedEndAt: DateTime.parse('2026-07-26T04:00:00.000Z'),
+          actualStartAt: DateTime.parse('2026-07-25T12:00:00.000Z'),
+          actualEndAt: DateTime.parse('2026-07-26T04:00:00.000Z'),
+          extendedMinutes: 0,
+          result: 'completed',
+          isQualified: true,
+          fastedMinutes: 16 * 60,
+        ),
+        ServerFastingRecord(
+          id: 'r-broken',
+          attributionDate: '2026-07-27',
+          plannedStartAt: DateTime.parse('2026-07-26T12:00:00.000Z'),
+          plannedEndAt: DateTime.parse('2026-07-27T04:00:00.000Z'),
+          actualStartAt: DateTime.parse('2026-07-26T12:00:00.000Z'),
+          actualEndAt: DateTime.parse('2026-07-27T01:00:00.000Z'),
+          extendedMinutes: 0,
+          result: 'broken',
+          isQualified: false,
+          fastedMinutes: 13 * 60,
+        ),
+        ServerFastingRecord(
+          id: 'r-ongoing',
+          attributionDate: '2026-07-28',
+          plannedStartAt: DateTime.parse('2026-07-27T12:00:00.000Z'),
+          plannedEndAt: DateTime.parse('2026-07-28T04:00:00.000Z'),
+          extendedMinutes: 0,
+          result: 'on_track',
+          isQualified: false,
+        ),
+      ];
+      final c = container();
+      addTearDown(c.dispose);
+      final controller = c.read(streakControllerProvider.notifier);
+      await controller.refreshFromServer();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      final rows = await db.fastingRecordDao.recordsOf('u1');
+      expect(rows, hasLength(2)); // on_track 无结束锚点，不回填
+      final completed = rows.firstWhere(
+        (r) => r.attributionDate == '2026-07-26',
+      );
+      expect(completed.qualified, isTrue);
+      expect(completed.actualSec, 16 * 3600);
+      expect(completed.syncStatus, SyncStatus.synced);
+      expect(completed.clientRequestId, 'server-r-completed');
+      final broken = rows.firstWhere((r) => r.attributionDate == '2026-07-27');
+      expect(broken.qualified, isFalse);
+      expect(broken.result, CycleResult.brokenEarly.name);
+      expect(broken.actualSec, 13 * 3600);
+    });
+
+    test('断食历史回填：本机已有关闭记录的归属日不覆盖（本机为准）', () async {
+      // 本机 07-27 周期已关闭落库（离线，F2 上行失败 → pending）。
+      reportApi.offline = true;
+      final c = container();
+      addTearDown(c.dispose);
+      final controller = c.read(streakControllerProvider.notifier);
+      await controller.onFastClosed(recordOf('2026-07-27'));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      // 恢复在线：服务端 07-27 判了 broken（口径冲突），07-26 为缺口。
+      reportApi
+        ..offline = false
+        ..recentRecords = <ServerFastingRecord>[
+          ServerFastingRecord(
+            id: 'r-broken',
+            attributionDate: '2026-07-27',
+            plannedStartAt: DateTime.parse('2026-07-26T12:00:00.000Z'),
+            plannedEndAt: DateTime.parse('2026-07-27T04:00:00.000Z'),
+            actualStartAt: DateTime.parse('2026-07-26T12:00:00.000Z'),
+            actualEndAt: DateTime.parse('2026-07-27T01:00:00.000Z'),
+            extendedMinutes: 0,
+            result: 'broken',
+            isQualified: false,
+          ),
+          ServerFastingRecord(
+            id: 'r-completed',
+            attributionDate: '2026-07-26',
+            plannedStartAt: DateTime.parse('2026-07-25T12:00:00.000Z'),
+            plannedEndAt: DateTime.parse('2026-07-26T04:00:00.000Z'),
+            actualStartAt: DateTime.parse('2026-07-25T12:00:00.000Z'),
+            actualEndAt: DateTime.parse('2026-07-26T04:00:00.000Z'),
+            extendedMinutes: 0,
+            result: 'completed',
+            isQualified: true,
+          ),
+        ];
+      await controller.refreshFromServer();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      final rows = await db.fastingRecordDao.recordsOf('u1');
+      expect(rows, hasLength(2));
+      // 本机行不被服务端口径覆盖（冲突由 S1 streak 权威口径另行收口）。
+      final local = rows.firstWhere((r) => r.attributionDate == '2026-07-27');
+      expect(local.qualified, isTrue);
+      expect(local.syncStatus, SyncStatus.pending);
+      expect(
+        rows.firstWhere((r) => r.attributionDate == '2026-07-26').syncStatus,
+        SyncStatus.synced,
+      );
+    });
+
     test('补签卡在线（S2）：服务端视图对账，本地账本同步', () async {
       // 预播种：07-25/26 已达标并结算到 07-26；build 启动结算 → 07-27 断签。
       store.saveEngine(_preseededEngine());
@@ -364,6 +473,7 @@ final class _FakeFastingReportApi extends FastingReportApi {
 
   bool offline = false;
   ServerActiveFast? active;
+  List<ServerFastingRecord> recentRecords = const <ServerFastingRecord>[];
   final List<({String recordId, String clientRequestId})> endCalls =
       <({String recordId, String clientRequestId})>[];
 
@@ -381,5 +491,14 @@ final class _FakeFastingReportApi extends FastingReportApi {
   }) async {
     if (offline) throw const NetworkApiException();
     endCalls.add((recordId: recordId, clientRequestId: clientRequestId));
+  }
+
+  @override
+  Future<List<ServerFastingRecord>> fetchRecentRecords({
+    required String from,
+    required String to,
+  }) async {
+    if (offline) throw const NetworkApiException();
+    return recentRecords;
   }
 }

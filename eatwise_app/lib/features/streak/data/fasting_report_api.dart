@@ -12,6 +12,43 @@ final class ServerActiveFast {
   final String attributionDate;
 }
 
+/// F4 服务端断食历史记录（`GET /fasting/records` 元素，展示回填用子集）。
+final class ServerFastingRecord {
+  const ServerFastingRecord({
+    required this.id,
+    required this.attributionDate,
+    required this.plannedStartAt,
+    required this.plannedEndAt,
+    required this.extendedMinutes,
+    required this.result,
+    required this.isQualified,
+    this.actualStartAt,
+    this.actualEndAt,
+    this.fastedMinutes,
+  });
+
+  final String id;
+
+  /// 归属日（yyyy-MM-dd，D-07 冻结）。
+  final String attributionDate;
+
+  final DateTime plannedStartAt;
+  final DateTime plannedEndAt;
+
+  /// null = 进行中（on_track），回填时跳过。
+  final DateTime? actualStartAt;
+  final DateTime? actualEndAt;
+
+  final int extendedMinutes;
+
+  /// 服务端终态（completed / ended_early / broken / on_track / makeup）。
+  final String result;
+
+  /// D-08 达标判定（streak 唯一口径，服务端权威）。
+  final bool isQualified;
+  final int? fastedMinutes;
+}
+
 /// 断食打卡上报接口（F1/F2，达标事件上行供服务端重算 streak，D-12 口径）。
 ///
 /// 接线策略（尽力而为，不阻断本地计时流）：
@@ -55,6 +92,43 @@ class FastingReportApi {
           'endedAt': endedAtUtc.toIso8601String(),
         },
       );
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
+  /// F4 断食历史下行（数据页近 7 日趋势展示兜底；attributionDate 闭区间）。
+  Future<List<ServerFastingRecord>> fetchRecentRecords({
+    required String from,
+    required String to,
+  }) async {
+    try {
+      final response = await _dio.get<List<dynamic>>(
+        '/fasting/records',
+        queryParameters: <String, dynamic>{'from': from, 'to': to},
+      );
+      final list = response.data ?? const <dynamic>[];
+      return list
+          .whereType<Map<String, dynamic>>()
+          .map(
+            (r) => ServerFastingRecord(
+              id: r['id'] as String? ?? '',
+              attributionDate: r['attributionDate'] as String? ?? '',
+              plannedStartAt: DateTime.parse(r['plannedStartAt'] as String),
+              plannedEndAt: DateTime.parse(r['plannedEndAt'] as String),
+              actualStartAt: r['actualStartAt'] == null
+                  ? null
+                  : DateTime.parse(r['actualStartAt'] as String),
+              actualEndAt: r['actualEndAt'] == null
+                  ? null
+                  : DateTime.parse(r['actualEndAt'] as String),
+              extendedMinutes: (r['extendedMinutes'] as num?)?.toInt() ?? 0,
+              result: r['result'] as String? ?? '',
+              isQualified: r['isQualified'] as bool? ?? false,
+              fastedMinutes: (r['fastedMinutes'] as num?)?.toInt(),
+            ),
+          )
+          .toList();
     } on DioException catch (e) {
       throw toApiException(e);
     }

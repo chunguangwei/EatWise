@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, HttpCode, Inject, Post, Put } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Inject, Post, Put, Query } from '@nestjs/common';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { isValidTimezone } from '../common/utils/time.util';
@@ -58,6 +58,16 @@ export class FastingController {
   @Get('fasting/status')
   async getStatus(@CurrentUser() user: AuthUser, @Headers('x-timezone') tz?: string) {
     return this.fasting.getStatus(user.userId, await this.tz(user, tz));
+  }
+
+  /** F4 断食历史（近 N 天，数据页趋势展示兜底下行；attributionDate 闭区间） */
+  @Get('fasting/records')
+  listRecords(
+    @CurrentUser() user: AuthUser,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.fasting.listRecords(user.userId, from ?? '', to ?? '');
   }
 
   /** F2 手动结束断食上报 */

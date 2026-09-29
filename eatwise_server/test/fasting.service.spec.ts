@@ -214,6 +214,29 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
     });
   });
 
+  describe('F4 断食历史查询（展示兜底下行）', () => {
+    it('按归属日闭区间过滤、升序返回 recordView', async () => {
+      makeRecord({ attributionDate: '2026-07-26' });
+      makeRecord(); // 2026-07-27
+      makeRecord({ attributionDate: '2026-07-29' }); // 区间外
+      const list = await fasting.listRecords(userId, '2026-07-26', '2026-07-28');
+      expect(list.map((r) => r.attributionDate)).toEqual(['2026-07-26', '2026-07-27']);
+      expect(list[0].result).toBe('on_track');
+    });
+
+    it('非法区间（from>to / 格式错 / 超上限）→ 400 VALIDATION_ERROR', async () => {
+      await expect(fasting.listRecords(userId, '2026-07-28', '2026-07-27')).rejects.toThrow(
+        expect.objectContaining({ code: 'VALIDATION_ERROR' }) as unknown as Error,
+      );
+      await expect(fasting.listRecords(userId, '2026/07/01', '2026-07-27')).rejects.toThrow(
+        expect.objectContaining({ code: 'VALIDATION_ERROR' }) as unknown as Error,
+      );
+      await expect(fasting.listRecords(userId, '2026-07-01', '2026-12-31')).rejects.toThrow(
+        expect.objectContaining({ code: 'VALIDATION_ERROR' }) as unknown as Error,
+      );
+    });
+  });
+
   describe('延长（D-10：步进 30min，累计 ≤240min）', () => {
     it('步进非 30 的倍数 → VALIDATION_ERROR', async () => {
       const r = makeRecord();

@@ -11,6 +11,7 @@ import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/fasting/domain/fasting_record.dart';
+import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/streak/application/streak_local_store.dart';
 import 'package:eatwise/features/streak/data/fasting_report_api.dart';
@@ -267,6 +268,85 @@ final class StreakController extends Notifier<StreakUiState> {
       _reconcile(view, milestones);
     } on Object {
       // 离线：保留本地推演，fromServer 维持 false。
+    }
+    unawaited(_backfillRecentFastingRecords());
+  }
+
+  /// 近 14 天断食历史下行回填（v1.13.28：fastingRecord 无 /sync 通道，重装/
+  /// 换机后本地 drift 断食历史全丢，数据页近 7 日趋势只剩本机新关闭的记录
+  /// ——「打满当天才显示」根因）。只补缺：本机已有关闭记录的归属日不动
+  /// （本机为准）；on_track 进行中跳过（无结束锚点）；回填行 syncStatus=
+  /// synced、clientRequestId=`server-<id>`（与本地 UUID 幂等键不撞）。
+  /// 失败静默（离线保留本地既有展示，下轮对账再补）。
+  Future<void> _backfillRecentFastingRecords() async {
+    try {
+      final userId = ref.read(currentUserIdProvider);
+      if (userId == 'anonymous') return; // 未登录无服务端历史可补
+      AppDatabase? db;
+      try {
+        db = ref.read(appDatabaseProvider);
+      } on Object {
+        return; // 未注入数据库（测试/预览场景）：跳过回填
+      }
+      if (db == null) return;
+      final today = _today();
+      final records = await ref
+          .read(fastingReportApiProvider)
+          .fetchRecentRecords(from: addDaysToIsoDate(today, -13), to: today);
+      if (records.isEmpty) return;
+      final existingDates = (await db.fastingRecordDao.recordsOf(
+        userId,
+      )).map((r) => r.attributionDate).toSet();
+      for (final r in records) {
+        if (r.actualEndAt == null || r.result == 'on_track') continue;
+        if (r.attributionDate.isEmpty ||
+            existingDates.contains(r.attributionDate)) {
+          continue;
+        }
+        final start = r.actualStartAt ?? r.plannedStartAt;
+        final end = r.actualEndAt!;
+        await db.fastingRecordDao.upsertRecord(
+          FastingRecordsCompanion(
+            localId: Value('$userId-${r.attributionDate}'),
+            userId: Value(userId),
+            attributionDate: Value(r.attributionDate),
+            startUtc: Value(start.millisecondsSinceEpoch ~/ 1000),
+            endUtc: Value(end.millisecondsSinceEpoch ~/ 1000),
+            actualSec: Value(
+              r.fastedMinutes != null
+                  ? r.fastedMinutes! * 60
+                  : end.difference(start).inSeconds,
+            ),
+            plannedSec: Value(
+              r.plannedEndAt.difference(r.plannedStartAt).inSeconds,
+            ),
+            extendedMinutes: Value(r.extendedMinutes),
+            result: Value(_serverResultName(r)),
+            qualified: Value(r.isQualified),
+            clientRequestId: Value('server-${r.id}'),
+            syncStatus: const Value(SyncStatus.synced),
+            createdAtUtc: Value(DateTime.now().toUtc().toIso8601String()),
+          ),
+        );
+      }
+    } on Object {
+      // 离线/未装配：本地既有数据照常展示。
+    }
+  }
+
+  /// 服务端终态 → 本地 CycleResult 枚举名（drift result 列口径，展示用）。
+  static String _serverResultName(ServerFastingRecord r) {
+    switch (r.result) {
+      case 'broken':
+        return CycleResult.brokenEarly.name;
+      case 'ended_early':
+        return CycleResult.completedEarlyPass.name;
+      case 'completed':
+        return r.extendedMinutes > 0
+            ? CycleResult.completedExtended.name
+            : CycleResult.completedOnTime.name;
+      default: // makeup 等：达标行按到点完成展示
+        return CycleResult.completedOnTime.name;
     }
   }
 
