@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/notification/notification_types.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_scheduler.dart';
@@ -159,6 +160,64 @@ void main() {
     );
     // 空态信号卡（今日无记录，不出现误导性信号灯）
     expect(find.text('今天还没记录，记一笔后信号灯会亮起来'), findsOneWidget);
+
+    await unmount(tester);
+  });
+
+  testWidgets('通知权限被回收（重装）：启动降级自愈申请一次 + 横幅引导，授权后补排', (tester) async {
+    // 模拟 Android 13+ 重装后 POST_NOTIFICATIONS 被回收：重排降级、不排程。
+    scheduler.service.permission = NotificationPermissionStatus.denied;
+    await pumpHome(
+      tester,
+      extraOverrides: <Override>[
+        localNotificationServiceProvider.overrideWithValue(scheduler.service),
+      ],
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // 启动重排降级 → 自动补一次「用时申请」（每会话一次）+ 可见横幅。
+    expect(
+      scheduler.service.calls.where((c) => c == 'requestPermission').length,
+      1,
+    );
+    expect(find.text('开启通知，到点提醒你进食、断食与喝水'), findsOneWidget);
+    expect(scheduler.service.scheduled, isEmpty); // 未授权不排程
+
+    // 用户在系统弹窗中授权：点「去开启」→ 申请通过 → 立刻补排 → 横幅消失。
+    scheduler.service.permission = NotificationPermissionStatus.granted;
+    await tester.tap(find.text('去开启'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(
+      scheduler.service.calls.where((c) => c == 'requestPermission').length,
+      2,
+    );
+    expect(scheduler.rescheduleCalls.length, greaterThanOrEqualTo(2));
+    expect(scheduler.service.scheduled, isNotEmpty); // 断食提醒已补排
+    expect(find.text('开启通知，到点提醒你进食、断食与喝水'), findsNothing);
+
+    await unmount(tester);
+  });
+
+  testWidgets('无方案用户：启动同样对账重排（喝水提醒兜底链不断）', (tester) async {
+    // 清掉活动方案 → NO_PLAN 分支也要触发 appForeground 重排（断食侧
+    // 清空、喝水侧按 16:8 兜底窗口照排——此前该分支不重排，无方案用户
+    // 的喝水提醒永远不会被排程）。
+    await prefs.clear();
+    await pumpHome(tester);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(
+      scheduler.rescheduleCalls.any(
+        (c) => c.plan == null && c.reason == RescheduleReason.appForeground,
+      ),
+      isTrue,
+    );
+    // 权限正常（默认 granted）时横幅不出现。
+    expect(find.text('开启通知，到点提醒你进食、断食与喝水'), findsNothing);
 
     await unmount(tester);
   });

@@ -4,6 +4,7 @@ import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/exposure_tracker.dart';
 import 'package:eatwise/core/analytics/scroll_depth_tracker.dart';
+import 'package:eatwise/core/notification/notification_types.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
@@ -66,6 +67,7 @@ class _FastingHomePageState extends ConsumerState<FastingHomePage> {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final timer = ref.watch(fastingTimerControllerProvider);
+    final permissionStatus = ref.watch(notificationPermissionStatusProvider);
 
     return Scaffold(
       backgroundColor: colors.bgPrimary,
@@ -74,9 +76,63 @@ class _FastingHomePageState extends ConsumerState<FastingHomePage> {
         title: Text(t.fasting.home.title),
       ),
       body: SafeArea(
-        child: timer.plan == null
-            ? const _NoPlanBody()
-            : _TimerBody(timer: timer),
+        child: Column(
+          children: <Widget>[
+            // 通知权限降级横幅（v1.13.28）：重装/权限被回收后提醒全停且
+            // 此前完全静默——探测到未授权即给可见引导，动作走
+            // 申请权限→补排／系统设置（controller 单入口）。
+            if (permissionStatus != null &&
+                permissionStatus != NotificationPermissionStatus.granted)
+              _NotificationPermissionBanner(status: permissionStatus),
+            Expanded(
+              child: timer.plan == null
+                  ? const _NoPlanBody()
+                  : _TimerBody(timer: timer),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 通知权限降级横幅：未授权时固定在首页顶部，点「去开启」申请/跳设置。
+class _NotificationPermissionBanner extends ConsumerWidget {
+  const _NotificationPermissionBanner({required this.status});
+
+  final NotificationPermissionStatus status;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = Translations.of(context);
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    return Container(
+      width: double.infinity,
+      color: colors.brandAccent.withValues(alpha: 0.12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s4,
+        vertical: AppSpacing.s2,
+      ),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Text(
+              t.notify.permissionBanner,
+              style: textStyles.textSm.copyWith(color: colors.textPrimary),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              unawaited(
+                ref
+                    .read(fastingTimerControllerProvider.notifier)
+                    .requestNotificationPermissionAndReschedule(),
+              );
+            },
+            child: Text(t.notify.permissionBannerAction),
+          ),
+        ],
       ),
     );
   }

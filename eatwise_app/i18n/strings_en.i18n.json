@@ -14,7 +14,8 @@
         "description": "Hourly water nudges during your eating window"
       }
     },
-    "permissionBanner": "Turn on notifications to get reminded when your eating and fasting windows start",
+    "permissionBanner": "Turn on notifications to get eating, fasting and water reminders",
+    "permissionBannerAction": "Turn on",
     "exactAlarmHint": "Battery-saving policies may delay reminders — allow exact alarms for on-time alerts"
   },
   "onboarding": {

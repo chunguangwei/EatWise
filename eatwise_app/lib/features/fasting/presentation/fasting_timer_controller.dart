@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:app_settings/app_settings.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/analytics_service.dart';
 import 'package:eatwise/core/notification/local_notification_service.dart';
 import 'package:eatwise/core/notification/notification_service.dart';
+import 'package:eatwise/core/notification/notification_types.dart';
 import 'package:eatwise/core/widget_bridge/widget_sync_service.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_scheduler.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_texts.dart';
@@ -35,6 +37,14 @@ import 'package:timezone/timezone.dart' as tz;
 final localNotificationServiceProvider = Provider<NotificationService>((ref) {
   return LocalNotificationService();
 });
+
+/// 最近一次通知重排探测到的系统通知权限状态（null = 尚未探测）。
+///
+/// 由 [FastingTimerController._reschedule] 每轮重排回写；首页据此展示
+/// 权限降级横幅（v1.13.28：重装/权限被回收后此前完全静默，提醒全停且
+/// 无任何可见引导——`RescheduleResult.degraded` 曾有设计无消费方）。
+final notificationPermissionStatusProvider =
+    StateProvider<NotificationPermissionStatus?>((ref) => null);
 
 /// 已登记待生效的换方案（T12，D-06）；无 pending 时为 null。
 ///
@@ -182,6 +192,10 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     final activated = _activatePendingPlanIfDue(onboardStore);
     final plan = activated ?? onboardStore.loadActivePlan()?.plan;
     if (plan == null) {
+      // NO_PLAN 也要对账重排（v1.13.28）：断食侧清空，但喝水提醒（开关
+      // 默认开、回落 16:8 兜底窗口）依赖这条链在启动/回前台时存在——
+      // 此前只排断食侧，无方案用户的喝水提醒永远不会被排程。
+      _reschedule(null, 0, RescheduleReason.appForeground);
       _syncWidget(null);
       return const FastingTimerState.noPlan();
     }
@@ -567,16 +581,84 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     unawaited(Future.sync(() => ref.read(fastingStreakHookProvider)(record)));
   }
 
-  void _reschedule(FastingPlan plan, int extensionMinutes, RescheduleReason r) {
-    unawaited(
-      ref
-          .read(fastingNotificationSchedulerProvider)
-          .reschedule(
-            plan: plan,
-            extensionMinutes: extensionMinutes,
-            reason: r,
-          ),
-    );
+  /// 通知重排单入口（plan 可空 = NO_PLAN，调度器内清空断食侧、喝水侧
+  /// 按兜底窗口照排）。回执写 [notificationPermissionStatusProvider] 供
+  /// 首页权限横幅消费；权限降级时走 [_retryPermissionOnce] 自愈。
+  void _reschedule(
+    FastingPlan? plan,
+    int extensionMinutes,
+    RescheduleReason r,
+  ) {
+    unawaited(() async {
+      try {
+        final result = await ref
+            .read(fastingNotificationSchedulerProvider)
+            .reschedule(
+              plan: plan,
+              extensionMinutes: extensionMinutes,
+              reason: r,
+            );
+        ref.read(notificationPermissionStatusProvider.notifier).state =
+            result.permissionStatus;
+        if (result.degraded) {
+          await _retryPermissionOnce(plan, extensionMinutes);
+        }
+      } on Object {
+        // 通知链路未装配（测试/预览）：计时不阻断。
+      }
+    }());
+  }
+
+  /// 权限降级自愈（v1.13.28）：提醒类功能已开启（有断食方案或喝水开关开）
+  /// 即「用时申请」口径——重装/权限被系统回收后，首个降级重排自动补一次
+  /// 系统权限申请；授予则立刻补排，拒绝则不再本会话内重复打扰（首页横幅
+  /// 接力引导去系统设置）。每会话最多一次（控制器实例即会话生命周期）。
+  Future<void> _retryPermissionOnce(
+    FastingPlan? plan,
+    int extensionMinutes,
+  ) async {
+    if (_permissionRetryDone) return;
+    _permissionRetryDone = true;
+    final waterEnabled = ref.read(waterReminderStoreProvider).isEnabled;
+    if (plan == null && !waterEnabled) return; // 提醒功能全关：不申请
+    await requestNotificationPermissionAndReschedule();
+  }
+
+  bool _permissionRetryDone = false;
+
+  /// 首页权限横幅动作：申请通知权限；授予则立即补排（断食+喝水），仍拒绝
+  /// （系统不再弹窗）则引导去系统通知设置页。状态回写
+  /// [notificationPermissionStatusProvider] 驱动横幅显隐。
+  Future<void> requestNotificationPermissionAndReschedule() async {
+    NotificationPermissionStatus status;
+    try {
+      status = await ref
+          .read(localNotificationServiceProvider)
+          .requestPermission();
+    } on Object {
+      return; // 插件不可用（测试/桌面端）：保留现状
+    }
+    ref.read(notificationPermissionStatusProvider.notifier).state = status;
+    if (status == NotificationPermissionStatus.granted) {
+      try {
+        await ref
+            .read(fastingNotificationSchedulerProvider)
+            .reschedule(
+              plan: state.plan,
+              extensionMinutes: _store.loadActiveCycle()?.extendedMinutes ?? 0,
+              reason: RescheduleReason.appForeground,
+            );
+      } on Object {
+        // 未装配：下一轮重排自然补齐。
+      }
+    } else {
+      // 系统不再弹权限窗（此前已拒绝）：跳转系统通知设置页引导手动开启。
+      try {
+        await AppSettings.openAppSettings(type: AppSettingsType.notification);
+      } on Object {
+        // 防御：插件不可用。
+      }
+    }
   }
 }
 

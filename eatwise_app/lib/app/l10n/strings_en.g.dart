@@ -65,7 +65,8 @@ class _Translations$notify$en extends Translations$notify$zh_CN {
 
 	// Translations
 	@override late final _Translations$notify$channel$en channel = _Translations$notify$channel$en._(_root);
-	@override String get permissionBanner => 'Turn on notifications to get reminded when your eating and fasting windows start';
+	@override String get permissionBanner => 'Turn on notifications to get eating, fasting and water reminders';
+	@override String get permissionBannerAction => 'Turn on';
 	@override String get exactAlarmHint => 'Battery-saving policies may delay reminders — allow exact alarms for on-time alerts';
 }
 
@@ -2413,7 +2414,8 @@ extension on TranslationsEn {
 			'notify.channel.general.description' => 'General app reminders',
 			'notify.channel.waterReminders.name' => 'Water reminders',
 			'notify.channel.waterReminders.description' => 'Hourly water nudges during your eating window',
-			'notify.permissionBanner' => 'Turn on notifications to get reminded when your eating and fasting windows start',
+			'notify.permissionBanner' => 'Turn on notifications to get eating, fasting and water reminders',
+			'notify.permissionBannerAction' => 'Turn on',
 			'notify.exactAlarmHint' => 'Battery-saving policies may delay reminders — allow exact alarms for on-time alerts',
 			'onboarding.quiz.title' => '3 quick questions to find your fasting rhythm 🌱',
 			'onboarding.quiz.progress' => ({required Object step, required Object total}) => 'Question ${step} of ${total}',
@@ -2918,9 +2920,9 @@ extension on TranslationsEn {
 			'nutrition.signalCard.zone.green' => 'On track',
 			'nutrition.signalCard.zone.yellow' => 'Heads-up',
 			'nutrition.signalCard.zone.red' => 'Warning',
-			'nutrition.signalCard.advice.kcal.green' => 'Your calories are right on track today — nice and steady, keep it up! 🌱',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.signalCard.advice.kcal.green' => 'Your calories are right on track today — nice and steady, keep it up! 🌱',
 			'nutrition.signalCard.advice.kcal.yellowLow' => ({required Object meal_action}) => 'You\'re a bit under on calories — ${meal_action}. Your body will thank you.',
 			'nutrition.signalCard.advice.kcal.yellowHigh' => ({required Object meal_action}) => 'Calories are a touch high — ${meal_action} and you\'re right back on track.',
 			'nutrition.signalCard.advice.kcal.redLow' => ({required Object meal_action}) => 'You\'re well under today — outside your fasting window, do eat well: ${meal_action}.',

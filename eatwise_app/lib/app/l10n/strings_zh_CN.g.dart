@@ -67,8 +67,11 @@ class Translations$notify$zh_CN {
 	// Translations
 	late final Translations$notify$channel$zh_CN channel = Translations$notify$channel$zh_CN.internal(_root);
 
-	/// zh-CN: '开启通知，到点提醒你进食与断食'
-	String get permissionBanner => '开启通知，到点提醒你进食与断食';
+	/// zh-CN: '开启通知，到点提醒你进食、断食与喝水'
+	String get permissionBanner => '开启通知，到点提醒你进食、断食与喝水';
+
+	/// zh-CN: '去开启'
+	String get permissionBannerAction => '去开启';
 
 	/// zh-CN: '系统省电策略可能延迟提醒，建议允许精确闹钟'
 	String get exactAlarmHint => '系统省电策略可能延迟提醒，建议允许精确闹钟';
@@ -4397,7 +4400,8 @@ extension on Translations {
 			'notify.channel.general.description' => 'App 的一般性提醒',
 			'notify.channel.waterReminders.name' => '喝水提醒',
 			'notify.channel.waterReminders.description' => '进食窗口内的每小时喝水提醒',
-			'notify.permissionBanner' => '开启通知，到点提醒你进食与断食',
+			'notify.permissionBanner' => '开启通知，到点提醒你进食、断食与喝水',
+			'notify.permissionBannerAction' => '去开启',
 			'notify.exactAlarmHint' => '系统省电策略可能延迟提醒，建议允许精确闹钟',
 			'onboarding.quiz.title' => '3 个小问题，帮你找到最适合的断食节奏 🌱',
 			'onboarding.quiz.progress' => ({required Object step, required Object total}) => '第 ${step} 题，共 ${total} 题',
@@ -4902,9 +4906,9 @@ extension on Translations {
 			'nutrition.signalCard.zone.green' => '达标',
 			'nutrition.signalCard.zone.yellow' => '适量提醒',
 			'nutrition.signalCard.zone.red' => '警示',
-			'nutrition.signalCard.advice.kcal.green' => '今天热量刚刚好，节奏很稳，继续保持～ 🌱',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.signalCard.advice.kcal.green' => '今天热量刚刚好，节奏很稳，继续保持～ 🌱',
 			'nutrition.signalCard.advice.kcal.yellowLow' => ({required Object meal_action}) => '今天吃得有点少，${meal_action}，身体会感谢你的。',
 			'nutrition.signalCard.advice.kcal.yellowHigh' => ({required Object meal_action}) => '热量有一点点高，${meal_action}，就回来啦。',
 			'nutrition.signalCard.advice.kcal.redLow' => ({required Object meal_action}) => '今天摄入太少了，断食之外也要好好吃饭哦，${meal_action}。',
