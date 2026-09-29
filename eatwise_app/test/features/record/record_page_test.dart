@@ -291,7 +291,9 @@ void main() {
   });
 
   testWidgets('今日记录列表：搜索框为空且有记录时按餐次分组展示（无餐次归「其他」）', (tester) async {
-    final today = localDateKey(DateTime.now());
+    // 归属日种子必须与生产同口径（repo.location；勿用进程时区
+    // localDateKey——CI TZ=UTC 与北京跨日分叉，v1.14.x CI 二连红根因）。
+    final today = repository.localDateKeyOf(DateTime.now());
     final nowIso = DateTime.now().toUtc().toIso8601String();
     Future<void> seedEntry(String id, String foodId, MealType? mealType) {
       return db.foodEntryDao.insertEntry(

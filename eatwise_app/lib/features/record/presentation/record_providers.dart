@@ -513,7 +513,8 @@ final StreamProvider<int> todayDuringFastCountProvider = StreamProvider<int>((
     final repo = ref.watch(recordRepositoryProvider);
     return repo.db.foodEntryDao.watchDuringFastCount(
       repo.userId,
-      localDateKey(DateTime.now()),
+      // 「今日」与写入侧同口径（repo.location，与 todayEntriesProvider 同修）。
+      repo.localDateKeyOf(DateTime.now()),
     );
   } on Object {
     return Stream<int>.value(0);
