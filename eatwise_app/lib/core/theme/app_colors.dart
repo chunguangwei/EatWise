@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 ///
 /// 亮色色值取设计稿；暗色色值按 §2.7 推导规则占位〔假设〕，
 /// 待设计侧输出暗色 Token 表后替换。
+/// 2026-09-29 UI 重构（参考苹果健身/华为运动健康）：新增环图/图表强调色组
+/// （ring*/chart*，加性不破坏既有命名）。
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
   const AppColors({
@@ -18,6 +20,10 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.textPrimary,
     required this.textSecondary,
     required this.border,
+    required this.ringExercise,
+    required this.ringStand,
+    required this.ringMove,
+    required this.chartPurple,
   });
 
   /// 轻盈绿：品牌主色、断食进行态、CTA。
@@ -53,6 +59,19 @@ class AppColors extends ThemeExtension<AppColors> {
   /// 描边（与雾灰同源，透明度由组件定）。
   final Color border;
 
+  /// 环图·活动/断食（与 brandPrimary 同值，独立语义——多环图专属，
+  /// 改品牌色时环图配色可独立调整）。
+  final Color ringExercise;
+
+  /// 环图·站立/步数（青蓝，苹果站立环同族色）。
+  final Color ringStand;
+
+  /// 环图·消耗/进食（与 brandAccent 同值，独立语义）。
+  final Color ringMove;
+
+  /// 图表·紫（睡眠/心率/体重趋势类卡片强调色，华为迷你图表卡同族色）。
+  final Color chartPurple;
+
   /// 亮色主题 Token（设计稿 §2.2）。
   static const AppColors light = AppColors(
     brandPrimary: Color(0xFF3DBE8B),
@@ -66,6 +85,10 @@ class AppColors extends ThemeExtension<AppColors> {
     textPrimary: Color(0xFF1E2A28),
     textSecondary: Color(0xFF8A9694),
     border: Color(0xFF8A9694),
+    ringExercise: Color(0xFF3DBE8B),
+    ringStand: Color(0xFF4CA6FF),
+    ringMove: Color(0xFFFF9F45),
+    chartPurple: Color(0xFF8B7CF6),
   );
 
   /// 暗色主题 Token〔假设〕：按 §2.7 推导——背景反转为深灰绿系、
@@ -83,6 +106,10 @@ class AppColors extends ThemeExtension<AppColors> {
     textPrimary: Color(0xFFF7F9F8), // §2.7 给定推导值
     textSecondary: Color(0xFF8A9694), // 雾灰在深底上仍可用〔假设〕
     border: Color(0xFF8A9694),
+    ringExercise: Color(0xFF3DBE8B), // 品牌色不变（§2.7）
+    ringStand: Color(0xFF5CB2FF), // 青蓝暗色提亮〔假设〕
+    ringMove: Color(0xFFFF9F45),
+    chartPurple: Color(0xFFA39AFF), // 紫暗色提亮〔假设〕
   );
 
   @override
@@ -98,6 +125,10 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? textPrimary,
     Color? textSecondary,
     Color? border,
+    Color? ringExercise,
+    Color? ringStand,
+    Color? ringMove,
+    Color? chartPurple,
   }) {
     return AppColors(
       brandPrimary: brandPrimary ?? this.brandPrimary,
@@ -111,6 +142,10 @@ class AppColors extends ThemeExtension<AppColors> {
       textPrimary: textPrimary ?? this.textPrimary,
       textSecondary: textSecondary ?? this.textSecondary,
       border: border ?? this.border,
+      ringExercise: ringExercise ?? this.ringExercise,
+      ringStand: ringStand ?? this.ringStand,
+      ringMove: ringMove ?? this.ringMove,
+      chartPurple: chartPurple ?? this.chartPurple,
     );
   }
 
@@ -133,6 +168,10 @@ class AppColors extends ThemeExtension<AppColors> {
       textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
       textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
       border: Color.lerp(border, other.border, t)!,
+      ringExercise: Color.lerp(ringExercise, other.ringExercise, t)!,
+      ringStand: Color.lerp(ringStand, other.ringStand, t)!,
+      ringMove: Color.lerp(ringMove, other.ringMove, t)!,
+      chartPurple: Color.lerp(chartPurple, other.chartPurple, t)!,
     );
   }
 }

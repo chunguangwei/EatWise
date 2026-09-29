@@ -150,29 +150,33 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('分组渲染：账号/隐私/偏好/提醒/关于与关键行齐备', (tester) async {
+  testWidgets('分组渲染：四组卡（身体与目标/账号与安全/数据与AI/关于与法务）与关键行齐备', (tester) async {
     await pumpSettings(tester);
 
     expect(find.text('设置'), findsOneWidget);
-    // 组标题「账号」+ 账号标识行标题「账号」（D-13 v2）两处同文案。
-    expect(find.text('账号'), findsNWidgets(2));
-    expect(find.text('隐私'), findsOneWidget);
-    expect(find.text('删除账号'), findsOneWidget);
-    expect(find.text('身体档案'), findsOneWidget); // 阶段 A 新增入口（账号组）
-    expect(find.text('导出我的数据'), findsOneWidget);
+    // 资料头卡（圆形头像占位 + 「账号」小标签）。
+    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+    expect(find.text('身体与目标'), findsOneWidget);
+    expect(find.text('身体档案'), findsOneWidget);
     expect(find.text('健康数据授权'), findsOneWidget);
-    expect(find.text('数据分析授权'), findsOneWidget);
+    expect(find.text('通知设置'), findsOneWidget);
+    // 组标题「账号与安全」与危险行（头卡加高后落在首屏外，先滚动）。
+    await scrollTo(tester, find.text('账号与安全'));
+    expect(find.text('账号与安全'), findsOneWidget);
+    await scrollTo(tester, find.text('删除账号'));
+    expect(find.text('删除账号'), findsOneWidget);
 
-    // 账号区新增「身体档案」行后偏好组落在视口外，先滚动到可见。
-    await scrollTo(tester, find.text('偏好'));
+    // 数据与 AI 组（视口外先滚动）。
+    await scrollTo(tester, find.text('数据与 AI'));
     expect(find.text('语言'), findsOneWidget);
     expect(find.text('主题'), findsOneWidget);
+    expect(find.text('导出我的数据'), findsOneWidget);
+    expect(find.text('数据分析授权'), findsOneWidget);
 
-    await scrollTo(tester, find.text('免责声明与特殊人群提示'));
-    expect(find.text('提醒'), findsOneWidget);
-    expect(find.text('通知设置'), findsOneWidget);
-    expect(find.text('关于'), findsOneWidget);
+    // 关于与法务组（协议四项收敛进「协议与说明」合并入口）。
+    await scrollTo(tester, find.text('关于与法务'));
     expect(find.text('版本'), findsOneWidget);
+    expect(find.text('协议与说明'), findsOneWidget);
 
     await unmount(tester);
   });
@@ -192,7 +196,7 @@ void main() {
 
     // 全树文案立即切英文，无需重启。
     expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('Privacy'), findsOneWidget);
+    expect(find.text('Data & AI'), findsOneWidget);
     expect(LocaleSettings.currentLocale, AppLocale.en);
     expect(prefs.getString('settings.languageMode'), 'en');
 
@@ -220,10 +224,11 @@ void main() {
     await pumpSettings(tester);
     expect(consentStore.analyticsGranted, isFalse);
 
-    // 两个 Switch：①健康数据授权 ②数据分析授权。隐私组新增「已屏蔽用户」
-    // 行后开关落在视口外，先滚动到可见（与主题行同款处理）。
-    final analyticsSwitch = find.byType(Switch).at(1);
-    await scrollTo(tester, analyticsSwitch);
+    // 三个 Switch：①喝水提醒 ②健康数据授权 ③数据分析授权。ListView 懒
+    // 构建会回收视口外行——先按文案滚到「数据分析授权」行，再取当前树内
+    // 最后一个 Switch（滚出视口的喝水提醒行已被回收，不能用固定下标）。
+    await scrollTo(tester, find.text('数据分析授权'));
+    final analyticsSwitch = find.byType(Switch).last;
     await tester.tap(analyticsSwitch);
     await tester.pump();
     await tester.pump();
@@ -242,7 +247,8 @@ void main() {
     privacyStore.healthDataGranted = true;
     await pumpSettings(tester);
 
-    final healthSwitch = find.byType(Switch).first;
+    // Switch 顺序（UI 重构后）：①喝水提醒 ②健康数据授权 ③数据分析授权。
+    final healthSwitch = find.byType(Switch).at(1);
     expect(tester.widget<Switch>(healthSwitch).value, isTrue);
 
     await tester.tap(healthSwitch);
@@ -257,6 +263,7 @@ void main() {
   testWidgets('导出数据走 U3：返回服务端聚合 JSON 保存路径并提示', (tester) async {
     await pumpSettings(tester);
 
+    await scrollTo(tester, find.text('导出我的数据'));
     await tester.tap(find.text('导出我的数据'));
     await tester.pump();
     await tester.pump();
@@ -274,6 +281,7 @@ void main() {
     adapter.stub('/auth/logout', StubResponse.json(200, <String, Object?>{}));
     await pumpSettings(tester);
 
+    await scrollTo(tester, find.text('删除账号'));
     await tester.tap(find.text('删除账号'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
@@ -405,6 +413,7 @@ void main() {
     // U1 成功已写入缓存。
     expect(prefs.getString(AccountIdentityStore.key), '+8613****8000');
 
+    await scrollTo(tester, find.text('登出'));
     await tester.tap(find.text('登出'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
@@ -428,8 +437,10 @@ void main() {
     expect(find.text('登出'), findsNothing);
     expect(find.text('删除账号'), findsNothing);
     expect(find.text('修改密码'), findsNothing);
-    expect(find.text('登录'), findsOneWidget);
+    // 头卡加高后「登录」行落在首屏外，先滚动（未登录占位在头卡上）。
     expect(find.text('未登录'), findsOneWidget);
+    await scrollTo(tester, find.text('登录'));
+    expect(find.text('登录'), findsOneWidget);
   });
 
   testWidgets('冷静期内账号：显示删除预约状态，撤销（U6）后提示并刷新', (tester) async {
@@ -466,8 +477,11 @@ void main() {
     await pumpSettings(tester);
     await tester.pumpAndSettle();
 
+    // 头卡加高后状态行落在首屏外，先滚动到可见。
+    await scrollTo(tester, find.textContaining('删除已预约'));
     expect(find.textContaining('删除已预约'), findsOneWidget);
 
+    await scrollTo(tester, find.text('撤销删除'));
     await tester.tap(find.text('撤销删除'));
     await tester.pumpAndSettle();
     expect(deletionService.cancelCalls, 1);
@@ -476,9 +490,13 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('隐私协议入口：查看隐私政策全文', (tester) async {
+  testWidgets('隐私协议入口：协议与说明 → 查看隐私政策全文', (tester) async {
     await pumpSettings(tester);
 
+    await scrollTo(tester, find.text('协议与说明'));
+    await tester.tap(find.text('协议与说明'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('隐私政策'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
@@ -507,9 +525,11 @@ void main() {
     await pumpSettings(tester);
 
     expect(find.text('Settings'), findsOneWidget);
-    // 组标题 Account + 账号标识行标题 Account 两处同文案。
-    expect(find.text('Account'), findsNWidgets(2));
-    expect(find.text('Privacy'), findsOneWidget);
+    // 资料头卡（圆形头像占位，头卡替代原账号行）。
+    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+    // 组标题 Account & Security（第二组，视口外先滚动）。
+    await scrollTo(tester, find.text('Account & Security'));
+    expect(find.text('Account & Security'), findsOneWidget);
     expect(find.text('Export my data'), findsOneWidget);
 
     await unmount(tester);

@@ -567,6 +567,14 @@
       "budgetNormal": "已吃 ${eaten} 千卡 · 还可吃 ${left} 千卡",
       "budgetOver": "已吃 ${eaten} 千卡 · 已超 ${over} 千卡",
       "budgetExercise": " · 运动 +${kcal}",
+      "metricIntake": "今日热量",
+      "metricExercise": "运动消耗",
+      "metricWater": "今日饮水",
+      "metricSteps": "今日步数",
+      "metricLeft": "还可吃 ${kcal} 千卡",
+      "metricOver": "已超 ${kcal} 千卡",
+      "metricBurnHint": "系统活动 + 手动运动合计",
+      "metricWaterGoal": "目标 ${ml} ml",
       "planProgress": "第 ${week} 周 · 已减 ${lost} kg / 目标 ${goal} kg",
       "planProgressBehind": "第 ${week} 周 · 距目标还差 ${gap} kg",
       "greeting": {
@@ -875,7 +883,11 @@
       "privacy": "隐私",
       "preferences": "偏好",
       "reminders": "提醒",
-      "about": "关于"
+      "about": "关于",
+      "bodyGoals": "身体与目标",
+      "accountSecurity": "账号与安全",
+      "dataAi": "数据与 AI",
+      "aboutLegal": "关于与法务"
     },
     "account": {
       "account": "账号",
@@ -978,6 +990,7 @@
       "version": "版本",
       "disclaimer": "免责声明与特殊人群提示",
       "checkUpdate": "检查更新",
+      "legalHub": "协议与说明",
       "licenses": "开源许可",
       "dataAi": "数据与 AI 说明",
       "dataAiNutritionTitle": "营养数据",

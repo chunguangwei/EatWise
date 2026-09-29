@@ -1,5 +1,6 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
+import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/social/application/feed_controller.dart';
@@ -141,7 +142,7 @@ class _SkeletonCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: BoxDecoration(
         color: Theme.of(context).extension<AppColors>()!.bgSecondary,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: Theme.of(context).extension<AppRadii>()!.rLg,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

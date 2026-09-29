@@ -2,6 +2,7 @@ import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/scroll_depth_tracker.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
+import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
@@ -313,7 +314,7 @@ class _EmptyDayState extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.s6),
       decoration: BoxDecoration(
         color: colors.bgSecondary,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: Theme.of(context).extension<AppRadii>()!.rLg,
       ),
       child: Column(
         children: <Widget>[

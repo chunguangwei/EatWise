@@ -23,29 +23,38 @@ class AppShadows extends ThemeExtension<AppShadows> {
 
   static const Color _shadowColor = Color(0xFF1E2A28); // 墨黑
 
-  /// 亮色阴影（§2.5 建议参数）。
+  /// 亮色阴影（§2.5 建议参数；2026-09-29 UI 重构调柔调扩散——更大 blur、
+  /// 更低 alpha，对齐华为白卡「浮起但不割裂」的观感）。
   static const AppShadows light = AppShadows(
     shadowSm: <BoxShadow>[
-      BoxShadow(offset: Offset(0, 1), blurRadius: 4, color: Color(0x141E2A28)),
+      BoxShadow(offset: Offset(0, 2), blurRadius: 12, color: Color(0x0F1E2A28)),
     ],
     shadowMd: <BoxShadow>[
-      BoxShadow(offset: Offset(0, 4), blurRadius: 12, color: Color(0x1F1E2A28)),
+      BoxShadow(offset: Offset(0, 6), blurRadius: 24, color: Color(0x141E2A28)),
     ],
     shadowLg: <BoxShadow>[
-      BoxShadow(offset: Offset(0, 8), blurRadius: 24, color: Color(0x291E2A28)),
+      BoxShadow(
+        offset: Offset(0, 12),
+        blurRadius: 40,
+        color: Color(0x1F1E2A28),
+      ),
     ],
   );
 
   /// 暗色阴影：透明度减半（§2.5）〔待外部确认〕。
   static const AppShadows dark = AppShadows(
     shadowSm: <BoxShadow>[
-      BoxShadow(offset: Offset(0, 1), blurRadius: 4, color: Color(0x0A1E2A28)),
+      BoxShadow(offset: Offset(0, 2), blurRadius: 12, color: Color(0x081E2A28)),
     ],
     shadowMd: <BoxShadow>[
-      BoxShadow(offset: Offset(0, 4), blurRadius: 12, color: Color(0x0F1E2A28)),
+      BoxShadow(offset: Offset(0, 6), blurRadius: 24, color: Color(0x0A1E2A28)),
     ],
     shadowLg: <BoxShadow>[
-      BoxShadow(offset: Offset(0, 8), blurRadius: 24, color: Color(0x141E2A28)),
+      BoxShadow(
+        offset: Offset(0, 12),
+        blurRadius: 40,
+        color: Color(0x101E2A28),
+      ),
     ],
   );
 

@@ -556,8 +556,9 @@ class _TimerBody extends ConsumerWidget {
             ),
           ),
         const SizedBox(height: AppSpacing.s3),
-        // 今日预算行（薄荷走查 P0：已吃/还可吃/运动消耗一行情要）。
-        const TodayBudgetRow(),
+        // 今日指标 2 列网格（2026-09-29 UI 重构：原一行预算行升级为
+        // 热量/运动/饮水/步数四张 MetricCard，华为看板感）。
+        const TodayMetricGrid(),
         const SizedBox(height: AppSpacing.s6),
         // 底部一行三色 mini signal-card（蛋白/碳水/热量，点按跳数据页）。
         MiniSignalCards(onTap: () => context.go('/data')),

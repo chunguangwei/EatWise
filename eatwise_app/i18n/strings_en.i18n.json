@@ -567,6 +567,14 @@
       "budgetNormal": "Eaten ${eaten} kcal · ${left} kcal left",
       "budgetOver": "Eaten ${eaten} kcal · ${over} kcal over",
       "budgetExercise": " · Exercise +${kcal}",
+      "metricIntake": "Today's calories",
+      "metricExercise": "Exercise burn",
+      "metricWater": "Water today",
+      "metricSteps": "Steps today",
+      "metricLeft": "${kcal} kcal left",
+      "metricOver": "${kcal} kcal over",
+      "metricBurnHint": "System activity + manual logs",
+      "metricWaterGoal": "Goal ${ml} ml",
       "planProgress": "Week ${week} · Lost ${lost} kg / Goal ${goal} kg",
       "planProgressBehind": "Week ${week} · ${gap} kg to go",
       "greeting": {
@@ -876,7 +884,11 @@
       "privacy": "Privacy",
       "preferences": "Preferences",
       "reminders": "Reminders",
-      "about": "About"
+      "about": "About",
+      "bodyGoals": "Body & Goals",
+      "accountSecurity": "Account & Security",
+      "dataAi": "Data & AI",
+      "aboutLegal": "About & Legal"
     },
     "account": {
       "account": "Account",
@@ -979,6 +991,7 @@
       "version": "Version",
       "disclaimer": "Disclaimer & special groups",
       "checkUpdate": "Check for updates",
+      "legalHub": "Legal & notes",
       "licenses": "Open source licenses",
       "dataAi": "Data & AI notes",
       "dataAiNutritionTitle": "Nutrition data",

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
+import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/health/domain/exercise_goals.dart';
@@ -102,7 +103,7 @@ class TodayBurnCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: BoxDecoration(
         color: colors.bgSecondary,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: Theme.of(context).extension<AppRadii>()!.rLg,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

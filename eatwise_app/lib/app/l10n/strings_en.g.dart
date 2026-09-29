@@ -967,6 +967,14 @@ class _Translations$fasting$home$en extends Translations$fasting$home$zh_CN {
 	@override String budgetNormal({required Object eaten, required Object left}) => 'Eaten ${eaten} kcal · ${left} kcal left';
 	@override String budgetOver({required Object eaten, required Object over}) => 'Eaten ${eaten} kcal · ${over} kcal over';
 	@override String budgetExercise({required Object kcal}) => ' · Exercise +${kcal}';
+	@override String get metricIntake => 'Today\'s calories';
+	@override String get metricExercise => 'Exercise burn';
+	@override String get metricWater => 'Water today';
+	@override String get metricSteps => 'Steps today';
+	@override String metricLeft({required Object kcal}) => '${kcal} kcal left';
+	@override String metricOver({required Object kcal}) => '${kcal} kcal over';
+	@override String get metricBurnHint => 'System activity + manual logs';
+	@override String metricWaterGoal({required Object ml}) => 'Goal ${ml} ml';
 	@override String planProgress({required Object week, required Object lost, required Object goal}) => 'Week ${week} · Lost ${lost} kg / Goal ${goal} kg';
 	@override String planProgressBehind({required Object week, required Object gap}) => 'Week ${week} · ${gap} kg to go';
 	@override late final _Translations$fasting$home$greeting$en greeting = _Translations$fasting$home$greeting$en._(_root);
@@ -1289,6 +1297,10 @@ class _Translations$settings$group$en extends Translations$settings$group$zh_CN 
 	@override String get preferences => 'Preferences';
 	@override String get reminders => 'Reminders';
 	@override String get about => 'About';
+	@override String get bodyGoals => 'Body & Goals';
+	@override String get accountSecurity => 'Account & Security';
+	@override String get dataAi => 'Data & AI';
+	@override String get aboutLegal => 'About & Legal';
 }
 
 // Path: settings.account
@@ -1439,6 +1451,7 @@ class _Translations$settings$about$en extends Translations$settings$about$zh_CN 
 	@override String get version => 'Version';
 	@override String get disclaimer => 'Disclaimer & special groups';
 	@override String get checkUpdate => 'Check for updates';
+	@override String get legalHub => 'Legal & notes';
 	@override String get licenses => 'Open source licenses';
 	@override String get dataAi => 'Data & AI notes';
 	@override String get dataAiNutritionTitle => 'Nutrition data';
@@ -2856,6 +2869,14 @@ extension on TranslationsEn {
 			'fasting.home.budgetNormal' => ({required Object eaten, required Object left}) => 'Eaten ${eaten} kcal · ${left} kcal left',
 			'fasting.home.budgetOver' => ({required Object eaten, required Object over}) => 'Eaten ${eaten} kcal · ${over} kcal over',
 			'fasting.home.budgetExercise' => ({required Object kcal}) => ' · Exercise +${kcal}',
+			'fasting.home.metricIntake' => 'Today\'s calories',
+			'fasting.home.metricExercise' => 'Exercise burn',
+			'fasting.home.metricWater' => 'Water today',
+			'fasting.home.metricSteps' => 'Steps today',
+			'fasting.home.metricLeft' => ({required Object kcal}) => '${kcal} kcal left',
+			'fasting.home.metricOver' => ({required Object kcal}) => '${kcal} kcal over',
+			'fasting.home.metricBurnHint' => 'System activity + manual logs',
+			'fasting.home.metricWaterGoal' => ({required Object ml}) => 'Goal ${ml} ml',
 			'fasting.home.planProgress' => ({required Object week, required Object lost, required Object goal}) => 'Week ${week} · Lost ${lost} kg / Goal ${goal} kg',
 			'fasting.home.planProgressBehind' => ({required Object week, required Object gap}) => 'Week ${week} · ${gap} kg to go',
 			'fasting.home.greeting.morning' => 'Good morning',
@@ -2920,6 +2941,8 @@ extension on TranslationsEn {
 			'nutrition.data.trend.title' => 'Last 7 days',
 			'nutrition.data.trend.kcal' => 'Calories',
 			'nutrition.data.trend.fasting' => 'Fasting',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.data.trend.empty' => 'Log a few more days and your trend line starts moving',
 			'nutrition.data.trend.ctaRecord' => 'Log now',
 			'nutrition.data.trend.hourUnit' => 'h',
@@ -2928,8 +2951,6 @@ extension on TranslationsEn {
 			'nutrition.data.burn.steps' => 'Steps',
 			'nutrition.data.burn.kcalValue' => ({required Object kcal}) => '${kcal} kcal',
 			'nutrition.data.burn.estimatedValue' => ({required Object kcal}) => '~${kcal} kcal (estimated from steps)',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.data.burn.balance' => ({required Object kcal}) => 'Intake − burn balance: ${kcal} kcal',
 			'nutrition.data.burn.goalProgress' => ({required Object kcal, required Object goal}) => '${kcal} / ${goal} kcal',
 			'nutrition.data.burn.stepsGoalProgress' => ({required Object steps, required Object goal}) => '${steps} / ${goal} steps',
@@ -3073,6 +3094,10 @@ extension on TranslationsEn {
 			'settings.group.preferences' => 'Preferences',
 			'settings.group.reminders' => 'Reminders',
 			'settings.group.about' => 'About',
+			'settings.group.bodyGoals' => 'Body & Goals',
+			'settings.group.accountSecurity' => 'Account & Security',
+			'settings.group.dataAi' => 'Data & AI',
+			'settings.group.aboutLegal' => 'About & Legal',
 			'settings.account.account' => 'Account',
 			'settings.account.cancelDeletion' => 'Cancel deletion',
 			'settings.account.changePassword' => 'Change password',
@@ -3157,6 +3182,7 @@ extension on TranslationsEn {
 			'settings.about.version' => 'Version',
 			'settings.about.disclaimer' => 'Disclaimer & special groups',
 			'settings.about.checkUpdate' => 'Check for updates',
+			'settings.about.legalHub' => 'Legal & notes',
 			'settings.about.licenses' => 'Open source licenses',
 			'settings.about.dataAi' => 'Data & AI notes',
 			'settings.about.dataAiNutritionTitle' => 'Nutrition data',

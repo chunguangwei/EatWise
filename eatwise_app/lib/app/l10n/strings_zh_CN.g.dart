@@ -1722,6 +1722,30 @@ class Translations$fasting$home$zh_CN {
 	/// zh-CN: ' · 运动 +${kcal}'
 	String budgetExercise({required Object kcal}) => ' · 运动 +${kcal}';
 
+	/// zh-CN: '今日热量'
+	String get metricIntake => '今日热量';
+
+	/// zh-CN: '运动消耗'
+	String get metricExercise => '运动消耗';
+
+	/// zh-CN: '今日饮水'
+	String get metricWater => '今日饮水';
+
+	/// zh-CN: '今日步数'
+	String get metricSteps => '今日步数';
+
+	/// zh-CN: '还可吃 ${kcal} 千卡'
+	String metricLeft({required Object kcal}) => '还可吃 ${kcal} 千卡';
+
+	/// zh-CN: '已超 ${kcal} 千卡'
+	String metricOver({required Object kcal}) => '已超 ${kcal} 千卡';
+
+	/// zh-CN: '系统活动 + 手动运动合计'
+	String get metricBurnHint => '系统活动 + 手动运动合计';
+
+	/// zh-CN: '目标 ${ml} ml'
+	String metricWaterGoal({required Object ml}) => '目标 ${ml} ml';
+
 	/// zh-CN: '第 ${week} 周 · 已减 ${lost} kg / 目标 ${goal} kg'
 	String planProgress({required Object week, required Object lost, required Object goal}) => '第 ${week} 周 · 已减 ${lost} kg / 目标 ${goal} kg';
 
@@ -2279,6 +2303,18 @@ class Translations$settings$group$zh_CN {
 
 	/// zh-CN: '关于'
 	String get about => '关于';
+
+	/// zh-CN: '身体与目标'
+	String get bodyGoals => '身体与目标';
+
+	/// zh-CN: '账号与安全'
+	String get accountSecurity => '账号与安全';
+
+	/// zh-CN: '数据与 AI'
+	String get dataAi => '数据与 AI';
+
+	/// zh-CN: '关于与法务'
+	String get aboutLegal => '关于与法务';
 }
 
 // Path: settings.account
@@ -2584,6 +2620,9 @@ class Translations$settings$about$zh_CN {
 
 	/// zh-CN: '检查更新'
 	String get checkUpdate => '检查更新';
+
+	/// zh-CN: '协议与说明'
+	String get legalHub => '协议与说明';
 
 	/// zh-CN: '开源许可'
 	String get licenses => '开源许可';
@@ -4858,6 +4897,14 @@ extension on Translations {
 			'fasting.home.budgetNormal' => ({required Object eaten, required Object left}) => '已吃 ${eaten} 千卡 · 还可吃 ${left} 千卡',
 			'fasting.home.budgetOver' => ({required Object eaten, required Object over}) => '已吃 ${eaten} 千卡 · 已超 ${over} 千卡',
 			'fasting.home.budgetExercise' => ({required Object kcal}) => ' · 运动 +${kcal}',
+			'fasting.home.metricIntake' => '今日热量',
+			'fasting.home.metricExercise' => '运动消耗',
+			'fasting.home.metricWater' => '今日饮水',
+			'fasting.home.metricSteps' => '今日步数',
+			'fasting.home.metricLeft' => ({required Object kcal}) => '还可吃 ${kcal} 千卡',
+			'fasting.home.metricOver' => ({required Object kcal}) => '已超 ${kcal} 千卡',
+			'fasting.home.metricBurnHint' => '系统活动 + 手动运动合计',
+			'fasting.home.metricWaterGoal' => ({required Object ml}) => '目标 ${ml} ml',
 			'fasting.home.planProgress' => ({required Object week, required Object lost, required Object goal}) => '第 ${week} 周 · 已减 ${lost} kg / 目标 ${goal} kg',
 			'fasting.home.planProgressBehind' => ({required Object week, required Object gap}) => '第 ${week} 周 · 距目标还差 ${gap} kg',
 			'fasting.home.greeting.morning' => '早上好',
@@ -4922,6 +4969,8 @@ extension on Translations {
 			'nutrition.data.trend.title' => '近 7 日趋势',
 			'nutrition.data.trend.kcal' => '热量',
 			'nutrition.data.trend.fasting' => '断食时长',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.data.trend.empty' => '记满几天，趋势曲线就跑起来啦',
 			'nutrition.data.trend.ctaRecord' => '去记录',
 			'nutrition.data.trend.hourUnit' => '小时',
@@ -4930,8 +4979,6 @@ extension on Translations {
 			'nutrition.data.burn.steps' => '步数',
 			'nutrition.data.burn.kcalValue' => ({required Object kcal}) => '${kcal} kcal',
 			'nutrition.data.burn.estimatedValue' => ({required Object kcal}) => '约 ${kcal} kcal（按步数估算）',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.data.burn.balance' => ({required Object kcal}) => '摄入 − 消耗结余：${kcal} kcal',
 			'nutrition.data.burn.goalProgress' => ({required Object kcal, required Object goal}) => '${kcal} / ${goal} 千卡',
 			'nutrition.data.burn.stepsGoalProgress' => ({required Object steps, required Object goal}) => '${steps} / ${goal} 步',
@@ -5075,6 +5122,10 @@ extension on Translations {
 			'settings.group.preferences' => '偏好',
 			'settings.group.reminders' => '提醒',
 			'settings.group.about' => '关于',
+			'settings.group.bodyGoals' => '身体与目标',
+			'settings.group.accountSecurity' => '账号与安全',
+			'settings.group.dataAi' => '数据与 AI',
+			'settings.group.aboutLegal' => '关于与法务',
 			'settings.account.account' => '账号',
 			'settings.account.cancelDeletion' => '撤销删除',
 			'settings.account.changePassword' => '修改密码',
@@ -5159,6 +5210,7 @@ extension on Translations {
 			'settings.about.version' => '版本',
 			'settings.about.disclaimer' => '免责声明与特殊人群提示',
 			'settings.about.checkUpdate' => '检查更新',
+			'settings.about.legalHub' => '协议与说明',
 			'settings.about.licenses' => '开源许可',
 			'settings.about.dataAi' => '数据与 AI 说明',
 			'settings.about.dataAiNutritionTitle' => '营养数据',

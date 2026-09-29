@@ -127,6 +127,9 @@ void main() {
     );
     await pumpSettings(tester);
 
+    // 账号与安全组（第二组，首屏外先滚动到可见再点）。
+    await tester.scrollUntilVisible(find.text('审批中心'), 200);
+    await tester.pump();
     expect(find.text('审批中心'), findsOneWidget);
     await tester.tap(find.text('审批中心'));
     await tester.pumpAndSettle();
@@ -138,7 +141,9 @@ void main() {
     stubUserMe('user');
     await pumpSettings(tester);
     expect(find.text('审批中心'), findsNothing);
-    expect(find.text('我的贡献'), findsOneWidget); // 相邻入口仍在
+    // 相邻入口仍在（头卡加高后落在首屏外，先滚动）。
+    await tester.scrollUntilVisible(find.text('我的贡献'), 200);
+    expect(find.text('我的贡献'), findsOneWidget);
   });
 
   testWidgets('role 缺省（老服务端不下发）：按 user 门控，入口隐藏', (tester) async {

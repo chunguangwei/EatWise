@@ -38,11 +38,22 @@ class StreakProfileCard extends ConsumerWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Icon(
-                Icons.local_fire_department,
-                color: streak.currentStreak > 0
-                    ? colors.brandAccent
-                    : colors.textSecondary,
+              // 圆形浅色图标徽标（与本页行图标/MetricCard 同语言）。
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: colors.brandAccent.withValues(alpha: 0.14),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.local_fire_department_outlined,
+                  size: 18,
+                  color: streak.currentStreak > 0
+                      ? colors.brandAccent
+                      : colors.textSecondary,
+                ),
               ),
               const SizedBox(width: AppSpacing.s2),
               Text(t.streak.profile.title, style: textStyles.textXl),
@@ -153,10 +164,7 @@ class _Metric extends StatelessWidget {
       children: <Widget>[
         Text(
           value,
-          style: textStyles.textBase.copyWith(
-            color: colors.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
+          style: textStyles.text3xl.copyWith(color: colors.textPrimary),
         ),
         const SizedBox(height: AppSpacing.s1),
         Text(

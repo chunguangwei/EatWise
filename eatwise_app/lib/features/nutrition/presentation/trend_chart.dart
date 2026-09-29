@@ -111,7 +111,11 @@ class _TrendChartSectionState extends ConsumerState<TrendChartSection> {
                 painter: _TrendLinePainter(
                   values: values,
                   labels: labels,
-                  lineColor: colors.brandPrimary,
+                  // 双序列分色（2026-09-29 UI 重构）：热量=品牌绿、断食=青蓝
+                  // （ringStand，苹果站立环同族色），图表配色走新强调色组。
+                  lineColor: _showFasting
+                      ? colors.ringStand
+                      : colors.ringExercise,
                   labelColor: colors.textSecondary,
                   labelStyle: textStyles.textXs,
                   unit: unit,

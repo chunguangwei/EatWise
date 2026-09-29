@@ -16,7 +16,7 @@ class AppRadii extends ThemeExtension<AppRadii> {
   /// 12：按钮、输入框。
   final BorderRadius rMd;
 
-  /// 16：卡片。
+  /// 20：卡片（2026-09-29 UI 重构由 16 加大，对齐华为白卡语言）。
   final BorderRadius rLg;
 
   /// 9999：计时环、FAB、胶囊。
@@ -25,7 +25,7 @@ class AppRadii extends ThemeExtension<AppRadii> {
   static const AppRadii standard = AppRadii(
     rSm: BorderRadius.all(Radius.circular(6)),
     rMd: BorderRadius.all(Radius.circular(12)),
-    rLg: BorderRadius.all(Radius.circular(16)),
+    rLg: BorderRadius.all(Radius.circular(20)),
     rFull: BorderRadius.all(Radius.circular(9999)),
   );
 

@@ -7,6 +7,7 @@ import 'package:eatwise/core/network/api_error_text.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
+import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/core/update/update_dialog.dart';
@@ -78,159 +79,47 @@ class SettingsPage extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.s4),
           children: <Widget>[
-            // M5：连胜卡片保留自原 我的 占位页。
+            // 资料头卡（2026-09-30 吸收华为「我的」头卡语言：圆形头像占位
+            // + 账号标识；无等级体系不引入不存在的数据，仅既有账号信息）。
+            _ProfileHeaderCard(
+              identity: identity,
+              cachedIdentity: cachedIdentity,
+              loggedIn: loggedIn,
+              onRetry: loggedIn && identity.isEmpty && cachedIdentity.isEmpty
+                  ? () => ref.invalidate(userMeProvider)
+                  : null,
+            ),
+            const SizedBox(height: AppSpacing.s4),
+            // M5：连胜卡片保留（视觉随令牌简化）。
             const StreakProfileCard(),
             const SizedBox(height: AppSpacing.s6),
+            // ① 身体与目标（2026-09-29 UI 重构：原 账号/隐私/偏好/提醒
+            // 五组十几项归并 ≤4 组卡）。
             _SettingsGroup(
-              title: t.settings.group.account,
+              title: t.settings.group.bodyGoals,
               children: <Widget>[
-                // 账号标识展示（D-13 v2：username 主路径优先，其次 U1
-                // 脱敏手机号，合规 §6）；兜底链：实时值 → 本地缓存
-                // （离线兜底）→ 未登录占位。已登录但标识取不到（重装清
-                // 缓存 + U1 失败）时不显「未登录」（与登录态矛盾），改
-                // 「点击重试」重拉 U1。
-                _SettingsTile(
-                  title: t.settings.account.account,
-                  trailing: identity.isNotEmpty
-                      ? identity
-                      : cachedIdentity.isNotEmpty
-                      ? cachedIdentity
-                      : loggedIn
-                      ? t.settings.account.retryIdentity
-                      : t.settings.account.notLoggedIn,
-                  onTap: loggedIn && identity.isEmpty && cachedIdentity.isEmpty
-                      ? () => ref.invalidate(userMeProvider)
-                      : null,
-                ),
-                // 冷静期内账号：状态行 + 撤销按钮（U6）。
-                if (userMe?.deletionStatus == 'pending')
-                  _SettingsTile(
-                    title: t.settings.account.deletionScheduled(
-                      days: _coolingOffDaysLeft(userMe!),
-                    ),
-                    titleColor: colors.signalRed,
-                    trailingWidget: TextButton(
-                      onPressed: () => _cancelDeletion(context, ref),
-                      child: Text(t.settings.account.cancelDeletion),
-                    ),
-                  ),
-                if (loggedIn) ...<Widget>[
-                  _SettingsTile(
-                    title: t.settings.account.changePassword,
-                    onTap: () => context.push('/settings/change-password'),
-                  ),
-                ] else
-                  _SettingsTile(
-                    title: t.settings.account.login,
-                    onTap: () => context.push('/login'),
-                  ),
                 // 阶段 A：身体档案（性别/出生年/身高体重/活动水平，
                 // D-18 敏感信息可留空），保存即重算营养目标。
                 _SettingsTile(
                   title: t.settings.bodyProfile.title,
                   subtitle: t.settings.bodyProfile.subtitle,
+                  icon: Icons.monitor_weight_outlined,
                   onTap: () => context.push('/settings/body-profile'),
-                ),
-                _SettingsTile(
-                  title: t.settings.account.contributions,
-                  onTap: () => context.push('/profile/contributions'),
-                ),
-                // 审批中心（用户角色 admin 可见；普通用户完全隐藏，
-                // 服务端 UserAdminGuard 再兜底 403）。
-                if (userMe?.role == 'admin')
-                  _SettingsTile(
-                    title: t.settings.account.moderation,
-                    subtitle: t.moderation.subtitle,
-                    onTap: () => context.push('/moderation/food-candidates'),
-                  ),
-                if (loggedIn) ...<Widget>[
-                  _SettingsTile(
-                    title: t.settings.account.logout,
-                    onTap: () => _confirmLogout(context, ref),
-                  ),
-                  _SettingsTile(
-                    title: t.settings.account.deleteAccount,
-                    titleColor: colors.signalRed,
-                    onTap: () => _confirmDeleteAccount(context, ref),
-                  ),
-                ],
-              ],
-            ),
-            _SettingsGroup(
-              title: t.settings.group.privacy,
-              children: <Widget>[
-                _SettingsTile(
-                  title: t.settings.privacy.privacyPolicy,
-                  onTap: () => context.push('/legal/privacy'),
-                ),
-                _SettingsTile(
-                  title: t.settings.privacy.userAgreement,
-                  onTap: () => context.push('/legal/agreement'),
-                ),
-                _SettingsTile(
-                  title: t.settings.privacy.exportData,
-                  onTap: () => _exportData(context, ref),
-                ),
-                _SettingsTile(
-                  title: t.settings.privacy.blockedUsers,
-                  subtitle: t.settings.privacy.blockedUsersSubtitle,
-                  onTap: () => context.push('/settings/blocked-users'),
-                ),
-                _SettingsTile(
-                  title: t.settings.privacy.healthData,
-                  subtitle: t.settings.privacy.healthDataSubtitle,
-                  trailingWidget: Switch(
-                    value: healthGranted,
-                    onChanged: (value) => _setHealthData(context, ref, value),
-                  ),
-                ),
-                _SettingsTile(
-                  title: t.settings.privacy.analytics,
-                  subtitle: t.settings.privacy.analyticsSubtitle,
-                  trailingWidget: Switch(
-                    value: analyticsGranted,
-                    onChanged: (value) => _setAnalytics(ref, value),
-                  ),
-                ),
-              ],
-            ),
-            // 阶段 D：运动数据（HealthKit / Health Connect，D-19 翻案）。
-            const HealthSyncSection(),
-            _SettingsGroup(
-              title: t.settings.group.preferences,
-              children: <Widget>[
-                _SettingsTile(
-                  title: t.settings.language.title,
-                  trailing: _languageLabel(t, languageMode),
-                  onTap: () => _pickLanguage(context, ref),
-                ),
-                _SettingsTile(
-                  title: t.settings.theme.title,
-                  trailing: _themeLabel(t, themeMode),
-                  onTap: () => _pickTheme(context, ref),
                 ),
                 // D-06 换方案入口：方案推荐页（已有生效方案且窗口不同时
                 // 触发「次日 0:00 生效」确认弹窗）。
                 _SettingsTile(
                   title: t.settings.fastingPlan.title,
                   subtitle: t.settings.fastingPlan.subtitle,
+                  icon: Icons.schedule_outlined,
                   onTap: () => context.push('/settings/fasting-plan'),
                 ),
-                // 用户自定义 LLM 配置（规格 §3）：/settings/ai-model。
-                _SettingsTile(
-                  title: t.settings.aiModel.title,
-                  onTap: () => context.push('/settings/ai-model'),
-                ),
-              ],
-            ),
-            _SettingsGroup(
-              title: t.settings.group.reminders,
-              children: <Widget>[
                 // 喝水提醒开关（默认开）：进食窗口内每小时提醒，建议量按
                 // 当日剩余目标量动态分配；翻转即重排通知（异步无感）。
                 _SettingsTile(
                   title: t.settings.reminders.waterHourly,
                   subtitle: t.settings.reminders.waterHourlySubtitle,
+                  icon: Icons.water_drop_outlined,
                   trailingWidget: Switch(
                     value: ref.watch(waterReminderEnabledProvider),
                     onChanged: (value) async {
@@ -255,6 +144,7 @@ class SettingsPage extends ConsumerWidget {
                 _SettingsTile(
                   title: t.settings.reminders.notifications,
                   subtitle: t.settings.reminders.notificationsSubtitle,
+                  icon: Icons.notifications_outlined,
                   onTap: () async {
                     try {
                       await AppSettings.openAppSettings(
@@ -265,37 +155,150 @@ class SettingsPage extends ConsumerWidget {
                     }
                   },
                 ),
+                _SettingsTile(
+                  title: t.settings.privacy.healthData,
+                  subtitle: t.settings.privacy.healthDataSubtitle,
+                  icon: Icons.favorite_outline,
+                  trailingWidget: Switch(
+                    value: healthGranted,
+                    onChanged: (value) => _setHealthData(context, ref, value),
+                  ),
+                ),
               ],
             ),
+            // 阶段 D：运动数据（HealthKit / Health Connect，D-19 翻案）。
+            const HealthSyncSection(),
+            // ② 账号与安全。
             _SettingsGroup(
-              title: t.settings.group.about,
+              title: t.settings.group.accountSecurity,
               children: <Widget>[
-                // 版本号读 package_info_plus（version (buildNumber)），
-                // 加载完成前占位不展示假版本。
-                _SettingsTile(
-                  title: t.settings.about.version,
-                  trailing:
-                      ref.watch(appVersionLabelProvider).valueOrNull ?? '…',
-                ),
-                // 应用内更新检查（手动触发，不节流；已是最新弹提示）。
-                // iOS 更新完全依赖 App Store，不提供端内入口（2026-09-21）。
-                if (ref.watch(updateCheckSupportedPlatformProvider))
+                // 冷静期内账号：状态行 + 撤销按钮（U6）。
+                if (userMe?.deletionStatus == 'pending')
                   _SettingsTile(
-                    title: t.settings.about.checkUpdate,
-                    onTap: () => _checkUpdate(context, ref),
+                    title: t.settings.account.deletionScheduled(
+                      days: _coolingOffDaysLeft(userMe!),
+                    ),
+                    icon: Icons.delete_forever_outlined,
+                    iconColor: colors.signalRed,
+                    titleColor: colors.signalRed,
+                    trailingWidget: TextButton(
+                      onPressed: () => _cancelDeletion(context, ref),
+                      child: Text(t.settings.account.cancelDeletion),
+                    ),
+                  ),
+                if (loggedIn) ...<Widget>[
+                  _SettingsTile(
+                    title: t.settings.account.changePassword,
+                    icon: Icons.lock_outline,
+                    onTap: () => context.push('/settings/change-password'),
+                  ),
+                ] else
+                  _SettingsTile(
+                    title: t.settings.account.login,
+                    icon: Icons.login_outlined,
+                    onTap: () => context.push('/login'),
                   ),
                 _SettingsTile(
-                  title: t.settings.about.disclaimer,
-                  onTap: () => context.push('/legal/disclaimer'),
+                  title: t.settings.account.contributions,
+                  icon: Icons.restaurant_outlined,
+                  onTap: () => context.push('/profile/contributions'),
                 ),
-                // 法务上架补齐：数据与 AI 说明（营养来源 + Gemma 条款链接）。
                 _SettingsTile(
-                  title: t.settings.about.dataAi,
-                  onTap: () => unawaited(_showDataAiNotes(context)),
+                  title: t.settings.privacy.blockedUsers,
+                  subtitle: t.settings.privacy.blockedUsersSubtitle,
+                  icon: Icons.block_outlined,
+                  onTap: () => context.push('/settings/blocked-users'),
+                ),
+                // 审批中心（用户角色 admin 可见；普通用户完全隐藏，
+                // 服务端 UserAdminGuard 再兜底 403）。
+                if (userMe?.role == 'admin')
+                  _SettingsTile(
+                    title: t.settings.account.moderation,
+                    subtitle: t.moderation.subtitle,
+                    icon: Icons.fact_check_outlined,
+                    onTap: () => context.push('/moderation/food-candidates'),
+                  ),
+                if (loggedIn) ...<Widget>[
+                  _SettingsTile(
+                    title: t.settings.account.logout,
+                    icon: Icons.logout_outlined,
+                    onTap: () => _confirmLogout(context, ref),
+                  ),
+                  _SettingsTile(
+                    title: t.settings.account.deleteAccount,
+                    icon: Icons.delete_outline,
+                    iconColor: colors.signalRed,
+                    titleColor: colors.signalRed,
+                    onTap: () => _confirmDeleteAccount(context, ref),
+                  ),
+                ],
+              ],
+            ),
+            // ③ 数据与 AI。
+            _SettingsGroup(
+              title: t.settings.group.dataAi,
+              children: <Widget>[
+                // 用户自定义 LLM 配置（规格 §3）：/settings/ai-model。
+                _SettingsTile(
+                  title: t.settings.aiModel.title,
+                  icon: Icons.psychology_outlined,
+                  onTap: () => context.push('/settings/ai-model'),
+                ),
+                _SettingsTile(
+                  title: t.settings.privacy.analytics,
+                  subtitle: t.settings.privacy.analyticsSubtitle,
+                  icon: Icons.analytics_outlined,
+                  trailingWidget: Switch(
+                    value: analyticsGranted,
+                    onChanged: (value) => _setAnalytics(ref, value),
+                  ),
+                ),
+                _SettingsTile(
+                  title: t.settings.privacy.exportData,
+                  icon: Icons.ios_share_outlined,
+                  onTap: () => _exportData(context, ref),
+                ),
+                _SettingsTile(
+                  title: t.settings.language.title,
+                  icon: Icons.language_outlined,
+                  trailing: _languageLabel(t, languageMode),
+                  onTap: () => _pickLanguage(context, ref),
+                ),
+                _SettingsTile(
+                  title: t.settings.theme.title,
+                  icon: Icons.dark_mode_outlined,
+                  trailing: _themeLabel(t, themeMode),
+                  onTap: () => _pickTheme(context, ref),
+                ),
+              ],
+            ),
+            // ④ 关于与法务。
+            _SettingsGroup(
+              title: t.settings.group.aboutLegal,
+              children: <Widget>[
+                // 版本（安卓端点按=检查更新；iOS 更新完全依赖 App Store，
+                // 不提供端内入口）。版本号读 package_info_plus
+                // （version (buildNumber)），加载完成前占位不展示假版本。
+                _SettingsTile(
+                  title: t.settings.about.version,
+                  icon: Icons.system_update_alt_outlined,
+                  trailing:
+                      ref.watch(appVersionLabelProvider).valueOrNull ?? '…',
+                  onTap: ref.watch(updateCheckSupportedPlatformProvider)
+                      ? () => _checkUpdate(context, ref)
+                      : null,
+                ),
+                // 协议与说明合并入口（隐私政策/用户协议/免责声明/数据与
+                // AI 说明四项收敛为一个入口，UI 重构「缩减与合并」）。
+                _SettingsTile(
+                  title: t.settings.about.legalHub,
+                  icon: Icons.description_outlined,
+                  onTap: () => unawaited(_showLegalHub(context)),
                 ),
                 // Flutter 官方开源许可页。
                 _SettingsTile(
                   title: t.settings.about.licenses,
+                  icon: Icons.code_outlined,
                   onTap: () => showLicensePage(
                     context: context,
                     applicationName: Translations.of(context).common.appName,
@@ -303,6 +306,7 @@ class SettingsPage extends ConsumerWidget {
                 ),
                 _SettingsTile(
                   title: t.settings.about.contact,
+                  icon: Icons.mail_outline,
                   trailing: 'chunguangwee@gmail.com',
                   onTap: () => unawaited(_contactSupport(context)),
                 ),
@@ -310,6 +314,48 @@ class SettingsPage extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// 「协议与说明」合并入口（UI 重构）：隐私政策/用户协议/免责声明/
+  /// 数据与 AI 说明四项一个对话框承载。
+  Future<void> _showLegalHub(BuildContext context) async {
+    final t = Translations.of(context);
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(t.settings.about.legalHub),
+        children: <Widget>[
+          SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              context.push('/legal/privacy');
+            },
+            child: Text(t.settings.privacy.privacyPolicy),
+          ),
+          SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              context.push('/legal/agreement');
+            },
+            child: Text(t.settings.privacy.userAgreement),
+          ),
+          SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              context.push('/legal/disclaimer');
+            },
+            child: Text(t.settings.about.disclaimer),
+          ),
+          SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              unawaited(_showDataAiNotes(context));
+            },
+            child: Text(t.settings.about.dataAi),
+          ),
+        ],
       ),
     );
   }
@@ -652,7 +698,110 @@ class SettingsPage extends ConsumerWidget {
   }
 }
 
-/// 分组卡片（设计稿卡片规范：bgSecondary + rLg 圆角 + 组标题）。
+/// 资料头卡（2026-09-30，吸收华为运动健康「我的」头卡语言）：
+/// 品牌绿浅底圆形头像占位 + 账号标识（D-13 v2：username 主路径优先，
+/// 其次 U1 脱敏手机号；兜底链：实时值 → 本地缓存 → 未登录占位）+
+/// 「账号」小标签。已登录但标识取不到（重装清缓存 + U1 失败）时显
+/// 「点击重试」并可点重拉（与登录态不矛盾；我们没有等级/成长体系，
+/// 不引入不存在的数据）。
+class _ProfileHeaderCard extends StatelessWidget {
+  const _ProfileHeaderCard({
+    required this.identity,
+    required this.cachedIdentity,
+    required this.loggedIn,
+    this.onRetry,
+  });
+
+  final String identity;
+  final String cachedIdentity;
+  final bool loggedIn;
+
+  /// 标识取不到时的重试动作（null = 不可点）。
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Translations.of(context);
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
+    final shadows = Theme.of(context).extension<AppShadows>()!;
+    final display = identity.isNotEmpty
+        ? identity
+        : cachedIdentity.isNotEmpty
+        ? cachedIdentity
+        : loggedIn
+        ? t.settings.account.retryIdentity
+        : t.settings.account.notLoggedIn;
+    return Material(
+      color: colors.bgSecondary,
+      borderRadius: radii.rLg,
+      child: InkWell(
+        onTap: onRetry,
+        borderRadius: radii.rLg,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.s4),
+          decoration: BoxDecoration(
+            borderRadius: radii.rLg,
+            boxShadow: shadows.shadowSm,
+          ),
+          child: Row(
+            children: <Widget>[
+              // 圆形头像占位（品牌绿浅底，与行图标徽标同语言放大版）。
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: colors.brandPrimary.withValues(alpha: 0.14),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.person_outline,
+                  size: 26,
+                  color: colors.brandPrimary,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s3),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      display,
+                      style: textStyles.textLg.copyWith(
+                        color: colors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      t.settings.account.account,
+                      style: textStyles.textXs.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (onRetry != null)
+                Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: colors.textSecondary,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 分组卡片（设计稿卡片规范：bgSecondary + rLg 圆角 + 组标题；
+/// 2026-09-29 UI 重构加 shadowSm 软阴影，对齐华为白卡语言）。
 class _SettingsGroup extends StatelessWidget {
   const _SettingsGroup({required this.title, required this.children});
 
@@ -664,6 +813,7 @@ class _SettingsGroup extends StatelessWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final radii = Theme.of(context).extension<AppRadii>()!;
+    final shadows = Theme.of(context).extension<AppShadows>()!;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.s4),
       child: Column(
@@ -683,8 +833,26 @@ class _SettingsGroup extends StatelessWidget {
             decoration: BoxDecoration(
               color: colors.bgSecondary,
               borderRadius: radii.rLg,
+              boxShadow: shadows.shadowSm,
             ),
-            child: Column(children: children),
+            clipBehavior: Clip.antiAlias,
+            // 组内行间细分隔线（hairline，缩进对齐图标右侧文字起点
+            // 56px = 行左右边距 16 + 图标徽标 32 + 图标-文字间距 8，
+            // 参考华为运动健康「我的」分隔线留白）。
+            child: Column(
+              children: <Widget>[
+                for (var i = 0; i < children.length; i++) ...<Widget>[
+                  if (i > 0)
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      indent: 56,
+                      color: colors.textSecondary.withValues(alpha: 0.12),
+                    ),
+                  children[i],
+                ],
+              ],
+            ),
           ),
         ],
       ),
@@ -692,32 +860,44 @@ class _SettingsGroup extends StatelessWidget {
   }
 }
 
-/// 设置行（≥44px 触控区；trailing 文案或自定义控件如 Switch）。
+/// 设置行（≥56px 触控区，对齐华为「我的」行高节奏；前置品牌绿浅底
+/// 圆形图标徽标（与 MetricCard 徽标同语言，全页统一），trailing 文案或
+/// 自定义控件如 Switch）。
 class _SettingsTile extends StatelessWidget {
   const _SettingsTile({
     required this.title,
+    required this.icon,
     this.subtitle,
     this.trailing,
     this.trailingWidget,
     this.titleColor,
+    this.iconColor,
     this.onTap,
   });
 
   final String title;
+
+  /// 前置线性图标（Icons.outlined 系，18px）。
+  final IconData icon;
+
   final String? subtitle;
   final String? trailing;
   final Widget? trailingWidget;
   final Color? titleColor;
+
+  /// 图标与徽标底色（默认品牌绿；危险动作用 signalRed）。
+  final Color? iconColor;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final tint = iconColor ?? colors.brandPrimary;
     return InkWell(
       onTap: onTap,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 48),
+        constraints: const BoxConstraints(minHeight: 56),
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.s4,
@@ -725,6 +905,18 @@ class _SettingsTile extends StatelessWidget {
           ),
           child: Row(
             children: <Widget>[
+              // 品牌绿浅底圆形徽标（32px，与首页 MetricCard 同语言）。
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: tint.withValues(alpha: 0.14),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(icon, size: 18, color: tint),
+              ),
+              const SizedBox(width: AppSpacing.s2),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -751,7 +943,7 @@ class _SettingsTile extends StatelessWidget {
                 // 短值保持原样贴右（标题 Expanded 吸收剩余空间）。
                 ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxWidth: MediaQuery.sizeOf(context).width * 0.5,
+                    maxWidth: MediaQuery.sizeOf(context).width * 0.4,
                   ),
                   child: Text(
                     trailing!,

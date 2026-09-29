@@ -17,6 +17,7 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
     required this.text3xl,
     required this.textH1,
     required this.textTimer,
+    required this.textDisplay,
   });
 
   /// 12pt：徽章、辅助标注。
@@ -46,6 +47,10 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
   /// 48pt Bold：断食倒计时数字，仅数字场景。
   final TextStyle textTimer;
 
+  /// 34pt Bold：指标大数字（2026-09-29 UI 重构，MetricCard 专用；
+  /// 配套约定——单位用 textSm 次要色紧随其后，说明文案用 textXs 次要色）。
+  final TextStyle textDisplay;
+
   /// 全局字体回退链（设计稿 2.3 / i18n 规格 §6.3）。
   static const List<String> fontFamilyFallback = <String>[
     'Inter',
@@ -73,6 +78,7 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
     text3xl: _style(30, FontWeight.w600, 1.4),
     textH1: _style(28, FontWeight.w600, 1.4),
     textTimer: _style(48, FontWeight.w700, 1.1),
+    textDisplay: _style(34, FontWeight.w700, 1.15),
   );
 
   @override
@@ -86,6 +92,7 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
     TextStyle? text3xl,
     TextStyle? textH1,
     TextStyle? textTimer,
+    TextStyle? textDisplay,
   }) {
     return AppTextStyles(
       textXs: textXs ?? this.textXs,
@@ -97,6 +104,7 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
       text3xl: text3xl ?? this.text3xl,
       textH1: textH1 ?? this.textH1,
       textTimer: textTimer ?? this.textTimer,
+      textDisplay: textDisplay ?? this.textDisplay,
     );
   }
 
@@ -113,6 +121,7 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
       text3xl: TextStyle.lerp(text3xl, other.text3xl, t)!,
       textH1: TextStyle.lerp(textH1, other.textH1, t)!,
       textTimer: TextStyle.lerp(textTimer, other.textTimer, t)!,
+      textDisplay: TextStyle.lerp(textDisplay, other.textDisplay, t)!,
     );
   }
 }

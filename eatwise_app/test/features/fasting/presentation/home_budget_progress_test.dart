@@ -5,6 +5,7 @@ import 'package:eatwise/features/fasting/presentation/fasting_cycle_store.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_home_page.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
+import 'package:eatwise/features/fasting/presentation/plan_progress_bar.dart';
 import 'package:eatwise/features/health/application/health_sync_controller.dart';
 import 'package:eatwise/features/health/data/health_gateway.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
@@ -118,35 +119,42 @@ void main() {
     );
   }
 
-  group('今日预算行', () {
-    testWidgets('无记录：引导态一行「今日还未记录 · 目标 2000 千卡」', (tester) async {
+  group('今日指标网格（UI 重构：原预算行升级为四张 MetricCard）', () {
+    testWidgets('无记录：引导态说明行「今日还未记录 · 目标 2000 千卡」', (tester) async {
       await pumpHome(tester);
 
       expect(find.text('今日还未记录 · 目标 2000 千卡'), findsOneWidget);
       expect(find.textContaining('还可吃'), findsNothing);
+      // 四卡标签齐备（华为看板 2 列网格）。
+      expect(find.text('今日热量'), findsOneWidget);
+      expect(find.text('运动消耗'), findsOneWidget);
+      expect(find.text('今日饮水'), findsOneWidget);
+      expect(find.text('今日步数'), findsOneWidget);
 
       await unmount(tester);
     });
 
-    testWidgets('正常：已吃 800 · 还可吃 1200', (tester) async {
+    testWidgets('正常：热量卡大数字 800 + 说明行「还可吃 1200 千卡」', (tester) async {
       todayCache = cacheWithKcal(800);
       await pumpHome(tester);
 
-      expect(find.text('已吃 800 千卡 · 还可吃 1200 千卡'), findsOneWidget);
+      expect(find.text('800'), findsOneWidget);
+      expect(find.text('还可吃 1200 千卡'), findsOneWidget);
 
       await unmount(tester);
     });
 
-    testWidgets('超支：已吃 2300 · 已超 300（目标 2000）', (tester) async {
+    testWidgets('超支：说明行「已超 300 千卡」（目标 2000）', (tester) async {
       todayCache = cacheWithKcal(2300);
       await pumpHome(tester);
 
-      expect(find.text('已吃 2300 千卡 · 已超 300 千卡'), findsOneWidget);
+      expect(find.text('2300'), findsOneWidget);
+      expect(find.text('已超 300 千卡'), findsOneWidget);
 
       await unmount(tester);
     });
 
-    testWidgets('带运动：ready 且有活动能量 → 追加「 · 运动 +250」', (tester) async {
+    testWidgets('带运动：运动消耗卡展示合并值 250 + 合计说明', (tester) async {
       todayCache = cacheWithKcal(800);
       healthController = await readyHealthController(
         steps: 8000,
@@ -154,15 +162,18 @@ void main() {
       );
       await pumpHome(tester);
 
-      expect(find.text('已吃 800 千卡 · 还可吃 1200 千卡 · 运动 +250'), findsOneWidget);
+      expect(find.text('250'), findsOneWidget);
+      expect(find.text('系统活动 + 手动运动合计'), findsOneWidget);
+      // 步数卡：系统步数 8000 + 目标进度行（默认目标 5000 步）。
+      expect(find.text('8000'), findsOneWidget);
+      expect(find.textContaining('/ 5000 步'), findsOneWidget);
 
       await unmount(tester);
     });
 
-    testWidgets('窄屏三段齐：预算文案两行换行不截断（真机「运…」走查）', (tester) async {
-      // 280 逻辑宽（目标兜底 2000）：「已吃 1916 · 还可吃 84 · 运动 +250」
-      // 一行放不下，maxLines=1 时被 ellipsis 截成「运…」；修复后允许两行，
-      // 渲染高度必须是两倍行高（>24 逻辑像素），即真正换行而非截断。
+    testWidgets('窄屏：四卡渲染不溢出、说明行完整不截断', (tester) async {
+      // 280 逻辑宽（目标兜底 2000）：MetricCard 大数字 FittedBox 收缩、
+      // 说明行 maxLines=2，必须完整呈现（真机「运…」走查同类回归）。
       tester.view.physicalSize = const Size(280 * 3, 640 * 3);
       tester.view.devicePixelRatio = 3;
       todayCache = cacheWithKcal(1916);
@@ -172,21 +183,28 @@ void main() {
       );
       await pumpHome(tester);
 
-      final budget = find.text('已吃 1916 千卡 · 还可吃 84 千卡 · 运动 +250');
-      expect(budget, findsOneWidget);
-      final box = tester.getSize(budget);
-      expect(box.height, greaterThan(24));
+      expect(find.text('1916'), findsOneWidget);
+      expect(find.text('还可吃 84 千卡'), findsOneWidget);
+      expect(find.text('250'), findsOneWidget);
+      expect(tester.takeException(), isNull);
 
       await unmount(tester);
     });
   });
 
   group('方案进度条', () {
+    // 指标网格的 MetricCard 也渲染 LinearProgressIndicator——进度条断言
+    // 必须锚定 PlanProgressBar 子树（UI 重构后全树按类型查找会误中）。
+    Finder planLpi() => find.descendant(
+      of: find.byType(PlanProgressBar),
+      matching: find.byType(LinearProgressIndicator),
+    );
+
     testWidgets('未设目标：不渲染（保持首页简洁）', (tester) async {
       await pumpHome(tester);
 
       expect(find.textContaining('已减'), findsNothing);
-      expect(find.byType(LinearProgressIndicator), findsNothing);
+      expect(planLpi(), findsNothing); // 组件在树但空渲染（目标未设）
 
       await unmount(tester);
     });
@@ -201,9 +219,7 @@ void main() {
       await pumpHome(tester);
 
       expect(find.text('第 1 周 · 已减 4.0 kg / 目标 10.0 kg'), findsOneWidget);
-      final indicator = tester.widget<LinearProgressIndicator>(
-        find.byType(LinearProgressIndicator),
-      );
+      final indicator = tester.widget<LinearProgressIndicator>(planLpi());
       expect(indicator.value, moreOrLessEquals(0.4, epsilon: 1e-6));
 
       await unmount(tester);
@@ -216,9 +232,7 @@ void main() {
       await pumpHome(tester);
 
       expect(find.text('第 1 周 · 已减 0.0 kg / 目标 10.0 kg'), findsOneWidget);
-      final indicator = tester.widget<LinearProgressIndicator>(
-        find.byType(LinearProgressIndicator),
-      );
+      final indicator = tester.widget<LinearProgressIndicator>(planLpi());
       expect(indicator.value, 0.0);
 
       await unmount(tester);
@@ -232,9 +246,7 @@ void main() {
       await pumpHome(tester);
 
       expect(find.text('第 1 周 · 距目标还差 11.0 kg'), findsOneWidget);
-      final indicator = tester.widget<LinearProgressIndicator>(
-        find.byType(LinearProgressIndicator),
-      );
+      final indicator = tester.widget<LinearProgressIndicator>(planLpi());
       expect(indicator.value, 0.0);
 
       await unmount(tester);

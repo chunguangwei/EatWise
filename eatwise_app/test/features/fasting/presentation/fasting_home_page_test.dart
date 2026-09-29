@@ -158,7 +158,9 @@ void main() {
           .onPressed,
       isNotNull,
     );
-    // 空态信号卡（今日无记录，不出现误导性信号灯）
+    // 空态信号卡（今日无记录，不出现误导性信号灯）；指标网格加高后
+    // 落在视口外，先滚动到可见。
+    await tester.scrollUntilVisible(find.text('今天还没记录，记一笔后信号灯会亮起来'), 100);
     expect(find.text('今天还没记录，记一笔后信号灯会亮起来'), findsOneWidget);
 
     await unmount(tester);
@@ -398,6 +400,8 @@ void main() {
     );
     await pumpHome(tester);
 
+    // 指标网格加高后信号卡落在视口外，先滚到底部。
+    await tester.scrollUntilVisible(find.text('达标'), 100);
     expect(find.text('达标'), findsOneWidget); // 绿：热量
     expect(find.text('适量提醒'), findsOneWidget); // 黄：蛋白质
     expect(find.text('警示'), findsOneWidget); // 红：碳水

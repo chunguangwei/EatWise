@@ -114,14 +114,22 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('0/500'), findsOneWidget); // 发布页字数计数
 
-    // 我的 Tab：M7 设置页（账号/隐私/偏好/提醒/关于分组，D-18）
+    // 我的 Tab：M7 设置页（2026-09-29 UI 重构：四组卡——身体与目标/
+    // 账号与安全/数据与AI/关于与法务）
     await tester.tap(find.text('我的'));
     await tester.pump();
     await tester.pumpAndSettle(const Duration(milliseconds: 100));
     expect(find.text('设置'), findsOneWidget);
-    // 组标题「账号」+ 账号标识行标题「账号」（D-13 v2）两处同文案。
-    expect(find.text('账号'), findsNWidgets(2));
-    expect(find.text('隐私'), findsOneWidget);
+    // 资料头卡（圆形头像占位，2026-09-30 头卡替代原账号行）。
+    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+    expect(find.text('身体与目标'), findsOneWidget);
+    // 组标题「账号与安全」在第二组（HealthSyncSection 之后，首屏外先滚动）。
+    await tester.scrollUntilVisible(
+      find.text('账号与安全'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('账号与安全'), findsOneWidget);
     // 账号组扩充后偏好组在首屏外：滚动至可见再断言（ListView 懒构建）
     await tester.scrollUntilVisible(
       find.text('语言'),

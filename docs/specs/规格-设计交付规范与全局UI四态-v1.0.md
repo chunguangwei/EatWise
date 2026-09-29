@@ -4,6 +4,7 @@
 > 决策锚点：《开放问题决策记录 v1.0》D-01～D-20，冲突时以决策记录为准，引用处标注编号。
 > 技术栈：Flutter 单代码库出 iOS + Android（D-17），iOS 15+ / Android 8.0（API 26）+（D-14），中英双语（D-15）。
 > 撰写日期：2026-07-27。关联文档：PRD v1.0、设计方案定稿、需求评审记录、决策记录 v1.0。
+> 修订：2026-09-29 全项目 UI 重构（参考苹果健身「活动三环/大数字紧凑卡」与华为运动健康「白卡 2 列看板/健康环/迷你图表卡」，保持轻盈绿品牌浅色优先）——色彩表新增环图/图表强调色组（ring*/chart*），rLg 16→20，阴影调柔调扩散，字号表新增 textDisplay；共享组件 `MultiRingProgress` / `MetricCard` / `SectionHeader`（lib/core/widgets/）以本表 Token 为准。
 
 ### 文档信息
 
@@ -174,8 +175,12 @@ Flutter 端统一采用 **1x 基准 + 分辨率变体目录**；原生侧（小�
 | `--text-primary` | `#1E2A28` 墨黑 | `textPrimary` | 主文字 |
 | `--text-secondary` | `#8A9694` 雾灰 | `textSecondary` | 次要文字、描边辅助 |
 | `--border` | `#8A9694` 派生 | `border` | 描边（次按钮 1px、表单描边）〔假设：与雾灰同源，透明度由组件定〕 |
+| `--ring-exercise` | `#3DBE8B` | `ringExercise` | 环图·活动/断食（与主色同值，独立语义；2026-09-29 新增） |
+| `--ring-stand` | `#4CA6FF` 青蓝 | `ringStand` | 环图·站立/步数（苹果站立环同族色；2026-09-29 新增） |
+| `--ring-move` | `#FF9F45` | `ringMove` | 环图·消耗/进食（与暖阳橙同值，独立语义；2026-09-29 新增） |
+| `--chart-purple` | `#8B7CF6` 紫 | `chartPurple` | 图表·紫（睡眠/心率/步数类卡片强调色；2026-09-29 新增） |
 
-约束：信号灯语义全局固定（绿=达标/黄=适量/红=超标），`signal*` 三个字段禁止挪作他用；`signalYellow` 白底文字组合不达 AA 时，其上文字强制用 `textPrimary` 而非白色（对比度走查项）。
+约束：信号灯语义全局固定（绿=达标/黄=适量/红=超标），`signal*` 三个字段禁止挪作他用；`signalYellow` 白底文字组合不达 AA 时，其上文字强制用 `textPrimary` 而非白色（对比度走查项）。环图/图表色组（`ring*`/`chart*`）为多环进度组件与 MetricCard/图表专用，暗色对应值 `#3DBE8B` / `#5CB2FF` / `#FF9F45` / `#A39AFF`（2026-09-29 UI 重构，参考苹果健身活动环与华为运动健康健康环配色）。
 
 ## 2.3 字号 / 排版 Token（源自设计稿 2.3 / 3.4）
 
@@ -190,6 +195,7 @@ Flutter 端统一采用 **1x 基准 + 分辨率变体目录**；原生侧（小�
 | `--text-3xl30` | 30 | `text3xl` | Semibold / 1.4 | 大数字（营养值） |
 | （H1，设计稿 2.3） | 28 / Semibold | `textH1` | Semibold / 1.4 | 页面主标题〔待外部确认：28 不在 3.4 阶梯内，暂定新增 Token，待设计确认是否并入阶梯或改为 30〕 |
 | （倒计时，设计稿 2.3） | 48 | `textTimer` | Inter Bold / 1.1 | 断食倒计时数字，仅 Inter 数字场景 |
+| `--text-display34` | 34 | `textDisplay` | Bold / 1.15 | 指标大数字（MetricCard 专用；配套约定：单位用 textSm 次要色紧随其后，说明文案用 textXs 次要色；2026-09-29 新增） |
 
 - 字体族：中文 `PingFang SC`（iOS 系统）/ 思源黑体（Android，`Noto Sans SC` 内置打包〔假设：打包还是系统回退待性能评估〕）；西文与数字 Inter（计时、营养数值强制 Inter）。
 - 行高区间 1.4–1.5 如上表固定到每个 Token，禁止组件内另写行高。
@@ -201,18 +207,18 @@ Flutter 端统一采用 **1x 基准 + 分辨率变体目录**；原生侧（小�
 |------------|-----|---------------------------------------------|------|
 | `--radius-sm6` | 6 | `rSm` | 小标签、徽章 |
 | `--radius-md12` | 12 | `rMd` | 按钮、输入框 |
-| `--radius-lg16` | 16 | `rLg` | 卡片 |
+| `--radius-lg20` | 20 | `rLg` | 卡片（2026-09-29 由 16 加大，对齐华为白卡语言） |
 | `--radius-full9999` | 9999 | `rFull` | 计时环、FAB、胶囊 |
 
 ## 2.5 阴影 Token
 
 设计稿仅定义三档语义，未给参数；下表参数为建议值〔待外部确认：设计侧出暗色稿时一并确认〕。
 
-| 设计 Token | Flutter 字段（`AppShadows`，`List<BoxShadow>`） | 建议参数（亮色） | 用途 |
-|------------|--------------------------------------------------|--------------------|------|
-| `--shadow-sm` | `shadowSm` | `offset(0,1) blur(4) color(#1E2A28 @ 8%)` | 卡片 |
-| `--shadow-md` | `shadowMd` | `offset(0,4) blur(12) color(#1E2A28 @ 12%)` | 浮层、FAB |
-| `--shadow-lg` | `shadowLg` | `offset(0,8) blur(24) color(#1E2A28 @ 16%)` | 弹窗 |
+| 设计 Token | Flutter 字段（`AppShadows`，`List<BoxShadow>`） | 参数（亮色，2026-09-29 调柔调扩散） | 用途 |
+|------------|--------------------------------------------------|---------------------------------------|------|
+| `--shadow-sm` | `shadowSm` | `offset(0,2) blur(12) color(#1E2A28 @ 6%)` | 卡片 |
+| `--shadow-md` | `shadowMd` | `offset(0,6) blur(24) color(#1E2A28 @ 8%)` | 浮层、FAB |
+| `--shadow-lg` | `shadowLg` | `offset(0,12) blur(40) color(#1E2A28 @ 12%)` | 弹窗 |
 
 约束：暗色主题下阴影弱化（透明度减半）或替换为 1px 亮描边〔待外部确认〕；Android 不使用 `elevation` 系统阴影，统一走 Token，保证双端一致。
 

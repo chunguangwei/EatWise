@@ -143,14 +143,15 @@ void main() {
   }
 
   Future<void> tapCheckUpdate(WidgetTester tester) async {
-    await tester.scrollUntilVisible(find.text('检查更新'), 120);
+    // UI 重构（2026-09-29）：「检查更新」并入「版本」行（安卓点按即查）。
+    await tester.scrollUntilVisible(find.text('版本'), 120);
     await tester.pump();
-    await tester.tap(find.text('检查更新'));
+    await tester.tap(find.text('版本'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
   }
 
-  testWidgets('关于组含「检查更新」行；有更新弹更新弹窗', (tester) async {
+  testWidgets('关于与法务组含「版本」行（点按=检查更新）；有更新弹更新弹窗', (tester) async {
     adapter.stub(
       UpdateChecker.latestReleaseUrl,
       StubResponse.json(200, githubRelease()),
@@ -231,9 +232,10 @@ void main() {
     );
     await pumpSettings(tester, currentVersion: '1.0.0', platform: 'ios');
 
-    await tester.scrollUntilVisible(find.text('免责声明与特殊人群提示'), 120);
+    await tester.scrollUntilVisible(find.text('协议与说明'), 120);
     await tester.pump();
 
+    // iOS 端内不提供更新入口：「检查更新」文案不出现，版本行无点击动作。
     expect(find.text('检查更新'), findsNothing);
     expect(adapter.requestsTo(UpdateChecker.latestReleaseUrl), 0);
 

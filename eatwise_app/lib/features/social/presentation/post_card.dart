@@ -4,6 +4,7 @@ import 'package:eatwise/core/analytics/exposure_tracker.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
+import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/social/application/feed_controller.dart';
@@ -72,6 +73,8 @@ class _PostCardState extends ConsumerState<PostCard> {
         decoration: BoxDecoration(
           color: colors.bgSecondary,
           borderRadius: radii.rLg,
+          // 统一白卡软阴影（2026-09-29 UI 重构，与设置组卡/MetricCard 同语言）。
+          boxShadow: Theme.of(context).extension<AppShadows>()!.shadowSm,
         ),
         padding: const EdgeInsets.all(AppSpacing.s4),
         child: Column(
