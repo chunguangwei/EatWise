@@ -588,6 +588,23 @@ export class PrismaStore extends StoreDriver {
     }
   }
 
+  /** 日期区间 tombstone 查询（含端点；GET /weight-logs 下行删除传播用） */
+  async findWeightLogTombstonesByUserRange(
+    userId: string,
+    from: string,
+    to: string,
+  ): Promise<WeightLogEntity[]> {
+    try {
+      const rows = await this.prisma.weightLog.findMany({
+        where: { userId, deletedAt: { not: null }, date: { gte: from, lte: to } },
+        orderBy: [{ date: 'asc' }, { id: 'asc' }],
+      });
+      return rows.map(toWeightLogEntity);
+    } catch (e) {
+      throw this.fail('findWeightLogTombstonesByUserRange', e);
+    }
+  }
+
   // ===== 共享食物候选（food_candidates，D-17 先审后发）=====
 
   /** 提交候选；(userId, clientRequestId) 已存在 → 静默（幂等重放由调用方取回首次候选）。
@@ -1123,6 +1140,20 @@ export class PrismaStore extends StoreDriver {
       return rows.map(toCustomFoodEntity);
     } catch (e) {
       throw this.fail('findCustomFoodsByUser', e);
+    }
+  }
+
+  /** syncToken 增量下游标（/sync customFoodChanges）：updatedAt > since
+   * （含 tombstone），按 (updatedAt, id) 稳定升序 */
+  async findCustomFoodsSince(userId: string, since: Date): Promise<CustomFoodEntity[]> {
+    try {
+      const rows = await this.prisma.food.findMany({
+        where: { createdByUserId: userId, isCustom: true, updatedAt: { gt: since } },
+        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      });
+      return rows.map(toCustomFoodEntity);
+    } catch (e) {
+      throw this.fail('findCustomFoodsSince', e);
     }
   }
   /**
@@ -2006,6 +2037,8 @@ function toCustomFoodEntity(f: Prisma.FoodGetPayload<object>): CustomFoodEntity 
     fatPer100g: f.fatPer100g,
     source: (f.source as CustomFoodEntity['source']) ?? 'manual',
     createdAt: f.createdAt,
+    updatedAt: f.updatedAt,
+    deletedAt: f.deletedAt,
   };
 }
 

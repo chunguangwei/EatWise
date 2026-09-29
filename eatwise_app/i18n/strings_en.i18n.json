@@ -430,7 +430,10 @@
       "unitJin": "jin",
       "bodyFatLabel": "Body fat (%, optional)",
       "bodyFatInvalid": "Enter a body fat between 1% and 70%",
-      "tapToEdit": "Tap to log or edit"
+      "tapToEdit": "Tap to log or edit",
+      "deleteAction": "Delete",
+      "deleteConfirmTitle": "Delete today's weight?",
+      "deleteConfirmBody": "This will sync to the cloud and remove the entry on your other devices."
     },
     "exercise": {
       "title": "Log exercise",

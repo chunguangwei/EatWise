@@ -449,6 +449,41 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
     }
   }
 
+  /// 删除今日体重（2026-09-29 拍板删除下行 tombstone）：确认弹窗 →
+  /// WeightLogStore.remove（已上行置 tombstone 待上行 DELETE）→ 触发一轮
+  /// 同步 → 刷新记录页与 M6 趋势。
+  Future<void> _delete(RecordStrings s) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(s.weightDeleteConfirmTitle),
+        content: Text(s.weightDeleteConfirmBody),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(s.cancelAction),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(s.weightDeleteAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(weightLogStoreProvider).remove(localDateKey(DateTime.now()));
+    // 删除后触发一轮同步（tombstone 上行 DELETE + 下行合并，登录态生效）。
+    try {
+      unawaited(ref.read(recordSyncEngineProvider).syncNow());
+    } on Object {
+      // 防御：同步引擎未装配（如测试环境仅注入仓储）时跳过。
+    }
+    ref.invalidate(todayWeightProvider);
+    ref.invalidate(todayWeightEntryProvider);
+    ref.invalidate(reportWeightProvider);
+    if (mounted) Navigator.of(context).pop(true);
+  }
+
   /// 保存：校验（按存储单位 kg，斤输入先换算）→ 写 M6 WeightLogStore
   ///（同日覆写，pending）→ 触发一轮同步（登录态上行）→ 刷新记录页与 M6 趋势。
   Future<void> _save(RecordStrings s) async {
@@ -589,6 +624,16 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
         ],
       ),
       actions: <Widget>[
+        // 删除入口仅在已有当日记录时出现（编辑态）。
+        if (widget.current != null)
+          TextButton(
+            key: const ValueKey<String>('record.weight.delete'),
+            onPressed: () => unawaited(_delete(s)),
+            child: Text(
+              s.weightDeleteAction,
+              style: textStyles.textBase.copyWith(color: colors.signalRed),
+            ),
+          ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
           child: Text(s.cancelAction, style: textStyles.textBase),

@@ -124,6 +124,8 @@ export class FoodService {
       fatPer100g: dto.per100g.fatG,
       source: dto.source,
       createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
     };
     await this.driver.createCustomFood(food);
 

@@ -26,6 +26,7 @@ final class SyncPullPage {
     this.waterLogChanges = const <Map<String, dynamic>>[],
     this.exerciseLogChanges = const <Map<String, dynamic>>[],
     this.fastingRecordChanges = const <Map<String, dynamic>>[],
+    this.customFoodChanges = const <Map<String, dynamic>>[],
   });
 
   /// 原始 change 项（entry 全量视图或 {tombstone:{id,deletedAt}}）。
@@ -39,6 +40,9 @@ final class SyncPullPage {
 
   /// 断食记录 change 项（fastingRecord 全量视图或 {tombstone:{entity,id,deletedAt}}）。
   final List<Map<String, dynamic>> fastingRecordChanges;
+
+  /// 自定义食物 change 项（customFood 全量视图或 {tombstone:{entity,id,deletedAt}}）。
+  final List<Map<String, dynamic>> customFoodChanges;
   final String? nextSyncToken;
   final bool hasMore;
 }
@@ -235,6 +239,9 @@ final class RemoteRecordSync implements RecordRemote {
             (body['fastingRecordChanges'] as List<dynamic>? ??
                     const <dynamic>[])
                 .cast<Map<String, dynamic>>(),
+        customFoodChanges:
+            (body['customFoodChanges'] as List<dynamic>? ?? const <dynamic>[])
+                .cast<Map<String, dynamic>>(),
         nextSyncToken: body['syncToken'] as String?,
         hasMore: body['hasMore'] == true,
       );
@@ -374,6 +381,11 @@ final class RemoteRecordSync implements RecordRemote {
       }
       for (final change in page.fastingRecordChanges) {
         await _applyFastingRecordChange(db, userId, change);
+      }
+      // 自定义食物最后应用：服务端删除自定义食物会级联软删引用记录，
+      // 记录 tombstone（上方 entry changes）先落库，食物行再移除。
+      for (final change in page.customFoodChanges) {
+        await _applyCustomFoodChange(db, change);
       }
       if (pageSkipped) firstSkippedPageToken ??= pageTokenBefore;
       token = page.nextSyncToken;
@@ -636,15 +648,64 @@ final class RemoteRecordSync implements RecordRemote {
     ]);
   }
 
-  /// 断食记录下行入库（2026-09-29 拍板全量进 /sync：换机全量恢复 >14 天
-  /// 历史；轻量两态口径同 [_applyWaterChange]，但同日双端分叉维持「本机
-  /// 为准」——本机已有该归属日记录时**内容不覆盖**，仅收敛同步标记/
-  /// serverId 映射）：
+  /// 自定义食物下行合并（2026-09-29 拍板完整下行通道：换机拉回自建食物）。
+  /// - tombstone：本地已同步（非 dirty）的自定义行整行移除；本地未上行
+  ///   （customSyncPending）行不删——本机未同步写入优先，删除随上行收敛；
+  /// - 全量视图：serverId（= 食物 id）匹配为准，服务端版本覆盖本地已
+  ///   synced 行（upsert 幂等）；下行行直接置 customSyncPending=false +
+  ///   清空上行幂等键（终态，不触发回环上行——retryPending 只扫 pending）；
+  ///   contributionStatus 不在下行载荷内，companion 缺省保留本地值
+  ///   （贡献审核状态由 ContributionReviewSync 通道维护）。
+  Future<void> _applyCustomFoodChange(
+    AppDatabase db,
+    Map<String, dynamic> change,
+  ) async {
+    final tombstone = change['tombstone'];
+    if (tombstone is Map<String, dynamic>) {
+      final local = await db.foodDao.getById(tombstone['id']! as String);
+      if (local != null && local.isCustom && !local.customSyncPending) {
+        await db.foodDao.deleteById(local.id);
+      }
+      return;
+    }
+    final id = change['id'] as String?;
+    final nameZh = change['nameZh'] as String?;
+    final nameEn = change['nameEn'] as String?;
+    if (id == null || nameZh == null || nameEn == null) return;
+    final local = await db.foodDao.getById(id);
+    if (local != null && local.customSyncPending) {
+      // 本地未上行（dirty/draft）：不被下行覆盖（上行为准）。
+      return;
+    }
+    await db.foodDao.upsertAll(<FoodsCompanion>[
+      FoodsCompanion(
+        id: Value(id),
+        nameZh: Value(nameZh),
+        nameEn: Value(nameEn),
+        aliasesZh: Value(jsonEncode(change['aliases'] ?? const <dynamic>[])),
+        kcalPer100g: Value((change['kcalPer100g'] as num?)?.toDouble() ?? 0),
+        proteinPer100g: Value(
+          (change['proteinPer100g'] as num?)?.toDouble() ?? 0,
+        ),
+        carbPer100g: Value((change['carbsPer100g'] as num?)?.toDouble() ?? 0),
+        fatPer100g: Value((change['fatPer100g'] as num?)?.toDouble() ?? 0),
+        isCustom: const Value(true),
+        customSyncPending: const Value(false),
+        customClientRequestId: const Value(''),
+      ),
+    ]);
+  }
+
+  /// 断食记录下行入库（2026-09-29 拍板全量进 /sync + 同日双端分叉
+  /// 确定性 LWW 收敛）：轻量两态口径同 [_applyWaterChange]。
   /// - tombstone：仅清除已同步行（本地 pending 双份保留，同 entry 口径）；
   /// - 本地缺失：落 synced 新行（on_track 无结束锚点跳过，与轻量回填同口径）；
-  /// - 本地 pending：服务端已有该日记录 → 上行已无意义（服务端按归属日
-  ///   幂等返回既有视图），markSynced 收敛 + 回填 serverId，内容不动；
-  /// - 本地 synced：仅回填 serverId（老版本 F2 上行行无服务端主键映射）。
+  /// - 本机已有该归属日记录 → **按 updatedAt LWW**（服务端 updatedAt vs
+  ///   本地 createdAtUtc）：服务端更新且为终态 → 覆盖本地内容并收敛 synced
+  ///   （createdAtUtc 记为服务端 updatedAt，同一对记录重复下行比较相等、
+  ///   不再重复写——幂等稳定）；本机更新/同时或服务端为 on_track（进行中
+  ///   由 F2/ghost 链路拥有，无可比内容）→ 内容本机为准，仅收敛同步标记/
+  ///   serverId 映射（pending 行待上行，由上行 LWW 反向覆盖服务端）。
   Future<void> _applyFastingRecordChange(
     AppDatabase db,
     String userId,
@@ -667,14 +728,43 @@ final class RemoteRecordSync implements RecordRemote {
         attributionDate.isEmpty) {
       return;
     }
+    final result = change['result'] as String? ?? 'on_track';
+    final actualEndAt = change['actualEndAt'] as String?;
     final local =
         await db.fastingRecordDao.getByServerId(serverId) ??
         await db.fastingRecordDao.getByLocalId('$userId-$attributionDate');
     if (local != null) {
+      final serverUpdatedAt = DateTime.tryParse(
+        change['updatedAt'] as String? ?? '',
+      );
+      final localUpdatedAt = DateTime.tryParse(local.createdAtUtc);
+      final serverIsNewer =
+          serverUpdatedAt != null &&
+          (localUpdatedAt == null || serverUpdatedAt.isAfter(localUpdatedAt));
+      final terminal = result != 'on_track' && actualEndAt != null;
+      if (serverIsNewer && terminal) {
+        // 服务端记录更新（终态对终态）→ 覆盖本地内容 + 收敛同步标记。
+        final overwrite = _fastingCompanionFromView(
+          userId: userId,
+          attributionDate: attributionDate,
+          serverId: serverId,
+          change: change,
+          createdAtUtc: serverUpdatedAt.toIso8601String(),
+        );
+        await db.fastingRecordDao.upsertRecord(
+          overwrite.copyWith(localId: Value(local.localId)),
+        );
+        return;
+      }
       if (local.syncStatus == SyncStatus.pending) {
-        // 服务端已有该归属日记录（F2 结算/他端上行/ghost 自动结算）：
-        // 收敛同步标记（内容本机为准不覆盖）。
-        await db.fastingRecordDao.markSynced(local.localId, serverId);
+        if (!terminal || serverUpdatedAt == null) {
+          // 进行中记录（F2/ghost 链路拥有，/sync 不覆盖）或老服务端视图无
+          // updatedAt：上行已无意义（服务端按归属日幂等返回既有视图），
+          // 收敛同步标记（内容本机为准不覆盖）。
+          await db.fastingRecordDao.markSynced(local.localId, serverId);
+        }
+        // 终态且本机更新/同时：保持 pending——下轮上行经服务端 LWW 反向覆盖，
+        // 双向收敛闭环（不可在此 markSynced，否则本机较新内容永不上行）。
       } else if (local.serverId == null) {
         await db.fastingRecordDao.fillServerId(local.localId, serverId);
       }
@@ -682,9 +772,27 @@ final class RemoteRecordSync implements RecordRemote {
     }
     // 本地缺失：落 synced 新行。on_track 无结束锚点跳过（进行中周期由
     // F1/状态接口驱动，不经记录通道落库）。
-    final result = change['result'] as String? ?? 'on_track';
-    final actualEndAt = change['actualEndAt'] as String?;
     if (result == 'on_track' || actualEndAt == null) return;
+    await db.fastingRecordDao.upsertRecord(
+      _fastingCompanionFromView(
+        userId: userId,
+        attributionDate: attributionDate,
+        serverId: serverId,
+        change: change,
+        createdAtUtc: DateTime.now().toUtc().toIso8601String(),
+      ),
+    );
+  }
+
+  /// 服务端 fastingRecord 视图 → 本地行（下行补缺/LWW 覆盖共用）。
+  /// [createdAtUtc]：补缺插入=本机时钟；LWW 覆盖=服务端 updatedAt（幂等稳定锚点）。
+  FastingRecordsCompanion _fastingCompanionFromView({
+    required String userId,
+    required String attributionDate,
+    required String serverId,
+    required Map<String, dynamic> change,
+    required String createdAtUtc,
+  }) {
     final plannedStartAt =
         DateTime.tryParse(change['plannedStartAt'] as String? ?? '') ??
         DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
@@ -694,34 +802,35 @@ final class RemoteRecordSync implements RecordRemote {
     final actualStartAt =
         DateTime.tryParse(change['actualStartAt'] as String? ?? '') ??
         plannedStartAt;
-    final end = DateTime.parse(actualEndAt);
+    final end = DateTime.parse(change['actualEndAt']! as String);
     final extendedMinutes = (change['extendedMinutes'] as num?)?.toInt() ?? 0;
     final fastedMinutes = (change['fastedMinutes'] as num?)?.toInt();
-    await db.fastingRecordDao.upsertRecord(
-      FastingRecordsCompanion(
-        localId: Value('$userId-$attributionDate'),
-        userId: Value(userId),
-        attributionDate: Value(attributionDate),
-        startUtc: Value(actualStartAt.millisecondsSinceEpoch ~/ 1000),
-        endUtc: Value(end.millisecondsSinceEpoch ~/ 1000),
-        actualSec: Value(
-          fastedMinutes != null
-              ? fastedMinutes * 60
-              : end.difference(actualStartAt).inSeconds,
-        ),
-        plannedSec: Value(plannedEndAt.difference(plannedStartAt).inSeconds),
-        extendedMinutes: Value(extendedMinutes),
-        result: Value(
-          localResultNameOf(result, extendedMinutes: extendedMinutes),
-        ),
-        qualified: Value(change['isQualified'] == true),
-        clientRequestId: Value(
-          change['clientRequestId'] as String? ?? 'server-$serverId',
-        ),
-        syncStatus: const Value(SyncStatus.synced),
-        serverId: Value(serverId),
-        createdAtUtc: Value(DateTime.now().toUtc().toIso8601String()),
+    return FastingRecordsCompanion(
+      localId: Value('$userId-$attributionDate'),
+      userId: Value(userId),
+      attributionDate: Value(attributionDate),
+      startUtc: Value(actualStartAt.millisecondsSinceEpoch ~/ 1000),
+      endUtc: Value(end.millisecondsSinceEpoch ~/ 1000),
+      actualSec: Value(
+        fastedMinutes != null
+            ? fastedMinutes * 60
+            : end.difference(actualStartAt).inSeconds,
       ),
+      plannedSec: Value(plannedEndAt.difference(plannedStartAt).inSeconds),
+      extendedMinutes: Value(extendedMinutes),
+      result: Value(
+        localResultNameOf(
+          change['result'] as String? ?? 'completed',
+          extendedMinutes: extendedMinutes,
+        ),
+      ),
+      qualified: Value(change['isQualified'] == true),
+      clientRequestId: Value(
+        change['clientRequestId'] as String? ?? 'server-$serverId',
+      ),
+      syncStatus: const Value(SyncStatus.synced),
+      serverId: Value(serverId),
+      createdAtUtc: Value(createdAtUtc),
     );
   }
 

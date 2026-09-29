@@ -430,7 +430,10 @@
       "unitJin": "斤",
       "bodyFatLabel": "体脂率（%，可不填）",
       "bodyFatInvalid": "体脂率需在 1–70% 之间",
-      "tapToEdit": "点按记录或修改"
+      "tapToEdit": "点按记录或修改",
+      "deleteAction": "删除",
+      "deleteConfirmTitle": "删除今日体重？",
+      "deleteConfirmBody": "删除后会同步到云端，其他设备上的这条记录也会被移除。"
     },
     "exercise": {
       "title": "记运动",

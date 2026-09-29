@@ -137,4 +137,121 @@ void main() {
     expect(entry?.bodyFatPct, 17.9);
     expect(entry?.synced, isTrue);
   });
+
+  group('删除与 tombstone 下行（2026-09-29 拍板）', () {
+    test('上行回填 serverId；删除已同步条目 → tombstone → DELETE ack 后物理清除', () async {
+      await store.save('2026-09-17', 65.5);
+      adapter.stub(
+        '/weight-logs',
+        StubResponse.json(
+          200,
+          StubResponse.envelope(<String, dynamic>{'id': 'srv-w1'}),
+        ),
+      );
+      await sync.pushPending(store);
+      // serverId 回填（删除定位用）。
+      expect(
+        store.loadEntries('2026-09-17', '2026-09-17')['2026-09-17']?.serverId,
+        'srv-w1',
+      );
+
+      // 删除：置 tombstone——展示层即时排除、不入上行队列、保留待 DELETE。
+      expect(await store.remove('2026-09-17'), isTrue);
+      expect(store.loadEntries('2026-09-17', '2026-09-17'), isEmpty);
+      expect(store.pendingEntries(), isEmpty);
+      expect(store.pendingDeletions(), hasLength(1));
+
+      adapter.stub(
+        '/weight-logs/srv-w1',
+        StubResponse.json(200, StubResponse.envelope(<String, dynamic>{})),
+      );
+      await sync.pushDeletions(store);
+      expect(adapter.requests.last.method, 'DELETE');
+      expect(adapter.requests.last.path, '/weight-logs/srv-w1');
+      expect(store.pendingDeletions(), isEmpty);
+      expect(store.recordCount(), 0);
+    });
+
+    test('删除未上行条目：直接物理移除，零网络请求；DELETE 404 按已删除清除', () async {
+      await store.save('2026-09-18', 70.0); // 从未上行
+      expect(await store.remove('2026-09-18'), isTrue);
+      expect(store.recordCount(), 0);
+      expect(store.pendingDeletions(), isEmpty);
+      expect(adapter.requestBodies, isEmpty);
+
+      // 404：服务端本无此行 → 本地 tombstone 清除。
+      await store.save('2026-09-19', 71.0);
+      final cid = store.pendingEntries().single.value.clientRequestId;
+      await store.markSynced('2026-09-19', cid, serverId: 'srv-gone');
+      await store.remove('2026-09-19');
+      adapter.stub(
+        '/weight-logs/srv-gone',
+        StubResponse.json(404, <String, dynamic>{
+          'error': <String, dynamic>{'code': 'NOT_FOUND', 'message': 'x'},
+        }),
+      );
+      await sync.pushDeletions(store);
+      expect(store.pendingDeletions(), isEmpty);
+      expect(store.recordCount(), 0);
+    });
+
+    test(
+      '下行 tombstones：移除本地已同步条目；本地 pending 同日保留；同日 logs+tombstone 并存终态为新值',
+      () async {
+        // 本地两条：09-20 已 synced（他端已删）、09-21 pending（本机未同步写入）。
+        await store.save('2026-09-20', 65.0);
+        await store.markSynced(
+          '2026-09-20',
+          store.pendingEntries().single.value.clientRequestId,
+          serverId: 'srv-a',
+        );
+        await store.save('2026-09-21', 66.0);
+        adapter.stub(
+          '/weight-logs',
+          StubResponse.json(
+            200,
+            StubResponse.envelope(<String, dynamic>{
+              'logs': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'id': 'srv-b',
+                  'date': '2026-09-22',
+                  'weightKg': 67.5,
+                  'bodyFatPct': null,
+                  'updatedAt': '2999-09-22T01:00:00.000Z',
+                },
+              ],
+              'tombstones': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'id': 'srv-a',
+                  'date': '2026-09-20',
+                  'deletedAt': '2026-09-22T02:00:00.000Z',
+                },
+                <String, dynamic>{
+                  'id': 'srv-c',
+                  'date': '2026-09-21',
+                  'deletedAt': '2026-09-22T02:00:00.000Z',
+                },
+              ],
+            }),
+          ),
+        );
+
+        await sync.pullDown(store);
+
+        final entries = store.loadEntries('2026-09-20', '2026-09-22');
+        expect(
+          entries.containsKey('2026-09-20'),
+          isFalse,
+          reason: 'tombstone 移除已同步条目',
+        );
+        expect(
+          entries['2026-09-21']?.kg,
+          66.0,
+          reason: '本地 pending 优先，不被远端删除覆盖',
+        );
+        expect(entries['2026-09-22']?.kg, 67.5);
+        expect(store.pendingEntries(), hasLength(1));
+      },
+    );
+  });
 }

@@ -274,6 +274,15 @@ final class RecordStrings {
   /// record.weight.tapToEdit
   String get weightTapToEdit => _t.record.weight.tapToEdit;
 
+  /// record.weight.deleteAction
+  String get weightDeleteAction => _t.record.weight.deleteAction;
+
+  /// record.weight.deleteConfirmTitle
+  String get weightDeleteConfirmTitle => _t.record.weight.deleteConfirmTitle;
+
+  /// record.weight.deleteConfirmBody
+  String get weightDeleteConfirmBody => _t.record.weight.deleteConfirmBody;
+
   /// record.weight.dialogTitle
   String get weightDialogTitle => _t.record.weight.dialogTitle;
 

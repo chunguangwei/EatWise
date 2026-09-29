@@ -141,6 +141,10 @@ export class EntryPayloadDto {
   actualEndAt?: string;
 
   @IsOptional()
+  @IsISO8601()
+  updatedAtUtc?: string; // 客户端本地写入时刻（fastingRecord 同日 LWW 仲裁依据；缺省=服务端既有记录优先）
+
+  @IsOptional()
   @IsInt()
   @Min(0)
   @Max(240) // D-10 累计延长上限

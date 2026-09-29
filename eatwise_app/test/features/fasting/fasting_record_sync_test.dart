@@ -136,6 +136,8 @@ void main() {
         expect(payload['fastedMinutes'], 16 * 60);
         expect(payload['result'], 'completed');
         expect(payload['isQualified'], isTrue);
+        // 同日 LWW 仲裁依据（服务端比较既有记录 updatedAt）。
+        expect(payload['updatedAtUtc'], '2026-08-01T12:00:00.000Z');
       },
     );
 
@@ -371,6 +373,113 @@ void main() {
       final stored = (await db.fastingRecordDao.getByLocalId(local.localId))!;
       expect(stored.serverId, 'srv-f1');
       expect(stored.syncStatus, SyncStatus.synced);
+    });
+  });
+
+  group('同日双端分叉 LWW（2026-09-29 拍板确定性收敛）', () {
+    Map<String, dynamic> serverChange({
+      required String updatedAt,
+      String result = 'completed',
+      bool isQualified = true,
+      int fastedMinutes = 16 * 60,
+    }) {
+      return <String, dynamic>{
+        'entity': 'fastingRecord',
+        'id': 'srv-f1',
+        'attributionDate': '2026-08-01',
+        'plannedStartAt': '2026-07-31T12:00:00.000Z',
+        'plannedEndAt': '2026-08-01T04:00:00.000Z',
+        'actualStartAt': '2026-07-31T12:00:00.000Z',
+        'actualEndAt': '2026-08-01T04:00:00.000Z',
+        'extendedMinutes': 0,
+        'fastedMinutes': fastedMinutes,
+        'result': result,
+        'isQualified': isQualified,
+        'version': 2,
+        'updatedAt': updatedAt,
+      };
+    }
+
+    void stubPullWith(Map<String, dynamic> change) {
+      stubPull(<String, dynamic>{
+        'changes': const <dynamic>[],
+        'fastingRecordChanges': <dynamic>[change],
+        'syncToken': 'st_1',
+        'hasMore': false,
+      });
+    }
+
+    test('服务端记录更新（终态）→ 覆盖本地内容并收敛 synced；重复下行幂等不再写', () async {
+      // 本机同日 broken（createdAtUtc=2026-08-01T12:00Z）；服务端 09-01
+      // 更新的终态 completed（updatedAt 更晚）→ 服务端胜。
+      final local = await seedLocal(
+        result: CycleResult.brokenEarly,
+        qualified: false,
+        actualSec: 10 * 3600,
+      );
+      stubPullWith(serverChange(updatedAt: '2026-09-01T00:00:00.000Z'));
+
+      await recordSync.pullDown(db, 'u-1', null);
+
+      var stored = (await db.fastingRecordDao.getByLocalId(local.localId))!;
+      expect(stored.result, CycleResult.completedOnTime.name); // 内容被覆盖
+      expect(stored.qualified, isTrue);
+      expect(stored.actualSec, 16 * 3600);
+      expect(stored.syncStatus, SyncStatus.synced);
+      expect(stored.serverId, 'srv-f1');
+      // 幂等稳定锚点：createdAtUtc 记为服务端 updatedAt。
+      expect(stored.createdAtUtc, '2026-09-01T00:00:00.000Z');
+
+      // 重复下行同一视图：updatedAt 不再更晚 → 不再重写（行内容不变）。
+      stubPullWith(serverChange(updatedAt: '2026-09-01T00:00:00.000Z'));
+      await recordSync.pullDown(db, 'u-1', 'st_1');
+      stored = (await db.fastingRecordDao.getByLocalId(local.localId))!;
+      expect(stored.createdAtUtc, '2026-09-01T00:00:00.000Z');
+      expect(stored.result, CycleResult.completedOnTime.name);
+    });
+
+    test('本机更新（createdAtUtc 更晚）→ 内容本机为准，pending 保持待上行', () async {
+      final local = await seedLocal(
+        result: CycleResult.brokenEarly,
+        qualified: false,
+        actualSec: 10 * 3600,
+      );
+      // 服务端 updatedAt 早于本机写入 → 本机胜，内容不动、pending 保持
+      // （下轮上行由服务端 LWW 反向覆盖）。
+      stubPullWith(serverChange(updatedAt: '2020-01-01T00:00:00.000Z'));
+
+      await recordSync.pullDown(db, 'u-1', null);
+
+      final stored = (await db.fastingRecordDao.getByLocalId(local.localId))!;
+      expect(stored.result, CycleResult.brokenEarly.name);
+      expect(stored.qualified, isFalse);
+      expect(stored.actualSec, 10 * 3600);
+      expect(stored.syncStatus, SyncStatus.pending);
+    });
+
+    test('服务端为 on_track（进行中）→ 不覆盖本地内容，仅收敛同步标记', () async {
+      final local = await seedLocal(
+        result: CycleResult.brokenEarly,
+        qualified: false,
+      );
+      stubPullWith(<String, dynamic>{
+        'entity': 'fastingRecord',
+        'id': 'srv-f1',
+        'attributionDate': '2026-08-01',
+        'plannedStartAt': '2026-07-31T12:00:00.000Z',
+        'plannedEndAt': '2026-08-01T04:00:00.000Z',
+        'result': 'on_track',
+        'isQualified': false,
+        'version': 1,
+        'updatedAt': '2999-09-01T00:00:00.000Z', // 即便更新也不覆盖进行中
+      });
+
+      await recordSync.pullDown(db, 'u-1', null);
+
+      final stored = (await db.fastingRecordDao.getByLocalId(local.localId))!;
+      expect(stored.result, CycleResult.brokenEarly.name); // 内容不动
+      expect(stored.syncStatus, SyncStatus.synced); // 标记收敛
+      expect(stored.serverId, 'srv-f1');
     });
   });
 

@@ -129,10 +129,27 @@ describe('Weight logs API (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     expect(list.body.data.logs).toHaveLength(0);
+    // 下行删除传播（2026-09-29 拍板）：tombstone 随行下发，他端据以移除本地条目。
+    expect(list.body.data.tombstones).toHaveLength(1);
+    expect(list.body.data.tombstones[0].id).toBe(id);
+    expect(list.body.data.tombstones[0].date).toBe('2026-09-05');
+    expect(list.body.data.tombstones[0].deletedAt).toBeTruthy();
 
-    // 重复删除幂等 200
+    // 同日「先删后补」：重新 POST 同日 → 新活跃行；tombstone 仍在（旧行），
+    // 客户端先应用 tombstone 再合并 logs，终态 = 新值。
+    const recreated = await post(validBody({ date: '2026-09-05', weightKg: 66 })).expect(200);
+    const relist = await request(server)
+      .get('/v1/weight-logs?from=2026-09-05&to=2026-09-05')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(relist.body.data.logs).toHaveLength(1);
+    expect(relist.body.data.logs[0].weightKg).toBe(66);
+    expect(relist.body.data.logs[0].id).not.toBe(id);
+    expect(relist.body.data.tombstones.map((t: { id: string }) => t.id)).toContain(id);
+
+    // 重复删除幂等 200（删的是新活跃行）
     await request(server)
-      .delete(`/v1/weight-logs/${id}`)
+      .delete(`/v1/weight-logs/${recreated.body.data.id}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
   });

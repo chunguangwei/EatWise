@@ -91,6 +91,8 @@ describe('自定义食物改/删（FoodService.updateCustomFood / deleteCustomFo
       fatPer100g: 2.5,
       source: 'manual',
       createdAt: new Date('2026-09-01T00:00:00Z'),
+      updatedAt: new Date(),
+      deletedAt: null,
     };
     store.customFoods.set(FOOD_ID, custom);
   });

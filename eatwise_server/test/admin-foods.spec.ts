@@ -87,6 +87,8 @@ describe('管理端食物库（FoodService.adminSearchFoods / adminDeleteFood）
       fatPer100g: 2,
       source: 'manual',
       createdAt: new Date('2026-09-01T00:00:00Z'),
+      updatedAt: new Date(),
+      deletedAt: null,
     });
     store.customFoods.set(CUSTOM_A_ID, mkCustom(CUSTOM_A_ID, USER_A));
     store.customFoods.set(CUSTOM_B_ID, mkCustom(CUSTOM_B_ID, USER_B));

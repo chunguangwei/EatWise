@@ -13,6 +13,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// 轻量同步一致〔假设：体重无编辑冲突场景，同日覆写即最新〕）；
 /// `clientRequestId` 为上行幂等键（同日覆写生成新键，重试复用），
 /// `updatedAtUtc` 为下行 LWW 仲裁依据。
+/// 删除（2026-09-29 拍板下行 tombstone）：已上行条目删除 = 置 `deleted`
+/// tombstone 待上行 DELETE（`serverId` 定位），ack/404 后物理清除；
+/// 未上行条目删除 = 直接物理移除。下行 tombstone 经 [WeightLogStore.mergeRemote]
+/// 应用（本地 pending 条目不被删除——本机未同步写入优先）。
 final class WeightLogEntry {
   const WeightLogEntry({
     required this.kg,
@@ -20,6 +24,8 @@ final class WeightLogEntry {
     required this.updatedAtUtc,
     this.bodyFatPct,
     this.synced = false,
+    this.serverId,
+    this.deleted = false,
   });
 
   /// 体重（kg，一位小数）。
@@ -37,13 +43,21 @@ final class WeightLogEntry {
   /// 是否已上行确认（false = pending 待推送）。
   final bool synced;
 
-  WeightLogEntry copyWith({bool? synced}) {
+  /// 服务端主键（上行 POST 响应回填；删除上行 DELETE /weight-logs/:id 定位用）。
+  final String? serverId;
+
+  /// 本地 tombstone：已上行条目的删除标记（待上行 DELETE，ack 后物理清除）。
+  final bool deleted;
+
+  WeightLogEntry copyWith({bool? synced, String? serverId, bool? deleted}) {
     return WeightLogEntry(
       kg: kg,
       bodyFatPct: bodyFatPct,
       clientRequestId: clientRequestId,
       updatedAtUtc: updatedAtUtc,
       synced: synced ?? this.synced,
+      serverId: serverId ?? this.serverId,
+      deleted: deleted ?? this.deleted,
     );
   }
 
@@ -53,6 +67,8 @@ final class WeightLogEntry {
     'clientRequestId': clientRequestId,
     'updatedAtUtc': updatedAtUtc,
     'synced': synced,
+    if (serverId != null) 'serverId': serverId,
+    'deleted': deleted,
   };
 
   /// 容错解析（脏数据/缺字段返回 null，由调用方剔除）。
@@ -71,6 +87,8 @@ final class WeightLogEntry {
       clientRequestId: clientRequestId,
       updatedAtUtc: updatedAtUtc,
       synced: raw['synced'] as bool? ?? false,
+      serverId: raw['serverId'] as String?,
+      deleted: raw['deleted'] as bool? ?? false,
     );
   }
 }
@@ -238,21 +256,26 @@ class WeightLogStore {
     };
   }
 
-  /// 全部记录条数（P3 体重曲线解锁钩子：趋势图遮罩按总条数判定，与窗口无关）。
-  int recordCount() => _loadAll().length;
+  /// 全部记录条数（P3 体重曲线解锁钩子：趋势图遮罩按总条数判定，与窗口无关；
+  /// 排除删除待上行的 tombstone）。
+  int recordCount() =>
+      _loadAll().values.where((entry) => !entry.deleted).length;
 
-  /// 读取 [fromDate]～[toDate]（含端点）的完整条目（含体脂/同步元数据）。
+  /// 读取 [fromDate]～[toDate]（含端点）的完整条目（含体脂/同步元数据；
+  /// 排除删除待上行的 tombstone——撤销即时生效口径）。
   Map<String, WeightLogEntry> loadEntries(String fromDate, String toDate) {
     final all = _loadAll();
     return <String, WeightLogEntry>{
       for (final entry in all.entries)
         if (entry.key.compareTo(fromDate) >= 0 &&
-            entry.key.compareTo(toDate) <= 0)
+            entry.key.compareTo(toDate) <= 0 &&
+            !entry.value.deleted)
           entry.key: entry.value,
     };
   }
 
-  /// 写入某日体重（同日复写取最新；生成新幂等键并置 pending 待上行）。
+  /// 写入某日体重（同日复写取最新；生成新幂等键并置 pending 待上行；
+  /// 删除待上行条目被重写时按新记录开启新上行周期，serverId 随之弃用）。
   Future<void> save(String localDate, double kg, {double? bodyFatPct}) async {
     final all = _loadAll();
     all[localDate] = WeightLogEntry(
@@ -264,33 +287,91 @@ class WeightLogStore {
     await writeFn(_key, jsonEncode(all));
   }
 
-  /// 全部待上行条目（pending，按日期升序）。
+  /// 删除某日体重（2026-09-29 拍板下行 tombstone）：已上行条目置 tombstone
+  /// 待上行 DELETE；未上行条目直接物理移除。返回是否删除成功（无条目 false）。
+  Future<bool> remove(String localDate) async {
+    final all = _loadAll();
+    final entry = all[localDate];
+    if (entry == null) return false;
+    if (entry.synced && entry.serverId != null) {
+      // 保留 tombstone 待上行 DELETE；synced=false 兼作下行合并的
+      // 「本地未同步优先」守卫（mergeRemote 不覆盖/不复活）。
+      all[localDate] = entry.copyWith(deleted: true, synced: false);
+    } else {
+      all.remove(localDate);
+    }
+    await writeFn(_key, jsonEncode(all));
+    return true;
+  }
+
+  /// 全部待上行条目（pending 新建/覆写，按日期升序；删除待上行走
+  /// [pendingDeletions]，不在本队列）。
   List<MapEntry<String, WeightLogEntry>> pendingEntries() {
     final rows =
-        _loadAll().entries.where((entry) => !entry.value.synced).toList()
+        _loadAll().entries
+            .where((entry) => !entry.value.synced && !entry.value.deleted)
+            .toList()
           ..sort((a, b) => a.key.compareTo(b.key));
     return rows;
   }
 
+  /// 全部待上行删除（tombstone，按日期升序）。
+  List<MapEntry<String, WeightLogEntry>> pendingDeletions() {
+    final rows =
+        _loadAll().entries.where((entry) => entry.value.deleted).toList()
+          ..sort((a, b) => a.key.compareTo(b.key));
+    return rows;
+  }
+
+  /// 上行 DELETE ack/404 后物理清除 tombstone。
+  Future<void> purgeDeleted(String localDate) async {
+    final all = _loadAll();
+    if (all.remove(localDate) != null) {
+      await writeFn(_key, jsonEncode(all));
+    }
+  }
+
   /// 上行成功回填：仅当当前条目仍是该次上行的幂等键（同日已再覆写时不误标）。
-  Future<void> markSynced(String localDate, String clientRequestId) async {
+  Future<void> markSynced(
+    String localDate,
+    String clientRequestId, {
+    String? serverId,
+  }) async {
     final all = _loadAll();
     final entry = all[localDate];
     if (entry == null || entry.clientRequestId != clientRequestId) return;
-    all[localDate] = entry.copyWith(synced: true);
+    all[localDate] = entry.copyWith(synced: true, serverId: serverId);
     await writeFn(_key, jsonEncode(all));
   }
 
   /// 下行合并（LWW）：本地 pending 条目不动（上行后服务端同日覆写收敛）；
   /// 其余按 updatedAt 取新，远端较新则覆盖并置 synced。
+  /// [tombstones]（2026-09-29 拍板删除传播）**先于** logs 应用：同日
+  /// 「先删后补」场景服务端 tombstone（旧行）与活跃行（新行）并存，
+  /// 先删后合并保证终态 = 新值。tombstone 仅移除本地已 synced 条目——
+  /// 本地未同步写入（含删除待上行）优先，不被远端删除覆盖。
   Future<void> mergeRemote(
     Iterable<
-      ({String date, double kg, double? bodyFatPct, String updatedAtUtc})
+      ({
+        String date,
+        double kg,
+        double? bodyFatPct,
+        String updatedAtUtc,
+        String? serverId,
+      })
     >
-    remote,
-  ) async {
+    remote, {
+    Iterable<({String id, String date})> tombstones = const [],
+  }) async {
     final all = _loadAll();
     var changed = false;
+    for (final tomb in tombstones) {
+      final local = all[tomb.date];
+      if (local != null && local.synced) {
+        all.remove(tomb.date);
+        changed = true;
+      }
+    }
     for (final entry in remote) {
       final local = all[entry.date];
       if (local != null && !local.synced) continue; // 本地待上行优先
@@ -304,6 +385,7 @@ class WeightLogStore {
         clientRequestId: newClientRequestId(),
         updatedAtUtc: entry.updatedAtUtc,
         synced: true,
+        serverId: entry.serverId,
       );
       changed = true;
     }

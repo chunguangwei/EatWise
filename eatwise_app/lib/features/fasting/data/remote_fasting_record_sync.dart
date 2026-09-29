@@ -142,6 +142,8 @@ final class RemoteFastingRecordSync {
         'fastedMinutes': (row.actualSec / 60).round(),
         'result': serverResultNameOf(row.result, qualified: row.qualified),
         'isQualified': row.qualified,
+        // 同日双端分叉 LWW 仲裁依据（服务端比较既有记录 updatedAt）。
+        'updatedAtUtc': row.createdAtUtc,
       },
     };
   }

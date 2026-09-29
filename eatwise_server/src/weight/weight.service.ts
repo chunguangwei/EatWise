@@ -64,7 +64,10 @@ export class WeightService {
     return this.view(log);
   }
 
-  /** GET /v1/weight-logs?from&to：区间查询（含端点，排除 tombstone，date 升序） */
+  /** GET /v1/weight-logs?from&to：区间查询（含端点，date 升序）+
+   * 区间 tombstone（2026-09-29 拍板下行删除传播：他端删除的日期以
+   * {id,date,deletedAt} 随行下发，客户端据以移除本地对应日条目；
+   * 同日「先删后补」新旧两行并存时客户端先应用 tombstone 再合并 logs）。 */
   async list(userId: string, from: string | undefined, to: string | undefined) {
     const effectiveFrom = from ?? '1970-01-01';
     const effectiveTo = to ?? new Date().toISOString().slice(0, 10);
@@ -72,7 +75,19 @@ export class WeightService {
     if (!isValidDateKey(effectiveTo)) throw err.validation({ to: 'invalid date' });
     if (effectiveFrom > effectiveTo) throw err.validation({ from: 'from must be <= to' });
     const rows = await this.driver.findWeightLogsByUserRange(userId, effectiveFrom, effectiveTo);
-    return { logs: rows.map((e) => this.view(e)) };
+    const tombstones = await this.driver.findWeightLogTombstonesByUserRange(
+      userId,
+      effectiveFrom,
+      effectiveTo,
+    );
+    return {
+      logs: rows.map((e) => this.view(e)),
+      tombstones: tombstones.map((e) => ({
+        id: e.id,
+        date: e.date,
+        deletedAt: e.deletedAt!.toISOString(),
+      })),
+    };
   }
 
   /** DELETE /v1/weight-logs/:id：软删 tombstone（重复删除幂等；他人记录 404） */

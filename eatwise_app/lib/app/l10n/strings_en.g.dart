@@ -819,6 +819,9 @@ class _Translations$record$weight$en extends Translations$record$weight$zh_CN {
 	@override String get bodyFatLabel => 'Body fat (%, optional)';
 	@override String get bodyFatInvalid => 'Enter a body fat between 1% and 70%';
 	@override String get tapToEdit => 'Tap to log or edit';
+	@override String get deleteAction => 'Delete';
+	@override String get deleteConfirmTitle => 'Delete today\'s weight?';
+	@override String get deleteConfirmBody => 'This will sync to the cloud and remove the entry on your other devices.';
 }
 
 // Path: record.exercise
@@ -2743,6 +2746,9 @@ extension on TranslationsEn {
 			'record.weight.bodyFatLabel' => 'Body fat (%, optional)',
 			'record.weight.bodyFatInvalid' => 'Enter a body fat between 1% and 70%',
 			'record.weight.tapToEdit' => 'Tap to log or edit',
+			'record.weight.deleteAction' => 'Delete',
+			'record.weight.deleteConfirmTitle' => 'Delete today\'s weight?',
+			'record.weight.deleteConfirmBody' => 'This will sync to the cloud and remove the entry on your other devices.',
 			'record.exercise.title' => 'Log exercise',
 			'record.exercise.typeLabel' => 'Exercise type',
 			'record.exercise.durationLabel' => 'Duration (min)',
@@ -2922,11 +2928,11 @@ extension on TranslationsEn {
 			'nutrition.data.burn.steps' => 'Steps',
 			'nutrition.data.burn.kcalValue' => ({required Object kcal}) => '${kcal} kcal',
 			'nutrition.data.burn.estimatedValue' => ({required Object kcal}) => '~${kcal} kcal (estimated from steps)',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.data.burn.balance' => ({required Object kcal}) => 'Intake − burn balance: ${kcal} kcal',
 			'nutrition.data.burn.goalProgress' => ({required Object kcal, required Object goal}) => '${kcal} / ${goal} kcal',
 			'nutrition.data.burn.stepsGoalProgress' => ({required Object steps, required Object goal}) => '${steps} / ${goal} steps',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.data.burn.goalRingLabel' => ({required Object percent}) => 'Today\'s burn goal progress: ${percent}%',
 			'nutrition.data.burn.manualGuide' => 'Log exercise manually to count toward burn',
 			'nutrition.signalCard.zone.green' => 'On track',

@@ -10,6 +10,7 @@ import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/auth/data/auth_api.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_api.dart';
+import 'package:eatwise/features/fasting/data/remote_fasting_record_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/health/data/remote_exercise_log_sync.dart';
 import 'package:eatwise/features/moderation/data/moderation_api.dart';
@@ -103,7 +104,7 @@ void main() {
     expectUuid(op['clientRequestId'], 'op.clientRequestId');
     expect(
       op['entity'],
-      isIn(<String>['foodEntry', 'waterLog', 'exerciseLog']),
+      isIn(<String>['foodEntry', 'waterLog', 'exerciseLog', 'fastingRecord']),
     );
     expect(op['op'], isIn(<String>['create', 'update', 'delete']));
   }
@@ -578,6 +579,70 @@ void main() {
       }
     },
   );
+
+  // ---------- weight-logs / analytics / uploads ----------
+
+  test(
+    '/sync/push fastingRecord：create 载荷（归属日/锚点 ISO/result 枚举/LWW 时戳）',
+    () async {
+      responder = syncResponder;
+      addTearDown(() => responder = null);
+      final db = AppDatabase.memory();
+      addTearDown(db.close);
+      await db.fastingRecordDao.upsertRecord(
+        FastingRecordsCompanion(
+          localId: const Value('u1-2026-09-29'),
+          userId: const Value('u1'),
+          attributionDate: const Value('2026-09-29'),
+          startUtc: const Value(1790001600), // 2026-09-29T12:00:00Z
+          endUtc: const Value(1790001600 + 16 * 3600),
+          actualSec: const Value(16 * 3600),
+          plannedSec: const Value(16 * 3600),
+          extendedMinutes: const Value(30),
+          result: const Value('completedExtended'),
+          qualified: const Value(true),
+          clientRequestId: const Value('3f6b9d3e-0d6f-4b3f-9c4a-1a2b3c4d5e6f'),
+          syncStatus: const Value(SyncStatus.pending),
+          createdAtUtc: const Value('2026-09-29T04:00:00.000Z'),
+        ),
+      );
+      await RemoteFastingRecordSync(dio: buildDio()).pushPending(db, 'u1');
+      final op = opOf(lastReq().body, 0);
+      expectOpEnvelope(op);
+      expect(op['entity'], 'fastingRecord');
+      expect(op['op'], 'create');
+      final payload = op['payload']! as Map<String, dynamic>;
+      expect(
+        payload['attributionDate'],
+        matches(RegExp(r'^\d{4}-\d{2}-\d{2}$')),
+      );
+      expectIso8601(payload['plannedStartAt'], 'plannedStartAt');
+      expectIso8601(payload['plannedEndAt'], 'plannedEndAt');
+      expectIso8601(payload['actualEndAt'], 'actualEndAt');
+      expect(
+        payload['result'],
+        isIn(<String>['completed', 'ended_early', 'broken', 'makeup']),
+        reason: 'on_track 不经本通道（服务端 DTO 枚举）',
+      );
+      expect(payload['isQualified'], isA<bool>());
+      expect(payload['extendedMinutes'], inInclusiveRange(0, 240));
+      // 同日双端分叉 LWW 仲裁依据（服务端比较既有记录 updatedAt）。
+      expectIso8601(payload['updatedAtUtc'], 'updatedAtUtc');
+    },
+  );
+
+  test('DELETE /weight-logs/:id：tombstone 上行删除（服务端软删幂等）', () async {
+    final store = WeightLogStore.inMemory(userId: 'u1');
+    await store.save('2026-09-29', 70.5);
+    final cid = store.pendingEntries().single.value.clientRequestId;
+    await store.markSynced('2026-09-29', cid, serverId: 'srv-w1');
+    await store.remove('2026-09-29');
+    await RemoteWeightLogSync(dio: buildDio()).pushDeletions(store);
+    final r = requests.last;
+    expect(r.method, 'DELETE');
+    expect(r.path, '/weight-logs/srv-w1');
+    expect(r.data, isNull, reason: '删除走路径参数，无 body');
+  });
 
   // ---------- weight-logs / analytics / uploads ----------
 

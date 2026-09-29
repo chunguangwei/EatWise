@@ -222,6 +222,8 @@ describe('用户权利（U1/U3/U5/U6，合规 §4.2/§4.3）', () => {
         fatPer100g: 3,
         source: 'manual',
         createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
       });
       store.foodCandidates.set('fc_1', {
         id: 'fc_1',

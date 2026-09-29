@@ -155,6 +155,13 @@ export abstract class StoreDriver {
     to: string,
   ): Promise<WeightLogEntity[]>;
 
+  /** 日期区间 tombstone 查询（含端点；GET /weight-logs 下行删除传播用，按 date 升序） */
+  abstract findWeightLogTombstonesByUserRange(
+    userId: string,
+    from: string,
+    to: string,
+  ): Promise<WeightLogEntity[]>;
+
   // ===== 共享食物候选（D-17 先审后发审核池）=====
 
   /** 提交候选；(userId, clientRequestId) 已存在视为幂等重放，静默成功 */
@@ -290,6 +297,10 @@ export abstract class StoreDriver {
   abstract findCustomFoodById(id: string): Promise<CustomFoodEntity | null>;
 
   abstract findCustomFoodsByUser(userId: string): Promise<CustomFoodEntity[]>;
+
+  /** syncToken 增量下游标（/sync customFoodChanges）：updatedAt 晚于游标的
+   * 自定义食物（含 tombstone），按 (updatedAt, id) 稳定升序 */
+  abstract findCustomFoodsSince(userId: string, since: Date): Promise<CustomFoodEntity[]>;
 
   /**
    * K1 双语食物搜索候选集（内置/共享 isCustom=false + 该用户自定义，与 food.service
@@ -757,6 +768,17 @@ export class MemoryStoreDriver extends StoreDriver {
     return Promise.resolve(rows);
   }
 
+  findWeightLogTombstonesByUserRange(
+    userId: string,
+    from: string,
+    to: string,
+  ): Promise<WeightLogEntity[]> {
+    const rows = [...this.store.weightLogs.values()]
+      .filter((e) => e.userId === userId && e.deletedAt && e.date >= from && e.date <= to)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+    return Promise.resolve(rows);
+  }
+
   // ===== 共享食物候选（与 food.service 内存实现同口径）=====
 
   createFoodCandidate(candidate: FoodCandidateEntity): Promise<void> {
@@ -1035,11 +1057,22 @@ export class MemoryStoreDriver extends StoreDriver {
   }
 
   findCustomFoodById(id: string): Promise<CustomFoodEntity | null> {
-    return Promise.resolve(this.store.customFoods.get(id) ?? null);
+    const food = this.store.customFoods.get(id);
+    // 与 prisma deletedAt 过滤同语义：tombstone 读路径不可见
+    return Promise.resolve(food && !food.deletedAt ? food : null);
   }
 
   findCustomFoodsByUser(userId: string): Promise<CustomFoodEntity[]> {
-    return Promise.resolve([...this.store.customFoods.values()].filter((f) => f.userId === userId));
+    return Promise.resolve(
+      [...this.store.customFoods.values()].filter((f) => f.userId === userId && !f.deletedAt),
+    );
+  }
+
+  findCustomFoodsSince(userId: string, since: Date): Promise<CustomFoodEntity[]> {
+    const rows = [...this.store.customFoods.values()]
+      .filter((f) => f.userId === userId && f.updatedAt.getTime() > since.getTime())
+      .sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime() || a.id.localeCompare(b.id));
+    return Promise.resolve(rows);
   }
 
   deleteCustomFood(id: string): Promise<void> {
@@ -1047,24 +1080,31 @@ export class MemoryStoreDriver extends StoreDriver {
     return Promise.resolve();
   }
 
-  /** PATCH 合并写回（LWW）：仅覆盖 patch 给出的字段；缺失/非本人行由 Service 先校验，这里缺行 404 */
+  /** PATCH 合并写回（LWW）：仅覆盖 patch 给出的字段 + updatedAt 打戳（/sync
+   * 增量下游标）；缺失/非本人行由 Service 先校验，这里缺行/已软删 404 */
   updateCustomFood(id: string, patch: Partial<CustomFoodEntity>): Promise<void> {
     const food = this.store.customFoods.get(id);
-    if (!food) return Promise.reject(err.notFound());
-    this.store.customFoods.set(id, { ...food, ...patch });
+    if (!food || food.deletedAt) return Promise.reject(err.notFound());
+    this.store.customFoods.set(id, { ...food, ...patch, updatedAt: new Date() });
     return Promise.resolve();
   }
 
-  /** 内存无 tombstone 列：直接移除行（findCustomFoodById/searchFoods 随即不可见，与 prisma deletedAt 过滤后同语义） */
+  /** 软删 tombstone（deletedAt/updatedAt=now；读路径同 prisma 过滤后不可见，
+   * /sync customFoodChanges 以 tombstone 下行传播删除） */
   softDeleteCustomFood(id: string): Promise<void> {
-    if (!this.store.customFoods.delete(id)) return Promise.reject(err.notFound());
+    const food = this.store.customFoods.get(id);
+    if (!food || food.deletedAt) return Promise.reject(err.notFound());
+    this.store.customFoods.set(id, { ...food, deletedAt: new Date(), updatedAt: new Date() });
     return Promise.resolve();
   }
 
-  /** 管理端删除：移除任意食物行（共享 foods + 自定义 customFoods 都查；缺行 → NOT_FOUND） */
+  /** 管理端删除：共享 foods 物理移除；自定义 customFoods 软删 tombstone
+   * （/sync 下行删除传播，与 softDeleteCustomFood 同口径）；缺行 → NOT_FOUND */
   softDeleteFoodById(id: string): Promise<void> {
-    const removed = this.store.foods.delete(id) || this.store.customFoods.delete(id);
-    if (!removed) return Promise.reject(err.notFound());
+    if (this.store.foods.delete(id)) return Promise.resolve();
+    const custom = this.store.customFoods.get(id);
+    if (!custom || custom.deletedAt) return Promise.reject(err.notFound());
+    this.store.customFoods.set(id, { ...custom, deletedAt: new Date(), updatedAt: new Date() });
     return Promise.resolve();
   }
 
@@ -1087,6 +1127,7 @@ export class MemoryStoreDriver extends StoreDriver {
     const custom: FoodSearchHit[] = [];
     if (userId || adminView) {
       for (const food of this.store.customFoods.values()) {
+        if (food.deletedAt) continue; // tombstone 不参与搜索（prisma 过滤同语义）
         if (!adminView && food.userId !== userId) continue;
         const hit = this.matchFood(food, raw, ql, true);
         if (hit) custom.push(hit);

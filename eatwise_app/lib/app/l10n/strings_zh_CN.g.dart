@@ -1425,6 +1425,15 @@ class Translations$record$weight$zh_CN {
 
 	/// zh-CN: '点按记录或修改'
 	String get tapToEdit => '点按记录或修改';
+
+	/// zh-CN: '删除'
+	String get deleteAction => '删除';
+
+	/// zh-CN: '删除今日体重？'
+	String get deleteConfirmTitle => '删除今日体重？';
+
+	/// zh-CN: '删除后会同步到云端，其他设备上的这条记录也会被移除。'
+	String get deleteConfirmBody => '删除后会同步到云端，其他设备上的这条记录也会被移除。';
 }
 
 // Path: record.exercise
@@ -4739,6 +4748,9 @@ extension on Translations {
 			'record.weight.bodyFatLabel' => '体脂率（%，可不填）',
 			'record.weight.bodyFatInvalid' => '体脂率需在 1–70% 之间',
 			'record.weight.tapToEdit' => '点按记录或修改',
+			'record.weight.deleteAction' => '删除',
+			'record.weight.deleteConfirmTitle' => '删除今日体重？',
+			'record.weight.deleteConfirmBody' => '删除后会同步到云端，其他设备上的这条记录也会被移除。',
 			'record.exercise.title' => '记运动',
 			'record.exercise.typeLabel' => '运动类型',
 			'record.exercise.durationLabel' => '时长（分钟）',
@@ -4918,11 +4930,11 @@ extension on Translations {
 			'nutrition.data.burn.steps' => '步数',
 			'nutrition.data.burn.kcalValue' => ({required Object kcal}) => '${kcal} kcal',
 			'nutrition.data.burn.estimatedValue' => ({required Object kcal}) => '约 ${kcal} kcal（按步数估算）',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.data.burn.balance' => ({required Object kcal}) => '摄入 − 消耗结余：${kcal} kcal',
 			'nutrition.data.burn.goalProgress' => ({required Object kcal, required Object goal}) => '${kcal} / ${goal} 千卡',
 			'nutrition.data.burn.stepsGoalProgress' => ({required Object steps, required Object goal}) => '${steps} / ${goal} 步',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.data.burn.goalRingLabel' => ({required Object percent}) => '今日消耗目标进度 ${percent}%',
 			'nutrition.data.burn.manualGuide' => '手动记运动可计入消耗',
 			'nutrition.signalCard.zone.green' => '达标',

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BusinessException, err } from '../common/errors/business.exception';
 import {
+  CustomFoodEntity,
   ExerciseLogEntity,
   FastingRecordEntity,
   FoodEntryEntity,
@@ -550,9 +551,52 @@ export class SyncService {
       };
     }
     // 归属日天然幂等键：服务端已有该日存活记录（F2 结算/他端上行/ghost
-    // 自动结算）→ 不覆盖，返回既有视图（客户端据 serverEntry 回填 serverId）。
+    // 自动结算）→ 默认返回既有视图不覆盖（客户端据 serverEntry 回填 serverId）。
+    // LWW（2026-09-29 拍板同日双端分叉确定性收敛）：客户端本地写入时刻
+    // （payload.updatedAtUtc）新于服务端记录 updatedAt 时覆盖内容——
+    // 仅限**终态对终态**：on_track 进行中记录由 F2/ghost 结算链路拥有，
+    // /sync 永不覆盖（保 F2 窗口校验语义）。重复上行幂等稳定：覆盖后
+    // updatedAt=服务端时钟，同载荷重放不再新于它，不再重复写。
     const dupByDate = records.find((r) => !r.deletedAt && r.attributionDate === attributionDate);
     if (dupByDate) {
+      const clientUpdatedAt = p.updatedAtUtc ? new Date(p.updatedAtUtc) : null;
+      if (
+        dupByDate.result !== 'on_track' &&
+        clientUpdatedAt &&
+        !Number.isNaN(clientUpdatedAt.getTime()) &&
+        clientUpdatedAt.getTime() > dupByDate.updatedAt.getTime()
+      ) {
+        const now = new Date();
+        const actualStartAt = p.actualStartAt ? new Date(p.actualStartAt) : null;
+        dupByDate.plannedStartAt = plannedStartAt;
+        dupByDate.plannedEndAt = plannedEndAt;
+        dupByDate.actualStartAt =
+          actualStartAt && !Number.isNaN(actualStartAt.getTime()) ? actualStartAt : null;
+        dupByDate.actualEndAt = actualEndAt;
+        dupByDate.extendedMinutes = typeof p.extendedMinutes === 'number' ? p.extendedMinutes : 0;
+        dupByDate.fastedMinutes =
+          typeof p.fastedMinutes === 'number'
+            ? p.fastedMinutes
+            : Math.max(
+                0,
+                Math.round(
+                  (actualEndAt.getTime() - (actualStartAt ?? plannedStartAt).getTime()) / 60000,
+                ),
+              );
+        dupByDate.result = result as FastingRecordEntity['result'];
+        dupByDate.isQualified = p.isQualified;
+        dupByDate.clientRequestId = op.clientRequestId; // 换绑最新写入端幂等键
+        dupByDate.version += 1;
+        dupByDate.updatedAt = now;
+        dupByDate.eventLog.push({
+          at: now.toISOString(),
+          event: 'synced_overwrite',
+          detail: { clientUpdatedAt: clientUpdatedAt.toISOString() },
+        });
+        await this.driver.saveFastingRecord(dupByDate);
+        // 覆盖改变达标集合 → streak 重算（与 create/delete 同口径）。
+        await this.streak.recompute(userId);
+      }
       return {
         clientRequestId: op.clientRequestId,
         status: 'applied',
@@ -640,6 +684,24 @@ export class SyncService {
       updatedAt: r.updatedAt.toISOString(),
     };
   }
+
+  /** 自定义食物下行视图（/sync customFoodChanges；客户端合并进本地个人库） */
+  private customFoodView(f: CustomFoodEntity) {
+    return {
+      entity: 'customFood',
+      id: f.id,
+      clientRequestId: f.clientRequestId,
+      nameZh: f.nameZh,
+      nameEn: f.nameEn,
+      aliases: f.aliases,
+      kcalPer100g: f.kcalPer100g,
+      proteinPer100g: f.proteinPer100g,
+      carbsPer100g: f.carbsPer100g,
+      fatPer100g: f.fatPer100g,
+      source: f.source,
+      updatedAt: f.updatedAt.toISOString(),
+    };
+  }
   // ===== E6 / sync/pull 增量下行（syncToken 游标）=====
   async pull(userId: string, syncToken: string | undefined, limit = 200) {
     limit = clampPageLimit(limit, 200, 1000); // 非法 limit（负数/NaN）回落默认，防游标死循环
@@ -685,6 +747,15 @@ export class SyncService {
         : this.fastingRecordView(r),
     );
 
+    // 自定义食物随行下行（2026-09-29 拍板完整下行通道：换机拉回自建食物；
+    // 软删行以 tombstone 下发让客户端移除；复用同一 syncToken 游标语义）
+    const customFoods = await this.driver.findCustomFoodsSince(userId, new Date(after?.ts ?? 0));
+    const customFoodChanges = customFoods.map((f) =>
+      f.deletedAt
+        ? { tombstone: { entity: 'customFood', id: f.id, deletedAt: f.deletedAt.toISOString() } }
+        : this.customFoodView(f),
+    );
+
     const page = all.slice(0, limit);
     const last = page[page.length - 1];
     return {
@@ -696,6 +767,7 @@ export class SyncService {
       waterLogChanges: waterChanges,
       exerciseLogChanges: exerciseChanges,
       fastingRecordChanges: fastingChanges,
+      customFoodChanges,
       syncToken: last
         ? this.encodeToken(last.updatedAt, last.id)
         : (syncToken ?? this.encodeToken(new Date(), '')),

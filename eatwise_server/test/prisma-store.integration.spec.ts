@@ -292,6 +292,8 @@ describePg('PrismaStore（集成，真实 PostgreSQL）', () => {
       fatPer100g: 5,
       source: 'manual',
       createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
     };
     await store.createCustomFood(customFood);
     const candidate: FoodCandidateEntity = {
@@ -773,12 +775,15 @@ describePg('PrismaStore 全量 CRUD 基座（集成，真实 PostgreSQL）', () 
       fatPer100g: 0.5,
       source: 'manual',
       createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
     };
     await store.createCustomFood(custom);
     // 内置视图不返回自定义行
     expect(await store.findFoodById(custom.id)).toBeNull();
     const found = await store.findCustomFoodById(custom.id);
-    expect(found).toEqual(custom); // 含 clientRequestId 往返
+    // updatedAt 由 pg @updatedAt 以数据库时钟赋值（非请求方时间戳），字段级断言。
+    expect(found).toEqual({ ...custom, updatedAt: expect.any(Date) }); // 含 clientRequestId 往返
     expect(await store.findCustomFoodsByUser(userId)).toHaveLength(1);
 
     await store.deleteCustomFood(custom.id);

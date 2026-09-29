@@ -176,6 +176,10 @@ export interface CustomFoodEntity {
   fatPer100g: number;
   source: 'manual' | 'llm-estimate';
   createdAt: Date;
+  /** 最近修改（/sync customFood 增量下游标依据；内存驱动 2026-09-29 起维护） */
+  updatedAt: Date;
+  /** 软删 tombstone（/sync 下行删除传播；prisma 对应 foods.deletedAt；null=存活） */
+  deletedAt: Date | null;
 }
 
 export interface NutritionSnapshot {
