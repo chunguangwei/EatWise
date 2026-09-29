@@ -380,6 +380,13 @@ final class RecordRepository {
     return localDateOf(epochSec, location).toIsoString();
   }
 
+  /// 归属日键（公开版 [_localDateOf]）：todayEntriesProvider 等查询侧的
+  /// 「今日」口径。必须用本仓储的 [location] 换算，不能另用进程本地时区
+  /// （`date.toLocal()`）——CI（TZ=UTC）16:00–24:00 时段北京已是次日，
+  /// 写入侧（repo.location=Asia/Shanghai）与进程本地日期分叉，曾致
+  /// 「今日记录」在 CI 查不到（v1.14.0 CI 红根因）。
+  String localDateKeyOf(DateTime utc) => _localDateOf(utc);
+
   /// 就餐时间按设备时区换算的本地小时（餐次智能预判用，0–23）。
   int _localHourOf(DateTime utc) {
     return tz.TZDateTime.from(utc.toUtc(), location).hour;

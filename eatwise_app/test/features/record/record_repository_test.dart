@@ -429,4 +429,29 @@ void main() {
       await reopened.dispose();
     });
   });
+
+  group('归属日键口径（localDateKeyOf，CI 时区分叉回归）', () {
+    test('查询侧「今日」跟随仓储 location，不随进程本地时区（UTC 16:19 = 北京次日）', () {
+      // v1.14.0 CI 红根因：CI（TZ=UTC）16:19 UTC 时北京已是次日 00:19，
+      // 写入侧（repo.location）与 localDateKey(进程本地) 日期分叉，
+      // 「今日记录」在 CI 查询落空。钉死查询侧口径 = repo.location。
+      final shanghai = RecordRepository(
+        db: db,
+        remote: remote,
+        location: tz.getLocation('Asia/Shanghai'),
+      );
+      final tokyo = RecordRepository(
+        db: db,
+        remote: remote,
+        location: tz.getLocation('Asia/Tokyo'),
+      );
+      final utc = DateTime.utc(2026, 9, 29, 16, 19); // 北京/东京均为 09-30
+      expect(shanghai.localDateKeyOf(utc), '2026-09-30');
+      expect(tokyo.localDateKeyOf(utc), '2026-09-30');
+      // 同日早些时刻：UTC 15:59 北京 23:59 仍当日，东京已次日（口径差异可见）。
+      final earlier = DateTime.utc(2026, 9, 29, 15, 59);
+      expect(shanghai.localDateKeyOf(earlier), '2026-09-29');
+      expect(tokyo.localDateKeyOf(earlier), '2026-09-30');
+    });
+  });
 }

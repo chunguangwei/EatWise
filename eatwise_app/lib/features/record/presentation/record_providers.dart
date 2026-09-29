@@ -223,9 +223,11 @@ final StateProvider<MealType?> recordMealTypeProvider =
 final StreamProvider<List<FoodEntry>> todayEntriesProvider =
     StreamProvider<List<FoodEntry>>((ref) {
       final repo = ref.watch(recordRepositoryProvider);
+      // 「今日」与写入侧同口径（repo.location）：进程本地时区在 CI
+      // （TZ=UTC）与北京日期会跨日分叉，勿用 localDateKey(DateTime.now())。
       return repo.db.foodEntryDao.watchEntriesForDate(
         repo.userId,
-        localDateKey(DateTime.now()),
+        repo.localDateKeyOf(DateTime.now()),
       );
     });
 
