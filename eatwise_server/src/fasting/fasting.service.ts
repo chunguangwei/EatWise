@@ -102,41 +102,40 @@ export class FastingService {
   }
 
   /**
-   * P4 一键启动/更换方案：已有 current/pending 方案时次日 0 点本地生效（D-06），
-   * 已有 pending 整体替换（LWW）；用户首个方案（库中无任何 current/pending，
-   * 16:8 兜底 D-03 是虚拟值不算）立即生效：effectiveDate=今日本地日、status=current。
+   * P4 一键启动/更换方案（v1.14.x 收敛语义修订，替代 D-06 次日 pending 翻转）：
+   * **最后写入胜、全端即刻跟随**——直接生效为 current（旧 current/pending
+   * 一律 expired），不再登记次日生效 pending。旧语义下两台活跃设备互判
+   * 「服务端更新且窗口不同」各自登记次日 pendingPlan 并回推本地分歧方案，
+   * 形成永久 ping-pong（wcg 断签根因：双端 fasting_plans 每日交替上传）。
+   * 进行中周期锚点冻结（当日已记录数据不回算，D-06 精神）由客户端计时
+   * 主控保证；历史已关闭记录不回算。
+   * 既有 pending 行（旧客户端登记）保留 getCurrentPlan 到期翻转逻辑兜底。
    */
   async putCurrentPlan(userId: string, tz: string, planType: string, start: string, end: string) {
     const plans = await this.driver.listFastingPlansByUser(userId);
-    const hasPrior = plans.some((p) => p.status === 'current' || p.status === 'pending');
-    const today = localDateOf(new Date(), tz);
-    const effectiveDate = addDays(today, hasPrior ? 1 : 0);
-    let pending = plans.find((p) => p.status === 'pending');
-    if (pending) {
-      pending.planType = planType;
-      pending.eatingWindowStart = start;
-      pending.eatingWindowEnd = end;
-      pending.effectiveDate = effectiveDate;
-      pending.version += 1;
-      pending.updatedAt = new Date();
-    } else {
-      pending = {
-        id: newId(),
-        userId,
-        planType,
-        eatingWindowStart: start,
-        eatingWindowEnd: end,
-        effectiveDate,
-        status: hasPrior ? 'pending' : 'current',
-        clientRequestId: null,
-        version: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+    const now = new Date();
+    for (const p of plans) {
+      if (p.status === 'current' || p.status === 'pending') {
+        p.status = 'expired';
+        p.updatedAt = now;
+        await this.driver.saveFastingPlan(p);
+      }
     }
-    await this.driver.saveFastingPlan(pending);
-    const current = await this.getCurrentPlan(userId, tz);
-    return { current: this.planView(current), pending: this.planView(pending) };
+    const current: FastingPlanEntity = {
+      id: newId(),
+      userId,
+      planType,
+      eatingWindowStart: start,
+      eatingWindowEnd: end,
+      effectiveDate: localDateOf(now, tz),
+      status: 'current',
+      clientRequestId: null,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await this.driver.saveFastingPlan(current);
+    return { current: this.planView(current), pending: null };
   }
 
   /** F1 当前断食状态（首页计时环数据源） */

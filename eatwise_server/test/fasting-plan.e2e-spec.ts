@@ -44,7 +44,7 @@ describe('Fasting plan custom window (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .set('X-Timezone', 'Asia/Shanghai');
 
-  it('首个方案 PUT 立即生效 → GET 回显自选窗口；改动仍 pending 次日', async () => {
+  it('首个方案 PUT 立即生效 → GET 回显自选窗口；再改即刻替换 current（v1.14.x 杀 ping-pong）', async () => {
     const token = await login('+8613911000101');
     const res = await put(token, {
       clientRequestId: randomUUID(),
@@ -59,21 +59,20 @@ describe('Fasting plan custom window (e2e)', () => {
     expect(got.body.data.current.eatingWindow).toEqual({ start: '09:00', end: '17:00' });
     expect(got.body.data.pending).toBeNull();
 
-    // 已有方案 → 改动 pending 次日生效，current 不变（D-06）
+    // 已有方案 → 改动即刻生效替换 current（v1.14.x 收敛语义，不再 pending 次日）
     const res2 = await put(token, {
       clientRequestId: randomUUID(),
       planType: '14:10',
       eatingWindow: { start: '08:00', end: '18:00' },
     }).expect(200);
-    expect(res2.body.data.pending.status).toBe('pending');
-    expect(res2.body.data.pending.planType).toBe('14:10');
-    expect(res2.body.data.current.planType).toBe('16:8');
+    expect(res2.body.data.pending).toBeNull();
+    expect(res2.body.data.current.planType).toBe('14:10');
+    expect(res2.body.data.current.status).toBe('current');
 
     const got2 = await get(token).expect(200);
-    // pending 为原始实体形状（契约不变形）：eatingWindowStart/End 平铺字段
-    expect(got2.body.data.pending.planType).toBe('14:10');
-    expect(got2.body.data.pending.eatingWindowStart).toBe('08:00');
-    expect(got2.body.data.pending.eatingWindowEnd).toBe('18:00');
+    expect(got2.body.data.pending).toBeNull();
+    expect(got2.body.data.current.planType).toBe('14:10');
+    expect(got2.body.data.current.eatingWindow).toEqual({ start: '08:00', end: '18:00' });
   });
 
   it('跨午夜窗口合法（18:6 配 21:00–03:00）：PUT 成功且 GET 回显', async () => {

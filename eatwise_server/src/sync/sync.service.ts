@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { BusinessException, err } from '../common/errors/business.exception';
 import {
   CustomFoodEntity,
@@ -32,7 +33,34 @@ export class SyncService {
     @Inject(STORE_DRIVER) private readonly driver: StoreDriver,
     private readonly nutrition: NutritionService,
     private readonly streak: StreakService,
+    private readonly config: ConfigService,
   ) {}
+
+  /** D-08 破窗容差（与 FastingService 同配置热调，默认 15 分钟） */
+  private get fastingToleranceMs(): number {
+    return Number(this.config.get('FASTING_TOLERANCE_MINUTES', 15)) * 60 * 1000;
+  }
+
+  /**
+   * fastingRecord 结算对齐（2026-09-30 拍板 C）：不采信客户端 payload 的
+   * result/isQualified，统一按**记录自身锚点**重算早退（与 F2 endFast 同
+   * 口径）——方案分叉期「本地按 A 方案判 completed、服务端按 B 方案锚点
+   * 判 broken」的歧义不再入库；makeup 仅服务端补签产生，payload 声称
+   * makeup 时透传（客户端映射不产生 makeup）。
+   */
+  private judgeFastingResult(
+    plannedEndAt: Date,
+    actualEndAt: Date,
+    payloadResult: string,
+  ): { result: FastingRecordEntity['result']; isQualified: boolean } {
+    if (payloadResult === 'makeup') return { result: 'makeup', isQualified: true };
+    const earlyByMs = plannedEndAt.getTime() - actualEndAt.getTime();
+    if (earlyByMs <= 0) return { result: 'completed', isQualified: true };
+    if (earlyByMs <= this.fastingToleranceMs) {
+      return { result: 'ended_early', isQualified: true };
+    }
+    return { result: 'broken', isQualified: false };
+  }
 
   // ===== E1 单条创建（幂等，D-20）=====
   async createEntry(userId: string, dto: CreateEntryDto) {
@@ -530,6 +558,8 @@ export class SyncService {
       };
     }
     const records = await this.driver.listFastingRecordsByUser(userId);
+    // 结算对齐（拍板 C）：result/isQualified 按记录自身锚点重算，不采信 payload。
+    const judged = this.judgeFastingResult(plannedEndAt, actualEndAt, result);
     const dupByKey = records.find((r) => r.clientRequestId === op.clientRequestId);
     if (dupByKey) {
       // 幂等重放：同键同体返回首次结果；同键不同体 = 客户端 bug
@@ -583,8 +613,8 @@ export class SyncService {
                   (actualEndAt.getTime() - (actualStartAt ?? plannedStartAt).getTime()) / 60000,
                 ),
               );
-        dupByDate.result = result as FastingRecordEntity['result'];
-        dupByDate.isQualified = p.isQualified;
+        dupByDate.result = judged.result;
+        dupByDate.isQualified = judged.isQualified;
         dupByDate.clientRequestId = op.clientRequestId; // 换绑最新写入端幂等键
         dupByDate.version += 1;
         dupByDate.updatedAt = now;
@@ -624,8 +654,8 @@ export class SyncService {
                 (actualEndAt.getTime() - (actualStartAt ?? plannedStartAt).getTime()) / 60000,
               ),
             ),
-      result: result as FastingRecordEntity['result'],
-      isQualified: p.isQualified,
+      result: judged.result,
+      isQualified: judged.isQualified,
       eventLog: [{ at: now.toISOString(), event: 'synced_create' }],
       clientRequestId: op.clientRequestId,
       version: 1,

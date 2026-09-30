@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { ConfigService } from '@nestjs/config';
 import { DataStore } from '../src/common/store/data-store';
 import { MemoryStoreDriver } from '../src/common/store/store-driver';
 import { NutritionService } from '../src/nutrition/nutrition.service';
@@ -15,7 +16,12 @@ describe('sync：exerciseLog op（轻量两态，无 update）', () => {
   beforeEach(() => {
     store = new DataStore();
     const driver = new MemoryStoreDriver(store);
-    sync = new SyncService(driver, new NutritionService(driver), new StreakService(driver));
+    sync = new SyncService(
+      driver,
+      new NutritionService(driver),
+      new StreakService(driver),
+      new ConfigService(),
+    );
     userId = store.createUser({ phone: '+8613800138000' }).id;
   });
 

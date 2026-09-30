@@ -389,7 +389,7 @@ void main() {
   });
 
   group('方案生效（T13，D-06：pendingPlan 次日 0:00 本地转正）', () {
-    test('build 对账转正：新方案生效，进行中周期作废不写幽灵记录', () async {
+    test('build 对账转正：新方案生效，进行中周期锚点冻结继续计时（v1.14.x 拍板 B）', () async {
       prefs = await seedActivePlanPrefs(startedAtUtc: bjtUtc(27, 12));
       final store = SharedPreferencesOnboardingStore(prefs);
       store.savePendingPlan(
@@ -415,8 +415,14 @@ void main() {
       expect(state.plan, FastingPlan.plan14x10);
       expect(store.loadPendingPlan(), isNull);
       expect(store.loadActivePlan()!.plan, FastingPlan.plan14x10);
-      // 进行中周期口径：作废不写 FastingRecord（不产生幽灵达标记录）。
-      expect(cycleStore.loadActiveCycle(), isNull);
+      // 锚点冻结：进行中周期不作废（旧口径「作废不写幽灵记录」会把真实
+      // 进行中的断食无声抹掉）——按自身锚点继续计时，新方案只作用下一周期。
+      final frozen = cycleStore.loadActiveCycle();
+      expect(frozen, isNotNull);
+      expect(frozen!.startUtc, bjtUtc(27, 12));
+      expect(frozen.plannedEndUtc, bjtUtc(28, 4));
+      expect(state.cycle, isNotNull);
+      expect(state.cycle!.plannedEndUtc, bjtUtc(28, 4));
       expect(state.lastClosedRecord, isNull);
       expect(state.celebrating, isFalse);
       // 重排按 planActivate；build 不再重复 appForeground。

@@ -247,10 +247,11 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
   /// T13：pendingPlan 到期（本地 0:00 已过）则转正，返回新方案；
   /// 无 pending 或未到期返回 null。
   ///
-  /// 进行中周期口径：旧方案的 activeCycle **作废、不写 FastingRecord**——
-  /// T13 规定当前区间按新方案锚点重算落点（「当前时刻之后最近的窗口
-  /// 边界」原则），若按旧锚点补关闭，会把一条归属旧窗口的「幽灵记录」
-  /// （甚至幽灵达标）写进 streak。历史已关闭记录保留不回算（D-06）。
+  /// 进行中周期口径（v1.14.x 拍板 B 锚点冻结）：旧方案的 activeCycle
+  /// **不作废、冻结锚点继续计时**（旧口径「作废不写 FastingRecord」会把
+  /// 用户真实进行中的断食无声抹掉）；它走到自己的 plannedEndUtc 由
+  /// tick/build 正常补关闭（记录按自身锚点判定），新方案只作用于下一
+  /// 周期。历史已关闭记录保留不回算（D-06）。
   FastingPlan? _activatePendingPlanIfDue(OnboardingStore onboardStore) {
     final pending = onboardStore.loadPendingPlan();
     if (pending == null) return null;
@@ -263,8 +264,9 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
   }
 
   /// 方案立即生效落盘（T13 到点转正与用户「立即应用」共用口径）：
-  /// 写 active、作废进行中周期与提前破窗覆盖、重排通知、置脏上行。
-  /// 作废口径见 [_activatePendingPlanIfDue] 注释（幽灵记录问题）。
+  /// 写 active、重排通知、置脏上行。**不清除进行中周期**（锚点冻结，
+  /// 见 [_activatePendingPlanIfDue] 注释）——activeCycle 若存在由
+  /// [_resolve] 冻结还原，走到自身 plannedEndUtc 正常关闭。
   FastingPlan _activatePlanNow(
     FastingPlan plan,
     int now,
@@ -280,8 +282,9 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
         startedAtUtc: now,
       ),
     );
-    _store.clearActiveCycle(); // 作废进行中周期（口径见函数注释）
-    _store.clearEarlyEatEndUtc(); // 旧方案的提前破窗覆盖一并作废
+    // 提前破窗覆盖属旧方案进食侧状态（非周期锚点）：方案即刻生效后按
+    // 新方案轨道重算进食落点，旧覆盖一并作废。
+    _store.clearEarlyEatEndUtc();
     _reschedule(plan, 0, RescheduleReason.planActivate);
     // 转正 = 服务端视角的「改动生效」落地：置脏并尽力上行一次，
     // 保证服务端 current 与本地生效方案收敛（失败由同步引擎重试）。
@@ -311,8 +314,13 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     ref.read(planVersionProvider.notifier).state++;
   }
 
-  /// 用落点快照重建状态；持久化周期与重算周期同根（同一断食开始锚点）
-  /// 时以持久化版本为准——它是含延长锚点的唯一真源（D-10）。
+  /// 用落点快照重建状态；**进行中周期锚点冻结**（v1.14.x 拍板 B）：持久化
+  /// 的 activeCycle 未到计划终点时恒以它为准（含延长锚点唯一真源 D-10）——
+  /// 任何方案变更（用户改、下行收敛、T13 转正）都不得重算进行中 cycle 的
+  /// startUtc/plannedEndUtc/eatWindowEndUtc，新方案只作用于下一周期
+  /// （D-06 精神：当日已记录数据不回算）。旧口径「stored.startUtc 与
+  /// resolveState 计算周期一致才还原」在方案变更后会静默丢弃进行中周期
+  /// （展示按新方案重算 = 锚点被重算），已拆除。
   FastingTimerState _resolve(
     FastingPlan plan,
     FastingSnapshot snapshot, {
@@ -344,19 +352,19 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
       }
     }
 
-    final cycle = effective.cycle;
-    if (cycle != null) {
-      final stored = _store.loadActiveCycle();
-      if (stored != null && stored.startUtc == cycle.startUtc) {
-        final restored = stored.toCycle();
-        effective = FastingSnapshot(
-          state: restored.state,
-          nowUtc: effective.nowUtc,
-          cycle: restored,
-          targetUtc: restored.plannedEndUtc,
-          attributionPreview: effective.attributionPreview,
-        );
-      }
+    // 锚点冻结：进行中周期（含延长还原）恒以持久化版本为准，与
+    // resolveState 按当前方案算出的周期无关。已过期（plannedEndUtc 已过）
+    // 的 stored cycle 不在此还原——由 build()/tick 的补关闭路径结算。
+    final stored = _store.loadActiveCycle();
+    if (stored != null && effective.nowUtc < stored.plannedEndUtc) {
+      final restored = stored.toCycle();
+      effective = FastingSnapshot(
+        state: restored.state,
+        nowUtc: effective.nowUtc,
+        cycle: restored,
+        targetUtc: restored.plannedEndUtc,
+        attributionPreview: effective.attributionPreview,
+      );
     }
     return FastingTimerState(
       plan: plan,

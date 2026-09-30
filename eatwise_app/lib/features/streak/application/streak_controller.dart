@@ -254,7 +254,9 @@ final class StreakController extends Notifier<StreakUiState> {
           } on BusinessApiException catch (e) {
             if (e.code == 'FASTING_WINDOW_MISMATCH') {
               // 多端方案分叉（本机窗口 ≠ 服务端窗口）：触发一次方案下行
-              // 收敛（服务端窗口为准，按 D-06 次日生效），下轮同步再上报。
+              // 收敛（v1.14.x：服务端方案即刻采纳替换本地）。闭环：本地
+              // 记录保持 pending，/sync fastingRecord 通道按**自身锚点**
+              // 上行，服务端同口径重算早退（拍板 C）——不丢、不重 broken。
               unawaited(ref.read(fastingPlanSyncProvider)?.pull());
             }
             // 其余业务拒绝（已结束/窗口外等）：本地记录保留，对账为准。

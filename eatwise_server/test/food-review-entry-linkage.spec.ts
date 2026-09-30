@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { ConfigService } from '@nestjs/config';
 import { DataStore } from '../src/common/store/data-store';
 import { MemoryStoreDriver } from '../src/common/store/store-driver';
 import { FoodService } from '../src/food/food.service';
@@ -24,7 +25,12 @@ describe('乐观入账与审核联动（候选驳回级联清除记录）', () =
     store = new DataStore();
     driver = new MemoryStoreDriver(store);
     food = new FoodService(driver, new StubModerationService());
-    sync = new SyncService(driver, new NutritionService(driver), new StreakService(driver));
+    sync = new SyncService(
+      driver,
+      new NutritionService(driver),
+      new StreakService(driver),
+      new ConfigService(),
+    );
     userId = store.createUser({ phone: '+8613800138000' }).id;
   });
 
@@ -236,7 +242,12 @@ describe('审核内容删除（审批中心「删除」：候选 + 食物行 + �
     store = new DataStore();
     driver = new MemoryStoreDriver(store);
     food = new FoodService(driver, new StubModerationService());
-    sync = new SyncService(driver, new NutritionService(driver), new StreakService(driver));
+    sync = new SyncService(
+      driver,
+      new NutritionService(driver),
+      new StreakService(driver),
+      new ConfigService(),
+    );
     userId = store.createUser({ phone: '+8613800138100' }).id;
   });
 

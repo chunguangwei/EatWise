@@ -302,29 +302,53 @@ void main() {
       expect(store.loadPendingPlan(), isNull);
     });
 
-    test('多端收敛：服务端更新且窗口不同 → 登记次日生效 pending，当日方案不动', () async {
-      final api = _FakeApi(
-        current: custom8,
-        serverUpdatedAtSec: fixedNowUtc + 999,
-      );
-      final store = InMemoryOnboardingStore();
-      store.saveActivePlan(
-        ActivePlanSnapshot(
-          plan: FastingPlan.plan14x10,
-          initialState: 'fasting',
-          startedAtUtc: fixedNowUtc,
-        ),
-      );
-      var applied = 0;
-      await buildPullSync(api, store: store, onApplied: () => applied++).pull();
+    test(
+      '多端收敛：服务端更新且窗口不同 → 即刻采纳替换本地（v1.14.x 杀 ping-pong），本地 pendingPlan 被取代清除',
+      () async {
+        final api = _FakeApi(
+          current: custom8,
+          serverUpdatedAtSec: fixedNowUtc + 999,
+        );
+        final store = InMemoryOnboardingStore();
+        store.saveActivePlan(
+          ActivePlanSnapshot(
+            plan: FastingPlan.plan14x10,
+            initialState: 'fasting',
+            startedAtUtc: fixedNowUtc,
+          ),
+        );
+        // 本地登记的次日生效方案（T12）：被服务端 LWW 取代。
+        store.savePendingPlan(
+          schedulePlanChange(FastingPlan.plan16x8, fixedNowUtc, bjt),
+        );
+        var applied = 0;
+        await buildPullSync(
+          api,
+          store: store,
+          onApplied: () => applied++,
+        ).pull();
 
-      // 当日生效方案不被打断（D-06 口径：次日 0 点生效）。
-      expect(store.loadActivePlan()!.plan, FastingPlan.plan14x10);
-      final pending = store.loadPendingPlan()!;
-      expect(pending.plan, custom8);
-      expect(pending.effectiveDate, const LocalDate(2026, 7, 29));
-      expect(applied, 1);
-    });
+        // 新语义：即刻采纳（不再登记次日 pending——双活跃设备互判「服务端
+        // 更新」会永久 ping-pong）。进行中周期锚点冻结由计时主控负责。
+        final saved = store.loadActivePlan()!;
+        expect(saved.plan, custom8);
+        expect(saved.startedAtUtc, fixedNowUtc + 999); // 与服务端 updatedAt 对齐
+        expect(store.loadPendingPlan(), isNull);
+        expect(applied, 1);
+
+        // 幂等稳定：二次 pull（startedAtUtc == 服务端 updatedAt）→ 不动。
+        await buildPullSync(
+          api,
+          store: store,
+          onApplied: () => applied++,
+        ).pull();
+        expect(applied, 1);
+        expect(store.loadActivePlan()!.plan, custom8);
+        // 杀 ping-pong 关键：采纳是下行不置脏——本端不会再把旧分歧方案回推
+        // 服务端，双活跃设备 24h 内必然收敛到同一窗口（wcg 断签根因防线）。
+        expect(prefs.getString('fasting_plan_dirty_u1'), isNull);
+      },
+    );
 
     test('本地无方案：回填 + 放行引导 + 回调；重复 pull 幂等', () async {
       final api = _FakeApi(current: custom8);

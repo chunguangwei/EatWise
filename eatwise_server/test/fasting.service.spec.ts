@@ -534,7 +534,7 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
       }
     });
   });
-  describe('方案生效语义：首个立即生效 / 改动次日（D-06 修订）', () => {
+  describe('方案生效语义：最后写入胜、即刻生效（v1.14.x 修订，替代 D-06 次日 pending）', () => {
     beforeEach(() => {
       jest.useFakeTimers().setSystemTime(new Date('2026-07-27T02:00:00.000Z')); // 本地 2026-07-27 10:00
     });
@@ -550,26 +550,32 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
       expect(current.eatingWindowStart).toBe('21:00');
     });
 
-    it('已有方案再改：pending 次日生效，current 不变', async () => {
-      const first = await fasting.putCurrentPlan(userId, TZ, '16:8', '09:00', '17:00');
+    it('已有方案再改：即刻生效替换 current，不再登记 pending（杀 ping-pong）', async () => {
+      await fasting.putCurrentPlan(userId, TZ, '16:8', '09:00', '17:00');
       const res = await fasting.putCurrentPlan(userId, TZ, '14:10', '08:00', '18:00');
-      expect(res.pending.status).toBe('pending');
-      expect(res.pending.effectiveDate).toBe('2026-07-28');
-      expect(res.current.id).toBe(first.current.id);
-      expect(res.current.planType).toBe('16:8');
-      // 当前生效口径仍是旧方案（计时不提前切换）
+      // 新语义：直接 current 即刻生效，pending 恒 null
+      expect(res.pending).toBeNull();
+      expect(res.current.status).toBe('current');
+      expect(res.current.planType).toBe('14:10');
+      expect(res.current.effectiveDate).toBe('2026-07-27');
+      // 当前生效口径即时切换到新方案（进行中周期锚点冻结由客户端负责）
       const current = await fasting.getCurrentPlan(userId, TZ);
-      expect(current.planType).toBe('16:8');
+      expect(current.planType).toBe('14:10');
+      expect(current.eatingWindowStart).toBe('08:00');
     });
 
-    it('pending 再次 PUT：整体替换（LWW），仍次日生效', async () => {
-      await fasting.putCurrentPlan(userId, TZ, '16:8', '09:00', '17:00');
-      const p2 = await fasting.putCurrentPlan(userId, TZ, '14:10', '08:00', '18:00');
+    it('连续 PUT：旧 current/pending 一律 expired，最后写入胜', async () => {
+      const first = await fasting.putCurrentPlan(userId, TZ, '16:8', '09:00', '17:00');
+      await fasting.putCurrentPlan(userId, TZ, '14:10', '08:00', '18:00');
       const p3 = await fasting.putCurrentPlan(userId, TZ, '18:6', '21:00', '03:00');
-      expect(p3.pending.id).toBe(p2.pending.id);
-      expect(p3.pending.planType).toBe('18:6');
-      expect(p3.pending.effectiveDate).toBe('2026-07-28');
-      expect(store.fastingPlans.size).toBe(2); // current + 单条 pending
+      expect(p3.pending).toBeNull();
+      expect(p3.current.planType).toBe('18:6');
+      // 每次 PUT 落新 current 行（updatedAt 即 LWW 仲裁依据），旧行全部 expired
+      const plans = [...store.fastingPlans.values()];
+      expect(plans).toHaveLength(3);
+      expect(plans.filter((p) => p.status === 'current')).toHaveLength(1);
+      expect(plans.filter((p) => p.status === 'expired')).toHaveLength(2);
+      expect(plans.some((p) => p.id === first.current.id && p.status === 'expired')).toBe(true);
     });
   });
 });

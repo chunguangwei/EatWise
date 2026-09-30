@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { ConfigService } from '@nestjs/config';
 import { DataStore, FastingRecordEntity } from '../src/common/store/data-store';
 import { MemoryStoreDriver } from '../src/common/store/store-driver';
 import { NutritionService } from '../src/nutrition/nutrition.service';
@@ -28,7 +29,12 @@ describe('SyncService fastingRecord LWW', () => {
   beforeEach(() => {
     store = new DataStore();
     driver = new MemoryStoreDriver(store);
-    sync = new SyncService(driver, new NutritionService(driver), new StreakService(driver));
+    sync = new SyncService(
+      driver,
+      new NutritionService(driver),
+      new StreakService(driver),
+      new ConfigService(),
+    );
     store.createUser({ id: userId, phone: '+8613900000042' });
   });
 

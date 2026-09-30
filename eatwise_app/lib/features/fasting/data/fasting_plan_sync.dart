@@ -110,16 +110,19 @@ class FastingPlanSync {
     );
   }
 
-  /// 方案下行（重装/换机回填 + 多端收敛，v1.13.28 修订；登录成功/恢复会话/
-  /// 同步轮触发）：
+  /// 方案下行（重装/换机回填 + 多端收敛；v1.14.x 收敛语义修订——最后写入
+  /// 胜、全端即刻跟随，替代 v1.13.28「登记次日生效 pendingPlan」）：
   /// - **本地脏方案优先**：本机/匿名命名空间有未上行脏标记时直接返回
-  ///   （防覆盖匿名期/离线期未 flush 的选择——原「存在性短路」意图保留，
-  ///   此时连 GET 都不发）；
+  ///   （防覆盖匿名期/离线期未 flush 的选择——此时连 GET 都不发）；
   /// - 本地无方案：回填服务端方案并放行引导（原语义）；
   /// - 本地有方案：服务端无真实方案行（虚拟 default，updatedAt=null）、
   ///   服务端 updatedAt 不新于本地快照、或窗口一致（sameWindow）→ 不动；
-  /// - 服务端更新且窗口不同（他端改过方案）：按 D-06 口径登记为**次日
-  ///   生效的 pendingPlan**（不打断本机当日进行中的周期），横幅提示。
+  /// - 服务端更新且窗口不同（他端写过方案）→ **即刻采纳替换本地方案**
+  ///   （旧语义登记次日 pendingPlan：两台活跃设备互判「服务端更新」会
+  ///   永久 ping-pong——wcg 断签根因，双端 fasting_plans 每日交替上传）。
+  ///   进行中周期锚点冻结由计时主控保证（新方案只作用于下一周期，
+  ///   D-06「当日已记录数据不回算」精神保留）；本地已登记的 pendingPlan
+  ///   （T12 次日生效）被服务端 LWW 取代，一并清除。
   Future<void> pull() async {
     final uid = userId();
     // 匿名 GET 必 401；未登录无从回填。
@@ -147,12 +150,22 @@ class FastingPlanSync {
         )) {
           return; // 窗口一致：仅 id/起点元数据差异，无需落盘
         }
-        // 多端分叉收敛：他端方案更新 → 次日 0 点生效（D-06 同口径），
-        // 不作废本机当日周期。
-        store.savePendingPlan(
-          schedulePlanChange(remote.plan, nowUtc(), location()),
+        // 即刻采纳（杀 ping-pong）：进行中 cycle 锚点由计时主控 _resolve
+        // 冻结，新方案只作用于下一周期；不置脏（采纳是下行，不回推）。
+        final snapshot = resolveState(nowUtc(), remote.plan, location());
+        store.saveActivePlan(
+          ActivePlanSnapshot(
+            plan: remote.plan,
+            initialState: snapshot.state.name,
+            targetUtc: snapshot.targetUtc,
+            attributionDate: snapshot.attributionPreview?.toIsoString(),
+            startedAtUtc: serverUpdatedAtSec,
+          ),
         );
-        onPlanApplied?.call(); // 横幅刷新（planVersion++）
+        // 本地登记的次日生效方案被服务端 LWW 取代（服务端 putCurrent 即刻
+        // 生效语义下它已不存在，本地留着会在 0 点把旧分歧方案翻回来）。
+        store.clearPendingPlan();
+        onPlanApplied?.call(); // planVersion++：计时主控重建 + 横幅刷新
         return;
       }
       // 回填（重装/换机）：本机没有「更新的选择」，不再 markDirtyAndTryFlush。
