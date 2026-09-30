@@ -1,13 +1,21 @@
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' show Value;
+import 'package:eatwise/core/network/api_client.dart';
+import 'package:eatwise/core/network/api_config.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/database.dart' hide FastingRecord;
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_api.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
+import 'package:eatwise/features/fasting/data/remote_fasting_record_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_record.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
+import 'package:eatwise/features/record/data/record_remote.dart';
+import 'package:eatwise/features/record/data/record_repository.dart';
+import 'package:eatwise/features/record/data/record_sync_engine.dart';
+import 'package:eatwise/features/record/presentation/record_providers.dart'
+    show recordSyncEngineProvider;
 import 'package:eatwise/features/streak/application/streak_controller.dart';
 import 'package:eatwise/features/streak/application/streak_local_store.dart';
 import 'package:eatwise/features/streak/data/fasting_report_api.dart';
@@ -17,6 +25,9 @@ import 'package:eatwise/features/streak/domain/streak_types.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/timezone.dart' as tz;
+
+import '../../core/network/fake_http_adapter.dart';
 
 /// streak 控制器：离线推演、服务端对账（S1 权威覆盖）、断食历史落 drift、
 /// 补签卡在线/离线路径、断签弹窗频控。
@@ -420,6 +431,250 @@ void main() {
       expect(reportApi.recentCalls, hasLength(baseline));
     });
 
+    group('对账重传（本地 synced 但服务端无此归属日）', () {
+      /// 直接落一条本地 drift 断食行（模拟旧版本/异常路径误标 synced）。
+      Future<void> seedDriftRow(
+        String date, {
+        SyncStatus status = SyncStatus.synced,
+        String? serverId,
+        String result = 'completedOnTime',
+        bool deleted = false,
+        String userId = 'u1',
+      }) {
+        return db.fastingRecordDao.upsertRecord(
+          FastingRecordsCompanion(
+            localId: Value('$userId-$date'),
+            userId: Value(userId),
+            attributionDate: Value(date),
+            startUtc: const Value(1000),
+            endUtc: const Value(1000 + 16 * 3600),
+            actualSec: const Value(16 * 3600),
+            plannedSec: const Value(16 * 3600),
+            extendedMinutes: const Value(0),
+            result: Value(result),
+            qualified: const Value(true),
+            clientRequestId: Value('req-$date'),
+            syncStatus: Value(status),
+            serverId: Value(serverId),
+            deleted: Value(deleted),
+            createdAtUtc: const Value('2026-07-01T00:00:00.000Z'),
+          ),
+        );
+      }
+
+      ServerFastingRecord serverRecord(
+        String date, {
+        String result = 'completed',
+        bool withEnd = true,
+      }) {
+        return ServerFastingRecord(
+          id: 'srv-$date',
+          attributionDate: date,
+          plannedStartAt: DateTime.parse('2026-07-01T12:00:00.000Z'),
+          plannedEndAt: DateTime.parse('2026-07-02T04:00:00.000Z'),
+          actualStartAt: DateTime.parse('2026-07-01T12:00:00.000Z'),
+          actualEndAt: withEnd
+              ? DateTime.parse('2026-07-02T04:00:00.000Z')
+              : null,
+          extendedMinutes: 0,
+          result: result,
+          isQualified: result != 'broken',
+        );
+      }
+
+      test('重标触发：服务端无 → pending + 清 serverId；服务端有/pending/范围外不动', () async {
+        reportApi.recentRecords = <ServerFastingRecord>[
+          serverRecord('2026-07-26'),
+        ];
+        await seedDriftRow('2026-07-26', serverId: 'srv-a'); // 服务端有 → 不动
+        await seedDriftRow('2026-07-27', serverId: 'srv-b'); // 服务端无 → 重标
+        await seedDriftRow('2026-07-25', status: SyncStatus.pending); // 不动
+        await seedDriftRow('2026-06-01', serverId: 'srv-old'); // 范围外 → 不动
+        // 不装配 recordSyncEngineProvider（sharedPreferencesProvider 未注入
+        // 必抛）：push 触发被静默吞下，验证重标本体。
+        final c = container();
+        addTearDown(c.dispose);
+        final controller = c.read(streakControllerProvider.notifier);
+        await controller.refreshFromServer();
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+
+        final reupload = (await db.fastingRecordDao.getByLocalId(
+          'u1-2026-07-27',
+        ))!;
+        expect(reupload.syncStatus, SyncStatus.pending);
+        expect(reupload.serverId, isNull);
+        final kept = (await db.fastingRecordDao.getByLocalId('u1-2026-07-26'))!;
+        expect(kept.syncStatus, SyncStatus.synced);
+        expect(kept.serverId, 'srv-a');
+        expect(
+          (await db.fastingRecordDao.getByLocalId('u1-2026-07-25'))!.syncStatus,
+          SyncStatus.pending,
+        );
+        final outOfRange = (await db.fastingRecordDao.getByLocalId(
+          'u1-2026-06-01',
+        ))!;
+        expect(outOfRange.syncStatus, SyncStatus.synced);
+        expect(outOfRange.serverId, 'srv-old');
+      });
+
+      test('服务端同归属日为 on_track（进行中）也算有 → 不重标', () async {
+        reportApi.recentRecords = <ServerFastingRecord>[
+          serverRecord('2026-07-27', result: 'on_track', withEnd: false),
+        ];
+        await seedDriftRow('2026-07-27', serverId: 'srv-b');
+        final c = container();
+        addTearDown(c.dispose);
+        final controller = c.read(streakControllerProvider.notifier);
+        await controller.refreshFromServer();
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+
+        final row = (await db.fastingRecordDao.getByLocalId('u1-2026-07-27'))!;
+        expect(row.syncStatus, SyncStatus.synced);
+        expect(row.serverId, 'srv-b');
+      });
+
+      test('本地 on_track 行与 deleted 行不重标', () async {
+        reportApi.recentRecords = const <ServerFastingRecord>[]; // 服务端全空
+        await seedDriftRow('2026-07-27', serverId: 'srv-x', result: 'on_track');
+        await seedDriftRow('2026-07-26', serverId: 'srv-y', deleted: true);
+        final c = container();
+        addTearDown(c.dispose);
+        final controller = c.read(streakControllerProvider.notifier);
+        await controller.refreshFromServer();
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+
+        final onTrack = (await db.fastingRecordDao.getByLocalId(
+          'u1-2026-07-27',
+        ))!;
+        expect(onTrack.syncStatus, SyncStatus.synced);
+        expect(onTrack.serverId, 'srv-x');
+        final tombstone = (await db.fastingRecordDao.getByLocalId(
+          'u1-2026-07-26',
+        ))!;
+        expect(tombstone.syncStatus, SyncStatus.synced);
+        expect(tombstone.serverId, 'srv-y');
+      });
+
+      test('匿名（anonymous）不回填不重标', () async {
+        await seedDriftRow(
+          '2026-07-27',
+          serverId: 'srv-b',
+          userId: 'anonymous',
+        );
+        final c = ProviderContainer(
+          overrides: <Override>[
+            streakLocalStoreProvider.overrideWithValue(store),
+            streakApiProvider.overrideWithValue(api),
+            fastingReportApiProvider.overrideWithValue(reportApi),
+            appDatabaseProvider.overrideWithValue(db),
+            streakTodayProvider.overrideWithValue(() => today),
+            currentUserIdProvider.overrideWithValue('anonymous'),
+          ],
+        );
+        addTearDown(c.dispose);
+        final controller = c.read(streakControllerProvider.notifier);
+        await controller.refreshFromServer();
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+
+        final row = (await db.fastingRecordDao.getByLocalId(
+          'anonymous-2026-07-27',
+        ))!;
+        expect(row.syncStatus, SyncStatus.synced);
+        expect(row.serverId, 'srv-b');
+      });
+
+      test('幂等：重标后二次对账不再动（保持 pending 等待上行）', () async {
+        reportApi.recentRecords = const <ServerFastingRecord>[];
+        await seedDriftRow('2026-07-27', serverId: 'srv-b');
+        final c = container();
+        addTearDown(c.dispose);
+        final controller = c.read(streakControllerProvider.notifier);
+        await controller.refreshFromServer();
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        // 二次对账：行已非 synced，不再触碰。
+        await controller.refreshFromServer();
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+
+        final row = (await db.fastingRecordDao.getByLocalId('u1-2026-07-27'))!;
+        expect(row.syncStatus, SyncStatus.pending);
+        expect(row.serverId, isNull);
+      });
+
+      test('重标后触发一轮 push：/sync push 上行并回填新 serverId（端到端）', () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final prefs = await SharedPreferences.getInstance();
+        final adapter = FakeHttpAdapter();
+        final dio = createApiDio(config: ApiConfig());
+        dio.httpClientAdapter = adapter;
+        adapter.stub(
+          '/sync/push',
+          StubResponse.json(
+            200,
+            StubResponse.envelope(<String, dynamic>{
+              'results': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'clientRequestId': 'req-2026-07-27',
+                  'status': 'applied',
+                  'serverEntry': <String, dynamic>{
+                    'id': 'srv-new',
+                    'version': 1,
+                  },
+                },
+              ],
+              'syncToken': 'st_x',
+            }),
+          ),
+        );
+        final repo = RecordRepository(
+          db: db,
+          remote: FakeRecordRemote(),
+          location: tz.UTC,
+          userId: 'u1',
+        );
+        addTearDown(repo.dispose);
+        final engine = RecordSyncEngine(
+          repository: repo,
+          prefs: prefs,
+          fastingRecordSync: RemoteFastingRecordSync(dio: dio),
+        );
+        reportApi.recentRecords = const <ServerFastingRecord>[]; // 服务端全空
+        await seedDriftRow('2026-07-27', serverId: 'srv-old');
+        final c = ProviderContainer(
+          overrides: <Override>[
+            streakLocalStoreProvider.overrideWithValue(store),
+            streakApiProvider.overrideWithValue(api),
+            fastingReportApiProvider.overrideWithValue(reportApi),
+            appDatabaseProvider.overrideWithValue(db),
+            streakTodayProvider.overrideWithValue(() => today),
+            currentUserIdProvider.overrideWithValue('u1'),
+            recordSyncEngineProvider.overrideWithValue(engine),
+          ],
+        );
+        addTearDown(c.dispose);
+        final controller = c.read(streakControllerProvider.notifier);
+        await controller.refreshFromServer();
+        // drift 查询走后台 isolate，重标→syncNow→push 链给足排空时间；
+        // build 启动对账 + 显式对账并发时可能各触发一轮 push（幂等无害）。
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+
+        // 重标触发了 /sync push，载荷为该行 create op。
+        expect(adapter.requestBodies, isNotEmpty);
+        final body = adapter.requestBodies.first as Map<dynamic, dynamic>;
+        final op =
+            (body['ops']! as List<dynamic>).single as Map<dynamic, dynamic>;
+        expect(op['entity'], 'fastingRecord');
+        expect(op['op'], 'create');
+        expect(
+          (op['payload']! as Map<dynamic, dynamic>)['attributionDate'],
+          '2026-07-27',
+        );
+        // 上行成功回填：synced + 新 serverId（幂等键复用原 clientRequestId）。
+        final row = (await db.fastingRecordDao.getByLocalId('u1-2026-07-27'))!;
+        expect(row.syncStatus, SyncStatus.synced);
+        expect(row.serverId, 'srv-new');
+      });
+    });
+
     test('F2 窗口签名不一致（FASTING_WINDOW_MISMATCH）：触发方案下行收敛，记录保持 pending', () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
       final prefs = await SharedPreferences.getInstance();
@@ -661,6 +916,32 @@ final class _FakeFastingReportApi extends FastingReportApi {
     ));
     final e = endError;
     if (e != null) throw e;
+    // 与生产一致：F2 上行成功后服务端即存在该归属日终态记录，后续
+    // GET /fasting/records 会返回它（对账重传据此判定「服务端有」）。
+    final a = active;
+    if (a != null &&
+        a.id == recordId &&
+        a.attributionDate.isNotEmpty &&
+        !recentRecords.any((r) => r.attributionDate == a.attributionDate)) {
+      recentRecords = <ServerFastingRecord>[
+        ...recentRecords,
+        ServerFastingRecord(
+          id: a.id,
+          attributionDate: a.attributionDate,
+          plannedStartAt:
+              plannedStartUtc ??
+              DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+          plannedEndAt:
+              plannedEndUtc ??
+              DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+          actualStartAt: plannedStartUtc,
+          actualEndAt: endedAtUtc,
+          extendedMinutes: 0,
+          result: 'completed',
+          isQualified: true,
+        ),
+      ];
+    }
   }
 
   @override

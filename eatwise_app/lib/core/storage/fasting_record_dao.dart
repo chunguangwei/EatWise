@@ -124,6 +124,20 @@ class FastingRecordDao extends DatabaseAccessor<AppDatabase>
         .write(FastingRecordsCompanion(serverId: Value(serverId)));
   }
 
+  /// 对账重传（v1.14.x 拍板）：本地 synced 但服务端 30 天集合无此归属日
+  /// （旧版本/异常路径误标 synced → 永不再上行，wcg 09-23~28 丢数据根因）
+  /// → 置回 pending 并清空 serverId，下轮 /sync push 经既有通道重新上行。
+  Future<void> resetForReupload(String localId) {
+    return (update(
+      fastingRecords,
+    )..where((r) => r.localId.equals(localId))).write(
+      const FastingRecordsCompanion(
+        serverId: Value<String?>(null),
+        syncStatus: Value(SyncStatus.pending),
+      ),
+    );
+  }
+
   /// 物理删除（tombstone 上行 ack/NOT_FOUND 后清理；下行 tombstone 应用）。
   Future<int> deleteRecord(String localId) {
     return (delete(

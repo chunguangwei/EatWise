@@ -14,6 +14,8 @@ import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_record.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/record/presentation/record_providers.dart'
+    show recordSyncEngineProvider;
 import 'package:eatwise/features/streak/application/streak_local_store.dart';
 import 'package:eatwise/features/streak/data/fasting_report_api.dart';
 import 'package:eatwise/features/streak/data/streak_api.dart';
@@ -328,13 +330,14 @@ final class StreakController extends Notifier<StreakUiState> {
     unawaited(_backfillRecentFastingRecords());
   }
 
-  /// 近 30 天断食历史下行回填（v1.13.28：fastingRecord 无 /sync 通道，重装/
-  /// 换机后本地 drift 断食历史全丢，数据页趋势只剩本机新关闭的记录
-  /// ——「打满当天才显示」根因；v1.14.x 数据页断食趋势扩到 30 天窗口，
+  /// 近 30 天断食历史下行回填 + 对账重传（v1.13.28：fastingRecord 无 /sync
+  /// 通道，重装/换机后本地 drift 断食历史全丢，数据页趋势只剩本机新关闭的
+  /// 记录——「打满当天才显示」根因；v1.14.x 数据页断食趋势扩到 30 天窗口，
   /// 回填范围对齐 14→30，服务端区间上限 62 天留余量）。只补缺：本机已有
   /// 关闭记录的归属日不动（本机为准）；on_track 进行中跳过（无结束锚点）；
   /// 回填行 syncStatus=synced、clientRequestId=`server-<id>`（与本地 UUID
-  /// 幂等键不撞）。失败静默（离线保留本地既有展示，下轮对账再补）。
+  /// 幂等键不撞）。反向方向（本地 synced 但服务端查无 → 置回 pending 重传）
+  /// 见函数内「对账重传」段。失败静默（离线保留本地既有展示，下轮对账再补）。
   Future<void> _backfillRecentFastingRecords() async {
     try {
       final userId = ref.read(currentUserIdProvider);
@@ -347,11 +350,49 @@ final class StreakController extends Notifier<StreakUiState> {
       }
       if (db == null) return;
       final today = _today();
+      final from = addDaysToIsoDate(today, -29);
       final records = await ref
           .read(fastingReportApiProvider)
-          .fetchRecentRecords(from: addDaysToIsoDate(today, -29), to: today);
-      if (records.isEmpty) return;
+          .fetchRecentRecords(from: from, to: today);
       final existing = await db.fastingRecordDao.recordsOf(userId);
+      // 对账重传（v1.14.x 拍板，堵「本地有、服务端没有」自愈盲区）：本地
+      // 质态（非 on_track、非 deleted）且已标 synced 的记录，归属日落在拉取
+      // 范围内但**服务端完整返回集**（含 on_track——进行中也算有，不算缺）
+      // 无此归属日 → 该行从未真正上行（旧版本/异常路径误标 synced 后回填
+      // 只下行补缺、永不再上行，wcg 09-23~28 丢数据根因）→ 置回 pending 并
+      // 清空 serverId，既有 /sync push 通道下轮推上去。幂等：服务端
+      // applyFastingRecordCreate 按归属日去重返回既有视图绝不覆盖
+      // （v1.13.31），重复推无副作用；重标后行已非 synced，下轮对账不再动。
+      // 与服务端 tombstone 不冲突：tombstone 下行（v1.13.32）只清本地
+      // synced 行，而本机制只动「服务端查无」的行，两集合互斥。
+      final serverDates = <String>{
+        for (final r in records)
+          if (r.attributionDate.isNotEmpty) r.attributionDate,
+      };
+      var reuploadCount = 0;
+      for (final local in existing) {
+        if (local.syncStatus != SyncStatus.synced) continue;
+        if (local.deleted || local.result == 'on_track') continue;
+        final date = local.attributionDate;
+        if (date.compareTo(from) < 0 || date.compareTo(today) > 0) continue;
+        if (serverDates.contains(date)) continue;
+        await db.fastingRecordDao.resetForReupload(local.localId);
+        reuploadCount++;
+      }
+      if (reuploadCount > 0) {
+        debugPrint(
+          'StreakController: 对账重传 $reuploadCount 天断食记录置回 pending'
+          '（本地 synced 但服务端无此归属日）',
+        );
+        // 挂既有同步引擎触发一轮 push（不造新通道）；引擎未装配（测试/
+        // 预览）时静默——启动/登录/前台等既有触发点下轮会推。
+        try {
+          unawaited(ref.read(recordSyncEngineProvider).syncNow());
+        } on Object {
+          // 未装配跳过。
+        }
+      }
+      if (records.isEmpty) return;
       final existingDates = existing.map((r) => r.attributionDate).toSet();
       // pending 活性收敛（审计）：F2 上行只在周期关闭当轮尝试一次，无重试
       // 通道——上行失败/未尝试（active==null）的本地记录 syncStatus 永久
