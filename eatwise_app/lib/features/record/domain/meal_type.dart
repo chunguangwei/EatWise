@@ -29,6 +29,16 @@ MealType suggestMealType(int hour) {
 /// 一组记录（`mealType` 为该组的餐次键；null = 「其他」组）。
 typedef MealGroup<T> = ({MealType? mealType, List<T> items});
 
+/// 展示用餐次解析（2026-09-30 走查：同一账号 Android 记录分早/午/晚，
+/// iOS 全落「其他」——mealType 是纯本地列不上行，他端下行的记录该列
+/// 恒 null）：已存 mealType 优先；为空时按就餐时刻本地小时推导（与
+/// 入账预判同规则 [suggestMealType]，确定性 → 各端分组一致）。
+/// 返回 null 仅当调用方明确要保留「其他」组（当前实现恒推导，null
+/// 组只留作将来「无时刻信息」的兜底位）。
+MealType? displayMealType(MealType? stored, DateTime eatenAtUtc) {
+  return stored ?? suggestMealType(eatenAtUtc.toLocal().hour);
+}
+
 /// 按餐次分组（组序固定早/午/晚/加餐/其他，空组不返回；组内保持原顺序）。
 List<MealGroup<T>> groupByMealType<T>(
   Iterable<T> items,

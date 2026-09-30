@@ -17,6 +17,7 @@ import 'package:eatwise/core/notification/notification_types.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/food_seed_loader.dart';
 import 'package:eatwise/core/storage/providers.dart';
+import 'package:eatwise/core/sync/foreground_sync_observer.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/core/time/timezone_bootstrap.dart';
 import 'package:eatwise/core/update/update_dialog.dart';
@@ -161,6 +162,15 @@ Future<void> main() async {
       // 防御：方案同步未装配时跳过。
     }
   }
+  // 前台回切触发同步（真机走查：iOS 不杀进程，他端新记录要杀 App 重开
+  // 才出现——resumed 时补一轮 syncNow，1 分钟节流，仅登录态）。
+  WidgetsBinding.instance.addObserver(
+    ForegroundSyncObserver(
+      isLoggedIn: () => container.read(authGateProvider).loggedIn,
+      triggerSync: () =>
+          unawaited(container.read(recordSyncEngineProvider).syncNow()),
+    ),
+  );
   // 冷启动引擎预热（真机反馈：重启后端侧开关持久化为开但没人触发
   // 预热，首拍仍吃视觉重建数秒）——等首个模型快照落地后「开关开 +
   // 模型 ready」即后台 load（只 load 不推理，失败静默不阻断启动）。

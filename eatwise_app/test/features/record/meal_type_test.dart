@@ -49,4 +49,17 @@ void main() {
       expect(groupByMealType(<int>[], (i) => MealType.lunch), isEmpty);
     });
   });
+
+  group('displayMealType（已存优先；无餐次按就餐时刻本地小时推导）', () {
+    test('跨端下行记录（mealType=null）按就餐时刻推导，各端分组一致', () {
+      final utc = DateTime.utc(2026, 9, 30, 4);
+      expect(displayMealType(null, utc), suggestMealType(utc.toLocal().hour));
+    });
+
+    test('已存 mealType（含用户手动改过的）优先，不被推导覆盖', () {
+      final utc = DateTime.utc(2026, 9, 30, 4);
+      expect(displayMealType(MealType.breakfast, utc), MealType.breakfast);
+      expect(displayMealType(MealType.snack, utc), MealType.snack);
+    });
+  });
 }

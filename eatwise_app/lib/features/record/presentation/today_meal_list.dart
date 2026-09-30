@@ -15,7 +15,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 「今日记录」餐次分组列表（薄荷走查优化点 2）：
-/// 早/午/晚/加餐分组标题 + 组内条目；无餐次的历史数据归入「其他」组。
+/// 早/午/晚/加餐分组标题 + 组内条目；无餐次的记录按就餐时刻推导
+///（跨端下行数据无本地 mealType，见 displayMealType）。
 /// 在记录页搜索框为空且有今日记录时，替代搜索空态展示（对标薄荷记录页）。
 class TodayMealList extends ConsumerWidget {
   const TodayMealList({required this.entries, super.key});
@@ -28,7 +29,10 @@ class TodayMealList extends ConsumerWidget {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
-    final groups = groupByMealType(entries, (e) => e.mealType);
+    final groups = groupByMealType(
+      entries,
+      (e) => displayMealType(e.mealType, DateTime.parse(e.datetimeUtc)),
+    );
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),

@@ -290,19 +290,30 @@ void main() {
     await settleUi(tester);
   });
 
-  testWidgets('今日记录列表：搜索框为空且有记录时按餐次分组展示（无餐次归「其他」）', (tester) async {
+  testWidgets('今日记录列表：搜索框为空且有记录时按餐次分组展示（无餐次按就餐时刻推导）', (tester) async {
     // 归属日种子必须与生产同口径（repo.location；勿用进程时区
     // localDateKey——CI TZ=UTC 与北京跨日分叉，v1.14.x CI 二连红根因）。
     final today = repository.localDateKeyOf(DateTime.now());
     final nowIso = DateTime.now().toUtc().toIso8601String();
-    Future<void> seedEntry(String id, String foodId, MealType? mealType) {
+    // 本地 12:00（午餐时段）的 UTC ISO——无餐次记录按就餐时刻推导落午餐
+    //（跨端下行记录无本地 mealType，v1.15.x 走查修复）。
+    final lunchIso = DateTime.now()
+        .copyWith(hour: 12, minute: 0)
+        .toUtc()
+        .toIso8601String();
+    Future<void> seedEntry(
+      String id,
+      String foodId,
+      MealType? mealType, {
+      String? datetimeUtc,
+    }) {
       return db.foodEntryDao.insertEntry(
         FoodEntriesCompanion(
           localId: Value(id),
           userId: const Value('anonymous'),
           clientRequestId: Value('req-$id'),
           syncStatus: const Value(SyncStatus.synced),
-          datetimeUtc: Value(nowIso),
+          datetimeUtc: Value(datetimeUtc ?? nowIso),
           localDate: Value(today),
           foodId: Value(foodId),
           amountG: const Value(100),
@@ -320,7 +331,7 @@ void main() {
 
     await seedEntry('e1', 'f-rice', MealType.breakfast);
     await seedEntry('e2', 'f-egg', MealType.snack);
-    await seedEntry('e3', 'f-chicken', null); // 历史无餐次 → 其他
+    await seedEntry('e3', 'f-chicken', null, datetimeUtc: lunchIso);
     await pumpPage(tester);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
@@ -328,12 +339,13 @@ void main() {
     expect(find.text('今日记录'), findsOneWidget);
     expect(find.text('早餐'), findsOneWidget);
     expect(find.text('加餐'), findsOneWidget);
-    expect(find.text('其他'), findsOneWidget);
     expect(find.text('白米饭'), findsOneWidget);
     expect(find.text('鸡蛋'), findsOneWidget);
     expect(find.text('鸡胸肉'), findsOneWidget);
-    // 午餐/晚餐组无记录 → 不渲染组标题。
-    expect(find.text('午餐'), findsNothing);
+    // 无餐次的 e3 按就餐时刻（本地 12 点）推导落午餐组，不再归「其他」。
+    expect(find.text('午餐'), findsOneWidget);
+    expect(find.text('其他'), findsNothing);
+    // 晚餐组无记录 → 不渲染组标题。
     expect(find.text('晚餐'), findsNothing);
 
     // 输入搜索词 → 分组列表让位给搜索空态。
