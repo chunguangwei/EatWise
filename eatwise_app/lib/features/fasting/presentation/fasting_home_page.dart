@@ -10,6 +10,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/arc_gauge.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_texts.dart';
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
@@ -22,6 +23,7 @@ import 'package:eatwise/features/fasting/presentation/plan_progress_bar.dart';
 import 'package:eatwise/features/fasting/presentation/today_budget_row.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/presentation/window_editor_sheet.dart';
+import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart';
 import 'package:eatwise/features/streak/domain/streak_types.dart';
 import 'package:eatwise/features/streak/presentation/milestone_badge.dart';
@@ -275,7 +277,6 @@ class _TimerBody extends ConsumerWidget {
     final isFasting =
         timer.state == FastingState.fasting ||
         timer.state == FastingState.fastingExtended;
-    final arcColor = isFasting ? colors.brandPrimary : colors.brandAccent;
     final extendedMinutes = timer.cycle?.extendedMinutes ?? 0;
     final extendLimitReached = extendedMinutes >= kExtendMaxMinutes;
 
@@ -442,40 +443,10 @@ class _TimerBody extends ConsumerWidget {
             ),
           ),
         const SizedBox(height: AppSpacing.s6),
-        // 居中 220px 计时环（断食绿弧 / 进食橙弧；中心 48px 倒计时 + 状态）。
-        Center(
-          child: Stack(
-            alignment: Alignment.center,
-            children: <Widget>[
-              FastingRing(
-                progress: _progress(timer),
-                arcColor: arcColor,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    CountdownText(seconds: snapshot.countdownSec),
-                    const SizedBox(height: AppSpacing.s1),
-                    Text(
-                      _stateText(t, timer.state),
-                      style: textStyles.textBase.copyWith(
-                        color: colors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // 破壳庆祝（归零/结束断食且达标，§5.1-1；覆盖环区）。
-              if (timer.celebrating)
-                SizedBox(
-                  width: 220,
-                  height: 220,
-                  child: FastingCelebration(
-                    onDismiss: controller.dismissCelebration,
-                  ),
-                ),
-            ],
-          ),
-        ),
+        // 三环仪表 + 三列图例（2026-09-30 UI 换代 v2：开口式多环仪表 +
+        // 三列图例，华为运动健康「今日」页语言——断食/热量/饮水三指标并置
+        // 同一盘面，图例即三指标读数，不再重复渲染指标卡）。
+        _HomeGaugeSection(timer: timer),
         const SizedBox(height: AppSpacing.s3),
         // 归属日文案（D-07 / 评审项 1：环下常驻，双语日期格式）。
         // 进食态无进行中断食，文案改用将来时「下一段断食将计入 X」
@@ -555,9 +526,8 @@ class _TimerBody extends ConsumerWidget {
               ),
             ),
           ),
-        const SizedBox(height: AppSpacing.s3),
-        // 今日指标 2 列网格（2026-09-29 UI 重构：原一行预算行升级为
-        // 热量/运动/饮水/步数四张 MetricCard，华为看板感）。
+        const SizedBox(height: AppSpacing.s6),
+        // 运动与步数两列卡（三指标已上移至仪表，此区只留运动/步数）。
         const TodayMetricGrid(),
         const SizedBox(height: AppSpacing.s6),
         // 底部一行三色 mini signal-card（蛋白/碳水/热量，点按跳数据页）。
@@ -782,21 +752,6 @@ class _TimerBody extends ConsumerWidget {
     );
   }
 
-  /// 环进度：断食 = 已断食 ÷ 计划（含延长）；进食 = 已进食 ÷ 窗口时长。
-  double _progress(FastingTimerState timer) {
-    final snapshot = timer.snapshot!;
-    final cycle = timer.cycle;
-    if (cycle != null) {
-      final elapsed = snapshot.nowUtc - cycle.startUtc;
-      return cycle.plannedSec <= 0 ? 0 : elapsed / cycle.plannedSec;
-    }
-    final target = snapshot.targetUtc;
-    if (target == null) return 0;
-    final windowSec = timer.plan!.eatWindowMinutes * 60;
-    final elapsed = windowSec - (target - snapshot.nowUtc);
-    return windowSec <= 0 ? 0 : elapsed / windowSec;
-  }
-
   static String _greeting(Translations t, int hour) {
     if (hour >= 5 && hour < 11) return t.fasting.home.greeting.morning;
     if (hour >= 11 && hour < 14) return t.fasting.home.greeting.noon;
@@ -825,6 +780,121 @@ class _TimerBody extends ConsumerWidget {
     final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
     final s = (seconds % 60).toString().padLeft(2, '0');
     return '$h:$m:$s';
+  }
+}
+
+/// 首页三环仪表区（2026-09-30 UI 换代 v2）：开口式多环仪表 + 中心倒计时 +
+/// 三列图例行。整合断食/热量/饮水三指标到同一盘面（华为运动健康今日页语言）。
+class _HomeGaugeSection extends ConsumerWidget {
+  const _HomeGaugeSection({required this.timer});
+
+  final FastingTimerState timer;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = Translations.of(context);
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final snapshot = timer.snapshot!;
+    final controller = ref.read(fastingTimerControllerProvider.notifier);
+
+    final isFasting =
+        timer.state == FastingState.fasting ||
+        timer.state == FastingState.fastingExtended;
+    // 断食环色：断食态用品牌绿（沉静专注），进食窗用琥珀黄（活力进食）。
+    final fastArcColor = isFasting ? colors.brandPrimary : colors.gaugeAmber;
+
+    // 断食进度（已断食 ÷ 计划时长；进食窗口同理）。
+    final fastProgress = _progress(timer);
+
+    // 热量进度（已吃 ÷ 目标；无目标默认 2000）。
+    final goal = ref.watch(nutritionGoalProvider);
+    final intake = ref.watch(todayIntakeProvider);
+    final kcalProgress = goal.targetKcal > 0
+        ? (intake?.kcal ?? 0) / goal.targetKcal
+        : 0.0;
+
+    // 饮水进度（已喝 ÷ 目标 2000ml）。
+    final waterMl = ref.watch(todayWaterTotalProvider).value ?? 0;
+    const waterGoal = 2000.0;
+    final waterProgress = waterMl / waterGoal;
+
+    final plan = timer.plan!;
+    final fastHours = plan.fastWindowMinutes ~/ 60;
+    final gauge = t.fasting.home.gauge;
+
+    return Column(
+      children: <Widget>[
+        // 三环仪表 + 中心倒计时槽（庆祝动画覆盖整个区域）。
+        Center(
+          child: Stack(
+            alignment: Alignment.center,
+            children: <Widget>[
+              FastingRing(
+                progress: fastProgress,
+                arcColor: fastArcColor,
+                secondary: ArcSpec(
+                  progress: kcalProgress,
+                  color: colors.gaugeRed,
+                ),
+                tertiary: ArcSpec(
+                  progress: waterProgress,
+                  color: colors.gaugeBlue,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    CountdownText(seconds: snapshot.countdownSec),
+                    const SizedBox(height: AppSpacing.s1),
+                    Text(
+                      _TimerBody._stateText(t, timer.state),
+                      style: textStyles.textBase.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 破壳庆祝（归零/结束断食且达标，覆盖整个区域）。
+              if (timer.celebrating)
+                SizedBox(
+                  width: 220,
+                  height: 220,
+                  child: FastingCelebration(
+                    onDismiss: controller.dismissCelebration,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s4),
+        // 三列图例（断食/热量/饮水；短标签 + 大数字 + 目标行）。
+        GaugeLegendRow(
+          items: <GaugeLegendItem>[
+            GaugeLegendItem(
+              color: fastArcColor,
+              label: gauge.fasting,
+              value: fastProgress > 0
+                  ? (fastProgress * fastHours).toStringAsFixed(1)
+                  : '0',
+              goal: gauge.fastingGoal(hours: fastHours),
+            ),
+            GaugeLegendItem(
+              color: colors.gaugeRed,
+              label: gauge.kcal,
+              value: (intake?.kcal ?? 0).toStringAsFixed(0),
+              goal: gauge.kcalGoal(kcal: goal.targetKcal.toStringAsFixed(0)),
+            ),
+            GaugeLegendItem(
+              color: colors.gaugeBlue,
+              label: gauge.water,
+              value: waterMl.toStringAsFixed(0),
+              goal: gauge.waterGoal(ml: waterGoal.toStringAsFixed(0)),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }
 
@@ -857,4 +927,19 @@ class CountdownText extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 断食/进食进度 0..1（模块级私有，_HomeGaugeSection 与 _TimerBody 共用）。
+double _progress(FastingTimerState timer) {
+  final snapshot = timer.snapshot!;
+  final cycle = timer.cycle;
+  if (cycle != null) {
+    final elapsed = snapshot.nowUtc - cycle.startUtc;
+    return cycle.plannedSec <= 0 ? 0 : elapsed / cycle.plannedSec;
+  }
+  final target = snapshot.targetUtc;
+  if (target == null) return 0;
+  final windowSec = timer.plan!.eatWindowMinutes * 60;
+  final elapsed = windowSec - (target - snapshot.nowUtc);
+  return windowSec <= 0 ? 0 : elapsed / windowSec;
 }

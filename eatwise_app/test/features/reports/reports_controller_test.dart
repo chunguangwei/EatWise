@@ -92,6 +92,12 @@ final class _FakeSource implements ReportsDataSource {
           .toList();
 
   @override
+  Future<List<FastingRecord>> fastingAll() async => <FastingRecord>[
+    _fast('2026-07-26', 16 * 3600),
+    _fast('2026-07-27', 14 * 3600, qualified: false),
+  ];
+
+  @override
   Future<Map<String, double>> weightRange(String from, String to) async =>
       <String, double>{'2026-07-26': 65.0, '2026-07-28': 64.4};
 }

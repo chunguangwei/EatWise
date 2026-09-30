@@ -3,6 +3,8 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/fasting/domain/daily_nutrition.dart';
+import 'package:eatwise/features/fasting/domain/fasting_result_mapping.dart'
+    show isRealFastResult;
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart'
     show fastingCycleStoreProvider;
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart'
@@ -33,14 +35,26 @@ final Provider<DateTime> reportsNowProvider = Provider<DateTime>((ref) {
 });
 
 /// 趋势时间范围。
+///
+/// 2026-09-30 长期趋势：补 90 天 / 365 天两档——此前上限 30 天，
+/// 用户坚持数月也看不到长期坚持度，只能逐月翻月报卡的文字摘要。
+/// 长窗口配合 [TrendBucket] 聚合（90 天按周、365 天按月），避免逐日点糊成噪声。
 enum ReportRange {
-  d7(7),
-  d30(30);
+  d7(7, TrendBucket.day),
+  d30(30, TrendBucket.day),
+  d90(90, TrendBucket.week),
+  d365(365, TrendBucket.month);
 
-  const ReportRange(this.days);
+  const ReportRange(this.days, this.bucket);
 
   /// 窗口天数。
   final int days;
+
+  /// 该窗口的聚合粒度。
+  final TrendBucket bucket;
+
+  /// 是否为长窗口（逐日格/逐日折线不再适用）。
+  bool get isLongRange => bucket != TrendBucket.day;
 }
 
 /// 趋势维度。
@@ -84,6 +98,9 @@ abstract interface class ReportsDataSource {
 
   /// 日期区间断食记录（含端点，按归属日）。
   Future<List<FastingRecord>> fastingRange(String from, String to);
+
+  /// 全部断食记录（全生命周期统计用，不限窗口）。
+  Future<List<FastingRecord>> fastingAll();
 
   /// 日期区间体重日志（含端点，yyyy-MM-dd → kg）。
   Future<Map<String, double>> weightRange(String from, String to);
@@ -137,6 +154,16 @@ final class DriftReportsDataSource implements ReportsDataSource {
   @override
   Future<Map<String, double>> weightRange(String from, String to) async {
     return _weightLog.loadRange(from, to);
+  }
+
+  @override
+  Future<List<FastingRecord>> fastingAll() {
+    return (_db.select(_db.fastingRecords)
+          ..where((r) => r.userId.equals(userId))
+          ..orderBy(<OrderingTerm Function(FastingRecords)>[
+            (r) => OrderingTerm.asc(r.attributionDate),
+          ]))
+        .get();
   }
 }
 
@@ -220,12 +247,18 @@ final Provider<int> weightRecordCountProvider = Provider<int>((ref) {
 });
 
 /// 归属日 → 断食时长（小时）。
+///
+/// 2026-09-30 两处修：
+/// ① 排除 tombstone（deleted）——此前不筛，已删除记录仍进时长 map，
+///    污染趋势折线与平均时长（与 [fastingDayStatesProvider] 口径不一致）；
+/// ② 排除补签（makeup）——补签未实际断食，其计划时长不是用户成绩。
 final Provider<Map<String, double>> fastingHoursByDateProvider =
     Provider<Map<String, double>>((ref) {
       final records = ref.watch(reportFastingProvider).valueOrNull;
       return <String, double>{
         for (final r in records ?? const <FastingRecord>[])
-          r.attributionDate: r.actualSec / 3600,
+          if (!r.deleted && isRealFastResult(r.result))
+            r.attributionDate: r.actualSec / 3600,
       };
     });
 
@@ -277,9 +310,96 @@ final Provider<Set<String>> qualifiedDatesProvider = Provider<Set<String>>((
   final records = ref.watch(reportFastingProvider).valueOrNull;
   return <String>{
     for (final r in records ?? const <FastingRecord>[])
-      if (r.qualified) r.attributionDate,
+      if (r.qualified && !r.deleted) r.attributionDate,
   };
 });
+
+/// 全部断食记录（全生命周期统计源，不限窗口）。
+final FutureProvider<List<FastingRecord>> allFastingRecordsProvider =
+    FutureProvider<List<FastingRecord>>((ref) {
+      // 依赖窗口 Provider 以便记录写入后一并失效重算。
+      ref.watch(reportFastingProvider);
+      return ref.watch(reportsDataSourceProvider).fastingAll();
+    });
+
+/// 断食全生命周期统计（累计时长/达标率/最长单次）。
+final Provider<FastingLifetimeStats> fastingLifetimeProvider =
+    Provider<FastingLifetimeStats>((ref) {
+      final records =
+          ref.watch(allFastingRecordsProvider).valueOrNull ??
+          const <FastingRecord>[];
+      final alive = records.where((r) => !r.deleted);
+      return computeFastingLifetime(
+        hoursByDate: <String, double>{
+          for (final r in alive)
+            if (isRealFastResult(r.result))
+              r.attributionDate: r.actualSec / 3600,
+        },
+        qualifiedDates: <String>{
+          for (final r in alive)
+            if (r.qualified) r.attributionDate,
+        },
+        makeupDates: <String>{
+          for (final r in alive)
+            if (!isRealFastResult(r.result)) r.attributionDate,
+        },
+      );
+    });
+
+/// 当前维度的分桶趋势序列（7/30 天逐日，90 天按周，365 天按自然月）。
+final Provider<List<TrendPoint>> trendPointsProvider =
+    Provider<List<TrendPoint>>((ref) {
+      final range = ref.watch(reportRangeProvider);
+      final end = dateOnly(ref.watch(reportsNowProvider));
+      final byDate = switch (ref.watch(reportDimensionProvider)) {
+        ReportDimension.kcal => <String, double>{
+          for (final c
+              in ref.watch(reportNutritionProvider).valueOrNull ??
+                  const <DailyNutritionCache>[])
+            if (c.entryCount > 0) c.date: c.kcal,
+        },
+        ReportDimension.fasting => ref.watch(fastingHoursByDateProvider),
+        ReportDimension.weight =>
+          ref.watch(reportWeightProvider).valueOrNull ??
+              const <String, double>{},
+      };
+      return bucketDailySeries(
+        end: end,
+        days: range.days,
+        byDate: byDate,
+        bucket: range.bucket,
+      );
+    });
+
+/// 窗口内断食「达标率」分桶序列（长窗口的坚持度视图，值域 0..1）。
+///
+/// 短窗口用三态格逐日直读；长窗口（90/365 天）格子会多到不可读，
+/// 改用「每桶达标天数 ÷ 桶内天数」的比率序列。
+final Provider<List<TrendPoint>> fastingQualifiedRatePointsProvider =
+    Provider<List<TrendPoint>>((ref) {
+      final range = ref.watch(reportRangeProvider);
+      final end = dateOnly(ref.watch(reportsNowProvider));
+      final qualified = ref.watch(qualifiedDatesProvider);
+      return bucketDailySeries(
+            end: end,
+            days: range.days,
+            // 达标日记 1、其余日缺席；桶内均值即达标率（桶天数为分母需补 0）。
+            byDate: <String, double>{for (final d in qualified) d: 1},
+            bucket: range.bucket,
+          )
+          .map((p) {
+            return TrendPoint(
+              start: p.start,
+              end: p.end,
+              // recordedDays = 达标天数；除以桶总天数得达标率（无达标日为 0 而非 null，
+              // 长窗口的「这周一天没达标」是有意义的信息，不能画成断点）。
+              value: p.totalDays == 0 ? null : p.recordedDays / p.totalDays,
+              recordedDays: p.recordedDays,
+              totalDays: p.totalDays,
+            );
+          })
+          .toList(growable: false);
+    });
 
 /// 当前维度趋势序列（长度 = 窗口天数，无数据日为 null → 折线断点）。
 final Provider<List<double?>> trendSeriesProvider = Provider<List<double?>>((

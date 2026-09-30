@@ -192,6 +192,7 @@ class _Translations$reports$en extends Translations$reports$zh_CN {
 	@override late final _Translations$reports$weekly$en weekly = _Translations$reports$weekly$en._(_root);
 	@override late final _Translations$reports$weeklySummary$en weeklySummary = _Translations$reports$weeklySummary$en._(_root);
 	@override late final _Translations$reports$monthly$en monthly = _Translations$reports$monthly$en._(_root);
+	@override late final _Translations$reports$lifetime$en lifetime = _Translations$reports$lifetime$en._(_root);
 }
 
 // Path: streak
@@ -943,8 +944,8 @@ class _Translations$fasting$home$en extends Translations$fasting$home$zh_CN {
 	@override String get extend => 'Extend';
 	@override String get startPlan => 'Choose your fasting plan';
 	@override String get stateEating => 'Eating window';
-	@override String get stateFasting => 'Fasting';
-	@override String get stateFastingExtended => 'Fasting · Extended';
+	@override String get stateFasting => 'Fasting now';
+	@override String get stateFastingExtended => 'Fasting now · Extended';
 	@override String get stateNoPlan => 'No fasting plan yet';
 	@override String attribution({required Object date}) => 'This fast counts toward ${date}';
 	@override String attributionEating({required Object date}) => 'Your next fast will count toward ${date}';
@@ -979,6 +980,7 @@ class _Translations$fasting$home$en extends Translations$fasting$home$zh_CN {
 	@override String planProgressBehind({required Object week, required Object gap}) => 'Week ${week} · ${gap} kg to go';
 	@override late final _Translations$fasting$home$greeting$en greeting = _Translations$fasting$home$greeting$en._(_root);
 	@override late final _Translations$fasting$home$endFastDialog$en endFastDialog = _Translations$fasting$home$endFastDialog$en._(_root);
+	@override late final _Translations$fasting$home$gauge$en gauge = _Translations$fasting$home$gauge$en._(_root);
 }
 
 // Path: fasting.window
@@ -1127,6 +1129,10 @@ class _Translations$reports$trend$en extends Translations$reports$trend$zh_CN {
 	@override String get goalReached => 'Weight goal reached';
 	@override String weightUnlock({required Object count}) => 'Log your weight ${count} more times to unlock your full curve';
 	@override late final _Translations$reports$trend$fastingLegend$en fastingLegend = _Translations$reports$trend$fastingLegend$en._(_root);
+	@override late final _Translations$reports$trend$bucketNote$en bucketNote = _Translations$reports$trend$bucketNote$en._(_root);
+	@override late final _Translations$reports$trend$fastingView$en fastingView = _Translations$reports$trend$fastingView$en._(_root);
+	@override String get qualifiedRate => 'Success rate';
+	@override String get makeupExcluded => 'Make-up days count toward streaks, not duration';
 }
 
 // Path: reports.growth
@@ -1211,6 +1217,26 @@ class _Translations$reports$monthly$en extends Translations$reports$monthly$zh_C
 	@override String weightChange({required Object value}) => 'Weight change ${value}';
 	@override String get empty => 'No records this month yet';
 	@override String get emptyHint => 'Log a meal or finish a fast and your monthly report will bloom.';
+}
+
+// Path: reports.lifetime
+class _Translations$reports$lifetime$en extends Translations$reports$lifetime$zh_CN {
+	_Translations$reports$lifetime$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'All-time';
+	@override String get totalHours => 'Total fasted';
+	@override String get totalHoursUnit => 'h';
+	@override String get qualifiedDays => 'Days hit';
+	@override String get qualifiedDaysUnit => 'd';
+	@override String get qualifiedRate => 'Success rate';
+	@override String get longest => 'Longest fast';
+	@override String get longestUnit => 'h';
+	@override String get avgQualified => 'Avg. qualifying fast';
+	@override String since({required Object date}) => 'Tracking since ${date}';
+	@override String get empty => 'Finish your first fast and your all-time totals show up here';
 }
 
 // Path: streak.home
@@ -2102,6 +2128,21 @@ class _Translations$fasting$home$endFastDialog$en extends Translations$fasting$h
 	@override String get confirm => 'End fast';
 }
 
+// Path: fasting.home.gauge
+class _Translations$fasting$home$gauge$en extends Translations$fasting$home$gauge$zh_CN {
+	_Translations$fasting$home$gauge$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get fasting => 'Fasting';
+	@override String fastingGoal({required Object hours}) => '/${hours}h';
+	@override String get kcal => 'Calories';
+	@override String kcalGoal({required Object kcal}) => '/${kcal}';
+	@override String get water => 'Water';
+	@override String waterGoal({required Object ml}) => '/${ml}ml';
+}
+
 // Path: nutrition.data.dateSwitcher
 class _Translations$nutrition$data$dateSwitcher$en extends Translations$nutrition$data$dateSwitcher$zh_CN {
 	_Translations$nutrition$data$dateSwitcher$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -2228,6 +2269,8 @@ class _Translations$reports$trend$range$en extends Translations$reports$trend$ra
 	// Translations
 	@override String get d7 => '7D';
 	@override String get d30 => '30D';
+	@override String get d90 => '90d';
+	@override String get d365 => '1y';
 }
 
 // Path: reports.trend.unit
@@ -2253,6 +2296,28 @@ class _Translations$reports$trend$fastingLegend$en extends Translations$reports$
 	@override String get unqualified => 'Below goal';
 	@override String get inProgress => 'In progress';
 	@override String get noRecord => 'No record';
+}
+
+// Path: reports.trend.bucketNote
+class _Translations$reports$trend$bucketNote$en extends Translations$reports$trend$bucketNote$zh_CN {
+	_Translations$reports$trend$bucketNote$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get week => 'Each point is a weekly average';
+	@override String get month => 'Each point is a monthly average';
+}
+
+// Path: reports.trend.fastingView
+class _Translations$reports$trend$fastingView$en extends Translations$reports$trend$fastingView$zh_CN {
+	_Translations$reports$trend$fastingView$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get duration => 'Duration';
+	@override String get consistency => 'Consistency';
 }
 
 // Path: reports.weekly.cheer
@@ -2859,8 +2924,8 @@ extension on TranslationsEn {
 			'fasting.home.extend' => 'Extend',
 			'fasting.home.startPlan' => 'Choose your fasting plan',
 			'fasting.home.stateEating' => 'Eating window',
-			'fasting.home.stateFasting' => 'Fasting',
-			'fasting.home.stateFastingExtended' => 'Fasting · Extended',
+			'fasting.home.stateFasting' => 'Fasting now',
+			'fasting.home.stateFastingExtended' => 'Fasting now · Extended',
 			'fasting.home.stateNoPlan' => 'No fasting plan yet',
 			'fasting.home.attribution' => ({required Object date}) => 'This fast counts toward ${date}',
 			'fasting.home.attributionEating' => ({required Object date}) => 'Your next fast will count toward ${date}',
@@ -2905,6 +2970,12 @@ extension on TranslationsEn {
 			'fasting.home.endFastDialog.earlyWarning' => 'Ending more than 15 minutes early counts as not qualified',
 			'fasting.home.endFastDialog.cancel' => 'Keep fasting',
 			'fasting.home.endFastDialog.confirm' => 'End fast',
+			'fasting.home.gauge.fasting' => 'Fasting',
+			'fasting.home.gauge.fastingGoal' => ({required Object hours}) => '/${hours}h',
+			'fasting.home.gauge.kcal' => 'Calories',
+			'fasting.home.gauge.kcalGoal' => ({required Object kcal}) => '/${kcal}',
+			'fasting.home.gauge.water' => 'Water',
+			'fasting.home.gauge.waterGoal' => ({required Object ml}) => '/${ml}ml',
 			'fasting.window.entry' => 'Custom eating window',
 			'fasting.window.title' => 'Custom eating window',
 			'fasting.window.duration' => 'Eating duration',
@@ -2949,14 +3020,14 @@ extension on TranslationsEn {
 			'nutrition.data.proDetails.target' => 'Target',
 			'nutrition.data.proDetails.actual' => 'Intake',
 			'nutrition.data.proDetails.percent' => '% of goal',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.data.proDetails.rda' => 'RDA ref.',
 			'nutrition.data.proDetails.rdaNote' => 'RDA values are general adult dietary references (pending nutritionist sign-off) — your personal goals follow your plan',
 			'nutrition.data.proDetails.unitsNote' => 'Units: kcal for energy, grams for protein/carbs/fat.',
 			'nutrition.data.trend.title' => 'Last 7 days',
 			'nutrition.data.trend.kcal' => 'Calories',
 			'nutrition.data.trend.fasting' => 'Fasting',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.data.trend.empty' => 'Log a few more days and your trend line starts moving',
 			'nutrition.data.trend.ctaRecord' => 'Log now',
 			'nutrition.data.trend.hourUnit' => 'h',
@@ -3008,6 +3079,8 @@ extension on TranslationsEn {
 			'reports.trend.dim.fasting' => 'Fasting',
 			'reports.trend.range.d7' => '7D',
 			'reports.trend.range.d30' => '30D',
+			'reports.trend.range.d90' => '90d',
+			'reports.trend.range.d365' => '1y',
 			'reports.trend.unit.kg' => 'kg',
 			'reports.trend.unit.kcal' => 'kcal',
 			'reports.trend.unit.hour' => 'h',
@@ -3023,6 +3096,12 @@ extension on TranslationsEn {
 			'reports.trend.fastingLegend.unqualified' => 'Below goal',
 			'reports.trend.fastingLegend.inProgress' => 'In progress',
 			'reports.trend.fastingLegend.noRecord' => 'No record',
+			'reports.trend.bucketNote.week' => 'Each point is a weekly average',
+			'reports.trend.bucketNote.month' => 'Each point is a monthly average',
+			'reports.trend.fastingView.duration' => 'Duration',
+			'reports.trend.fastingView.consistency' => 'Consistency',
+			'reports.trend.qualifiedRate' => 'Success rate',
+			'reports.trend.makeupExcluded' => 'Make-up days count toward streaks, not duration',
 			'reports.growth.title' => ({required Object days}) => '${days}-day journey',
 			'reports.growth.qualifiedDays' => 'Fasting goals hit',
 			'reports.growth.recordedDays' => 'Days logged',
@@ -3070,6 +3149,17 @@ extension on TranslationsEn {
 			'reports.monthly.weightChange' => ({required Object value}) => 'Weight change ${value}',
 			'reports.monthly.empty' => 'No records this month yet',
 			'reports.monthly.emptyHint' => 'Log a meal or finish a fast and your monthly report will bloom.',
+			'reports.lifetime.title' => 'All-time',
+			'reports.lifetime.totalHours' => 'Total fasted',
+			'reports.lifetime.totalHoursUnit' => 'h',
+			'reports.lifetime.qualifiedDays' => 'Days hit',
+			'reports.lifetime.qualifiedDaysUnit' => 'd',
+			'reports.lifetime.qualifiedRate' => 'Success rate',
+			'reports.lifetime.longest' => 'Longest fast',
+			'reports.lifetime.longestUnit' => 'h',
+			'reports.lifetime.avgQualified' => 'Avg. qualifying fast',
+			'reports.lifetime.since' => ({required Object date}) => 'Tracking since ${date}',
+			'reports.lifetime.empty' => 'Finish your first fast and your all-time totals show up here',
 			'streak.home.streakDays' => ({required Object days}) => '${days}-day streak 🔥',
 			'streak.home.startHint' => 'Finish today\'s fast to start day 1',
 			'streak.milestone.title' => ({required Object days}) => '${days}-day streak! What a steady rhythm — keep it up 🎉',
@@ -3444,6 +3534,8 @@ extension on TranslationsEn {
 			'moderation.kindCustom' => 'Custom food',
 			'moderation.kindBarcode' => 'Barcode product',
 			'moderation.kindCorrection' => 'Data correction',
+			_ => null,
+		} ?? switch (path) {
 			'moderation.barcodeLabel' => ({required Object code}) => 'Barcode: ${code}',
 			'moderation.submittedAt' => ({required Object date}) => 'Submitted ${date}',
 			'moderation.suggestionTitle' => 'Suggested',

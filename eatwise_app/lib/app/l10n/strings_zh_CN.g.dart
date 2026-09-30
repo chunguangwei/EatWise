@@ -212,6 +212,7 @@ class Translations$reports$zh_CN {
 	late final Translations$reports$weekly$zh_CN weekly = Translations$reports$weekly$zh_CN.internal(_root);
 	late final Translations$reports$weeklySummary$zh_CN weeklySummary = Translations$reports$weeklySummary$zh_CN.internal(_root);
 	late final Translations$reports$monthly$zh_CN monthly = Translations$reports$monthly$zh_CN.internal(_root);
+	late final Translations$reports$lifetime$zh_CN lifetime = Translations$reports$lifetime$zh_CN.internal(_root);
 }
 
 // Path: streak
@@ -1754,6 +1755,7 @@ class Translations$fasting$home$zh_CN {
 
 	late final Translations$fasting$home$greeting$zh_CN greeting = Translations$fasting$home$greeting$zh_CN.internal(_root);
 	late final Translations$fasting$home$endFastDialog$zh_CN endFastDialog = Translations$fasting$home$endFastDialog$zh_CN.internal(_root);
+	late final Translations$fasting$home$gauge$zh_CN gauge = Translations$fasting$home$gauge$zh_CN.internal(_root);
 }
 
 // Path: fasting.window
@@ -1981,6 +1983,14 @@ class Translations$reports$trend$zh_CN {
 	String weightUnlock({required Object count}) => '再记录 ${count} 次体重，解锁完整曲线';
 
 	late final Translations$reports$trend$fastingLegend$zh_CN fastingLegend = Translations$reports$trend$fastingLegend$zh_CN.internal(_root);
+	late final Translations$reports$trend$bucketNote$zh_CN bucketNote = Translations$reports$trend$bucketNote$zh_CN.internal(_root);
+	late final Translations$reports$trend$fastingView$zh_CN fastingView = Translations$reports$trend$fastingView$zh_CN.internal(_root);
+
+	/// zh-CN: '达标率'
+	String get qualifiedRate => '达标率';
+
+	/// zh-CN: '补签日计入达标，不计入时长'
+	String get makeupExcluded => '补签日计入达标，不计入时长';
 }
 
 // Path: reports.growth
@@ -2153,6 +2163,48 @@ class Translations$reports$monthly$zh_CN {
 
 	/// zh-CN: '记一笔饮食或完成一次断食，月报就会长出来～'
 	String get emptyHint => '记一笔饮食或完成一次断食，月报就会长出来～';
+}
+
+// Path: reports.lifetime
+class Translations$reports$lifetime$zh_CN {
+	Translations$reports$lifetime$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '累计成果'
+	String get title => '累计成果';
+
+	/// zh-CN: '累计断食'
+	String get totalHours => '累计断食';
+
+	/// zh-CN: '小时'
+	String get totalHoursUnit => '小时';
+
+	/// zh-CN: '达标天数'
+	String get qualifiedDays => '达标天数';
+
+	/// zh-CN: '天'
+	String get qualifiedDaysUnit => '天';
+
+	/// zh-CN: '历史达标率'
+	String get qualifiedRate => '历史达标率';
+
+	/// zh-CN: '最长单次'
+	String get longest => '最长单次';
+
+	/// zh-CN: '小时'
+	String get longestUnit => '小时';
+
+	/// zh-CN: '达标平均时长'
+	String get avgQualified => '达标平均时长';
+
+	/// zh-CN: '自 ${date} 起记录'
+	String since({required Object date}) => '自 ${date} 起记录';
+
+	/// zh-CN: '完成第一次断食后，这里会记下你的全部积累'
+	String get empty => '完成第一次断食后，这里会记下你的全部积累';
 }
 
 // Path: streak.home
@@ -3915,6 +3967,33 @@ class Translations$fasting$home$endFastDialog$zh_CN {
 	String get confirm => '确认结束';
 }
 
+// Path: fasting.home.gauge
+class Translations$fasting$home$gauge$zh_CN {
+	Translations$fasting$home$gauge$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '断食'
+	String get fasting => '断食';
+
+	/// zh-CN: '/${hours} 小时'
+	String fastingGoal({required Object hours}) => '/${hours} 小时';
+
+	/// zh-CN: '热量'
+	String get kcal => '热量';
+
+	/// zh-CN: '/${kcal} 千卡'
+	String kcalGoal({required Object kcal}) => '/${kcal} 千卡';
+
+	/// zh-CN: '饮水'
+	String get water => '饮水';
+
+	/// zh-CN: '/${ml} ml'
+	String waterGoal({required Object ml}) => '/${ml} ml';
+}
+
 // Path: nutrition.data.dateSwitcher
 class Translations$nutrition$data$dateSwitcher$zh_CN {
 	Translations$nutrition$data$dateSwitcher$zh_CN.internal(this._root);
@@ -4125,6 +4204,12 @@ class Translations$reports$trend$range$zh_CN {
 
 	/// zh-CN: '30 天'
 	String get d30 => '30 天';
+
+	/// zh-CN: '90 天'
+	String get d90 => '90 天';
+
+	/// zh-CN: '1 年'
+	String get d365 => '1 年';
 }
 
 // Path: reports.trend.unit
@@ -4164,6 +4249,36 @@ class Translations$reports$trend$fastingLegend$zh_CN {
 
 	/// zh-CN: '无记录'
 	String get noRecord => '无记录';
+}
+
+// Path: reports.trend.bucketNote
+class Translations$reports$trend$bucketNote$zh_CN {
+	Translations$reports$trend$bucketNote$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '每点为 1 周平均'
+	String get week => '每点为 1 周平均';
+
+	/// zh-CN: '每点为 1 个月平均'
+	String get month => '每点为 1 个月平均';
+}
+
+// Path: reports.trend.fastingView
+class Translations$reports$trend$fastingView$zh_CN {
+	Translations$reports$trend$fastingView$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '时长'
+	String get duration => '时长';
+
+	/// zh-CN: '坚持度'
+	String get consistency => '坚持度';
 }
 
 // Path: reports.weekly.cheer
@@ -4942,6 +5057,12 @@ extension on Translations {
 			'fasting.home.endFastDialog.earlyWarning' => '距计划结束还有 15 分钟以上，本次将记为不达标',
 			'fasting.home.endFastDialog.cancel' => '继续断食',
 			'fasting.home.endFastDialog.confirm' => '确认结束',
+			'fasting.home.gauge.fasting' => '断食',
+			'fasting.home.gauge.fastingGoal' => ({required Object hours}) => '/${hours} 小时',
+			'fasting.home.gauge.kcal' => '热量',
+			'fasting.home.gauge.kcalGoal' => ({required Object kcal}) => '/${kcal} 千卡',
+			'fasting.home.gauge.water' => '饮水',
+			'fasting.home.gauge.waterGoal' => ({required Object ml}) => '/${ml} ml',
 			'fasting.window.entry' => '自定义进食窗口',
 			'fasting.window.title' => '自定义进食窗口',
 			'fasting.window.duration' => '进食时长',
@@ -4986,14 +5107,14 @@ extension on Translations {
 			'nutrition.data.proDetails.target' => '目标',
 			'nutrition.data.proDetails.actual' => '已摄入',
 			'nutrition.data.proDetails.percent' => '占比',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.data.proDetails.rda' => 'RDA 参考',
 			'nutrition.data.proDetails.rdaNote' => 'RDA 为成人通用膳食参考值〔待营养专业背书〕，个人目标以你的方案为准',
 			'nutrition.data.proDetails.unitsNote' => '单位：热量为千卡，蛋白质/碳水/脂肪为克。',
 			'nutrition.data.trend.title' => '近 7 日趋势',
 			'nutrition.data.trend.kcal' => '热量',
 			'nutrition.data.trend.fasting' => '断食时长',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.data.trend.empty' => '记满几天，趋势曲线就跑起来啦',
 			'nutrition.data.trend.ctaRecord' => '去记录',
 			'nutrition.data.trend.hourUnit' => '小时',
@@ -5045,6 +5166,8 @@ extension on Translations {
 			'reports.trend.dim.fasting' => '断食时长',
 			'reports.trend.range.d7' => '7 天',
 			'reports.trend.range.d30' => '30 天',
+			'reports.trend.range.d90' => '90 天',
+			'reports.trend.range.d365' => '1 年',
 			'reports.trend.unit.kg' => '公斤',
 			'reports.trend.unit.kcal' => '千卡',
 			'reports.trend.unit.hour' => '小时',
@@ -5060,6 +5183,12 @@ extension on Translations {
 			'reports.trend.fastingLegend.unqualified' => '未达标',
 			'reports.trend.fastingLegend.inProgress' => '进行中',
 			'reports.trend.fastingLegend.noRecord' => '无记录',
+			'reports.trend.bucketNote.week' => '每点为 1 周平均',
+			'reports.trend.bucketNote.month' => '每点为 1 个月平均',
+			'reports.trend.fastingView.duration' => '时长',
+			'reports.trend.fastingView.consistency' => '坚持度',
+			'reports.trend.qualifiedRate' => '达标率',
+			'reports.trend.makeupExcluded' => '补签日计入达标，不计入时长',
 			'reports.growth.title' => ({required Object days}) => '${days} 天成长轨迹',
 			'reports.growth.qualifiedDays' => '断食达标',
 			'reports.growth.recordedDays' => '记录天数',
@@ -5107,6 +5236,17 @@ extension on Translations {
 			'reports.monthly.weightChange' => ({required Object value}) => '体重变化 ${value}',
 			'reports.monthly.empty' => '本月暂无记录',
 			'reports.monthly.emptyHint' => '记一笔饮食或完成一次断食，月报就会长出来～',
+			'reports.lifetime.title' => '累计成果',
+			'reports.lifetime.totalHours' => '累计断食',
+			'reports.lifetime.totalHoursUnit' => '小时',
+			'reports.lifetime.qualifiedDays' => '达标天数',
+			'reports.lifetime.qualifiedDaysUnit' => '天',
+			'reports.lifetime.qualifiedRate' => '历史达标率',
+			'reports.lifetime.longest' => '最长单次',
+			'reports.lifetime.longestUnit' => '小时',
+			'reports.lifetime.avgQualified' => '达标平均时长',
+			'reports.lifetime.since' => ({required Object date}) => '自 ${date} 起记录',
+			'reports.lifetime.empty' => '完成第一次断食后，这里会记下你的全部积累',
 			'streak.home.streakDays' => ({required Object days}) => '连续 ${days} 天 🔥',
 			'streak.home.startHint' => '完成今天断食，开启第 1 天',
 			'streak.milestone.title' => ({required Object days}) => '连续 ${days} 天！这个节奏太稳了，继续保持 🎉',
@@ -5481,6 +5621,8 @@ extension on Translations {
 			'moderation.kindCustom' => '自定义食品',
 			'moderation.kindBarcode' => '条码商品',
 			'moderation.kindCorrection' => '数据纠错',
+			_ => null,
+		} ?? switch (path) {
 			'moderation.barcodeLabel' => ({required Object code}) => '条码：${code}',
 			'moderation.submittedAt' => ({required Object date}) => '提交于 ${date}',
 			'moderation.suggestionTitle' => '建议值',

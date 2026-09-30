@@ -407,7 +407,15 @@ void main() {
     expect(find.text('警示'), findsOneWidget); // 红：碳水
     expect(find.text('蛋白质'), findsOneWidget);
     expect(find.text('碳水'), findsOneWidget);
-    expect(find.text('热量'), findsOneWidget);
+    // "热量" 文本现在在图例（GaugeLegendRow）和 MiniSignalCards 各一个，
+    // 锚定 MiniSignalCards 子树断言。
+    expect(
+      find.descendant(
+        of: find.byType(MiniSignalCards),
+        matching: find.text('热量'),
+      ),
+      findsOneWidget,
+    );
     expect(find.byIcon(Icons.check_circle), findsOneWidget);
     expect(find.byIcon(Icons.error), findsOneWidget);
     expect(find.byIcon(Icons.cancel), findsOneWidget);

@@ -741,7 +741,9 @@ final class RemoteRecordSync implements RecordRemote {
       final serverIsNewer =
           serverUpdatedAt != null &&
           (localUpdatedAt == null || serverUpdatedAt.isAfter(localUpdatedAt));
-      final terminal = result != 'on_track' && actualEndAt != null;
+      // 补签行无 actualEndAt 但确为终态（同上行放行口径）。
+      final terminal =
+          result != 'on_track' && (actualEndAt != null || result == 'makeup');
       if (serverIsNewer && terminal) {
         // 服务端记录更新（终态对终态）→ 覆盖本地内容 + 收敛同步标记。
         final overwrite = _fastingCompanionFromView(
@@ -772,7 +774,12 @@ final class RemoteRecordSync implements RecordRemote {
     }
     // 本地缺失：落 synced 新行。on_track 无结束锚点跳过（进行中周期由
     // F1/状态接口驱动，不经记录通道落库）。
-    if (result == 'on_track' || actualEndAt == null) return;
+    //
+    // 2026-09-30：makeup（补签卡）放行——服务端补签标记行 actualEndAt=null，
+    // 此前被本守卫一并跳过，导致补签日在本机趋势格显示「无记录」（灰），
+    // 而服务端 streak 已把该日算作达标 → 趋势与连胜自相矛盾。
+    if (result == 'on_track') return;
+    if (actualEndAt == null && result != 'makeup') return;
     await db.fastingRecordDao.upsertRecord(
       _fastingCompanionFromView(
         userId: userId,
@@ -802,27 +809,34 @@ final class RemoteRecordSync implements RecordRemote {
     final actualStartAt =
         DateTime.tryParse(change['actualStartAt'] as String? ?? '') ??
         plannedStartAt;
-    final end = DateTime.parse(change['actualEndAt']! as String);
+    // 补签行无 actualEndAt（未实际断食）：锚点回落计划终点，仅为满足
+    // 「记录必须有结束锚点」的存储约束，时长另行置 0。
+    final end =
+        DateTime.tryParse(change['actualEndAt'] as String? ?? '') ??
+        plannedEndAt;
     final extendedMinutes = (change['extendedMinutes'] as num?)?.toInt() ?? 0;
     final fastedMinutes = (change['fastedMinutes'] as num?)?.toInt();
+    final serverResult = change['result'] as String? ?? 'completed';
+    final isMakeup = serverResult == 'makeup';
     return FastingRecordsCompanion(
       localId: Value('$userId-$attributionDate'),
       userId: Value(userId),
       attributionDate: Value(attributionDate),
       startUtc: Value(actualStartAt.millisecondsSinceEpoch ~/ 1000),
       endUtc: Value(end.millisecondsSinceEpoch ~/ 1000),
+      // 补签不产生真实断食时长（0）——否则计划时长会被当成实际成绩，
+      // 虚高时长趋势与平均值。
       actualSec: Value(
-        fastedMinutes != null
+        isMakeup
+            ? 0
+            : fastedMinutes != null
             ? fastedMinutes * 60
             : end.difference(actualStartAt).inSeconds,
       ),
       plannedSec: Value(plannedEndAt.difference(plannedStartAt).inSeconds),
       extendedMinutes: Value(extendedMinutes),
       result: Value(
-        localResultNameOf(
-          change['result'] as String? ?? 'completed',
-          extendedMinutes: extendedMinutes,
-        ),
+        localResultNameOf(serverResult, extendedMinutes: extendedMinutes),
       ),
       qualified: Value(change['isQualified'] == true),
       clientRequestId: Value(

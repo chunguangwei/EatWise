@@ -119,37 +119,26 @@ void main() {
     );
   }
 
-  group('今日指标网格（UI 重构：原预算行升级为四张 MetricCard）', () {
-    testWidgets('无记录：引导态说明行「今日还未记录 · 目标 2000 千卡」', (tester) async {
+  group('今日指标网格（UI 换代 v2：仅运动消耗/步数两卡）', () {
+    testWidgets('无记录：两卡标签存在，运动/步数显示 —', (tester) async {
       await pumpHome(tester);
 
-      expect(find.text('今日还未记录 · 目标 2000 千卡'), findsOneWidget);
-      expect(find.textContaining('还可吃'), findsNothing);
-      // 四卡标签齐备（华为看板 2 列网格）。
-      expect(find.text('今日热量'), findsOneWidget);
+      // 两卡标签齐备（热量/饮水已上移至仪表图例）。
       expect(find.text('运动消耗'), findsOneWidget);
-      expect(find.text('今日饮水'), findsOneWidget);
       expect(find.text('今日步数'), findsOneWidget);
+      // 无数据时显示 —（不是 0）。
+      expect(find.text('—'), findsNWidgets(2)); // 运动 + 步数各一个
 
       await unmount(tester);
     });
 
-    testWidgets('正常：热量卡大数字 800 + 说明行「还可吃 1200 千卡」', (tester) async {
+    testWidgets('正常：热量数据不影响两卡（热量已在图例）', (tester) async {
       todayCache = cacheWithKcal(800);
       await pumpHome(tester);
 
-      expect(find.text('800'), findsOneWidget);
-      expect(find.text('还可吃 1200 千卡'), findsOneWidget);
-
-      await unmount(tester);
-    });
-
-    testWidgets('超支：说明行「已超 300 千卡」（目标 2000）', (tester) async {
-      todayCache = cacheWithKcal(2300);
-      await pumpHome(tester);
-
-      expect(find.text('2300'), findsOneWidget);
-      expect(find.text('已超 300 千卡'), findsOneWidget);
+      // 热量数据存在，但不在 MetricGrid 里（已上移至图例），两卡不受影响。
+      expect(find.text('运动消耗'), findsOneWidget);
+      expect(find.text('今日步数'), findsOneWidget);
 
       await unmount(tester);
     });
@@ -171,9 +160,9 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('窄屏：四卡渲染不溢出、说明行完整不截断', (tester) async {
-      // 280 逻辑宽（目标兜底 2000）：MetricCard 大数字 FittedBox 收缩、
-      // 说明行 maxLines=2，必须完整呈现（真机「运…」走查同类回归）。
+    testWidgets('窄屏：两卡渲染不溢出、说明行完整不截断', (tester) async {
+      // 280 逻辑宽：MetricCard 大数字 FittedBox 收缩、说明行 maxLines=2，
+      // 必须完整呈现（真机「运…」走查同类回归）。
       tester.view.physicalSize = const Size(280 * 3, 640 * 3);
       tester.view.devicePixelRatio = 3;
       todayCache = cacheWithKcal(1916);
@@ -183,9 +172,14 @@ void main() {
       );
       await pumpHome(tester);
 
-      expect(find.text('1916'), findsOneWidget);
-      expect(find.text('还可吃 84 千卡'), findsOneWidget);
+      // 两卡标签 + 数值完整渲染。
+      expect(find.text('运动消耗'), findsOneWidget);
       expect(find.text('250'), findsOneWidget);
+      expect(find.text('今日步数'), findsOneWidget);
+      expect(find.text('8000'), findsOneWidget);
+      expect(find.text('250'), findsOneWidget);
+      // 说明行完整不截（运动消耗的说明文案较长）。
+      expect(find.text('系统活动 + 手动运动合计'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
       await unmount(tester);

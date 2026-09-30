@@ -4,6 +4,8 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/features/reports/application/report_aggregation.dart'
+    show TrendBucket, TrendPoint;
 import 'package:eatwise/features/reports/application/reports_controller.dart';
 import 'package:eatwise/features/reports/domain/weight_curve_unlock.dart';
 import 'package:eatwise/features/reports/presentation/fasting_trend_grid.dart';
@@ -13,16 +15,32 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
 /// M6 趋势图区（PRD M6 / 设计稿信息图 ⑦）：
-/// 三维切换（体重/热量/断食时长）× 两档时间范围（7/30 天）。
-/// 体重/热量为自绘折线（绿描线、留白、无数据日断点不连线）；断食为
-/// 三态格（[FastingTrendGrid]，连续性直读，无记录 ≠ 断签）。
+/// 三维切换（体重/热量/断食）× 四档时间范围（7/30/90/365 天）。
+///
+/// 2026-09-30 长期趋势改造，解决两个长期存在的展示缺陷：
+/// - **断食维度此前只有达标/未达标二元格，没有时长趋势**：`actualSec` 一直
+///   有存储，但 14:10 达标与 18:6 达标在格子上完全一样，用户看不出自己的
+///   断食时长在变长还是变短。现断食维度拆「时长 / 坚持度」双视图，时长走
+///   折线（与体重/热量同一套 painter），坚持度保留三态格。
+/// - **窗口上限 30 天**：补 90 天（按周聚合）与 1 年（按自然月聚合）两档，
+///   长窗口不再逐日画点（365 个点会糊成噪声），分桶均值可横向比较。
 ///
 /// 空数据走引导空态（四态规范 3.2.2：主文案 + CTA），不渲染空坐标轴。
-class ReportTrendSection extends ConsumerWidget {
+class ReportTrendSection extends ConsumerStatefulWidget {
   const ReportTrendSection({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ReportTrendSection> createState() => _ReportTrendSectionState();
+}
+
+/// 断食维度的两个视图。
+enum _FastingView { duration, consistency }
+
+class _ReportTrendSectionState extends ConsumerState<ReportTrendSection> {
+  _FastingView _fastingView = _FastingView.duration;
+
+  @override
+  Widget build(BuildContext context) {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
@@ -32,15 +50,20 @@ class ReportTrendSection extends ConsumerWidget {
 
     final dimension = ref.watch(reportDimensionProvider);
     final range = ref.watch(reportRangeProvider);
-    final values = ref.watch(trendSeriesProvider);
-    final hasAny = values.any((v) => v != null);
+    final points = ref.watch(trendPointsProvider);
+    final hasAny = points.any((p) => p.value != null);
+
+    // 断食·坚持度视图：短窗口三态格，长窗口达标率折线。
+    final isFastingConsistency =
+        dimension == ReportDimension.fasting &&
+        _fastingView == _FastingView.consistency;
 
     // 阶段 C：体重维度叠加目标体重参考线 + 差值文案（未设置目标不画）。
     final targetKg = dimension == ReportDimension.weight
         ? ref.watch(weightTargetProvider)
         : null;
-    final lastWeightIndex = values.lastIndexWhere((v) => v != null);
-    final latestWeight = lastWeightIndex >= 0 ? values[lastWeightIndex] : null;
+    final lastIdx = points.lastIndexWhere((p) => p.value != null);
+    final latestWeight = lastIdx >= 0 ? points[lastIdx].value : null;
     // P3 体重曲线解锁钩子：记录 <3 条时图表盖半透明遮罩引导继续记录。
     final weightUnlockRemaining = dimension == ReportDimension.weight
         ? weightRecordsToUnlock(ref.watch(weightRecordCountProvider))
@@ -48,18 +71,26 @@ class ReportTrendSection extends ConsumerWidget {
 
     final end = ref.watch(reportsNowProvider);
     final locale = Localizations.localeOf(context).toString();
-    final labelEvery = (range.days / 5).ceil();
-    final labels = List<String?>.generate(range.days, (i) {
-      if (i % labelEvery != 0 && i != range.days - 1) return null;
-      final date = end.subtract(Duration(days: range.days - 1 - i));
-      return DateFormat.Md(locale).format(date);
-    });
 
-    final unit = switch (dimension) {
-      ReportDimension.weight => trend.unit.kg,
-      ReportDimension.kcal => trend.unit.kcal,
-      ReportDimension.fasting => trend.unit.hour,
-    };
+    // 绘制序列：坚持度长窗口取达标率，其余取分桶均值。
+    final drawPoints = isFastingConsistency && range.isLongRange
+        ? ref.watch(fastingQualifiedRatePointsProvider)
+        : points;
+    final values = drawPoints.map((p) => p.value).toList(growable: false);
+    final labels = _labelsFor(drawPoints, range, locale);
+
+    final isRate = isFastingConsistency && range.isLongRange;
+    final unit = isRate
+        ? '%'
+        : switch (dimension) {
+            ReportDimension.weight => trend.unit.kg,
+            ReportDimension.kcal => trend.unit.kcal,
+            ReportDimension.fasting => trend.unit.hour,
+          };
+    // 达标率序列按百分比展示（0..1 → 0..100）。
+    final drawValues = isRate
+        ? values.map((v) => v == null ? null : v * 100).toList(growable: false)
+        : values;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
@@ -121,42 +152,70 @@ class ReportTrendSection extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.s2),
-          // 时间范围切换（7/30 天）。
-          SegmentedButton<ReportRange>(
-            showSelectedIcon: false,
-            style: SegmentedButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s2),
+          // 时间范围切换（7/30/90/365 天）。四档横排在窄屏会挤，
+          // 故整行可横向滚动（英文 "1y"/"90d" 较短，中文「90 天」较长）。
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SegmentedButton<ReportRange>(
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s2),
+              ),
+              segments: <ButtonSegment<ReportRange>>[
+                ButtonSegment<ReportRange>(
+                  value: ReportRange.d7,
+                  label: Text(trend.range.d7, maxLines: 1),
+                ),
+                ButtonSegment<ReportRange>(
+                  value: ReportRange.d30,
+                  label: Text(trend.range.d30, maxLines: 1),
+                ),
+                ButtonSegment<ReportRange>(
+                  value: ReportRange.d90,
+                  label: Text(trend.range.d90, maxLines: 1),
+                ),
+                ButtonSegment<ReportRange>(
+                  value: ReportRange.d365,
+                  label: Text(trend.range.d365, maxLines: 1),
+                ),
+              ],
+              selected: <ReportRange>{range},
+              onSelectionChanged: (selection) => ref
+                  .read(reportRangeProvider.notifier)
+                  .select(selection.first),
             ),
-            segments: <ButtonSegment<ReportRange>>[
-              ButtonSegment<ReportRange>(
-                value: ReportRange.d7,
-                label: Text(
-                  trend.range.d7,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              ButtonSegment<ReportRange>(
-                value: ReportRange.d30,
-                label: Text(
-                  trend.range.d30,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-            selected: <ReportRange>{range},
-            onSelectionChanged: (selection) =>
-                ref.read(reportRangeProvider.notifier).select(selection.first),
           ),
+          // 断食维度：时长 / 坚持度双视图切换（P0：时长趋势此前完全缺失）。
+          if (dimension == ReportDimension.fasting) ...<Widget>[
+            const SizedBox(height: AppSpacing.s2),
+            SegmentedButton<_FastingView>(
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s2),
+              ),
+              segments: <ButtonSegment<_FastingView>>[
+                ButtonSegment<_FastingView>(
+                  value: _FastingView.duration,
+                  label: Text(trend.fastingView.duration, maxLines: 1),
+                ),
+                ButtonSegment<_FastingView>(
+                  value: _FastingView.consistency,
+                  label: Text(trend.fastingView.consistency, maxLines: 1),
+                ),
+              ],
+              selected: <_FastingView>{_fastingView},
+              onSelectionChanged: (s) => setState(() => _fastingView = s.first),
+            ),
+          ],
           const SizedBox(height: AppSpacing.s4),
           if (!hasAny)
             _TrendEmpty(dimension: dimension)
-          // 断食维度：三态格（达标/未达标/无记录 + 进行中），连续性直读；
-          // 体重/热量维度：折线趋势。
-          else if (dimension == ReportDimension.fasting)
+          // 断食·坚持度 + 短窗口：三态格（连续性直读，无记录 ≠ 断签）。
+          else if (isFastingConsistency && !range.isLongRange)
             FastingTrendGrid(
               states: ref.watch(fastingDayStatesProvider),
               end: end,
@@ -170,13 +229,16 @@ class ReportTrendSection extends ConsumerWidget {
                 children: <Widget>[
                   CustomPaint(
                     painter: ReportTrendPainter(
-                      values: values,
+                      values: drawValues,
                       labels: labels,
-                      lineColor: colors.brandPrimary,
+                      lineColor: isRate
+                          ? colors.ringExercise
+                          : colors.brandPrimary,
                       labelColor: colors.textSecondary,
                       labelStyle: textStyles.textXs,
                       unit: unit,
-                      fractionDigits: dimension == ReportDimension.kcal ? 0 : 1,
+                      fractionDigits:
+                          dimension == ReportDimension.kcal || isRate ? 0 : 1,
                       targetValue: targetKg,
                       targetColor: colors.brandAccent,
                       targetLabel: targetKg == null
@@ -204,6 +266,31 @@ class ReportTrendSection extends ConsumerWidget {
                 ],
               ),
             ),
+            // 长窗口分桶说明：避免用户把「周均值」误读成「某一天」。
+            if (range.isLongRange)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s2),
+                child: Text(
+                  range.bucket == TrendBucket.month
+                      ? trend.bucketNote.month
+                      : trend.bucketNote.week,
+                  style: textStyles.textXs.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+            // 断食·时长视图：说明补签不计时长（否则用户会觉得数字对不上）。
+            if (dimension == ReportDimension.fasting &&
+                _fastingView == _FastingView.duration)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s2),
+                child: Text(
+                  trend.makeupExcluded,
+                  style: textStyles.textXs.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
             // 当前体重与目标差值（最新一条记录 vs 目标）。
             if (targetKg != null && latestWeight != null)
               Padding(
@@ -223,6 +310,29 @@ class ReportTrendSection extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// 底部稀疏日期标签：逐日窗口按「每 N 天一个」，分桶窗口每桶一个标签。
+  List<String?> _labelsFor(
+    List<TrendPoint> points,
+    ReportRange range,
+    String locale,
+  ) {
+    if (range.isLongRange) {
+      // 分桶：桶数本就不多（90 天≈13 周、365 天≈12 月），隔一个标一个。
+      final every = points.length > 8 ? 2 : 1;
+      return List<String?>.generate(points.length, (i) {
+        if (i % every != 0 && i != points.length - 1) return null;
+        return range.bucket == TrendBucket.month
+            ? DateFormat.yM(locale).format(points[i].start)
+            : DateFormat.Md(locale).format(points[i].start);
+      });
+    }
+    final every = (points.length / 5).ceil();
+    return List<String?>.generate(points.length, (i) {
+      if (i % every != 0 && i != points.length - 1) return null;
+      return DateFormat.Md(locale).format(points[i].start);
+    });
   }
 }
 

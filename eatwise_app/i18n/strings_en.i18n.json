@@ -543,8 +543,8 @@
       "extend": "Extend",
       "startPlan": "Choose your fasting plan",
       "stateEating": "Eating window",
-      "stateFasting": "Fasting",
-      "stateFastingExtended": "Fasting · Extended",
+      "stateFasting": "Fasting now",
+      "stateFastingExtended": "Fasting now · Extended",
       "stateNoPlan": "No fasting plan yet",
       "attribution": "This fast counts toward ${date}",
       "attributionEating": "Your next fast will count toward ${date}",
@@ -592,6 +592,14 @@
         "earlyWarning": "Ending more than 15 minutes early counts as not qualified",
         "cancel": "Keep fasting",
         "confirm": "End fast"
+      },
+      "gauge": {
+        "fasting": "Fasting",
+        "fastingGoal": "/${hours}h",
+        "kcal": "Calories",
+        "kcalGoal": "/${kcal}",
+        "water": "Water",
+        "waterGoal": "/${ml}ml"
       }
     },
     "window": {
@@ -750,7 +758,9 @@
       },
       "range": {
         "d7": "7D",
-        "d30": "30D"
+        "d30": "30D",
+        "d90": "90d",
+        "d365": "1y"
       },
       "unit": {
         "kg": "kg",
@@ -770,7 +780,17 @@
         "unqualified": "Below goal",
         "inProgress": "In progress",
         "noRecord": "No record"
-      }
+      },
+      "bucketNote": {
+        "week": "Each point is a weekly average",
+        "month": "Each point is a monthly average"
+      },
+      "fastingView": {
+        "duration": "Duration",
+        "consistency": "Consistency"
+      },
+      "qualifiedRate": "Success rate",
+      "makeupExcluded": "Make-up days count toward streaks, not duration"
     },
     "growth": {
       "title": "${days}-day journey",
@@ -831,6 +851,19 @@
       "weightChange": "Weight change ${value}",
       "empty": "No records this month yet",
       "emptyHint": "Log a meal or finish a fast and your monthly report will bloom."
+    },
+    "lifetime": {
+      "title": "All-time",
+      "totalHours": "Total fasted",
+      "totalHoursUnit": "h",
+      "qualifiedDays": "Days hit",
+      "qualifiedDaysUnit": "d",
+      "qualifiedRate": "Success rate",
+      "longest": "Longest fast",
+      "longestUnit": "h",
+      "avgQualified": "Avg. qualifying fast",
+      "since": "Tracking since ${date}",
+      "empty": "Finish your first fast and your all-time totals show up here"
     }
   },
   "streak": {

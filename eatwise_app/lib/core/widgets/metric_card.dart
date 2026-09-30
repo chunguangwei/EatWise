@@ -161,6 +161,142 @@ class MetricCard extends StatelessWidget {
   }
 }
 
+/// 图表卡（2026-09-30 UI 换代共享组件，华为「心脏健康/睡眠/血氧」卡语言）：
+/// 标题 + 大数字值行 + 迷你图表区 + 可选底部说明/动作行。
+///
+/// 与 [MetricCard] 的分工：MetricCard 表达「单值 + 目标进度」，
+/// ChartCard 表达「单值 + 形状趋势」。图表本体由调用方传入（[chart]），
+/// 本组件只负责卡片骨架与排版，不感知图表类型。
+class ChartCard extends StatelessWidget {
+  const ChartCard({
+    super.key,
+    required this.title,
+    required this.value,
+    this.valuePrefix,
+    this.unit,
+    this.chart,
+    this.caption,
+    this.onTap,
+    this.accentColor,
+  });
+
+  /// 卡标题（主色，如「心脏健康」）。
+  final String title;
+
+  /// 大数字（textDisplay；如「88」）。
+  final String value;
+
+  /// 大数字前的小标签（次要色，如「心率」——华为卡内「心率 88 次/分钟」形态）。
+  final String? valuePrefix;
+
+  /// 单位（次要色，紧随大数字）。
+  final String? unit;
+
+  /// 迷你图表（`MiniSparkline`/`MiniBars`/`MiniSegmentBar` 等；null 不占位）。
+  final Widget? chart;
+
+  /// 底部说明行（次要色小字，如「日均静息心率比上月高↑」）。
+  final String? caption;
+
+  final VoidCallback? onTap;
+
+  /// 强调色（保留给调用方统一卡内配色；当前仅用于语义，不改骨架）。
+  final Color? accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
+    final shadows = Theme.of(context).extension<AppShadows>()!;
+    return Material(
+      color: colors.bgSecondary,
+      borderRadius: radii.rLg,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radii.rLg,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.s4),
+          decoration: BoxDecoration(
+            borderRadius: radii.rLg,
+            boxShadow: shadows.shadowSm,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                title,
+                style: textStyles.textBase.copyWith(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppSpacing.s2),
+              // 值行整体 FittedBox 缩放：中英文单位长度差异大
+              //（「次/分钟」vs "bpm"、「小时」vs "hours"），窄屏 2 列网格下
+              // 必须允许整体缩放而不是让单位换行。
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    if (valuePrefix != null) ...<Widget>[
+                      Text(
+                        valuePrefix!,
+                        style: textStyles.textSm.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.s1),
+                    ],
+                    Text(
+                      value,
+                      style: textStyles.textDisplay.copyWith(
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                    if (unit != null) ...<Widget>[
+                      const SizedBox(width: AppSpacing.s1),
+                      Text(
+                        unit!,
+                        style: textStyles.textSm.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (chart != null) ...<Widget>[
+                const SizedBox(height: AppSpacing.s3),
+                chart!,
+              ],
+              if (caption != null) ...<Widget>[
+                const SizedBox(height: AppSpacing.s2),
+                Text(
+                  caption!,
+                  style: textStyles.textXs.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// 区块头（2026-09-29 UI 重构共享组件）：标题 + 可选尾部动作（如「查看详情」）。
 class SectionHeader extends StatelessWidget {
   const SectionHeader({super.key, required this.title, this.trailing});

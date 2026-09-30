@@ -577,10 +577,18 @@ void main() {
         localResultNameOf('completed', extendedMinutes: 0),
         CycleResult.completedOnTime.name,
       );
+      // 2026-09-30：makeup 保留独立身份（补签只计达标、不计断食时长），
+      // 不再塌缩为 completedOnTime。
       expect(
         localResultNameOf('makeup', extendedMinutes: 0),
-        CycleResult.completedOnTime.name,
+        CycleResult.makeup.name,
       );
+      expect(
+        serverResultNameOf(CycleResult.makeup.name, qualified: true),
+        'makeup',
+      );
+      expect(isRealFastResult(CycleResult.makeup.name), isFalse);
+      expect(isRealFastResult(CycleResult.completedOnTime.name), isTrue);
     });
   });
 }

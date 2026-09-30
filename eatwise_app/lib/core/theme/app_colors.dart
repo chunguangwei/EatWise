@@ -6,6 +6,11 @@ import 'package:flutter/material.dart';
 /// 待设计侧输出暗色 Token 表后替换。
 /// 2026-09-29 UI 重构（参考苹果健身/华为运动健康）：新增环图/图表强调色组
 /// （ring*/chart*，加性不破坏既有命名）。
+///
+/// 2026-09-30 UI 换代 v2（参考华为运动健康「今日/我的/我的数据」实拍）：
+/// 新增开口环仪表三色组（gauge*）、极简列表分隔线（divider）、
+/// 图标徽标/轨道浅填充（fillSubtle）。同时加深 bgPrimary 灰度——华为观感的
+/// 底层是「明确的灰底 + 纯白卡」对比，原 #F7F9F8 与白卡几乎无差，卡片浮不起来。
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
   const AppColors({
@@ -24,6 +29,11 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.ringStand,
     required this.ringMove,
     required this.chartPurple,
+    required this.gaugeRed,
+    required this.gaugeAmber,
+    required this.gaugeBlue,
+    required this.divider,
+    required this.fillSubtle,
   });
 
   /// 轻盈绿：品牌主色、断食进行态、CTA。
@@ -72,6 +82,21 @@ class AppColors extends ThemeExtension<AppColors> {
   /// 图表·紫（睡眠/心率/体重趋势类卡片强调色，华为迷你图表卡同族色）。
   final Color chartPurple;
 
+  /// 开口环仪表·外环（华为「活动热量」红）。
+  final Color gaugeRed;
+
+  /// 开口环仪表·中环（华为「锻炼时长」琥珀黄）。
+  final Color gaugeAmber;
+
+  /// 开口环仪表·内环（华为「活动小时数」蓝）。
+  final Color gaugeBlue;
+
+  /// 极简列表分隔线（发丝线；比 border 更淡，仅用于同组行间）。
+  final Color divider;
+
+  /// 浅填充（圆形图标徽标底、进度轨道、分组间隔带）。
+  final Color fillSubtle;
+
   /// 亮色主题 Token（设计稿 §2.2）。
   static const AppColors light = AppColors(
     brandPrimary: Color(0xFF3DBE8B),
@@ -80,7 +105,7 @@ class AppColors extends ThemeExtension<AppColors> {
     signalRed: Color(0xFFFF6B6B),
     signalYellow: Color(0xFFFFD24C),
     signalGreen: Color(0xFF3DBE8B),
-    bgPrimary: Color(0xFFF7F9F8),
+    bgPrimary: Color(0xFFEFF2F1),
     bgSecondary: Color(0xFFFFFFFF),
     textPrimary: Color(0xFF1E2A28),
     textSecondary: Color(0xFF8A9694),
@@ -89,6 +114,11 @@ class AppColors extends ThemeExtension<AppColors> {
     ringStand: Color(0xFF4CA6FF),
     ringMove: Color(0xFFFF9F45),
     chartPurple: Color(0xFF8B7CF6),
+    gaugeRed: Color(0xFFF5453F),
+    gaugeAmber: Color(0xFFFFB225),
+    gaugeBlue: Color(0xFF2E86FF),
+    divider: Color(0xFFE4E9E8),
+    fillSubtle: Color(0xFFF0F3F2),
   );
 
   /// 暗色主题 Token〔假设〕：按 §2.7 推导——背景反转为深灰绿系、
@@ -110,6 +140,11 @@ class AppColors extends ThemeExtension<AppColors> {
     ringStand: Color(0xFF5CB2FF), // 青蓝暗色提亮〔假设〕
     ringMove: Color(0xFFFF9F45),
     chartPurple: Color(0xFFA39AFF), // 紫暗色提亮〔假设〕
+    gaugeRed: Color(0xFFFF6059), // 开口环暗色提亮〔假设〕
+    gaugeAmber: Color(0xFFFFC44D),
+    gaugeBlue: Color(0xFF5CA0FF),
+    divider: Color(0xFF2A3634), // 深底发丝线〔假设〕
+    fillSubtle: Color(0xFF232E2C), // 深底浅填充〔假设〕
   );
 
   @override
@@ -129,6 +164,11 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? ringStand,
     Color? ringMove,
     Color? chartPurple,
+    Color? gaugeRed,
+    Color? gaugeAmber,
+    Color? gaugeBlue,
+    Color? divider,
+    Color? fillSubtle,
   }) {
     return AppColors(
       brandPrimary: brandPrimary ?? this.brandPrimary,
@@ -146,6 +186,11 @@ class AppColors extends ThemeExtension<AppColors> {
       ringStand: ringStand ?? this.ringStand,
       ringMove: ringMove ?? this.ringMove,
       chartPurple: chartPurple ?? this.chartPurple,
+      gaugeRed: gaugeRed ?? this.gaugeRed,
+      gaugeAmber: gaugeAmber ?? this.gaugeAmber,
+      gaugeBlue: gaugeBlue ?? this.gaugeBlue,
+      divider: divider ?? this.divider,
+      fillSubtle: fillSubtle ?? this.fillSubtle,
     );
   }
 
@@ -172,6 +217,11 @@ class AppColors extends ThemeExtension<AppColors> {
       ringStand: Color.lerp(ringStand, other.ringStand, t)!,
       ringMove: Color.lerp(ringMove, other.ringMove, t)!,
       chartPurple: Color.lerp(chartPurple, other.chartPurple, t)!,
+      gaugeRed: Color.lerp(gaugeRed, other.gaugeRed, t)!,
+      gaugeAmber: Color.lerp(gaugeAmber, other.gaugeAmber, t)!,
+      gaugeBlue: Color.lerp(gaugeBlue, other.gaugeBlue, t)!,
+      divider: Color.lerp(divider, other.divider, t)!,
+      fillSubtle: Color.lerp(fillSubtle, other.fillSubtle, t)!,
     );
   }
 }

@@ -198,9 +198,12 @@ void main() {
 
     await tester.tap(find.text('断食时长'));
     await tester.pump();
+    // 2026-09-30：断食维度默认「时长」折线视图，三态格在「坚持度」视图。
+    await tester.tap(find.text('坚持度'));
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    // 折线不再渲染，改三态格（7 天 = 7 格）。
+    // 坚持度 + 短窗口：折线不渲染，改三态格（7 天 = 7 格）。
     expect(findTrendPainter(), findsNothing);
     expect(findFastingDayCells(), findsNWidgets(7));
     // 7/26 达标绿（ringExercise）、7/27 未达标珊瑚红（signalRed）、
@@ -229,6 +232,8 @@ void main() {
     await pumpPage(tester);
 
     await tester.tap(find.text('断食时长'));
+    await tester.pump();
+    await tester.tap(find.text('坚持度'));
     await tester.pump();
     await tester.tap(find.text('30 天'));
     await tester.pump();
@@ -393,8 +398,8 @@ void main() {
     await WeightLogStore(prefs).save('2026-07-28', 64.4);
     await pumpPage(tester);
 
-    // 月报卡在首屏外，滚动露出。
-    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    // 月报卡在首屏外，滚动露出（累计成果卡插入后位置更低）。
+    await tester.drag(find.byType(ListView), const Offset(0, -1000));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
@@ -447,6 +452,8 @@ void main() {
     expect(find.text('Fasting'), findsOneWidget);
     expect(find.text('7D'), findsOneWidget);
     expect(find.text('30D'), findsOneWidget);
+    expect(find.text('90d'), findsOneWidget);
+    expect(find.text('1y'), findsOneWidget);
     expect(find.text('7-day journey'), findsOneWidget);
     expect(
       find.text(
@@ -455,8 +462,8 @@ void main() {
       findsOneWidget,
     );
 
-    // 周报与月报在首屏外，滚动露出。
-    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    // 周报与月报在首屏外，滚动露出（累计成果卡插入后位置更低）。
+    await tester.drag(find.byType(ListView), const Offset(0, -1000));
     await tester.pump();
     expect(find.text('This week'), findsOneWidget);
     expect(find.text('July 2026'), findsOneWidget);

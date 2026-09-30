@@ -4,6 +4,7 @@ import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/reports/presentation/growth_card.dart';
+import 'package:eatwise/features/reports/presentation/lifetime_card.dart';
 import 'package:eatwise/features/reports/presentation/monthly_report_card.dart';
 import 'package:eatwise/features/reports/presentation/trend_section.dart';
 import 'package:eatwise/features/reports/presentation/weekly_report_card.dart';
@@ -63,6 +64,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               ReportTrendSection(),
               SizedBox(height: AppSpacing.s6),
               GrowthSummaryCard(),
+              SizedBox(height: AppSpacing.s6),
+              // 累计成果（全生命周期）紧随窗口摘要：先看「最近」再看「一共」。
+              FastingLifetimeCard(),
               SizedBox(height: AppSpacing.s6),
               WeeklyReportCard(),
               SizedBox(height: AppSpacing.s6),

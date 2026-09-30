@@ -592,6 +592,14 @@
         "earlyWarning": "距计划结束还有 15 分钟以上，本次将记为不达标",
         "cancel": "继续断食",
         "confirm": "确认结束"
+      },
+      "gauge": {
+        "fasting": "断食",
+        "fastingGoal": "/${hours} 小时",
+        "kcal": "热量",
+        "kcalGoal": "/${kcal} 千卡",
+        "water": "饮水",
+        "waterGoal": "/${ml} ml"
       }
     },
     "window": {
@@ -750,7 +758,9 @@
       },
       "range": {
         "d7": "7 天",
-        "d30": "30 天"
+        "d30": "30 天",
+        "d90": "90 天",
+        "d365": "1 年"
       },
       "unit": {
         "kg": "公斤",
@@ -770,7 +780,17 @@
         "unqualified": "未达标",
         "inProgress": "进行中",
         "noRecord": "无记录"
-      }
+      },
+      "bucketNote": {
+        "week": "每点为 1 周平均",
+        "month": "每点为 1 个月平均"
+      },
+      "fastingView": {
+        "duration": "时长",
+        "consistency": "坚持度"
+      },
+      "qualifiedRate": "达标率",
+      "makeupExcluded": "补签日计入达标，不计入时长"
     },
     "growth": {
       "title": "${days} 天成长轨迹",
@@ -830,6 +850,19 @@
       "weightChange": "体重变化 ${value}",
       "empty": "本月暂无记录",
       "emptyHint": "记一笔饮食或完成一次断食，月报就会长出来～"
+    },
+    "lifetime": {
+      "title": "累计成果",
+      "totalHours": "累计断食",
+      "totalHoursUnit": "小时",
+      "qualifiedDays": "达标天数",
+      "qualifiedDaysUnit": "天",
+      "qualifiedRate": "历史达标率",
+      "longest": "最长单次",
+      "longestUnit": "小时",
+      "avgQualified": "达标平均时长",
+      "since": "自 ${date} 起记录",
+      "empty": "完成第一次断食后，这里会记下你的全部积累"
     }
   },
   "streak": {
