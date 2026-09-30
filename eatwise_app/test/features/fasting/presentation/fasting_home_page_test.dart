@@ -142,7 +142,8 @@ void main() {
   testWidgets('断食中：绿弧环 + 倒计时 + 状态文案 + 归属日 + 双按钮可用', (tester) async {
     await pumpHome(tester);
 
-    expect(find.text('04:00:00'), findsOneWidget);
+    expect(find.text('04:00'), findsOneWidget); // 断食态 HH:MM 大字
+    expect(find.text(':00'), findsOneWidget); // :SS 小字后缀
     expect(find.text('断食中'), findsOneWidget);
     expect(find.text('本次断食计入 7月28日'), findsOneWidget);
     expect(find.text('断食 16 小时 · 进食窗口 12:00–20:00'), findsOneWidget);
@@ -299,11 +300,12 @@ void main() {
   testWidgets('每秒 tick：倒计时逐秒刷新', (tester) async {
     clock.now = bjtUtc(28, 3, 59, 58); // 本地 11:59:58，剩 2s
     await pumpHome(tester);
-    expect(find.text('00:00:02'), findsOneWidget);
+    expect(find.text('00:00'), findsOneWidget);
+    expect(find.text(':02'), findsOneWidget);
 
     clock.now = bjtUtc(28, 3, 59, 59);
     await tester.pump(const Duration(seconds: 1)); // 触发 ticker
-    expect(find.text('00:00:01'), findsOneWidget);
+    expect(find.text(':01'), findsOneWidget);
 
     await unmount(tester);
   });
@@ -470,7 +472,7 @@ void main() {
 
     // 倒计时经 FittedBox(scaleDown) 收缩在环内径内，不产生 overflow 异常。
     expect(find.byType(CountdownText), findsOneWidget);
-    expect(find.text('04:00:00'), findsOneWidget);
+    expect(find.text('04:00'), findsOneWidget);
 
     final boxWidth = tester.getSize(find.byType(CountdownText)).width;
     expect(boxWidth, lessThanOrEqualTo(CountdownText.maxWidth));
@@ -518,7 +520,8 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('123:45:56'), findsOneWidget);
+    expect(find.text('123:45'), findsOneWidget);
+    expect(find.text(':56'), findsOneWidget);
     final boxWidth = tester.getSize(find.byType(CountdownText)).width;
     expect(boxWidth, lessThanOrEqualTo(CountdownText.maxWidth));
   });

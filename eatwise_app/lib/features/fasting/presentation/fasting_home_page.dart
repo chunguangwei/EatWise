@@ -784,14 +784,6 @@ class _TimerBody extends ConsumerWidget {
     final m = (minutesOfDay % 60).toString().padLeft(2, '0');
     return '$h:$m';
   }
-
-  static String _formatCountdown(int seconds, {bool showSeconds = true}) {
-    final h = (seconds ~/ 3600).toString().padLeft(2, '0');
-    final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
-    if (!showSeconds) return '$h:$m';
-    final s = (seconds % 60).toString().padLeft(2, '0');
-    return '$h:$m:$s';
-  }
 }
 
 /// 首页三环仪表区（2026-09-30 UI 换代 v2）：开口式多环仪表 + 中心倒计时 +
@@ -923,10 +915,13 @@ class _HomeGaugeSection extends ConsumerWidget {
   }
 }
 
-/// 环内倒计时数字（真机反馈：390pt + 系统大字体下 48pt 数字超出 220px
-/// 环界）。宽度按环内径（220 − 2×12 描边，再留视觉余量）约束，
-/// FittedBox(scaleDown) 保证 textScaler 放大与超长时间（>99h 三位小时）
-/// 都只缩小不溢出。
+/// 环内倒计时数字（2026-09-30 真机走查二轮）：原 maxWidth 184 超出三环
+/// 仪表内环自由直径（220 − 2×(2×(13+5)+13) = 122），秒级倒计时整行压到
+/// 环弧上——收窄到 118 并改「HH:MM 大字 + :SS 小字后缀」（断食态），
+/// 主数字用指标大数字样式 textDisplay（34pt），秒位降级小字，既有
+/// 秒级跳动的逼近感又完全不压环。进食态（showSeconds=false）只渲染
+/// HH:MM。FittedBox(scaleDown) 保证 textScaler 放大与超长时间
+///（>99h 三位小时）都只缩小不溢出。
 class CountdownText extends StatelessWidget {
   const CountdownText({
     required this.seconds,
@@ -934,27 +929,44 @@ class CountdownText extends StatelessWidget {
     super.key,
   });
 
-  /// 倒计时秒数（锚点 − now，HH:MM:SS 渲染，小时可超两位）。
+  /// 倒计时秒数（锚点 − now，HH:MM 主显 + :SS 后缀，小时可超两位）。
   final int seconds;
 
-  /// 是否渲染秒位（进食态传 false：HH:MM，配合状态图标更适配）。
+  /// 是否渲染秒位后缀（进食态传 false：只 HH:MM，配合状态图标更适配）。
   final bool showSeconds;
 
-  /// 可渲染最大宽度（220 环 − 24 描边 − 12 视觉余量）。
-  static const double maxWidth = 184;
+  /// 可渲染最大宽度（三环内环自由直径 122 − 4 视觉余量）。
+  static const double maxWidth = 118;
 
   @override
   Widget build(BuildContext context) {
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final h = (seconds ~/ 3600).toString().padLeft(2, '0');
+    final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
+    final s = (seconds % 60).toString().padLeft(2, '0');
     return SizedBox(
       width: maxWidth,
       child: FittedBox(
         fit: BoxFit.scaleDown,
-        child: Text(
-          _TimerBody._formatCountdown(seconds, showSeconds: showSeconds),
-          style: textStyles.textTimer,
-          maxLines: 1,
-          softWrap: false,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: <Widget>[
+            Text(
+              '$h:$m',
+              style: textStyles.textDisplay,
+              maxLines: 1,
+              softWrap: false,
+            ),
+            if (showSeconds)
+              Text(
+                ':$s',
+                style: textStyles.textLg.copyWith(fontWeight: FontWeight.w700),
+                maxLines: 1,
+                softWrap: false,
+              ),
+          ],
         ),
       ),
     );
