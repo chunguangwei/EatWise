@@ -148,7 +148,14 @@ FastingSnapshot resolveState(
 
 /// 关闭周期（§3.3 `close_cycle` 伪代码的可运行实现，D-07/D-08）。
 ///
-/// - 归属日 = [endUtc] 在 [tzAtEnd] 下渲染的自然日，写入后冻结不改写；
+/// - 归属日 = **计划进食窗口起点（[FastCycle.plannedEndUtc]）在 [tzAtEnd]
+///   下渲染的自然日**（D-07「进食窗口所属自然日」，写入后冻结不改写）。
+///   注意必须取 plannedEndUtc 而非 endUtc：提前结束（T3/T4）若按破窗时刻
+///   渲染，跨 0 点早退（窗口日前一晚破窗）会与服务端物化口径
+///   （`findOrCreateActiveRecord` 恒按 plannedEndAt 取归属日）错位——
+///   v1.13.27 归属校验跳过 F2 → ghost autoClose 把早退误判 completed
+///   （假达标），且 /sync 按客户端归属日建出重复记录（审计实锤）。
+///   到点关闭 endUtc==plannedEndUtc，两口径恒等，不受影响。
 /// - 达标判定容差 [toleranceSec] 走服务端配置（默认 900s，D-08）。
 FastingRecord closeCycle(
   FastCycle cycle,
@@ -157,7 +164,10 @@ FastingRecord closeCycle(
   CloseReason reason, {
   int toleranceSec = kDefaultToleranceSec,
 }) {
-  final attributionDate = localDateOf(endUtc, tzAtEnd).toIsoString();
+  final attributionDate = localDateOf(
+    cycle.plannedEndUtc,
+    tzAtEnd,
+  ).toIsoString();
   final actual = endUtc - cycle.startUtc;
   final planned = cycle.plannedEndUtc - cycle.startUtc;
   final plannedOriginal = planned - cycle.extendedMinutes * 60;

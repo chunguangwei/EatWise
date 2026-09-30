@@ -104,6 +104,31 @@ void main() {
     expect(record.result, CycleResult.brokenEarly);
   });
 
+  test('跨 0 点早退（窗口日前一晚破窗）：归属日 = 计划窗口日（D-07，与服务端物化口径一致）', () {
+    // 回归（审计实锤）：旧口径按破窗时刻渲染归属日 → 客户端 d 日 vs 服务端
+    // 物化 d+1 日错位 → v1.13.27 归属校验跳过 F2 → ghost 误判 completed。
+    // 周期：d 日 20:00 → d+1 日 12:00（16:8）；d 日 23:30 破窗。
+    final cycle = resolveState(wall(2026, 7, 27, 21, 0, bjt), plan, bjt).cycle!;
+    final record = manualEndFast(cycle, wall(2026, 7, 27, 23, 30, bjt), bjt);
+    expect(record.result, CycleResult.brokenEarly); // 提前 12.5h > 容差
+    expect(record.qualified, isFalse);
+    // 归属日 = 计划进食窗口起点日（与服务端 findOrCreateActiveRecord 的
+    // localDateOf(plannedEndAt) 恒一致 → F2 归属校验通过、/sync 归属日去重命中）。
+    expect(record.date, '2026-07-28');
+    expect(record.actualSec, 3 * 3600 + 30 * 60); // 20:00 → 23:30
+  });
+
+  test(
+    '容差常量与服务端同源钉死：kDefaultToleranceSec == 900（FASTING_TOLERANCE_MINUTES 默认 15）',
+    () {
+      // 漂移防线（审计点 2）：客户端判定容差为编译期常量，服务端走
+      // FASTING_TOLERANCE_MINUTES 热调——两侧默认值必须一致；服务端热调偏离
+      // 15 时客户端 F1 toleranceMinutes 字段当前未消费（已知残余风险，
+      // 热调容差需同步评估客户端判定口径）。
+      expect(kDefaultToleranceSec, 15 * 60);
+    },
+  );
+
   test('B5 延长步进与上限：×8 累计 4h 后按钮 disabled；'
       '16:00 到点 COMPLETED_EXTENDED；进食窗口 8h 不压缩（D-10/T5–T8）', () {
     var cycle = resolveState(wall(2026, 7, 27, 21, 0, bjt), plan, bjt).cycle!;
