@@ -39,6 +39,7 @@ final class UserMeView {
     required this.maskedPhone,
     this.deletionStatus,
     this.scheduledDeletionAt,
+    this.avatarUrl,
     this.gender,
     this.birthYear,
     this.heightCm,
@@ -66,6 +67,10 @@ final class UserMeView {
 
   /// 预约删除执行时间（UTC，冷静期截止）。
   final DateTime? scheduledDeletionAt;
+
+  /// 头像 URL（/v1/uploads/xxx 相对路径或 http(s)；未设置为 null，
+  /// 渲染前经 `ApiConfig.resolveUrl` 补 origin）。
+  final String? avatarUrl;
 
   /// 生理性别（male/female；未填为 null）。
   final String? gender;
@@ -117,6 +122,7 @@ final class UserMeView {
       scheduledDeletionAt: scheduled != null
           ? DateTime.tryParse(scheduled)
           : null,
+      avatarUrl: json['avatarUrl'] as String?,
       gender: json['gender'] as String?,
       birthYear: (json['birthYear'] as num?)?.toInt(),
       heightCm: (json['heightCm'] as num?)?.toDouble(),

@@ -485,6 +485,7 @@ export type UserProfilePatch = Partial<
   Pick<
     UserEntity,
     | 'nickname'
+    | 'avatarUrl'
     | 'gender'
     | 'birthYear'
     | 'heightCm'

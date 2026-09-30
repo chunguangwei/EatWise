@@ -5,6 +5,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -55,6 +56,18 @@ export class PatchUserDto {
   @IsString()
   @MaxLength(50)
   nickname?: string;
+
+  /**
+   * 头像 URL（先经 POST /v1/uploads 上传拿相对路径）。协议白名单
+   * http(s)/站内相对路径，与 evidenceImageUrl 同口径——该值会被客户端
+   * 拼进 <img>，javascript: 伪协议是存储型 XSS。
+   */
+  @IsOptional()
+  @Matches(/^(https?:\/\/|\/\/|\/)[^\s]*$/, {
+    message: 'avatarUrl must be an http(s) or site-relative URL',
+  })
+  @MaxLength(500)
+  avatarUrl?: string;
 
   @IsOptional()
   @IsString()

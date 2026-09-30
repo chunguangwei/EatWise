@@ -123,6 +123,50 @@ void main() {
       expect(state.mendCardBalance, 1);
     });
 
+    test('对账补录历史里程碑（档位 < 当前连胜）静默标记不弹徽章', () async {
+      // 重装/服务端历史重建后：S3 补录 3/7 档，但当前连胜已 10——
+      // 弹「连续 3 天」徽章会与首页「连续 10 天」横幅错位（真机走查）。
+      api
+        ..view = _view(currentStreak: 10, longestStreak: 10, stock: 2)
+        ..milestones = const <ServerMilestone>[
+          ServerMilestone(days: 3, achievedAt: '2026-07-20T00:00:00Z'),
+          ServerMilestone(days: 7, achievedAt: '2026-07-24T00:00:00Z'),
+        ];
+      final c = container();
+      addTearDown(c.dispose);
+      final controller = c.read(streakControllerProvider.notifier);
+
+      await controller.refreshFromServer();
+      final state = c.read(streakControllerProvider);
+      expect(state.currentStreak, 10);
+      expect(state.justUnlockedMilestone, isNull);
+
+      // 已静默标记入解锁集：下轮对账不会再当「新解锁」处理。
+      await controller.refreshFromServer();
+      expect(c.read(streakControllerProvider).justUnlockedMilestone, isNull);
+    });
+
+    test('对账发现当下跨档（档位 == 当前连胜，如他端今天达成）弹一次徽章', () async {
+      api
+        ..view = _view(currentStreak: 7, longestStreak: 7, stock: 2)
+        ..milestones = const <ServerMilestone>[
+          ServerMilestone(days: 3, achievedAt: '2026-07-24T00:00:00Z'),
+          ServerMilestone(days: 7, achievedAt: '2026-07-28T00:00:00Z'),
+        ];
+      final c = container();
+      addTearDown(c.dispose);
+      final controller = c.read(streakControllerProvider.notifier);
+
+      await controller.refreshFromServer();
+      // 7 档 == 当前连胜 → 弹；3 档是历史 → 静默。
+      expect(c.read(streakControllerProvider).justUnlockedMilestone, 7);
+
+      // 消费后不重复弹。
+      controller.consumeMilestone();
+      await controller.refreshFromServer();
+      expect(c.read(streakControllerProvider).justUnlockedMilestone, isNull);
+    });
+
     test('在线达标：F1 物化记录 → F2 幂等上行 → 拉 S1 对账', () async {
       api.view = _view(currentStreak: 3, longestStreak: 3, stock: 2);
       reportApi.active = const ServerActiveFast(
@@ -837,6 +881,9 @@ final class _FakeStreakApi extends StreakApi {
   int fetchCount = 0;
   final List<String> mendCalls = <String>[];
 
+  /// S3 里程碑桩（默认空集）。
+  List<ServerMilestone> milestones = const <ServerMilestone>[];
+
   @override
   Future<ServerStreakView> fetchStreak() async {
     fetchCount++;
@@ -857,7 +904,7 @@ final class _FakeStreakApi extends StreakApi {
   @override
   Future<List<ServerMilestone>> fetchMilestones() async {
     if (offline) throw const NetworkApiException();
-    return const <ServerMilestone>[];
+    return milestones;
   }
 }
 

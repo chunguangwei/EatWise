@@ -1796,6 +1796,7 @@ function toUserEntity(u: Prisma.UserGetPayload<object>): UserEntity {
     username: u.username,
     passwordHash: u.passwordHash,
     nickname: u.nickname,
+    avatarUrl: u.avatarUrl,
     gender: u.gender,
     birthYear: u.birthYear,
     heightCm: u.heightCm,

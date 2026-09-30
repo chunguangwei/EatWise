@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:app_settings/app_settings.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/network/api_error_text.dart';
 import 'package:eatwise/core/network/api_exception.dart';
+import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
@@ -19,8 +21,11 @@ import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.d
 import 'package:eatwise/features/health/presentation/health_sync_section.dart';
 import 'package:eatwise/features/legal/application/legal_providers.dart';
 import 'package:eatwise/features/record/application/water_reminder_planner.dart';
+import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
+import 'package:eatwise/features/settings/application/avatar_upload.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:eatwise/features/settings/data/user_api.dart';
+import 'package:eatwise/features/social/presentation/pinned_post_image.dart';
 import 'package:eatwise/features/streak/presentation/streak_profile_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -85,6 +90,7 @@ class SettingsPage extends ConsumerWidget {
               identity: identity,
               cachedIdentity: cachedIdentity,
               loggedIn: loggedIn,
+              avatarUrl: userMe?.avatarUrl,
               onRetry: loggedIn && identity.isEmpty && cachedIdentity.isEmpty
                   ? () => ref.invalidate(userMeProvider)
                   : null,
@@ -699,16 +705,21 @@ class SettingsPage extends ConsumerWidget {
 }
 
 /// 资料头卡（2026-09-30，吸收华为运动健康「我的」头卡语言）：
-/// 品牌绿浅底圆形头像占位 + 账号标识（D-13 v2：username 主路径优先，
-/// 其次 U1 脱敏手机号；兜底链：实时值 → 本地缓存 → 未登录占位）+
-/// 「账号」小标签。已登录但标识取不到（重装清缓存 + U1 失败）时显
-/// 「点击重试」并可点重拉（与登录态不矛盾；我们没有等级/成长体系，
-/// 不引入不存在的数据）。
-class _ProfileHeaderCard extends StatelessWidget {
+/// 圆形头像（已设置显示照片，未设置显品牌绿浅底占位）+ 账号标识
+///（D-13 v2：username 主路径优先，其次 U1 脱敏手机号；兜底链：实时值 →
+/// 本地缓存 → 未登录占位）+ 「账号」小标签。已登录但标识取不到（重装清
+/// 缓存 + U1 失败）时显「点击重试」并可点重拉（与登录态不矛盾；我们
+/// 没有等级/成长体系，不引入不存在的数据）。
+///
+/// 头像更换（同日新增）：登录态点头像 → 拍照/相册来源弹层 →
+/// 上传回写 PATCH /users/me（`uploadAvatar` 全链路）；右下角相机角标
+/// 提示可点，上传在途禁用入口并显进度。
+class _ProfileHeaderCard extends ConsumerWidget {
   const _ProfileHeaderCard({
     required this.identity,
     required this.cachedIdentity,
     required this.loggedIn,
+    this.avatarUrl,
     this.onRetry,
   });
 
@@ -716,16 +727,106 @@ class _ProfileHeaderCard extends StatelessWidget {
   final String cachedIdentity;
   final bool loggedIn;
 
+  /// 头像 URL（相对路径 /v1/uploads/xxx 或 http(s)；null 显占位图标）。
+  final String? avatarUrl;
+
   /// 标识取不到时的重试动作（null = 不可点）。
   final VoidCallback? onRetry;
 
+  /// 来源选择弹层（拍照 / 相册；小内容弹层，与拍照识别入口同语言）。
+  Future<void> _showSourceSheet(BuildContext context, WidgetRef ref) async {
+    final t = Translations.of(context);
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final source = await showModalBottomSheet<PhotoSource>(
+      context: context,
+      backgroundColor: colors.bgSecondary,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            ListTile(
+              leading: Icon(
+                Icons.photo_camera_outlined,
+                color: colors.brandPrimary,
+              ),
+              title: Text(t.settings.account.avatar.takePhoto),
+              onTap: () => Navigator.pop(sheetContext, PhotoSource.camera),
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.photo_library_outlined,
+                color: colors.brandPrimary,
+              ),
+              title: Text(t.settings.account.avatar.fromGallery),
+              onTap: () => Navigator.pop(sheetContext, PhotoSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !context.mounted) return;
+    final result = await uploadAvatar(ref, source);
+    if (!context.mounted) return;
+    switch (result) {
+      case AvatarUploadResult.success:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t.settings.account.avatar.success)),
+        );
+      case AvatarUploadResult.failed:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t.settings.account.avatar.failed)),
+        );
+      case AvatarUploadResult.permissionDenied:
+        _showPermissionDeniedDialog(context, t, textStyles);
+      case AvatarUploadResult.cancelled:
+        break;
+    }
+  }
+
+  /// 权限被拒降级（§4.3）：说明 + 直达系统设置。
+  void _showPermissionDeniedDialog(
+    BuildContext context,
+    Translations t,
+    AppTextStyles textStyles,
+  ) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(t.settings.account.avatar.deniedTitle),
+        content: Text(
+          t.settings.account.avatar.deniedBody,
+          style: textStyles.textSm,
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(t.common.action.cancel),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                await AppSettings.openAppSettings();
+              } on Object {
+                // 防御：插件不可用时静默（测试环境/桌面端）。
+              }
+            },
+            child: Text(t.settings.account.avatar.openSettings),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final radii = Theme.of(context).extension<AppRadii>()!;
     final shadows = Theme.of(context).extension<AppShadows>()!;
+    final uploading = ref.watch(avatarUploadingProvider);
     final display = identity.isNotEmpty
         ? identity
         : cachedIdentity.isNotEmpty
@@ -733,6 +834,12 @@ class _ProfileHeaderCard extends StatelessWidget {
         : loggedIn
         ? t.settings.account.retryIdentity
         : t.settings.account.notLoggedIn;
+    // 服务端回相对路径（/v1/uploads/<id>），渲染前补 origin；加载走
+    // 带证书锁定的 dio（PinnedPostImage），生产自签证书下裸 Image.network
+    // 握手必败断图。
+    final resolvedAvatarUrl = avatarUrl != null && avatarUrl!.isNotEmpty
+        ? ref.watch(apiConfigProvider).resolveUrl(avatarUrl!)
+        : null;
     return Material(
       color: colors.bgSecondary,
       borderRadius: radii.rLg,
@@ -748,19 +855,67 @@ class _ProfileHeaderCard extends StatelessWidget {
           ),
           child: Row(
             children: <Widget>[
-              // 圆形头像占位（品牌绿浅底，与行图标徽标同语言放大版）。
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: colors.brandPrimary.withValues(alpha: 0.14),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Icon(
-                  Icons.person_outline,
-                  size: 26,
-                  color: colors.brandPrimary,
+              // 头像（可点更换）：照片 / 品牌绿浅底占位 + 相机角标。
+              GestureDetector(
+                key: const ValueKey<String>('settings.avatar.edit'),
+                onTap: loggedIn && !uploading
+                    ? () => _showSourceSheet(context, ref)
+                    : null,
+                child: Stack(
+                  children: <Widget>[
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: colors.brandPrimary.withValues(alpha: 0.14),
+                        shape: BoxShape.circle,
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: uploading
+                          ? Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colors.brandPrimary,
+                                ),
+                              ),
+                            )
+                          : resolvedAvatarUrl != null
+                          ? _AvatarImage(
+                              key: ValueKey<String>(resolvedAvatarUrl),
+                              url: resolvedAvatarUrl,
+                            )
+                          : Icon(
+                              Icons.person_outline,
+                              size: 26,
+                              color: colors.brandPrimary,
+                            ),
+                    ),
+                    if (loggedIn && !uploading)
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: colors.brandPrimary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: colors.bgSecondary,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.photo_camera_rounded,
+                            size: 10,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: AppSpacing.s3),
@@ -778,7 +933,9 @@ class _ProfileHeaderCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      t.settings.account.account,
+                      uploading
+                          ? t.settings.account.avatar.uploading
+                          : t.settings.account.account,
                       style: textStyles.textXs.copyWith(
                         color: colors.textSecondary,
                       ),
@@ -965,6 +1122,48 @@ class _SettingsTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 头像小图：经带证书锁定的加载器拉字节（生产自签证书下裸
+/// Image.network 握手必败）；加载中/失败统一回退人形占位——
+/// 头像位显断图图标比显占位更刺眼（与 feed 大图的断图占位口径不同）。
+class _AvatarImage extends ConsumerStatefulWidget {
+  const _AvatarImage({required this.url, super.key});
+
+  final String url;
+
+  @override
+  ConsumerState<_AvatarImage> createState() => _AvatarImageState();
+}
+
+class _AvatarImageState extends ConsumerState<_AvatarImage> {
+  Future<Uint8List?>? _future;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    _future ??= ref.read(pinnedPostImageLoaderProvider).load(widget.url);
+    return FutureBuilder<Uint8List?>(
+      future: _future,
+      builder: (context, snapshot) {
+        final bytes = snapshot.data;
+        if (bytes == null || bytes.isEmpty) {
+          return Icon(
+            Icons.person_outline,
+            size: 26,
+            color: colors.brandPrimary,
+          );
+        }
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          width: 48,
+          height: 48,
+          gaplessPlayback: true,
+        );
+      },
     );
   }
 }

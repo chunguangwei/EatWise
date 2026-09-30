@@ -14,9 +14,13 @@ import 'package:eatwise/features/legal/application/privacy_gate.dart';
 import 'package:eatwise/features/legal/data/privacy_consent_store.dart';
 import 'package:eatwise/features/legal/presentation/legal_pages.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/record/presentation/record_providers.dart'
+    show photoPickerGatewayProvider;
+import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:eatwise/features/settings/data/user_api.dart';
 import 'package:eatwise/features/settings/presentation/settings_page.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -520,6 +524,115 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('头像更换：登录态点头像弹来源选择，相册上传全链路回写 avatarUrl', (tester) async {
+    Map<String, Object?> userJson(String? avatarUrl) => <String, Object?>{
+      'id': 'u-1',
+      'username': 'wcg',
+      'phone': null,
+      'avatarUrl': avatarUrl,
+      'deletionStatus': null,
+      'scheduledDeletionAt': null,
+    };
+    // 初次 GET /users/me（无头像）。
+    adapter.stub(
+      '/users/me',
+      StubResponse.json(
+        200,
+        StubResponse.envelope(<String, Object?>{'user': userJson(null)}),
+      ),
+    );
+    await pumpSettings(
+      tester,
+      extraOverrides: <Override>[
+        photoPickerGatewayProvider.overrideWithValue(_FakeAvatarPicker()),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    // 入口：头像带相机角标，点击弹来源选择。
+    await tester.tap(
+      find.byKey(const ValueKey<String>('settings.avatar.edit')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('拍照'), findsOneWidget);
+    expect(find.text('从相册选择'), findsOneWidget);
+
+    // 上传链：POST /uploads 201 → PATCH /users/me → 失效后重拉 GET。
+    adapter.stub(
+      '/uploads',
+      StubResponse.json(
+        201,
+        StubResponse.envelope(<String, Object?>{
+          'id': 'abc.jpg',
+          'url': '/v1/uploads/abc.jpg',
+        }),
+      ),
+    );
+    adapter.stub(
+      '/users/me',
+      StubResponse.json(
+        200,
+        StubResponse.envelope(<String, Object?>{
+          'user': userJson('/v1/uploads/abc.jpg'),
+        }),
+      ),
+    );
+    adapter.stub(
+      '/users/me',
+      StubResponse.json(
+        200,
+        StubResponse.envelope(<String, Object?>{
+          'user': userJson('/v1/uploads/abc.jpg'),
+        }),
+      ),
+    );
+    await tester.tap(find.text('从相册选择'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('头像已更新'), findsOneWidget);
+    final patchIdx = adapter.requests.indexWhere(
+      (r) => r.path == '/users/me' && r.method == 'PATCH',
+    );
+    expect(patchIdx, greaterThanOrEqualTo(0));
+    expect(
+      (adapter.requestBodies[patchIdx]! as Map<String, dynamic>)['avatarUrl'],
+      '/v1/uploads/abc.jpg',
+    );
+
+    await unmount(tester);
+  });
+
+  testWidgets('头像更换：相册权限被拒 → 降级弹窗引导去设置', (tester) async {
+    adapter.stub(
+      '/users/me',
+      StubResponse.json(
+        200,
+        StubResponse.envelope(<String, Object?>{
+          'user': <String, Object?>{'id': 'u-1', 'username': 'wcg'},
+        }),
+      ),
+    );
+    await pumpSettings(
+      tester,
+      extraOverrides: <Override>[
+        photoPickerGatewayProvider.overrideWithValue(_DeniedAvatarPicker()),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('settings.avatar.edit')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('从相册选择'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('无法访问照片'), findsOneWidget);
+    expect(find.text('去开启'), findsOneWidget);
+
+    await unmount(tester);
+  });
+
   testWidgets('英文渲染（双语，D-15）', (tester) async {
     await LocaleSettings.setLocale(AppLocale.en);
     await pumpSettings(tester);
@@ -564,4 +677,18 @@ class _FakeDeletionService implements AccountDeletionService {
     cancelCalls++;
     return const AccountDeletionView();
   }
+}
+
+/// 头像取图桩：固定返回最小 PNG 魔数字节（上传链只认字节流）。
+final class _FakeAvatarPicker implements PhotoPickerGateway {
+  @override
+  Future<Uint8List?> pick(PhotoSource source) async =>
+      Uint8List.fromList(const <int>[0x89, 0x50, 0x4E, 0x47, 1, 2, 3, 4]);
+}
+
+/// 头像取图桩：模拟系统权限拒绝（走 §4.3 降级弹窗）。
+final class _DeniedAvatarPicker implements PhotoPickerGateway {
+  @override
+  Future<Uint8List?> pick(PhotoSource source) =>
+      throw PhotoPermissionDeniedException(source);
 }

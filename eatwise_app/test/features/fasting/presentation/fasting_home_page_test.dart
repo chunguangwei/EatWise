@@ -274,7 +274,8 @@ void main() {
     clock.now = bjtUtc(28, 6); // 本地 14:00，进食中
     await pumpHome(tester);
 
-    expect(find.text('06:00:00'), findsOneWidget);
+    expect(find.text('06:00'), findsOneWidget); // 进食态无秒倒计时（HH:MM）
+    expect(find.text('06:00:00'), findsNothing);
     expect(find.text('进食窗口中'), findsOneWidget);
     // 进食态无进行中断食：归属日文案用将来时（走查 B-9）。
     expect(find.text('下一段断食将计入 7月29日'), findsOneWidget);

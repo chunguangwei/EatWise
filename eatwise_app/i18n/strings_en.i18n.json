@@ -946,7 +946,18 @@
       "logout": "Sign out",
       "notLoggedIn": "Not signed in",
       "login": "Sign in",
-      "retryIdentity": "Tap to retry"
+      "retryIdentity": "Tap to retry",
+      "avatar": {
+        "edit": "Change avatar",
+        "takePhoto": "Take photo",
+        "fromGallery": "Choose from library",
+        "uploading": "Uploading avatar…",
+        "success": "Avatar updated",
+        "failed": "Avatar upload failed. Check your connection and retry.",
+        "deniedTitle": "Photos unavailable",
+        "deniedBody": "Photo library / camera access is needed to set an avatar. You can enable it in system settings.",
+        "openSettings": "Open Settings"
+      }
     },
     "privacy": {
       "privacyPolicy": "Privacy Policy",

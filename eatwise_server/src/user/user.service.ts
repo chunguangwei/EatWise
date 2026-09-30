@@ -10,6 +10,7 @@ const DELETION_COOLING_OFF_DAYS = 7; // 删除冷静期 7 天〔假设，待法�
 
 const PATCHABLE = [
   'nickname',
+  'avatarUrl',
   'gender',
   'birthYear',
   'heightCm',
@@ -174,7 +175,7 @@ export class UserService {
       username: u.username, // D-13 v2：账号密码为主路径，客户端账号标识优先展示
       phone: maskPhone(u.phone), // 对外响应脱敏（合规 §6），明文仅出现在 U3 本人导出包
       nickname: u.nickname,
-      avatarUrl: null,
+      avatarUrl: u.avatarUrl,
       gender: u.gender,
       birthYear: u.birthYear,
       heightCm: u.heightCm,

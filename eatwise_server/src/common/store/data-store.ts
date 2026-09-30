@@ -14,6 +14,8 @@ export interface UserEntity {
   /** bcrypt 哈希（bcryptjs），永不明文存储/返回 */
   passwordHash: string | null;
   nickname: string | null;
+  /** 头像 URL（/v1/uploads/xxx 相对路径或 http(s)；经 PATCH /users/me 字段级 LWW） */
+  avatarUrl: string | null;
   gender: string | null;
   birthYear: number | null;
   heightCm: number | null;
@@ -432,6 +434,7 @@ export class DataStore {
       username: null,
       passwordHash: null,
       nickname: null,
+      avatarUrl: null,
       gender: null,
       birthYear: null,
       heightCm: null,

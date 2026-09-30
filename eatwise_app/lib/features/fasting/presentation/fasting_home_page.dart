@@ -481,10 +481,12 @@ class _TimerBody extends ConsumerWidget {
         ],
         const SizedBox(height: AppSpacing.s6),
         // 双主按钮（设计稿 §4.2-① 环下横排；进食态置灰，T11）。
+        // 2026-09-30 真机走查：按钮不明显——补状态图标，延长按钮启用态
+        // 改品牌绿描边（原中性灰描边与置灰态拉不开差距）。
         Row(
           children: <Widget>[
             Expanded(
-              child: FilledButton(
+              child: FilledButton.icon(
                 onPressed: isFasting
                     ? () => _showEndFastDialog(context, ref)
                     : null,
@@ -493,7 +495,8 @@ class _TimerBody extends ConsumerWidget {
                   disabledBackgroundColor: colors.border.withValues(alpha: 0.3),
                   minimumSize: const Size.fromHeight(AppSpacing.s12),
                 ),
-                child: Text(
+                icon: const Icon(Icons.flag_rounded, size: 20),
+                label: Text(
                   t.fasting.home.endFast,
                   style: textStyles.textBase.copyWith(color: Colors.white),
                 ),
@@ -501,16 +504,23 @@ class _TimerBody extends ConsumerWidget {
             ),
             const SizedBox(width: AppSpacing.s3),
             Expanded(
-              child: OutlinedButton(
+              child: OutlinedButton.icon(
                 onPressed: isFasting && !extendLimitReached
                     ? controller.extend
                     : null,
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: colors.border),
-                  foregroundColor: colors.textPrimary,
+                  side: BorderSide(
+                    color: isFasting && !extendLimitReached
+                        ? colors.brandPrimary
+                        : colors.border,
+                    width: isFasting && !extendLimitReached ? 1.5 : 1,
+                  ),
+                  foregroundColor: colors.brandPrimary,
+                  disabledForegroundColor: colors.textSecondary,
                   minimumSize: const Size.fromHeight(AppSpacing.s12),
                 ),
-                child: Text(t.fasting.home.extend, style: textStyles.textBase),
+                icon: const Icon(Icons.more_time_rounded, size: 20),
+                label: Text(t.fasting.home.extend, style: textStyles.textBase),
               ),
             ),
           ],
@@ -775,9 +785,10 @@ class _TimerBody extends ConsumerWidget {
     return '$h:$m';
   }
 
-  static String _formatCountdown(int seconds) {
+  static String _formatCountdown(int seconds, {bool showSeconds = true}) {
     final h = (seconds ~/ 3600).toString().padLeft(2, '0');
     final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
+    if (!showSeconds) return '$h:$m';
     final s = (seconds % 60).toString().padLeft(2, '0');
     return '$h:$m:$s';
   }
@@ -844,7 +855,21 @@ class _HomeGaugeSection extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    CountdownText(seconds: snapshot.countdownSec),
+                    // 进食态：大时钟让位给状态图标（真机走查 2026-09-30：
+                    // 进食窗下秒级倒计时占了图标位且非核心信息——图标 +
+                    // 无秒倒计时（HH:MM）更适配；断食态保留秒位营造逼近感）。
+                    if (!isFasting) ...<Widget>[
+                      Icon(
+                        Icons.restaurant_rounded,
+                        size: 26,
+                        color: fastArcColor,
+                      ),
+                      const SizedBox(height: AppSpacing.s1),
+                    ],
+                    CountdownText(
+                      seconds: snapshot.countdownSec,
+                      showSeconds: isFasting,
+                    ),
                     const SizedBox(height: AppSpacing.s1),
                     Text(
                       _TimerBody._stateText(t, timer.state),
@@ -903,10 +928,17 @@ class _HomeGaugeSection extends ConsumerWidget {
 /// FittedBox(scaleDown) 保证 textScaler 放大与超长时间（>99h 三位小时）
 /// 都只缩小不溢出。
 class CountdownText extends StatelessWidget {
-  const CountdownText({required this.seconds, super.key});
+  const CountdownText({
+    required this.seconds,
+    this.showSeconds = true,
+    super.key,
+  });
 
   /// 倒计时秒数（锚点 − now，HH:MM:SS 渲染，小时可超两位）。
   final int seconds;
+
+  /// 是否渲染秒位（进食态传 false：HH:MM，配合状态图标更适配）。
+  final bool showSeconds;
 
   /// 可渲染最大宽度（220 环 − 24 描边 − 12 视觉余量）。
   static const double maxWidth = 184;
@@ -919,7 +951,7 @@ class CountdownText extends StatelessWidget {
       child: FittedBox(
         fit: BoxFit.scaleDown,
         child: Text(
-          _TimerBody._formatCountdown(seconds),
+          _TimerBody._formatCountdown(seconds, showSeconds: showSeconds),
           style: textStyles.textTimer,
           maxLines: 1,
           softWrap: false,

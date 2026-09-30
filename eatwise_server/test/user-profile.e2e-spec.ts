@@ -165,4 +165,23 @@ describe('User profile patch validation (e2e)', () => {
     expect((await patch({ targetDate: '2026-02-30' })).status).toBe(400); // 伪日期
     expect((await patch({ targetDate: 'next month' })).status).toBe(400);
   });
+
+  it('头像 avatarUrl：站内相对路径/https → 200 落库回显；javascript: 伪协议 → 400', async () => {
+    const res = await patch({ avatarUrl: '/v1/uploads/abc123.jpg' }).expect(200);
+    expect(res.body.data.user.avatarUrl).toBe('/v1/uploads/abc123.jpg');
+
+    // getMe 回显（此前 userView 硬编码 null，头像上传后必须读得到）
+    const me = await request(server)
+      .get('/v1/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(me.body.data.user.avatarUrl).toBe('/v1/uploads/abc123.jpg');
+
+    const cdn = await patch({ avatarUrl: 'https://cdn.example.com/a.png' }).expect(200);
+    expect(cdn.body.data.user.avatarUrl).toBe('https://cdn.example.com/a.png');
+
+    // 存储型 XSS 防线：伪协议/裸字符串拒收（与 evidenceImageUrl 同口径）
+    expect((await patch({ avatarUrl: 'javascript:alert(1)' })).status).toBe(400);
+    expect((await patch({ avatarUrl: 'not a url' })).status).toBe(400);
+  });
 });

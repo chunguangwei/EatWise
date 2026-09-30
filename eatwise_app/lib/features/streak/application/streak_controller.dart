@@ -506,7 +506,11 @@ final class StreakController extends Notifier<StreakUiState> {
     _store.saveEngine(engine);
     state = _uiState(
       fromServer: true,
-      newMilestones: newly.toList()..sort(),
+      // 里程碑徽章只庆祝「当下跨档」（档位 == 当前连胜，如他端今天刚
+      // 达成）。重装/服务端历史重建后对账补录的历史档位（档位 < 当前
+      // 连胜）静默标记不弹——否则首页「连续 10 天」横幅旁边会弹
+      // 「连续 3 天」徽章，两个数字错位（2026-09-30 真机走查）。
+      newMilestones: newly.where((d) => d == view.currentStreak).toList(),
       serverBreakNoticeDate: noticeDate,
     );
   }

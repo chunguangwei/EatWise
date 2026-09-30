@@ -2429,6 +2429,8 @@ class Translations$settings$account$zh_CN {
 
 	/// zh-CN: '点击重试'
 	String get retryIdentity => '点击重试';
+
+	late final Translations$settings$account$avatar$zh_CN avatar = Translations$settings$account$avatar$zh_CN.internal(_root);
 }
 
 // Path: settings.privacy
@@ -4335,6 +4337,42 @@ class Translations$streak$milestone$shareCard$zh_CN {
 	String get shareFailed => '分享失败，请稍后重试';
 }
 
+// Path: settings.account.avatar
+class Translations$settings$account$avatar$zh_CN {
+	Translations$settings$account$avatar$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '更换头像'
+	String get edit => '更换头像';
+
+	/// zh-CN: '拍照'
+	String get takePhoto => '拍照';
+
+	/// zh-CN: '从相册选择'
+	String get fromGallery => '从相册选择';
+
+	/// zh-CN: '头像上传中…'
+	String get uploading => '头像上传中…';
+
+	/// zh-CN: '头像已更新'
+	String get success => '头像已更新';
+
+	/// zh-CN: '头像上传失败，请检查网络后重试'
+	String get failed => '头像上传失败，请检查网络后重试';
+
+	/// zh-CN: '无法访问照片'
+	String get deniedTitle => '无法访问照片';
+
+	/// zh-CN: '需要相册/相机权限才能设置头像，可到系统设置开启'
+	String get deniedBody => '需要相册/相机权限才能设置头像，可到系统设置开启';
+
+	/// zh-CN: '去开启'
+	String get openSettings => '去开启';
+}
+
 // Path: settings.bodyProfile.bmi
 class Translations$settings$bodyProfile$bmi$zh_CN {
 	Translations$settings$bodyProfile$bmi$zh_CN.internal(this._root);
@@ -5310,6 +5348,15 @@ extension on Translations {
 			'settings.account.notLoggedIn' => '未登录',
 			'settings.account.login' => '登录',
 			'settings.account.retryIdentity' => '点击重试',
+			'settings.account.avatar.edit' => '更换头像',
+			'settings.account.avatar.takePhoto' => '拍照',
+			'settings.account.avatar.fromGallery' => '从相册选择',
+			'settings.account.avatar.uploading' => '头像上传中…',
+			'settings.account.avatar.success' => '头像已更新',
+			'settings.account.avatar.failed' => '头像上传失败，请检查网络后重试',
+			'settings.account.avatar.deniedTitle' => '无法访问照片',
+			'settings.account.avatar.deniedBody' => '需要相册/相机权限才能设置头像，可到系统设置开启',
+			'settings.account.avatar.openSettings' => '去开启',
 			'settings.privacy.privacyPolicy' => '隐私政策',
 			'settings.privacy.userAgreement' => '用户协议',
 			'settings.privacy.exportData' => '导出我的数据',
@@ -5612,6 +5659,8 @@ extension on Translations {
 			'moderation.approveConfirm' => '通过后该食品将进入共享食物库，所有用户都能搜到。确认通过？',
 			'moderation.rejectConfirmTitle' => '驳回该候选',
 			'moderation.rejectConfirmBody' => '驳回后提交者的相关记录将被移除。',
+			_ => null,
+		} ?? switch (path) {
 			'moderation.reasonHint' => '驳回原因（可选）',
 			'moderation.approved' => '已通过',
 			'moderation.rejected' => '已驳回',
@@ -5621,8 +5670,6 @@ extension on Translations {
 			'moderation.kindCustom' => '自定义食品',
 			'moderation.kindBarcode' => '条码商品',
 			'moderation.kindCorrection' => '数据纠错',
-			_ => null,
-		} ?? switch (path) {
 			'moderation.barcodeLabel' => ({required Object code}) => '条码：${code}',
 			'moderation.submittedAt' => ({required Object date}) => '提交于 ${date}',
 			'moderation.suggestionTitle' => '建议值',

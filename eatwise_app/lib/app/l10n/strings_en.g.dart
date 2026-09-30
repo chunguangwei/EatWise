@@ -1354,6 +1354,7 @@ class _Translations$settings$account$en extends Translations$settings$account$zh
 	@override String get notLoggedIn => 'Not signed in';
 	@override String get login => 'Sign in';
 	@override String get retryIdentity => 'Tap to retry';
+	@override late final _Translations$settings$account$avatar$en avatar = _Translations$settings$account$avatar$en._(_root);
 }
 
 // Path: settings.privacy
@@ -2350,6 +2351,24 @@ class _Translations$streak$milestone$shareCard$en extends Translations$streak$mi
 	@override String get shareFailed => 'Couldn\'t share right now. Please try again later.';
 }
 
+// Path: settings.account.avatar
+class _Translations$settings$account$avatar$en extends Translations$settings$account$avatar$zh_CN {
+	_Translations$settings$account$avatar$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get edit => 'Change avatar';
+	@override String get takePhoto => 'Take photo';
+	@override String get fromGallery => 'Choose from library';
+	@override String get uploading => 'Uploading avatar…';
+	@override String get success => 'Avatar updated';
+	@override String get failed => 'Avatar upload failed. Check your connection and retry.';
+	@override String get deniedTitle => 'Photos unavailable';
+	@override String get deniedBody => 'Photo library / camera access is needed to set an avatar. You can enable it in system settings.';
+	@override String get openSettings => 'Open Settings';
+}
+
 // Path: settings.bodyProfile.bmi
 class _Translations$settings$bodyProfile$bmi$en extends Translations$settings$bodyProfile$bmi$zh_CN {
 	_Translations$settings$bodyProfile$bmi$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -3223,6 +3242,15 @@ extension on TranslationsEn {
 			'settings.account.notLoggedIn' => 'Not signed in',
 			'settings.account.login' => 'Sign in',
 			'settings.account.retryIdentity' => 'Tap to retry',
+			'settings.account.avatar.edit' => 'Change avatar',
+			'settings.account.avatar.takePhoto' => 'Take photo',
+			'settings.account.avatar.fromGallery' => 'Choose from library',
+			'settings.account.avatar.uploading' => 'Uploading avatar…',
+			'settings.account.avatar.success' => 'Avatar updated',
+			'settings.account.avatar.failed' => 'Avatar upload failed. Check your connection and retry.',
+			'settings.account.avatar.deniedTitle' => 'Photos unavailable',
+			'settings.account.avatar.deniedBody' => 'Photo library / camera access is needed to set an avatar. You can enable it in system settings.',
+			'settings.account.avatar.openSettings' => 'Open Settings',
 			'settings.privacy.privacyPolicy' => 'Privacy Policy',
 			'settings.privacy.userAgreement' => 'Terms of Service',
 			'settings.privacy.exportData' => 'Export my data',
@@ -3525,6 +3553,8 @@ extension on TranslationsEn {
 			'moderation.approveConfirm' => 'Once approved, this food enters the shared library and becomes searchable for everyone. Approve it?',
 			'moderation.rejectConfirmTitle' => 'Reject this candidate',
 			'moderation.rejectConfirmBody' => 'The submitter\'s related records will be removed after rejection.',
+			_ => null,
+		} ?? switch (path) {
 			'moderation.reasonHint' => 'Reason (optional)',
 			'moderation.approved' => 'Approved',
 			'moderation.rejected' => 'Rejected',
@@ -3534,8 +3564,6 @@ extension on TranslationsEn {
 			'moderation.kindCustom' => 'Custom food',
 			'moderation.kindBarcode' => 'Barcode product',
 			'moderation.kindCorrection' => 'Data correction',
-			_ => null,
-		} ?? switch (path) {
 			'moderation.barcodeLabel' => ({required Object code}) => 'Barcode: ${code}',
 			'moderation.submittedAt' => ({required Object date}) => 'Submitted ${date}',
 			'moderation.suggestionTitle' => 'Suggested',
