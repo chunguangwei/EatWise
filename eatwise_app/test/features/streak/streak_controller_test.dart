@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/database.dart' hide FastingRecord;
 import 'package:eatwise/core/storage/providers.dart';
@@ -337,6 +338,88 @@ void main() {
       );
     });
 
+    test('断食历史回填：窗口对齐 30 天（数据页趋势 30 天档同源）', () async {
+      final c = container();
+      addTearDown(c.dispose);
+      final controller = c.read(streakControllerProvider.notifier);
+      await controller.refreshFromServer();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(reportApi.recentCalls, isNotEmpty);
+      // today = 2026-07-28，30 天窗口起点 = 2026-06-29（服务端上限 62 天留余量）。
+      expect(reportApi.recentCalls.last.from, '2026-06-29');
+      expect(reportApi.recentCalls.last.to, '2026-07-28');
+    });
+
+    test('数据页触发回填：30 天内有缺口补一次，二次触发不重复请求', () async {
+      final c = container();
+      addTearDown(c.dispose);
+      final controller = c.read(streakControllerProvider.notifier);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      final baseline = reportApi.recentCalls.length; // build 启动回填已发过
+
+      // 本地 drift 全空（30 天窗口必有缺口）→ 触发一次回填。
+      await controller.ensureFastingHistoryBackfilled();
+      expect(reportApi.recentCalls, hasLength(baseline + 1));
+      expect(reportApi.recentCalls.last.from, '2026-06-29');
+
+      // 每会话最多一次：再次触发不再发请求。
+      await controller.ensureFastingHistoryBackfilled();
+      expect(reportApi.recentCalls, hasLength(baseline + 1));
+    });
+
+    test('数据页触发回填：本地 30 天无缺口 → 不发请求', () async {
+      // 预先落满 30 天本地记录（2026-06-29 ~ 2026-07-28）。
+      for (var i = 0; i < 30; i++) {
+        final date = addDaysToIsoDate(today, -i);
+        await db.fastingRecordDao.upsertRecord(
+          FastingRecordsCompanion(
+            localId: Value('u1-$date'),
+            userId: const Value('u1'),
+            attributionDate: Value(date),
+            startUtc: const Value(1000),
+            endUtc: const Value(2000),
+            actualSec: const Value(16 * 3600),
+            plannedSec: const Value(16 * 3600),
+            extendedMinutes: const Value(0),
+            result: Value(CycleResult.completedOnTime.name),
+            qualified: const Value(true),
+            clientRequestId: Value('req-$date'),
+            syncStatus: const Value(SyncStatus.synced),
+            createdAtUtc: Value(DateTime.now().toUtc().toIso8601String()),
+          ),
+        );
+      }
+      final c = container();
+      addTearDown(c.dispose);
+      final controller = c.read(streakControllerProvider.notifier);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      final baseline = reportApi.recentCalls.length;
+
+      await controller.ensureFastingHistoryBackfilled();
+      expect(reportApi.recentCalls, hasLength(baseline)); // 无缺口零请求
+    });
+
+    test('数据页触发回填：未登录（anonymous）不发请求', () async {
+      final c = ProviderContainer(
+        overrides: <Override>[
+          streakLocalStoreProvider.overrideWithValue(store),
+          streakApiProvider.overrideWithValue(api),
+          fastingReportApiProvider.overrideWithValue(reportApi),
+          appDatabaseProvider.overrideWithValue(db),
+          streakTodayProvider.overrideWithValue(() => today),
+          currentUserIdProvider.overrideWithValue('anonymous'),
+        ],
+      );
+      addTearDown(c.dispose);
+      final controller = c.read(streakControllerProvider.notifier);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      final baseline = reportApi.recentCalls.length;
+
+      await controller.ensureFastingHistoryBackfilled();
+      expect(reportApi.recentCalls, hasLength(baseline));
+    });
+
     test('F2 窗口签名不一致（FASTING_WINDOW_MISMATCH）：触发方案下行收敛，记录保持 pending', () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
       final prefs = await SharedPreferences.getInstance();
@@ -531,6 +614,10 @@ final class _FakeFastingReportApi extends FastingReportApi {
   ServerActiveFast? active;
   List<ServerFastingRecord> recentRecords = const <ServerFastingRecord>[];
 
+  /// fetchRecentRecords 调用参数留痕（回填窗口断言用）。
+  final List<({String from, String to})> recentCalls =
+      <({String from, String to})>[];
+
   /// 非 null 时 reportEnd 抛该异常（如 FASTING_WINDOW_MISMATCH 业务码）。
   Object? endError;
   final List<
@@ -582,6 +669,7 @@ final class _FakeFastingReportApi extends FastingReportApi {
     required String to,
   }) async {
     if (offline) throw const NetworkApiException();
+    recentCalls.add((from: from, to: to));
     return recentRecords;
   }
 }

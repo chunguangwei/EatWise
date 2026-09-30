@@ -26,6 +26,49 @@ List<double?> alignDailySeries({
   });
 }
 
+/// 断食趋势日状态（三态诚实区分 + 进行中第四态）。
+///
+/// 无记录 ≠ 断签：丢失/未断食的天一律 [noRecord]，只有存在终态记录且
+/// 未达标才是 [unqualified]（判定口径不动，直接消费 FastingRecord.qualified）。
+enum FastingDayState {
+  /// 有终态记录且达标。
+  qualified,
+
+  /// 有终态记录但未达标。
+  unqualified,
+
+  /// 今天有进行中断食周期且尚无终态记录。
+  inProgress,
+
+  /// 无任何记录（数据缺失或当天未断食，明确不是断签）。
+  noRecord,
+}
+
+/// 把断食记录对齐成长度为 [days]、以 [end]（今天）为终点的日状态序列。
+///
+/// [qualifiedByDate] 归属日（yyyy-MM-dd）→ 是否达标（仅终态记录，tombstone
+/// 与进行中周期不进 map）；[inProgressDate] 进行中周期覆盖的日期（仅当该日
+/// 无终态记录时生效，通常 = 今天）。
+List<FastingDayState> alignFastingDayStates({
+  required DateTime end,
+  required int days,
+  required Map<String, bool> qualifiedByDate,
+  String? inProgressDate,
+}) {
+  final last = dateOnly(end);
+  return List<FastingDayState>.generate(days, (i) {
+    final key = localDateOf(last.subtract(Duration(days: days - 1 - i)));
+    final qualified = qualifiedByDate[key];
+    if (qualified != null) {
+      return qualified
+          ? FastingDayState.qualified
+          : FastingDayState.unqualified;
+    }
+    if (key == inProgressDate) return FastingDayState.inProgress;
+    return FastingDayState.noRecord;
+  });
+}
+
 /// 7/30 天成长轨迹摘要（信息图 ⑦）。
 final class GrowthSummary {
   const GrowthSummary({

@@ -1979,6 +1979,8 @@ class Translations$reports$trend$zh_CN {
 
 	/// zh-CN: '再记录 ${count} 次体重，解锁完整曲线'
 	String weightUnlock({required Object count}) => '再记录 ${count} 次体重，解锁完整曲线';
+
+	late final Translations$reports$trend$fastingLegend$zh_CN fastingLegend = Translations$reports$trend$fastingLegend$zh_CN.internal(_root);
 }
 
 // Path: reports.growth
@@ -4143,6 +4145,27 @@ class Translations$reports$trend$unit$zh_CN {
 	String get hour => '小时';
 }
 
+// Path: reports.trend.fastingLegend
+class Translations$reports$trend$fastingLegend$zh_CN {
+	Translations$reports$trend$fastingLegend$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '达标'
+	String get qualified => '达标';
+
+	/// zh-CN: '未达标'
+	String get unqualified => '未达标';
+
+	/// zh-CN: '进行中'
+	String get inProgress => '进行中';
+
+	/// zh-CN: '无记录'
+	String get noRecord => '无记录';
+}
+
 // Path: reports.weekly.cheer
 class Translations$reports$weekly$cheer$zh_CN {
 	Translations$reports$weekly$cheer$zh_CN.internal(this._root);
@@ -5033,6 +5056,10 @@ extension on Translations {
 			'reports.trend.toGoal' => ({required Object kg}) => '距目标还有 ${kg} 公斤',
 			'reports.trend.goalReached' => '已达到目标体重',
 			'reports.trend.weightUnlock' => ({required Object count}) => '再记录 ${count} 次体重，解锁完整曲线',
+			'reports.trend.fastingLegend.qualified' => '达标',
+			'reports.trend.fastingLegend.unqualified' => '未达标',
+			'reports.trend.fastingLegend.inProgress' => '进行中',
+			'reports.trend.fastingLegend.noRecord' => '无记录',
 			'reports.growth.title' => ({required Object days}) => '${days} 天成长轨迹',
 			'reports.growth.qualifiedDays' => '断食达标',
 			'reports.growth.recordedDays' => '记录天数',

@@ -764,7 +764,13 @@
       "targetLine": "目标 ${kg} 公斤",
       "toGoal": "距目标还有 ${kg} 公斤",
       "goalReached": "已达到目标体重",
-      "weightUnlock": "再记录 ${count} 次体重，解锁完整曲线"
+      "weightUnlock": "再记录 ${count} 次体重，解锁完整曲线",
+      "fastingLegend": {
+        "qualified": "达标",
+        "unqualified": "未达标",
+        "inProgress": "进行中",
+        "noRecord": "无记录"
+      }
     },
     "growth": {
       "title": "${days} 天成长轨迹",

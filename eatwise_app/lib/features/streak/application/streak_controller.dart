@@ -135,7 +135,40 @@ final class StreakController extends Notifier<StreakUiState> {
   /// 服务端权威值缓存（S1 对账后非空）。
   int? _serverCurrentStreak;
 
+  /// 数据页触发的历史回填每会话只尝试一次（30 天窗口有缺才发请求）。
+  bool _historyBackfillAttempted = false;
+
   StreakEngine _loadEngine() => _store.loadEngine() ?? StreakEngine();
+
+  /// 数据页断食趋势回填触发口（v1.14.x：趋势窗口扩到 30 天，启动时的
+  /// [refreshFromServer] 回填若撞上离线窗口，进入数据页时本地历史仍有
+  /// 缺口）。本地近 30 天有缺口才复用 [_backfillRecentFastingRecords]
+  /// 通道补一次（幂等只补缺，不造新端点），每会话最多一次；无缺口/
+  /// 未登录/未装配直接返回。失败静默。
+  Future<void> ensureFastingHistoryBackfilled() async {
+    if (_historyBackfillAttempted) return;
+    _historyBackfillAttempted = true;
+    try {
+      final userId = ref.read(currentUserIdProvider);
+      if (userId == 'anonymous') return; // 未登录无服务端历史可补
+      final db = ref.read(appDatabaseProvider);
+      final today = _today();
+      final covered = <String>{
+        for (final r in await db.fastingRecordDao.recordsOf(userId))
+          r.attributionDate,
+      };
+      var hasGap = false;
+      for (var i = 0; i < 30; i++) {
+        if (!covered.contains(addDaysToIsoDate(today, -i))) {
+          hasGap = true;
+          break;
+        }
+      }
+      if (hasGap) await _backfillRecentFastingRecords();
+    } on Object {
+      // 离线/未装配（测试/预览）：本地既有数据照常展示。
+    }
+  }
 
   @override
   StreakUiState build() {
@@ -295,12 +328,13 @@ final class StreakController extends Notifier<StreakUiState> {
     unawaited(_backfillRecentFastingRecords());
   }
 
-  /// 近 14 天断食历史下行回填（v1.13.28：fastingRecord 无 /sync 通道，重装/
-  /// 换机后本地 drift 断食历史全丢，数据页近 7 日趋势只剩本机新关闭的记录
-  /// ——「打满当天才显示」根因）。只补缺：本机已有关闭记录的归属日不动
-  /// （本机为准）；on_track 进行中跳过（无结束锚点）；回填行 syncStatus=
-  /// synced、clientRequestId=`server-<id>`（与本地 UUID 幂等键不撞）。
-  /// 失败静默（离线保留本地既有展示，下轮对账再补）。
+  /// 近 30 天断食历史下行回填（v1.13.28：fastingRecord 无 /sync 通道，重装/
+  /// 换机后本地 drift 断食历史全丢，数据页趋势只剩本机新关闭的记录
+  /// ——「打满当天才显示」根因；v1.14.x 数据页断食趋势扩到 30 天窗口，
+  /// 回填范围对齐 14→30，服务端区间上限 62 天留余量）。只补缺：本机已有
+  /// 关闭记录的归属日不动（本机为准）；on_track 进行中跳过（无结束锚点）；
+  /// 回填行 syncStatus=synced、clientRequestId=`server-<id>`（与本地 UUID
+  /// 幂等键不撞）。失败静默（离线保留本地既有展示，下轮对账再补）。
   Future<void> _backfillRecentFastingRecords() async {
     try {
       final userId = ref.read(currentUserIdProvider);
@@ -315,7 +349,7 @@ final class StreakController extends Notifier<StreakUiState> {
       final today = _today();
       final records = await ref
           .read(fastingReportApiProvider)
-          .fetchRecentRecords(from: addDaysToIsoDate(today, -13), to: today);
+          .fetchRecentRecords(from: addDaysToIsoDate(today, -29), to: today);
       if (records.isEmpty) return;
       final existing = await db.fastingRecordDao.recordsOf(userId);
       final existingDates = existing.map((r) => r.attributionDate).toSet();

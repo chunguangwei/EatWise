@@ -764,7 +764,13 @@
       "targetLine": "Goal ${kg} kg",
       "toGoal": "${kg} kg to goal",
       "goalReached": "Weight goal reached",
-      "weightUnlock": "Log your weight ${count} more times to unlock your full curve"
+      "weightUnlock": "Log your weight ${count} more times to unlock your full curve",
+      "fastingLegend": {
+        "qualified": "Goal met",
+        "unqualified": "Below goal",
+        "inProgress": "In progress",
+        "noRecord": "No record"
+      }
     },
     "growth": {
       "title": "${days}-day journey",

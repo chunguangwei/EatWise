@@ -3,9 +3,13 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
+import 'package:eatwise/features/fasting/presentation/fasting_cycle_store.dart';
+import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart'
+    show fastingCycleStoreProvider;
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart'
     show nutritionGoalProvider;
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
+import 'package:eatwise/features/reports/application/report_aggregation.dart';
 import 'package:eatwise/features/reports/application/reports_controller.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart'
     show currentUserIdProvider;
@@ -169,6 +173,67 @@ void main() {
     expect(series[27], 2000);
     expect(series[29], 1600);
     expect(series.whereType<double>().length, 2);
+  });
+
+  group('断食趋势三态（fastingDayStatesProvider）', () {
+    test('7 天窗口：达标/未达标/无记录三态诚实区分', () async {
+      final container = makeContainer();
+      await container.read(reportFastingProvider.future);
+
+      // 7/22～7/28：7/26 达标、7/27 未达标，其余无记录（无记录 ≠ 断签）。
+      expect(container.read(fastingDayStatesProvider), <FastingDayState>[
+        FastingDayState.noRecord,
+        FastingDayState.noRecord,
+        FastingDayState.noRecord,
+        FastingDayState.noRecord,
+        FastingDayState.qualified,
+        FastingDayState.unqualified,
+        FastingDayState.noRecord,
+      ]);
+    });
+
+    test('30 天窗口：长度 30 且状态对齐归属日', () async {
+      final container = makeContainer();
+      container.read(reportRangeProvider.notifier).select(ReportRange.d30);
+      await container.read(reportFastingProvider.future);
+
+      final states = container.read(fastingDayStatesProvider);
+      expect(states.length, 30);
+      // 6/29～7/28：7/26 = index 27 达标，7/27 = index 28 未达标，今天无记录。
+      expect(states[27], FastingDayState.qualified);
+      expect(states[28], FastingDayState.unqualified);
+      expect(states[29], FastingDayState.noRecord);
+      expect(states[0], FastingDayState.noRecord);
+    });
+
+    test('进行中第四态：今天有进行中周期且无终态记录 → inProgress；有终态记录不覆盖', () async {
+      final cycleStore = InMemoryFastingCycleStore()
+        ..saveActiveCycle(
+          const ActiveCycleSnapshot(
+            startUtc: 1000,
+            plannedEndUtc: 2000,
+            eatWindowEndUtc: 3000,
+            extendedMinutes: 0,
+          ),
+        );
+      final container = ProviderContainer(
+        overrides: <Override>[
+          reportsNowProvider.overrideWithValue(_now),
+          reportsDataSourceProvider.overrideWithValue(_FakeSource()),
+          nutritionGoalProvider.overrideWithValue(_goal),
+          fastingCycleStoreProvider.overrideWithValue(cycleStore),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(reportFastingProvider.future);
+
+      // 今天（7/28）无终态记录 → 进行中。
+      final states = container.read(fastingDayStatesProvider);
+      expect(states.last, FastingDayState.inProgress);
+      // 既有终态记录日不受影响。
+      expect(states[4], FastingDayState.qualified);
+      expect(states[5], FastingDayState.unqualified);
+    });
   });
 
   test('成长轨迹 provider：达标/记录/平均断食/体重 Δ', () async {

@@ -6,14 +6,16 @@ import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/reports/application/reports_controller.dart';
 import 'package:eatwise/features/reports/domain/weight_curve_unlock.dart';
+import 'package:eatwise/features/reports/presentation/fasting_trend_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
 /// M6 趋势图区（PRD M6 / 设计稿信息图 ⑦）：
-/// 三维切换（体重/热量/断食时长）× 两档时间范围（7/30 天），
-/// 自绘折线复用 M4 风格（绿描线、留白、无数据日断点不连线）。
+/// 三维切换（体重/热量/断食时长）× 两档时间范围（7/30 天）。
+/// 体重/热量为自绘折线（绿描线、留白、无数据日断点不连线）；断食为
+/// 三态格（[FastingTrendGrid]，连续性直读，无记录 ≠ 断签）。
 ///
 /// 空数据走引导空态（四态规范 3.2.2：主文案 + CTA），不渲染空坐标轴。
 class ReportTrendSection extends ConsumerWidget {
@@ -152,6 +154,13 @@ class ReportTrendSection extends ConsumerWidget {
           const SizedBox(height: AppSpacing.s4),
           if (!hasAny)
             _TrendEmpty(dimension: dimension)
+          // 断食维度：三态格（达标/未达标/无记录 + 进行中），连续性直读；
+          // 体重/热量维度：折线趋势。
+          else if (dimension == ReportDimension.fasting)
+            FastingTrendGrid(
+              states: ref.watch(fastingDayStatesProvider),
+              end: end,
+            )
           else ...<Widget>[
             SizedBox(
               height: 160,

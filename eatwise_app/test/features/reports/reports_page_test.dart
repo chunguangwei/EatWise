@@ -177,6 +177,83 @@ void main() {
     await unmount(tester);
   });
 
+  /// 断食趋势格单元（按 key 前缀，排除 Material 内部组件）。
+  Finder findFastingDayCells() => find.byWidgetPredicate(
+    (w) =>
+        w.key is ValueKey<String> &&
+        (w.key! as ValueKey<String>).value.startsWith('fasting-day-'),
+  );
+
+  Color cellColor(WidgetTester tester, String dateKey) {
+    final container = tester.widget<Container>(
+      find.byKey(ValueKey<String>('fasting-day-$dateKey')),
+    );
+    return (container.decoration! as BoxDecoration).color!;
+  }
+
+  testWidgets('断食维度三态格：达标绿/未达标红/无记录灰 + 图例（无记录≠断签）', (tester) async {
+    await seedFast('2026-07-26', 16);
+    await seedFast('2026-07-27', 14, qualified: false);
+    await pumpPage(tester);
+
+    await tester.tap(find.text('断食时长'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // 折线不再渲染，改三态格（7 天 = 7 格）。
+    expect(findTrendPainter(), findsNothing);
+    expect(findFastingDayCells(), findsNWidgets(7));
+    // 7/26 达标绿（ringExercise）、7/27 未达标珊瑚红（signalRed）、
+    // 7/25 无记录轨道灰（textSecondary × 0.12，MultiRingProgress 同口径）。
+    expect(cellColor(tester, '2026-07-26'), const Color(0xFF3DBE8B));
+    expect(cellColor(tester, '2026-07-27'), const Color(0xFFFF6B6B));
+    expect(
+      cellColor(tester, '2026-07-25'),
+      const Color(0xFF8A9694).withValues(alpha: 0.12),
+    );
+    // 今天（7/28）无记录 → 灰格而非断签红。
+    expect(
+      cellColor(tester, '2026-07-28'),
+      const Color(0xFF8A9694).withValues(alpha: 0.12),
+    );
+    // 三态图例。
+    expect(find.text('达标'), findsOneWidget);
+    expect(find.text('未达标'), findsOneWidget);
+    expect(find.text('无记录'), findsOneWidget);
+
+    await unmount(tester);
+  });
+
+  testWidgets('断食维度 30 天窗口：30 格压缩日历，窗口起点对齐 30 天前', (tester) async {
+    await seedFast('2026-07-26', 16);
+    await pumpPage(tester);
+
+    await tester.tap(find.text('断食时长'));
+    await tester.pump();
+    await tester.tap(find.text('30 天'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(findFastingDayCells(), findsNWidgets(30));
+    // now = 2026-07-28，30 天窗口 = 6/29 ~ 7/28。
+    expect(
+      find.byKey(const ValueKey<String>('fasting-day-2026-06-29')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('fasting-day-2026-07-28')),
+      findsOneWidget,
+    );
+    expect(cellColor(tester, '2026-07-26'), const Color(0xFF3DBE8B));
+    // 6/29 无记录 → 灰格。
+    expect(
+      cellColor(tester, '2026-06-29'),
+      const Color(0xFF8A9694).withValues(alpha: 0.12),
+    );
+
+    await unmount(tester);
+  });
+
   testWidgets('有数据：折线渲染 + 成长轨迹数值 + 周报统计', (tester) async {
     await seedNutrition('2026-07-26', 2000, entries: 3);
     await seedNutrition('2026-07-28', 1600);

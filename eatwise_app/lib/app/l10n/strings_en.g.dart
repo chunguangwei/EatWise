@@ -1126,6 +1126,7 @@ class _Translations$reports$trend$en extends Translations$reports$trend$zh_CN {
 	@override String toGoal({required Object kg}) => '${kg} kg to goal';
 	@override String get goalReached => 'Weight goal reached';
 	@override String weightUnlock({required Object count}) => 'Log your weight ${count} more times to unlock your full curve';
+	@override late final _Translations$reports$trend$fastingLegend$en fastingLegend = _Translations$reports$trend$fastingLegend$en._(_root);
 }
 
 // Path: reports.growth
@@ -2241,6 +2242,19 @@ class _Translations$reports$trend$unit$en extends Translations$reports$trend$uni
 	@override String get hour => 'h';
 }
 
+// Path: reports.trend.fastingLegend
+class _Translations$reports$trend$fastingLegend$en extends Translations$reports$trend$fastingLegend$zh_CN {
+	_Translations$reports$trend$fastingLegend$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get qualified => 'Goal met';
+	@override String get unqualified => 'Below goal';
+	@override String get inProgress => 'In progress';
+	@override String get noRecord => 'No record';
+}
+
 // Path: reports.weekly.cheer
 class _Translations$reports$weekly$cheer$en extends Translations$reports$weekly$cheer$zh_CN {
 	_Translations$reports$weekly$cheer$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -3005,6 +3019,10 @@ extension on TranslationsEn {
 			'reports.trend.toGoal' => ({required Object kg}) => '${kg} kg to goal',
 			'reports.trend.goalReached' => 'Weight goal reached',
 			'reports.trend.weightUnlock' => ({required Object count}) => 'Log your weight ${count} more times to unlock your full curve',
+			'reports.trend.fastingLegend.qualified' => 'Goal met',
+			'reports.trend.fastingLegend.unqualified' => 'Below goal',
+			'reports.trend.fastingLegend.inProgress' => 'In progress',
+			'reports.trend.fastingLegend.noRecord' => 'No record',
 			'reports.growth.title' => ({required Object days}) => '${days}-day journey',
 			'reports.growth.qualifiedDays' => 'Fasting goals hit',
 			'reports.growth.recordedDays' => 'Days logged',

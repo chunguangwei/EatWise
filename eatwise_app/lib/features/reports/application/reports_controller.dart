@@ -3,6 +3,8 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/fasting/domain/daily_nutrition.dart';
+import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart'
+    show fastingCycleStoreProvider;
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart'
     show nutritionGoalProvider;
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart'
@@ -225,6 +227,37 @@ final Provider<Map<String, double>> fastingHoursByDateProvider =
         for (final r in records ?? const <FastingRecord>[])
           r.attributionDate: r.actualSec / 3600,
       };
+    });
+
+/// 断食趋势日状态序列（长度 = 窗口天数，末位 = 今天）：
+/// 达标/未达标/无记录三态 + 进行中第四态（今天有进行中周期且无终态记录）。
+///
+/// tombstone（deleted）行不算记录——删除后该日回落「无记录」而非断签。
+final Provider<List<FastingDayState>> fastingDayStatesProvider =
+    Provider<List<FastingDayState>>((ref) {
+      final range = ref.watch(reportRangeProvider);
+      final end = dateOnly(ref.watch(reportsNowProvider));
+      final records = ref.watch(reportFastingProvider).valueOrNull;
+      final qualifiedByDate = <String, bool>{
+        for (final r in records ?? const <FastingRecord>[])
+          if (!r.deleted) r.attributionDate: r.qualified,
+      };
+      final todayKey = localDateOf(end);
+      String? inProgressDate;
+      try {
+        if (ref.watch(fastingCycleStoreProvider).loadActiveCycle() != null &&
+            !qualifiedByDate.containsKey(todayKey)) {
+          inProgressDate = todayKey;
+        }
+      } on Object {
+        // 周期存储未装配（测试/预览）：按无进行中周期处理。
+      }
+      return alignFastingDayStates(
+        end: end,
+        days: range.days,
+        qualifiedByDate: qualifiedByDate,
+        inProgressDate: inProgressDate,
+      );
     });
 
 /// 归属日 → 饮食记录条数。
