@@ -462,6 +462,46 @@ void main() {
         RescheduleReason.planActivate,
       );
     });
+
+    test('进行中周期未延长也冻结锚点：立即应用新方案后断食按旧锚点持续（2026-10-01 走查）', () async {
+      prefs = await seedActivePlanPrefs(startedAtUtc: bjtUtc(27, 12));
+      // 本地 08:30 断食中（旧方案 16:8 进食 12:00–20:00），周期从未延长
+      // ——旧实现此周期不落盘，完全由当前方案推导。
+      clock = FakeClock(bjtUtc(28, 0, 30));
+      final container = await buildContainer();
+      expect(
+        container.read(fastingTimerControllerProvider).state,
+        FastingState.fasting,
+      );
+      // 首次观察到即落盘冻结（修复点）。
+      expect(cycleStore.loadActiveCycle()!.plannedEndUtc, bjtUtc(28, 4));
+
+      // 立即应用新方案（进食 08:00–18:00，当前时刻落进食窗——无冻结时
+      // 进行中断食会被重算成进食态无声抹掉）。
+      final store = SharedPreferencesOnboardingStore(prefs);
+      store.savePendingPlan(
+        PendingPlan(
+          plan: const FastingPlan(
+            id: '10:14@08:00',
+            eatStartMinutes: 8 * 60,
+            eatEndMinutes: 18 * 60,
+          ),
+          effectiveDate: const LocalDate(2026, 7, 29),
+          effectiveUtc: bjtUtc(28, 16),
+        ),
+      );
+      container
+          .read(fastingTimerControllerProvider.notifier)
+          .applyPendingPlanNow();
+
+      final state = container.read(fastingTimerControllerProvider);
+      expect(state.plan!.eatStartMinutes, 8 * 60); // 新方案已生效
+      // 进行中周期锚点冻结：仍按旧方案 12:00 终点断食中，新方案只作用
+      // 下一周期（D-06 精神）。
+      expect(state.state, FastingState.fasting);
+      expect(state.cycle!.plannedEndUtc, bjtUtc(28, 4));
+      expect(state.snapshot!.countdownSec, 3 * 3600 + 30 * 60);
+    });
   });
 }
 

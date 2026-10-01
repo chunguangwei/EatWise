@@ -365,6 +365,15 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
         targetUtc: restored.plannedEndUtc,
         attributionPreview: effective.attributionPreview,
       );
+    } else if (stored == null && effective.cycle != null) {
+      // 首次观察到进行中周期即落盘冻结锚点（2026-10-01 真机走查「调整断食
+      // 时间后首页断食不持续」根因）：此前只在「延长」时落盘，普通进行中
+      // 周期完全由当前方案推导——方案变更（换方案上行后 pull 即刻采纳 /
+      // T13 转正 / 立即应用）即重算锚点，把真实进行中的断食无声抹掉；
+      // 且杀进程跨过终点时 build 补关闭路径无 stored 可结算，本地连记录
+      // 都不落（只靠服务端 ghost 兜底）。落盘后上方冻结分支接管，新方案
+      // 只作用于下一周期（D-06 精神不变）。
+      _store.saveActiveCycle(ActiveCycleSnapshot.fromCycle(effective.cycle!));
     }
     return FastingTimerState(
       plan: plan,
