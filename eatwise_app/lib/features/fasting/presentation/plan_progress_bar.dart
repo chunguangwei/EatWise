@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
@@ -25,15 +23,30 @@ latestWeightLogProvider = FutureProvider<double?>((ref) {
   return entries[latestDate]!.kg;
 });
 
+/// 最早一条体重记录的日期（UTC epoch 秒，本地零点；无记录为 null）。
+final FutureProvider<int?> earliestWeightLogUtcProvider = FutureProvider<int?>((
+  ref,
+) {
+  final store = ref.watch(weightLogStoreProvider);
+  final entries = store.loadEntries('2000-01-01', localDateKey(DateTime.now()));
+  if (entries.isEmpty) return null;
+  final earliestDate = entries.keys.reduce(
+    (a, b) => a.compareTo(b) <= 0 ? a : b,
+  );
+  return DateTime.parse(earliestDate).millisecondsSinceEpoch ~/ 1000;
+});
+
 /// 首页「方案进度」条（薄荷走查 P0）：第 N 周 · 已减 X.X kg / 目标 Y kg
 /// + 细进度条，位置在问候语/方案胶囊区。
 ///
 /// 仅当档案设了 targetWeightKg 且能确定起始体重（档案体重优先，缺失回落
 /// 最新记录）时渲染；未设目标不渲染保持首页简洁。已减 = 起始体重 − 最新
 /// 体重记录（无记录按起始体重计，显示 0）；目标 = 起始体重 − 目标体重。
-/// 周数自方案启动日（onboarding 一键启动写入的 startedAtUtc）起算，
-/// 不足一周为第 1 周。负向进度（涨称）切换为「距目标还差 X.X kg」，
-/// 进度条归零。
+/// 周数口径（v1.16.2 修订）：锚定**减重目标设定日**（saveProfile 落锚，
+/// 不随断食方案变更重置——旧口径按方案 startedAtUtc 算，换方案/方案下行
+/// 采纳即回第 1 周，与连胜口径错位，wcg 走查「连续 12 天却第 1 周」）；
+/// 存量用户锚点缺失时回落最早体重记录日（减重旅程事实起点），再缺退回
+/// 方案启动日。负向进度（涨称）切换为「距目标还差 X.X kg」，进度条归零。
 class PlanProgressBar extends ConsumerWidget {
   const PlanProgressBar({super.key});
 
@@ -58,12 +71,16 @@ class PlanProgressBar extends ConsumerWidget {
     final lostKg = startKg - currentKg;
     final goalKg = startKg - targetKg;
 
-    // 周数：方案启动日起算；启动日缺失/未来（防御）按第 1 周。
-    final startedAtUtc = store.loadActivePlan()?.startedAtUtc;
+    // 周数：减重目标设定锚点起算（口径见文件头注释）；锚点缺失/未来
+    // （防御）按第 1 周。
+    final anchorUtc =
+        store.loadTargetWeightSetAtUtc() ??
+        ref.watch(earliestWeightLogUtcProvider).valueOrNull ??
+        store.loadActivePlan()?.startedAtUtc;
     final nowUtc = ref.watch(fastingClockProvider)();
-    final week = startedAtUtc == null
+    final week = anchorUtc == null || anchorUtc >= nowUtc
         ? 1
-        : math.max(1, (nowUtc - startedAtUtc) ~/ (7 * 24 * 3600) + 1);
+        : (nowUtc - anchorUtc) ~/ (7 * 24 * 3600) + 1;
 
     final progress = goalKg > 0
         ? (lostKg / goalKg).clamp(0.0, 1.0)

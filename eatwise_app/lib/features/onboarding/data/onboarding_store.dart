@@ -167,11 +167,22 @@ abstract interface class OnboardingStore {
   /// 档案采集（阶段 A：D-18 敏感信息，可跳过/留空；空档案按未采集处理）。
   OnboardingProfile? loadProfile();
   void saveProfile(OnboardingProfile profile);
+
+  /// 减重目标设定锚点（UTC epoch 秒；v1.16.2——首页「第 N 周」的口径起点）。
+  ///
+  /// 由 [saveProfile] 维护：首次设定 targetWeightKg 时落锚；后续保存目标值
+  /// 不变则保留；目标值变更重置为保存时刻；目标被清空/档案清空时移除。
+  /// **不随断食方案变更重置**（此前周数按方案 startedAtUtc 算，换方案即
+  /// 回第 1 周，与连胜口径错位——wcg 走查「连续 12 天却第 1 周」）。
+  int? loadTargetWeightSetAtUtc();
 }
 
 /// SharedPreferences 实现。
 final class SharedPreferencesOnboardingStore implements OnboardingStore {
-  SharedPreferencesOnboardingStore(this._prefs);
+  SharedPreferencesOnboardingStore(this._prefs, {int Function()? nowUtc})
+    : _nowUtc =
+          nowUtc ??
+          (() => DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000);
 
   static const String _keyCompleted = 'onboarding.completed';
   static const String _keyQuizProgress = 'onboarding.quizProgress';
@@ -179,8 +190,12 @@ final class SharedPreferencesOnboardingStore implements OnboardingStore {
   static const String _keyPendingPlan = 'onboarding.pendingPlan';
   static const String _keyNutritionGoal = 'onboarding.nutritionGoal';
   static const String _keyProfile = 'onboarding.profile';
+  static const String _keyTargetWeightSetAt = 'onboarding.targetWeightSetAtUtc';
 
   final SharedPreferences _prefs;
+
+  /// 减重锚点写入时钟（测试注入假时钟）。
+  final int Function() _nowUtc;
 
   @override
   bool get isOnboardingCompleted => _prefs.getBool(_keyCompleted) ?? false;
@@ -270,10 +285,25 @@ final class SharedPreferencesOnboardingStore implements OnboardingStore {
   void saveProfile(OnboardingProfile profile) {
     if (!profile.hasAnyData) {
       _prefs.remove(_keyProfile); // 空档案按未采集处理（走兜底）
+      _prefs.remove(_keyTargetWeightSetAt);
       return;
+    }
+    // 减重目标锚点维护（见接口注释）：首设落锚 / 值不变保留 / 变更重置 /
+    // 清空移除。
+    if (profile.targetWeightKg != null) {
+      final prev = loadProfile();
+      if (_prefs.getInt(_keyTargetWeightSetAt) == null ||
+          prev?.targetWeightKg != profile.targetWeightKg) {
+        _prefs.setInt(_keyTargetWeightSetAt, _nowUtc());
+      }
+    } else {
+      _prefs.remove(_keyTargetWeightSetAt);
     }
     _prefs.setString(_keyProfile, jsonEncode(profile.toJson()));
   }
+
+  @override
+  int? loadTargetWeightSetAtUtc() => _prefs.getInt(_keyTargetWeightSetAt);
 
   T? _readJson<T>(String key, T Function(Map<String, dynamic>) decode) {
     final raw = _prefs.getString(key);
@@ -288,12 +318,21 @@ final class SharedPreferencesOnboardingStore implements OnboardingStore {
 
 /// 内存实现（单元/组件测试用）。
 final class InMemoryOnboardingStore implements OnboardingStore {
+  InMemoryOnboardingStore({int Function()? nowUtc})
+    : _nowUtc =
+          nowUtc ??
+          (() => DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000);
+
   bool _completed = false;
   QuizProgress? _progress;
   ActivePlanSnapshot? _plan;
   PendingPlan? _pending;
   NutritionGoalSnapshot? _goal;
   OnboardingProfile? _profile;
+  int? _targetWeightSetAt;
+
+  /// 减重锚点写入时钟（测试注入假时钟）。
+  final int Function() _nowUtc;
 
   @override
   bool get isOnboardingCompleted => _completed;
@@ -335,6 +374,23 @@ final class InMemoryOnboardingStore implements OnboardingStore {
   OnboardingProfile? loadProfile() => _profile;
 
   @override
-  void saveProfile(OnboardingProfile profile) =>
-      _profile = profile.hasAnyData ? profile : null;
+  void saveProfile(OnboardingProfile profile) {
+    if (!profile.hasAnyData) {
+      _profile = null;
+      _targetWeightSetAt = null;
+      return;
+    }
+    if (profile.targetWeightKg != null) {
+      if (_targetWeightSetAt == null ||
+          _profile?.targetWeightKg != profile.targetWeightKg) {
+        _targetWeightSetAt = _nowUtc();
+      }
+    } else {
+      _targetWeightSetAt = null;
+    }
+    _profile = profile;
+  }
+
+  @override
+  int? loadTargetWeightSetAtUtc() => _targetWeightSetAt;
 }

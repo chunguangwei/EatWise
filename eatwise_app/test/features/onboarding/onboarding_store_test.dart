@@ -142,9 +142,79 @@ void main() {
       store.clearPendingPlan();
       expect(store.loadPendingPlan(), isNull);
     });
+
+    test('减重目标锚点：首设落锚 / 值不变保留 / 变更重置 / 清空与清档案移除', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      var fakeNow = 1000000;
+      final store = SharedPreferencesOnboardingStore(
+        await SharedPreferences.getInstance(),
+        nowUtc: () => fakeNow,
+      );
+      expect(store.loadTargetWeightSetAtUtc(), isNull);
+
+      // 首设目标 → 落锚。
+      store.saveProfile(
+        const OnboardingProfile(weightKg: 80, targetWeightKg: 70),
+      );
+      expect(store.loadTargetWeightSetAtUtc(), 1000000);
+
+      // 无关字段变更、目标值不变 → 锚点保留。
+      fakeNow = 2000000;
+      store.saveProfile(
+        const OnboardingProfile(
+          weightKg: 80,
+          heightCm: 175,
+          targetWeightKg: 70,
+        ),
+      );
+      expect(store.loadTargetWeightSetAtUtc(), 1000000);
+
+      // 目标值变更 → 重置为保存时刻。
+      store.saveProfile(
+        const OnboardingProfile(
+          weightKg: 80,
+          heightCm: 175,
+          targetWeightKg: 65,
+        ),
+      );
+      expect(store.loadTargetWeightSetAtUtc(), 2000000);
+
+      // 目标清空 → 锚点移除。
+      fakeNow = 3000000;
+      store.saveProfile(const OnboardingProfile(weightKg: 80, heightCm: 175));
+      expect(store.loadTargetWeightSetAtUtc(), isNull);
+
+      // 重新设定 → 重新落锚；档案整体清空 → 锚点一并移除。
+      store.saveProfile(
+        const OnboardingProfile(weightKg: 80, targetWeightKg: 70),
+      );
+      expect(store.loadTargetWeightSetAtUtc(), 3000000);
+      store.saveProfile(const OnboardingProfile());
+      expect(store.loadTargetWeightSetAtUtc(), isNull);
+    });
   });
 
   group('InMemoryOnboardingStore', () {
+    test('减重目标锚点语义与 SharedPreferences 实现一致', () {
+      var fakeNow = 1000000;
+      final store = InMemoryOnboardingStore(nowUtc: () => fakeNow);
+      store.saveProfile(
+        const OnboardingProfile(weightKg: 80, targetWeightKg: 70),
+      );
+      expect(store.loadTargetWeightSetAtUtc(), 1000000);
+      fakeNow = 2000000;
+      store.saveProfile(
+        const OnboardingProfile(weightKg: 80, targetWeightKg: 70),
+      );
+      expect(store.loadTargetWeightSetAtUtc(), 1000000); // 值不变保留
+      store.saveProfile(
+        const OnboardingProfile(weightKg: 80, targetWeightKg: 65),
+      );
+      expect(store.loadTargetWeightSetAtUtc(), 2000000); // 变更重置
+      store.saveProfile(const OnboardingProfile());
+      expect(store.loadTargetWeightSetAtUtc(), isNull); // 清档案移除
+    });
+
     test('读写往返', () {
       final store = InMemoryOnboardingStore();
       expect(store.isOnboardingCompleted, isFalse);

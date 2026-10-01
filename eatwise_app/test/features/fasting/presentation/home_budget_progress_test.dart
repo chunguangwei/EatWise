@@ -1,6 +1,7 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
+import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_cycle_store.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_home_page.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
@@ -242,6 +243,31 @@ void main() {
       expect(find.text('第 1 周 · 距目标还差 11.0 kg'), findsOneWidget);
       final indicator = tester.widget<LinearProgressIndicator>(planLpi());
       expect(indicator.value, 0.0);
+
+      await unmount(tester);
+    });
+
+    testWidgets('周数锚定减重目标设定日：换方案不回第 1 周（v1.16.2 走查）', (tester) async {
+      // 目标 12 天前设定（锚点注入假时钟），方案今天才换过——旧口径按方案
+      // startedAtUtc 会显示第 1 周，新口径锚定目标设定日显示第 2 周。
+      SharedPreferencesOnboardingStore(
+        prefs,
+        nowUtc: () => bjtUtc(16, 0), // 2026-07-16 设定目标
+      ).saveProfile(const OnboardingProfile(weightKg: 80, targetWeightKg: 70));
+      await WeightLogStore(prefs).save('2026-07-28', 76);
+      // 方案「刚换过」：startedAtUtc 改写为今天（seed 默认是 07-27，这里显式
+      // 重置为当天模拟换方案/下行采纳）。
+      SharedPreferencesOnboardingStore(prefs).saveActivePlan(
+        ActivePlanSnapshot(
+          plan: FastingPlan.plan16x8,
+          initialState: 'fasting',
+          targetUtc: bjtUtc(28, 4),
+          startedAtUtc: bjtUtc(28, 0),
+        ),
+      );
+      await pumpHome(tester);
+
+      expect(find.text('第 2 周 · 已减 4.0 kg / 目标 10.0 kg'), findsOneWidget);
 
       await unmount(tester);
     });
