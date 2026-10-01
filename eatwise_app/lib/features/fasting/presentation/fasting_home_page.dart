@@ -12,6 +12,7 @@ import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/core/widgets/arc_gauge.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_texts.dart';
+import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
@@ -481,8 +482,10 @@ class _TimerBody extends ConsumerWidget {
         ],
         const SizedBox(height: AppSpacing.s6),
         // 双主按钮（设计稿 §4.2-① 环下横排；进食态置灰，T11）。
-        // 2026-09-30 真机走查：按钮不明显——补状态图标，延长按钮启用态
-        // 改品牌绿描边（原中性灰描边与置灰态拉不开差距）。
+        // 2026-10-01 真机走查三轮：按钮仍不明显——加高到 56（s14），
+        // 结束断食 FilledButton 加品牌色投影（强转化位视觉重量），
+        // 延长由灰描边 OutlinedButton 改品牌绿浅底 tonal FilledButton
+        // （描边在暗色/强光下辨识度不足，浅底块面与置灰态一眼可辨）。
         Row(
           children: <Widget>[
             Expanded(
@@ -493,34 +496,42 @@ class _TimerBody extends ConsumerWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: colors.brandPrimary,
                   disabledBackgroundColor: colors.border.withValues(alpha: 0.3),
-                  minimumSize: const Size.fromHeight(AppSpacing.s12),
+                  minimumSize: const Size.fromHeight(AppSpacing.s14),
+                  elevation: isFasting ? 3 : 0,
+                  shadowColor: colors.brandPrimary.withValues(alpha: 0.45),
                 ),
                 icon: const Icon(Icons.flag_rounded, size: 20),
                 label: Text(
                   t.fasting.home.endFast,
-                  style: textStyles.textBase.copyWith(color: Colors.white),
+                  style: textStyles.textBase.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
             const SizedBox(width: AppSpacing.s3),
             Expanded(
-              child: OutlinedButton.icon(
+              child: FilledButton.tonalIcon(
                 onPressed: isFasting && !extendLimitReached
                     ? controller.extend
                     : null,
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(
-                    color: isFasting && !extendLimitReached
-                        ? colors.brandPrimary
-                        : colors.border,
-                    width: isFasting && !extendLimitReached ? 1.5 : 1,
-                  ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: colors.brandPrimary.withValues(alpha: 0.14),
                   foregroundColor: colors.brandPrimary,
+                  disabledBackgroundColor: colors.border.withValues(
+                    alpha: 0.15,
+                  ),
                   disabledForegroundColor: colors.textSecondary,
-                  minimumSize: const Size.fromHeight(AppSpacing.s12),
+                  minimumSize: const Size.fromHeight(AppSpacing.s14),
                 ),
                 icon: const Icon(Icons.more_time_rounded, size: 20),
-                label: Text(t.fasting.home.extend, style: textStyles.textBase),
+                label: Text(
+                  t.fasting.home.extend,
+                  style: textStyles.textBase.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ],
@@ -713,15 +724,16 @@ class _TimerBody extends ConsumerWidget {
     );
     if (draft == null || !context.mounted) return;
     final nowUtc = ref.read(nowUtcProvider);
+    final plan = draft.toFastingPlan();
     ref
         .read(onboardingStoreProvider)
         .savePendingPlan(
-          schedulePlanChange(
-            draft.toFastingPlan(),
-            nowUtc,
-            ref.read(deviceLocationProvider),
-          ),
+          schedulePlanChange(plan, nowUtc, ref.read(deviceLocationProvider)),
         );
+    // 与登记换方案同口径立即上行（2026-10-01 补齐：此前只落本地 pending，
+    // 服务端停留在登记时的旧窗口，要到次日 T13 转正才收敛——期间换机/
+    // 他端下行会拿到旧方案）。
+    ref.read(fastingPlanSyncProvider)?.markDirtyAndTryFlush(plan);
     ref.read(planVersionProvider.notifier).state++;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(t.fasting.home.pendingPlanRescheduled)),

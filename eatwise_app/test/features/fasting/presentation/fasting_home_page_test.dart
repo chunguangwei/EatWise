@@ -4,6 +4,8 @@ import 'package:eatwise/core/notification/notification_types.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_scheduler.dart';
+import 'package:eatwise/features/fasting/data/fasting_plan_api.dart';
+import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
@@ -155,7 +157,7 @@ void main() {
     );
     expect(
       tester
-          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '延长'))
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '延长'))
           .onPressed,
       isNotNull,
     );
@@ -289,7 +291,7 @@ void main() {
     );
     expect(
       tester
-          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '延长'))
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '延长'))
           .onPressed,
       isNull,
     );
@@ -364,7 +366,7 @@ void main() {
     await pumpHome(tester);
     expect(
       tester
-          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '延长'))
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '延长'))
           .onPressed,
       isNull,
     );
@@ -606,7 +608,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('待生效方案「修改」：编辑器确认（同窗口）后横幅保留并重排', (tester) async {
+  testWidgets('待生效方案「修改」：编辑器确认（同窗口）后横幅保留并重排 + 置脏上行', (tester) async {
     SharedPreferencesOnboardingStore(prefs).savePendingPlan(
       PendingPlan(
         plan: const FastingPlan(
@@ -618,7 +620,13 @@ void main() {
         effectiveUtc: bjtUtc(29, 0),
       ),
     );
-    await pumpHome(tester);
+    final planSync = _RecordingPlanSync(prefs);
+    await pumpHome(
+      tester,
+      extraOverrides: <Override>[
+        fastingPlanSyncProvider.overrideWithValue(planSync),
+      ],
+    );
 
     await tester.tap(
       find.byKey(const ValueKey<String>('fasting.pendingPlan.edit')),
@@ -641,8 +649,25 @@ void main() {
       '${tomorrow.year}-${tomorrow.month.toString().padLeft(2, '0')}-'
       '${tomorrow.day.toString().padLeft(2, '0')}',
     );
+    // 2026-10-01 补齐：编辑 pending 方案与登记同口径立即置脏上行，
+    // 服务端不停留在登记时的旧窗口。
+    expect(planSync.dirtyPlans.single.eatStartMinutes, 10 * 60);
+    expect(planSync.dirtyPlans.single.eatEndMinutes, 20 * 60);
     await unmount(tester);
   });
+}
+
+/// 方案上行记录桩（编辑 pending 方案置脏断言用）：只记录不真正 PUT。
+final class _RecordingPlanSync extends FastingPlanSync {
+  _RecordingPlanSync(SharedPreferences prefs)
+    : super(api: FastingPlanApi(Dio()), prefs: prefs, userId: () => 'u1');
+
+  final List<FastingPlan> dirtyPlans = <FastingPlan>[];
+
+  @override
+  void markDirtyAndTryFlush(FastingPlan plan) {
+    dirtyPlans.add(plan);
+  }
 }
 
 /// S1/S3 桩：返回固定 streak 视图（服务端判分断签告知用例）。

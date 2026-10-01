@@ -24,6 +24,9 @@ abstract final class AppSpacing {
   /// 48：大留白、按钮高度基准。
   static const double s12 = 48;
 
+  /// 56：主行动按钮加高（首页双主按钮等强转化位）。
+  static const double s14 = 56;
+
   /// 64：首屏大留白。
   static const double s16 = 64;
 }
