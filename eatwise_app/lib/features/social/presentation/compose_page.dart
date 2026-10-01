@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
+import 'package:eatwise/core/theme/app_radii.dart';
+import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
@@ -249,11 +251,14 @@ class _ComposePageState extends ConsumerState<ComposePage> {
 
   /// 配图区：本地预览（上传前）→ 网络图（上传后）+ 上传态/失败重试。
   Widget _buildPhotoSection(Translations t) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
     final photo = _photo;
     if (photo == null) {
       return OutlinedButton.icon(
         onPressed: _pickPhoto,
-        icon: const Icon(Icons.photo_library_outlined),
+        icon: const Icon(Icons.photo_library_rounded),
         label: Text(t.social.compose.addPhoto),
         style: OutlinedButton.styleFrom(
           minimumSize: const Size.fromHeight(AppSpacing.s12),
@@ -266,7 +271,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
         Stack(
           children: <Widget>[
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: radii.rMd,
               // 预览恒用本地字节：选图即刻可见，上传成功切网络图在
               // 自签证书下反而引入加载失败面（无收益）。
               child: Image.memory(
@@ -317,7 +322,9 @@ class _ComposePageState extends ConsumerState<ComposePage> {
               Expanded(
                 child: Text(
                   _uploadError ?? '',
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: textStyles.textSm.copyWith(
+                    color: colors.textSecondary,
+                  ),
                 ),
               ),
               TextButton.icon(
@@ -398,6 +405,8 @@ class _ComposePageState extends ConsumerState<ComposePage> {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
+    final shadows = Theme.of(context).extension<AppShadows>()!;
     final streak = ref.watch(streakControllerProvider);
 
     return Scaffold(
@@ -415,7 +424,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
               padding: const EdgeInsets.all(AppSpacing.s3),
               decoration: BoxDecoration(
                 color: colors.brandAccent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: radii.rMd,
               ),
               child: Row(
                 children: <Widget>[
@@ -435,81 +444,102 @@ class _ComposePageState extends ConsumerState<ComposePage> {
               ),
             ),
             const SizedBox(height: AppSpacing.s4),
-            // 文字输入（≤500 字计数，契约 §3.9 C1）。
-            TextField(
-              controller: _controller,
-              maxLines: 6,
-              maxLength: maxChars,
-              buildCounter:
-                  (
-                    context, {
-                    required currentLength,
-                    required isFocused,
-                    maxLength,
-                  }) => Text(
-                    t.social.compose.charCount(n: currentLength),
-                    style: textStyles.textXs.copyWith(
-                      color: colors.textSecondary,
+            // 输入卡（白卡承载：正文输入 + AI 润色 + 配图 + 匿名开关；
+            // 输入框装饰由主题 inputDecorationTheme 统一 rMd 填充描边）。
+            // Material 在外（ListTile 水波纹/背景需要 Material 祖先，与
+            // _ProfileHeaderCard 同构），阴影走内层 Container 装饰。
+            Material(
+              color: colors.bgSecondary,
+              borderRadius: radii.rLg,
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.s4),
+                decoration: BoxDecoration(
+                  borderRadius: radii.rLg,
+                  boxShadow: shadows.shadowSm,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    // 文字输入（≤500 字计数，契约 §3.9 C1）。
+                    TextField(
+                      controller: _controller,
+                      maxLines: 6,
+                      maxLength: maxChars,
+                      buildCounter:
+                          (
+                            context, {
+                            required currentLength,
+                            required isFocused,
+                            maxLength,
+                          }) => Text(
+                            t.social.compose.charCount(n: currentLength),
+                            style: textStyles.textXs.copyWith(
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                      // 点输入框外任意处收键盘（iOS 无返回手势收起，缺它键盘关不掉）。
+                      onTapOutside: (_) =>
+                          FocusManager.instance.primaryFocus?.unfocus(),
+                      // 任何编辑作废润色前快照（撤销入口随之消失，不会覆盖新文字）。
+                      onChanged: (_) {
+                        if (_prePolishText != null) _prePolishText = null;
+                        setState(() {});
+                      },
+                      decoration: InputDecoration(
+                        hintText: t.social.compose.hint,
+                      ),
                     ),
-                  ),
-              // 点输入框外任意处收键盘（iOS 无返回手势收起，缺它键盘关不掉）。
-              onTapOutside: (_) =>
-                  FocusManager.instance.primaryFocus?.unfocus(),
-              // 任何编辑作废润色前快照（撤销入口随之消失，不会覆盖新文字）。
-              onChanged: (_) {
-                if (_prePolishText != null) _prePolishText = null;
-                setState(() {});
-              },
-              decoration: InputDecoration(
-                hintText: t.social.compose.hint,
-                filled: true,
-                fillColor: colors.bgSecondary,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+                    // AI 润色（端侧视觉模型；服务为 null = 开关关/模型未就绪 →
+                    // 隐藏入口）；润色成功后出现常驻「撤销润色」，继续编辑即消失。
+                    if (ref.watch(postPolishServiceProvider) !=
+                        null) ...<Widget>[
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed:
+                              _polishing || _controller.text.trim().isEmpty
+                              ? null
+                              : _polish,
+                          icon: _polishing
+                              ? const SizedBox(
+                                  height: 14,
+                                  width: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.auto_fix_high_rounded,
+                                  size: 18,
+                                ),
+                          label: Text(switch ((_polishing, _polishPhase)) {
+                            (true, PostPolishPhase.loadingModel) =>
+                              t.social.compose.polishLoadingModel,
+                            (true, _) => t.social.compose.polishInferring,
+                            (false, _) => t.social.compose.polish,
+                          }),
+                        ),
+                      ),
+                      if (_prePolishText != null)
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: _undoPolish,
+                            icon: const Icon(Icons.undo, size: 18),
+                            label: Text(t.social.compose.polishUndo),
+                          ),
+                        ),
+                    ],
+                    const SizedBox(height: AppSpacing.s2),
+                    // 配图：选图即上传，上传中禁用发布；失败可重试或不带图发布。
+                    _buildPhotoSection(t),
+                    const SizedBox(height: AppSpacing.s2),
+                    // 匿名发布 + 默认头像选择。
+                    _buildAnonymousSection(t, colors, textStyles),
+                  ],
                 ),
               ),
             ),
-            // AI 润色（端侧视觉模型；服务为 null = 开关关/模型未就绪 →
-            // 隐藏入口）；润色成功后出现常驻「撤销润色」，继续编辑即消失。
-            if (ref.watch(postPolishServiceProvider) != null) ...<Widget>[
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: _polishing || _controller.text.trim().isEmpty
-                      ? null
-                      : _polish,
-                  icon: _polishing
-                      ? const SizedBox(
-                          height: 14,
-                          width: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.auto_fix_high_outlined, size: 18),
-                  label: Text(switch ((_polishing, _polishPhase)) {
-                    (true, PostPolishPhase.loadingModel) =>
-                      t.social.compose.polishLoadingModel,
-                    (true, _) => t.social.compose.polishInferring,
-                    (false, _) => t.social.compose.polish,
-                  }),
-                ),
-              ),
-              if (_prePolishText != null)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: _undoPolish,
-                    icon: const Icon(Icons.undo, size: 18),
-                    label: Text(t.social.compose.polishUndo),
-                  ),
-                ),
-            ],
-            const SizedBox(height: AppSpacing.s2),
-            // 配图：选图即上传，上传中禁用发布；失败可重试或不带图发布。
-            _buildPhotoSection(t),
-            const SizedBox(height: AppSpacing.s2),
-            // 匿名发布 + 默认头像选择。
-            _buildAnonymousSection(t, colors, textStyles),
             const SizedBox(height: AppSpacing.s6),
             FilledButton(
               onPressed: _submitting || _uploading ? null : _publish,

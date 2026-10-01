@@ -16,7 +16,6 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
     required this.text2xl,
     required this.text3xl,
     required this.textH1,
-    required this.textTimer,
     required this.textDisplay,
   });
 
@@ -44,11 +43,10 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
   /// 28pt Semibold：页面主标题〔待外部确认：是否并入字号阶梯〕。
   final TextStyle textH1;
 
-  /// 48pt Bold：断食倒计时数字，仅数字场景。
-  final TextStyle textTimer;
-
-  /// 34pt Bold：指标大数字（2026-09-29 UI 重构，MetricCard 专用；
+  /// 34pt Bold：指标大数字（MetricCard / 环内倒计时 / 食物详情千卡；
   /// 配套约定——单位用 textSm 次要色紧随其后，说明文案用 textXs 次要色）。
+  /// 大数字三级分工（v1.16.0 钉死）：textDisplay=指标主数字、
+  /// text3xl=次级统计值（信号卡/连胜卡/图例）、textH1=页面问候级。
   final TextStyle textDisplay;
 
   /// 全局字体回退链（设计稿 2.3 / i18n 规格 §6.3）。
@@ -77,7 +75,6 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
     text2xl: _style(24, FontWeight.w500, 1.4),
     text3xl: _style(30, FontWeight.w600, 1.4),
     textH1: _style(28, FontWeight.w600, 1.4),
-    textTimer: _style(48, FontWeight.w700, 1.1),
     textDisplay: _style(34, FontWeight.w700, 1.15),
   );
 
@@ -91,7 +88,6 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
     TextStyle? text2xl,
     TextStyle? text3xl,
     TextStyle? textH1,
-    TextStyle? textTimer,
     TextStyle? textDisplay,
   }) {
     return AppTextStyles(
@@ -103,7 +99,6 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
       text2xl: text2xl ?? this.text2xl,
       text3xl: text3xl ?? this.text3xl,
       textH1: textH1 ?? this.textH1,
-      textTimer: textTimer ?? this.textTimer,
       textDisplay: textDisplay ?? this.textDisplay,
     );
   }
@@ -120,7 +115,6 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
       text2xl: TextStyle.lerp(text2xl, other.text2xl, t)!,
       text3xl: TextStyle.lerp(text3xl, other.text3xl, t)!,
       textH1: TextStyle.lerp(textH1, other.textH1, t)!,
-      textTimer: TextStyle.lerp(textTimer, other.textTimer, t)!,
       textDisplay: TextStyle.lerp(textDisplay, other.textDisplay, t)!,
     );
   }

@@ -55,7 +55,11 @@ class StreakBreakDialog extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Icon(Icons.info_outline, color: colors.brandPrimary, size: 20),
+              Icon(
+                Icons.info_outline_rounded,
+                color: colors.brandPrimary,
+                size: 20,
+              ),
               const SizedBox(width: AppSpacing.s2),
               Expanded(
                 child: Text(

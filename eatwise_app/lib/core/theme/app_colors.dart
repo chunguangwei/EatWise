@@ -11,6 +11,13 @@ import 'package:flutter/material.dart';
 /// 新增开口环仪表三色组（gauge*）、极简列表分隔线（divider）、
 /// 图标徽标/轨道浅填充（fillSubtle）。同时加深 bgPrimary 灰度——华为观感的
 /// 底层是「明确的灰底 + 纯白卡」对比，原 #F7F9F8 与白卡几乎无差，卡片浮不起来。
+///
+/// 2026-10-01 v1.16.0 全局设计感优化（对比度 P0 修复，用户拍板）：
+/// 亮色 brandPrimary 轻盈绿 #3DBE8B → 沉稳绿 #2A9970（白字 CTA 2.35→3.4:1
+/// 达大字级 AA；暗色 brandPrimary 保持 #3DBE8B 不动——深底上亮绿才够对比）；
+/// 亮色 textSecondary #8A9694 → #5F6B69（白卡 3.06→5:1+ 达 AA）；新增
+/// signalYellowText（黄灯徽标文字专用，#FFD24C 直接作文字仅 1.44:1）；
+/// 暗色层级修复（bg 1.13:1 → ~1.5:1 + fillSubtle/divider 同步上浮）。
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
   const AppColors({
@@ -19,6 +26,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.brandAccent,
     required this.signalRed,
     required this.signalYellow,
+    required this.signalYellowText,
     required this.signalGreen,
     required this.bgPrimary,
     required this.bgSecondary,
@@ -36,10 +44,10 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.fillSubtle,
   });
 
-  /// 轻盈绿：品牌主色、断食进行态、CTA。
+  /// 沉稳绿（亮色 #2A9970 / 暗色 #3DBE8B）：品牌主色、断食进行态、CTA。
   final Color brandPrimary;
 
-  /// 沉稳绿：按压态、强调。
+  /// 深林绿：按压态、强调。
   final Color brandPrimaryPressed;
 
   /// 暖阳橙：进食窗口、成就/打卡、FAB。
@@ -48,8 +56,13 @@ class AppColors extends ThemeExtension<AppColors> {
   /// 活力珊瑚：红灯预警、营养超标。
   final Color signalRed;
 
-  /// 提示黄：黄灯·适量提示。
+  /// 提示黄：黄灯·适量提示（仅作色块/图标底，作文字色请用
+  /// [signalYellowText]——本值上白卡仅 1.44:1 不可读）。
   final Color signalYellow;
+
+  /// 黄灯徽标文字色（v1.16.0 新增）：signalYellow 的深色文字变体，
+  /// 白卡上达 AA。
+  final Color signalYellowText;
 
   /// 绿灯·达标（与主色同值，语义独立）。
   final Color signalGreen;
@@ -97,20 +110,21 @@ class AppColors extends ThemeExtension<AppColors> {
   /// 浅填充（圆形图标徽标底、进度轨道、分组间隔带）。
   final Color fillSubtle;
 
-  /// 亮色主题 Token（设计稿 §2.2）。
+  /// 亮色主题 Token（设计稿 §2.2；v1.16.0 对比度修订见文件头注释）。
   static const AppColors light = AppColors(
-    brandPrimary: Color(0xFF3DBE8B),
-    brandPrimaryPressed: Color(0xFF2A9970),
+    brandPrimary: Color(0xFF2A9970),
+    brandPrimaryPressed: Color(0xFF1F7A5A),
     brandAccent: Color(0xFFFF9F45),
     signalRed: Color(0xFFFF6B6B),
     signalYellow: Color(0xFFFFD24C),
-    signalGreen: Color(0xFF3DBE8B),
+    signalYellowText: Color(0xFF8F6D1F),
+    signalGreen: Color(0xFF2A9970),
     bgPrimary: Color(0xFFEFF2F1),
     bgSecondary: Color(0xFFFFFFFF),
     textPrimary: Color(0xFF1E2A28),
-    textSecondary: Color(0xFF8A9694),
+    textSecondary: Color(0xFF5F6B69),
     border: Color(0xFF8A9694),
-    ringExercise: Color(0xFF3DBE8B),
+    ringExercise: Color(0xFF2A9970),
     ringStand: Color(0xFF4CA6FF),
     ringMove: Color(0xFFFF9F45),
     chartPurple: Color(0xFF8B7CF6),
@@ -122,17 +136,20 @@ class AppColors extends ThemeExtension<AppColors> {
   );
 
   /// 暗色主题 Token〔假设〕：按 §2.7 推导——背景反转为深灰绿系、
-  /// 文字反转、signal* 保持色相提升亮度、品牌色不变。
+  /// 文字反转、signal* 保持色相提升亮度、品牌色保持亮绿。
+  /// v1.16.0 层级修复：bgPrimary 压暗 + bgSecondary/fillSubtle/divider
+  /// 上浮（原卡片底/页面底仅 1.13:1，「灰底白卡」语言暗色下塌掉）。
   /// 〔待外部确认〕设计侧输出暗色 Token 表后替换。
   static const AppColors dark = AppColors(
-    brandPrimary: Color(0xFF3DBE8B), // 品牌色不变（§2.7）
+    brandPrimary: Color(0xFF3DBE8B), // 暗色保持亮绿（深底对比需要）
     brandPrimaryPressed: Color(0xFF5CD3A5), // 暗色按压态提亮〔假设〕
-    brandAccent: Color(0xFFFF9F45), // 暖阳橙在 #121817 上已达 AA，不变
+    brandAccent: Color(0xFFFF9F45), // 暖阳橙在深底上已达 AA，不变
     signalRed: Color(0xFFFF8585), // 同色相提亮〔假设〕
     signalYellow: Color(0xFFFFDB73), // 同色相提亮〔假设〕
+    signalYellowText: Color(0xFFFFDB73), // 暗底上亮黄直接可读
     signalGreen: Color(0xFF3DBE8B),
-    bgPrimary: Color(0xFF121817), // §2.7 给定推导值
-    bgSecondary: Color(0xFF1B2422), // 卡片底〔假设〕：bgPrimary 上浮一档
+    bgPrimary: Color(0xFF0C1110), // v1.16.0 压暗（原 #121817）
+    bgSecondary: Color(0xFF222C29), // v1.16.0 上浮（原 #1B2422）
     textPrimary: Color(0xFFF7F9F8), // §2.7 给定推导值
     textSecondary: Color(0xFF8A9694), // 雾灰在深底上仍可用〔假设〕
     border: Color(0xFF8A9694),
@@ -143,8 +160,8 @@ class AppColors extends ThemeExtension<AppColors> {
     gaugeRed: Color(0xFFFF6059), // 开口环暗色提亮〔假设〕
     gaugeAmber: Color(0xFFFFC44D),
     gaugeBlue: Color(0xFF5CA0FF),
-    divider: Color(0xFF2A3634), // 深底发丝线〔假设〕
-    fillSubtle: Color(0xFF232E2C), // 深底浅填充〔假设〕
+    divider: Color(0xFF37433F), // v1.16.0 上浮（原 #2A3634 几乎不可见）
+    fillSubtle: Color(0xFF2B3734), // v1.16.0 上浮（与卡片底拉开一档）
   );
 
   @override
@@ -154,6 +171,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? brandAccent,
     Color? signalRed,
     Color? signalYellow,
+    Color? signalYellowText,
     Color? signalGreen,
     Color? bgPrimary,
     Color? bgSecondary,
@@ -176,6 +194,7 @@ class AppColors extends ThemeExtension<AppColors> {
       brandAccent: brandAccent ?? this.brandAccent,
       signalRed: signalRed ?? this.signalRed,
       signalYellow: signalYellow ?? this.signalYellow,
+      signalYellowText: signalYellowText ?? this.signalYellowText,
       signalGreen: signalGreen ?? this.signalGreen,
       bgPrimary: bgPrimary ?? this.bgPrimary,
       bgSecondary: bgSecondary ?? this.bgSecondary,
@@ -207,6 +226,11 @@ class AppColors extends ThemeExtension<AppColors> {
       brandAccent: Color.lerp(brandAccent, other.brandAccent, t)!,
       signalRed: Color.lerp(signalRed, other.signalRed, t)!,
       signalYellow: Color.lerp(signalYellow, other.signalYellow, t)!,
+      signalYellowText: Color.lerp(
+        signalYellowText,
+        other.signalYellowText,
+        t,
+      )!,
       signalGreen: Color.lerp(signalGreen, other.signalGreen, t)!,
       bgPrimary: Color.lerp(bgPrimary, other.bgPrimary, t)!,
       bgSecondary: Color.lerp(bgSecondary, other.bgSecondary, t)!,

@@ -109,7 +109,7 @@ void main() {
     await tester.pump();
     expect(find.text('再说一次'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.keyboard_outlined));
+    await tester.tap(find.byIcon(Icons.keyboard_rounded));
     await tester.pump();
     await tester.tap(find.byIcon(Icons.mic));
     await tester.pump();

@@ -49,7 +49,7 @@ class _FrequentFoodsSheet extends ConsumerWidget {
                       child: Column(
                         children: <Widget>[
                           Icon(
-                            Icons.favorite_border_outlined,
+                            Icons.favorite_border_rounded,
                             size: 40,
                             color: colors.textSecondary,
                           ),

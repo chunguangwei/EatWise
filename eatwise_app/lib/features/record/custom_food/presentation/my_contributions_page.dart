@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
+import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/state_views.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
 import 'package:eatwise/features/record/custom_food/presentation/contributions_controller.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_sheet.dart';
@@ -124,7 +126,7 @@ class _MyContributionsPageState extends ConsumerState<MyContributionsPage> {
           children: <Widget>[
             const SizedBox(height: AppSpacing.s16),
             Icon(
-              Icons.cloud_off_outlined,
+              Icons.cloud_off_rounded,
               size: 64,
               color: colors.textSecondary,
             ),
@@ -148,7 +150,6 @@ class _MyContributionsPageState extends ConsumerState<MyContributionsPage> {
                 ref.read(contributionsControllerProvider.notifier).refresh(),
               ),
               style: FilledButton.styleFrom(
-                backgroundColor: colors.brandPrimary,
                 minimumSize: const Size.fromHeight(AppSpacing.s12),
               ),
               child: Text(
@@ -164,44 +165,14 @@ class _MyContributionsPageState extends ConsumerState<MyContributionsPage> {
             color: colors.brandPrimary,
             onRefresh: () =>
                 ref.read(contributionsControllerProvider.notifier).refresh(),
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(AppSpacing.s4),
-              children: <Widget>[
-                const SizedBox(height: AppSpacing.s16),
-                Icon(
-                  Icons.inventory_2_outlined,
-                  size: 64,
-                  color: colors.textSecondary,
-                ),
-                const SizedBox(height: AppSpacing.s4),
-                Text(
-                  c.empty,
-                  style: textStyles.textLg,
-                  textAlign: TextAlign.center,
-                ),
-                // 空态三件套（薄荷走查 P2）：副文案 + 新建自定义食物 CTA。
-                const SizedBox(height: AppSpacing.s2),
-                Text(
-                  c.emptySubtitle,
-                  style: textStyles.textSm.copyWith(
-                    color: colors.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.s6),
-                FilledButton(
-                  onPressed: () => unawaited(startCustomFoodFlow(context, ref)),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: colors.brandPrimary,
-                    minimumSize: const Size.fromHeight(AppSpacing.s12),
-                  ),
-                  child: Text(
-                    c.emptyCta,
-                    style: textStyles.textBase.copyWith(color: Colors.white),
-                  ),
-                ),
-              ],
+            // 空态收敛 AppStateView（v1.16.0）：图标 + 主/副文案 + 新建
+            // 自定义食物 CTA（薄荷走查 P2 三件套口径不变）。
+            child: AppStateView(
+              icon: Icons.inventory_2_rounded,
+              title: c.empty,
+              subtitle: c.emptySubtitle,
+              ctaLabel: c.emptyCta,
+              onCta: () => unawaited(startCustomFoodFlow(context, ref)),
             ),
           );
         }
@@ -308,6 +279,7 @@ class _ContributionCard extends ConsumerWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final radii = Theme.of(context).extension<AppRadii>()!;
+    final shadows = Theme.of(context).extension<AppShadows>()!;
     final name =
         // 服务端视图带的关联食物名优先（纠错类目标是共享库食物，本地库
         // 未必有该行）；null → 本地库按 foodId 解析；再不行回退 foodId。
@@ -323,6 +295,7 @@ class _ContributionCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: colors.bgSecondary,
         borderRadius: radii.rLg,
+        boxShadow: shadows.shadowSm,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,7 +338,7 @@ class _ContributionCard extends ConsumerWidget {
             const SizedBox(height: AppSpacing.s2),
             _BarcodeKindBadge(
               label: c.kindCorrection,
-              icon: Icons.fact_check_outlined,
+              icon: Icons.fact_check_rounded,
             ),
           ],
           if (item.status == FoodContributionStatus.rejected &&
@@ -402,7 +375,7 @@ class _BarcodeKindBadge extends StatelessWidget {
 
   final String label;
 
-  /// 徽标图标（默认条码；纠错条目传 Icons.fact_check_outlined）。
+  /// 徽标图标（默认条码；纠错条目传 Icons.fact_check_rounded）。
   final IconData icon;
 
   @override
@@ -452,17 +425,17 @@ class _StatusBadge extends StatelessWidget {
     final (label, icon, color) = switch (status) {
       FoodContributionStatus.approved => (
         c.statusApproved,
-        Icons.check_circle_outline,
+        Icons.check_circle_outline_rounded,
         colors.signalGreen,
       ),
       FoodContributionStatus.pending => (
         c.statusPending,
-        Icons.hourglass_top_outlined,
+        Icons.hourglass_top_rounded,
         colors.signalYellow,
       ),
       FoodContributionStatus.rejected => (
         c.statusRejected,
-        Icons.cancel_outlined,
+        Icons.cancel_rounded,
         colors.signalRed,
       ),
     };

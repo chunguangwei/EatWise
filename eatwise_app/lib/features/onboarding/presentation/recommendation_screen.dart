@@ -524,7 +524,7 @@ class _WeightLossPreview extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Icon(
-                    Icons.favorite_border,
+                    Icons.favorite_border_rounded,
                     size: 18,
                     color: colors.brandPrimary,
                   ),

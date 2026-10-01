@@ -51,7 +51,7 @@ class TodayMetricGrid extends ConsumerWidget {
     );
 
     final exerciseCard = MetricCard(
-      icon: Icons.local_fire_department_outlined,
+      icon: Icons.local_fire_department_rounded,
       iconColor: colors.ringExercise,
       label: t.fasting.home.metricExercise,
       value: exerciseKcal?.round().toString() ?? '—',
@@ -59,7 +59,7 @@ class TodayMetricGrid extends ConsumerWidget {
       caption: t.fasting.home.metricBurnHint,
     );
     final stepsCard = MetricCard(
-      icon: Icons.directions_walk_outlined,
+      icon: Icons.directions_walk_rounded,
       iconColor: colors.chartPurple,
       label: t.fasting.home.metricSteps,
       value: steps?.toString() ?? '—',

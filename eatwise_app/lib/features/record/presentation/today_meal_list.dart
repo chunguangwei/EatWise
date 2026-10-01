@@ -140,7 +140,7 @@ class _EntryRow extends ConsumerWidget {
           ),
           // 删除入口（走查修复）：≥40px 触控目标，确认弹窗防误触。
           IconButton(
-            icon: const Icon(Icons.delete_outline),
+            icon: const Icon(Icons.delete_outline_rounded),
             iconSize: 20,
             visualDensity: VisualDensity.compact,
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),

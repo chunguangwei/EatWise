@@ -630,7 +630,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                           color: colors.brandPrimary,
                         ),
                       )
-                    : const Icon(Icons.auto_awesome_outlined),
+                    : const Icon(Icons.auto_awesome_rounded),
                 label: Text(
                   _estimating ? cs.estimating : cs.estimate,
                   style: textStyles.textBase,
@@ -660,7 +660,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                             color: colors.brandPrimary,
                           ),
                         )
-                      : const Icon(Icons.document_scanner_outlined),
+                      : const Icon(Icons.document_scanner_rounded),
                   label: Text(
                     _ocrReading ? cs.photoOcrReading : cs.photoOcr,
                     style: textStyles.textBase,

@@ -159,7 +159,7 @@ void main() {
 
     expect(find.text('设置'), findsOneWidget);
     // 资料头卡（圆形头像占位 + 「账号」小标签）。
-    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+    expect(find.byIcon(Icons.person_rounded), findsOneWidget);
     expect(find.text('身体与目标'), findsOneWidget);
     expect(find.text('身体档案'), findsOneWidget);
     expect(find.text('健康数据授权'), findsOneWidget);
@@ -639,7 +639,7 @@ void main() {
 
     expect(find.text('Settings'), findsOneWidget);
     // 资料头卡（圆形头像占位，头卡替代原账号行）。
-    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+    expect(find.byIcon(Icons.person_rounded), findsOneWidget);
     // 组标题 Account & Security（第二组，视口外先滚动）。
     await scrollTo(tester, find.text('Account & Security'));
     expect(find.text('Account & Security'), findsOneWidget);

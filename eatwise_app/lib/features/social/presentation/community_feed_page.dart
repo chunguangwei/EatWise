@@ -3,6 +3,7 @@ import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/state_views.dart';
 import 'package:eatwise/features/social/application/feed_controller.dart';
 import 'package:eatwise/features/social/presentation/post_card.dart';
 import 'package:flutter/material.dart';
@@ -79,8 +80,8 @@ class _CommunityFeedPageState extends ConsumerState<CommunityFeedPage> {
           ],
         );
       case FeedStatus.error:
-        return _CenteredMessage(
-          icon: Icons.cloud_off_outlined,
+        return AppStateView(
+          icon: Icons.cloud_off_rounded,
           title: t.social.feed.errorTitle,
           subtitle: feed.errorMessage,
           ctaLabel: t.common.action.retry,
@@ -88,8 +89,8 @@ class _CommunityFeedPageState extends ConsumerState<CommunityFeedPage> {
         );
       case FeedStatus.ready:
         if (feed.items.isEmpty) {
-          return _CenteredMessage(
-            icon: Icons.people_outline,
+          return AppStateView(
+            icon: Icons.people_rounded,
             title: t.social.feed.emptyTitle,
             subtitle: t.social.feed.emptySubtitle,
             ctaLabel: t.social.feed.emptyCta,
@@ -122,34 +123,34 @@ class _CommunityFeedPageState extends ConsumerState<CommunityFeedPage> {
   }
 }
 
-/// 骨架卡（四态规范：骨架 = 3 张打卡卡占位，色块 #E4EAE8〔假设〕）。
+/// 骨架卡（四态规范：骨架 = 3 张打卡卡占位，色块走 fillSubtle 暗色兼容）。
 class _SkeletonCard extends StatelessWidget {
   const _SkeletonCard();
 
   @override
   Widget build(BuildContext context) {
-    const block = Color(0xFFE4EAE8);
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
+    // 骨架色块走 fillSubtle（暗色兼容；原硬编码 #E4EAE8 仅亮色可用）。
+    final block = colors.fillSubtle;
     Widget bar(double width, double height) => Container(
       width: width,
       height: height,
-      decoration: BoxDecoration(
-        color: block,
-        borderRadius: BorderRadius.circular(6),
-      ),
+      decoration: BoxDecoration(color: block, borderRadius: radii.rSm),
     );
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.s3),
       padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: BoxDecoration(
-        color: Theme.of(context).extension<AppColors>()!.bgSecondary,
-        borderRadius: Theme.of(context).extension<AppRadii>()!.rLg,
+        color: colors.bgSecondary,
+        borderRadius: radii.rLg,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
-              const CircleAvatar(radius: 20, backgroundColor: block),
+              CircleAvatar(radius: 20, backgroundColor: block),
               const SizedBox(width: AppSpacing.s2),
               bar(120, 16),
             ],
@@ -160,58 +161,6 @@ class _SkeletonCard extends StatelessWidget {
           bar(200, 14),
         ],
       ),
-    );
-  }
-}
-
-/// 空态/错误态统一结构（3.2.2/3.2.3：插画图标 → 主文案 → 副文案 → CTA）。
-class _CenteredMessage extends StatelessWidget {
-  const _CenteredMessage({
-    required this.icon,
-    required this.title,
-    required this.ctaLabel,
-    required this.onCta,
-    this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final String ctaLabel;
-  final VoidCallback onCta;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.s4),
-      children: <Widget>[
-        const SizedBox(height: AppSpacing.s16),
-        Icon(icon, size: 64, color: colors.textSecondary),
-        const SizedBox(height: AppSpacing.s4),
-        Text(title, style: textStyles.textXl, textAlign: TextAlign.center),
-        if (subtitle != null) ...<Widget>[
-          const SizedBox(height: AppSpacing.s2),
-          Text(
-            subtitle!,
-            style: textStyles.textSm.copyWith(color: colors.textSecondary),
-            textAlign: TextAlign.center,
-          ),
-        ],
-        const SizedBox(height: AppSpacing.s6),
-        FilledButton(
-          onPressed: onCta,
-          style: FilledButton.styleFrom(
-            backgroundColor: colors.brandPrimary,
-            minimumSize: const Size.fromHeight(AppSpacing.s12),
-          ),
-          child: Text(
-            ctaLabel,
-            style: textStyles.textBase.copyWith(color: Colors.white),
-          ),
-        ),
-      ],
     );
   }
 }

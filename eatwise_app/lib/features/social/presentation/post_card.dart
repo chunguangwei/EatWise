@@ -96,7 +96,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                           avatar?.background ??
                           colors.brandPrimary.withValues(alpha: 0.16),
                       child: Icon(
-                        avatar?.icon ?? Icons.person_outline,
+                        avatar?.icon ?? Icons.person_rounded,
                         color: avatar == null
                             ? colors.brandPrimary
                             : Colors.white,
@@ -129,7 +129,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                   if (!item.pendingSync)
                     IconButton(
                       icon: Icon(
-                        Icons.delete_outline,
+                        Icons.delete_rounded,
                         color: colors.textSecondary,
                       ),
                       tooltip: t.social.feed.delete,
@@ -141,7 +141,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                   if (post.authorId != null)
                     IconButton(
                       icon: Icon(
-                        Icons.block_outlined,
+                        Icons.block_rounded,
                         color: colors.textSecondary,
                       ),
                       tooltip: t.social.feed.block,
@@ -150,10 +150,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                           : () => _confirmBlock(context),
                     ),
                   IconButton(
-                    icon: Icon(
-                      Icons.flag_outlined,
-                      color: colors.textSecondary,
-                    ),
+                    icon: Icon(Icons.flag_rounded, color: colors.textSecondary),
                     tooltip: t.social.feed.report,
                     onPressed: () => _confirmReport(context),
                   ),
@@ -232,7 +229,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                           Icon(
                             post.likedByMe
                                 ? Icons.favorite
-                                : Icons.favorite_border,
+                                : Icons.favorite_rounded,
                             size: 22,
                             color: post.likedByMe
                                 ? colors.signalRed

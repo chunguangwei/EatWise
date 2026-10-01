@@ -284,7 +284,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     // 空态三件套（薄荷走查 P2）：图标 + 引导文案 + 自定义食物 CTA。
-    expect(find.byIcon(Icons.search_off_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.search_off_rounded), findsOneWidget);
     expect(find.text('没找到？换个关键词试试'), findsOneWidget);
     expect(find.text('找不到？添加自定义食物'), findsOneWidget);
     await settleUi(tester);

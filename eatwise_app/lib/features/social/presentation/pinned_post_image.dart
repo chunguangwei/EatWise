@@ -96,7 +96,7 @@ class _PinnedPostImageState extends ConsumerState<PinnedPostImage> {
             color: colors.bgPrimary,
             child: Center(
               child: Icon(
-                Icons.broken_image_outlined,
+                Icons.broken_image_rounded,
                 color: colors.textSecondary,
                 size: 48,
               ),

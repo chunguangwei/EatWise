@@ -121,7 +121,7 @@ void main() {
     await tester.pumpAndSettle(const Duration(milliseconds: 100));
     expect(find.text('设置'), findsOneWidget);
     // 资料头卡（圆形头像占位，2026-09-30 头卡替代原账号行）。
-    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+    expect(find.byIcon(Icons.person_rounded), findsOneWidget);
     expect(find.text('身体与目标'), findsOneWidget);
     // 组标题「账号与安全」在第二组（HealthSyncSection 之后，首屏外先滚动）。
     await tester.scrollUntilVisible(
@@ -189,8 +189,7 @@ void main() {
     // 嵌套 Scaffold 拓扑，与真机渲染路径一致。
     await pumpApp(tester, statusBarViewport: true);
 
-    // 首页：AppBar 标题 + 问候语副标题（真机截图「被切掉一半」点位）。
-    expectBelowStatusBar(tester, appBarTitle('断食计时'));
+    // 首页：v1.16.0 起无 AppBar，问候语即页首（真机截图「被切掉一半」点位）。
     expectBelowStatusBar(tester, find.text('早上好'));
 
     // 记录 Tab。

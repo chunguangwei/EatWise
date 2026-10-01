@@ -47,12 +47,12 @@ Future<PhotoSource?> showPhotoSourceSheet(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           ListTile(
-            leading: const Icon(Icons.photo_camera_outlined),
+            leading: const Icon(Icons.photo_camera_rounded),
             title: Text(s.photoTakePhoto),
             onTap: () => Navigator.of(sheetContext).pop(PhotoSource.camera),
           ),
           ListTile(
-            leading: const Icon(Icons.photo_library_outlined),
+            leading: const Icon(Icons.photo_library_rounded),
             title: Text(s.photoFromGallery),
             onTap: () => Navigator.of(sheetContext).pop(PhotoSource.gallery),
           ),

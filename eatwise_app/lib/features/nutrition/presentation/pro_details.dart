@@ -88,7 +88,7 @@ class _ProDetailsSectionState extends ConsumerState<ProDetailsSection> {
                 child: Row(
                   children: <Widget>[
                     Icon(
-                      Icons.science_outlined,
+                      Icons.science_rounded,
                       color: colors.textSecondary,
                       size: 20,
                     ),

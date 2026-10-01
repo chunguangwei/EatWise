@@ -53,7 +53,7 @@ class BmiCard extends StatelessWidget {
           ? Row(
               children: <Widget>[
                 Icon(
-                  Icons.monitor_weight_outlined,
+                  Icons.monitor_weight_rounded,
                   color: colors.textSecondary,
                   size: 20,
                 ),
@@ -87,11 +87,25 @@ class _BmiBody extends StatelessWidget {
     final bmiT = t.settings.bodyProfile.bmi;
 
     final zone = classifyBmi(bmi);
-    final (zoneColor, zoneLabel) = switch (zone) {
-      BmiZone.normal => (colors.signalGreen, bmiT.normal),
-      BmiZone.underweight => (colors.signalYellow, bmiT.underweight),
-      BmiZone.overweight => (colors.signalYellow, bmiT.overweight),
-      BmiZone.obese => (colors.signalYellow, bmiT.obese),
+    // 色块底保持 signalYellow（0.15 浅底可读）；黄灯徽标文字走专用深色
+    // 变体 signalYellowText（signalYellow 直接作文字仅 1.44:1 不可读）。
+    final (zoneColor, zoneTextColor, zoneLabel) = switch (zone) {
+      BmiZone.normal => (colors.signalGreen, colors.signalGreen, bmiT.normal),
+      BmiZone.underweight => (
+        colors.signalYellow,
+        colors.signalYellowText,
+        bmiT.underweight,
+      ),
+      BmiZone.overweight => (
+        colors.signalYellow,
+        colors.signalYellowText,
+        bmiT.overweight,
+      ),
+      BmiZone.obese => (
+        colors.signalYellow,
+        colors.signalYellowText,
+        bmiT.obese,
+      ),
     };
 
     return Column(
@@ -120,7 +134,7 @@ class _BmiBody extends StatelessWidget {
               ),
               child: Text(
                 zoneLabel,
-                style: textStyles.textXs.copyWith(color: zoneColor),
+                style: textStyles.textXs.copyWith(color: zoneTextColor),
               ),
             ),
           ],
@@ -146,7 +160,7 @@ class _BmiBody extends StatelessWidget {
                       left: 0,
                       right: 0,
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: radii.rSm,
                         child: Row(
                           children: <Widget>[
                             // 段宽 ∝ 区间跨度：14–18.5 / 18.5–24 / 24–28 / 28–32。
@@ -192,7 +206,7 @@ class _BmiBody extends StatelessWidget {
                         width: 3,
                         decoration: BoxDecoration(
                           color: colors.textPrimary,
-                          borderRadius: BorderRadius.circular(1.5),
+                          borderRadius: radii.rSm,
                         ),
                       ),
                     ),
@@ -237,13 +251,15 @@ class _BmiBody extends StatelessWidget {
               Icon(
                 Icons.warning_amber_rounded,
                 size: 16,
-                color: colors.signalYellow,
+                color: colors.signalYellowText,
               ),
               const SizedBox(width: AppSpacing.s1),
               Expanded(
                 child: Text(
                   bmiT.unitHint,
-                  style: textStyles.textXs.copyWith(color: colors.signalYellow),
+                  style: textStyles.textXs.copyWith(
+                    color: colors.signalYellowText,
+                  ),
                 ),
               ),
             ],

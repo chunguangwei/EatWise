@@ -3,6 +3,7 @@ import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/scroll_depth_tracker.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
+import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
@@ -95,7 +96,7 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
           // M6 入口：趋势与深度报告二级页（/data/reports）。
           IconButton(
             tooltip: t.reports.entry,
-            icon: const Icon(Icons.insights_outlined),
+            icon: const Icon(Icons.insights_rounded),
             onPressed: () => context.push('/data/reports'),
           ),
         ],
@@ -108,7 +109,7 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
             padding: const EdgeInsets.all(AppSpacing.s4),
             children: <Widget>[
               const DateSwitcher(),
-              const SizedBox(height: AppSpacing.s2),
+              const SizedBox(height: AppSpacing.s6),
               // 一句话总结（H2，温和品牌语气）。
               Text(
                 summaryText,
@@ -116,9 +117,9 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
               ),
               // D-04 兜底目标 → 引导补全资料（点击跳「我的-身体档案」）。
               if (goal.usedFallback) ...<Widget>[
-                const SizedBox(height: AppSpacing.s2),
+                const SizedBox(height: AppSpacing.s6),
                 _HintBanner(
-                  icon: Icons.info_outline,
+                  icon: Icons.info_outline_rounded,
                   text: t.nutrition.data.summary.fallbackGoal,
                   onTap: () => context.push('/settings/body-profile'),
                 ),
@@ -158,10 +159,10 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
               else
                 const _EmptyDayState(),
               if (signal.hasData && intake != null) ...<Widget>[
-                const SizedBox(height: AppSpacing.s8),
+                const SizedBox(height: AppSpacing.s6),
                 ProDetailsSection(intake: intake, goal: goal),
               ],
-              const SizedBox(height: AppSpacing.s8),
+              const SizedBox(height: AppSpacing.s6),
               const TrendChartSection(),
               // 阶段 D：今日消耗卡（运动数据同步开启且读取就绪时展示）。
               const _HealthBurnSection(),
@@ -202,12 +203,13 @@ class _HintBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
     return Material(
       color: colors.brandPrimary.withValues(alpha: 0.08),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: radii.rMd,
       child: InkWell(
         key: const ValueKey<String>('nutrition.data.hintBanner'),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: radii.rMd,
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.s3),
@@ -283,7 +285,7 @@ class _HealthBurnSection extends ConsumerWidget {
     final intake = ref.watch(dayIntakeProvider);
     final goals = ref.watch(exerciseGoalsProvider);
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.s8),
+      padding: const EdgeInsets.only(top: AppSpacing.s6),
       child: TodayBurnCard(
         steps: steps,
         burnKcal: burnKcal,
@@ -310,23 +312,22 @@ class _EmptyDayState extends StatelessWidget {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
+    final shadows = Theme.of(context).extension<AppShadows>()!;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s6),
       decoration: BoxDecoration(
         color: colors.bgSecondary,
-        borderRadius: Theme.of(context).extension<AppRadii>()!.rLg,
+        borderRadius: radii.rLg,
+        boxShadow: shadows.shadowSm,
       ),
       child: Column(
         children: <Widget>[
-          Icon(
-            Icons.restaurant_outlined,
-            size: 48,
-            color: colors.textSecondary,
-          ),
+          Icon(Icons.restaurant_rounded, size: 64, color: colors.textSecondary),
           const SizedBox(height: AppSpacing.s3),
           Text(
             t.home.data.emptyTitle,
-            style: textStyles.textBase.copyWith(color: colors.textPrimary),
+            style: textStyles.textXl.copyWith(color: colors.textPrimary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.s2),
@@ -339,13 +340,9 @@ class _EmptyDayState extends StatelessWidget {
           FilledButton(
             onPressed: () => context.go('/record'),
             style: FilledButton.styleFrom(
-              backgroundColor: colors.brandPrimary,
               minimumSize: const Size.fromHeight(AppSpacing.s12),
             ),
-            child: Text(
-              t.home.data.cta,
-              style: textStyles.textBase.copyWith(color: Colors.white),
-            ),
+            child: Text(t.home.data.cta),
           ),
         ],
       ),

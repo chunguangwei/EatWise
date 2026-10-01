@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/features/fasting/presentation/fasting_home_page.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
@@ -143,7 +144,7 @@ void main() {
 
     expect(gate.completed, isTrue);
     expect(store.isOnboardingCompleted, isTrue);
-    expect(find.text('断食计时'), findsOneWidget); // 首页占位（M0 演示页）
+    expect(find.byType(FastingHomePage), findsOneWidget); // 到达首页
     // 兜底提示（D-04：缺基础信息 → 2000 kcal 兜底并提示补全）
     expect(find.textContaining('2000 kcal'), findsOneWidget);
 
@@ -179,7 +180,7 @@ void main() {
 
     expect(gate.completed, isTrue);
     expect(store.loadActivePlan()!.plan.id, '16:8');
-    expect(find.text('断食计时'), findsOneWidget);
+    expect(find.byType(FastingHomePage), findsOneWidget);
   });
 
   testWidgets('问卷中途退出 → 进度本地保存，下次进入续答', (tester) async {
@@ -317,7 +318,7 @@ void main() {
 
   testWidgets('已完成引导 → 直达首页，不再进问卷', (tester) async {
     await pumpApp(tester, completed: true);
-    expect(find.text('断食计时'), findsOneWidget);
+    expect(find.byType(FastingHomePage), findsOneWidget);
     expect(find.text('你的小目标是？'), findsNothing);
   });
 
@@ -394,7 +395,7 @@ void main() {
         }),
       },
     );
-    expect(find.text('断食计时'), findsOneWidget);
+    expect(find.byType(FastingHomePage), findsOneWidget);
 
     // 我的 Tab → 设置页「断食方案」入口（偏好组，视口外先滚动）。
     await tester.tap(find.text('我的'));
@@ -428,7 +429,7 @@ void main() {
     final pending = store.loadPendingPlan()!;
     expect(pending.plan.id, '16:8');
     expect(pending.effectiveDate.toIsoString(), '2026-07-29');
-    expect(find.text('断食计时'), findsOneWidget); // 确认后回首页
+    expect(find.byType(FastingHomePage), findsOneWidget); // 确认后回首页
   });
 
   testWidgets('走查 Bug2 回归：已完成引导用户点「断食是什么原理」打开'
@@ -475,7 +476,7 @@ void main() {
 
     // 旧 bug：/onboarding/science 命中 redirect 前缀被弹回首页。
     expect(find.text('断食原理小科普'), findsOneWidget);
-    expect(find.text('断食计时'), findsNothing);
+    expect(find.byType(FastingHomePage), findsNothing);
   });
 
   testWidgets('上架法务年龄确认：一键启动先弹 13 岁勾选；未勾禁用继续，勾选后放行完成引导', (tester) async {

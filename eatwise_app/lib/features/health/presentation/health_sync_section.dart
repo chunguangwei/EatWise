@@ -1,6 +1,7 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
+import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/health/application/exercise_goals_controller.dart';
@@ -29,6 +30,7 @@ class HealthSyncSection extends ConsumerWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final radii = Theme.of(context).extension<AppRadii>()!;
+    final shadows = Theme.of(context).extension<AppShadows>()!;
     final state = ref.watch(healthSyncControllerProvider);
 
     return Padding(
@@ -50,47 +52,71 @@ class HealthSyncSection extends ConsumerWidget {
             decoration: BoxDecoration(
               color: colors.bgSecondary,
               borderRadius: radii.rLg,
+              boxShadow: shadows.shadowSm,
             ),
+            clipBehavior: Clip.antiAlias,
             child: Column(
               children: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.s4,
-                    vertical: AppSpacing.s2,
-                  ),
-                  child: Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              t.settings.health.sync,
-                              style: textStyles.textBase.copyWith(
-                                color: colors.textPrimary,
-                              ),
-                            ),
-                            Text(
-                              t.settings.health.syncSubtitle,
-                              style: textStyles.textXs.copyWith(
-                                color: colors.textSecondary,
-                              ),
-                            ),
-                          ],
+                // 同步开关行对齐设置行 _SettingsTile 语言：32px 圆形浅底
+                //（fillSubtle）图标徽标 + 18px rounded 图标、行高 ≥56。
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 56),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s4,
+                      vertical: AppSpacing.s2,
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: colors.fillSubtle,
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.sync_rounded,
+                            size: 18,
+                            color: colors.textSecondary,
+                          ),
                         ),
-                      ),
-                      Switch(
-                        value: state.enabled,
-                        onChanged: (value) => _toggle(context, ref, value),
-                      ),
-                    ],
+                        const SizedBox(width: AppSpacing.s2),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                t.settings.health.sync,
+                                style: textStyles.textBase.copyWith(
+                                  color: colors.textPrimary,
+                                ),
+                              ),
+                              Text(
+                                t.settings.health.syncSubtitle,
+                                style: textStyles.textXs.copyWith(
+                                  color: colors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: state.enabled,
+                          onChanged: (value) => _toggle(context, ref, value),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                // 授权/支持态行（已授权/未授权/设备不支持/读取失败/读取中）。
+                // 授权/支持态行（已授权/未授权/设备不支持/读取失败/读取中）；
+                // 左缩进对齐文字左缘（行边距 16 + 图标徽标 32 + 间距 8 = 56，
+                // 与设置组分隔线同口径）。
                 if (state.enabled)
                   Padding(
                     padding: const EdgeInsets.only(
-                      left: AppSpacing.s4,
+                      left: 56,
                       right: AppSpacing.s4,
                       bottom: AppSpacing.s2,
                     ),
@@ -110,7 +136,14 @@ class HealthSyncSection extends ConsumerWidget {
                 if (state.status == HealthSyncStatus.ready &&
                     state.today != null)
                   _TodayPreview(state: state),
-                // 薄荷走查 P2：每日消耗/步数目标（本地偏好，即时生效）。
+                // 薄荷走查 P2：每日消耗/步数目标（本地偏好，即时生效）；
+                // 行间发丝线缩进对齐文字左缘（同设置组 56 口径）。
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  indent: 56,
+                  color: colors.divider,
+                ),
                 const _GoalTiles(),
               ],
             ),
@@ -175,9 +208,10 @@ class _TodayPreview extends ConsumerWidget {
         ),
     ];
 
+    // 左缩进对齐同步开关行文字左缘（56，同设置组分隔线口径）。
     return Padding(
       padding: const EdgeInsets.only(
-        left: AppSpacing.s4,
+        left: 56,
         right: AppSpacing.s4,
         bottom: AppSpacing.s3,
       ),
@@ -250,6 +284,7 @@ class _GoalTiles extends ConsumerWidget {
       children: <Widget>[
         _goalTile(
           context,
+          icon: Icons.local_fire_department_rounded,
           title: t.settings.health.burnGoal,
           trailing: t.settings.health.burnGoalValue(
             kcal: goals.burnGoalKcal.toStringAsFixed(0),
@@ -272,8 +307,10 @@ class _GoalTiles extends ConsumerWidget {
                 ref.read(exerciseGoalsProvider.notifier).setBurnGoalKcal(value),
           ),
         ),
+        Divider(height: 1, thickness: 1, indent: 56, color: colors.divider),
         _goalTile(
           context,
+          icon: Icons.directions_walk_rounded,
           title: t.settings.health.stepsGoal,
           trailing: t.settings.health.stepsGoalValue(
             steps: '${goals.stepsGoal}',
@@ -302,6 +339,7 @@ class _GoalTiles extends ConsumerWidget {
 
   Widget _goalTile(
     BuildContext context, {
+    required IconData icon,
     required String title,
     required String trailing,
     required AppColors colors,
@@ -311,7 +349,7 @@ class _GoalTiles extends ConsumerWidget {
     return InkWell(
       onTap: onTap,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 48),
+        constraints: const BoxConstraints(minHeight: 56),
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.s4,
@@ -319,6 +357,18 @@ class _GoalTiles extends ConsumerWidget {
           ),
           child: Row(
             children: <Widget>[
+              // 圆形浅底图标徽标（与同步开关行/设置行同语言）。
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: colors.fillSubtle,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(icon, size: 18, color: colors.textSecondary),
+              ),
+              const SizedBox(width: AppSpacing.s2),
               Expanded(
                 child: Text(
                   title,

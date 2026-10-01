@@ -68,17 +68,12 @@ class _FastingHomePageState extends ConsumerState<FastingHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final timer = ref.watch(fastingTimerControllerProvider);
     final permissionStatus = ref.watch(notificationPermissionStatusProvider);
 
     return Scaffold(
       backgroundColor: colors.bgPrimary,
-      appBar: AppBar(
-        backgroundColor: colors.bgPrimary,
-        title: Text(t.fasting.home.title),
-      ),
       body: SafeArea(
         child: Column(
           children: <Widget>[
@@ -166,7 +161,7 @@ class _NoPlanBody extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(Icons.eco_outlined, size: 64, color: colors.brandPrimary),
+              Icon(Icons.eco_rounded, size: 64, color: colors.brandPrimary),
               const SizedBox(height: AppSpacing.s4),
               Text(
                 t.fasting.home.stateNoPlan,
@@ -358,7 +353,7 @@ class _TimerBody extends ConsumerWidget {
                   ],
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(left: 22),
+                  padding: const EdgeInsets.only(left: AppSpacing.s6),
                   child: Text(
                     t.fasting.home.pendingPlanEffective(
                       date: formatAttributionDate(

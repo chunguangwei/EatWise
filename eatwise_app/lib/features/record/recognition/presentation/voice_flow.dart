@@ -561,7 +561,7 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
             Row(
               children: <Widget>[
                 Icon(
-                  _typing ? Icons.keyboard_outlined : Icons.mic,
+                  _typing ? Icons.keyboard_rounded : Icons.mic,
                   color: colors.brandPrimary,
                 ),
                 const SizedBox(width: AppSpacing.s2),
@@ -584,7 +584,7 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
                 ),
                 // 语音/键盘切换（≥48px 触控目标）。
                 IconButton(
-                  icon: Icon(_typing ? Icons.mic : Icons.keyboard_outlined),
+                  icon: Icon(_typing ? Icons.mic : Icons.keyboard_rounded),
                   tooltip: s.voiceTypeInput,
                   constraints: const BoxConstraints(
                     minWidth: 48,
@@ -646,7 +646,7 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
                       foregroundColor: colors.brandPrimary,
                       side: BorderSide(color: colors.brandPrimary),
                     ),
-                    icon: const Icon(Icons.offline_bolt_outlined),
+                    icon: const Icon(Icons.offline_bolt_rounded),
                     label: Text(
                       s.voiceUseOnDeviceAsr,
                       style: textStyles.textBase,

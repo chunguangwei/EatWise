@@ -220,7 +220,7 @@ class _EmptySignalCard extends StatelessWidget {
             child: Row(
               children: <Widget>[
                 Icon(
-                  Icons.restaurant_outlined,
+                  Icons.restaurant_rounded,
                   color: colors.textSecondary,
                   size: 24,
                 ),
@@ -280,6 +280,11 @@ class _MiniSignalCard extends StatelessWidget {
         t.nutrition.signalCard.zone.red,
       ),
     };
+    // 黄灯图标色（v1.16.0）：signalYellow 上白卡仅 1.44:1，图标/文字取
+    // signalYellowText；色块底保持 signalYellow。
+    final accentColor = verdict.zone == SignalZone.yellow
+        ? colors.signalYellowText
+        : color;
     return Semantics(
       button: true,
       label: '$label $zoneLabel',
@@ -302,7 +307,7 @@ class _MiniSignalCard extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Icon(icon, color: color, size: 20),
+                Icon(icon, color: accentColor, size: 20),
                 const SizedBox(height: AppSpacing.s1),
                 Text(
                   label,

@@ -80,9 +80,9 @@ void main() {
       stubPost(id: 'p2', text: '正常打卡', authorId: 'u-normal'),
     ];
     await pumpFeed(tester);
-    expect(find.byIcon(Icons.block_outlined), findsNWidgets(2));
+    expect(find.byIcon(Icons.block_rounded), findsNWidgets(2));
 
-    await tester.tap(find.byIcon(Icons.block_outlined).first);
+    await tester.tap(find.byIcon(Icons.block_rounded).first);
     await tester.pumpAndSettle();
     expect(find.textContaining('屏蔽后将不再看到'), findsOneWidget);
 
@@ -101,7 +101,7 @@ void main() {
     ];
     await pumpFeed(tester);
 
-    await tester.tap(find.byIcon(Icons.block_outlined));
+    await tester.tap(find.byIcon(Icons.block_rounded));
     await tester.pumpAndSettle();
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
@@ -116,7 +116,7 @@ void main() {
       stubPost(id: 'p2', isAuthor: true),
     ];
     await pumpFeed(tester);
-    expect(find.byIcon(Icons.block_outlined), findsNothing);
+    expect(find.byIcon(Icons.block_rounded), findsNothing);
     await unmount(tester);
   });
 
@@ -127,7 +127,7 @@ void main() {
     await pumpFeed(tester);
 
     api.blockError = networkException;
-    await tester.tap(find.byIcon(Icons.block_outlined));
+    await tester.tap(find.byIcon(Icons.block_rounded));
     await tester.pumpAndSettle();
     await tester.tap(find.text('屏蔽该用户'));
     await tester.pumpAndSettle();

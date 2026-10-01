@@ -48,7 +48,7 @@ class StreakProfileCard extends ConsumerWidget {
                 ),
                 alignment: Alignment.center,
                 child: Icon(
-                  Icons.local_fire_department_outlined,
+                  Icons.local_fire_department_rounded,
                   size: 18,
                   color: streak.currentStreak > 0
                       ? colors.brandAccent

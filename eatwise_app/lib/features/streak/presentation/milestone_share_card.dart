@@ -43,7 +43,8 @@ class MilestoneShareCard extends StatelessWidget {
   static const Color brandGreen = Color(0xFF3DBE8B);
   static const Color brandGreenDeep = Color(0xFF2A9970);
   static const Color accentOrange = Color(0xFFFF9F45);
-  static const Color cloudWhite = Color(0xFFF7F9F8);
+  // 与 bgPrimary 同步（静态分享物料，不跟随主题）。
+  static const Color cloudWhite = Color(0xFFEFF2F1);
   static const Color ink = Color(0xFF1E2A28);
   static const Color fog = Color(0xFF8A9694);
 

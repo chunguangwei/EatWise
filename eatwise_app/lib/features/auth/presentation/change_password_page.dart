@@ -187,32 +187,14 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
     );
   }
 
-  InputDecoration _fieldDecoration({
-    required AppColors colors,
-    required String hint,
-    Widget? suffix,
-  }) {
+  InputDecoration _fieldDecoration({required String hint, Widget? suffix}) {
+    // 填充底色与三档描边由主题 inputDecorationTheme 承载（v1.16.0）。
     return InputDecoration(
       hintText: hint,
-      filled: true,
-      fillColor: colors.bgSecondary,
       suffixIcon: suffix,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.s4,
         vertical: AppSpacing.s3,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.s2),
-        borderSide: BorderSide(color: colors.border.withValues(alpha: 0.4)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.s2),
-        borderSide: BorderSide(color: colors.border.withValues(alpha: 0.4)),
-      ),
-      // 绿 focus 描边（设计稿表单规范）。
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.s2),
-        borderSide: BorderSide(color: colors.brandPrimary, width: 2),
       ),
     );
   }
@@ -241,7 +223,6 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
             keyboardType: TextInputType.visiblePassword,
             inputFormatters: inputFormatters,
             decoration: _fieldDecoration(
-              colors: colors,
               hint: hint,
               suffix: onToggleObscure == null
                   ? null
@@ -249,8 +230,8 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                       onPressed: onToggleObscure,
                       icon: Icon(
                         obscureText
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
                         size: 20,
                         color: colors.textSecondary,
                       ),

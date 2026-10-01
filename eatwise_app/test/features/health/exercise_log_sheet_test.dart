@@ -283,7 +283,7 @@ void main() {
     expect(find.text('今日运动'), findsOneWidget);
     expect(find.text('慢跑 · 30 分钟 · 210 千卡'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.tap(find.byIcon(Icons.delete_outline_rounded));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('已删除'), findsOneWidget);

@@ -97,7 +97,7 @@ class _FastingCelebrationState extends State<FastingCelebration>
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     Icon(
-                      Icons.celebration_outlined,
+                      Icons.celebration_rounded,
                       color: colors.brandPrimary,
                       size: 32,
                     ),

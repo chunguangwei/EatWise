@@ -80,6 +80,7 @@ class _SummaryBody extends StatelessWidget {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
     final summaryT = t.reports.weeklySummary;
     final isEn = LocaleSettings.currentLocale == AppLocale.en;
 
@@ -119,7 +120,7 @@ class _SummaryBody extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: colors.brandPrimary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: radii.rFull,
                 ),
                 child: Text(
                   chip,

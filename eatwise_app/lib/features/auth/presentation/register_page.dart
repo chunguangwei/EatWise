@@ -337,7 +337,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   TextSpan(text: t.auth.register.agreePrefix),
                   TextSpan(
                     text: t.legal.privacyPolicy.title,
-                    style: TextStyle(
+                    style: textStyles.textSm.copyWith(
                       color: colors.brandPrimary,
                       fontWeight: FontWeight.w500,
                     ),
@@ -347,7 +347,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   TextSpan(text: t.auth.register.agreeAnd),
                   TextSpan(
                     text: t.legal.userAgreement.title,
-                    style: TextStyle(
+                    style: textStyles.textSm.copyWith(
                       color: colors.brandPrimary,
                       fontWeight: FontWeight.w500,
                     ),
@@ -363,32 +363,15 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     );
   }
 
-  InputDecoration _fieldDecoration({
-    required AppColors colors,
-    required String hint,
-    Widget? suffix,
-  }) {
+  InputDecoration _fieldDecoration({required String hint, Widget? suffix}) {
+    // 填充/描边/圆角由主题 inputDecorationTheme 统一承载（rMd + 品牌绿
+    // focus 2px），此处只保留页面级差异（hint/后缀图标/48px 内容边距）。
     return InputDecoration(
       hintText: hint,
-      filled: true,
-      fillColor: colors.bgSecondary,
       suffixIcon: suffix,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.s4,
         vertical: AppSpacing.s3,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.s2),
-        borderSide: BorderSide(color: colors.border.withValues(alpha: 0.4)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.s2),
-        borderSide: BorderSide(color: colors.border.withValues(alpha: 0.4)),
-      ),
-      // 绿 focus 描边（设计稿表单规范）。
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.s2),
-        borderSide: BorderSide(color: colors.brandPrimary, width: 2),
       ),
     );
   }
@@ -418,7 +401,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             keyboardType: keyboardType,
             inputFormatters: inputFormatters,
             decoration: _fieldDecoration(
-              colors: colors,
               hint: hint,
               suffix: onToggleObscure == null
                   ? null
@@ -426,8 +408,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       onPressed: onToggleObscure,
                       icon: Icon(
                         obscureText
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
                         size: 20,
                         color: colors.textSecondary,
                       ),

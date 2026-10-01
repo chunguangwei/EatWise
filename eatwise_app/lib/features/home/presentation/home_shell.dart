@@ -65,27 +65,27 @@ class HomeShell extends ConsumerWidget {
           },
           destinations: <NavigationDestination>[
             NavigationDestination(
-              icon: const Icon(Icons.timer_outlined),
+              icon: const Icon(Icons.timer_rounded),
               selectedIcon: const Icon(Icons.timer),
               label: t.home.tab.home,
             ),
             NavigationDestination(
-              icon: const Icon(Icons.edit_note_outlined),
+              icon: const Icon(Icons.edit_note_rounded),
               selectedIcon: const Icon(Icons.edit_note),
               label: t.home.tab.record,
             ),
             NavigationDestination(
-              icon: const Icon(Icons.insights_outlined),
+              icon: const Icon(Icons.insights_rounded),
               selectedIcon: const Icon(Icons.insights),
               label: t.home.tab.data,
             ),
             NavigationDestination(
-              icon: const Icon(Icons.people_outline),
+              icon: const Icon(Icons.people_outline_rounded),
               selectedIcon: const Icon(Icons.people),
               label: t.home.tab.community,
             ),
             NavigationDestination(
-              icon: const Icon(Icons.person_outline),
+              icon: const Icon(Icons.person_outline_rounded),
               selectedIcon: const Icon(Icons.person),
               label: t.home.tab.profile,
             ),

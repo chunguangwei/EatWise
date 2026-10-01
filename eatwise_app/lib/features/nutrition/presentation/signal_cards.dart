@@ -210,6 +210,11 @@ class SignalCard extends StatelessWidget {
         t.nutrition.signalCard.zone.red,
       ),
     };
+    // 黄灯图标色（v1.16.0）：signalYellow 上白卡仅 1.44:1，图标取
+    // signalYellowText；徽标底色保持 zoneColor。
+    final zoneIconColor = verdict.zone == SignalZone.yellow
+        ? colors.signalYellowText
+        : zoneColor;
     final advice = adviceTextFor(
       t,
       nutrient: nutrient,
@@ -225,7 +230,7 @@ class SignalCard extends StatelessWidget {
           key: ValueKey<String>('signal.advice.$nutrient'),
           title: Row(
             children: <Widget>[
-              Icon(zoneIcon, color: zoneColor, size: 20),
+              Icon(zoneIcon, color: zoneIconColor, size: 20),
               const SizedBox(width: AppSpacing.s2),
               Expanded(
                 child: Text(
@@ -308,7 +313,7 @@ class SignalCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      Icon(zoneIcon, color: zoneColor, size: 16),
+                      Icon(zoneIcon, color: zoneIconColor, size: 16),
                       const SizedBox(width: AppSpacing.s1),
                       Flexible(
                         child: Text(
@@ -320,9 +325,14 @@ class SignalCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      // 提示图标取落区色（与徽标同色系）——旧 textSecondary
-                      // 灰与正文同色，可点击感知弱（走查）。
-                      Icon(Icons.info_outline, color: zoneColor, size: 14),
+                      // 提示图标取落区文字色（黄灯用 signalYellowText 保证
+                      // 白卡可读）——旧 textSecondary 灰与正文同色，可点击
+                      // 感知弱（走查）。
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: zoneIconColor,
+                        size: 14,
+                      ),
                     ],
                   ),
                 ),

@@ -129,7 +129,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.byIcon(Icons.favorite_border_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
     expect(find.text('多记几笔，常吃榜就出来啦'), findsOneWidget);
     expect(find.text('去搜一搜'), findsOneWidget);
 

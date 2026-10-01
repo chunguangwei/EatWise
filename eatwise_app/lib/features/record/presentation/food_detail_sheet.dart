@@ -152,7 +152,6 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
             ? () => widget.onConfirm(_amountController.text.trim())
             : null,
         style: FilledButton.styleFrom(
-          backgroundColor: colors.brandPrimary,
           minimumSize: const Size.fromHeight(AppSpacing.s12),
         ),
         child: Text(s.confirm, style: textStyles.textBase),
@@ -179,12 +178,14 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
                     vertical: AppSpacing.s1,
                   ),
                   decoration: BoxDecoration(
-                    color: colors.brandAccent,
+                    color: colors.brandAccent.withValues(alpha: 0.14),
                     borderRadius: radii.rSm,
                   ),
                   child: Text(
                     badgeText,
-                    style: textStyles.textXs.copyWith(color: colors.bgPrimary),
+                    style: textStyles.textXs.copyWith(
+                      color: colors.brandAccent,
+                    ),
                   ),
                 ),
             ],
@@ -224,7 +225,9 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
                   children: <Widget>[
                     Text(
                       '${food.kcalPer100g.round()}',
-                      style: textStyles.textTimer.copyWith(
+                      // v1.16.0 大数字三级收敛：textTimer(48) 删除，
+                      // 千卡与首页环内/指标卡同阶 textDisplay(34)。
+                      style: textStyles.textDisplay.copyWith(
                         color: colors.brandAccent,
                       ),
                     ),
@@ -387,7 +390,7 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
               ),
               onPressed: () =>
                   unawaited(startFoodCorrectionFlow(context, ref, food)),
-              icon: const Icon(Icons.edit_outlined, size: 16),
+              icon: const Icon(Icons.edit_rounded, size: 16),
               label: Text(
                 t.record.foodDetail.reportIssue,
                 style: textStyles.textSm,
@@ -494,7 +497,7 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
                 ),
                 onPressed: () =>
                     unawaited(_onAdminDelete(t, cs, messenger, textStyles)),
-                icon: const Icon(Icons.delete_forever_outlined, size: 16),
+                icon: const Icon(Icons.delete_forever_rounded, size: 16),
                 label: Text(cs.adminDeleteAction, style: textStyles.textSm),
               ),
             ),
@@ -768,6 +771,13 @@ class _SignalBadge extends StatelessWidget {
         t.record.foodDetail.badgeRed,
       ),
     };
+    // 文字/图标取同色深阶（v1.16.0 半透明浅底徽标语言）：signalYellow
+    // 上白卡仅 1.44:1，黄灯文字/图标用 signalYellowText；底色保持落区色。
+    final textColor = switch (verdict.zone) {
+      SignalZone.green => colors.brandPrimary,
+      SignalZone.yellow => colors.signalYellowText,
+      SignalZone.red => colors.signalRed,
+    };
     return Semantics(
       label: label,
       child: Container(
@@ -776,15 +786,15 @@ class _SignalBadge extends StatelessWidget {
           vertical: AppSpacing.s1,
         ),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.15),
+          color: color.withValues(alpha: 0.14),
           borderRadius: radii.rSm,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(icon, color: color, size: 18),
+            Icon(icon, color: textColor, size: 18),
             const SizedBox(width: AppSpacing.s1),
-            Text(label, style: textStyles.textSm.copyWith(color: color)),
+            Text(label, style: textStyles.textSm.copyWith(color: textColor)),
           ],
         ),
       ),

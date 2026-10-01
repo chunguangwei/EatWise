@@ -99,7 +99,7 @@ void main() {
     expect(find.text('4'), findsOneWidget); // 点赞计数
     expect(find.text('内容审核中，仅自己可见'), findsOneWidget);
     // 举报入口仅他人帖有（p2 是本人帖）
-    expect(find.byIcon(Icons.flag_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.flag_rounded), findsOneWidget);
     await unmount(tester);
   });
 
@@ -117,7 +117,7 @@ void main() {
     api.posts = <ServerPost>[stubPost(id: 'p1', likeCount: 4)];
     await pumpFeed(tester);
 
-    await tester.tap(find.byIcon(Icons.favorite_border));
+    await tester.tap(find.byIcon(Icons.favorite_rounded));
     await tester.pump();
     expect(find.text('5'), findsOneWidget);
     expect(find.byIcon(Icons.favorite), findsOneWidget);
@@ -133,7 +133,7 @@ void main() {
     api.posts = <ServerPost>[stubPost(id: 'p1', text: '被举报的内容')];
     await pumpFeed(tester);
 
-    await tester.tap(find.byIcon(Icons.flag_outlined));
+    await tester.tap(find.byIcon(Icons.flag_rounded));
     await tester.pumpAndSettle();
     expect(find.textContaining('确定举报这条打卡吗'), findsOneWidget);
 
@@ -284,7 +284,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(PostCard),
-          matching: find.byIcon(Icons.broken_image_outlined),
+          matching: find.byIcon(Icons.broken_image_rounded),
         ),
         findsOneWidget,
       );
@@ -320,7 +320,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(PostCard),
-        matching: find.byIcon(Icons.local_fire_department_outlined),
+        matching: find.byIcon(Icons.local_fire_department_rounded),
       ),
       findsOneWidget,
     );
@@ -342,10 +342,10 @@ void main() {
     await pumpFeed(tester);
 
     // 删除入口仅本人帖有；他人帖只有举报。
-    expect(find.byIcon(Icons.delete_outline), findsOneWidget);
-    expect(find.byIcon(Icons.flag_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.delete_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.flag_rounded), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.tap(find.byIcon(Icons.delete_rounded));
     await tester.pumpAndSettle();
     expect(find.textContaining('确定删除这条打卡吗'), findsOneWidget);
 
@@ -362,7 +362,7 @@ void main() {
     api.deleteError = networkException;
     await pumpFeed(tester);
 
-    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.tap(find.byIcon(Icons.delete_rounded));
     await tester.pumpAndSettle();
     await tester.tap(find.text('删除').last);
     await tester.pumpAndSettle();

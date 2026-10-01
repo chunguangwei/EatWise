@@ -30,7 +30,7 @@ void main() {
     );
 
     // 先点键盘切换钮进入键盘输入态（idle 态文本区是状态文案不是输入框）。
-    await tester.tap(find.byIcon(Icons.keyboard_outlined));
+    await tester.tap(find.byIcon(Icons.keyboard_rounded));
     await tester.pump();
     await tester.enterText(find.byType(TextField), '一个鸡蛋');
     await tester.pump();

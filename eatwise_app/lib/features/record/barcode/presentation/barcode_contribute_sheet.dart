@@ -166,12 +166,12 @@ class _BarcodeContributeSheetState
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
+              leading: const Icon(Icons.photo_camera_rounded),
               title: Text(t.record.photo.takePhoto),
               onTap: () => Navigator.of(sheetContext).pop(PhotoSource.camera),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
+              leading: const Icon(Icons.photo_library_rounded),
               title: Text(t.record.photo.fromGallery),
               onTap: () => Navigator.of(sheetContext).pop(PhotoSource.gallery),
             ),
@@ -480,7 +480,7 @@ class _BarcodeContributeSheetState
               foregroundColor: colors.brandPrimary,
               side: BorderSide(color: colors.brandPrimary),
             ),
-            icon: const Icon(Icons.add_a_photo_outlined),
+            icon: const Icon(Icons.add_a_photo_rounded),
             label: Text(t.photoAdd, style: textStyles.textBase),
           )
         else

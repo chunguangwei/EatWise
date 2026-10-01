@@ -1,4 +1,5 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/features/fasting/presentation/fasting_home_page.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
@@ -120,7 +121,7 @@ void main() {
     expect(plan.plan.eatEndMinutes, 1200);
     expect(store.loadPendingPlan(), isNull);
     expect(gate.completed, isTrue);
-    expect(find.text('断食计时'), findsOneWidget);
+    expect(find.byType(FastingHomePage), findsOneWidget);
   });
 
   testWidgets('自定义窗口跨午夜 6h@23:00：end 次日 05:00 原样展示', (tester) async {

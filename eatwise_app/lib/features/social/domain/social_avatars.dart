@@ -17,14 +17,14 @@ final class SocialAvatar {
 
 const List<SocialAvatar> kSocialAvatars = <SocialAvatar>[
   // ——— 基础（v1.12.7 首发 8 款，下标 0–7 勿动）———
-  SocialAvatar(background: Color(0xFF66BB6A), icon: Icons.eco_outlined), // 0 青草
+  SocialAvatar(background: Color(0xFF66BB6A), icon: Icons.eco_rounded), // 0 青草
   SocialAvatar(
     background: Color(0xFFFFA726),
-    icon: Icons.local_fire_department_outlined,
+    icon: Icons.local_fire_department_rounded,
   ), // 1 火焰
   SocialAvatar(
     background: Color(0xFF42A5F5),
-    icon: Icons.water_drop_outlined,
+    icon: Icons.water_drop_rounded,
   ), // 2 水滴
   SocialAvatar(
     background: Color(0xFFAB47BC),
@@ -36,12 +36,12 @@ const List<SocialAvatar> kSocialAvatars = <SocialAvatar>[
   ), // 4 爱心
   SocialAvatar(
     background: Color(0xFF5C6BC0),
-    icon: Icons.nightlight_outlined,
+    icon: Icons.nightlight_rounded,
   ), // 5 夜灯
-  SocialAvatar(background: Color(0xFF26A69A), icon: Icons.spa_outlined), // 6 荷叶
+  SocialAvatar(background: Color(0xFF26A69A), icon: Icons.spa_rounded), // 6 荷叶
   SocialAvatar(
     background: Color(0xFF8D6E63),
-    icon: Icons.bakery_dining_outlined,
+    icon: Icons.bakery_dining_rounded,
   ), // 7 面包
   // ——— 动物 ———
   SocialAvatar(background: Color(0xFFEC407A), icon: Icons.pets), // 8 猫爪
@@ -54,54 +54,54 @@ const List<SocialAvatar> kSocialAvatars = <SocialAvatar>[
   ), // 11 玫瑰
   SocialAvatar(
     background: Color(0xFF7CB342),
-    icon: Icons.emoji_nature_outlined,
+    icon: Icons.emoji_nature_rounded,
   ), // 12 花花
   SocialAvatar(
     background: Color(0xFF2E7D32),
-    icon: Icons.forest_outlined,
+    icon: Icons.forest_rounded,
   ), // 13 森林
   SocialAvatar(
     background: Color(0xFF43A047),
-    icon: Icons.nature_people_outlined,
+    icon: Icons.nature_people_rounded,
   ), // 14 树下
   SocialAvatar(
     background: Color(0xFF00897B),
-    icon: Icons.park_outlined,
+    icon: Icons.park_rounded,
   ), // 15 公园
   SocialAvatar(background: Color(0xFF558B2F), icon: Icons.grass), // 16 草坪
   SocialAvatar(
     background: Color(0xFFC0CA33),
-    icon: Icons.yard_outlined,
+    icon: Icons.yard_rounded,
   ), // 17 盆栽
   // ——— 五谷蔬果 ———
   SocialAvatar(
     background: Color(0xFFF9A825),
-    icon: Icons.agriculture_outlined,
+    icon: Icons.agriculture_rounded,
   ), // 18 麦穗
   SocialAvatar(
     background: Color(0xFFFB8C00),
-    icon: Icons.ramen_dining_outlined,
+    icon: Icons.ramen_dining_rounded,
   ), // 19 拉面
   SocialAvatar(
     background: Color(0xFFA1887F),
-    icon: Icons.rice_bowl_outlined,
+    icon: Icons.rice_bowl_rounded,
   ), // 20 米饭
   SocialAvatar(
     background: Color(0xFF7E57C2),
-    icon: Icons.soup_kitchen_outlined,
+    icon: Icons.soup_kitchen_rounded,
   ), // 21 热汤
   SocialAvatar(
     background: Color(0xFFFFB74D),
-    icon: Icons.breakfast_dining_outlined,
+    icon: Icons.breakfast_dining_rounded,
   ), // 22 早餐
   // ——— 冰饮甜点 ———
   SocialAvatar(
     background: Color(0xFFF48FB1),
-    icon: Icons.icecream_outlined,
+    icon: Icons.icecream_rounded,
   ), // 23 甜筒
   SocialAvatar(
     background: Color(0xFF4DD0E1),
-    icon: Icons.emoji_food_beverage_outlined,
+    icon: Icons.emoji_food_beverage_rounded,
   ), // 24 气泡饮
 ];
 

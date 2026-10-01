@@ -149,7 +149,7 @@ class _OnDeviceRecordingSheetState
             Row(
               children: <Widget>[
                 Icon(
-                  _typing ? Icons.keyboard_outlined : Icons.mic,
+                  _typing ? Icons.keyboard_rounded : Icons.mic,
                   color: colors.brandPrimary,
                 ),
                 const SizedBox(width: AppSpacing.s2),
@@ -169,7 +169,7 @@ class _OnDeviceRecordingSheetState
                 ),
                 // 语音/键盘切换（≥48px 触控目标）。
                 IconButton(
-                  icon: Icon(_typing ? Icons.mic : Icons.keyboard_outlined),
+                  icon: Icon(_typing ? Icons.mic : Icons.keyboard_rounded),
                   tooltip: s.voiceTypeInput,
                   constraints: const BoxConstraints(
                     minWidth: 48,

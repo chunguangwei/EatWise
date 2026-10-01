@@ -74,7 +74,7 @@ class _StatGrid extends StatelessWidget {
       (
         growth.qualifiedDays,
         '${summary.qualifiedDays} ${growth.daysUnit}',
-        Icons.local_fire_department_outlined,
+        Icons.local_fire_department_rounded,
       ),
       (
         growth.recordedDays,
@@ -86,9 +86,9 @@ class _StatGrid extends StatelessWidget {
         summary.avgFastingHours == null
             ? growth.noValue
             : '${summary.avgFastingHours!.toStringAsFixed(1)} ${growth.hourUnit}',
-        Icons.timer_outlined,
+        Icons.timer_rounded,
       ),
-      (growth.weightDelta, deltaText, Icons.monitor_weight_outlined),
+      (growth.weightDelta, deltaText, Icons.monitor_weight_rounded),
     ];
 
     // 2×2 网格（真机走查：窄屏四等分单行时，「15.0 小时」这类长值在
@@ -132,6 +132,7 @@ class _StatCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
     return Container(
       padding: const EdgeInsets.symmetric(
         vertical: AppSpacing.s3,
@@ -139,7 +140,7 @@ class _StatCell extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: colors.brandPrimary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: radii.rMd,
       ),
       child: Column(
         children: <Widget>[
@@ -187,7 +188,7 @@ class _GrowthEmpty extends StatelessWidget {
       child: Column(
         children: <Widget>[
           const SizedBox(height: AppSpacing.s2),
-          Icon(Icons.eco_outlined, color: colors.textSecondary, size: 32),
+          Icon(Icons.eco_rounded, color: colors.textSecondary, size: 32),
           const SizedBox(height: AppSpacing.s2),
           Text(
             message,

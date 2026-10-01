@@ -109,7 +109,7 @@ class SettingsPage extends ConsumerWidget {
                 _SettingsTile(
                   title: t.settings.bodyProfile.title,
                   subtitle: t.settings.bodyProfile.subtitle,
-                  icon: Icons.monitor_weight_outlined,
+                  icon: Icons.monitor_weight_rounded,
                   onTap: () => context.push('/settings/body-profile'),
                 ),
                 // D-06 换方案入口：方案推荐页（已有生效方案且窗口不同时
@@ -117,7 +117,7 @@ class SettingsPage extends ConsumerWidget {
                 _SettingsTile(
                   title: t.settings.fastingPlan.title,
                   subtitle: t.settings.fastingPlan.subtitle,
-                  icon: Icons.schedule_outlined,
+                  icon: Icons.schedule_rounded,
                   onTap: () => context.push('/settings/fasting-plan'),
                 ),
                 // 喝水提醒开关（默认开）：进食窗口内每小时提醒，建议量按
@@ -125,7 +125,7 @@ class SettingsPage extends ConsumerWidget {
                 _SettingsTile(
                   title: t.settings.reminders.waterHourly,
                   subtitle: t.settings.reminders.waterHourlySubtitle,
-                  icon: Icons.water_drop_outlined,
+                  icon: Icons.water_drop_rounded,
                   trailingWidget: Switch(
                     value: ref.watch(waterReminderEnabledProvider),
                     onChanged: (value) async {
@@ -150,7 +150,7 @@ class SettingsPage extends ConsumerWidget {
                 _SettingsTile(
                   title: t.settings.reminders.notifications,
                   subtitle: t.settings.reminders.notificationsSubtitle,
-                  icon: Icons.notifications_outlined,
+                  icon: Icons.notifications_rounded,
                   onTap: () async {
                     try {
                       await AppSettings.openAppSettings(
@@ -164,7 +164,7 @@ class SettingsPage extends ConsumerWidget {
                 _SettingsTile(
                   title: t.settings.privacy.healthData,
                   subtitle: t.settings.privacy.healthDataSubtitle,
-                  icon: Icons.favorite_outline,
+                  icon: Icons.favorite_rounded,
                   trailingWidget: Switch(
                     value: healthGranted,
                     onChanged: (value) => _setHealthData(context, ref, value),
@@ -184,7 +184,7 @@ class SettingsPage extends ConsumerWidget {
                     title: t.settings.account.deletionScheduled(
                       days: _coolingOffDaysLeft(userMe!),
                     ),
-                    icon: Icons.delete_forever_outlined,
+                    icon: Icons.delete_forever_rounded,
                     iconColor: colors.signalRed,
                     titleColor: colors.signalRed,
                     trailingWidget: TextButton(
@@ -195,24 +195,24 @@ class SettingsPage extends ConsumerWidget {
                 if (loggedIn) ...<Widget>[
                   _SettingsTile(
                     title: t.settings.account.changePassword,
-                    icon: Icons.lock_outline,
+                    icon: Icons.lock_rounded,
                     onTap: () => context.push('/settings/change-password'),
                   ),
                 ] else
                   _SettingsTile(
                     title: t.settings.account.login,
-                    icon: Icons.login_outlined,
+                    icon: Icons.login_rounded,
                     onTap: () => context.push('/login'),
                   ),
                 _SettingsTile(
                   title: t.settings.account.contributions,
-                  icon: Icons.restaurant_outlined,
+                  icon: Icons.restaurant_rounded,
                   onTap: () => context.push('/profile/contributions'),
                 ),
                 _SettingsTile(
                   title: t.settings.privacy.blockedUsers,
                   subtitle: t.settings.privacy.blockedUsersSubtitle,
-                  icon: Icons.block_outlined,
+                  icon: Icons.block_rounded,
                   onTap: () => context.push('/settings/blocked-users'),
                 ),
                 // 审批中心（用户角色 admin 可见；普通用户完全隐藏，
@@ -221,18 +221,18 @@ class SettingsPage extends ConsumerWidget {
                   _SettingsTile(
                     title: t.settings.account.moderation,
                     subtitle: t.moderation.subtitle,
-                    icon: Icons.fact_check_outlined,
+                    icon: Icons.fact_check_rounded,
                     onTap: () => context.push('/moderation/food-candidates'),
                   ),
                 if (loggedIn) ...<Widget>[
                   _SettingsTile(
                     title: t.settings.account.logout,
-                    icon: Icons.logout_outlined,
+                    icon: Icons.logout_rounded,
                     onTap: () => _confirmLogout(context, ref),
                   ),
                   _SettingsTile(
                     title: t.settings.account.deleteAccount,
-                    icon: Icons.delete_outline,
+                    icon: Icons.delete_rounded,
                     iconColor: colors.signalRed,
                     titleColor: colors.signalRed,
                     onTap: () => _confirmDeleteAccount(context, ref),
@@ -247,13 +247,13 @@ class SettingsPage extends ConsumerWidget {
                 // 用户自定义 LLM 配置（规格 §3）：/settings/ai-model。
                 _SettingsTile(
                   title: t.settings.aiModel.title,
-                  icon: Icons.psychology_outlined,
+                  icon: Icons.psychology_rounded,
                   onTap: () => context.push('/settings/ai-model'),
                 ),
                 _SettingsTile(
                   title: t.settings.privacy.analytics,
                   subtitle: t.settings.privacy.analyticsSubtitle,
-                  icon: Icons.analytics_outlined,
+                  icon: Icons.analytics_rounded,
                   trailingWidget: Switch(
                     value: analyticsGranted,
                     onChanged: (value) => _setAnalytics(ref, value),
@@ -261,18 +261,18 @@ class SettingsPage extends ConsumerWidget {
                 ),
                 _SettingsTile(
                   title: t.settings.privacy.exportData,
-                  icon: Icons.ios_share_outlined,
+                  icon: Icons.ios_share_rounded,
                   onTap: () => _exportData(context, ref),
                 ),
                 _SettingsTile(
                   title: t.settings.language.title,
-                  icon: Icons.language_outlined,
+                  icon: Icons.language_rounded,
                   trailing: _languageLabel(t, languageMode),
                   onTap: () => _pickLanguage(context, ref),
                 ),
                 _SettingsTile(
                   title: t.settings.theme.title,
-                  icon: Icons.dark_mode_outlined,
+                  icon: Icons.dark_mode_rounded,
                   trailing: _themeLabel(t, themeMode),
                   onTap: () => _pickTheme(context, ref),
                 ),
@@ -287,7 +287,7 @@ class SettingsPage extends ConsumerWidget {
                 // （version (buildNumber)），加载完成前占位不展示假版本。
                 _SettingsTile(
                   title: t.settings.about.version,
-                  icon: Icons.system_update_alt_outlined,
+                  icon: Icons.system_update_alt_rounded,
                   trailing:
                       ref.watch(appVersionLabelProvider).valueOrNull ?? '…',
                   onTap: ref.watch(updateCheckSupportedPlatformProvider)
@@ -298,13 +298,13 @@ class SettingsPage extends ConsumerWidget {
                 // AI 说明四项收敛为一个入口，UI 重构「缩减与合并」）。
                 _SettingsTile(
                   title: t.settings.about.legalHub,
-                  icon: Icons.description_outlined,
+                  icon: Icons.description_rounded,
                   onTap: () => unawaited(_showLegalHub(context)),
                 ),
                 // Flutter 官方开源许可页。
                 _SettingsTile(
                   title: t.settings.about.licenses,
-                  icon: Icons.code_outlined,
+                  icon: Icons.code_rounded,
                   onTap: () => showLicensePage(
                     context: context,
                     applicationName: Translations.of(context).common.appName,
@@ -312,7 +312,7 @@ class SettingsPage extends ConsumerWidget {
                 ),
                 _SettingsTile(
                   title: t.settings.about.contact,
-                  icon: Icons.mail_outline,
+                  icon: Icons.mail_rounded,
                   trailing: 'chunguangwee@gmail.com',
                   onTap: () => unawaited(_contactSupport(context)),
                 ),
@@ -747,7 +747,7 @@ class _ProfileHeaderCard extends ConsumerWidget {
           children: <Widget>[
             ListTile(
               leading: Icon(
-                Icons.photo_camera_outlined,
+                Icons.photo_camera_rounded,
                 color: colors.brandPrimary,
               ),
               title: Text(t.settings.account.avatar.takePhoto),
@@ -755,7 +755,7 @@ class _ProfileHeaderCard extends ConsumerWidget {
             ),
             ListTile(
               leading: Icon(
-                Icons.photo_library_outlined,
+                Icons.photo_library_rounded,
                 color: colors.brandPrimary,
               ),
               title: Text(t.settings.account.avatar.fromGallery),
@@ -888,7 +888,7 @@ class _ProfileHeaderCard extends ConsumerWidget {
                               url: resolvedAvatarUrl,
                             )
                           : Icon(
-                              Icons.person_outline,
+                              Icons.person_rounded,
                               size: 26,
                               color: colors.brandPrimary,
                             ),
@@ -1034,7 +1034,7 @@ class _SettingsTile extends StatelessWidget {
 
   final String title;
 
-  /// 前置线性图标（Icons.outlined 系，18px）。
+  /// 前置线性图标（Icons.rounded 圆润系，18px）。
   final IconData icon;
 
   final String? subtitle;
@@ -1151,7 +1151,7 @@ class _AvatarImageState extends ConsumerState<_AvatarImage> {
         final bytes = snapshot.data;
         if (bytes == null || bytes.isEmpty) {
           return Icon(
-            Icons.person_outline,
+            Icons.person_rounded,
             size: 26,
             color: colors.brandPrimary,
           );

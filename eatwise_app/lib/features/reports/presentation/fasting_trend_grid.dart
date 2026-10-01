@@ -34,7 +34,7 @@ class FastingTrendGrid extends StatelessWidget {
     final days = states.length;
     final start = end.subtract(Duration(days: days - 1));
 
-    // 无记录灰 = 轨道暗纹同口径（亮 0.12 / 暗 0.22，对齐 MultiRingProgress）。
+    // 无记录灰 = 轨道暗纹同口径（亮 0.12 / 暗 0.22，与已下线的闭合环组件同源）。
     final noRecordColor = colors.textSecondary.withValues(
       alpha: Theme.of(context).brightness == Brightness.dark ? 0.22 : 0.12,
     );

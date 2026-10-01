@@ -293,7 +293,7 @@ class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
                       PhotoSource.camera,
                     ),
                   ),
-                  icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                  icon: const Icon(Icons.photo_camera_rounded, size: 18),
                   label: Text(
                     t.record.exercise.screenshot.entryCamera,
                     style: textStyles.textSm,
@@ -311,7 +311,7 @@ class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
                       PhotoSource.gallery,
                     ),
                   ),
-                  icon: const Icon(Icons.photo_library_outlined, size: 18),
+                  icon: const Icon(Icons.photo_library_rounded, size: 18),
                   label: Text(
                     t.record.exercise.screenshot.entryGallery,
                     style: textStyles.textSm,
@@ -471,7 +471,7 @@ class _TodayExerciseTile extends ConsumerWidget {
         ),
         IconButton(
           key: ValueKey<String>('exercise.delete.${log.localId}'),
-          icon: const Icon(Icons.delete_outline),
+          icon: const Icon(Icons.delete_outline_rounded),
           tooltip: t.record.exercise.deleteLabel,
           onPressed: () => unawaited(_delete(context, ref)),
         ),

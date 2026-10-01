@@ -4,7 +4,8 @@
 > 决策锚点：《开放问题决策记录 v1.0》D-01～D-20，冲突时以决策记录为准，引用处标注编号。
 > 技术栈：Flutter 单代码库出 iOS + Android（D-17），iOS 15+ / Android 8.0（API 26）+（D-14），中英双语（D-15）。
 > 撰写日期：2026-07-27。关联文档：PRD v1.0、设计方案定稿、需求评审记录、决策记录 v1.0。
-> 修订：2026-09-29 全项目 UI 重构（参考苹果健身「活动三环/大数字紧凑卡」与华为运动健康「白卡 2 列看板/健康环/迷你图表卡」，保持轻盈绿品牌浅色优先）——色彩表新增环图/图表强调色组（ring*/chart*），rLg 16→20，阴影调柔调扩散，字号表新增 textDisplay；共享组件 `MultiRingProgress` / `MetricCard` / `SectionHeader`（lib/core/widgets/）以本表 Token 为准。
+> 修订：2026-09-29 全项目 UI 重构（参考苹果健身「活动三环/大数字紧凑卡」与华为运动健康「白卡 2 列看板/健康环/迷你图表卡」，保持轻盈绿品牌浅色优先）——色彩表新增环图/图表强调色组（ring*/chart*），rLg 16→20，阴影调柔调扩散，字号表新增 textDisplay。
+> 修订：2026-10-01 v1.16.0 全局设计感优化（华为运动健康+苹果简约，对比度 P0 修复）——亮色 brandPrimary 轻盈绿 #3DBE8B → 沉稳绿 #2A9970（白字 CTA 达大字级 AA）、textSecondary #8A9694 → #5F6B69（达 AA）、新增 signalYellowText（黄灯徽标文字专用）；暗色层级修复（bgPrimary #0C1110 / bgSecondary #222C29 / divider 上浮、阴影 alpha 与亮色持平）；删 textTimer（48pt 倒计时统一用 textDisplay 34pt）与 shadowLg（弹窗走 dialogTheme rLg+M3 elevation）；主题层收口（appBarTheme 左对齐 textXl / filledButtonTheme 品牌绿 48px 胶囊 / outlinedButtonTheme 绿描边 / dialog+bottomSheet 圆角统一 rLg=20 / snackBar 悬浮 rMd / inputDecoration 填充+rMd）；图标统一 Rounded 圆润系；空态统一共享组件 `AppStateView`（lib/core/widgets/state_views.dart）；删除零引用组件 MultiRingProgress/ChartCard/SectionHeader/list_group/mini_charts。
 
 ### 文档信息
 
@@ -164,23 +165,24 @@ Flutter 端统一采用 **1x 基准 + 分辨率变体目录**；原生侧（小�
 
 | 设计 Token | HEX（亮色） | Flutter 字段（`AppColors`） | 用途 |
 |------------|-------------|------------------------------|------|
-| `--brand-primary` | `#3DBE8B` 轻盈绿 | `brandPrimary` | 品牌主色、断食进行态、CTA |
-| （主色深，设计稿 2.2） | `#2A9970` 沉稳绿 | `brandPrimaryPressed` | 按压态、强调〔假设：Token 名 `brand-primary-pressed`，设计稿未给语义名〕 |
+| `--brand-primary` | `#2A9970` 沉稳绿（2026-10-01 由轻盈绿 #3DBE8B 加深，白字 CTA 达大字级 AA） | `brandPrimary` | 品牌主色、断食进行态、CTA |
+| （主色深） | `#1F7A5A` 深林绿 | `brandPrimaryPressed` | 按压态、强调 |
 | `--brand-accent` | `#FF9F45` 暖阳橙 | `brandAccent` | 进食窗口、成就/打卡、FAB |
 | `--signal-red` | `#FF6B6B` 活力珊瑚 | `signalRed` | 红灯预警、营养超标 |
-| `--signal-yellow` | `#FFD24C` 提示黄 | `signalYellow` | 黄灯·适量提示 |
-| `--signal-green` | `#3DBE8B` | `signalGreen` | 绿灯·达标（与主色同值，语义独立） |
-| `--bg-primary` | `#F7F9F8` 云白 | `bgPrimary` | 页面背景 |
+| `--signal-yellow` | `#FFD24C` 提示黄 | `signalYellow` | 黄灯·适量提示（仅作色块/图标底） |
+| `--signal-yellow-text` | `#8F6D1F` | `signalYellowText` | 黄灯徽标文字专用（2026-10-01 新增，signalYellow 直接作文字仅 1.44:1） |
+| `--signal-green` | `#2A9970` | `signalGreen` | 绿灯·达标（与主色同值，语义独立） |
+| `--bg-primary` | `#EFF2F1` 云白（2026-09-30 由 #F7F9F8 加深，灰底白卡对比） | `bgPrimary` | 页面背景 |
 | `--bg-secondary` | `#FFFFFF` | `bgSecondary` | 卡片底〔假设：设计稿「云白/白底」语义拆分〕 |
 | `--text-primary` | `#1E2A28` 墨黑 | `textPrimary` | 主文字 |
-| `--text-secondary` | `#8A9694` 雾灰 | `textSecondary` | 次要文字、描边辅助 |
-| `--border` | `#8A9694` 派生 | `border` | 描边（次按钮 1px、表单描边）〔假设：与雾灰同源，透明度由组件定〕 |
-| `--ring-exercise` | `#3DBE8B` | `ringExercise` | 环图·活动/断食（与主色同值，独立语义；2026-09-29 新增） |
+| `--text-secondary` | `#5F6B69` 雾灰（2026-10-01 由 #8A9694 加深，白卡达 AA） | `textSecondary` | 次要文字 |
+| `--border` | `#8A9694` | `border` | 描边（次按钮 1px、表单描边；沿用旧雾灰值，与 textSecondary 已解耦） |
+| `--ring-exercise` | `#2A9970` | `ringExercise` | 环图·活动/断食（与主色同值，独立语义） |
 | `--ring-stand` | `#4CA6FF` 青蓝 | `ringStand` | 环图·站立/步数（苹果站立环同族色；2026-09-29 新增） |
 | `--ring-move` | `#FF9F45` | `ringMove` | 环图·消耗/进食（与暖阳橙同值，独立语义；2026-09-29 新增） |
 | `--chart-purple` | `#8B7CF6` 紫 | `chartPurple` | 图表·紫（睡眠/心率/步数类卡片强调色；2026-09-29 新增） |
 
-约束：信号灯语义全局固定（绿=达标/黄=适量/红=超标），`signal*` 三个字段禁止挪作他用；`signalYellow` 白底文字组合不达 AA 时，其上文字强制用 `textPrimary` 而非白色（对比度走查项）。环图/图表色组（`ring*`/`chart*`）为多环进度组件与 MetricCard/图表专用，暗色对应值 `#3DBE8B` / `#5CB2FF` / `#FF9F45` / `#A39AFF`（2026-09-29 UI 重构，参考苹果健身活动环与华为运动健康健康环配色）。
+约束：信号灯语义全局固定（绿=达标/黄=适量/红=超标），`signal*` 字段禁止挪作他用；`signalYellow` 只作色块/图标底，其上的文字/图标一律用 `signalYellowText`（对比度走查项）。环图/图表色组（`ring*`/`chart*`）为多环进度组件与 MetricCard/图表专用，暗色对应值 `#3DBE8B` / `#5CB2FF` / `#FF9F45` / `#A39AFF`。徽标统一「色×0.12~0.16 浅底 + 同色深阶文字」半透明语言（实心底白字徽标已于 2026-10-01 全部下线）。另有两组 2026-09-30 新增色：开口环仪表 `gaugeRed/gaugeAmber/gaugeBlue`、发丝线 `divider`（亮 #E4E9E8 / 暗 #37433F）、浅填充 `fillSubtle`（亮 #F0F3F2 / 暗 #2B3734）。
 
 ## 2.3 字号 / 排版 Token（源自设计稿 2.3 / 3.4）
 
@@ -192,10 +194,9 @@ Flutter 端统一采用 **1x 基准 + 分辨率变体目录**；原生侧（小�
 | `--text-lg18` | 18 | `textLg` | Regular / 1.5 | 强调正文 |
 | `--text-xl20` | 20 | `textXl` | Medium / 1.4 | H2 |
 | `--text-2xl24` | 24 | `text2xl` | Medium / 1.4 | 区块标题 |
-| `--text-3xl30` | 30 | `text3xl` | Semibold / 1.4 | 大数字（营养值） |
+| `--text-3xl30` | 30 | `text3xl` | Semibold / 1.4 | 次级统计值（信号卡/连胜卡/图例） |
 | （H1，设计稿 2.3） | 28 / Semibold | `textH1` | Semibold / 1.4 | 页面主标题〔待外部确认：28 不在 3.4 阶梯内，暂定新增 Token，待设计确认是否并入阶梯或改为 30〕 |
-| （倒计时，设计稿 2.3） | 48 | `textTimer` | Inter Bold / 1.1 | 断食倒计时数字，仅 Inter 数字场景 |
-| `--text-display34` | 34 | `textDisplay` | Bold / 1.15 | 指标大数字（MetricCard 专用；配套约定：单位用 textSm 次要色紧随其后，说明文案用 textXs 次要色；2026-09-29 新增） |
+| `--text-display34` | 34 | `textDisplay` | Bold / 1.15 | 指标大数字（MetricCard / 环内倒计时 / 食物详情千卡；配套约定：单位 textSm 次要色、说明 textXs 次要色。2026-10-01 起为大数字唯一主档——textTimer 48pt 已删除） |
 
 - 字体族：中文 `PingFang SC`（iOS 系统）/ 思源黑体（Android，`Noto Sans SC` 内置打包〔假设：打包还是系统回退待性能评估〕）；西文与数字 Inter（计时、营养数值强制 Inter）。
 - 行高区间 1.4–1.5 如上表固定到每个 Token，禁止组件内另写行高。
@@ -216,11 +217,11 @@ Flutter 端统一采用 **1x 基准 + 分辨率变体目录**；原生侧（小�
 
 | 设计 Token | Flutter 字段（`AppShadows`，`List<BoxShadow>`） | 参数（亮色，2026-09-29 调柔调扩散） | 用途 |
 |------------|--------------------------------------------------|---------------------------------------|------|
-| `--shadow-sm` | `shadowSm` | `offset(0,2) blur(12) color(#1E2A28 @ 6%)` | 卡片 |
-| `--shadow-md` | `shadowMd` | `offset(0,6) blur(24) color(#1E2A28 @ 8%)` | 浮层、FAB |
-| `--shadow-lg` | `shadowLg` | `offset(0,12) blur(40) color(#1E2A28 @ 12%)` | 弹窗 |
+| `--shadow-sm` | `shadowSm` | `offset(0,2) blur(12) color(#1E2A28 @ 6%)` | 内容卡唯一基准阴影 |
+| `--shadow-md` | `shadowMd` | `offset(0,6) blur(24) color(#1E2A28 @ 8%)` | 浮层变体（浮于卡片之上的选中结果卡、FAB） |
+| ~~`--shadow-lg`~~ | （已删除） | 弹窗/弹层走 dialogTheme/bottomSheetTheme rLg=20 + M3 elevation（2026-10-01 下线，0 引用） | — |
 
-约束：暗色主题下阴影弱化（透明度减半）或替换为 1px 亮描边〔待外部确认〕；Android 不使用 `elevation` 系统阴影，统一走 Token，保证双端一致。
+约束：暗色阴影 alpha 与亮色持平（2026-10-01 修订——原「减半」口径在暗色下 ≈ 不可见，卡片层级消失）；Android 不使用 `elevation` 系统阴影，统一走 Token，保证双端一致。
 
 ## 2.6 间距 Token（4pt 阶梯，源自设计稿 3.3）
 
@@ -243,9 +244,9 @@ Flutter 端统一采用 **1x 基准 + 分辨率变体目录**；原生侧（小�
 
 - 结构：同名字段、双实例（`AppColors.light` / `AppColors.dark`），组件零感知切换。
 - 暗色具体色值设计稿未定义〔待外部确认：设计侧需输出暗色 Token 表，输出前开发按以下推导规则占位〕：
-  - 背景反转为深灰绿系（`bgPrimary` ≈ `#121817`），文字反转（`textPrimary` ≈ `#F7F9F8`）；
+  - 背景反转为深灰绿系（2026-10-01 层级修复：`bgPrimary` `#0C1110` / `bgSecondary` `#222C29` / `divider` `#37433F` / `fillSubtle` `#2B3734`——卡片底与页面底层级差 1.13→约 1.5:1），文字反转（`textPrimary` ≈ `#F7F9F8`）；
   - `signal*` 三色保持色相、提升亮度以保证深底 AA；
-  - 品牌色不变（`brandPrimary` 仍 `#3DBE8B`）。
+  - 暗色品牌色保持亮绿 `#3DBE8B`（深底对比需要；2026-10-01 起亮/暗 brandPrimary 不同值）。
 - 门禁：暗色组合同样过 1.5 对比度走查，未达标不上线。
 
 ---
@@ -280,14 +281,14 @@ Flutter 端统一采用 **1x 基准 + 分辨率变体目录**；原生侧（小�
 | 项 | 规范 |
 |----|------|
 | 形态 | 骨架轮廓与真实布局 1:1 同构（同卡片数量、同圆角、同间距 Token），禁用「菊花转圈」作为页面级加载 |
-| 颜色 | 底色 `bgSecondary`（卡片位），骨架块用中性浅灰〔假设：`#E4EAE8`，设计稿未给骨架色〕，明暗呼吸动画（opacity 0.5↔1.0，周期 1.2s） |
+| 颜色 | 底色 `bgSecondary`（卡片位），骨架块用 `fillSubtle`（2026-10-01 起走令牌，暗色兼容；原硬编码 #E4EAE8 已下线），明暗呼吸动画（opacity 0.5↔1.0，周期 1.2s） |
 | 减弱动效 | 静态骨架，无呼吸动画 |
 | 局部加载 | 列表分页加载用行内骨架行（2–3 行），不用全屏骨架 |
 | 超时 | 〔假设〕10s 未返回 → 转 error 态 |
 
 ### 3.2.2 空态（`com/empty-state/*`）
 
-统一结构：**插画（顶部，线性 2px 圆角风格，对齐品牌图标系统）→ 主文案（textXl）→ 副文案（textSm，`textSecondary`）→ CTA 主按钮（可无）**。
+统一结构：**插画（顶部 64px，Rounded 系图标，`textSecondary`）→ 主文案（textXl）→ 副文案（textSm，`textSecondary`）→ CTA 主按钮（可无，主题默认 FilledButton）**。代码实现统一走共享组件 `AppStateView`（`lib/core/widgets/state_views.dart`，2026-10-01 起；卡内空态按同规格手工对齐，不嵌组件）。
 
 | 模块场景 | 主文案（中 / EN） | CTA | 备注 |
 |----------|--------------------|-----|------|

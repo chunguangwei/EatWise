@@ -497,11 +497,11 @@ void main() {
   });
 
   testWidgets('状态栏重叠回归：标题与问候语副标题不侵入状态栏（360x640 + 大字体 1.3）', (tester) async {
-    // 真机走查「晚上好被顶部切掉一半」点位：模拟 24pt 状态栏，断言 AppBar
-    // 标题与问候语顶边均在状态栏之下（ListView 可滚动，大字体不裁切）。
+    // 真机走查「晚上好被顶部切掉一半」点位：模拟 24pt 状态栏，断言页首
+    // 问候语顶边在状态栏之下（v1.16.0 起首页无 AppBar，问候语即页首；
+    // ListView 可滚动，大字体不裁切）。
     await pumpHome(tester, statusBarViewport: true);
 
-    expectBelowStatusBar(tester, appBarTitle('断食计时'));
     expectBelowStatusBar(tester, find.text('早上好'));
 
     await unmount(tester);

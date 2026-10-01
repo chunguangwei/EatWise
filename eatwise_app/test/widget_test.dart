@@ -51,12 +51,12 @@ void main() {
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Choose your fasting plan'), findsOneWidget);
 
-    // Token 主题已挂载
+    // Token 主题已挂载（品牌绿令牌引用断言，不钉 hex 值）
     final context = tester.element(find.byType(Scaffold).first);
     expect(Theme.of(context).extension<AppColors>(), isNotNull);
     expect(
       Theme.of(context).extension<AppColors>()!.brandPrimary,
-      const Color(0xFF3DBE8B),
+      AppColors.light.brandPrimary,
     );
 
     // 卸载（取消首页每秒 tick 的周期 Timer，避免收尾判定 Timer 未决）。

@@ -131,13 +131,13 @@ void main() {
     }
 
     const palette = AppColors.light;
-    await expectBadge(Icons.cancel_outlined, '已拒绝', palette.signalRed);
-    await expectBadge(Icons.check_circle_outline, '已通过', palette.signalGreen);
+    await expectBadge(Icons.cancel_rounded, '已拒绝', palette.signalRed);
     await expectBadge(
-      Icons.hourglass_top_outlined,
-      '审核中',
-      palette.signalYellow,
+      Icons.check_circle_outline_rounded,
+      '已通过',
+      palette.signalGreen,
     );
+    await expectBadge(Icons.hourglass_top_rounded, '审核中', palette.signalYellow);
     // 拒绝原因只在该条目展示；提交时间为本地时区格式化。
     expect(find.text('拒绝原因：营养数据存疑'), findsOneWidget);
     expect(find.textContaining('提交于 2026-09-01 '), findsNWidgets(3));
@@ -202,7 +202,7 @@ void main() {
 
   testWidgets('空态：图标 + 主副文案 + 新建自定义食物 CTA', (tester) async {
     await pumpPage(tester);
-    expect(find.byIcon(Icons.inventory_2_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.inventory_2_rounded), findsOneWidget);
     expect(find.text('暂无贡献记录'), findsOneWidget);
     expect(find.text('把搜不到的食物记下来，审核通过后分享给所有人'), findsOneWidget);
     expect(find.text('新建自定义食物'), findsOneWidget);

@@ -118,7 +118,7 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
                           setState(() => _torchOn = !_torchOn);
                         },
                         icon: Icon(
-                          _torchOn ? Icons.flash_on : Icons.flash_off_outlined,
+                          _torchOn ? Icons.flash_on : Icons.flash_off_rounded,
                         ),
                         label: Text(bs.torch, style: textStyles.textBase),
                       ),
@@ -130,7 +130,7 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
                           minimumSize: const Size.fromHeight(AppSpacing.s12),
                         ),
                         onPressed: () => unawaited(_onManualInput()),
-                        icon: const Icon(Icons.keyboard_outlined),
+                        icon: const Icon(Icons.keyboard_rounded),
                         label: Text(bs.manualInput, style: textStyles.textBase),
                       ),
                     ),

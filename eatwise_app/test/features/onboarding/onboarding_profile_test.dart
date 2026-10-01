@@ -1,4 +1,5 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/features/fasting/presentation/fasting_home_page.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
@@ -105,7 +106,7 @@ void main() {
       find.byKey(const ValueKey<String>('onboarding.recommendation.start')),
     );
     await pumpFrames(tester);
-    expect(find.text('断食计时'), findsOneWidget);
+    expect(find.byType(FastingHomePage), findsOneWidget);
   }
 
   testWidgets('填齐档案 → 保存 → 一键启动：营养目标全参精准计算（非兜底），'

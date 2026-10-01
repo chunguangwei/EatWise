@@ -5,8 +5,10 @@ import 'package:eatwise/core/network/api_error_text.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
+import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/state_views.dart';
 import 'package:eatwise/features/moderation/application/moderation_controller.dart';
 import 'package:eatwise/features/moderation/data/moderation_api.dart';
 import 'package:eatwise/features/moderation/presentation/moderation_strings.dart';
@@ -91,20 +93,9 @@ class _ModerationPageState extends ConsumerState<ModerationPage> {
             onRefresh: () =>
                 ref.read(moderationControllerProvider.notifier).refresh(),
             child: state.items.isEmpty
-                ? ListView(
-                    // 空态可下拉刷新。
-                    children: <Widget>[
-                      const SizedBox(height: AppSpacing.s12 * 4),
-                      Center(
-                        child: Text(
-                          ms.empty,
-                          style: textStyles.textSm.copyWith(
-                            color: colors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
+                // 空态收敛 AppStateView（v1.16.0）；ListView 本体可滚，
+                // 保留下拉刷新。
+                ? AppStateView(icon: Icons.inbox_rounded, title: ms.empty)
                 : ListView.builder(
                     controller: _scroll,
                     padding: const EdgeInsets.all(AppSpacing.s4),
@@ -306,6 +297,7 @@ class _CandidateCard extends StatelessWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final radii = Theme.of(context).extension<AppRadii>()!;
+    final shadows = Theme.of(context).extension<AppShadows>()!;
     final isEn = LocaleSettings.currentLocale == AppLocale.en;
     final name =
         (isEn ? candidate.nameEn : candidate.nameZh) ??
@@ -316,168 +308,174 @@ class _CandidateCard extends StatelessWidget {
         '${local.year}-${local.month.toString().padLeft(2, '0')}-'
         '${local.day.toString().padLeft(2, '0')}';
 
-    return Card(
-      color: colors.bgSecondary,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: radii.rMd),
-      margin: const EdgeInsets.only(bottom: AppSpacing.s3),
-      child: InkWell(
-        onTap: onToggle,
-        borderRadius: radii.rMd,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.s3),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      name,
-                      style: textStyles.textBase.copyWith(
-                        color: colors.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.s2,
-                      vertical: AppSpacing.s1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colors.brandAccent,
-                      borderRadius: radii.rSm,
-                    ),
-                    child: Text(
-                      ms.kindLabel(candidate.kind),
-                      style: textStyles.textXs.copyWith(
-                        color: colors.bgPrimary,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.s3),
+      child: Material(
+        color: colors.bgSecondary,
+        borderRadius: radii.rLg,
+        child: InkWell(
+          onTap: onToggle,
+          borderRadius: radii.rLg,
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.s4),
+            decoration: BoxDecoration(
+              borderRadius: radii.rLg,
+              boxShadow: shadows.shadowSm,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: textStyles.textBase.copyWith(
+                          color: colors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ),
-                  // 整卡可点展开/收起——chevron 指示（走查：卡面无展开暗示）。
-                  Icon(
-                    expanded ? Icons.expand_less : Icons.expand_more,
-                    color: colors.textSecondary,
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.s1),
-              if (candidate.per100g != null)
-                Text(
-                  _summary(ms, candidate.per100g!),
-                  style: textStyles.textSm.copyWith(
-                    color: colors.textSecondary,
-                  ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.s2,
+                        vertical: AppSpacing.s1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.brandAccent.withValues(alpha: 0.14),
+                        borderRadius: radii.rSm,
+                      ),
+                      child: Text(
+                        ms.kindLabel(candidate.kind),
+                        style: textStyles.textXs.copyWith(
+                          color: colors.brandAccent,
+                        ),
+                      ),
+                    ),
+                    // 整卡可点展开/收起——chevron 指示（走查：卡面无展开暗示）。
+                    Icon(
+                      expanded ? Icons.expand_less : Icons.expand_more,
+                      color: colors.textSecondary,
+                    ),
+                  ],
                 ),
-              if (candidate.barcode != null)
+                const SizedBox(height: AppSpacing.s1),
+                if (candidate.per100g != null)
+                  Text(
+                    _summary(ms, candidate.per100g!),
+                    style: textStyles.textSm.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                if (candidate.barcode != null)
+                  Text(
+                    ms.barcodeLabel(candidate.barcode!),
+                    style: textStyles.textXs.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
                 Text(
-                  ms.barcodeLabel(candidate.barcode!),
+                  '${ms.submittedAt(dateText)} · '
+                  '${candidate.submitterUserId.length > 8 ? '${candidate.submitterUserId.substring(0, 8)}…' : candidate.submitterUserId}',
                   style: textStyles.textXs.copyWith(
                     color: colors.textSecondary,
                   ),
                 ),
-              Text(
-                '${ms.submittedAt(dateText)} · '
-                '${candidate.submitterUserId.length > 8 ? '${candidate.submitterUserId.substring(0, 8)}…' : candidate.submitterUserId}',
-                style: textStyles.textXs.copyWith(color: colors.textSecondary),
-              ),
-              if (expanded) ...<Widget>[
-                // 纠错建议值对照（kind=correction）。
-                if (candidate.suggestionPer100g != null ||
-                    candidate.suggestionNameZh != null) ...<Widget>[
-                  const SizedBox(height: AppSpacing.s2),
-                  Text(
-                    ms.suggestionTitle,
-                    style: textStyles.textSm.copyWith(
-                      color: colors.textPrimary,
-                    ),
-                  ),
-                  if (candidate.suggestionNameZh != null)
+                if (expanded) ...<Widget>[
+                  // 纠错建议值对照（kind=correction）。
+                  if (candidate.suggestionPer100g != null ||
+                      candidate.suggestionNameZh != null) ...<Widget>[
+                    const SizedBox(height: AppSpacing.s2),
                     Text(
-                      candidate.suggestionNameZh!,
+                      ms.suggestionTitle,
                       style: textStyles.textSm.copyWith(
-                        color: colors.textSecondary,
+                        color: colors.textPrimary,
                       ),
                     ),
-                  if (candidate.suggestionPer100g != null)
-                    Text(
-                      _summary(ms, candidate.suggestionPer100g!),
-                      style: textStyles.textSm.copyWith(
-                        color: colors.textSecondary,
-                      ),
-                    ),
-                ],
-                if (candidate.evidenceImageUrl != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: AppSpacing.s1),
-                    child: Text(
-                      candidate.evidenceImageUrl!,
-                      style: textStyles.textXs.copyWith(
-                        color: colors.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                const SizedBox(height: AppSpacing.s3),
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: acting ? null : onReject,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: colors.signalRed,
-                          side: BorderSide(color: colors.signalRed),
-                          minimumSize: const Size.fromHeight(AppSpacing.s12),
+                    if (candidate.suggestionNameZh != null)
+                      Text(
+                        candidate.suggestionNameZh!,
+                        style: textStyles.textSm.copyWith(
+                          color: colors.textSecondary,
                         ),
-                        child: Text(ms.reject, style: textStyles.textBase),
                       ),
-                    ),
-                    const SizedBox(width: AppSpacing.s3),
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: acting ? null : onApprove,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: colors.brandPrimary,
-                          minimumSize: const Size.fromHeight(AppSpacing.s12),
+                    if (candidate.suggestionPer100g != null)
+                      Text(
+                        _summary(ms, candidate.suggestionPer100g!),
+                        style: textStyles.textSm.copyWith(
+                          color: colors.textSecondary,
                         ),
-                        child: acting
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(ms.approve, style: textStyles.textBase),
                       ),
-                    ),
                   ],
-                ),
-                // 删除（下架/清痕迹）：破坏性三级动作，独立整行弱化为文字钮，
-                // 与通过/驳回主操作分层，防误触。
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: acting ? null : onDelete,
-                    icon: Icon(
-                      Icons.delete_outline,
-                      size: 18,
-                      color: colors.signalRed,
+                  if (candidate.evidenceImageUrl != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.s1),
+                      child: Text(
+                        candidate.evidenceImageUrl!,
+                        style: textStyles.textXs.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    label: Text(
-                      ms.delete,
-                      style: textStyles.textSm.copyWith(
+                  const SizedBox(height: AppSpacing.s3),
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: acting ? null : onReject,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: colors.signalRed,
+                            side: BorderSide(color: colors.signalRed),
+                            minimumSize: const Size.fromHeight(AppSpacing.s12),
+                          ),
+                          child: Text(ms.reject, style: textStyles.textBase),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.s3),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: acting ? null : onApprove,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(AppSpacing.s12),
+                          ),
+                          child: acting
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(ms.approve, style: textStyles.textBase),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // 删除（下架/清痕迹）：破坏性三级动作，独立整行弱化为文字钮，
+                  // 与通过/驳回主操作分层，防误触。
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: acting ? null : onDelete,
+                      icon: Icon(
+                        Icons.delete_outline_rounded,
+                        size: 18,
                         color: colors.signalRed,
                       ),
+                      label: Text(
+                        ms.delete,
+                        style: textStyles.textSm.copyWith(
+                          color: colors.signalRed,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/features/fasting/presentation/fasting_home_page.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
@@ -177,7 +178,7 @@ void main() {
       find.byKey(const ValueKey<String>('onboarding.recommendation.start')),
     );
     await pumpFrames(tester);
-    expect(find.text('断食计时'), findsOneWidget);
+    expect(find.byType(FastingHomePage), findsOneWidget);
     final goal = store.loadNutritionGoal()!;
     expect(goal.usedFallback, isFalse);
     expect(goal.targetKcal, 1200);
@@ -216,7 +217,7 @@ void main() {
       find.byKey(const ValueKey<String>('onboarding.recommendation.start')),
     );
     await pumpFrames(tester);
-    expect(find.text('断食计时'), findsOneWidget);
+    expect(find.byType(FastingHomePage), findsOneWidget);
     final goal = store.loadNutritionGoal()!;
     expect(goal.weeklyRateKg, 0.5);
     expect(goal.weightLossClamped, isTrue);
@@ -337,7 +338,7 @@ void main() {
       find.byKey(const ValueKey<String>('onboarding.recommendation.start')),
     );
     await pumpFrames(tester);
-    expect(find.text('断食计时'), findsOneWidget);
+    expect(find.byType(FastingHomePage), findsOneWidget);
     final goal = store.loadNutritionGoal()!;
     expect(goal.usedFallback, isTrue);
     expect(goal.weeklyRateKg, isNull);

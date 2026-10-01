@@ -78,6 +78,7 @@ class _WeeklyBody extends StatelessWidget {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
     final weekly = t.reports.weekly;
 
     final ratio = stats.greenRatio;
@@ -112,7 +113,7 @@ class _WeeklyBody extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: colors.brandPrimary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: radii.rFull,
                 ),
                 child: Text(
                   line,
@@ -148,7 +149,7 @@ class _WeeklyEmpty extends StatelessWidget {
       child: Column(
         children: <Widget>[
           Icon(
-            Icons.calendar_month_outlined,
+            Icons.calendar_month_rounded,
             color: colors.textSecondary,
             size: 32,
           ),

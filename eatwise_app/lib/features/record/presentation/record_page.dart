@@ -12,6 +12,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/state_views.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/health/presentation/exercise_log_sheet.dart';
 import 'package:eatwise/features/record/barcode/presentation/barcode_flow.dart';
@@ -416,7 +417,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                             child: Row(
                               children: <Widget>[
                                 Icon(
-                                  Icons.cloud_upload_outlined,
+                                  Icons.cloud_upload_rounded,
                                   color: colors.brandAccent,
                                 ),
                                 const SizedBox(width: AppSpacing.s2),
@@ -449,7 +450,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                     child: Row(
                       children: <Widget>[
                         _EntryCard(
-                          icon: Icons.photo_camera_outlined,
+                          icon: Icons.photo_camera_rounded,
                           label: s.entryPhoto,
                           highlighted: true,
                           onTap: () => _onEntryTap(
@@ -460,7 +461,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                         ),
                         const SizedBox(width: AppSpacing.s2),
                         _EntryCard(
-                          icon: Icons.mic_none_outlined,
+                          icon: Icons.mic_none_rounded,
                           label: s.entryVoice,
                           onTap: () => _onEntryTap(
                             'voice',
@@ -469,7 +470,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                         ),
                         const SizedBox(width: AppSpacing.s2),
                         _EntryCard(
-                          icon: Icons.favorite_border_outlined,
+                          icon: Icons.favorite_border_rounded,
                           label: s.entryFrequent,
                           onTap: () => _onEntryTap(
                             'frequent',
@@ -478,7 +479,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                         ),
                         const SizedBox(width: AppSpacing.s2),
                         _EntryCard(
-                          icon: Icons.qr_code_scanner_outlined,
+                          icon: Icons.qr_code_scanner_rounded,
                           label: BarcodeStrings.of(context).entry,
                           onTap: () => _onEntryTap(
                             'barcode',
@@ -488,7 +489,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                         const SizedBox(width: AppSpacing.s2),
                         // 记运动（无 GMS 设备手动兜底；设备级纯本地不上行）。
                         _EntryCard(
-                          icon: Icons.directions_run_outlined,
+                          icon: Icons.directions_run_rounded,
                           label: s.entryExercise,
                           onTap: () => _onEntryTap(
                             'exercise',
@@ -560,60 +561,21 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                         return TodayMealList(entries: todayEntries);
                       }
                       if (foods.isEmpty) {
-                        // 空态可滚动（走查 Y1）：键盘顶起高度不足时
-                        // 可滚而不溢出（BOTTOM OVERFLOWED）。
-                        return LayoutBuilder(
-                          builder: (context, box) => SingleChildScrollView(
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                minHeight: box.maxHeight,
-                              ),
-                              child: Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    // 空态三件套（薄荷走查 P2）：图标 + 引导
-                                    // 文案 + 自定义食物 CTA。
-                                    Icon(
-                                      Icons.search_off_outlined,
-                                      size: 40,
-                                      color: colors.textSecondary,
-                                    ),
-                                    const SizedBox(height: AppSpacing.s2),
-                                    Text(
-                                      s.searchEmpty,
-                                      style: textStyles.textSm.copyWith(
-                                        color: colors.textSecondary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: AppSpacing.s2),
-                                    // K2 自定义食物入口（搜索无结果 CTA，≥44px 触控区）。
-                                    TextButton(
-                                      style: TextButton.styleFrom(
-                                        minimumSize: const Size(44, 48),
-                                        foregroundColor: colors.brandPrimary,
-                                      ),
-                                      onPressed: () => unawaited(
-                                        startCustomFoodFlow(
-                                          context,
-                                          ref,
-                                          // 搜索词预填菜名（语音/键盘
-                                          // 「没找到」预填后同样受益）。
-                                          initialName: ref
-                                              .read(recordSearchQueryProvider)
-                                              .trim(),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        cs.cta,
-                                        style: textStyles.textBase.copyWith(
-                                          color: colors.brandPrimary,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                        // 空态收敛 AppStateView（v1.16.0）：ListView 本体可滚，
+                        // 键盘顶起高度不足时可滚而不溢出（走查 Y1 口径不变）。
+                        return AppStateView(
+                          icon: Icons.search_off_rounded,
+                          title: s.searchEmpty,
+                          // K2 自定义食物入口（搜索无结果 CTA）；搜索词预填
+                          // 菜名（语音/键盘「没找到」预填后同样受益）。
+                          ctaLabel: cs.cta,
+                          onCta: () => unawaited(
+                            startCustomFoodFlow(
+                              context,
+                              ref,
+                              initialName: ref
+                                  .read(recordSearchQueryProvider)
+                                  .trim(),
                             ),
                           ),
                         );
@@ -628,7 +590,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                           if (index == foods.length) {
                             return ListTile(
                               leading: Icon(
-                                Icons.add_circle_outline,
+                                Icons.add_circle_outline_rounded,
                                 color: colors.brandPrimary,
                               ),
                               title: Text(
@@ -669,13 +631,15 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                                       vertical: AppSpacing.s1,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: colors.brandAccent,
+                                      color: colors.brandAccent.withValues(
+                                        alpha: 0.14,
+                                      ),
                                       borderRadius: radii.rSm,
                                     ),
                                     child: Text(
                                       badgeText,
                                       style: textStyles.textXs.copyWith(
-                                        color: colors.bgPrimary,
+                                        color: colors.brandAccent,
                                       ),
                                     ),
                                   ),
@@ -1024,7 +988,6 @@ class _SelectedFoodCard extends ConsumerWidget {
           FilledButton(
             onPressed: amountValid ? onConfirm : null,
             style: FilledButton.styleFrom(
-              backgroundColor: colors.brandPrimary,
               minimumSize: const Size.fromHeight(AppSpacing.s12),
             ),
             child: Text(s.confirm, style: textStyles.textBase),

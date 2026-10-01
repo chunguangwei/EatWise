@@ -160,7 +160,7 @@ class _WaterCard extends ConsumerWidget {
     final total = ref.watch(todayWaterTotalProvider).value ?? 0;
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.s3),
+      padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: BoxDecoration(
         color: colors.bgSecondary,
         borderRadius: radii.rLg,
@@ -172,7 +172,7 @@ class _WaterCard extends ConsumerWidget {
           Row(
             children: <Widget>[
               Icon(
-                Icons.water_drop_outlined,
+                Icons.water_drop_rounded,
                 size: 20,
                 color: colors.brandPrimary,
               ),
@@ -317,7 +317,7 @@ class _WeightCard extends ConsumerWidget {
           onTap: () => unawaited(_openDialog(context, ref, weight)),
           child: Container(
             constraints: const BoxConstraints(minHeight: 44),
-            padding: const EdgeInsets.all(AppSpacing.s3),
+            padding: const EdgeInsets.all(AppSpacing.s4),
             decoration: BoxDecoration(
               borderRadius: radii.rLg,
               boxShadow: shadows.shadowSm,
@@ -328,7 +328,7 @@ class _WeightCard extends ConsumerWidget {
                 Row(
                   children: <Widget>[
                     Icon(
-                      Icons.monitor_weight_outlined,
+                      Icons.monitor_weight_rounded,
                       size: 20,
                       color: colors.brandPrimary,
                     ),

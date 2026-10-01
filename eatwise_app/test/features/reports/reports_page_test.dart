@@ -3,6 +3,7 @@ import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
+import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
@@ -208,16 +209,16 @@ void main() {
     expect(findFastingDayCells(), findsNWidgets(7));
     // 7/26 达标绿（ringExercise）、7/27 未达标珊瑚红（signalRed）、
     // 7/25 无记录轨道灰（textSecondary × 0.12，MultiRingProgress 同口径）。
-    expect(cellColor(tester, '2026-07-26'), const Color(0xFF3DBE8B));
-    expect(cellColor(tester, '2026-07-27'), const Color(0xFFFF6B6B));
+    expect(cellColor(tester, '2026-07-26'), AppColors.light.ringExercise);
+    expect(cellColor(tester, '2026-07-27'), AppColors.light.signalRed);
     expect(
       cellColor(tester, '2026-07-25'),
-      const Color(0xFF8A9694).withValues(alpha: 0.12),
+      AppColors.light.textSecondary.withValues(alpha: 0.12),
     );
     // 今天（7/28）无记录 → 灰格而非断签红。
     expect(
       cellColor(tester, '2026-07-28'),
-      const Color(0xFF8A9694).withValues(alpha: 0.12),
+      AppColors.light.textSecondary.withValues(alpha: 0.12),
     );
     // 三态图例。
     expect(find.text('达标'), findsOneWidget);
@@ -249,11 +250,11 @@ void main() {
       find.byKey(const ValueKey<String>('fasting-day-2026-07-28')),
       findsOneWidget,
     );
-    expect(cellColor(tester, '2026-07-26'), const Color(0xFF3DBE8B));
+    expect(cellColor(tester, '2026-07-26'), AppColors.light.ringExercise);
     // 6/29 无记录 → 灰格。
     expect(
       cellColor(tester, '2026-06-29'),
-      const Color(0xFF8A9694).withValues(alpha: 0.12),
+      AppColors.light.textSecondary.withValues(alpha: 0.12),
     );
 
     await unmount(tester);
