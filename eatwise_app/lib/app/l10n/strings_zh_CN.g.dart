@@ -1672,6 +1672,9 @@ class Translations$fasting$home$zh_CN {
 	/// zh-CN: '单次最多延长 4 小时'
 	String get extendLimit => '单次最多延长 4 小时';
 
+	/// zh-CN: '现在处于进食窗口，下一段断食将于 ${time} 自动开始'
+	String eatingHint({required Object time}) => '现在处于进食窗口，下一段断食将于 ${time} 自动开始';
+
 	/// zh-CN: '断食 ${fast} 小时 · 进食窗口 ${start}–${end}'
 	String planTag({required Object fast, required Object start, required Object end}) => '断食 ${fast} 小时 · 进食窗口 ${start}–${end}';
 
@@ -5056,6 +5059,7 @@ extension on Translations {
 			'fasting.home.attributionEating' => ({required Object date}) => '下一段断食将计入 ${date}',
 			'fasting.home.extendedBadge' => ({required Object minutes}) => '已延长 +${minutes} 分钟',
 			'fasting.home.extendLimit' => '单次最多延长 4 小时',
+			'fasting.home.eatingHint' => ({required Object time}) => '现在处于进食窗口，下一段断食将于 ${time} 自动开始',
 			'fasting.home.planTag' => ({required Object fast, required Object start, required Object end}) => '断食 ${fast} 小时 · 进食窗口 ${start}–${end}',
 			'fasting.home.pendingPlanEdit' => '修改',
 			'fasting.home.pendingPlanApply' => '立即应用',
@@ -5144,9 +5148,9 @@ extension on Translations {
 			'nutrition.data.proDetails.collapse' => '收起',
 			'nutrition.data.proDetails.target' => '目标',
 			'nutrition.data.proDetails.actual' => '已摄入',
-			'nutrition.data.proDetails.percent' => '占比',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.data.proDetails.percent' => '占比',
 			'nutrition.data.proDetails.rda' => 'RDA 参考',
 			'nutrition.data.proDetails.rdaNote' => 'RDA 为成人通用膳食参考值〔待营养专业背书〕，个人目标以你的方案为准',
 			'nutrition.data.proDetails.unitsNote' => '单位：热量为千卡，蛋白质/碳水/脂肪为克。',
@@ -5658,9 +5662,9 @@ extension on Translations {
 			'moderation.reject' => '驳回',
 			'moderation.approveConfirm' => '通过后该食品将进入共享食物库，所有用户都能搜到。确认通过？',
 			'moderation.rejectConfirmTitle' => '驳回该候选',
-			'moderation.rejectConfirmBody' => '驳回后提交者的相关记录将被移除。',
 			_ => null,
 		} ?? switch (path) {
+			'moderation.rejectConfirmBody' => '驳回后提交者的相关记录将被移除。',
 			'moderation.reasonHint' => '驳回原因（可选）',
 			'moderation.approved' => '已通过',
 			'moderation.rejected' => '已驳回',

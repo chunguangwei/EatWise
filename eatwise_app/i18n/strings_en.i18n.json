@@ -550,6 +550,7 @@
       "attributionEating": "Your next fast will count toward ${date}",
       "extendedBadge": "Extended +${minutes} min",
       "extendLimit": "You can extend by up to 4 hours per fast",
+      "eatingHint": "You are in the eating window — fasting resumes automatically at ${time}",
       "planTag": "${fast}-hour fast · Eating window ${start}–${end}",
       "pendingPlanEdit": "Edit",
       "pendingPlanApply": "Apply now",

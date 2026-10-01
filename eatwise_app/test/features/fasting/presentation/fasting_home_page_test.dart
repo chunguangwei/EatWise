@@ -283,18 +283,22 @@ void main() {
     // 进食态无进行中断食：归属日文案用将来时（走查 B-9）。
     expect(find.text('下一段断食将计入 7月29日'), findsOneWidget);
     expect(find.textContaining('本次断食计入'), findsNothing);
+    // 进食态按钮非死按钮（走查五轮）：可点，点击给「断食何时自动开始」反馈。
     expect(
       tester
           .widget<FilledButton>(find.widgetWithText(FilledButton, '结束断食'))
           .onPressed,
-      isNull,
+      isNotNull,
     );
     expect(
       tester
           .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '延长'))
           .onPressed,
-      isNull,
+      isNotNull,
     );
+    await tester.tap(find.text('结束断食'));
+    await tester.pump();
+    expect(find.text('现在处于进食窗口，下一段断食将于 20:00 自动开始'), findsOneWidget);
 
     await unmount(tester);
   });

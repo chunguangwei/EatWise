@@ -15,6 +15,7 @@ import 'package:eatwise/features/fasting/application/fasting_notification_texts.
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
+import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_celebration.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_ring.dart';
@@ -481,23 +482,30 @@ class _TimerBody extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: AppSpacing.s6),
-        // 双主按钮（设计稿 §4.2-① 环下横排；进食态置灰，T11）。
-        // 2026-10-01 真机走查四轮：对齐连胜卡「去补签」胶囊语言——
-        // StadiumBorder 全圆角；结束断食品牌绿实心 + 品牌色投影（主行动），
-        // 延长白底 + 品牌绿描边（次级行动，与补签入口同款），置灰态
-        // 统一 fillSubtle 浅灰底 + 次要文字色（不再是两坨灰块）。
+        // 双主按钮（设计稿 §4.2-① 环下横排；进食态无动作，T11）。
+        // 2026-10-01 真机走查五轮：进食态「置灰=死按钮」被当成坏按钮——
+        // 改「可点 + 明确反馈」：进食态点击弹 SnackBar 告知断食自动开始
+        // 时刻（视觉仍用 fillSubtle 浅底 + textSecondary 区分非行动态，
+        // 但文字/边框保持清晰可读，不再灰成一团）；断食态不变（绿实心
+        // 主行动 + 白底绿描边次级，对齐连胜卡「去补签」胶囊语言）。
         Row(
           children: <Widget>[
             Expanded(
               child: FilledButton.icon(
-                onPressed: isFasting
-                    ? () => _showEndFastDialog(context, ref)
-                    : null,
+                onPressed: () {
+                  if (isFasting) {
+                    _showEndFastDialog(context, ref);
+                  } else {
+                    _showEatingHint(context, plan);
+                  }
+                },
                 style: FilledButton.styleFrom(
-                  backgroundColor: colors.brandPrimary,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: colors.fillSubtle,
-                  disabledForegroundColor: colors.textSecondary,
+                  backgroundColor: isFasting
+                      ? colors.brandPrimary
+                      : colors.fillSubtle,
+                  foregroundColor: isFasting
+                      ? Colors.white
+                      : colors.textSecondary,
                   minimumSize: const Size.fromHeight(AppSpacing.s14),
                   shape: const StadiumBorder(),
                   elevation: isFasting ? 3 : 0,
@@ -516,17 +524,27 @@ class _TimerBody extends ConsumerWidget {
             const SizedBox(width: AppSpacing.s3),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: isFasting && !extendLimitReached
-                    ? controller.extend
-                    : null,
+                onPressed: isFasting && extendLimitReached
+                    ? null // 达上限：下方 extendLimit 文案解释（T7，D-10）
+                    : () {
+                        if (isFasting) {
+                          controller.extend();
+                        } else {
+                          _showEatingHint(context, plan);
+                        }
+                      },
                 style: OutlinedButton.styleFrom(
-                  backgroundColor: colors.bgSecondary,
-                  foregroundColor: colors.brandPrimary,
+                  backgroundColor: isFasting
+                      ? colors.bgSecondary
+                      : colors.fillSubtle,
+                  foregroundColor: isFasting
+                      ? colors.brandPrimary
+                      : colors.textSecondary,
                   disabledForegroundColor: colors.textSecondary,
                   side: BorderSide(
                     color: isFasting && !extendLimitReached
                         ? colors.brandPrimary
-                        : colors.border,
+                        : colors.textSecondary.withValues(alpha: 0.4),
                     width: isFasting && !extendLimitReached ? 1.5 : 1,
                   ),
                   minimumSize: const Size.fromHeight(AppSpacing.s14),
@@ -567,6 +585,20 @@ class _TimerBody extends ConsumerWidget {
     // 首页滚动深度（§4.2 scroll_depth；25/50/75/100 档位，session 内
     // 同档位只报一次；短内容不足一屏自动按 100 收口）。
     return ScrollDepthTracker(page: 'home', child: body);
+  }
+
+  /// 进食态点击反馈（2026-10-01 走查五轮：置灰死按钮被当成坏按钮）——
+  /// 进食窗口内双主按钮无动作（T11），但点击必须给明确反馈：告知当前
+  /// 状态与下一段断食自动开始的时刻（= 进食窗口结束锚点）。
+  void _showEatingHint(BuildContext context, FastingPlan plan) {
+    final t = Translations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          t.fasting.home.eatingHint(time: _formatMinutes(plan.eatEndMinutes)),
+        ),
+      ),
+    );
   }
 
   /// 结束断食两步确认弹窗（§3.2：点按钮先报 fasting_end_click，弹窗内

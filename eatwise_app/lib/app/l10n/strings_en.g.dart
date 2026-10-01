@@ -951,6 +951,7 @@ class _Translations$fasting$home$en extends Translations$fasting$home$zh_CN {
 	@override String attributionEating({required Object date}) => 'Your next fast will count toward ${date}';
 	@override String extendedBadge({required Object minutes}) => 'Extended +${minutes} min';
 	@override String get extendLimit => 'You can extend by up to 4 hours per fast';
+	@override String eatingHint({required Object time}) => 'You are in the eating window — fasting resumes automatically at ${time}';
 	@override String planTag({required Object fast, required Object start, required Object end}) => '${fast}-hour fast · Eating window ${start}–${end}';
 	@override String get pendingPlanEdit => 'Edit';
 	@override String get pendingPlanApply => 'Apply now';
@@ -2950,6 +2951,7 @@ extension on TranslationsEn {
 			'fasting.home.attributionEating' => ({required Object date}) => 'Your next fast will count toward ${date}',
 			'fasting.home.extendedBadge' => ({required Object minutes}) => 'Extended +${minutes} min',
 			'fasting.home.extendLimit' => 'You can extend by up to 4 hours per fast',
+			'fasting.home.eatingHint' => ({required Object time}) => 'You are in the eating window — fasting resumes automatically at ${time}',
 			'fasting.home.planTag' => ({required Object fast, required Object start, required Object end}) => '${fast}-hour fast · Eating window ${start}–${end}',
 			'fasting.home.pendingPlanEdit' => 'Edit',
 			'fasting.home.pendingPlanApply' => 'Apply now',
@@ -3038,9 +3040,9 @@ extension on TranslationsEn {
 			'nutrition.data.proDetails.collapse' => 'Collapse',
 			'nutrition.data.proDetails.target' => 'Target',
 			'nutrition.data.proDetails.actual' => 'Intake',
-			'nutrition.data.proDetails.percent' => '% of goal',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.data.proDetails.percent' => '% of goal',
 			'nutrition.data.proDetails.rda' => 'RDA ref.',
 			'nutrition.data.proDetails.rdaNote' => 'RDA values are general adult dietary references (pending nutritionist sign-off) — your personal goals follow your plan',
 			'nutrition.data.proDetails.unitsNote' => 'Units: kcal for energy, grams for protein/carbs/fat.',
@@ -3552,9 +3554,9 @@ extension on TranslationsEn {
 			'moderation.reject' => 'Reject',
 			'moderation.approveConfirm' => 'Once approved, this food enters the shared library and becomes searchable for everyone. Approve it?',
 			'moderation.rejectConfirmTitle' => 'Reject this candidate',
-			'moderation.rejectConfirmBody' => 'The submitter\'s related records will be removed after rejection.',
 			_ => null,
 		} ?? switch (path) {
+			'moderation.rejectConfirmBody' => 'The submitter\'s related records will be removed after rejection.',
 			'moderation.reasonHint' => 'Reason (optional)',
 			'moderation.approved' => 'Approved',
 			'moderation.rejected' => 'Rejected',
