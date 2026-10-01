@@ -157,7 +157,7 @@ void main() {
     );
     expect(
       tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, '延长'))
+          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '延长'))
           .onPressed,
       isNotNull,
     );
@@ -291,7 +291,7 @@ void main() {
     );
     expect(
       tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, '延长'))
+          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '延长'))
           .onPressed,
       isNull,
     );
@@ -366,7 +366,7 @@ void main() {
     await pumpHome(tester);
     expect(
       tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, '延长'))
+          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '延长'))
           .onPressed,
       isNull,
     );

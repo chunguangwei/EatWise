@@ -482,10 +482,10 @@ class _TimerBody extends ConsumerWidget {
         ],
         const SizedBox(height: AppSpacing.s6),
         // 双主按钮（设计稿 §4.2-① 环下横排；进食态置灰，T11）。
-        // 2026-10-01 真机走查三轮：按钮仍不明显——加高到 56（s14），
-        // 结束断食 FilledButton 加品牌色投影（强转化位视觉重量），
-        // 延长由灰描边 OutlinedButton 改品牌绿浅底 tonal FilledButton
-        // （描边在暗色/强光下辨识度不足，浅底块面与置灰态一眼可辨）。
+        // 2026-10-01 真机走查四轮：对齐连胜卡「去补签」胶囊语言——
+        // StadiumBorder 全圆角；结束断食品牌绿实心 + 品牌色投影（主行动），
+        // 延长白底 + 品牌绿描边（次级行动，与补签入口同款），置灰态
+        // 统一 fillSubtle 浅灰底 + 次要文字色（不再是两坨灰块）。
         Row(
           children: <Widget>[
             Expanded(
@@ -495,8 +495,11 @@ class _TimerBody extends ConsumerWidget {
                     : null,
                 style: FilledButton.styleFrom(
                   backgroundColor: colors.brandPrimary,
-                  disabledBackgroundColor: colors.border.withValues(alpha: 0.3),
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: colors.fillSubtle,
+                  disabledForegroundColor: colors.textSecondary,
                   minimumSize: const Size.fromHeight(AppSpacing.s14),
+                  shape: const StadiumBorder(),
                   elevation: isFasting ? 3 : 0,
                   shadowColor: colors.brandPrimary.withValues(alpha: 0.45),
                 ),
@@ -504,7 +507,7 @@ class _TimerBody extends ConsumerWidget {
                 label: Text(
                   t.fasting.home.endFast,
                   style: textStyles.textBase.copyWith(
-                    color: Colors.white,
+                    color: isFasting ? Colors.white : colors.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -512,18 +515,22 @@ class _TimerBody extends ConsumerWidget {
             ),
             const SizedBox(width: AppSpacing.s3),
             Expanded(
-              child: FilledButton.tonalIcon(
+              child: OutlinedButton.icon(
                 onPressed: isFasting && !extendLimitReached
                     ? controller.extend
                     : null,
-                style: FilledButton.styleFrom(
-                  backgroundColor: colors.brandPrimary.withValues(alpha: 0.14),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: colors.bgSecondary,
                   foregroundColor: colors.brandPrimary,
-                  disabledBackgroundColor: colors.border.withValues(
-                    alpha: 0.15,
-                  ),
                   disabledForegroundColor: colors.textSecondary,
+                  side: BorderSide(
+                    color: isFasting && !extendLimitReached
+                        ? colors.brandPrimary
+                        : colors.border,
+                    width: isFasting && !extendLimitReached ? 1.5 : 1,
+                  ),
                   minimumSize: const Size.fromHeight(AppSpacing.s14),
+                  shape: const StadiumBorder(),
                 ),
                 icon: const Icon(Icons.more_time_rounded, size: 20),
                 label: Text(
