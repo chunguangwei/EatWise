@@ -501,6 +501,13 @@ class _TimerBody extends ConsumerWidget {
                   foregroundColor: isFasting
                       ? Colors.white
                       : colors.textSecondary,
+                  // 进食态补描边（2026-10-01 安卓走查）：fillSubtle 浅底
+                  // 与页面灰底近乎同色，无描边时按钮整体隐形。
+                  side: isFasting
+                      ? BorderSide.none
+                      : BorderSide(
+                          color: colors.textSecondary.withValues(alpha: 0.4),
+                        ),
                   minimumSize: const Size.fromHeight(AppSpacing.s14),
                   shape: const StadiumBorder(),
                   elevation: isFasting ? 3 : 0,
