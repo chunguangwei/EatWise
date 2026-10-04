@@ -365,6 +365,41 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('Y 轴零基线：热量/断食时长零基线、体重保留 min-max（防 14h 贴底误读）', (tester) async {
+    await seedNutrition('2026-07-28', 1800);
+    await seedFast('2026-07-27', 14);
+    await seedFast('2026-07-28', 16);
+    await WeightLogStore(prefs).save('2026-07-28', 64.4);
+    await pumpPage(tester);
+
+    // 默认热量维度 → 零基线（min-max 会把 16h→14h 的小波动渲染成贴图底
+    // 的「跌到 0」假象，wcg 三轮「趋势 0 值」最终根因）。
+    var painter =
+        tester.widget<CustomPaint>(findTrendPainter()).painter
+            as ReportTrendPainter;
+    expect(painter.zeroBaseline, isTrue);
+
+    // 断食时长 → 零基线。
+    await tester.tap(find.text('断食时长'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    painter =
+        tester.widget<CustomPaint>(findTrendPainter()).painter
+            as ReportTrendPainter;
+    expect(painter.zeroBaseline, isTrue);
+
+    // 体重 → 保留 min-max（零基线会把 60~80kg 压成顶部平线）。
+    await tester.tap(find.text('体重'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    painter =
+        tester.widget<CustomPaint>(findTrendPainter()).painter
+            as ReportTrendPainter;
+    expect(painter.zeroBaseline, isFalse);
+
+    await unmount(tester);
+  });
+
   testWidgets('P3 体重曲线解锁钩子：<3 条盖遮罩文案，≥3 条正常显示曲线', (tester) async {
     // 2 条记录 → 遮罩「再记录 1 次体重，解锁完整曲线」（曲线仍渲染在遮罩下）。
     await WeightLogStore(prefs).save('2026-07-26', 65.0);

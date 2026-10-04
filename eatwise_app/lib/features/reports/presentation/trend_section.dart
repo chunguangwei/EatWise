@@ -239,6 +239,9 @@ class _ReportTrendSectionState extends ConsumerState<ReportTrendSection> {
                       unit: unit,
                       fractionDigits:
                           dimension == ReportDimension.kcal || isRate ? 0 : 1,
+                      // 体重保留 min-max 量程（零基线会压平 60~80kg 曲线）；
+                      // 热量/断食时长/达标率零基线，杜绝「14h 贴图底被当 0」。
+                      zeroBaseline: dimension != ReportDimension.weight,
                       targetValue: targetKg,
                       targetColor: colors.brandAccent,
                       targetLabel: targetKg == null
@@ -401,6 +404,7 @@ class ReportTrendPainter extends CustomPainter {
     this.targetValue,
     this.targetColor,
     this.targetLabel,
+    this.zeroBaseline = false,
   });
 
   final List<double?> values;
@@ -422,6 +426,12 @@ class ReportTrendPainter extends CustomPainter {
   /// 目标参考线标签（如「目标 55 kg」）。
   final String? targetLabel;
 
+  /// Y 轴从零起画（热量/断食时长/达标率）：min-max 归一化会把「16h→14h」
+  /// 的小幅波动渲染成「跌到图底=0」的视觉假象（2026-10-04 wcg 三轮
+  /// 「趋势 0 值」最终根因——数据早已修复，图一直被误读）。体重仍走
+  /// min-max（零基线会把 60~80kg 压成顶部一条平线，不可读）。
+  final bool zeroBaseline;
+
   static const double _labelHeight = 20;
   static const double _topPadding = 16;
 
@@ -437,6 +447,8 @@ class ReportTrendPainter extends CustomPainter {
       if (target > maxV) maxV = target;
       if (target < minV) minV = target;
     }
+    // 零基线维度（热量/断食时长/达标率）：下界钉 0，波动按真实比例呈现。
+    if (zeroBaseline && minV > 0) minV = 0;
     // 全相等时给 10% 的纵向余量，避免除零与贴边。
     final span = (maxV - minV) == 0
         ? (maxV == 0 ? 1.0 : maxV * 0.2)

@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart';
-import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/tables.dart';
@@ -291,39 +290,12 @@ final Provider<int> weightRecordCountProvider = Provider<int>((ref) {
 final Provider<Map<String, double>> fastingHoursByDateProvider =
     Provider<Map<String, double>>((ref) {
       final records = ref.watch(reportFastingProvider).valueOrNull;
-      final map = <String, double>{
+      return <String, double>{
         for (final r in records ?? const <FastingRecord>[])
           if (!r.deleted && isRealFastResult(r.result))
             r.attributionDate: r.actualSec / 3600,
       };
-      _debugTrackHoursMap(ref, map, records?.length ?? 0);
-      return map;
     });
-
-/// 临时诊断（2026-10-04 趋势 0 值三轮排障，定位后移除）：报告链路时长 map
-/// 与源行数快照，每会话最多一次——核对 provider 层看到的行与磁盘是否一致。
-bool _hoursProbeSent = false;
-
-void _debugTrackHoursMap(Ref ref, Map<String, double> map, int recordCount) {
-  if (_hoursProbeSent) return;
-  _hoursProbeSent = true;
-  try {
-    ref
-        .read(analyticsServiceProvider)
-        .track(
-          'debug_f_hours',
-          properties: <String, Object?>{
-            'uid': ref.read(currentUserIdProvider),
-            'records': recordCount,
-            'map': map.entries
-                .map((e) => '${e.key}:${e.value.toStringAsFixed(1)}')
-                .join('|'),
-          },
-        );
-  } on Object {
-    // 诊断失败静默。
-  }
-}
 
 /// 断食趋势日状态序列（长度 = 窗口天数，末位 = 今天）：
 /// 达标/未达标/无记录三态 + 进行中第四态（今天有进行中周期且无终态记录）。
