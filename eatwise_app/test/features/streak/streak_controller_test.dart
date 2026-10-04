@@ -366,6 +366,66 @@ void main() {
       },
     );
 
+    test('断食记录内容纠偏：已同步陈旧行以服务端为权威（createdAtUtc 新于服务端也纠）', () async {
+      // wcg「升级后趋势仍 0」场景：bug 时代写入的 0 时长陈旧行（synced，
+      // createdAtUtc 甚至比服务端 updatedAt 还新，/sync LWW 永不覆盖）。
+      await db.fastingRecordDao.upsertRecord(
+        FastingRecordsCompanion(
+          localId: const Value('u1-2026-07-27'),
+          userId: const Value('u1'),
+          attributionDate: const Value('2026-07-27'),
+          startUtc: const Value(0),
+          endUtc: const Value(0),
+          actualSec: const Value(0), // 陈旧错误值
+          plannedSec: const Value(14 * 3600),
+          extendedMinutes: const Value(0),
+          result: Value(CycleResult.completedOnTime.name),
+          qualified: const Value(false),
+          clientRequestId: const Value('stale-row'),
+          syncStatus: const Value(SyncStatus.synced),
+          createdAtUtc: Value(
+            DateTime.now().toUtc().toIso8601String(), // 新于服务端也照纠
+          ),
+        ),
+      );
+      reportApi.recentRecords = <ServerFastingRecord>[
+        ServerFastingRecord(
+          id: 'r-good',
+          attributionDate: '2026-07-27',
+          plannedStartAt: DateTime.parse('2026-07-26T11:00:00.000Z'),
+          plannedEndAt: DateTime.parse('2026-07-27T01:00:00.000Z'),
+          actualStartAt: DateTime.parse('2026-07-26T11:00:00.000Z'),
+          actualEndAt: DateTime.parse('2026-07-27T01:00:00.000Z'),
+          extendedMinutes: 0,
+          result: 'completed',
+          isQualified: true,
+          fastedMinutes: 14 * 60,
+        ),
+      ];
+      final c = container();
+      addTearDown(c.dispose);
+      final controller = c.read(streakControllerProvider.notifier);
+      await controller.refreshFromServer();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      final row = (await db.fastingRecordDao.recordsOf(
+        'u1',
+      )).firstWhere((r) => r.attributionDate == '2026-07-27');
+      expect(row.actualSec, 14 * 3600);
+      expect(row.result, CycleResult.completedOnTime.name);
+      expect(row.qualified, isTrue);
+      expect(row.syncStatus, SyncStatus.synced);
+      expect(row.clientRequestId, 'stale-row'); // 幂等键保留
+
+      // 第二轮：内容已一致 → 不重复写（幂等稳定）。
+      await controller.refreshFromServer();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      final again = (await db.fastingRecordDao.recordsOf(
+        'u1',
+      )).firstWhere((r) => r.attributionDate == '2026-07-27');
+      expect(again.actualSec, 14 * 3600);
+    });
+
     test('断食历史回填：本机已有关闭记录的归属日不覆盖（本机为准）', () async {
       // 本机 07-27/07-25 周期已关闭落库（离线，F2 上行失败 → pending）。
       reportApi.offline = true;

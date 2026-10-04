@@ -395,6 +395,69 @@ final class StreakController extends Notifier<StreakUiState> {
       }
       if (records.isEmpty) return;
       final existingDates = existing.map((r) => r.attributionDate).toSet();
+      // 内容纠偏（2026-10-04 全量审计二轮，wcg「升级后趋势仍 0」实证）：
+      // 本地**已同步**行与服务端同归属日终态记录内容不一致（actualSec/result/
+      // qualified）时，以服务端为权威覆盖——不再依赖本地 createdAtUtc 可信
+      // （吞周期 bug 时代/旧版本写入的 0 时长陈旧行 createdAtUtc 可能新于
+      // 服务端 updatedAt，/sync 下行 LWW 覆盖永远不触发，陈旧行永久滞留）。
+      // 仅动 synced 行：pending 行内容本机为准（上行 LWW 闭环拥有）。
+      // 注：drift 行类型在本文件被 hide（与 domain FastingRecord 区分），
+      // 用类型推断而非显式标注。
+      final byDate = {for (final r in existing) r.attributionDate: r};
+      var corrected = 0;
+      for (final r in records) {
+        if (r.result == 'on_track') continue;
+        if (r.actualEndAt == null && r.result != 'makeup') continue;
+        if (r.attributionDate.isEmpty) continue;
+        final local = byDate[r.attributionDate];
+        if (local == null || local.syncStatus != SyncStatus.synced) continue;
+        final expectedResult = localResultNameOf(
+          r.result,
+          extendedMinutes: r.extendedMinutes,
+        );
+        final expectedSec = r.result == 'makeup'
+            ? 0
+            : r.fastedMinutes != null
+            ? r.fastedMinutes! * 60
+            : (r.actualEndAt ?? r.plannedEndAt)
+                  .difference(r.actualStartAt ?? r.plannedStartAt)
+                  .inSeconds;
+        if (local.result == expectedResult &&
+            local.actualSec == expectedSec &&
+            local.qualified == r.isQualified) {
+          continue; // 内容一致，不动（幂等稳定，不重复写）
+        }
+        await db.fastingRecordDao.upsertRecord(
+          FastingRecordsCompanion(
+            localId: Value(local.localId),
+            userId: Value(userId),
+            attributionDate: Value(r.attributionDate),
+            startUtc: Value(
+              (r.actualStartAt ?? r.plannedStartAt).millisecondsSinceEpoch ~/
+                  1000,
+            ),
+            endUtc: Value(
+              (r.actualEndAt ?? r.plannedEndAt).millisecondsSinceEpoch ~/ 1000,
+            ),
+            actualSec: Value(expectedSec),
+            plannedSec: Value(
+              r.plannedEndAt.difference(r.plannedStartAt).inSeconds,
+            ),
+            extendedMinutes: Value(r.extendedMinutes),
+            result: Value(expectedResult),
+            qualified: Value(r.isQualified),
+            clientRequestId: Value(local.clientRequestId),
+            syncStatus: const Value(SyncStatus.synced),
+            // createdAtUtc 保留原值（drift 必填列）：本机行的本机写入时刻
+            // 不伪造；后续 /sync 下行 LWW 会以服务端更新覆盖同内容（幂等无害）。
+            createdAtUtc: Value(local.createdAtUtc),
+          ),
+        );
+        corrected++;
+      }
+      if (corrected > 0) {
+        debugPrint('StreakController: 断食记录内容纠偏 $corrected 天（以服务端为权威）');
+      }
       // pending 活性收敛（审计）：F2 上行只在周期关闭当轮尝试一次，无重试
       // 通道——上行失败/未尝试（active==null）的本地记录 syncStatus 永久
       // 滞留 pending。服务端已有同归属日终态记录时（ghost 自动结算/他端
