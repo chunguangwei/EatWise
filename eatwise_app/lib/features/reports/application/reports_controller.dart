@@ -252,6 +252,9 @@ final Provider<int> weightRecordCountProvider = Provider<int>((ref) {
 /// ① 排除 tombstone（deleted）——此前不筛，已删除记录仍进时长 map，
 ///    污染趋势折线与平均时长（与 [fastingDayStatesProvider] 口径不一致）；
 /// ② 排除补签（makeup）——补签未实际断食，其计划时长不是用户成绩。
+/// 注：用户确认真实完成但被 bug 吞掉的记录，修复口径是服务端数据转正
+/// completed（追记四十五），不靠本层放行 makeup（/sync 下行 makeup 行
+/// actualSec 恒为 0，放行也只会画 0）。
 final Provider<Map<String, double>> fastingHoursByDateProvider =
     Provider<Map<String, double>>((ref) {
       final records = ref.watch(reportFastingProvider).valueOrNull;
