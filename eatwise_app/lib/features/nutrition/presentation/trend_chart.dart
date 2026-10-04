@@ -100,7 +100,15 @@ class _TrendChartSectionState extends ConsumerState<TrendChartSection> {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.s4),
+          const SizedBox(height: AppSpacing.s2),
+          // 单位图例放布局层（图表上方），不画进 Canvas——绘图层左上角
+          // 会与首点（x=0）数值标签重叠。
+          Text(
+            trend.unitLegend(unit: unit),
+            style: textStyles.textXs.copyWith(color: colors.textSecondary),
+            maxLines: 1,
+          ),
+          const SizedBox(height: AppSpacing.s2),
           if (!hasAny)
             _TrendEmpty(message: trend.empty)
           else
@@ -118,7 +126,6 @@ class _TrendChartSectionState extends ConsumerState<TrendChartSection> {
                       : colors.ringExercise,
                   labelColor: colors.textSecondary,
                   labelStyle: textStyles.textXs,
-                  unitLegend: trend.unitLegend(unit: unit),
                 ),
               ),
             ),
@@ -179,7 +186,6 @@ class _TrendLinePainter extends CustomPainter {
     required this.lineColor,
     required this.labelColor,
     required this.labelStyle,
-    required this.unitLegend,
   });
 
   final List<double?> values;
@@ -187,10 +193,6 @@ class _TrendLinePainter extends CustomPainter {
   final Color lineColor;
   final Color labelColor;
   final TextStyle labelStyle;
-
-  /// 单位图例（「单位：小时」/「Unit: h」/「单位：千卡」），画在图表区
-  /// 左上角——单位不再拼接在每个数值后面。
-  final String unitLegend;
 
   static const double _labelHeight = 20;
   static const double _topPadding = 24;
@@ -233,7 +235,8 @@ class _TrendLinePainter extends CustomPainter {
         canvas.drawLine(pointOf(i), pointOf(i + 1), linePaint);
       }
     }
-    // 节点圆点 + 逐点数值标签（本图固定 7 点，全标不糊）。
+    // 节点圆点 + 逐点数值标签（本图固定 7 点，全标不糊；clampX 钳制
+    // 首末点文字不被左右边缘裁掉）。
     final dotPaint = Paint()..color = lineColor;
     for (var i = 0; i < values.length; i++) {
       final v = values[i];
@@ -245,15 +248,9 @@ class _TrendLinePainter extends CustomPainter {
         Offset(pointOf(i).dx, pointOf(i).dy - 16),
         labelStyle.copyWith(color: lineColor),
         center: true,
+        clampX: size.width,
       );
     }
-    // 单位图例（左上角）。
-    _drawText(
-      canvas,
-      unitLegend,
-      Offset(0, 2),
-      labelStyle.copyWith(color: labelColor),
-    );
     // 底部日期标签。
     for (var i = 0; i < labels.length; i++) {
       final x = values.length == 1
@@ -265,6 +262,7 @@ class _TrendLinePainter extends CustomPainter {
         Offset(x, size.height - _labelHeight + 4),
         labelStyle.copyWith(color: labelColor),
         center: true,
+        clampX: size.width,
       );
     }
   }
@@ -276,6 +274,7 @@ class _TrendLinePainter extends CustomPainter {
     TextStyle style, {
     bool center = false,
     bool alignRight = false,
+    double clampX = 0,
   }) {
     final painter = TextPainter(
       text: TextSpan(text: text, style: style),
@@ -286,6 +285,12 @@ class _TrendLinePainter extends CustomPainter {
     var dx = position.dx;
     if (center) dx -= painter.width / 2;
     if (alignRight) dx -= painter.width;
+    if (clampX > 0) {
+      // 居中/右对齐后可能越出左右边缘：钳回 [0, clampX-文字宽]。
+      final maxDx = clampX - painter.width;
+      if (dx < 0) dx = 0;
+      if (dx > maxDx) dx = maxDx > 0 ? maxDx : 0;
+    }
     painter.paint(canvas, Offset(dx, position.dy));
   }
 

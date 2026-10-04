@@ -221,6 +221,14 @@ class _ReportTrendSectionState extends ConsumerState<ReportTrendSection> {
               end: end,
             )
           else ...<Widget>[
+            // 单位图例放布局层（图表上方），不画进 Canvas——绘图层左上角
+            // 会与首点（x=0）数值标签重叠。达标率视图无单位，标「达标率」。
+            Text(
+              isRate ? trend.qualifiedRate : trend.unitLegend(unit: unit),
+              style: textStyles.textXs.copyWith(color: colors.textSecondary),
+              maxLines: 1,
+            ),
+            const SizedBox(height: AppSpacing.s2),
             SizedBox(
               height: 160,
               width: double.infinity,
@@ -236,11 +244,6 @@ class _ReportTrendSectionState extends ConsumerState<ReportTrendSection> {
                           : colors.brandPrimary,
                       labelColor: colors.textSecondary,
                       labelStyle: textStyles.textXs,
-                      // 单位从数值里拆出单独图例（达标率视图无单位，图例
-                      // 直接标「达标率」）。
-                      unitLegend: isRate
-                          ? trend.qualifiedRate
-                          : trend.unitLegend(unit: unit),
                       fractionDigits:
                           dimension == ReportDimension.kcal || isRate ? 0 : 1,
                       // 体重保留 min-max 量程（零基线会压平 60~80kg 曲线）；
@@ -403,7 +406,6 @@ class ReportTrendPainter extends CustomPainter {
     required this.lineColor,
     required this.labelColor,
     required this.labelStyle,
-    required this.unitLegend,
     this.fractionDigits = 0,
     this.targetValue,
     this.targetColor,
@@ -418,10 +420,6 @@ class ReportTrendPainter extends CustomPainter {
   final Color lineColor;
   final Color labelColor;
   final TextStyle labelStyle;
-
-  /// 单位图例（如「单位：小时」/「Unit: h」，达标率视图传「达标率」），
-  /// 画在图表区左上角——单位不再拼接在每个数值后面。
-  final String unitLegend;
   final int fractionDigits;
 
   /// 目标参考线值（阶段 C：体重维度传目标体重；null 不画）。
@@ -520,7 +518,8 @@ class ReportTrendPainter extends CustomPainter {
         canvas.drawLine(pointOf(i), pointOf(i + 1), linePaint);
       }
     }
-    // 节点圆点 + 数值标签（≤10 点逐点标注，更多点只标末点防糊）。
+    // 节点圆点 + 数值标签（≤10 点逐点标注，更多点只标末点防糊；
+    // clampX 钳制首末点文字不被左右边缘裁掉）。
     final dotPaint = Paint()..color = lineColor;
     final lastIndex = values.lastIndexWhere((v) => v != null);
     final labelEveryPoint = values.length <= 10;
@@ -535,17 +534,10 @@ class ReportTrendPainter extends CustomPainter {
           Offset(pointOf(i).dx, pointOf(i).dy - 16),
           labelStyle.copyWith(color: lineColor),
           center: true,
+          clampX: size.width,
         );
       }
     }
-    // 单位图例（左上角，与首点数值标签错开——首点标签贴点上方居中，
-    // 图例靠最左缘基线对齐图区顶部）。
-    _drawText(
-      canvas,
-      unitLegend,
-      Offset(0, 2),
-      labelStyle.copyWith(color: labelColor),
-    );
     // 底部日期标签（稀疏）。
     for (var i = 0; i < labels.length; i++) {
       final label = labels[i];
@@ -556,6 +548,7 @@ class ReportTrendPainter extends CustomPainter {
         Offset(xOf(i), size.height - _labelHeight + 4),
         labelStyle.copyWith(color: labelColor),
         center: true,
+        clampX: size.width,
       );
     }
   }
@@ -567,6 +560,7 @@ class ReportTrendPainter extends CustomPainter {
     TextStyle style, {
     bool center = false,
     bool alignRight = false,
+    double clampX = 0,
   }) {
     final painter = TextPainter(
       text: TextSpan(text: text, style: style),
@@ -577,6 +571,12 @@ class ReportTrendPainter extends CustomPainter {
     var dx = position.dx;
     if (center) dx -= painter.width / 2;
     if (alignRight) dx -= painter.width;
+    if (clampX > 0) {
+      // 居中/右对齐后可能越出左右边缘：钳回 [0, clampX-文字宽]。
+      final maxDx = clampX - painter.width;
+      if (dx < 0) dx = 0;
+      if (dx > maxDx) dx = maxDx > 0 ? maxDx : 0;
+    }
     painter.paint(canvas, Offset(dx, position.dy));
   }
 
@@ -585,7 +585,6 @@ class ReportTrendPainter extends CustomPainter {
     return oldDelegate.values != values ||
         oldDelegate.labels != labels ||
         oldDelegate.lineColor != lineColor ||
-        oldDelegate.unitLegend != unitLegend ||
         oldDelegate.targetValue != targetValue ||
         oldDelegate.targetLabel != targetLabel;
   }
