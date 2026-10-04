@@ -12,7 +12,8 @@ import 'package:eatwise/core/utils/client_request_id.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_record.dart';
-import 'package:eatwise/features/fasting/domain/fasting_types.dart';
+import 'package:eatwise/features/fasting/domain/fasting_result_mapping.dart'
+    show localResultNameOf;
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart'
     show recordSyncEngineProvider;
@@ -401,7 +402,7 @@ final class StreakController extends Notifier<StreakUiState> {
       // 回写 synced 收敛；内容本机为准不覆盖（见下），仅收敛同步标记。
       final serverTerminalDates = <String>{
         for (final r in records)
-          if (r.actualEndAt != null &&
+          if ((r.actualEndAt != null || r.result == 'makeup') &&
               r.result != 'on_track' &&
               r.attributionDate.isNotEmpty)
             r.attributionDate,
@@ -416,13 +417,18 @@ final class StreakController extends Notifier<StreakUiState> {
         }
       }
       for (final r in records) {
-        if (r.actualEndAt == null || r.result == 'on_track') continue;
+        // makeup 无 actualEndAt 但确为终态（同 /sync 下行放行口径）——
+        // 此前守卫一并跳过，只走回填通道的设备补签日三态格显示「无记录」
+        // 而服务端 streak 已计达标，同类自相矛盾。
+        if (r.result == 'on_track') continue;
+        if (r.actualEndAt == null && r.result != 'makeup') continue;
         if (r.attributionDate.isEmpty ||
             existingDates.contains(r.attributionDate)) {
           continue;
         }
         final start = r.actualStartAt ?? r.plannedStartAt;
-        final end = r.actualEndAt!;
+        // 补签行无 actualEndAt：锚点回落计划终点（满足存储约束，时长=0）。
+        final end = r.actualEndAt ?? r.plannedEndAt;
         await db.fastingRecordDao.upsertRecord(
           FastingRecordsCompanion(
             localId: Value('$userId-${r.attributionDate}'),
@@ -431,7 +437,13 @@ final class StreakController extends Notifier<StreakUiState> {
             startUtc: Value(start.millisecondsSinceEpoch ~/ 1000),
             endUtc: Value(end.millisecondsSinceEpoch ~/ 1000),
             actualSec: Value(
-              r.fastedMinutes != null
+              // 与 /sync 下行同口径（全量口径审计 2026-10-04）：补签行
+              // actualSec=0（补签计达标不计时长）；此前按 fastedMinutes
+              // 落库且 result 塌缩为 completedOnTime，与 /sync 通道同记录
+              // 两种本地形态，下游过滤全部失效。
+              r.result == 'makeup'
+                  ? 0
+                  : r.fastedMinutes != null
                   ? r.fastedMinutes! * 60
                   : end.difference(start).inSeconds,
             ),
@@ -439,7 +451,9 @@ final class StreakController extends Notifier<StreakUiState> {
               r.plannedEndAt.difference(r.plannedStartAt).inSeconds,
             ),
             extendedMinutes: Value(r.extendedMinutes),
-            result: Value(_serverResultName(r)),
+            result: Value(
+              localResultNameOf(r.result, extendedMinutes: r.extendedMinutes),
+            ),
             qualified: Value(r.isQualified),
             clientRequestId: Value('server-${r.id}'),
             syncStatus: const Value(SyncStatus.synced),
@@ -449,22 +463,6 @@ final class StreakController extends Notifier<StreakUiState> {
       }
     } on Object {
       // 离线/未装配：本地既有数据照常展示。
-    }
-  }
-
-  /// 服务端终态 → 本地 CycleResult 枚举名（drift result 列口径，展示用）。
-  static String _serverResultName(ServerFastingRecord r) {
-    switch (r.result) {
-      case 'broken':
-        return CycleResult.brokenEarly.name;
-      case 'ended_early':
-        return CycleResult.completedEarlyPass.name;
-      case 'completed':
-        return r.extendedMinutes > 0
-            ? CycleResult.completedExtended.name
-            : CycleResult.completedOnTime.name;
-      default: // makeup 等：达标行按到点完成展示
-        return CycleResult.completedOnTime.name;
     }
   }
 

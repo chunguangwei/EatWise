@@ -332,6 +332,40 @@ void main() {
       expect(broken.actualSec, 13 * 3600);
     });
 
+    test(
+      '断食历史回填：补签（makeup）行落 result=makeup + actualSec=0（与 /sync 通道同口径）',
+      () async {
+        // 全量口径审计 2026-10-04：此前回填把 makeup 塌缩为 completedOnTime
+        // 且按 fastedMinutes 落时长——与 /sync 下行同记录两种形态，补签的
+        // 计划时长被当成真实断食成绩混进趋势/累计。
+        reportApi.recentRecords = <ServerFastingRecord>[
+          ServerFastingRecord(
+            id: 'r-makeup',
+            attributionDate: '2026-07-27',
+            plannedStartAt: DateTime.parse('2026-07-26T11:00:00.000Z'),
+            plannedEndAt: DateTime.parse('2026-07-27T01:00:00.000Z'),
+            extendedMinutes: 0,
+            result: 'makeup',
+            isQualified: true,
+            fastedMinutes: 14 * 60,
+          ),
+        ];
+        final c = container();
+        addTearDown(c.dispose);
+        final controller = c.read(streakControllerProvider.notifier);
+        await controller.refreshFromServer();
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+
+        final rows = await db.fastingRecordDao.recordsOf('u1');
+        final makeup = rows.firstWhere(
+          (r) => r.attributionDate == '2026-07-27',
+        );
+        expect(makeup.result, CycleResult.makeup.name);
+        expect(makeup.actualSec, 0);
+        expect(makeup.qualified, isTrue); // 达标口径照常计入
+      },
+    );
+
     test('断食历史回填：本机已有关闭记录的归属日不覆盖（本机为准）', () async {
       // 本机 07-27/07-25 周期已关闭落库（离线，F2 上行失败 → pending）。
       reportApi.offline = true;

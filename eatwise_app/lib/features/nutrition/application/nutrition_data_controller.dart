@@ -3,6 +3,8 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/food_entry_dao.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/features/fasting/domain/daily_nutrition.dart';
+import 'package:eatwise/features/fasting/domain/fasting_result_mapping.dart'
+    show isRealFastResult;
 import 'package:eatwise/features/fasting/domain/nutrition_rule_config.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
@@ -230,13 +232,19 @@ final StreamProvider<List<FastingRecord>> weeklyFastingRecordsProvider =
 
 /// 近 7 日断食时长序列（小时；长度 7，无记录日为 null，按日期升序对齐，
 /// 与 [weeklyKcalProvider] 同口径）。
+///
+/// 2026-10-04 全量口径审计修订：排除 tombstone 与补签（makeup）——
+/// 「补签日计入达标、不计入时长」与报告页趋势/累计成果同口径；此前
+/// 不过滤，补签日（/sync 下行 actualSec 恒 0）在折线上画 0 点，
+/// 与三态格「达标绿」自相矛盾（wcg 趋势页 0 值走查）。
 final Provider<List<double?>> weeklyFastingHoursProvider =
     Provider<List<double?>>((ref) {
       final end = ref.watch(selectedDateProvider);
       final records = ref.watch(weeklyFastingRecordsProvider).valueOrNull;
       final byDate = <String, double>{
         for (final r in records ?? const <FastingRecord>[])
-          r.attributionDate: r.actualSec / 3600,
+          if (!r.deleted && isRealFastResult(r.result))
+            r.attributionDate: r.actualSec / 3600,
       };
       return List<double?>.generate(7, (i) {
         final date = localDateOf(end.subtract(Duration(days: 6 - i)));

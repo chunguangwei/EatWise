@@ -466,7 +466,7 @@ final FutureProvider<WeeklyReportStats> weeklyReportProvider =
         },
         qualifiedDates: <String>{
           for (final r in fasts)
-            if (r.qualified) r.attributionDate,
+            if (r.qualified && !r.deleted) r.attributionDate,
         },
         goal: ref.watch(nutritionGoalProvider),
       );
@@ -501,7 +501,7 @@ final FutureProvider<WeeklySummary> weeklySummaryProvider =
         },
         qualifiedDates: <String>{
           for (final r in fasts)
-            if (r.qualified) r.attributionDate,
+            if (r.qualified && !r.deleted) r.attributionDate,
         },
         weightByDate: weights,
         targetKcal: ref.watch(nutritionGoalProvider).targetKcal,
@@ -551,12 +551,17 @@ final FutureProvider<MonthlyReport> monthlyReportProvider =
       final weights = await source.weightRange(from, to);
       return computeMonthlyReport(
         month: monthStart,
+        // 2026-10-04 全量口径审计修订：时长 map 排除 tombstone 与补签
+        // （此前不过滤——补签行 actualSec 恒 0，把月报平均时长拉低，
+        // 与「补签计达标不计时长」口径矛盾）。
         fastingHoursByDate: <String, double>{
-          for (final r in fasts) r.attributionDate: r.actualSec / 3600,
+          for (final r in fasts)
+            if (!r.deleted && isRealFastResult(r.result))
+              r.attributionDate: r.actualSec / 3600,
         },
         qualifiedDates: <String>{
           for (final r in fasts)
-            if (r.qualified) r.attributionDate,
+            if (r.qualified && !r.deleted) r.attributionDate,
         },
         intakeByDate: <String, DailyIntake>{
           for (final c in caches)
