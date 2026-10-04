@@ -33,6 +33,7 @@ import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/legal/application/legal_providers.dart';
 import 'package:eatwise/features/legal/application/privacy_gate.dart';
 import 'package:eatwise/features/legal/data/privacy_consent_store.dart';
+import 'package:eatwise/features/moderation/data/admin_pending_alert.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
@@ -104,6 +105,7 @@ Future<void> main() async {
       channel: fastingReminderChannel(LocaleSettings.currentLocale.buildSync()),
       extraChannels: <NotificationChannelConfig>[
         waterReminderChannel(LocaleSettings.currentLocale.buildSync()),
+        moderationAlertChannel(LocaleSettings.currentLocale.buildSync()),
       ],
     );
   } on Object {

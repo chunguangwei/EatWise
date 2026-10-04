@@ -46,6 +46,12 @@ export class ModerationFoodController {
     return this.food.listFoodCandidates(filter, limit ? Number(limit) : 20, cursor);
   }
 
+  /** 待审批计数（管理员角标/新贡献提醒轮询用，轻量免拉列表） */
+  @Get('pending-count')
+  async pendingCount() {
+    return { count: await this.food.countPendingFoodCandidates() };
+  }
+
   /** 审核：approve 晋升共享库 / reject 退回（幂等）+ 级联清理；留痕 reviewedBy=当前用户 id */
   @Post(':id/review')
   @HttpCode(200)

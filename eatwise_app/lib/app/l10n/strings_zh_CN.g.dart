@@ -421,6 +421,8 @@ class Translations$moderation$zh_CN {
 
 	/// zh-CN: '加载失败，下拉重试'
 	String get loadFailed => '加载失败，下拉重试';
+
+	late final Translations$moderation$notify$zh_CN notify = Translations$moderation$notify$zh_CN.internal(_root);
 }
 
 // Path: notify.channel
@@ -3436,6 +3438,27 @@ class Translations$auth$error$zh_CN {
 	String get passwordTooWeak => '密码需 8-64 位且包含字母和数字';
 }
 
+// Path: moderation.notify
+class Translations$moderation$notify$zh_CN {
+	Translations$moderation$notify$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '新的待审批贡献'
+	String get title => '新的待审批贡献';
+
+	/// zh-CN: '有 ${n} 条食物贡献等待审批，点我前往处理'
+	String body({required Object n}) => '有 ${n} 条食物贡献等待审批，点我前往处理';
+
+	/// zh-CN: '审批提醒'
+	String get channelName => '审批提醒';
+
+	/// zh-CN: '有新食物贡献待审批时通知管理员'
+	String get channelDesc => '有新食物贡献待审批时通知管理员';
+}
+
 // Path: notify.channel.fastingReminders
 class Translations$notify$channel$fastingReminders$zh_CN {
 	Translations$notify$channel$fastingReminders$zh_CN.internal(this._root);
@@ -5680,6 +5703,10 @@ extension on Translations {
 			'moderation.currentTitle' => '当前值',
 			'moderation.per100gSummary' => ({required Object kcal, required Object protein, required Object carb, required Object fat}) => '每100克：${kcal} 千卡 · 蛋白 ${protein}g · 碳水 ${carb}g · 脂肪 ${fat}g',
 			'moderation.loadFailed' => '加载失败，下拉重试',
+			'moderation.notify.title' => '新的待审批贡献',
+			'moderation.notify.body' => ({required Object n}) => '有 ${n} 条食物贡献等待审批，点我前往处理',
+			'moderation.notify.channelName' => '审批提醒',
+			'moderation.notify.channelDesc' => '有新食物贡献待审批时通知管理员',
 			_ => null,
 		};
 	}

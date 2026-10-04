@@ -428,6 +428,11 @@ export class FoodService {
     };
   }
 
+  /** 移动端审批中心「待审批」计数（管理员角标/新贡献提醒，免拉全量列表） */
+  countPendingFoodCandidates(): Promise<number> {
+    return this.driver.countFoodCandidatesByStatus('pending');
+  }
+
   /**
    * 用户端：我的贡献批量查询（众包状态列表）。只返回本人候选；
    * status 缺省返回全部状态；createdAt 降序（最新在前），页码分页（page 从 1 起）。

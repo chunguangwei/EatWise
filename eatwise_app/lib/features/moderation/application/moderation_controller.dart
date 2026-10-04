@@ -1,11 +1,18 @@
 import 'dart:async';
 
+import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/network_providers.dart';
+import 'package:eatwise/features/auth/application/auth_providers.dart';
+import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart'
+    show localNotificationServiceProvider;
+import 'package:eatwise/features/moderation/data/admin_pending_alert.dart';
 import 'package:eatwise/features/moderation/data/moderation_api.dart';
+import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
+import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart'
     show currentUserIdProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -284,3 +291,49 @@ moderationControllerProvider =
     NotifierProvider<ModerationController, ModerationState>(
       ModerationController.new,
     );
+
+/// 待审批计数（设置页「审批中心」行角标；仅 admin 拉取，其余 0）。
+final adminPendingCountProvider = FutureProvider.autoDispose<int>((ref) async {
+  final me = await ref.watch(userMeProvider.future);
+  if (me?.role != 'admin') return 0;
+  return ref.watch(moderationRemoteProvider).fetchPendingCount();
+});
+
+/// 管理员「待审批」提醒同步（挂 RecordSyncEngine 每轮 syncNow；
+/// dio/prefs/通知未装配的测试环境返回 null，引擎按跳过处理）。
+final adminPendingAlertSyncProvider = Provider<AdminPendingAlertSync?>((ref) {
+  try {
+    final t = LocaleSettings.currentLocale.buildSync();
+    return AdminPendingAlertSync(
+      remote: ref.watch(moderationRemoteProvider),
+      prefs: ref.watch(sharedPreferencesProvider),
+      userId: () {
+        try {
+          return ref.read(authControllerProvider).userId ?? 'anonymous';
+        } on Object {
+          return 'anonymous'; // 认证未装配的测试/演示环境按未登录处理
+        }
+      },
+      isAdmin: () {
+        try {
+          return ref.read(userMeProvider).valueOrNull?.role == 'admin';
+        } on Object {
+          return false; // userMe 未加载/异常：跳过不打扰
+        }
+      },
+      notifications: ref.watch(localNotificationServiceProvider),
+      channel: moderationAlertChannel(t),
+      title: t.moderation.notify.title,
+      bodyFor: (n) => t.moderation.notify.body(n: n),
+      onCountChanged: () {
+        try {
+          ref.invalidate(adminPendingCountProvider);
+        } on Object {
+          // provider 未装配（测试/预览）：角标刷新不适用。
+        }
+      },
+    );
+  } on Object {
+    return null;
+  }
+});

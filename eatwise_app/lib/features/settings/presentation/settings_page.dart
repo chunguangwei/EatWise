@@ -20,6 +20,8 @@ import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.d
     show localNotificationServiceProvider;
 import 'package:eatwise/features/health/presentation/health_sync_section.dart';
 import 'package:eatwise/features/legal/application/legal_providers.dart';
+import 'package:eatwise/features/moderation/application/moderation_controller.dart'
+    show adminPendingCountProvider;
 import 'package:eatwise/features/record/application/water_reminder_planner.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
 import 'package:eatwise/features/settings/application/avatar_upload.dart';
@@ -216,12 +218,14 @@ class SettingsPage extends ConsumerWidget {
                   onTap: () => context.push('/settings/blocked-users'),
                 ),
                 // 审批中心（用户角色 admin 可见；普通用户完全隐藏，
-                // 服务端 UserAdminGuard 再兜底 403）。
+                // 服务端 UserAdminGuard 再兜底 403）。角标=待审批计数
+                // （2026-10-04 拍板：需要审批时也要让管理员看见）。
                 if (userMe?.role == 'admin')
                   _SettingsTile(
                     title: t.settings.account.moderation,
                     subtitle: t.moderation.subtitle,
                     icon: Icons.fact_check_rounded,
+                    trailingWidget: const _ModerationPendingBadge(),
                     onTap: () => context.push('/moderation/food-candidates'),
                   ),
                 if (loggedIn) ...<Widget>[
@@ -1164,6 +1168,38 @@ class _AvatarImageState extends ConsumerState<_AvatarImage> {
           gaplessPlayback: true,
         );
       },
+    );
+  }
+}
+
+/// 审批中心「待审批」角标（2026-10-04 拍板）：pending 计数 >0 时红色
+/// 胶囊数字徽标；拉取中/失败/0 不渲染。
+class _ModerationPendingBadge extends ConsumerWidget {
+  const _ModerationPendingBadge();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(adminPendingCountProvider).valueOrNull ?? 0;
+    if (count <= 0) return const SizedBox.shrink();
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s2,
+        vertical: AppSpacing.s1,
+      ),
+      decoration: BoxDecoration(
+        color: colors.signalRed,
+        borderRadius: radii.rFull,
+      ),
+      child: Text(
+        count > 99 ? '99+' : '$count',
+        style: textStyles.textXs.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }

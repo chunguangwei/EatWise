@@ -1332,6 +1332,12 @@
     "suggestionTitle": "Suggested",
     "currentTitle": "Current",
     "per100gSummary": "Per 100 g: ${kcal} kcal · protein ${protein} g · carbs ${carb} g · fat ${fat} g",
-    "loadFailed": "Failed to load — pull to retry"
+    "loadFailed": "Failed to load — pull to retry",
+    "notify": {
+      "title": "New contributions to review",
+      "body": "${n} food contributions are waiting for review — tap to handle",
+      "channelName": "Review alerts",
+      "channelDesc": "Notify admins when new food contributions await review"
+    }
   }
 }

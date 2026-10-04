@@ -191,8 +191,69 @@ describe('Mobile moderation & user role (e2e)', () => {
     ).toBeDefined();
   });
 
-  it('admin 用户移动端驳回：级联清理记录 + reviewedBy 留痕 + 重复驳回幂等', async () => {
+  it('GET /v1/moderation/food-candidates/pending-count：admin 可查计数，普通用户 403、匿名 401；approve 后计数下降', async () => {
     const owner = await login(nextPhone());
+    const admin = await login(nextPhone());
+    await request(server)
+      .patch(`/v1/admin/users/${admin.userId}/role`)
+      .set('x-admin-token', ADMIN)
+      .send({ role: 'admin' })
+      .expect(200);
+
+    // 基线计数
+    const baseline = await request(server)
+      .get('/v1/moderation/food-candidates/pending-count')
+      .set(auth(admin.token))
+      .expect(200);
+    const base = baseline.body.data.count as number;
+
+    // 普通用户贡献一条 → 计数 +1
+    const custom = await request(server)
+      .post('/v1/foods/custom')
+      .set(auth(owner.token))
+      .send({
+        clientRequestId: nextUuid(),
+        nameZh: '计数哨兵牛肉干',
+        per100g: { kcal: 250, proteinG: 30, carbG: 5, fatG: 12 },
+        source: 'manual',
+      })
+      .expect(200);
+    const contributed = await request(server)
+      .post(`/v1/foods/custom/${custom.body.data.id}/contribute`)
+      .set(auth(owner.token))
+      .send({ clientRequestId: nextUuid() })
+      .expect(200);
+    const candidateId = contributed.body.data.id as string;
+
+    const after = await request(server)
+      .get('/v1/moderation/food-candidates/pending-count')
+      .set(auth(admin.token))
+      .expect(200);
+    expect(after.body.data.count).toBe(base + 1);
+
+    // approve 后回落
+    await request(server)
+      .post(`/v1/moderation/food-candidates/${candidateId}/review`)
+      .set(auth(admin.token))
+      .send({ action: 'approve' })
+      .expect(200);
+    const settled = await request(server)
+      .get('/v1/moderation/food-candidates/pending-count')
+      .set(auth(admin.token))
+      .expect(200);
+    expect(settled.body.data.count).toBe(base);
+
+    // 鉴权口径与列表一致：普通用户 403、匿名 401
+    await request(server)
+      .get('/v1/moderation/food-candidates/pending-count')
+      .set(auth(owner.token))
+      .expect(403);
+    await request(server)
+      .get('/v1/moderation/food-candidates/pending-count')
+      .expect(401);
+  });
+
+  it('admin 用户移动端驳回：级联清理记录 + reviewedBy 留痕 + 重复驳回幂等', async () => {    const owner = await login(nextPhone());
     const admin = await login(nextPhone());
     await request(server)
       .patch(`/v1/admin/users/${admin.userId}/role`)

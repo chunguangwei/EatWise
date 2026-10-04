@@ -322,6 +322,7 @@ class _Translations$moderation$en extends Translations$moderation$zh_CN {
 	@override String get currentTitle => 'Current';
 	@override String per100gSummary({required Object kcal, required Object protein, required Object carb, required Object fat}) => 'Per 100 g: ${kcal} kcal · protein ${protein} g · carbs ${carb} g · fat ${fat} g';
 	@override String get loadFailed => 'Failed to load — pull to retry';
+	@override late final _Translations$moderation$notify$en notify = _Translations$moderation$notify$en._(_root);
 }
 
 // Path: notify.channel
@@ -1816,6 +1817,19 @@ class _Translations$auth$error$en extends Translations$auth$error$zh_CN {
 	@override String get usernameTaken => 'Username already taken';
 	@override String get invalidCredentials => 'Incorrect username or password';
 	@override String get passwordTooWeak => 'Password must be 8-64 characters with letters and digits';
+}
+
+// Path: moderation.notify
+class _Translations$moderation$notify$en extends Translations$moderation$notify$zh_CN {
+	_Translations$moderation$notify$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'New contributions to review';
+	@override String body({required Object n}) => '${n} food contributions are waiting for review — tap to handle';
+	@override String get channelName => 'Review alerts';
+	@override String get channelDesc => 'Notify admins when new food contributions await review';
 }
 
 // Path: notify.channel.fastingReminders
@@ -3572,6 +3586,10 @@ extension on TranslationsEn {
 			'moderation.currentTitle' => 'Current',
 			'moderation.per100gSummary' => ({required Object kcal, required Object protein, required Object carb, required Object fat}) => 'Per 100 g: ${kcal} kcal · protein ${protein} g · carbs ${carb} g · fat ${fat} g',
 			'moderation.loadFailed' => 'Failed to load — pull to retry',
+			'moderation.notify.title' => 'New contributions to review',
+			'moderation.notify.body' => ({required Object n}) => '${n} food contributions are waiting for review — tap to handle',
+			'moderation.notify.channelName' => 'Review alerts',
+			'moderation.notify.channelDesc' => 'Notify admins when new food contributions await review',
 			_ => null,
 		};
 	}

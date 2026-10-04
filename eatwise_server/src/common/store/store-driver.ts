@@ -324,6 +324,9 @@ export abstract class StoreDriver {
   /** 管理端审核队列：status 缺省返回全部，(createdAt 升序, id 升序) 先入先审 */
   abstract listFoodCandidates(status?: FoodCandidateStatus): Promise<FoodCandidateEntity[]>;
 
+  /** 按状态计数（移动端审批中心「待审批」角标/管理员提醒，免拉全量列表） */
+  abstract countFoodCandidatesByStatus(status: FoodCandidateStatus): Promise<number>;
+
   /** 用户端「我的贡献」：仅本人候选，status 缺省全状态，(createdAt 降序, id 降序) 最新在前 */
   abstract findFoodCandidatesByUser(
     userId: string,
@@ -1148,6 +1151,11 @@ export class MemoryStoreDriver extends StoreDriver {
       .filter((c) => !status || c.status === status)
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id));
     return Promise.resolve(rows);
+  }
+
+  countFoodCandidatesByStatus(status: FoodCandidateStatus): Promise<number> {
+    const n = [...this.store.foodCandidates.values()].filter((c) => c.status === status).length;
+    return Promise.resolve(n);
   }
 
   findFoodCandidatesByUser(

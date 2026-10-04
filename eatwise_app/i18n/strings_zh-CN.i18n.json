@@ -1331,6 +1331,12 @@
     "suggestionTitle": "建议值",
     "currentTitle": "当前值",
     "per100gSummary": "每100克：${kcal} 千卡 · 蛋白 ${protein}g · 碳水 ${carb}g · 脂肪 ${fat}g",
-    "loadFailed": "加载失败，下拉重试"
+    "loadFailed": "加载失败，下拉重试",
+    "notify": {
+      "title": "新的待审批贡献",
+      "body": "有 ${n} 条食物贡献等待审批，点我前往处理",
+      "channelName": "审批提醒",
+      "channelDesc": "有新食物贡献待审批时通知管理员"
+    }
   }
 }

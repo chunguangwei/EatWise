@@ -108,6 +108,9 @@ abstract interface class ModerationRemote {
   /// pending 候选队列（游标分页）。
   Future<ModerationCandidatePage> listPending({String? cursor, int limit = 20});
 
+  /// 待审批计数（管理员角标/新贡献提醒轮询，轻量免拉列表）。
+  Future<int> fetchPendingCount();
+
   /// 审核（approve / reject；reject 可带原因）。
   Future<void> review(
     String candidateId, {
@@ -159,6 +162,18 @@ final class RemoteModerationApi implements ModerationRemote {
         nextCursor: pageInfoMap['nextCursor'] as String?,
         hasMore: pageInfoMap['hasMore'] == true,
       );
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
+  @override
+  Future<int> fetchPendingCount() async {
+    try {
+      final response = await dio.get<Map<String, dynamic>>(
+        '/moderation/food-candidates/pending-count',
+      );
+      return (response.data?['count'] as num?)?.toInt() ?? 0;
     } on DioException catch (e) {
       throw toApiException(e);
     }
@@ -223,6 +238,16 @@ final class FakeModerationRemote implements ModerationRemote {
 
   /// 注入审核失败（业务错误原样上抛 UI 提示）。
   Object? reviewError;
+
+  /// 注入计数失败 / 计数取值（null = 按 pending 队列长度）。
+  Object? countError;
+  int? pendingCount;
+
+  @override
+  Future<int> fetchPendingCount() async {
+    if (countError != null) throw countError!;
+    return pendingCount ?? pending.length;
+  }
 
   /// 注入列表失败。
   Object? listError;

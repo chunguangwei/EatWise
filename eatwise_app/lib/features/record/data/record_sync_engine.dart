@@ -2,6 +2,7 @@ import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/data/remote_fasting_record_sync.dart';
 import 'package:eatwise/features/health/data/remote_exercise_log_sync.dart';
+import 'package:eatwise/features/moderation/data/admin_pending_alert.dart';
 import 'package:eatwise/features/onboarding/application/profile_sync.dart';
 import 'package:eatwise/features/record/custom_food/application/contribution_review.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
@@ -33,6 +34,7 @@ final class RecordSyncEngine {
     this.weightSync,
     this.weightStore,
     this.contributionReviewSync,
+    this.adminPendingAlertSync,
     this.exerciseSync,
     this.fastingRecordSync,
     this.planSync,
@@ -62,6 +64,10 @@ final class RecordSyncEngine {
 
   /// 贡献审核状态同步（可选：未装配/匿名跳过；仅登录态有意义）。
   final ContributionReviewSync? contributionReviewSync;
+
+  /// 管理员「待审批」提醒（可选：2026-10-04 拍板——需要审批时也通知
+  /// 管理员；仅 role=admin 登录用户动作，未装配为 null 跳过）。
+  final AdminPendingAlertSync? adminPendingAlertSync;
 
   /// 运动记录上行同步（可选：2026-09-19 拍板上行；未装配为 null 跳过）。
   final RemoteExerciseLogSync? exerciseSync;
@@ -156,6 +162,15 @@ final class RecordSyncEngine {
         } on Object catch (e) {
           // 失败保留下次重试；留痕便于真机诊断徽标残留。
           debugPrint('[Sync] contributionReview.syncNow 失败（下轮重试）：$e');
+        }
+      }
+      // 管理员「待审批」提醒（2026-10-04 拍板）：仅 admin 用户拉计数，
+      // 新贡献到达（计数上升）时本地即时通知；失败保留下轮重试。
+      if (repository.userId != 'anonymous') {
+        try {
+          await adminPendingAlertSync?.syncNow();
+        } on Object catch (e) {
+          debugPrint('[Sync] adminPendingAlert.syncNow 失败（下轮重试）：$e');
         }
       }
       await repository.retryPending();

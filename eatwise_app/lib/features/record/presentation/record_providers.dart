@@ -10,6 +10,8 @@ import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/data/remote_fasting_record_sync.dart';
 import 'package:eatwise/features/health/application/exercise_log_providers.dart'
     show exerciseLogSyncProvider;
+import 'package:eatwise/features/moderation/application/moderation_controller.dart'
+    show adminPendingAlertSyncProvider;
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/application/profile_sync.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
@@ -155,6 +157,7 @@ final Provider<RecordSyncEngine> recordSyncEngineProvider =
         weightSync: ref.watch(weightLogSyncProvider),
         weightStore: ref.watch(weightLogStoreProvider),
         contributionReviewSync: ref.watch(contributionReviewSyncProvider),
+        adminPendingAlertSync: ref.watch(adminPendingAlertSyncProvider),
         exerciseSync: ref.watch(exerciseLogSyncProvider),
         fastingRecordSync: ref.watch(fastingRecordSyncProvider),
         planSync: ref.watch(fastingPlanSyncProvider),

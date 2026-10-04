@@ -1268,6 +1268,14 @@ export class PrismaStore extends StoreDriver {
     }
   }
 
+  async countFoodCandidatesByStatus(status: FoodCandidateStatus): Promise<number> {
+    try {
+      return await this.prisma.foodCandidate.count({ where: { status } });
+    } catch (e) {
+      throw this.fail('countFoodCandidatesByStatus', e);
+    }
+  }
+
   async findFoodCandidateByFoodId(foodId: string): Promise<FoodCandidateEntity | null> {
     try {
       const row = await this.prisma.foodCandidate.findFirst({
