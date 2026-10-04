@@ -685,7 +685,8 @@
         "fasting": "断食时长",
         "empty": "记满几天，趋势曲线就跑起来啦",
         "ctaRecord": "去记录",
-        "hourUnit": "小时"
+        "hourUnit": "小时",
+        "unitLegend": "单位：${unit}"
       },
       "burn": {
         "title": "今日消耗",
@@ -768,6 +769,7 @@
         "kcal": "千卡",
         "hour": "小时"
       },
+      "unitLegend": "单位：${unit}",
       "empty": "数据曲线正在热身，多记几天它就跑起来啦",
       "ctaRecord": "去记录",
       "ctaFast": "去断食",

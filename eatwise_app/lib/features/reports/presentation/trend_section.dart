@@ -236,7 +236,11 @@ class _ReportTrendSectionState extends ConsumerState<ReportTrendSection> {
                           : colors.brandPrimary,
                       labelColor: colors.textSecondary,
                       labelStyle: textStyles.textXs,
-                      unit: unit,
+                      // 单位从数值里拆出单独图例（达标率视图无单位，图例
+                      // 直接标「达标率」）。
+                      unitLegend: isRate
+                          ? trend.qualifiedRate
+                          : trend.unitLegend(unit: unit),
                       fractionDigits:
                           dimension == ReportDimension.kcal || isRate ? 0 : 1,
                       // 体重保留 min-max 量程（零基线会压平 60~80kg 曲线）；
@@ -399,7 +403,7 @@ class ReportTrendPainter extends CustomPainter {
     required this.lineColor,
     required this.labelColor,
     required this.labelStyle,
-    required this.unit,
+    required this.unitLegend,
     this.fractionDigits = 0,
     this.targetValue,
     this.targetColor,
@@ -414,7 +418,10 @@ class ReportTrendPainter extends CustomPainter {
   final Color lineColor;
   final Color labelColor;
   final TextStyle labelStyle;
-  final String unit;
+
+  /// 单位图例（如「单位：小时」/「Unit: h」，达标率视图传「达标率」），
+  /// 画在图表区左上角——单位不再拼接在每个数值后面。
+  final String unitLegend;
   final int fractionDigits;
 
   /// 目标参考线值（阶段 C：体重维度传目标体重；null 不画）。
@@ -433,7 +440,13 @@ class ReportTrendPainter extends CustomPainter {
   final bool zeroBaseline;
 
   static const double _labelHeight = 20;
-  static const double _topPadding = 16;
+  static const double _topPadding = 24;
+
+  /// 数值标签格式：整数不带小数位（14 而非 14.0），非整数按
+  /// [fractionDigits]（保底 1 位）。
+  String _fmt(double v) => v == v.roundToDouble()
+      ? v.toStringAsFixed(0)
+      : v.toStringAsFixed(fractionDigits == 0 ? 1 : fractionDigits);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -507,23 +520,32 @@ class ReportTrendPainter extends CustomPainter {
         canvas.drawLine(pointOf(i), pointOf(i + 1), linePaint);
       }
     }
-    // 节点圆点。
+    // 节点圆点 + 数值标签（≤10 点逐点标注，更多点只标末点防糊）。
     final dotPaint = Paint()..color = lineColor;
-    for (var i = 0; i < values.length; i++) {
-      if (values[i] == null) continue;
-      canvas.drawCircle(pointOf(i), 3, dotPaint);
-    }
-    // 末点数值标签。
     final lastIndex = values.lastIndexWhere((v) => v != null);
-    if (lastIndex >= 0) {
-      _drawText(
-        canvas,
-        '${values[lastIndex]!.toStringAsFixed(fractionDigits)} $unit',
-        Offset(pointOf(lastIndex).dx, chartTop - 12),
-        labelStyle.copyWith(color: lineColor),
-        alignRight: pointOf(lastIndex).dx > size.width / 2,
-      );
+    final labelEveryPoint = values.length <= 10;
+    for (var i = 0; i < values.length; i++) {
+      final v = values[i];
+      if (v == null) continue;
+      canvas.drawCircle(pointOf(i), 3, dotPaint);
+      if (labelEveryPoint || i == lastIndex) {
+        _drawText(
+          canvas,
+          _fmt(v),
+          Offset(pointOf(i).dx, pointOf(i).dy - 16),
+          labelStyle.copyWith(color: lineColor),
+          center: true,
+        );
+      }
     }
+    // 单位图例（左上角，与首点数值标签错开——首点标签贴点上方居中，
+    // 图例靠最左缘基线对齐图区顶部）。
+    _drawText(
+      canvas,
+      unitLegend,
+      Offset(0, 2),
+      labelStyle.copyWith(color: labelColor),
+    );
     // 底部日期标签（稀疏）。
     for (var i = 0; i < labels.length; i++) {
       final label = labels[i];
@@ -563,7 +585,7 @@ class ReportTrendPainter extends CustomPainter {
     return oldDelegate.values != values ||
         oldDelegate.labels != labels ||
         oldDelegate.lineColor != lineColor ||
-        oldDelegate.unit != unit ||
+        oldDelegate.unitLegend != unitLegend ||
         oldDelegate.targetValue != targetValue ||
         oldDelegate.targetLabel != targetLabel;
   }

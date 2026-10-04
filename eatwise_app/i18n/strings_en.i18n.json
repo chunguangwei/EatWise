@@ -685,7 +685,8 @@
         "fasting": "Fasting",
         "empty": "Log a few more days and your trend line starts moving",
         "ctaRecord": "Log now",
-        "hourUnit": "h"
+        "hourUnit": "h",
+        "unitLegend": "Unit: ${unit}"
       },
       "burn": {
         "title": "Today's burn",
@@ -768,6 +769,7 @@
         "kcal": "kcal",
         "hour": "h"
       },
+      "unitLegend": "Unit: ${unit}",
       "empty": "Your trends are warming up — log a few days to get them moving.",
       "ctaRecord": "Log now",
       "ctaFast": "Start fasting",

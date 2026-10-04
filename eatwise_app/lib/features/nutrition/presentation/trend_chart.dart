@@ -118,7 +118,7 @@ class _TrendChartSectionState extends ConsumerState<TrendChartSection> {
                       : colors.ringExercise,
                   labelColor: colors.textSecondary,
                   labelStyle: textStyles.textXs,
-                  unit: unit,
+                  unitLegend: trend.unitLegend(unit: unit),
                 ),
               ),
             ),
@@ -170,7 +170,7 @@ class _TrendEmpty extends StatelessWidget {
   }
 }
 
-/// 绿描线趋势图：折线 + 节点圆点 + 底部日期标签 + 末点数值标签。
+/// 绿描线趋势图：折线 + 节点圆点 + 数值标签 + 单位图例 + 底部日期标签。
 /// 无记录日（null）跳过不连线段。
 class _TrendLinePainter extends CustomPainter {
   _TrendLinePainter({
@@ -179,7 +179,7 @@ class _TrendLinePainter extends CustomPainter {
     required this.lineColor,
     required this.labelColor,
     required this.labelStyle,
-    required this.unit,
+    required this.unitLegend,
   });
 
   final List<double?> values;
@@ -187,10 +187,17 @@ class _TrendLinePainter extends CustomPainter {
   final Color lineColor;
   final Color labelColor;
   final TextStyle labelStyle;
-  final String unit;
+
+  /// 单位图例（「单位：小时」/「Unit: h」/「单位：千卡」），画在图表区
+  /// 左上角——单位不再拼接在每个数值后面。
+  final String unitLegend;
 
   static const double _labelHeight = 20;
-  static const double _topPadding = 16;
+  static const double _topPadding = 24;
+
+  /// 数值标签格式：整数不带小数位（14 而非 14.0），非整数保留 1 位。
+  String _fmt(double v) =>
+      v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -226,22 +233,27 @@ class _TrendLinePainter extends CustomPainter {
         canvas.drawLine(pointOf(i), pointOf(i + 1), linePaint);
       }
     }
-    // 节点圆点 + 末点数值标签。
+    // 节点圆点 + 逐点数值标签（本图固定 7 点，全标不糊）。
     final dotPaint = Paint()..color = lineColor;
     for (var i = 0; i < values.length; i++) {
-      if (values[i] == null) continue;
+      final v = values[i];
+      if (v == null) continue;
       canvas.drawCircle(pointOf(i), 3, dotPaint);
-    }
-    final lastIndex = values.lastIndexWhere((v) => v != null);
-    if (lastIndex >= 0) {
       _drawText(
         canvas,
-        '${values[lastIndex]!.toStringAsFixed(0)} $unit',
-        Offset(pointOf(lastIndex).dx, chartTop - 12),
+        _fmt(v),
+        Offset(pointOf(i).dx, pointOf(i).dy - 16),
         labelStyle.copyWith(color: lineColor),
-        alignRight: pointOf(lastIndex).dx > size.width / 2,
+        center: true,
       );
     }
+    // 单位图例（左上角）。
+    _drawText(
+      canvas,
+      unitLegend,
+      Offset(0, 2),
+      labelStyle.copyWith(color: labelColor),
+    );
     // 底部日期标签。
     for (var i = 0; i < labels.length; i++) {
       final x = values.length == 1

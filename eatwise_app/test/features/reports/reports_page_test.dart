@@ -373,13 +373,14 @@ void main() {
     await pumpPage(tester);
 
     // 默认热量维度 → 零基线（min-max 会把 16h→14h 的小波动渲染成贴图底
-    // 的「跌到 0」假象，wcg 三轮「趋势 0 值」最终根因）。
+    // 的「跌到 0」假象，wcg 三轮「趋势 0 值」最终根因）；单位图例独立标注。
     var painter =
         tester.widget<CustomPaint>(findTrendPainter()).painter
             as ReportTrendPainter;
     expect(painter.zeroBaseline, isTrue);
+    expect(painter.unitLegend, '单位：千卡');
 
-    // 断食时长 → 零基线。
+    // 断食时长 → 零基线 + 小时图例。
     await tester.tap(find.text('断食时长'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
@@ -387,8 +388,9 @@ void main() {
         tester.widget<CustomPaint>(findTrendPainter()).painter
             as ReportTrendPainter;
     expect(painter.zeroBaseline, isTrue);
+    expect(painter.unitLegend, '单位：小时');
 
-    // 体重 → 保留 min-max（零基线会把 60~80kg 压成顶部平线）。
+    // 体重 → 保留 min-max（零基线会把 60~80kg 压成顶部平线）+ 公斤图例。
     await tester.tap(find.text('体重'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
@@ -396,6 +398,7 @@ void main() {
         tester.widget<CustomPaint>(findTrendPainter()).painter
             as ReportTrendPainter;
     expect(painter.zeroBaseline, isFalse);
+    expect(painter.unitLegend, '单位：公斤');
 
     await unmount(tester);
   });

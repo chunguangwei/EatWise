@@ -1963,6 +1963,9 @@ class Translations$reports$trend$zh_CN {
 	late final Translations$reports$trend$range$zh_CN range = Translations$reports$trend$range$zh_CN.internal(_root);
 	late final Translations$reports$trend$unit$zh_CN unit = Translations$reports$trend$unit$zh_CN.internal(_root);
 
+	/// zh-CN: '单位：${unit}'
+	String unitLegend({required Object unit}) => '单位：${unit}';
+
 	/// zh-CN: '数据曲线正在热身，多记几天它就跑起来啦'
 	String get empty => '数据曲线正在热身，多记几天它就跑起来啦';
 
@@ -4128,6 +4131,9 @@ class Translations$nutrition$data$trend$zh_CN {
 
 	/// zh-CN: '小时'
 	String get hourUnit => '小时';
+
+	/// zh-CN: '单位：${unit}'
+	String unitLegend({required Object unit}) => '单位：${unit}';
 }
 
 // Path: nutrition.data.burn
@@ -5183,6 +5189,7 @@ extension on Translations {
 			'nutrition.data.trend.empty' => '记满几天，趋势曲线就跑起来啦',
 			'nutrition.data.trend.ctaRecord' => '去记录',
 			'nutrition.data.trend.hourUnit' => '小时',
+			'nutrition.data.trend.unitLegend' => ({required Object unit}) => '单位：${unit}',
 			'nutrition.data.burn.title' => '今日消耗',
 			'nutrition.data.burn.activeEnergy' => '活动消耗',
 			'nutrition.data.burn.steps' => '步数',
@@ -5236,6 +5243,7 @@ extension on Translations {
 			'reports.trend.unit.kg' => '公斤',
 			'reports.trend.unit.kcal' => '千卡',
 			'reports.trend.unit.hour' => '小时',
+			'reports.trend.unitLegend' => ({required Object unit}) => '单位：${unit}',
 			'reports.trend.empty' => '数据曲线正在热身，多记几天它就跑起来啦',
 			'reports.trend.ctaRecord' => '去记录',
 			'reports.trend.ctaFast' => '去断食',
@@ -5683,10 +5691,10 @@ extension on Translations {
 			'moderation.empty' => '暂无待审批的食品候选',
 			'moderation.approve' => '通过',
 			'moderation.reject' => '驳回',
-			'moderation.approveConfirm' => '通过后该食品将进入共享食物库，所有用户都能搜到。确认通过？',
-			'moderation.rejectConfirmTitle' => '驳回该候选',
 			_ => null,
 		} ?? switch (path) {
+			'moderation.approveConfirm' => '通过后该食品将进入共享食物库，所有用户都能搜到。确认通过？',
+			'moderation.rejectConfirmTitle' => '驳回该候选',
 			'moderation.rejectConfirmBody' => '驳回后提交者的相关记录将被移除。',
 			'moderation.reasonHint' => '驳回原因（可选）',
 			'moderation.approved' => '已通过',

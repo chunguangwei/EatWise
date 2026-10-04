@@ -1122,6 +1122,7 @@ class _Translations$reports$trend$en extends Translations$reports$trend$zh_CN {
 	@override late final _Translations$reports$trend$dim$en dim = _Translations$reports$trend$dim$en._(_root);
 	@override late final _Translations$reports$trend$range$en range = _Translations$reports$trend$range$en._(_root);
 	@override late final _Translations$reports$trend$unit$en unit = _Translations$reports$trend$unit$en._(_root);
+	@override String unitLegend({required Object unit}) => 'Unit: ${unit}';
 	@override String get empty => 'Your trends are warming up — log a few days to get them moving.';
 	@override String get ctaRecord => 'Log now';
 	@override String get ctaFast => 'Start fasting';
@@ -2217,6 +2218,7 @@ class _Translations$nutrition$data$trend$en extends Translations$nutrition$data$
 	@override String get empty => 'Log a few more days and your trend line starts moving';
 	@override String get ctaRecord => 'Log now';
 	@override String get hourUnit => 'h';
+	@override String unitLegend({required Object unit}) => 'Unit: ${unit}';
 }
 
 // Path: nutrition.data.burn
@@ -3066,6 +3068,7 @@ extension on TranslationsEn {
 			'nutrition.data.trend.empty' => 'Log a few more days and your trend line starts moving',
 			'nutrition.data.trend.ctaRecord' => 'Log now',
 			'nutrition.data.trend.hourUnit' => 'h',
+			'nutrition.data.trend.unitLegend' => ({required Object unit}) => 'Unit: ${unit}',
 			'nutrition.data.burn.title' => 'Today\'s burn',
 			'nutrition.data.burn.activeEnergy' => 'Active burn',
 			'nutrition.data.burn.steps' => 'Steps',
@@ -3119,6 +3122,7 @@ extension on TranslationsEn {
 			'reports.trend.unit.kg' => 'kg',
 			'reports.trend.unit.kcal' => 'kcal',
 			'reports.trend.unit.hour' => 'h',
+			'reports.trend.unitLegend' => ({required Object unit}) => 'Unit: ${unit}',
 			'reports.trend.empty' => 'Your trends are warming up — log a few days to get them moving.',
 			'reports.trend.ctaRecord' => 'Log now',
 			'reports.trend.ctaFast' => 'Start fasting',
@@ -3566,10 +3570,10 @@ extension on TranslationsEn {
 			'moderation.empty' => 'No pending food candidates',
 			'moderation.approve' => 'Approve',
 			'moderation.reject' => 'Reject',
-			'moderation.approveConfirm' => 'Once approved, this food enters the shared library and becomes searchable for everyone. Approve it?',
-			'moderation.rejectConfirmTitle' => 'Reject this candidate',
 			_ => null,
 		} ?? switch (path) {
+			'moderation.approveConfirm' => 'Once approved, this food enters the shared library and becomes searchable for everyone. Approve it?',
+			'moderation.rejectConfirmTitle' => 'Reject this candidate',
 			'moderation.rejectConfirmBody' => 'The submitter\'s related records will be removed after rejection.',
 			'moderation.reasonHint' => 'Reason (optional)',
 			'moderation.approved' => 'Approved',
