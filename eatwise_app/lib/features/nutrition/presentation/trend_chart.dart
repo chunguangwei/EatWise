@@ -1,5 +1,6 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
 
+import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
@@ -25,6 +26,10 @@ class TrendChartSection extends ConsumerStatefulWidget {
 class _TrendChartSectionState extends ConsumerState<TrendChartSection> {
   bool _showFasting = false;
 
+  /// 临时诊断（2026-10-04 趋势 0 值三轮排障，定位后移除）：数据页断食
+  /// 折线实际渲染的 values 数组快照，每会话一次——核对 widget 层输入。
+  static bool _chartProbeSent = false;
+
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
@@ -38,6 +43,28 @@ class _TrendChartSectionState extends ConsumerState<TrendChartSection> {
     final values = _showFasting
         ? ref.watch(weeklyFastingHoursProvider)
         : ref.watch(weeklyKcalProvider);
+    if (_showFasting && !_chartProbeSent) {
+      _chartProbeSent = true;
+      final probeValues = values;
+      final probeEnd = end;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          ref
+              .read(analyticsServiceProvider)
+              .track(
+                'debug_f_chart7',
+                properties: <String, Object?>{
+                  'end': localDateOf(probeEnd),
+                  'values': probeValues
+                      .map((v) => v == null ? '-' : v.toStringAsFixed(1))
+                      .join(','),
+                },
+              );
+        } on Object {
+          // 诊断失败静默。
+        }
+      });
+    }
     final hasAny = values.any((v) => v != null);
     final unit = _showFasting ? trend.hourUnit : t.record.nutrition.kcalUnit;
     final labels = List<String>.generate(7, (i) {

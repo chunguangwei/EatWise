@@ -138,6 +138,35 @@ final class StreakController extends Notifier<StreakUiState> {
   /// 服务端权威值缓存（S1 对账后非空）。
   int? _serverCurrentStreak;
 
+  /// 临时诊断（三轮排障用，定位后移除）：上报本机近 10 天断食行快照。
+  Future<void> _debugDumpRows(String event) async {
+    try {
+      final userId = ref.read(currentUserIdProvider);
+      final db = ref.read(appDatabaseProvider);
+      final today = _today();
+      final rows = (await db.fastingRecordDao.recordsOf(userId))
+          .where(
+            (r) =>
+                r.attributionDate.compareTo(addDaysToIsoDate(today, -9)) >= 0,
+          )
+          .map(
+            (r) =>
+                '${r.attributionDate}:${r.actualSec}:${r.result}:'
+                '${r.syncStatus.name}:${r.qualified ? 1 : 0}'
+                '${r.deleted ? ':del' : ''}',
+          )
+          .join('|');
+      ref
+          .read(analyticsServiceProvider)
+          .track(
+            event,
+            properties: <String, Object?>{'uid': userId, 'rows': rows},
+          );
+    } on Object {
+      // 诊断失败静默。
+    }
+  }
+
   /// 数据页触发的历史回填每会话只尝试一次（30 天窗口有缺才发请求）。
   bool _historyBackfillAttempted = false;
 
@@ -175,6 +204,9 @@ final class StreakController extends Notifier<StreakUiState> {
 
   @override
   StreakUiState build() {
+    // 临时诊断（2026-10-04 趋势 0 值三轮排障，定位后移除）：冷启动首帧、
+    // 任何同步/纠偏落库之前的本机行快照。
+    unawaited(_debugDumpRows('debug_f_pre'));
     // 启动补结算（§2.4：本地 0 点结算为主，App 启动时对未结算日补结算）。
     final settlement = _engine.settleUpTo(_today());
     if (settlement.newlyMissed.isNotEmpty ||
@@ -355,6 +387,24 @@ final class StreakController extends Notifier<StreakUiState> {
       final records = await ref
           .read(fastingReportApiProvider)
           .fetchRecentRecords(from: from, to: today);
+      // 临时诊断（三轮排障用，定位后移除）：服务端返回集快照——纠偏的权威输入。
+      try {
+        final srv = records
+            .map(
+              (r) =>
+                  '${r.attributionDate}:${r.fastedMinutes ?? -1}:${r.result}:'
+                  '${r.isQualified ? 1 : 0}',
+            )
+            .join('|');
+        ref
+            .read(analyticsServiceProvider)
+            .track(
+              'debug_f_srv',
+              properties: <String, Object?>{'uid': userId, 'rows': srv},
+            );
+      } on Object {
+        // 诊断失败静默。
+      }
       final existing = await db.fastingRecordDao.recordsOf(userId);
       // 对账重传（v1.14.x 拍板，堵「本地有、服务端没有」自愈盲区）：本地
       // 质态（非 on_track、非 deleted）且已标 synced 的记录，归属日落在拉取
