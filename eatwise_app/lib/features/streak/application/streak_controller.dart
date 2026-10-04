@@ -185,6 +185,37 @@ final class StreakController extends Notifier<StreakUiState> {
     return _uiState(fromServer: false, newlyMissed: settlement.newlyMissed);
   }
 
+  /// 临时诊断（2026-10-04「趋势 0 值」排障，定位后移除）：上报本机近 10 天
+  /// 断食记录内容快照（date:actualSec:result:syncStatus:qualified[:del]），
+  /// 用于核对真机本地行与服务端差异。失败静默。
+  Future<void> debugDumpRecentFastingRows() async {
+    try {
+      final userId = ref.read(currentUserIdProvider);
+      final db = ref.read(appDatabaseProvider);
+      final today = _today();
+      final rows = (await db.fastingRecordDao.recordsOf(userId))
+          .where(
+            (r) =>
+                r.attributionDate.compareTo(addDaysToIsoDate(today, -9)) >= 0,
+          )
+          .map(
+            (r) =>
+                '${r.attributionDate}:${r.actualSec}:${r.result}:'
+                '${r.syncStatus.name}:${r.qualified ? 1 : 0}'
+                '${r.deleted ? ':del' : ''}',
+          )
+          .join('|');
+      ref
+          .read(analyticsServiceProvider)
+          .track(
+            'debug_fasting_rows',
+            properties: <String, Object?>{'uid': userId, 'rows': rows},
+          );
+    } on Object {
+      // 诊断失败静默。
+    }
+  }
+
   /// 跨天结算入口（首页每秒 tick 调用；日内幂等，仅在跨过本地 0 点时生效）。
   void settleIfNeeded() {
     final today = _today();

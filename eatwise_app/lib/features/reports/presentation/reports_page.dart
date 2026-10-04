@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/scroll_depth_tracker.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
@@ -32,9 +34,15 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     // 最多一次，复用 streak 回填通道，幂等只补缺；未登录/离线/未装配静默）。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
-        ref
-            .read(streakControllerProvider.notifier)
-            .ensureFastingHistoryBackfilled();
+        unawaited(() async {
+          await ref
+              .read(streakControllerProvider.notifier)
+              .ensureFastingHistoryBackfilled();
+          // 临时诊断（趋势 0 值排障）：回填完成后上报本机行快照。
+          await ref
+              .read(streakControllerProvider.notifier)
+              .debugDumpRecentFastingRows();
+        }());
       } on Object {
         // streak 依赖未装配（测试/预览）：跳过回填。
       }
