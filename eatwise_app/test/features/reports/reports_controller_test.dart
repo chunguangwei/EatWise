@@ -360,5 +360,25 @@ void main() {
       expect(caches, isEmpty);
       expect(fasts.map((r) => r.userId).toList(), <String>['anonymous']);
     });
+
+    test('表级变更后报告 Provider 自动重取（会话内不停留旧值）', () async {
+      final container = driftContainer(userId: 'u-1');
+      final before = await container.read(reportFastingProvider.future);
+      expect(before, isEmpty);
+
+      // 模拟回填纠偏在页面取数之后落库：表级 watch 必须触发重取。
+      await seedFast('u-1', '2026-07-27');
+      var fasts = await container.read(reportFastingProvider.future);
+      for (var i = 0; i < 50 && fasts.isEmpty; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        fasts = await container.read(reportFastingProvider.future);
+      }
+      expect(fasts.map((r) => r.attributionDate).toList(), <String>[
+        '2026-07-27',
+      ]);
+      expect(container.read(fastingHoursByDateProvider), <String, double>{
+        '2026-07-27': 16,
+      });
+    });
   });
 }

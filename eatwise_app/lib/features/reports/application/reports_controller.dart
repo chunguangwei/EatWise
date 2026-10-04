@@ -182,6 +182,36 @@ final Provider<ReportsDataSource> reportsDataSourceProvider =
       );
     });
 
+/// fasting_records 表级变更流（不消费数据，仅作失效挂钩）：同步下行/回填纠偏/
+/// 本地关闭周期等任何写入都让 watch 它的 FutureProvider 重取——报告页
+/// FutureProvider 此前会话内只取一次，回填纠偏在页面打开后才落库时图表停留在
+/// 旧值直到杀进程（2026-10-04 wcg 趋势 0 值「数据已修好图不变」走查）。
+final StreamProvider<void> _fastingTableChangesProvider = StreamProvider<void>((
+  ref,
+) {
+  try {
+    final db = ref.watch(appDatabaseProvider);
+    return (db.select(db.fastingRecords)..limit(1)).watch().map((_) {});
+  } on Object {
+    // 测试未装配数据库（数据源走内存 fake）：无失效挂钩，fake 自管。
+    return const Stream<void>.empty();
+  }
+});
+
+/// daily_nutrition_caches 表级变更流（同上：同步下行重算/聚合修复后热量趋势
+/// 与周月报自动重取，不再停留在会话首取值）。
+final StreamProvider<void> _nutritionCacheTableChangesProvider =
+    StreamProvider<void>((ref) {
+      try {
+        final db = ref.watch(appDatabaseProvider);
+        return (db.select(
+          db.dailyNutritionCaches,
+        )..limit(1)).watch().map((_) {});
+      } on Object {
+        return const Stream<void>.empty();
+      }
+    });
+
 /// 当前窗口（终点 = 今天）的起止日期键（yyyy-MM-dd，含端点）。
 final Provider<({String from, String to})> reportWindowProvider =
     Provider<({String from, String to})>((ref) {
@@ -194,6 +224,7 @@ final Provider<({String from, String to})> reportWindowProvider =
 /// 窗口内聚合缓存（热量/记录天数来源）。
 final FutureProvider<List<DailyNutritionCache>> reportNutritionProvider =
     FutureProvider<List<DailyNutritionCache>>((ref) {
+      ref.watch(_nutritionCacheTableChangesProvider);
       final window = ref.watch(reportWindowProvider);
       return ref
           .watch(reportsDataSourceProvider)
@@ -203,6 +234,7 @@ final FutureProvider<List<DailyNutritionCache>> reportNutritionProvider =
 /// 窗口内断食记录（断食时长/达标天数来源）。
 final FutureProvider<List<FastingRecord>> reportFastingProvider =
     FutureProvider<List<FastingRecord>>((ref) {
+      ref.watch(_fastingTableChangesProvider);
       final window = ref.watch(reportWindowProvider);
       return ref
           .watch(reportsDataSourceProvider)
@@ -444,6 +476,8 @@ final Provider<GrowthSummary> growthSummaryProvider = Provider<GrowthSummary>((
 /// 本周报告（自然周，独立于趋势窗口单独取数）。
 final FutureProvider<WeeklyReportStats> weeklyReportProvider =
     FutureProvider<WeeklyReportStats>((ref) async {
+      ref.watch(_fastingTableChangesProvider);
+      ref.watch(_nutritionCacheTableChangesProvider);
       final now = dateOnly(ref.watch(reportsNowProvider));
       final weekStart = now.subtract(Duration(days: now.weekday - 1));
       final from = localDateOf(weekStart);
@@ -475,6 +509,8 @@ final FutureProvider<WeeklyReportStats> weeklyReportProvider =
 /// 上周小结（P1：上一个完整自然周；断食环比需多取前周，独立于趋势窗口）。
 final FutureProvider<WeeklySummary> weeklySummaryProvider =
     FutureProvider<WeeklySummary>((ref) async {
+      ref.watch(_fastingTableChangesProvider);
+      ref.watch(_nutritionCacheTableChangesProvider);
       final now = dateOnly(ref.watch(reportsNowProvider));
       final thisMonday = now.subtract(Duration(days: now.weekday - 1));
       final lastMonday = thisMonday.subtract(const Duration(days: 7));
@@ -540,6 +576,8 @@ class MonthlyReportMonthController extends Notifier<DateTime> {
 /// 当月范围终点取今天（未过完的月份不做未来统计）。
 final FutureProvider<MonthlyReport> monthlyReportProvider =
     FutureProvider<MonthlyReport>((ref) async {
+      ref.watch(_fastingTableChangesProvider);
+      ref.watch(_nutritionCacheTableChangesProvider);
       final monthStart = ref.watch(monthlyReportMonthProvider);
       final now = dateOnly(ref.watch(reportsNowProvider));
       final from = localDateOf(monthStart);

@@ -38,10 +38,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           await ref
               .read(streakControllerProvider.notifier)
               .ensureFastingHistoryBackfilled();
-          // 临时诊断（趋势 0 值排障）：回填完成后上报本机行快照。
-          await ref
-              .read(streakControllerProvider.notifier)
-              .debugDumpRecentFastingRows();
         }());
       } on Object {
         // streak 依赖未装配（测试/预览）：跳过回填。
