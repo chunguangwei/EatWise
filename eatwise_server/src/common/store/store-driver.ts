@@ -1278,7 +1278,10 @@ export class MemoryStoreDriver extends StoreDriver {
   // ===== Streak =====
 
   findStreakByUser(userId: string): Promise<StreakEntity | null> {
-    return Promise.resolve(this.store.streaks.get(userId) ?? null);
+    const streak = this.store.streaks.get(userId) ?? null;
+    // 与 prisma 驱动同语义（每次读取映射新对象）：返回深拷贝——原地修改
+    // 未经 saveStreak 不落库，防止「内存同引用掩盖漏 save」类 bug 隐身。
+    return Promise.resolve(streak ? structuredClone(streak) : null);
   }
 
   saveStreak(streak: StreakEntity): Promise<void> {

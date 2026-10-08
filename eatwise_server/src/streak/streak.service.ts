@@ -130,6 +130,11 @@ export class StreakService {
 
     streak.makeupCards.stock -= 1;
     streak.makeupCards.usedDates.push(date);
+    // 库存扣减必须即刻落库：prisma 驱动每次读取映射新对象，下方 recompute
+    // 会重新 findStreakByUser——不先落库则扣减丢失（内存驱动返回同引用
+    // 掩盖此坑，wcg 2026-10-07 补签后库存仍显示 2 张根因）。
+    streak.updatedAt = new Date();
+    await this.driver.saveStreak(streak);
     // 〔假设〕补签在断食历史中留痕：生成 result=makeup 的标记记录（契约 §3.8）
     const now = new Date();
     const marker: FastingRecordEntity = {

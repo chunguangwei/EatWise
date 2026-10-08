@@ -9,13 +9,15 @@ const TZ = 'Asia/Shanghai';
 
 describe('streak 与补签卡（D-12）', () => {
   let store: DataStore;
+  let driver: MemoryStoreDriver;
   let streak: StreakService;
   let userId: string;
   let today: string;
 
   beforeEach(() => {
     store = new DataStore();
-    streak = new StreakService(new MemoryStoreDriver(store));
+    driver = new MemoryStoreDriver(store);
+    streak = new StreakService(driver);
     userId = store.createUser({ phone: '+8613800138000', timezone: TZ }).id;
     today = localDateOf(new Date(), TZ);
   });
@@ -55,6 +57,7 @@ describe('streak 与补签卡（D-12）', () => {
     s.makeupCards.stock = 0;
     s.makeupCards.usedDates = ['2026-06-20'];
     s.makeupCards.month = '2000-01'; // 模拟上月遗留
+    await driver.saveStreak(s); // 驱动读取返回副本（与 prisma 同语义），改动须显式落库
     const rolled = await streak.getOrCreate(userId, TZ);
     expect(rolled.makeupCards.stock).toBe(2);
     expect(rolled.makeupCards.usedDates).toEqual([]);
@@ -110,6 +113,16 @@ describe('streak 与补签卡（D-12）', () => {
     await expect(streak.makeUp(userId, randomUUID(), date)).rejects.toThrow(
       expect.objectContaining({ code: 'MAKEUP_ALREADY_USED' }) as unknown as Error,
     );
+  });
+
+  it('补签扣减持久化：重新读取（全新对象）库存已 -1 且 usedDates 留痕', async () => {
+    // 回归钉（wcg 2026-10-07：补签成功但库存仍 2 张）——makeUp 原地扣减后
+    // 必须 saveStreak 落库；prisma 驱动每次读取映射新对象，漏 save 即丢失。
+    const date = addDays(today, -1);
+    await streak.makeUp(userId, randomUUID(), date);
+    const fresh = await driver.findStreakByUser(userId);
+    expect(fresh?.makeupCards.stock).toBe(1);
+    expect(fresh?.makeupCards.usedDates).toEqual([date]);
   });
 
   it('库存用尽（上限 2 张）→ 400 MAKEUP_CARD_EMPTY', async () => {
