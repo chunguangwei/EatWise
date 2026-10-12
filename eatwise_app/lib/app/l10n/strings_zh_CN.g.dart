@@ -2279,6 +2279,9 @@ class Translations$streak$kBreak$zh_CN {
 	/// zh-CN: '补签失败，请稍后重试'
 	String get mendFailed => '补签失败，请稍后重试';
 
+	/// zh-CN: '该日已达标或已补签，无需再补；连胜以服务端记录为准'
+	String get mendAlreadyQualified => '该日已达标或已补签，无需再补；连胜以服务端记录为准';
+
 	/// zh-CN: '本月补签卡已用完，下月 1 日将发放 2 张新卡'
 	String get exhausted => '本月补签卡已用完，下月 1 日将发放 2 张新卡';
 
@@ -5341,6 +5344,7 @@ extension on Translations {
 			'streak.kBreak.mendCta' => ({required Object days}) => '使用补签卡，恢复 ${days} 天连胜',
 			'streak.kBreak.mendSuccess' => ({required Object days}) => '已恢复 ${days} 天连胜 🎉',
 			'streak.kBreak.mendFailed' => '补签失败，请稍后重试',
+			'streak.kBreak.mendAlreadyQualified' => '该日已达标或已补签，无需再补；连胜以服务端记录为准',
 			'streak.kBreak.exhausted' => '本月补签卡已用完，下月 1 日将发放 2 张新卡',
 			'streak.kBreak.unmendable' => '断签已超过 7 天，补签窗口已关闭。从今天开始新的连胜吧！',
 			'streak.kBreak.serverRecalcNotice' => ({required Object month, required Object day}) => '${month} 月 ${day} 日断食未达标，连胜已按服务端记录重新计算',
@@ -5690,9 +5694,9 @@ extension on Translations {
 			'moderation.subtitle' => '审核用户贡献的食品',
 			'moderation.empty' => '暂无待审批的食品候选',
 			'moderation.approve' => '通过',
-			'moderation.reject' => '驳回',
 			_ => null,
 		} ?? switch (path) {
+			'moderation.reject' => '驳回',
 			'moderation.approveConfirm' => '通过后该食品将进入共享食物库，所有用户都能搜到。确认通过？',
 			'moderation.rejectConfirmTitle' => '驳回该候选',
 			'moderation.rejectConfirmBody' => '驳回后提交者的相关记录将被移除。',

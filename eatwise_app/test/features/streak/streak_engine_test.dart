@@ -169,6 +169,86 @@ void main() {
       );
     });
 
+    test('服务端达标段收敛：段内陈旧断签标记清除并并入达标集（2026-10-12 补签失败根因）', () {
+      // 本机缺下行行：07-25..27 未入账被 settleUpTo 误判为待补签。
+      final engine = engineWith(<String>[]);
+      engine.settleUpTo(today);
+      engine.pendingMendDates.addAll([
+        '2026-07-25',
+        '2026-07-26',
+        '2026-07-27',
+      ]);
+      engine.brokenDates.add('2026-07-24');
+      // 服务端权威：lastQualified=07-27、连胜 3 → [07-25..07-27] 恒达标段。
+      final pruned = engine.convergeServerQualifiedRun(
+        lastQualifiedDate: '2026-07-27',
+        currentStreak: 3,
+      );
+      expect(pruned, ['2026-07-25', '2026-07-26', '2026-07-27']);
+      expect(engine.pendingMendDates, isEmpty);
+      expect(engine.brokenDates, contains('2026-07-24')); // 段外标记不动
+      expect(
+        engine.qualifiedDates.containsAll([
+          '2026-07-25',
+          '2026-07-26',
+          '2026-07-27',
+        ]),
+        isTrue,
+      );
+      expect(engine.status(today), StreakStatus.inStreak);
+      expect(engine.currentStreak(today), 3);
+    });
+
+    test('服务端达标段收敛：无达标日/零连胜时不动账本', () {
+      final engine = engineWith(<String>[]);
+      engine.settleUpTo(today);
+      engine.pendingMendDates.add('2026-07-27');
+      expect(
+        engine.convergeServerQualifiedRun(
+          lastQualifiedDate: null,
+          currentStreak: 5,
+        ),
+        isEmpty,
+      );
+      expect(
+        engine.convergeServerQualifiedRun(
+          lastQualifiedDate: '',
+          currentStreak: 5,
+        ),
+        isEmpty,
+      );
+      expect(
+        engine.convergeServerQualifiedRun(
+          lastQualifiedDate: '2026-07-27',
+          currentStreak: 0,
+        ),
+        isEmpty,
+      );
+      expect(engine.pendingMendDates, contains('2026-07-27'));
+      expect(engine.qualifiedDates, isEmpty);
+    });
+
+    test('服务端业务拒绝即时清理：discardStaleMendDate 摘除 pending 与 broken 标记', () {
+      final engine = engineWith(['2026-07-26']);
+      engine.settleUpTo(today); // 07-27 断签 → pending
+      expect(engine.pendingMendDates, contains('2026-07-27'));
+      engine.brokenDates.add('2026-07-20');
+      engine.discardStaleMendDate('2026-07-27');
+      engine.discardStaleMendDate('2026-07-20');
+      expect(engine.pendingMendDates, isNot(contains('2026-07-27')));
+      expect(engine.brokenDates, isNot(contains('2026-07-20')));
+    });
+
+    test('ALREADY_USED 就地纠偏：标记摘除并并入达标集，状态对齐服务端', () {
+      final engine = engineWith(['2026-07-26']);
+      engine.settleUpTo(today); // 07-27 断签 → pending
+      engine.repairStaleMendDateAsQualified('2026-07-27', today: today);
+      expect(engine.pendingMendDates, isNot(contains('2026-07-27')));
+      expect(engine.qualifiedDates, contains('2026-07-27'));
+      expect(engine.status(today), StreakStatus.inStreak);
+      expect(engine.currentStreak(today), 2); // 07-26 + 07-27
+    });
+
     test('每月最多 2 张：第 3 张被拒绝（QA #15）', () {
       final engine = engineWith(['2026-07-20']);
       settleDayByDay(engine, '2026-07-22', '2026-07-26'); // 07-21..07-25 断签

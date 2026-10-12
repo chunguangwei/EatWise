@@ -156,6 +156,8 @@ final class StreakEngine {
   List<int> applyDayAchieved(String date, {required String today}) {
     _ensureMonth(today);
     if (!qualifiedDates.add(date)) return const <int>[]; // 幂等去重
+    // 达标与待补互斥：该日达标后其陈旧待补标记（误判断签）一并摘除。
+    pendingMendDates.remove(date);
     return _recomputeLongestAndMilestones(today);
   }
 
@@ -269,6 +271,52 @@ final class StreakEngine {
     mendCardUsedThisMonth = used;
   }
 
+  /// 服务端权威达标段收敛（S1 对账用）：S1 不回传达标日全集，但
+  /// `[lastQualifiedDate − currentStreak + 1 .. lastQualifiedDate]` 恒为
+  /// 服务端达标的连续段（含补签日）。本机缺下行行时 settleUpTo 会把达标日
+  /// 误判断签塞进 pendingMendDates 且永不自行清除（wcg 2026-10-12：连胜
+  /// 22 无断签仍弹补签、补签被服务端 MAKEUP_ALREADY_USED 拒后 UI 掩成
+  /// 「补签失败」）。段内待补签/已断签标记必为陈旧视图 → 清除；段内日期
+  /// 并入达标集 → 本地推演与状态推导与服务端对齐。返回被清理的断签标记
+  /// 日期（升序）。
+  List<String> convergeServerQualifiedRun({
+    required String? lastQualifiedDate,
+    required int currentStreak,
+  }) {
+    final end = lastQualifiedDate;
+    if (end == null || end.isEmpty || currentStreak < 1) {
+      return const <String>[];
+    }
+    final start = addDaysToIsoDate(end, -(currentStreak - 1));
+    bool inRun(String d) => d.compareTo(start) >= 0 && d.compareTo(end) <= 0;
+    final pruned = pendingMendDates.where(inRun).toList()..sort();
+    pendingMendDates.removeAll(pruned);
+    brokenDates.removeWhere(inRun);
+    var cursor = start;
+    while (cursor.compareTo(end) <= 0) {
+      qualifiedDates.add(cursor);
+      cursor = addDaysToIsoDate(cursor, 1);
+    }
+    return pruned;
+  }
+
+  /// 服务端业务拒绝「已达标/窗口外」= 本地断签标记陈旧（对账到达前的
+  /// 即时清理，避免「去补签」入口与同一失败弹窗反复出现）。
+  void discardStaleMendDate(String date) {
+    pendingMendDates.remove(date);
+    brokenDates.remove(date);
+  }
+
+  /// 服务端判定「该日已达标/已补签」（MAKEUP_ALREADY_USED）：断签标记
+  /// 摘除之外，该日并入达标集——服务端权威口径它计入连胜，本地推演
+  /// 立即对齐（对账收敛到达前状态/预览不再自相矛盾）。
+  void repairStaleMendDateAsQualified(String date, {required String today}) {
+    discardStaleMendDate(date);
+    if (qualifiedDates.add(date)) {
+      _recomputeLongestAndMilestones(today);
+    }
+  }
+
   /// 全量重算历史最长 + 里程碑首次解锁（§5.1：每档永久解锁一次，
   /// 再次达到不重复解锁；返回本次新解锁档位供轻量庆祝）。
   List<int> _recomputeLongestAndMilestones(String today) {
@@ -286,19 +334,6 @@ final class StreakEngine {
       if (current >= m && unlockedMilestones.add(m)) unlocked.add(m);
     }
     return unlocked;
-  }
-
-  /// 服务端对账覆盖（§2.4 冲突原则：服务端权威，本地推演让位）。
-  void applyServerSnapshot({
-    required int longestStreakOverride,
-    required Set<String> serverQualifiedDates,
-  }) {
-    qualifiedDates
-      ..clear()
-      ..addAll(serverQualifiedDates);
-    if (longestStreakOverride > longestStreak) {
-      longestStreak = longestStreakOverride;
-    }
   }
 
   // ---------------------------------------------------------------- 序列化

@@ -865,6 +865,38 @@ void main() {
       expect(controller.state.mendCardBalance, 1);
     });
 
+    test('补签被服务端拒（MAKEUP_ALREADY_USED）：陈旧断签标记即时摘除并上抛', () async {
+      // 2026-10-12 走查根因：本机缺下行行 → 07-27 被误判待补签，服务端
+      // 权威记录该日已达标 → S2 409。修复后标记必须摘除（「去补签」入口
+      // 消失），异常原样上抛供 UI 映射精确文案。
+      store.saveEngine(_preseededEngine());
+      final c = container();
+      addTearDown(c.dispose);
+      final controller = c.read(streakControllerProvider.notifier);
+      expect(controller.state.pendingMendDates, contains('2026-07-27'));
+
+      api.mendError = const BusinessApiException(
+        httpStatus: 409,
+        code: 'MAKEUP_ALREADY_USED',
+        message: 'already used',
+      );
+      await expectLater(
+        controller.useMendCard('2026-07-27'),
+        throwsA(
+          isA<BusinessApiException>().having(
+            (e) => e.code,
+            'code',
+            'MAKEUP_ALREADY_USED',
+          ),
+        ),
+      );
+      expect(controller.state.pendingMendDates, isNot(contains('2026-07-27')));
+      // 就地纠偏：07-27 按服务端权威并入达标集 → 状态推演立即对齐。
+      expect(controller.state.status, StreakStatus.inStreak);
+      // 库存不扣：本地账本未消费补签卡。
+      expect(controller.state.mendCardBalance, 2);
+    });
+
     test('补签卡离线：本地推演先行，fromServer=false', () async {
       api.offline = true;
       store.saveEngine(_preseededEngine());
@@ -975,6 +1007,9 @@ final class _FakeStreakApi extends StreakApi {
   int fetchCount = 0;
   final List<String> mendCalls = <String>[];
 
+  /// 非 null 时 S2 useMendCard 抛该异常（业务拒绝码模拟）。
+  Object? mendError;
+
   /// S3 里程碑桩（默认空集）。
   List<ServerMilestone> milestones = const <ServerMilestone>[];
 
@@ -991,6 +1026,8 @@ final class _FakeStreakApi extends StreakApi {
     required String date,
   }) async {
     mendCalls.add(date);
+    final err = mendError;
+    if (err != null) throw err;
     if (offline) throw const NetworkApiException();
     return view ?? _view(currentStreak: 0, longestStreak: 0, stock: 1);
   }

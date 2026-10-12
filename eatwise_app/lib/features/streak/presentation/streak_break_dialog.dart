@@ -1,4 +1,5 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
@@ -171,4 +172,21 @@ class _StateSection extends StatelessWidget {
         );
     }
   }
+}
+
+/// 补签失败 SnackBar 文案：服务端业务码 → 精确人话（2026-10-12 走查：
+/// 旧实现 `on Object` 把三类业务拒绝全塌成「补签失败，请稍后重试」，
+/// 「该日已达标」被掩成可重试假象）。未识别码保留泛化兜底。
+String mendFailureMessage(Translations t, Object error) {
+  if (error is BusinessApiException) {
+    switch (error.code) {
+      case 'MAKEUP_ALREADY_USED':
+        return t.streak.kBreak.mendAlreadyQualified;
+      case 'MAKEUP_CARD_EMPTY':
+        return t.streak.kBreak.exhausted;
+      case 'MAKEUP_OUT_OF_WINDOW':
+        return t.streak.kBreak.unmendable;
+    }
+  }
+  return t.streak.kBreak.mendFailed;
 }

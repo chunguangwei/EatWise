@@ -729,11 +729,11 @@ class _TimerBody extends ConsumerWidget {
                 ),
               );
             }
-          } on Object {
+          } on Object catch (e) {
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(t.streak.kBreak.mendFailed)),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(mendFailureMessage(t, e))));
             }
           }
         },

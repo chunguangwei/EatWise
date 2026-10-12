@@ -897,6 +897,7 @@
       "mendCta": "使用补签卡，恢复 ${days} 天连胜",
       "mendSuccess": "已恢复 ${days} 天连胜 🎉",
       "mendFailed": "补签失败，请稍后重试",
+      "mendAlreadyQualified": "该日已达标或已补签，无需再补；连胜以服务端记录为准",
       "exhausted": "本月补签卡已用完，下月 1 日将发放 2 张新卡",
       "unmendable": "断签已超过 7 天，补签窗口已关闭。从今天开始新的连胜吧！",
       "serverRecalcNotice": "${month} 月 ${day} 日断食未达标，连胜已按服务端记录重新计算",

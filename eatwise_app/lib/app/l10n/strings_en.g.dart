@@ -1280,6 +1280,7 @@ class _Translations$streak$kBreak$en extends Translations$streak$kBreak$zh_CN {
 	@override String mendCta({required Object days}) => 'Use a Mend Card to restore your ${days}-day streak';
 	@override String mendSuccess({required Object days}) => 'Streak restored to ${days} days 🎉';
 	@override String get mendFailed => 'Couldn\'t use the Mend Card. Please try again later.';
+	@override String get mendAlreadyQualified => 'That day already counts toward your streak — no Mend Card needed.';
 	@override String get exhausted => 'No Mend Cards left this month. You\'ll get 2 new ones on the 1st.';
 	@override String get unmendable => 'This miss is over 7 days old and can no longer be mended. Start a fresh streak today!';
 	@override String serverRecalcNotice({required Object month, required Object day}) => 'Your fast on ${month}/${day} didn\'t qualify — your streak was recalculated from server records';
@@ -3220,6 +3221,7 @@ extension on TranslationsEn {
 			'streak.kBreak.mendCta' => ({required Object days}) => 'Use a Mend Card to restore your ${days}-day streak',
 			'streak.kBreak.mendSuccess' => ({required Object days}) => 'Streak restored to ${days} days 🎉',
 			'streak.kBreak.mendFailed' => 'Couldn\'t use the Mend Card. Please try again later.',
+			'streak.kBreak.mendAlreadyQualified' => 'That day already counts toward your streak — no Mend Card needed.',
 			'streak.kBreak.exhausted' => 'No Mend Cards left this month. You\'ll get 2 new ones on the 1st.',
 			'streak.kBreak.unmendable' => 'This miss is over 7 days old and can no longer be mended. Start a fresh streak today!',
 			'streak.kBreak.serverRecalcNotice' => ({required Object month, required Object day}) => 'Your fast on ${month}/${day} didn\'t qualify — your streak was recalculated from server records',
@@ -3569,9 +3571,9 @@ extension on TranslationsEn {
 			'moderation.subtitle' => 'Review food contributions from users',
 			'moderation.empty' => 'No pending food candidates',
 			'moderation.approve' => 'Approve',
-			'moderation.reject' => 'Reject',
 			_ => null,
 		} ?? switch (path) {
+			'moderation.reject' => 'Reject',
 			'moderation.approveConfirm' => 'Once approved, this food enters the shared library and becomes searchable for everyone. Approve it?',
 			'moderation.rejectConfirmTitle' => 'Reject this candidate',
 			'moderation.rejectConfirmBody' => 'The submitter\'s related records will be removed after rejection.',

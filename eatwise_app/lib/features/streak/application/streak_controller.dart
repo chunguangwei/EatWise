@@ -556,6 +556,16 @@ final class StreakController extends Notifier<StreakUiState> {
     if (view.longestStreak > engine.longestStreak) {
       engine.longestStreak = view.longestStreak;
     }
+    // 服务端达标段收敛（2026-10-12「补签失败」根因）：本机缺下行行时
+    // settleUpTo 会把服务端权威达标日误判断签塞进 pendingMendDates，且
+    // 永不自行清除——连胜未断仍显「去补签」，点补签必被服务端
+    // MAKEUP_ALREADY_USED 拒。对账时按 [lastQualified−streak+1,
+    // lastQualified] 权威段清除陈旧断签标记（须在上方断签告知检测之后，
+    // 检测依赖清理前的 pendingMendDates）。
+    final staleMendDates = engine.convergeServerQualifiedRun(
+      lastQualifiedDate: view.lastQualifiedDate,
+      currentStreak: view.currentStreak,
+    );
     engine.alignMendCards(
       month: view.mendCardMonth,
       balance: view.mendCardStock,
@@ -565,6 +575,9 @@ final class StreakController extends Notifier<StreakUiState> {
     final newly = serverMilestones.difference(engine.unlockedMilestones);
     engine.unlockedMilestones.addAll(serverMilestones);
     _store.saveEngine(engine);
+    // 被收敛掉的陈旧断签日若正挂着未消费的断签弹窗（自动弹/横幅入口），
+    // 一并撤销——否则会对已达标的日子弹「连胜中断了」。
+    final popup = state.pendingBreakPopupDate;
     state = _uiState(
       fromServer: true,
       // 里程碑徽章只庆祝「当下跨档」（档位 == 当前连胜，如他端今天刚
@@ -573,6 +586,7 @@ final class StreakController extends Notifier<StreakUiState> {
       // 「连续 3 天」徽章，两个数字错位（2026-09-30 真机走查）。
       newMilestones: newly.where((d) => d == view.currentStreak).toList(),
       serverBreakNoticeDate: noticeDate,
+      clearBreakPopup: popup != null && staleMendDates.contains(popup),
     );
   }
 
@@ -615,8 +629,24 @@ final class StreakController extends Notifier<StreakUiState> {
       state = _uiState(fromServer: true, newMilestones: result.newMilestones);
       _trackMendCardUsed();
       return result;
-    } on BusinessApiException {
-      rethrow; // 服务端业务拒绝（窗口外/已用/库存空）原样上抛给 UI 提示
+    } on BusinessApiException catch (e) {
+      // 服务端业务拒绝原样上抛给 UI 映射精确文案。「已达标」= 本地断签
+      // 标记陈旧（下行缺行误判）且服务端权威口径该日计入连胜 → 摘除
+      // 标记并入达标集；「窗口外」只摘标记（不计入）。否则「去补签」入口
+      // 与同一失败弹窗反复出现、状态与服务端矛盾（2026-10-12 走查）。
+      // 任何业务拒绝后都拉 S1 对账收敛（库存/连胜可能同样过期）。
+      switch (e.code) {
+        case 'MAKEUP_ALREADY_USED':
+          _engine.repairStaleMendDateAsQualified(date, today: today);
+          _store.saveEngine(_engine);
+          state = _uiState(fromServer: state.fromServer);
+        case 'MAKEUP_OUT_OF_WINDOW':
+          _engine.discardStaleMendDate(date);
+          _store.saveEngine(_engine);
+          state = _uiState(fromServer: state.fromServer);
+      }
+      unawaited(refreshFromServer());
+      rethrow;
     } on ApiException {
       // 离线（网络/超时）：本地推演先行，恢复后 refreshFromServer 对账为准。
       final result = _engine.useMendCard(date, today: today);
