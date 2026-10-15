@@ -3,6 +3,7 @@ import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/busy_filled_button.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/auth/presentation/auth_error.dart';
 import 'package:flutter/material.dart';
@@ -105,7 +106,6 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final authState = ref.watch(authControllerProvider);
     final errorText = authErrorMessage(t, authState);
-    final busy = authState.changingPassword;
 
     return Scaffold(
       backgroundColor: colors.bgPrimary,
@@ -168,18 +168,11 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
               ),
             ],
             const SizedBox(height: AppSpacing.s6),
-            FilledButton(
-              onPressed: busy ? null : _submit,
-              style: FilledButton.styleFrom(
-                backgroundColor: colors.brandPrimary,
-                minimumSize: const Size.fromHeight(AppSpacing.s12),
-              ),
-              child: Text(
-                authState.changingPassword
-                    ? t.auth.changePassword.submitting
-                    : t.auth.changePassword.submit,
-                style: textStyles.textBase.copyWith(color: Colors.white),
-              ),
+            BusyFilledButton(
+              label: t.auth.changePassword.submit,
+              busyLabel: t.auth.changePassword.submitting,
+              busy: authState.changingPassword,
+              onPressed: _submit,
             ),
           ],
         ),

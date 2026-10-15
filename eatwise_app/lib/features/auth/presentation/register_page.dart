@@ -5,6 +5,7 @@ import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/busy_filled_button.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/auth/presentation/auth_error.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
@@ -148,7 +149,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final authState = ref.watch(authControllerProvider);
     final errorText = authErrorMessage(t, authState);
-    final busy = authState.registering || authState.loggingIn;
 
     return Scaffold(
       backgroundColor: colors.bgPrimary,
@@ -224,18 +224,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             const SizedBox(height: AppSpacing.s4),
             _buildAgreementRow(t, colors, textStyles),
             const SizedBox(height: AppSpacing.s6),
-            FilledButton(
-              onPressed: busy ? null : _register,
-              style: FilledButton.styleFrom(
-                backgroundColor: colors.brandPrimary,
-                minimumSize: const Size.fromHeight(AppSpacing.s12),
-              ),
-              child: Text(
-                authState.registering
-                    ? t.auth.register.registering
-                    : t.auth.register.register,
-                style: textStyles.textBase.copyWith(color: Colors.white),
-              ),
+            BusyFilledButton(
+              label: t.auth.register.register,
+              busyLabel: t.auth.register.registering,
+              busy: authState.registering,
+              onPressed: _register,
             ),
           ],
         ),

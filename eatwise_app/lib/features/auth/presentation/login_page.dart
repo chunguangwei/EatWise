@@ -5,6 +5,7 @@ import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/busy_filled_button.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/auth/presentation/auth_error.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
@@ -154,18 +155,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ),
             ],
             const SizedBox(height: AppSpacing.s6),
-            FilledButton(
-              onPressed: busy ? null : _login,
-              style: FilledButton.styleFrom(
-                backgroundColor: colors.brandPrimary,
-                minimumSize: const Size.fromHeight(AppSpacing.s12),
-              ),
-              child: Text(
-                authState.loggingIn
-                    ? t.auth.login.loggingIn
-                    : t.auth.login.login,
-                style: textStyles.textBase.copyWith(color: Colors.white),
-              ),
+            BusyFilledButton(
+              label: t.auth.login.login,
+              busyLabel: t.auth.login.loggingIn,
+              busy: authState.loggingIn,
+              onPressed: _login,
             ),
             const SizedBox(height: AppSpacing.s3),
             // 「没有账号？注册」→ /register。
