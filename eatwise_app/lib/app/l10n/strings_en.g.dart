@@ -519,6 +519,10 @@ class _Translations$record$today$en extends Translations$record$today$zh_CN {
 	@override String get deleteEntry => 'Delete this entry?';
 	@override String get deleteConfirmAction => 'Delete';
 	@override String get deleted => 'Deleted';
+	@override String get editEntry => 'Edit';
+	@override String get editTitle => 'Edit entry';
+	@override String get edited => 'Entry updated';
+	@override String get editSaveFailed => 'Save failed, please try again';
 }
 
 // Path: record.entries
@@ -2677,6 +2681,10 @@ extension on TranslationsEn {
 			'record.today.deleteEntry' => 'Delete this entry?',
 			'record.today.deleteConfirmAction' => 'Delete',
 			'record.today.deleted' => 'Deleted',
+			'record.today.editEntry' => 'Edit',
+			'record.today.editTitle' => 'Edit entry',
+			'record.today.edited' => 'Entry updated',
+			'record.today.editSaveFailed' => 'Save failed, please try again',
 			'record.entries.photo' => 'Photo',
 			'record.entries.voice' => 'Voice',
 			'record.entries.frequent' => 'Usual',
@@ -3053,12 +3061,12 @@ extension on TranslationsEn {
 			'nutrition.data.summary.fallbackGoal' => 'Using default goals for now — complete your profile for sharper targets',
 			'nutrition.data.localEstimate' => 'Local estimate — the cloud fine-tunes it once you\'re online',
 			'nutrition.data.proDetails.title' => 'Pro data',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.data.proDetails.expand' => 'View details',
 			'nutrition.data.proDetails.collapse' => 'Collapse',
 			'nutrition.data.proDetails.target' => 'Target',
 			'nutrition.data.proDetails.actual' => 'Intake',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.data.proDetails.percent' => '% of goal',
 			'nutrition.data.proDetails.rda' => 'RDA ref.',
 			'nutrition.data.proDetails.rdaNote' => 'RDA values are general adult dietary references (pending nutritionist sign-off) — your personal goals follow your plan',
@@ -3567,12 +3575,12 @@ extension on TranslationsEn {
 			'update.downloadingNoProgress' => 'Downloading…',
 			'update.downloadFailed' => 'Download failed. Check your connection and try again.',
 			'update.retry' => 'Retry',
+			_ => null,
+		} ?? switch (path) {
 			'moderation.title' => 'Review Center',
 			'moderation.subtitle' => 'Review food contributions from users',
 			'moderation.empty' => 'No pending food candidates',
 			'moderation.approve' => 'Approve',
-			_ => null,
-		} ?? switch (path) {
 			'moderation.reject' => 'Reject',
 			'moderation.approveConfirm' => 'Once approved, this food enters the shared library and becomes searchable for everyone. Approve it?',
 			'moderation.rejectConfirmTitle' => 'Reject this candidate',

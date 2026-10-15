@@ -147,7 +147,10 @@ void main() {
         final synced = await db.foodEntryDao.getByLocalId(entry.localId);
         expect(synced!.syncStatus, SyncStatus.synced);
 
-        final updated = await repository.updateAmount(entry.localId, 200);
+        final updated = await repository.updateEntry(
+          entry.localId,
+          amountG: 200,
+        );
         expect(updated.syncStatus, SyncStatus.submitting);
         expect(updated.localVersion, synced.localVersion + 1);
         expect(updated.clientRequestId, isNot(synced.clientRequestId));
@@ -240,7 +243,7 @@ void main() {
     test('份量修改实时重算快照与当日聚合', () async {
       final repository = repo();
       final entry = await repository.addEntry(draft());
-      final updated = await repository.updateAmount(entry.localId, 200);
+      final updated = await repository.updateEntry(entry.localId, amountG: 200);
       expect(updated.amountG, 200);
       expect(updated.kcal, closeTo(232, 0.01));
       expect(updated.carbG, closeTo(51.8, 0.01));
@@ -319,6 +322,50 @@ void main() {
           .watchEntriesForDate('anonymous', '2026-07-28')
           .first;
       expect(afterUndo, isEmpty);
+      await repository.dispose();
+    });
+
+    test('编辑记录改餐次落库；mealType 缺省保留原值', () async {
+      final repository = repo();
+      final entry = await repository.addEntry(draft()); // 预判 lunch
+      expect(entry.mealType, MealType.lunch);
+
+      // 显式改 snack：份量同值也要写入餐次列。
+      final edited = await repository.updateEntry(
+        entry.localId,
+        amountG: 100,
+        mealType: MealType.snack,
+      );
+      expect(edited.mealType, MealType.snack);
+      expect(edited.amountG, 100);
+
+      // 缺省 mealType=null → 保留已显式选择的 snack（不被预判覆写）。
+      final kept = await repository.updateEntry(entry.localId, amountG: 150);
+      expect(kept.mealType, MealType.snack);
+      expect(kept.amountG, 150);
+      await repository.dispose();
+    });
+
+    test('synced 行纯改餐次（份量不变）→ 不上行不轮换幂等键', () async {
+      final repository = repo(undoWindow: const Duration(milliseconds: 30));
+      final entry = await repository.addEntry(draft());
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      final synced = await db.foodEntryDao.getByLocalId(entry.localId);
+      expect(synced!.syncStatus, SyncStatus.synced);
+      final pushesBefore = remote.pushCount;
+
+      final edited = await repository.updateEntry(
+        entry.localId,
+        amountG: 100, // 与入账同值：纯餐次变更
+        mealType: MealType.dinner,
+      );
+      expect(edited.mealType, MealType.dinner);
+      // 纯本地列变更：状态/幂等键/版本全部不动，远程零新增请求。
+      expect(edited.syncStatus, SyncStatus.synced);
+      expect(edited.clientRequestId, synced.clientRequestId);
+      expect(edited.localVersion, synced.localVersion);
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      expect(remote.pushCount, pushesBefore);
       await repository.dispose();
     });
   });

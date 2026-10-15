@@ -192,7 +192,11 @@
       "title": "Today's log",
       "deleteEntry": "Delete this entry?",
       "deleteConfirmAction": "Delete",
-      "deleted": "Deleted"
+      "deleted": "Deleted",
+      "editEntry": "Edit",
+      "editTitle": "Edit entry",
+      "edited": "Entry updated",
+      "editSaveFailed": "Save failed, please try again"
     },
     "entries": {
       "photo": "Photo",

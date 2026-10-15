@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
+import 'package:eatwise/core/storage/tables.dart';
 
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
@@ -157,10 +158,15 @@ final class RecordRepository {
     return true;
   }
 
-  /// 份量修改实时重算营养（US-3.1）：快照随份量重算，localVersion+1。
+  /// 记录编辑（份量/餐次原地纠正）：快照随份量重算，localVersion+1。
   /// synced 记录被编辑 → 重新生成 clientRequestId 并转 submitting 待上行
   /// （T9）；pending/submitting 原位修改保留状态（T10）。
-  Future<FoodEntry> updateAmount(String localId, double amountG) async {
+  /// [mealType] 为 null 表示不改餐次（纯本地列，不上行——见 v1.15.4 口径）。
+  Future<FoodEntry> updateEntry(
+    String localId, {
+    required double amountG,
+    MealType? mealType,
+  }) async {
     if (amountG <= 0) {
       throw ArgumentError.value(amountG, 'amountG', '份量必须大于 0');
     }
@@ -172,13 +178,28 @@ final class RecordRepository {
     if (food == null) {
       throw StateError('记录引用的食物不存在: ${entry.foodId}');
     }
-    final snapshot = NutritionSnapshot.forAmount(food, amountG);
+    final newMealType = mealType ?? entry.mealType;
     final nowIso = _clock().toUtc().toIso8601String();
+    // 份量未变 = 营养快照不变；mealType 是纯本地列不上行（v1.15.4 口径）——
+    // 纯改餐次只写本地列，不轮换幂等键/不触发 update op（避免无谓上行）。
+    if (amountG == entry.amountG) {
+      await db.foodEntryDao.updateEntry(
+        localId,
+        FoodEntriesCompanion(
+          mealType: Value(newMealType),
+          updatedAtUtc: Value(nowIso),
+        ),
+      );
+      await _recompute(DateTime.parse(entry.datetimeUtc));
+      return (await db.foodEntryDao.getByLocalId(localId))!;
+    }
+    final snapshot = NutritionSnapshot.forAmount(food, amountG);
     final wasSynced = entry.syncStatus == SyncStatus.synced;
     await db.foodEntryDao.updateEntry(
       localId,
       FoodEntriesCompanion(
         amountG: Value(amountG),
+        mealType: Value(newMealType),
         kcal: Value(snapshot.kcal),
         proteinG: Value(snapshot.proteinG),
         carbG: Value(snapshot.carbG),

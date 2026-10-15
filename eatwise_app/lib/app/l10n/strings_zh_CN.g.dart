@@ -790,6 +790,18 @@ class Translations$record$today$zh_CN {
 
 	/// zh-CN: '已删除'
 	String get deleted => '已删除';
+
+	/// zh-CN: '编辑'
+	String get editEntry => '编辑';
+
+	/// zh-CN: '编辑记录'
+	String get editTitle => '编辑记录';
+
+	/// zh-CN: '已更新记录'
+	String get edited => '已更新记录';
+
+	/// zh-CN: '保存失败，请重试'
+	String get editSaveFailed => '保存失败，请重试';
 }
 
 // Path: record.entries
@@ -4800,6 +4812,10 @@ extension on Translations {
 			'record.today.deleteEntry' => '删除这条记录？',
 			'record.today.deleteConfirmAction' => '删除',
 			'record.today.deleted' => '已删除',
+			'record.today.editEntry' => '编辑',
+			'record.today.editTitle' => '编辑记录',
+			'record.today.edited' => '已更新记录',
+			'record.today.editSaveFailed' => '保存失败，请重试',
 			'record.entries.photo' => '拍照记',
 			'record.entries.voice' => '语音记',
 			'record.entries.frequent' => '常吃',
@@ -5176,12 +5192,12 @@ extension on Translations {
 			'nutrition.data.summary.fallbackGoal' => '当前按默认目标估算，补全身体资料后会更准哦',
 			'nutrition.data.localEstimate' => '本地预估，联网后云端自动校准',
 			'nutrition.data.proDetails.title' => '专业数据',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.data.proDetails.expand' => '查看详情',
 			'nutrition.data.proDetails.collapse' => '收起',
 			'nutrition.data.proDetails.target' => '目标',
 			'nutrition.data.proDetails.actual' => '已摄入',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.data.proDetails.percent' => '占比',
 			'nutrition.data.proDetails.rda' => 'RDA 参考',
 			'nutrition.data.proDetails.rdaNote' => 'RDA 为成人通用膳食参考值〔待营养专业背书〕，个人目标以你的方案为准',
@@ -5690,12 +5706,12 @@ extension on Translations {
 			'update.downloadingNoProgress' => '下载中…',
 			'update.downloadFailed' => '下载失败，请检查网络后重试',
 			'update.retry' => '重试',
+			_ => null,
+		} ?? switch (path) {
 			'moderation.title' => '审批中心',
 			'moderation.subtitle' => '审核用户贡献的食品',
 			'moderation.empty' => '暂无待审批的食品候选',
 			'moderation.approve' => '通过',
-			_ => null,
-		} ?? switch (path) {
 			'moderation.reject' => '驳回',
 			'moderation.approveConfirm' => '通过后该食品将进入共享食物库，所有用户都能搜到。确认通过？',
 			'moderation.rejectConfirmTitle' => '驳回该候选',

@@ -8,6 +8,7 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
 import 'package:eatwise/features/record/domain/meal_type.dart';
 import 'package:eatwise/features/record/domain/placeholder_food.dart';
+import 'package:eatwise/features/record/presentation/food_entry_edit_sheet.dart';
 import 'package:eatwise/features/record/presentation/meal_type_chips.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
@@ -138,7 +139,24 @@ class _EntryRow extends ConsumerWidget {
             '${entry.kcal.round()} ${t.record.nutrition.kcalUnit}',
             style: textStyles.textSm.copyWith(color: colors.textSecondary),
           ),
-          // 删除入口（走查修复）：≥40px 触控目标，确认弹窗防误触。
+          // 编辑入口：份量/餐次原地纠错（保存错救回）。食物行缺失时隐藏
+          // ——营养快照无法重算，保存必失败（占位行有行，不受影响）。
+          if (food != null)
+            IconButton(
+              icon: const Icon(Icons.edit_rounded),
+              iconSize: 20,
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              color: colors.textSecondary,
+              tooltip: t.record.today.editEntry,
+              onPressed: () => unawaited(
+                showFoodEntryEditSheet(context, entry).whenComplete(
+                  // 弹层关闭（含取消/下滑丢弃）复位餐次选择——provider
+                  // 全局共享，残留会污染记录页确认卡预选（chips 契约）。
+                  () => ref.read(recordMealTypeProvider.notifier).state = null,
+                ),
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.delete_outline_rounded),
             iconSize: 20,
