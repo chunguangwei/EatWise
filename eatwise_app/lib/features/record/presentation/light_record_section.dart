@@ -8,6 +8,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/account/application/weight_unit_controller.dart';
 import 'package:eatwise/features/account/domain/weight_unit.dart';
 import 'package:eatwise/features/record/application/water_reminder_planner.dart'
@@ -161,11 +162,7 @@ class _WaterCard extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
-      decoration: BoxDecoration(
-        color: colors.bgSecondary,
-        borderRadius: radii.rLg,
-        boxShadow: shadows.shadowSm,
-      ),
+      decoration: AppSurfaces.card(colors, shadows),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -318,10 +315,7 @@ class _WeightCard extends ConsumerWidget {
           child: Container(
             constraints: const BoxConstraints(minHeight: 44),
             padding: const EdgeInsets.all(AppSpacing.s4),
-            decoration: BoxDecoration(
-              borderRadius: radii.rLg,
-              boxShadow: shadows.shadowSm,
-            ),
+            decoration: AppSurfaces.card(colors, shadows, onMaterial: true),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[

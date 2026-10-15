@@ -6,6 +6,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/fasting/domain/daily_nutrition.dart';
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart'
     show localDateOf;
@@ -300,10 +301,7 @@ class _MiniSignalCard extends StatelessWidget {
               horizontal: AppSpacing.s2,
               vertical: AppSpacing.s2,
             ),
-            decoration: BoxDecoration(
-              borderRadius: radii.rLg,
-              boxShadow: shadows.shadowSm,
-            ),
+            decoration: AppSurfaces.card(colors, shadows, onMaterial: true),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[

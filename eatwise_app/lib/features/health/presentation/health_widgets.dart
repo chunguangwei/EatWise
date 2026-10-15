@@ -2,10 +2,10 @@ import 'dart:math' as math;
 
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
-import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/health/domain/exercise_goals.dart';
 import 'package:eatwise/features/health/domain/health_activity.dart';
 import 'package:flutter/material.dart';
@@ -102,11 +102,9 @@ class TodayBurnCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
-      decoration: BoxDecoration(
-        color: colors.bgSecondary,
-        borderRadius: Theme.of(context).extension<AppRadii>()!.rLg,
-        // 统一白卡软阴影（与设置组卡/MetricCard 同语言）。
-        boxShadow: Theme.of(context).extension<AppShadows>()!.shadowSm,
+      decoration: AppSurfaces.card(
+        colors,
+        Theme.of(context).extension<AppShadows>()!,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

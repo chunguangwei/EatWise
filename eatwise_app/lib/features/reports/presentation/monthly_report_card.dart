@@ -4,6 +4,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/reports/application/monthly_report.dart';
 import 'package:eatwise/features/reports/application/reports_controller.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +23,6 @@ class MonthlyReportCard extends ConsumerWidget {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
-    final radii = Theme.of(context).extension<AppRadii>()!;
     final shadows = Theme.of(context).extension<AppShadows>()!;
     final monthly = t.reports.monthly;
 
@@ -35,11 +35,7 @@ class MonthlyReportCard extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
-      decoration: BoxDecoration(
-        color: colors.bgSecondary,
-        borderRadius: radii.rLg,
-        boxShadow: shadows.shadowSm,
-      ),
+      decoration: AppSurfaces.card(colors, shadows),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[

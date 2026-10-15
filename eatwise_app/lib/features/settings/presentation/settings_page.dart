@@ -15,6 +15,7 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/core/update/update_dialog.dart';
 import 'package:eatwise/core/update/update_models.dart';
 import 'package:eatwise/core/update/update_providers.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart'
     show localNotificationServiceProvider;
@@ -853,10 +854,7 @@ class _ProfileHeaderCard extends ConsumerWidget {
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(AppSpacing.s4),
-          decoration: BoxDecoration(
-            borderRadius: radii.rLg,
-            boxShadow: shadows.shadowSm,
-          ),
+          decoration: AppSurfaces.card(colors, shadows, onMaterial: true),
           child: Row(
             children: <Widget>[
               // 头像（可点更换）：照片 / 品牌绿浅底占位 + 相机角标。
@@ -973,7 +971,6 @@ class _SettingsGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
-    final radii = Theme.of(context).extension<AppRadii>()!;
     final shadows = Theme.of(context).extension<AppShadows>()!;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.s4),
@@ -991,11 +988,7 @@ class _SettingsGroup extends StatelessWidget {
             ),
           ),
           Container(
-            decoration: BoxDecoration(
-              color: colors.bgSecondary,
-              borderRadius: radii.rLg,
-              boxShadow: shadows.shadowSm,
-            ),
+            decoration: AppSurfaces.card(colors, shadows),
             clipBehavior: Clip.antiAlias,
             // 组内行间细分隔线（hairline，缩进对齐图标右侧文字起点
             // 56px = 行左右边距 16 + 图标徽标 32 + 图标-文字间距 8，

@@ -186,6 +186,26 @@ class _ArcGaugePainter extends CustomPainter {
 
       final progress = spec.progress.clamp(0.0, 1.0);
       if (progress <= 0) continue;
+      // 液态玻璃光泽（v1.17.0）：① 柔光晕（弧下叠一层模糊放大版，模拟
+      // 玻璃透光）；② 弧体改扫掠渐变（起点受光提亮 → 基色 → 端点微亮），
+      // 让平面色弧有明暗流动。track 段保持纯色不参与光泽。
+      final sweepColors = <Color>[
+        _brighten(spec.color, 0.22),
+        spec.color,
+        _brighten(spec.color, 0.06),
+      ];
+      canvas.drawArc(
+        arcRect,
+        startRad,
+        sweepRad * progress,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth + 2
+          ..strokeCap = StrokeCap.round
+          ..color = spec.color.withValues(alpha: 0.30)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+      );
       canvas.drawArc(
         arcRect,
         startRad,
@@ -195,9 +215,22 @@ class _ArcGaugePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = strokeWidth
           ..strokeCap = StrokeCap.round
-          ..color = spec.color,
+          ..shader = SweepGradient(
+            startAngle: 0,
+            endAngle: sweepRad * progress,
+            colors: sweepColors,
+            transform: GradientRotation(startRad),
+          ).createShader(arcRect),
       );
     }
+  }
+
+  /// 提亮（HSL 亮度上浮，封顶 1.0）。
+  static Color _brighten(Color color, double amount) {
+    final hsl = HSLColor.fromColor(color);
+    return hsl
+        .withLightness((hsl.lightness + amount).clamp(0.0, 1.0))
+        .toColor();
   }
 
   @override

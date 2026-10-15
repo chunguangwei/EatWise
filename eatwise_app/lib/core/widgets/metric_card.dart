@@ -3,6 +3,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:flutter/material.dart';
 
 /// 指标卡（2026-09-29 UI 重构共享组件，华为运动健康看板语言）：
@@ -66,9 +67,11 @@ class MetricCard extends StatelessWidget {
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(AppSpacing.s4),
-          decoration: BoxDecoration(
-            borderRadius: radii.rLg,
-            boxShadow: shadows.shadowSm,
+          decoration: AppSurfaces.card(
+            colors,
+            shadows,
+            radius: radii.rLg,
+            onMaterial: true,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

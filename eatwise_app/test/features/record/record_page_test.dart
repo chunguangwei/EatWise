@@ -13,6 +13,7 @@ import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
@@ -377,10 +378,15 @@ void main() {
     expect(photoDecoration.border, isNotNull);
     expect((photoDecoration.border! as Border).top.color, colors.brandPrimary);
 
-    // 其余三格：无描边。
+    // 其余三格：玻璃受光描边（v1.17.0 液态玻璃升级——「原样无描边」口径
+    // 作废，非高亮卡统一 1px 受光边）。
     for (final label in <String>['语音记', '常吃', '扫码记']) {
       final decoration = cardOf(label).decoration! as BoxDecoration;
-      expect(decoration.border, isNull);
+      expect(decoration.border, isNotNull);
+      expect(
+        (decoration.border! as Border).top.color,
+        AppGlass.highlight(colors),
+      );
     }
     await settleUi(tester);
   });

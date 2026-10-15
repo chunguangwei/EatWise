@@ -4,6 +4,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart'
     show fastingClockProvider;
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
@@ -102,11 +103,7 @@ class PlanProgressBar extends ConsumerWidget {
         horizontal: AppSpacing.s3,
         vertical: AppSpacing.s2,
       ),
-      decoration: BoxDecoration(
-        color: colors.bgSecondary,
-        borderRadius: radii.rLg,
-        boxShadow: shadows.shadowSm,
-      ),
+      decoration: AppSurfaces.card(colors, shadows),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[

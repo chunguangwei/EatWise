@@ -6,6 +6,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/health/application/exercise_goals_controller.dart';
@@ -312,15 +313,10 @@ class _EmptyDayState extends StatelessWidget {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
-    final radii = Theme.of(context).extension<AppRadii>()!;
     final shadows = Theme.of(context).extension<AppShadows>()!;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s6),
-      decoration: BoxDecoration(
-        color: colors.bgSecondary,
-        borderRadius: radii.rLg,
-        boxShadow: shadows.shadowSm,
-      ),
+      decoration: AppSurfaces.card(colors, shadows),
       child: Column(
         children: <Widget>[
           Icon(Icons.restaurant_rounded, size: 64, color: colors.textSecondary),

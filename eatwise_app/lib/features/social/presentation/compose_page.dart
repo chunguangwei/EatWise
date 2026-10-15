@@ -7,6 +7,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
 import 'package:eatwise/features/social/application/feed_controller.dart';
 import 'package:eatwise/features/social/application/post_polish_providers.dart';
@@ -453,10 +454,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
               borderRadius: radii.rLg,
               child: Container(
                 padding: const EdgeInsets.all(AppSpacing.s4),
-                decoration: BoxDecoration(
-                  borderRadius: radii.rLg,
-                  boxShadow: shadows.shadowSm,
-                ),
+                decoration: AppSurfaces.card(colors, shadows, onMaterial: true),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[

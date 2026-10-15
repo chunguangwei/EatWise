@@ -12,6 +12,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/core/widgets/state_views.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/health/presentation/exercise_log_sheet.dart';
@@ -808,13 +809,12 @@ class _EntryCard extends StatelessWidget {
             onTap: onTap,
             child: Container(
               constraints: const BoxConstraints(minHeight: 64),
-              decoration: BoxDecoration(
-                borderRadius: radii.rLg,
-                boxShadow: shadows.shadowSm,
-                border: highlighted
-                    ? Border.all(color: colors.brandPrimary, width: 1.5)
-                    : null,
-              ),
+              decoration: AppSurfaces.card(colors, shadows, onMaterial: true)
+                  .copyWith(
+                    border: highlighted
+                        ? Border.all(color: colors.brandPrimary, width: 1.5)
+                        : null,
+                  ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[

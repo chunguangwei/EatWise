@@ -5,6 +5,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/account/presentation/weight_goal_fields.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/fasting/domain/window_rules.dart';
@@ -331,10 +332,8 @@ class _PlanCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
-      decoration: BoxDecoration(
-        color: colors.bgSecondary,
-        borderRadius: radii.rLg,
-        boxShadow: emphasized ? shadows.shadowSm : null,
+      decoration: AppSurfaces.card(colors, shadows).copyWith(
+        boxShadow: emphasized ? null : const <BoxShadow>[],
         border: emphasized
             ? Border.all(color: colors.brandPrimary, width: 2)
             : null,

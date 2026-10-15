@@ -1,4 +1,9 @@
+import 'dart:ui' show ImageFilter;
+
+import 'package:eatwise/core/theme/app_colors.dart';
+import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:flutter/material.dart';
 
 /// 带动作按钮的底部弹层统一骨架（真机走查收口：华为小屏 + 系统大字体 +
@@ -52,28 +57,50 @@ class AppBottomSheet extends StatelessWidget {
     final maxHeight =
         (MediaQuery.sizeOf(context).height - keyboard) * maxHeightFactor;
     final bottomBar = this.bottomBar;
-    return SafeArea(
-      child: Padding(
-        // 键盘顶起时整体上移（isScrollControlled 下 viewInsets 不被消化）。
-        padding: EdgeInsets.only(bottom: keyboard),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: maxHeight),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: contentPadding,
-                  child: content,
+    final radii = AppRadii.standard;
+    // 液态玻璃（v1.17.0）：骨架内嵌背模糊——modalBackgroundColor 半透明
+    // 底色（app_theme）+ 此处 BackdropFilter = 磨砂玻璃；顶部 1px 受光边。
+    return ClipRRect(
+      borderRadius: BorderRadius.vertical(top: radii.rLg.topLeft),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: AppGlass.blurSigma,
+          sigmaY: AppGlass.blurSigma,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: AppGlass.highlight(_colorsOf(context))),
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              // 键盘顶起时整体上移（isScrollControlled 下 viewInsets 不被消化）。
+              padding: EdgeInsets.only(bottom: keyboard),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxHeight),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: contentPadding,
+                        child: content,
+                      ),
+                    ),
+                    // 动作按钮固定在滚动区外（小屏/大字体/键盘下恒可见可点）。
+                    if (bottomBar != null)
+                      Padding(padding: bottomBarPadding, child: bottomBar),
+                  ],
                 ),
               ),
-              // 动作按钮固定在滚动区外（小屏/大字体/键盘下恒可见可点）。
-              if (bottomBar != null)
-                Padding(padding: bottomBarPadding, child: bottomBar),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  static AppColors _colorsOf(BuildContext context) =>
+      Theme.of(context).extension<AppColors>()!;
 }

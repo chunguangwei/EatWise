@@ -11,6 +11,7 @@ import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/core/widgets/arc_gauge.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_texts.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
@@ -146,18 +147,13 @@ class _NoPlanBody extends StatelessWidget {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
-    final radii = Theme.of(context).extension<AppRadii>()!;
     final shadows = Theme.of(context).extension<AppShadows>()!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.s4),
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.s6),
-          decoration: BoxDecoration(
-            color: colors.bgSecondary,
-            borderRadius: radii.rLg,
-            boxShadow: shadows.shadowSm,
-          ),
+          decoration: AppSurfaces.card(colors, shadows),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -175,15 +171,17 @@ class _NoPlanBody extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.s6),
-              FilledButton(
-                onPressed: () => context.go('/onboarding'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: colors.brandPrimary,
-                  minimumSize: const Size.fromHeight(AppSpacing.s12),
-                ),
-                child: Text(
-                  t.fasting.home.startPlan,
-                  style: textStyles.textBase.copyWith(color: Colors.white),
+              ButtonGloss(
+                child: FilledButton(
+                  onPressed: () => context.go('/onboarding'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colors.brandPrimary,
+                    minimumSize: const Size.fromHeight(AppSpacing.s12),
+                  ),
+                  child: Text(
+                    t.fasting.home.startPlan,
+                    style: textStyles.textBase.copyWith(color: Colors.white),
+                  ),
                 ),
               ),
             ],
@@ -486,39 +484,44 @@ class _TimerBody extends ConsumerWidget {
         Row(
           children: <Widget>[
             Expanded(
-              child: FilledButton.icon(
-                onPressed: () {
-                  if (isFasting) {
-                    _showEndFastDialog(context, ref);
-                  } else {
-                    _showEatingHint(context, plan);
-                  }
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: isFasting
-                      ? colors.brandPrimary
-                      : colors.fillSubtle,
-                  foregroundColor: isFasting
-                      ? Colors.white
-                      : colors.textSecondary,
-                  // 进食态补描边（2026-10-01 安卓走查）：fillSubtle 浅底
-                  // 与页面灰底近乎同色，无描边时按钮整体隐形。
-                  side: isFasting
-                      ? BorderSide.none
-                      : BorderSide(
-                          color: colors.textSecondary.withValues(alpha: 0.4),
-                        ),
-                  minimumSize: const Size.fromHeight(AppSpacing.s14),
-                  shape: const StadiumBorder(),
-                  elevation: isFasting ? 3 : 0,
-                  shadowColor: colors.brandPrimary.withValues(alpha: 0.45),
-                ),
-                icon: const Icon(Icons.flag_rounded, size: 20),
-                label: Text(
-                  t.fasting.home.endFast,
-                  style: textStyles.textBase.copyWith(
-                    color: isFasting ? Colors.white : colors.textSecondary,
-                    fontWeight: FontWeight.w600,
+              // 液态玻璃光泽（v1.17.0）：断食态主行动叠受光渐变；
+              // 进食态浅底非行动按钮不叠（光泽=可行动暗示）。
+              child: ButtonGloss(
+                enabled: isFasting,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    if (isFasting) {
+                      _showEndFastDialog(context, ref);
+                    } else {
+                      _showEatingHint(context, plan);
+                    }
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: isFasting
+                        ? colors.brandPrimary
+                        : colors.fillSubtle,
+                    foregroundColor: isFasting
+                        ? Colors.white
+                        : colors.textSecondary,
+                    // 进食态补描边（2026-10-01 安卓走查）：fillSubtle 浅底
+                    // 与页面灰底近乎同色，无描边时按钮整体隐形。
+                    side: isFasting
+                        ? BorderSide.none
+                        : BorderSide(
+                            color: colors.textSecondary.withValues(alpha: 0.4),
+                          ),
+                    minimumSize: const Size.fromHeight(AppSpacing.s14),
+                    shape: const StadiumBorder(),
+                    elevation: isFasting ? 3 : 0,
+                    shadowColor: colors.brandPrimary.withValues(alpha: 0.45),
+                  ),
+                  icon: const Icon(Icons.flag_rounded, size: 20),
+                  label: Text(
+                    t.fasting.home.endFast,
+                    style: textStyles.textBase.copyWith(
+                      color: isFasting ? Colors.white : colors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),

@@ -8,6 +8,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/core/widgets/state_views.dart';
 import 'package:eatwise/features/moderation/application/moderation_controller.dart';
 import 'package:eatwise/features/moderation/data/moderation_api.dart';
@@ -318,10 +319,7 @@ class _CandidateCard extends StatelessWidget {
           borderRadius: radii.rLg,
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.s4),
-            decoration: BoxDecoration(
-              borderRadius: radii.rLg,
-              boxShadow: shadows.shadowSm,
-            ),
+            decoration: AppSurfaces.card(colors, shadows, onMaterial: true),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[

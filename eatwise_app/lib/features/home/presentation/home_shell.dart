@@ -2,6 +2,7 @@ import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -32,64 +33,70 @@ class HomeShell extends ConsumerWidget {
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
 
     return Scaffold(
+      // 内容延伸到磨砂导航栏后方（滚动时透过模糊透出，液态玻璃观感）。
+      extendBody: true,
       body: navigationShell,
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarThemeData(
-          backgroundColor: colors.bgSecondary,
-          indicatorColor: colors.brandPrimary.withValues(alpha: 0.16),
-          iconTheme: WidgetStateProperty.resolveWith((states) {
-            return IconThemeData(
-              size: 24,
-              color: states.contains(WidgetState.selected)
-                  ? colors.brandPrimary
-                  : colors.textSecondary,
-            );
-          }),
-          labelTextStyle: WidgetStateProperty.resolveWith((states) {
-            final base = textStyles.textXs;
-            return states.contains(WidgetState.selected)
-                ? base.copyWith(color: colors.brandPrimary)
-                : base.copyWith(color: colors.textSecondary);
-          }),
-        ),
-        child: NavigationBar(
-          selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: (index) {
-            navigationShell.goBranch(
-              index,
-              // 再次点按当前 Tab：回分支根路由（go_router 惯例）。
-              initialLocation: index == navigationShell.currentIndex,
-            );
-            // 页面停留分段（§4.2：end_reason=tab_switch；同页重按 no-op）。
-            ref.read(pageStayTrackerProvider).onTabSwitch(_tabPageIds[index]);
-          },
-          destinations: <NavigationDestination>[
-            NavigationDestination(
-              icon: const Icon(Icons.timer_rounded),
-              selectedIcon: const Icon(Icons.timer),
-              label: t.home.tab.home,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.edit_note_rounded),
-              selectedIcon: const Icon(Icons.edit_note),
-              label: t.home.tab.record,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.insights_rounded),
-              selectedIcon: const Icon(Icons.insights),
-              label: t.home.tab.data,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.people_outline_rounded),
-              selectedIcon: const Icon(Icons.people),
-              label: t.home.tab.community,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.person_outline_rounded),
-              selectedIcon: const Icon(Icons.person),
-              label: t.home.tab.profile,
-            ),
-          ],
+      bottomNavigationBar: GlassPanel(
+        topHighlight: true,
+        child: NavigationBarTheme(
+          data: NavigationBarThemeData(
+            backgroundColor: Colors.transparent, // 磨砂底色由 GlassPanel 提供
+            elevation: 0,
+            indicatorColor: colors.brandPrimary.withValues(alpha: 0.16),
+            iconTheme: WidgetStateProperty.resolveWith((states) {
+              return IconThemeData(
+                size: 24,
+                color: states.contains(WidgetState.selected)
+                    ? colors.brandPrimary
+                    : colors.textSecondary,
+              );
+            }),
+            labelTextStyle: WidgetStateProperty.resolveWith((states) {
+              final base = textStyles.textXs;
+              return states.contains(WidgetState.selected)
+                  ? base.copyWith(color: colors.brandPrimary)
+                  : base.copyWith(color: colors.textSecondary);
+            }),
+          ),
+          child: NavigationBar(
+            selectedIndex: navigationShell.currentIndex,
+            onDestinationSelected: (index) {
+              navigationShell.goBranch(
+                index,
+                // 再次点按当前 Tab：回分支根路由（go_router 惯例）。
+                initialLocation: index == navigationShell.currentIndex,
+              );
+              // 页面停留分段（§4.2：end_reason=tab_switch；同页重按 no-op）。
+              ref.read(pageStayTrackerProvider).onTabSwitch(_tabPageIds[index]);
+            },
+            destinations: <NavigationDestination>[
+              NavigationDestination(
+                icon: const Icon(Icons.timer_rounded),
+                selectedIcon: const Icon(Icons.timer),
+                label: t.home.tab.home,
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.edit_note_rounded),
+                selectedIcon: const Icon(Icons.edit_note),
+                label: t.home.tab.record,
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.insights_rounded),
+                selectedIcon: const Icon(Icons.insights),
+                label: t.home.tab.data,
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.people_outline_rounded),
+                selectedIcon: const Icon(Icons.people),
+                label: t.home.tab.community,
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.person_outline_rounded),
+                selectedIcon: const Icon(Icons.person),
+                label: t.home.tab.profile,
+              ),
+            ],
+          ),
         ),
       ),
     );

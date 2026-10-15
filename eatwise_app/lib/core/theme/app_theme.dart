@@ -3,6 +3,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:flutter/material.dart';
 
 /// 应用主题装配：亮/暗/跟随系统（设计稿 §2.1 / §2.7）。
@@ -100,6 +101,12 @@ abstract final class AppTheme {
       ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: colors.bgSecondary,
+        // 液态玻璃（v1.17.0）：modal 弹层底色改半透明，磨砂模糊由
+        // AppBottomSheet 骨架内置 BackdropFilter 提供；少数不走骨架的
+        // 面板（语音/来源选择等）呈现乳白玻璃感，无破版风险。
+        modalBackgroundColor: colors.bgSecondary.withValues(
+          alpha: AppGlass.tintOpacity(colors),
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: radii.rLg.topLeft),
         ),
