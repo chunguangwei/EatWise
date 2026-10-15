@@ -248,12 +248,11 @@ describe('Mobile moderation & user role (e2e)', () => {
       .get('/v1/moderation/food-candidates/pending-count')
       .set(auth(owner.token))
       .expect(403);
-    await request(server)
-      .get('/v1/moderation/food-candidates/pending-count')
-      .expect(401);
+    await request(server).get('/v1/moderation/food-candidates/pending-count').expect(401);
   });
 
-  it('admin 用户移动端驳回：级联清理记录 + reviewedBy 留痕 + 重复驳回幂等', async () => {    const owner = await login(nextPhone());
+  it('admin 用户移动端驳回：级联清理记录 + reviewedBy 留痕 + 重复驳回幂等', async () => {
+    const owner = await login(nextPhone());
     const admin = await login(nextPhone());
     await request(server)
       .patch(`/v1/admin/users/${admin.userId}/role`)
