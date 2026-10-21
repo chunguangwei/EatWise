@@ -15,6 +15,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async onModuleInit() {
+    if (this.config.get<string>('STORE_DRIVER', 'memory') !== 'prisma') {
+      return;
+    }
     if (!this.config.get('DATABASE_URL')) {
       this.logger.warn('DATABASE_URL 未配置，跳过数据库连接（内存数据层模式）');
       return;

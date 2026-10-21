@@ -50,7 +50,10 @@ class _FoodEntryEditSheetState extends ConsumerState<FoodEntryEditSheet> {
   @override
   void initState() {
     super.initState();
-    _amountController.text = widget.entry.amountG.round().toString();
+    final amount = widget.entry.amountG;
+    _amountController.text = amount == amount.truncateToDouble()
+        ? amount.toInt().toString()
+        : amount.toString();
     _mealType = ref.read(recordMealTypeProvider.notifier);
     // 餐次 chips 走全局 provider：以记录现值播种；无显式餐次按**入账时刻**
     // 推导（与展示层 displayMealType 同口径）——chips 高亮即实际分组，
@@ -85,6 +88,7 @@ class _FoodEntryEditSheetState extends ConsumerState<FoodEntryEditSheet> {
     final t = Translations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
     final localId = widget.entry.localId;
     try {
       await ref
@@ -94,11 +98,15 @@ class _FoodEntryEditSheetState extends ConsumerState<FoodEntryEditSheet> {
             amountG: amountG!,
             mealType: ref.read(recordMealTypeProvider),
           );
+      // 用户可在写库期间下滑/返回关闭弹层；退场动画中 mounted 仍为 true，
+      // 必须同时检查路由，避免再次 pop 掉底下的页面。
+      if (!mounted || route?.isCurrent == false) return;
       navigator.pop();
       messenger.showSnackBar(SnackBar(content: Text(t.record.today.edited)));
     } on Object {
       // 食物行缺失（StateError）等异常 → 弹层不关，用户可改回后重试。
-      if (mounted) setState(() => _saving = false);
+      if (!mounted || route?.isCurrent == false) return;
+      setState(() => _saving = false);
       messenger.showSnackBar(
         SnackBar(content: Text(t.record.today.editSaveFailed)),
       );

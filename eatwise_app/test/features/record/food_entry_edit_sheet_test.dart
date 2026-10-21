@@ -1,5 +1,9 @@
+import 'dart:async';
+
+import 'package:drift/native.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/storage/food_entry_dao.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
@@ -24,7 +28,7 @@ void main() {
   setUpAll(() => initRecordTestTimeZones());
 
   setUp(() async {
-    db = AppDatabase.memory();
+    db = _DelayedDatabase();
     await seedFoods(db);
     remote = FakeRecordRemote();
     location = tz.getLocation('Asia/Shanghai');
@@ -33,11 +37,14 @@ void main() {
 
   tearDown(() => db.close());
 
-  Future<FoodEntry> addEntry(RecordRepository repository) {
+  Future<FoodEntry> addEntry(
+    RecordRepository repository, {
+    double amountG = 100,
+  }) {
     return repository.addEntry(
       RecordDraft(
         foodId: 'f-rice',
-        amountG: 100,
+        amountG: amountG,
         mealUtc: DateTime.utc(2026, 7, 28, 4), // 上海 12:00 → lunch 预判
         source: EntrySource.manual,
       ),
@@ -150,4 +157,73 @@ void main() {
 
     await repository.dispose();
   });
+
+  testWidgets('只改餐次保留原始小数份量和营养快照', (tester) async {
+    final createRepo = RecordRepository(
+      db: db,
+      remote: remote,
+      location: location,
+    );
+    final entry = await addEntry(createRepo, amountG: 100.4);
+    await createRepo.dispose();
+    final repository = await pumpSheet(tester, entry);
+    await tester.tap(find.widgetWithText(ChoiceChip, '加餐'));
+    await tester.tap(find.widgetWithText(FilledButton, '保存'));
+    await tester.pumpAndSettle();
+
+    final updated = (await db.foodEntryDao.getByLocalId(entry.localId))!;
+    expect(updated.amountG, 100.4);
+    expect(updated.kcal, entry.kcal);
+    expect(updated.localVersion, entry.localVersion);
+    expect(updated.mealType, MealType.snack);
+    await repository.dispose();
+  });
+
+  testWidgets('保存未完成时关闭弹层，完成后不再退出底下的页面', (tester) async {
+    final createRepo = RecordRepository(
+      db: db,
+      remote: remote,
+      location: location,
+    );
+    final entry = await addEntry(createRepo);
+    await createRepo.dispose();
+    final repository = await pumpSheet(tester, entry);
+    final gate = Completer<void>();
+    (db.foodEntryDao as _DelayedEntryDao).nextRead = gate;
+    await tester.enterText(find.byType(TextField), '200');
+    await tester.tap(find.widgetWithText(FilledButton, '保存'));
+    await tester.pump();
+    Navigator.of(tester.element(find.byType(FoodEntryEditSheet))).pop();
+    await tester.pumpAndSettle();
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('open'), findsOneWidget);
+    expect((await db.foodEntryDao.getByLocalId(entry.localId))!.amountG, 200);
+    await repository.dispose();
+  });
+}
+
+// 只延迟一次数据库读取，写库与营养聚合仍使用真实内存 SQLite。
+class _DelayedDatabase extends AppDatabase {
+  _DelayedDatabase() : super(NativeDatabase.memory());
+
+  late final _DelayedEntryDao _entries = _DelayedEntryDao(this);
+
+  @override
+  FoodEntryDao get foodEntryDao => _entries;
+}
+
+class _DelayedEntryDao extends FoodEntryDao {
+  _DelayedEntryDao(super.db);
+
+  Completer<void>? nextRead;
+
+  @override
+  Future<FoodEntry?> getByLocalId(String localId) async {
+    final gate = nextRead;
+    nextRead = null;
+    if (gate != null) await gate.future;
+    return super.getByLocalId(localId);
+  }
 }
