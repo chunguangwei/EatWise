@@ -43,6 +43,8 @@ Future<void> startExerciseLog(BuildContext context, WidgetRef ref) async {
     return;
   }
   if (result != null) {
+    final isScreenshot =
+        result.saved.source == ExerciseLogRepository.sourceScreenshot;
     final flow = analytics.endRecordFlow(flowId);
     // 记录后触发一轮同步（运动记录 pending 队列上行，仅登录态生效）。
     try {
@@ -56,13 +58,16 @@ Future<void> startExerciseLog(BuildContext context, WidgetRef ref) async {
       properties: <String, Object?>{
         'flow_id': flowId,
         'duration_ms': flow?.durationMs ?? 0,
-        'step_count': 2,
-        'entry_type': 'exercise',
-        'item_count': 1,
+        'step_count': isScreenshot ? 3 : 2,
+        'entry_type': isScreenshot ? 'screenshot' : 'exercise',
+        'item_count': isScreenshot && result.replaced.isNotEmpty
+            ? result.replaced.length + 1
+            : 1,
         'record_kind': 'exercise',
-        'is_edited': false,
-        // 设备级纯本地：不经同步引擎上行。
-        'sync_state': 'local',
+        'is_edited': isScreenshot,
+        'sync_state': isScreenshot
+            ? (result.replaced.isEmpty ? 'pending' : 'replace')
+            : 'local',
       },
       flushNow: true,
     );
@@ -224,12 +229,18 @@ class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
     final bySteps = _type.key == 'walk' && steps != null && steps > 0;
     // 走路按步数录入时长可留空（无时长口径，落 0）；其余时长必填。
     final minutes = int.tryParse(_durationController.text.trim()) ?? 0;
-    if (!bySteps && minutes <= 0) {
+    if ((!bySteps && minutes <= 0) ||
+        minutes < 0 ||
+        minutes > maxExerciseDurationMin) {
       setState(() => _error = t.record.exercise.durationInvalid);
       return;
     }
+    if (bySteps && steps > maxExerciseSteps) {
+      setState(() => _error = t.record.exercise.stepsInvalid);
+      return;
+    }
     final kcal = double.tryParse(_kcalController.text.trim());
-    if (kcal == null || kcal <= 0) {
+    if (kcal == null || !kcal.isFinite || kcal <= 0 || kcal > maxExerciseKcal) {
       setState(() => _error = t.record.exercise.kcalInvalid);
       return;
     }

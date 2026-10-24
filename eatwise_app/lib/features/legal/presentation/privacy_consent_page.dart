@@ -151,12 +151,15 @@ class _PrivacyConsentPageState extends ConsumerState<PrivacyConsentPage> {
             FilledButton(
               onPressed: _mainAgreed && !_submitting ? _agree : null,
               style: FilledButton.styleFrom(
-                backgroundColor: colors.brandPrimary,
+                backgroundColor: colors.actionPrimary,
+                foregroundColor: colors.onActionPrimary,
                 minimumSize: const Size.fromHeight(AppSpacing.s12),
               ),
               child: Text(
                 t.legal.consent.agreeAndContinue,
-                style: textStyles.textBase.copyWith(color: Colors.white),
+                style: textStyles.textBase.copyWith(
+                  color: colors.onActionPrimary,
+                ),
               ),
             ),
             // 拒绝主政策 → 退出 App（§4.1 拒绝路径）。

@@ -1,4 +1,5 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart';
 import 'package:eatwise/features/nutrition/presentation/trend_chart.dart';
@@ -66,6 +67,21 @@ void main() {
 
     expect(find.text('记满几天，趋势曲线就跑起来啦'), findsOneWidget);
     expect(find.text('去记录'), findsOneWidget);
+    final cta = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, '去记录'),
+    );
+    expect(
+      cta.style!.backgroundColor!.resolve(<WidgetState>{}),
+      AppColors.light.actionPrimary,
+    );
+    expect(
+      cta.style!.foregroundColor!.resolve(<WidgetState>{}),
+      AppColors.light.onActionPrimary,
+    );
+    expect(
+      tester.widget<Text>(find.text('去记录')).style!.color,
+      AppColors.light.onActionPrimary,
+    );
   });
 
   testWidgets('热量 tab：历史天有记录即出图，不依赖当天是否记满', (tester) async {

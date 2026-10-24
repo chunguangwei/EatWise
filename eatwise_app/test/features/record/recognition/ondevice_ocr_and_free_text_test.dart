@@ -22,6 +22,7 @@ void main() {
     carbPer100g: 25.9,
     fatPer100g: 0.3,
     isCustom: false,
+    source: 'manual',
     customSyncPending: false,
     customClientRequestId: 'req-$id',
     customSyncFailCount: 0,

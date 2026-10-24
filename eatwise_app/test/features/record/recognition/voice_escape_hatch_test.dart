@@ -138,6 +138,27 @@ void main() {
     await settleUi(tester);
   });
 
+  testWidgets('逃生舱重复点击：只打开一个端侧录音面板', (tester) async {
+    await pumpPage(tester, asrReady: true);
+    await openListeningSheet(tester);
+
+    speechGateway.onError!('error_network');
+    await tester.pump();
+    final escape = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '用离线小模型识别'),
+    );
+    escape.onPressed!();
+    escape.onPressed!();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(speechGateway.cancelled, isTrue);
+    expect(find.byType(OnDeviceRecordingSheet), findsOneWidget);
+    await settleUi(tester);
+  });
+
   testWidgets('致命错误 + 端侧未就绪 → 按钮出现，点击走「下载本地模型」引导卡', (tester) async {
     await pumpPage(tester, asrReady: false);
     await openListeningSheet(tester);
@@ -178,6 +199,36 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(VoiceModelDownloadSheet), findsNothing);
     expect(find.text('正在听… 说说吃了什么，如「一碗米饭」'), findsNothing);
+    await settleUi(tester);
+  });
+
+  testWidgets('引导取消并关闭听写面板后，不再误开端侧录音面板', (tester) async {
+    await pumpPage(tester, asrReady: false);
+    await openListeningSheet(tester);
+
+    speechGateway.onError!('error_network');
+    await tester.pump();
+    await tester.tap(find.text('用离线小模型识别'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('下载本地模型（推荐）'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(VoiceModelDownloadSheet), findsOneWidget);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(VoiceModelDownloadSheet),
+        matching: find.text('取消'),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+
+    expect(find.byType(VoiceModelDownloadSheet), findsNothing);
+    expect(find.byType(OnDeviceRecordingSheet), findsNothing);
+    expect(find.text('语音记'), findsOneWidget);
     await settleUi(tester);
   });
 

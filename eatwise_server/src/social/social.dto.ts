@@ -11,7 +11,61 @@ import {
   Max,
   MaxLength,
   Min,
+  Validate,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator';
+import { UPLOAD_FILENAME_PATTERN } from '../uploads/uploads.storage';
+
+const SITE_UPLOAD_PREFIX = '/v1/uploads/';
+
+function parseHttpUrl(value: string): URL | null {
+  if (value.length === 0 || value.trim() !== value || /[\s\\\u0000-\u001f\u007f]/.test(value)) {
+    return null;
+  }
+  try {
+    decodeURIComponent(value);
+    const url = new URL(value);
+    if (
+      (url.protocol !== 'http:' && url.protocol !== 'https:') ||
+      !url.hostname ||
+      url.username ||
+      url.password
+    ) {
+      return null;
+    }
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+export function isAllowedPostImageUrl(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  if (value.startsWith(SITE_UPLOAD_PREFIX)) {
+    return UPLOAD_FILENAME_PATTERN.test(value.slice(SITE_UPLOAD_PREFIX.length));
+  }
+  const url = parseHttpUrl(value);
+  const configuredCdn = process.env.CDN_BASE_URL;
+  if (!url || !configuredCdn) return false;
+  const cdn = parseHttpUrl(configuredCdn);
+  return cdn !== null && url.origin === cdn.origin;
+}
+
+export function allowedPostImageUrls(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter(isAllowedPostImageUrl) : [];
+}
+
+@ValidatorConstraint({ name: 'isPostImageUrl', async: false })
+class IsPostImageUrlConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    return isAllowedPostImageUrl(value);
+  }
+
+  defaultMessage(): string {
+    return 'each value in imageUrls must be a /v1/uploads path or an HTTP(S) URL on CDN_BASE_URL origin';
+  }
+}
 
 /** C1 发布打卡（契约 §3.9：文字 ≤500 字 + 可选图片 URL） */
 export class CreatePostDto {
@@ -22,14 +76,12 @@ export class CreatePostDto {
   @Length(1, 500)
   text: string;
 
-  /**
-   * 图片 URL 列表（〔假设〕MVP 图片传 URL 占位；正式上传链路
-   * POST /uploads/images → 直传 CDN 留 TODO，契约 §3.9 注）。
-   */
+  /** 仅本站上传读取路径或配置 CDN 同 origin 的图片地址。 */
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(9)
   @IsString({ each: true })
+  @Validate(IsPostImageUrlConstraint, { each: true })
   imageUrls?: string[];
 
   /**

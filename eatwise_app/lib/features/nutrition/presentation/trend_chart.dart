@@ -6,6 +6,7 @@ import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/core/widgets/chart_labels.dart';
 import 'package:eatwise/core/widgets/glass.dart';
+import 'package:eatwise/core/widgets/quiet_tabs.dart';
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,6 +40,8 @@ class _TrendChartSectionState extends ConsumerState<TrendChartSection> {
         ? ref.watch(weeklyFastingHoursProvider)
         : ref.watch(weeklyKcalProvider);
     final hasAny = values.any((v) => v != null);
+    final latestIndex = values.lastIndexWhere((value) => value != null);
+    final latest = latestIndex < 0 ? null : values[latestIndex]!;
     final unit = _showFasting ? trend.hourUnit : t.record.nutrition.kcalUnit;
     final labels = List<String>.generate(7, (i) {
       final date = end.subtract(Duration(days: 6 - i));
@@ -53,55 +56,54 @@ class _TrendChartSectionState extends ConsumerState<TrendChartSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                trend.title,
-                style: textStyles.textLg.copyWith(
-                  color: colors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: AppSpacing.s3),
-              SegmentedButton<bool>(
-                showSelectedIcon: false,
-                style: SegmentedButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.s2,
-                  ),
-                ),
-                segments: <ButtonSegment<bool>>[
-                  ButtonSegment<bool>(
-                    value: false,
-                    label: Text(
-                      trend.kcal,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  ButtonSegment<bool>(
-                    value: true,
-                    label: Text(
-                      trend.fasting,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-                selected: <bool>{_showFasting},
-                onSelectionChanged: (selection) =>
-                    setState(() => _showFasting = selection.first),
-              ),
-            ],
+          Text(
+            trend.title,
+            style: textStyles.textLg.copyWith(
+              color: colors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: AppSpacing.s2),
-          // 单位图例放布局层（图表上方），不画进 Canvas——绘图层左上角
-          // 会与首点（x=0）数值标签重叠。
+          AppQuietTabs<bool>(
+            values: const <bool>[false, true],
+            selected: _showFasting,
+            labelOf: (fasting) => fasting ? trend.fasting : trend.kcal,
+            onSelected: (fasting) => setState(() => _showFasting = fasting),
+          ),
+          if (latest != null) ...<Widget>[
+            const SizedBox(height: AppSpacing.s3),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: <Widget>[
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      latest.toStringAsFixed(
+                        latest == latest.roundToDouble() ? 0 : 1,
+                      ),
+                      style: textStyles.textDisplay.copyWith(
+                        color: colors.textPrimary,
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s1),
+                Text(
+                  unit,
+                  style: textStyles.textSm.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: AppSpacing.s2),
           Text(
             trend.unitLegend(unit: unit),
             style: textStyles.textXs.copyWith(color: colors.textSecondary),
@@ -163,12 +165,15 @@ class _TrendEmpty extends StatelessWidget {
           FilledButton(
             onPressed: () => context.go('/record'),
             style: FilledButton.styleFrom(
-              backgroundColor: colors.brandPrimary,
+              backgroundColor: colors.actionPrimary,
+              foregroundColor: colors.onActionPrimary,
               minimumSize: const Size(0, AppSpacing.s12),
             ),
             child: Text(
               t.nutrition.data.trend.ctaRecord,
-              style: textStyles.textBase.copyWith(color: Colors.white),
+              style: textStyles.textBase.copyWith(
+                color: colors.onActionPrimary,
+              ),
             ),
           ),
         ],

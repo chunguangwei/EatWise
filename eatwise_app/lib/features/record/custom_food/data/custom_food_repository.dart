@@ -58,10 +58,14 @@ final class CustomFoodRepository {
     required this.db,
     required this.remote,
     this.existingFoodIdsFn,
+    this.userId = 'anonymous',
   });
 
   /// 本地库。
   final AppDatabase db;
+
+  /// 当前账号；匿名只允许本地保存，retry 不上行。
+  final String userId;
 
   /// 远程端（生产 RemoteCustomFoodApi；测试 Fake）。
   final CustomFoodRemote remote;
@@ -108,11 +112,13 @@ final class CustomFoodRepository {
         carbPer100g: Value(draft.per100g.carbG),
         fatPer100g: Value(draft.per100g.fatG),
         isCustom: const Value(true),
+        ownerUserId: Value(userId),
+        source: Value(customFoodSourceName(draft.source)),
         customSyncPending: Value(pending),
         customClientRequestId: Value(pending ? clientRequestId : ''),
       ),
     ]);
-    final food = await db.foodDao.getById(localId);
+    final food = await db.foodDao.getById(localId, ownerUserId: userId);
     return CustomFoodSaveResult(food: food!, uploaded: !pending);
   }
 
@@ -133,6 +139,7 @@ final class CustomFoodRepository {
     String? barcode,
     String? evidenceImageUrl,
   }) async {
+    await _requireOwnedFood(foodId);
     try {
       final status = await remote.contribute(
         foodId,
@@ -140,14 +147,38 @@ final class CustomFoodRepository {
         barcode: barcode,
         evidenceImageUrl: evidenceImageUrl,
       );
-      await db.foodDao.setContributionStatus(foodId, status);
+      await db.foodDao.setContributionStatus(
+        foodId,
+        status,
+        ownerUserId: userId,
+      );
       return status;
     } on BusinessApiException catch (e) {
       if (e.code == 'FOOD_CONTRIBUTE_REJECTED') {
-        await db.foodDao.setContributionStatus(foodId, 'rejected');
+        await db.foodDao.setContributionStatus(
+          foodId,
+          'rejected',
+          ownerUserId: userId,
+        );
       }
       rethrow;
     }
+  }
+
+  Future<Food> _requireOwnedFood(String foodId, {String? ownerUserId}) async {
+    final owner = ownerUserId ?? userId;
+    final food = await db.foodDao.getById(foodId);
+    final legacyAnonymous = owner == 'anonymous' && food?.ownerUserId == null;
+    if (food == null ||
+        !food.isCustom ||
+        (food.ownerUserId != owner && !legacyAnonymous)) {
+      throw const BusinessApiException(
+        httpStatus: 403,
+        code: 'FORBIDDEN',
+        message: '无权操作该自定义食物',
+      );
+    }
+    return food;
   }
 
   /// 已有共享食物的数据纠错（薄荷走查 P3，食物详情页「数据有误？」入口）：
@@ -171,6 +202,7 @@ final class CustomFoodRepository {
   /// 该键重放 create，若沿用旧键，「离线新建 → 编辑 → 联网重放」会用旧幂等键
   /// 带新内容打服务端（首次注册的是旧内容）→ PAYLOAD_MISMATCH 永久卡 pending。
   Future<Food> update(Food food, CustomFoodDraft draft) async {
+    final owned = await _requireOwnedFood(food.id);
     final companion = FoodsCompanion(
       id: Value(food.id),
       nameZh: Value(draft.nameZh),
@@ -182,11 +214,11 @@ final class CustomFoodRepository {
       carbPer100g: Value(draft.per100g.carbG),
       fatPer100g: Value(draft.per100g.fatG),
     );
-    if (food.customSyncPending) {
+    if (owned.customSyncPending) {
       await db.foodDao.upsertAll(<FoodsCompanion>[
         companion.copyWith(customClientRequestId: Value(_uuid())),
       ]);
-      return (await db.foodDao.getById(food.id))!;
+      return (await db.foodDao.getById(food.id, ownerUserId: userId))!;
     }
     await db.foodDao.upsertAll(<FoodsCompanion>[companion]);
     try {
@@ -196,12 +228,16 @@ final class CustomFoodRepository {
         // 同步时窗：审核通过后本地行还没翻 approved（秒批/离线审批），
         // 服务端已晋升共享（isCustom=false）→ 404。自愈：本地写 approved
         // （动作行门控随即隐藏），改抛专用码给 UI 出人话引导。
-        await db.foodDao.setContributionStatus(food.id, 'approved');
+        await db.foodDao.setContributionStatus(
+          food.id,
+          'approved',
+          ownerUserId: userId,
+        );
         throw const FoodApprovedSharedApiException();
       }
       if (e is! NetworkApiException && e is! TimeoutApiException) rethrow;
     }
-    return (await db.foodDao.getById(food.id))!;
+    return (await db.foodDao.getById(food.id, ownerUserId: userId))!;
   }
 
   /// 删除自定义食物（DELETE）：先远端后本地——409 FOOD_UNDER_REVIEW /
@@ -221,6 +257,7 @@ final class CustomFoodRepository {
     required RecordRepository recordRepository,
     required String userId,
   }) async {
+    await _requireOwnedFood(food.id, ownerUserId: userId);
     try {
       await remote.deleteCustom(food.id);
     } on ApiException catch (e) {
@@ -231,7 +268,11 @@ final class CustomFoodRepository {
           if (existing.contains(food.id)) {
             // 同步时窗内服务端已晋升共享 → 404：自愈写 approved，
             // 本地行/历史记录一律不动（共享食物不该被本地删除）。
-            await db.foodDao.setContributionStatus(food.id, 'approved');
+            await db.foodDao.setContributionStatus(
+              food.id,
+              'approved',
+              ownerUserId: userId,
+            );
             throw const FoodApprovedSharedApiException();
           }
           return CustomFoodDeleteResult(
@@ -240,7 +281,11 @@ final class CustomFoodRepository {
           );
         }
         // 未装配核验：保持旧口径（一律按晋升共享处理）。
-        await db.foodDao.setContributionStatus(food.id, 'approved');
+        await db.foodDao.setContributionStatus(
+          food.id,
+          'approved',
+          ownerUserId: userId,
+        );
         throw const FoodApprovedSharedApiException();
       }
       rethrow;
@@ -261,27 +306,30 @@ final class CustomFoodRepository {
     for (final e in entries) {
       await recordRepository.deleteEntry(e.localId);
     }
-    await db.foodDao.deleteById(food.id);
+    await db.foodDao.deleteById(food.id, ownerUserId: userId, customOnly: true);
     return entries.length;
   }
 
   /// 联网后重试 pending 自定义食物（幂等键复用，重复上行不产生重复条目）。
   /// 返回本轮上行成功条数。
   ///
-  /// 终态收敛（v1.13.31）：customSyncFailed 行跳过（停重试，详情页可手动
-  /// 重试）；业务错误（VALIDATION_ERROR / IDEMPOTENCY_PAYLOAD_MISMATCH 等
-  /// 非网络类）按行累计 customSyncFailCount，连续 ≥[kTerminalFailThreshold]
+  /// 终态收敛：customSyncFailed 行跳过（停重试，详情页可手动重试）；
+  /// 仅明确永久 4xx（VALIDATION / PAYLOAD_MISMATCH 等）按行累计
+  /// customSyncFailCount；匿名、401/403/429/5xx 与网络错误不计数。
+  /// 连续 ≥[kTerminalFailThreshold]
   /// 次 → 转终态失败（停重试 + UI 失败徽标）——永败项不再每轮重复上行，
   /// 引用该食物的记录也不再被守卫口径成片卡死（快照放行）。
   /// 上行成功后以服务端返回的 id 重映射本地食物行，并同事务级联更新
   /// food_entries.foodId 引用——离线期间用临时 id（custom-*）记账的记录
   /// 上行时服务端 snapshotOf 需按服务端 id 查到食物，不重映射会让这些
   /// 记录永远卡 pending。
-  Future<int> retryPending() async {
-    final rows = await db.foodDao.pendingCustomFoods();
+  Future<int> retryPending([String? ownerUserId]) async {
+    final owner = ownerUserId ?? userId;
+    if (owner == 'anonymous') return 0;
+    final rows = await db.foodDao.pendingCustomFoods(ownerUserId: owner);
     var synced = 0;
     for (final row in rows) {
-      if (row.customSyncFailed) continue; // 终态失败：停重试（手动重试复位）
+      if (row.customSyncFailed) continue;
       try {
         final serverId = await remote.createCustom(
           _draftFromRow(row),
@@ -289,21 +337,28 @@ final class CustomFoodRepository {
         );
         if (serverId.isNotEmpty && serverId != row.id) {
           await db.transaction(() async {
-            await db.foodDao.remapCustomFoodId(row.id, serverId);
+            await db.foodDao.remapCustomFoodId(
+              row.id,
+              serverId,
+              ownerUserId: owner,
+            );
             await db.foodEntryDao.remapFoodId(row.id, serverId);
           });
         } else {
-          // 服务端未返回新 id（防御）：仅清 pending，主键不变。
-          await db.foodDao.markCustomSynced(row.id);
+          await db.foodDao.markCustomSynced(row.id, ownerUserId: owner);
         }
         synced++;
       } on ApiException catch (e) {
-        // 仍离线：整批留待下轮（不计失败数）。
         if (e is NetworkApiException || e is TimeoutApiException) break;
-        // 业务错误：累计阈值 → 终态失败（永败不收敛根因修复）。
+        if (e is! BusinessApiException) continue;
+        if (e.isRetryable || e.httpStatus == 401 || e.httpStatus == 403) {
+          break;
+        }
+        if (!_isPermanentFailure(e)) continue;
         final failCount = row.customSyncFailCount + 1;
         await db.foodDao.writeCustomSyncFailure(
           row.id,
+          ownerUserId: owner,
           failCount: failCount,
           failed: failCount >= kTerminalFailThreshold,
         );
@@ -312,22 +367,31 @@ final class CustomFoodRepository {
     return synced;
   }
 
-  /// 连续业务失败转终态的阈值（同一幂等键同一永败码重试必同样失败）。
+  static bool _isPermanentFailure(BusinessApiException e) {
+    const permanentCodes = <String>{
+      'VALIDATION_ERROR',
+      'VALIDATION_FAILED',
+      'PAYLOAD_MISMATCH',
+      'IDEMPOTENCY_PAYLOAD_MISMATCH',
+    };
+    return e.httpStatus == 422 || permanentCodes.contains(e.code);
+  }
+
+  /// 连续明确永久失败转终态的阈值；401/403/429/5xx 与网络错误不计数。
   static const int kTerminalFailThreshold = 5;
 
-  /// 手动重试终态失败的自定义食物（详情页「重试同步」）：复位失败态后
-  /// 立即走一轮 [retryPending]。返回是否已上行成功。
+  /// 手动重试终态失败的自定义食物（详情页「重试同步」）。
   Future<bool> retryFailedNow(String foodId) async {
-    await db.foodDao.resetCustomSyncFailure(foodId);
-    final before = await db.foodDao.getById(foodId);
-    if (before == null) return false;
+    if (userId == 'anonymous') return false;
+    final before = await db.foodDao.getById(foodId, ownerUserId: userId);
+    if (before == null || !before.isCustom) return false;
+    await db.foodDao.resetCustomSyncFailure(foodId, ownerUserId: userId);
     await retryPending();
-    final after = await db.foodDao.getById(foodId);
-    // 上行成功会 remap 主键（原 id 行消失）或清 pending（防御路径）。
+    final after = await db.foodDao.getById(foodId, ownerUserId: userId);
     return after == null || !after.customSyncPending;
   }
 
-  /// Foods 行 → 上行草稿（retryPending 用）。
+  /// Foods 行 → 上行草稿（retryPending 用），保留创建时来源。
   CustomFoodDraft _draftFromRow(Food row) {
     List<String> decode(String json) =>
         (jsonDecode(json) as List<dynamic>? ?? const <dynamic>[])
@@ -343,7 +407,9 @@ final class CustomFoodRepository {
         carbG: row.carbPer100g,
         fatG: row.fatPer100g,
       ),
-      source: CustomFoodSource.manual,
+      source: row.source == 'llm-estimate' || row.source == 'llmEstimate'
+          ? CustomFoodSource.llmEstimate
+          : CustomFoodSource.manual,
     );
   }
 

@@ -1,5 +1,7 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
+import 'package:eatwise/features/fasting/presentation/today_budget_row.dart';
+import 'package:eatwise/features/health/application/exercise_log_providers.dart';
 import 'package:eatwise/features/health/application/health_sync_controller.dart';
 import 'package:eatwise/features/health/data/health_gateway.dart';
 import 'package:eatwise/features/health/presentation/health_sync_section.dart';
@@ -20,33 +22,57 @@ final class _FakeHealthGateway implements HealthGateway {
   double? activeEnergyKcal = 245;
   double? weightKg = 66.5;
 
-  @override
-  Future<bool> isSupported() async => supported;
+  int channelCalls = 0;
+  int stepsReads = 0;
+  int energyReads = 0;
+  int weightReads = 0;
 
   @override
-  Future<bool> hasAuthorization() async => granted;
+  Future<bool> isSupported() async {
+    channelCalls++;
+    return supported;
+  }
+
+  @override
+  Future<bool> hasAuthorization() async {
+    channelCalls++;
+    return granted;
+  }
 
   @override
   Future<bool> requestAuthorization() async {
+    channelCalls++;
     granted = grantResult;
     return grantResult;
   }
 
   @override
   Future<void> revokeAuthorization() async {
+    channelCalls++;
     revoked = true;
     granted = false;
   }
 
   @override
-  Future<int?> getTodaySteps(DateTime now) async => steps;
+  Future<int?> getTodaySteps(DateTime now) async {
+    channelCalls++;
+    stepsReads++;
+    return steps;
+  }
 
   @override
-  Future<double?> getTodayActiveEnergyKcal(DateTime now) async =>
-      activeEnergyKcal;
+  Future<double?> getTodayActiveEnergyKcal(DateTime now) async {
+    channelCalls++;
+    energyReads++;
+    return activeEnergyKcal;
+  }
 
   @override
-  Future<double?> getLatestWeightKg(DateTime now) async => weightKg;
+  Future<double?> getLatestWeightKg(DateTime now) async {
+    channelCalls++;
+    weightReads++;
+    return weightKg;
+  }
 }
 
 /// 阶段 D widget 覆盖：设置页「运动数据」区块（单独同意弹窗、开关状态机、
@@ -91,6 +117,55 @@ void main() {
     );
     await tester.pump();
   }
+
+  Future<void> pumpHomeMetrics(WidgetTester tester) async {
+    await tester.pumpWidget(
+      TranslationProvider(
+        child: ProviderScope(
+          overrides: <Override>[
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            exerciseSyncConsentStoreProvider.overrideWithValue(consentStore),
+            healthGatewayProvider.overrideWithValue(gateway),
+            todayExerciseKcalProvider.overrideWith(
+              (ref) => Stream<double>.value(0),
+            ),
+            todayExerciseStepsProvider.overrideWith(
+              (ref) => Stream<int>.value(0),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: const Scaffold(
+              body: SingleChildScrollView(child: TodayMetricGrid()),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+  }
+
+  testWidgets('已授权冷启动：首页指标自动消费一次恢复结果', (tester) async {
+    await consentStore.setConsented(true);
+    gateway.granted = true;
+    await pumpHomeMetrics(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('245'), findsOneWidget);
+    expect(find.text('6200'), findsOneWidget);
+    expect(gateway.channelCalls, 5);
+    expect(gateway.stepsReads, 1);
+    expect(gateway.energyReads, 1);
+    expect(gateway.weightReads, 1);
+  });
+
+  testWidgets('未授权冷启动：首页不读健康通道，保持无数据占位', (tester) async {
+    await pumpHomeMetrics(tester);
+    await tester.pumpAndSettle();
+
+    expect(gateway.channelCalls, 0);
+    expect(find.text('—'), findsNWidgets(2));
+  });
 
   Switch syncSwitch(WidgetTester tester) =>
       tester.widget<Switch>(find.byType(Switch));

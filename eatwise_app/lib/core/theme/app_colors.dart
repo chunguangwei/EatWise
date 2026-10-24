@@ -1,5 +1,23 @@
 import 'package:flutter/material.dart';
 
+double contrastRatio(Color first, Color second) {
+  final lighter = first.computeLuminance() > second.computeLuminance()
+      ? first.computeLuminance()
+      : second.computeLuminance();
+  final darker = first.computeLuminance() > second.computeLuminance()
+      ? second.computeLuminance()
+      : first.computeLuminance();
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+Color readableForeground(Color background) {
+  const dark = Color(0xFF0C1110);
+  return contrastRatio(background, dark) >=
+          contrastRatio(background, Colors.white)
+      ? dark
+      : Colors.white;
+}
+
 /// 色彩 Token（ThemeExtension），映射《规格-设计交付规范与全局UI四态》§2.2。
 ///
 /// 亮色色值取设计稿；暗色色值按 §2.7 推导规则占位〔假设〕，
@@ -18,6 +36,8 @@ import 'package:flutter/material.dart';
 /// 亮色 textSecondary #8A9694 → #5F6B69（白卡 3.06→5:1+ 达 AA）；新增
 /// signalYellowText（黄灯徽标文字专用，#FFD24C 直接作文字仅 1.44:1）；
 /// 暗色层级修复（bg 1.13:1 → ~1.5:1 + fillSubtle/divider 同步上浮）。
+/// 2026-10-24：actionPrimary/onActionPrimary 将普通按钮文案也提升到 AA；
+/// readableForeground 按底色实际对比度选择深/浅前景，不再固定白字。
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
   const AppColors({
@@ -109,6 +129,11 @@ class AppColors extends ThemeExtension<AppColors> {
 
   /// 浅填充（圆形图标徽标底、进度轨道、分组间隔带）。
   final Color fillSubtle;
+
+  Color get actionPrimary =>
+      bgPrimary.computeLuminance() < 0.5 ? brandPrimary : brandPrimaryPressed;
+
+  Color get onActionPrimary => readableForeground(actionPrimary);
 
   /// 亮色主题 Token（设计稿 §2.2；v1.16.0 对比度修订见文件头注释）。
   static const AppColors light = AppColors(

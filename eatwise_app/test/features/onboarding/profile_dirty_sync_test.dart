@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/features/onboarding/application/profile_sync.dart';
 import 'package:eatwise/features/settings/data/user_api.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -111,17 +113,118 @@ void main() {
     expect(s.calls, isEmpty);
   });
 
-  test('PATCH 在途期间又有新写入：compare-and-delete 不误擦新脏', () async {
-    // 手动构造：先写脏 raw1，flush 读出后、PATCH 完成前写入 raw2。
-    final s = build(fail: false);
-    await prefs.setString(dirtyKey, jsonEncode(const {'heightCm': 170}));
-    // 模拟交错：直接验证「raw 已被覆写时保留」的语义——先 flush 一次清脏，
-    // 再并发写入；这里用顺序等价验证：flush 后写的新 patch 不被清。
-    await s.sync.flushDirty();
-    expect(prefs.getString(dirtyKey), isNull);
-    s.sync.markDirtyAndTryFlush(const <String, Object?>{'weightKg': 65});
+  for (final status in <int>[429, 500]) {
+    test('HTTP $status：保留 dirty 且不进入退避，下轮可重试', () async {
+      var reject = true;
+      final calls = <Map<String, Object?>>[];
+      final sync = RemoteProfileSyncService(
+        (patch) async {
+          calls.add(Map<String, Object?>.of(patch));
+          if (reject) {
+            throw BusinessApiException(
+              httpStatus: status,
+              code: status == 429 ? 'RATE_LIMITED' : 'INTERNAL_ERROR',
+              message: 'temporary',
+            );
+          }
+          return const UserMeView(id: uid, username: 'u', maskedPhone: '');
+        },
+        () => true,
+        prefs,
+        () => uid,
+      );
+
+      sync.markDirtyAndTryFlush(const <String, Object?>{'heightCm': 170});
+      await Future<void>.delayed(Duration.zero);
+      expect(calls, hasLength(1));
+      expect(prefs.getString(dirtyKey), isNotNull);
+      expect(sync.hasSyncFailure, isFalse);
+
+      reject = false;
+      await sync.flushDirty();
+      expect(calls, hasLength(2));
+      expect(prefs.getString(dirtyKey), isNull);
+    });
+  }
+
+  test('明确 400：保留 payload 并退避，手动重试才重新请求', () async {
+    var reject = true;
+    final calls = <Map<String, Object?>>[];
+    final sync = RemoteProfileSyncService(
+      (patch) async {
+        calls.add(Map<String, Object?>.of(patch));
+        if (reject) {
+          throw const BusinessApiException(
+            httpStatus: 400,
+            code: 'VALIDATION_ERROR',
+            message: 'invalid',
+          );
+        }
+        return const UserMeView(id: uid, username: 'u', maskedPhone: '');
+      },
+      () => true,
+      prefs,
+      () => uid,
+    );
+
+    sync.markDirtyAndTryFlush(const <String, Object?>{'heightCm': 170});
     await Future<void>.delayed(Duration.zero);
-    expect(prefs.getString(dirtyKey), isNull); // 即时上行成功清脏
-    expect(s.calls.last, <String, Object?>{'weightKg': 65});
+    final payload = prefs.getString(dirtyKey);
+    expect(payload, isNotNull);
+    expect(sync.hasSyncFailure, isTrue);
+    expect(calls, hasLength(1));
+
+    await sync.flushDirty();
+    await sync.flushDirty();
+    expect(calls, hasLength(1), reason: '退避中同步轮不得重复打 400');
+    expect(prefs.getString(dirtyKey), payload);
+
+    reject = false;
+    final ProfileSyncService service = sync;
+    await service.retryFailedNow();
+    expect(calls, hasLength(2));
+    expect(prefs.getString(dirtyKey), isNull);
+    expect(service.hasSyncFailure, isFalse);
+  });
+
+  test('PATCH 串行 + trailing flush：在途旧值完成后新值最终胜出', () async {
+    final calls = <Map<String, Object?>>[];
+    final gates = <Completer<UserMeView>>[
+      Completer<UserMeView>(),
+      Completer<UserMeView>(),
+    ];
+    final sync = RemoteProfileSyncService(
+      (patch) {
+        calls.add(Map<String, Object?>.of(patch));
+        return gates[calls.length - 1].future;
+      },
+      () => true,
+      prefs,
+      () => uid,
+    );
+    const me = UserMeView(id: uid, username: 'u', maskedPhone: '');
+
+    sync.markDirtyAndTryFlush(const <String, Object?>{'heightCm': 170});
+    await Future<void>.delayed(Duration.zero);
+    expect(calls, <Map<String, Object?>>[
+      const <String, Object?>{'heightCm': 170},
+    ]);
+
+    sync.markDirtyAndTryFlush(const <String, Object?>{'heightCm': 171});
+    final flushing = sync.flushDirty();
+    await Future<void>.delayed(Duration.zero);
+    expect(calls, hasLength(1), reason: '旧 PATCH 在途时不得并发发新 PATCH');
+
+    gates[0].complete(me);
+    for (var i = 0; i < 20 && calls.length < 2; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(calls, hasLength(2));
+    expect(calls.last, const <String, Object?>{'heightCm': 171});
+    gates[1].complete(me);
+    await flushing;
+
+    expect(prefs.getString(dirtyKey), isNull);
+    expect(calls.last, const <String, Object?>{'heightCm': 171});
   });
 }

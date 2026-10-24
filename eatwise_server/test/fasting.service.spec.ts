@@ -578,4 +578,46 @@ describe('fasting：归属日（D-07）/ 容差（D-08）/ 延长（D-10）', ()
       expect(plans.some((p) => p.id === first.current.id && p.status === 'expired')).toBe(true);
     });
   });
+
+  describe('并发延长与回执原子性', () => {
+    it('同键并发 extend 重放同一回执，只延长一次', async () => {
+      const record = makeRecord();
+      const clientRequestId = randomUUID();
+      const [first, replay] = await Promise.all([
+        fasting.extend(userId, clientRequestId, record.id, 30),
+        fasting.extend(userId, clientRequestId, record.id, 30),
+      ]);
+      expect(replay).toEqual(first);
+      expect(store.fastingRecords.get(record.id)?.extendedMinutes).toBe(30);
+      expect(store.fastingRecords.get(record.id)?.eventLog).toHaveLength(1);
+      expect(store.idempotency.size).toBe(1);
+    });
+
+    it('不同键并发 extend 不丢更新，累计到 240 而非双倍/覆盖', async () => {
+      const record = makeRecord();
+      await Promise.all(
+        Array.from({ length: 8 }, () => fasting.extend(userId, randomUUID(), record.id, 30)),
+      );
+      const stored = store.fastingRecords.get(record.id)!;
+      expect(stored.extendedMinutes).toBe(240);
+      expect(stored.plannedEndAt.toISOString()).toBe('2026-07-27T08:00:00.000Z');
+      expect(stored.eventLog).toHaveLength(8);
+      expect(stored.version).toBe(9);
+      expect(store.idempotency.size).toBe(8);
+    });
+
+    it('同键并发 endFast 只结算一次并复用回执', async () => {
+      const record = makeRecord();
+      const clientRequestId = randomUUID();
+      const endedAt = new Date('2026-07-27T04:00:00.000Z');
+      const [first, replay] = await Promise.all([
+        fasting.endFast(userId, clientRequestId, record.id, endedAt),
+        fasting.endFast(userId, clientRequestId, record.id, endedAt),
+      ]);
+      expect(replay).toEqual(first);
+      expect(store.fastingRecords.get(record.id)?.result).toBe('completed');
+      expect(store.fastingRecords.get(record.id)?.version).toBe(2);
+      expect(store.idempotency.size).toBe(1);
+    });
+  });
 });

@@ -135,6 +135,25 @@ describe('User profile patch validation (e2e)', () => {
     expect((await patch({ settingsPrefs: 42 })).status).toBe(400);
   });
 
+  it('settingsPrefs 两个并发 PATCH 各改不同键，最终两键都在且不返回 409', async () => {
+    const responses = await Promise.all([
+      patch({ settingsPrefs: { theme: 'light' } }),
+      patch({ settingsPrefs: { locale: 'en-US' } }),
+    ]);
+    expect(responses.map((res) => res.status)).toEqual([200, 200]);
+
+    const me = await request(server)
+      .get('/v1/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(me.body.data.user.settingsPrefs).toMatchObject({
+      theme: 'light',
+      locale: 'en-US',
+      stepsGoal: 12000,
+      syncedAt: expect.any(String),
+    });
+  });
+
   it('阶段 B 减重目标：targetWeightKg/targetDate 合法 → 200 落库并以日期口径回显', async () => {
     const future = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
     const res = await patch({ targetWeightKg: 62.5, targetDate: future }).expect(200);

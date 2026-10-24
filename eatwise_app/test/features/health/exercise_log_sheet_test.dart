@@ -226,7 +226,7 @@ void main() {
     // 时长为空直接保存 → 校验错误，不落库。
     await tester.tap(find.byKey(const ValueKey<String>('exercise.save')));
     await tester.pump();
-    expect(find.text('请输入大于 0 的分钟数'), findsOneWidget);
+    expect(find.text('请输入 1 到 1440 分钟的时长'), findsOneWidget);
     expect(await repo.logsForDate(todayKey()), isEmpty);
 
     // 慢跑 30 分钟 → 7.0 × 60 × 0.5 = 210 kcal。
@@ -271,6 +271,51 @@ void main() {
     final saved = await repo.logsForDate(todayKey());
     expect(saved.single.typeKey, 'yoga');
     expect(saved.single.kcal, 250);
+
+    await settleUi(tester);
+  });
+
+  testWidgets('弹层：时长/热量/步数超过共享上限时拦截落库', (tester) async {
+    await pumpEntry(tester);
+    await openSheet(tester);
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('exercise.duration')),
+      '1441',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('exercise.save')));
+    await tester.pump();
+    expect(find.text('请输入 1 到 1440 分钟的时长'), findsOneWidget);
+    expect(await repo.logsForDate(todayKey()), isEmpty);
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('exercise.duration')),
+      '30',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('exercise.kcal')),
+      '10001',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('exercise.save')));
+    await tester.pump();
+    expect(find.text('请输入大于 0 且不超过 10000 的千卡数'), findsOneWidget);
+    expect(await repo.logsForDate(todayKey()), isEmpty);
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('exercise.steps')),
+      '200001',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('exercise.kcal')),
+      '100',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('exercise.save')));
+    await tester.pump();
+    expect(find.text('请输入 1 到 200000 的步数'), findsOneWidget);
+    expect(await repo.logsForDate(todayKey()), isEmpty);
 
     await settleUi(tester);
   });

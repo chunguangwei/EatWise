@@ -104,9 +104,17 @@ export class AuthService implements OnApplicationBootstrap {
     const user = await this.driver.findUserById(record.userId);
     if (!user || user.deletedAt) throw err.tokenInvalid();
 
-    const tokens = await this.issueTokens(user, deviceId ?? record.deviceId);
-    // 旧记录标记已轮换：revokedAt + replacedBy（指向新令牌哈希）
-    await this.driver.rotateRefreshToken(hash, hashToken(tokens.refreshToken));
+    const prepared = await this.prepareTokens(user, deviceId ?? record.deviceId);
+    const tokens = await this.driver.runInTransaction([`refresh:${hash}`], async (tx) => {
+      const current = await tx.findRefreshTokenByHash(hash);
+      if (!current) throw err.tokenInvalid();
+      // 事务前有效、事务内已吊销 = 并发轮换竞争失败；不像事后重放那样再吊销新会话。
+      if (current.revokedAt) throw err.refreshReused();
+      if (current.expiresAt.getTime() < Date.now()) throw err.tokenInvalid();
+      const currentUser = await tx.findUserById(current.userId);
+      if (!currentUser || currentUser.deletedAt) throw err.tokenInvalid();
+      return this.persistTokens(tx, prepared, hash);
+    });
     return { ...tokens, isNewUser: false, user: this.publicUser(user) };
   }
 
@@ -122,10 +130,23 @@ export class AuthService implements OnApplicationBootstrap {
   async register(username: string, password: string, device?: DeviceDto) {
     if (!PASSWORD_PATTERN.test(password)) throw err.passwordTooWeak();
     const name = username.trim().toLowerCase();
-    if (await this.driver.findUserByUsername(name)) throw err.usernameTaken();
-    const user = await this.driver.createUser({
-      username: name,
-      passwordHash: await bcrypt.hash(password, 10),
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = await this.driver.runInTransaction([`username:${name}`], async (tx) => {
+      if (await tx.findUserByUsername(name)) throw err.usernameTaken();
+      try {
+        return await tx.createUser({ username: name, passwordHash });
+      } catch (error) {
+        if (isPrismaUniqueConflict(error)) {
+          if (isUsernameUniqueTarget(error)) throw err.usernameTaken();
+          throw error;
+        }
+        // PrismaStore 当前将驱动异常包装为 INTERNAL_ERROR；仅在用户名已实际存在时
+        // 恢复唯一冲突业务码，其它持久化故障仍按原错误抛出。
+        if (isStoreInternalError(error) && (await tx.findUserByUsername(name))) {
+          throw err.usernameTaken();
+        }
+        throw error;
+      }
     });
     const tokens = await this.issueTokens(user, device?.deviceId ?? null);
     return { ...tokens, isNewUser: true, deletionCancelled: false, user: this.publicUser(user) };
@@ -166,6 +187,11 @@ export class AuthService implements OnApplicationBootstrap {
   }
 
   private async issueTokens(user: UserEntity, deviceId: string | null) {
+    const prepared = await this.prepareTokens(user, deviceId);
+    return this.persistTokens(this.driver, prepared);
+  }
+
+  private async prepareTokens(user: UserEntity, deviceId: string | null) {
     const accessToken = await this.jwt.signAsync({ sub: user.id });
     const refreshToken = newRefreshToken();
     const now = new Date();
@@ -179,20 +205,34 @@ export class AuthService implements OnApplicationBootstrap {
       replacedBy: null,
       createdAt: now,
     };
-    await this.driver.createRefreshToken(entity);
-    await this.enforceSessionLimit(user.id);
     return {
-      accessToken,
-      refreshToken,
-      expiresIn: Number(this.config.get('JWT_ACCESS_TTL_SEC', 7200)),
+      entity,
+      tokens: {
+        accessToken,
+        refreshToken,
+        expiresIn: Number(this.config.get('JWT_ACCESS_TTL_SEC', 7200)),
+      },
     };
   }
 
+  private async persistTokens(
+    driver: StoreDriver,
+    prepared: Awaited<ReturnType<AuthService['prepareTokens']>>,
+    rotateFromHash?: string,
+  ) {
+    if (rotateFromHash) {
+      await driver.rotateRefreshToken(rotateFromHash, prepared.entity.tokenHash);
+    }
+    await driver.createRefreshToken(prepared.entity);
+    await this.enforceSessionLimit(driver, prepared.entity.userId);
+    return prepared.tokens;
+  }
+
   /** 多端登录：同一用户最多 5 个活跃设备会话，超出踢最旧〔假设〕 */
-  private async enforceSessionLimit(userId: string) {
-    const active = await this.driver.listActiveRefreshTokens(userId);
+  private async enforceSessionLimit(driver: StoreDriver, userId: string) {
+    const active = await driver.listActiveRefreshTokens(userId);
     for (const t of active.slice(0, Math.max(0, active.length - MAX_DEVICE_SESSIONS))) {
-      await this.driver.revokeRefreshToken(t.tokenHash);
+      await driver.revokeRefreshToken(t.tokenHash);
     }
   }
 
@@ -210,4 +250,24 @@ export class AuthService implements OnApplicationBootstrap {
       onboardingStatus: user.onboardingStatus,
     };
   }
+}
+
+function isPrismaUniqueConflict(error: unknown): boolean {
+  return (
+    typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'P2002'
+  );
+}
+
+function isUsernameUniqueTarget(error: unknown): boolean {
+  const target = (error as { meta?: { target?: unknown } }).meta?.target;
+  if (Array.isArray(target)) return target.length === 1 && target[0] === 'username';
+  return target === 'username' || target === 'users_username_key';
+}
+
+function isStoreInternalError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === 'INTERNAL_ERROR'
+  );
 }

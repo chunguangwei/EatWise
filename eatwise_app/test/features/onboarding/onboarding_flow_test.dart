@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_home_page.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
@@ -135,6 +136,21 @@ void main() {
     expect(find.text('进食窗口 10:00–20:00'), findsOneWidget);
     expect(find.text('零基础起步，14:10 最温和，先让身体慢慢习惯节奏。'), findsOneWidget);
     expect(find.text('16:8 经典节奏'), findsOneWidget);
+    final start = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('onboarding.recommendation.start')),
+    );
+    expect(
+      start.style!.backgroundColor!.resolve(<WidgetState>{}),
+      AppColors.light.actionPrimary,
+    );
+    expect(
+      start.style!.foregroundColor!.resolve(<WidgetState>{}),
+      AppColors.light.onActionPrimary,
+    );
+    expect(
+      tester.widget<Text>(find.text('主推荐')).style!.color,
+      readableForeground(AppColors.light.brandPrimary),
+    );
 
     // 一键启动 → 写入方案 + 营养目标兜底 + 跳转首页占位
     await tester.tap(
@@ -503,13 +519,17 @@ void main() {
     await pumpFrames(tester);
     expect(find.text('年龄确认'), findsOneWidget);
     expect(find.text('我确认已年满 13 岁'), findsOneWidget);
+    final ageConfirm = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('onboarding.ageConfirm.confirm')),
+    );
+    expect(ageConfirm.onPressed, isNull);
     expect(
-      tester
-          .widget<FilledButton>(
-            find.byKey(const ValueKey<String>('onboarding.ageConfirm.confirm')),
-          )
-          .onPressed,
-      isNull,
+      ageConfirm.style!.backgroundColor!.resolve(<WidgetState>{}),
+      AppColors.light.actionPrimary,
+    );
+    expect(
+      ageConfirm.style!.foregroundColor!.resolve(<WidgetState>{}),
+      AppColors.light.onActionPrimary,
     );
 
     // 勾选 → 放行 → 完成引导进首页。

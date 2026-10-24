@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/network/network_providers.dart';
+import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/settings/data/user_api.dart';
 import 'package:flutter/material.dart';
@@ -120,8 +121,8 @@ abstract interface class DataExportService {
   Future<String> requestExport();
 }
 
-/// U3 真实导出：POST /users/me/export 聚合 JSON → 写设备文档目录
-/// （path_provider 既有依赖，不引入分享插件〔最简可靠方案〕）。
+/// U3 真实导出：POST /users/me/export 聚合 JSON → 写设备文档目录。
+/// 写入成功后由设置页调用既有 share_plus 打开系统分享。
 final class RemoteDataExportService implements DataExportService {
   RemoteDataExportService(this._api, {Future<Directory> Function()? docsDir})
     : _docsDir = docsDir ?? getApplicationDocumentsDirectory;
@@ -184,43 +185,69 @@ final userApiProvider = Provider<UserApi>((ref) {
 
 /// 账号标识本地缓存（设置页账号区兜底：U1 失败/离线时仍可显示最近一次
 /// 成功拉取的账号标识——username（D-13 v2 主路径）或脱敏手机号；
-/// 登出/删除账号时由设置页清除）。
+/// 登出/删除账号时由设置页清除）。缓存按 uid 隔离，旧全局键升级时迁移。
 final class AccountIdentityStore {
-  AccountIdentityStore(this._prefs);
+  AccountIdentityStore(this._prefs, {this.userId = 'anonymous'}) {
+    if (userId != 'anonymous' && _prefs.containsKey(key)) {
+      if (!_prefs.containsKey(scopedKey)) {
+        final legacy = _prefs.getString(key);
+        if (legacy != null) _prefs.setString(scopedKey, legacy);
+      }
+      _prefs.remove(key);
+    }
+  }
 
-  /// 键名沿用 v1 手机号缓存键（内容为账号标识，避免迁移）。
   static const String key = 'settings.cachedMaskedPhone';
 
+  static String keyFor(String userId) => '$key.$userId';
+
+  final String userId;
   final SharedPreferences _prefs;
 
-  String? read() => _prefs.getString(key);
+  String get scopedKey => keyFor(userId);
 
-  Future<void> save(String identity) => _prefs.setString(key, identity);
+  String? read() => _prefs.getString(scopedKey);
 
-  Future<void> clear() => _prefs.remove(key);
+  Future<void> save(String identity) => _prefs.setString(scopedKey, identity);
+
+  Future<void> clear() async {
+    await _prefs.remove(scopedKey);
+    await _prefs.remove(key);
+  }
+}
+
+String _watchAuthUserId(Ref ref) {
+  try {
+    return ref.watch(authControllerProvider).userId ?? 'anonymous';
+  } on Object {
+    return 'anonymous';
+  }
+}
+
+String _readAuthUserId(Ref ref) {
+  try {
+    return ref.read(authControllerProvider).userId ?? 'anonymous';
+  } on Object {
+    return 'anonymous';
+  }
 }
 
 /// SharedPreferences 未注入（测试/预览）时降级 null，缓存链路静默失效。
 final accountIdentityStoreProvider = Provider<AccountIdentityStore?>((ref) {
+  final userId = _watchAuthUserId(ref);
   final prefs = _tryPrefs(ref);
-  return prefs == null ? null : AccountIdentityStore(prefs);
+  return prefs == null ? null : AccountIdentityStore(prefs, userId: userId);
 });
 
 /// 当前用户视图（设置页账号区：账号标识 + 删除预约状态）；
-/// 未登录/离线/接口失败回落 null（UI 降级显示）。
+/// 未登录/离线/接口失败回落 null（UI 降级显示）。uid 变化会废弃整个视图，
+/// 慢响应在写账号缓存或返回前还要再次核对会话，防止 role/avatar 串号。
 ///
-/// 失败自愈（真机走查③「账号行永显点击重试」）：吞错返回 null 会被
-/// Riverpod 当**成功值**永久缓存——冷启动撞上服务端重启窗（502/连接拒）
-/// 后，除非手动进设置页点重试，任何页面都不会再拉。失败时挂 30s 延迟
-/// `invalidateSelf`（够瞬时故障恢复；持续失败=每 30s 一次廉价重试，
-/// 成功后自然停止）。timer 必须 body 局部 + **首个 await 之前**注册
-/// onDispose（riverpod 2.6.1 在 element 未挂载时 ref.onDispose 直接抛
-/// StateError，catch 里才注册=dispose 后落地必抛、timer 无人取消）；
-/// `disposed` 守卫拦「dispose 后 future 才落地」新建的 timer——unmount 会
-/// dispose container，守卫没有则 fake_async 永挂 pending timer。
-/// invalidateSelf 重跑 body 前 runOnDispose 自动取消上一轮 timer，
-/// 无需模块级标志（invalidateSelf 前 runOnDispose 已跑完旧监听）。
+/// 失败自愈：吞错返回 null 会被 Riverpod 当成功值缓存，因此失败时挂 30s
+/// 延迟 invalidateSelf；timer 在首个 await 前注册 onDispose，避免泄漏。
 final userMeProvider = FutureProvider<UserMeView?>((ref) async {
+  final userId = _watchAuthUserId(ref);
+  final identityStore = ref.read(accountIdentityStoreProvider);
   Timer? timer;
   var disposed = false;
   ref.onDispose(() {
@@ -229,15 +256,15 @@ final userMeProvider = FutureProvider<UserMeView?>((ref) async {
   });
   try {
     final me = await ref.watch(userApiProvider).getMe();
-    // 账号标识本地兜底：成功拉取即缓存显示值（username 优先，其次
-    // 脱敏手机号——已掩码，合规 §6）。
-    final identity = me.username.isNotEmpty ? me.username : me.maskedPhone;
-    if (identity.isNotEmpty) {
-      await ref.read(accountIdentityStoreProvider)?.save(identity);
+    if (disposed ||
+        userId != _readAuthUserId(ref) ||
+        (userId != 'anonymous' && me.id != userId)) {
+      return null;
     }
+    final identity = me.username.isNotEmpty ? me.username : me.maskedPhone;
+    if (identity.isNotEmpty) await identityStore?.save(identity);
     return me;
   } on Object {
-    // dispose 后落地=container 已销毁（登出/测试 unmount），不再挂定时器。
     if (!disposed) {
       timer = Timer(const Duration(seconds: 30), ref.invalidateSelf);
     }

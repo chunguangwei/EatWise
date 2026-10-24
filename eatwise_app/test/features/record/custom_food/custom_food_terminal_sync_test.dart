@@ -34,8 +34,10 @@ void main() {
     await db.close();
   });
 
-  CustomFoodRepository buildRepo(CustomFoodRemote remote) =>
-      CustomFoodRepository(db: db, remote: remote);
+  CustomFoodRepository buildRepo(
+    CustomFoodRemote remote, {
+    String userId = 'u-1',
+  }) => CustomFoodRepository(db: db, remote: remote, userId: userId);
 
   Future<Food> saveOfflineFood(CustomFoodRepository repo) async {
     final result = await repo.save(
@@ -48,6 +50,79 @@ void main() {
     );
     return result.food;
   }
+
+  test('匿名 retry 直接跳过：401×5 仍 pending/计数 0；登录迁移后自动成功', () async {
+    final remote = _ErroringCustomFoodRemote();
+    final repo = buildRepo(remote, userId: 'anonymous');
+    remote.mode = FakeCustomFoodMode.offline;
+    final food = await saveOfflineFood(repo);
+    final callsAfterSave = remote.createCalls;
+    remote.mode = FakeCustomFoodMode.success;
+    remote.businessError = const BusinessApiException(
+      httpStatus: 401,
+      code: 'AUTH_TOKEN_INVALID',
+      message: 'anonymous',
+    );
+
+    for (var i = 0; i < 5; i++) {
+      expect(await repo.retryPending(), 0);
+    }
+    var row = (await db.foodDao.getById(food.id))!;
+    expect(row.customSyncPending, isTrue);
+    expect(row.customSyncFailCount, 0);
+    expect(remote.createCalls, callsAfterSave);
+
+    await db.foodDao.reassignCustomFoodOwner('anonymous', 'u-1');
+    remote.businessError = null;
+    expect(await repo.retryPending('u-1'), 1);
+    row = (await db.foodDao.getById('srv-food-1'))!;
+    expect(row.ownerUserId, 'u-1');
+    expect(row.customSyncPending, isFalse);
+  });
+
+  test('401/403/429/5xx 均为暂态：不计永久失败，恢复后仍自动上行', () async {
+    final remote = _ErroringCustomFoodRemote();
+    final repo = CustomFoodRepository(db: db, remote: remote, userId: 'u-1');
+    remote.mode = FakeCustomFoodMode.offline;
+    final food = await saveOfflineFood(repo);
+    remote.mode = FakeCustomFoodMode.success;
+
+    for (final status in <int>[401, 403, 429, 500]) {
+      remote.businessError = BusinessApiException(
+        httpStatus: status,
+        code: 'HTTP_$status',
+        message: 'temporary',
+      );
+      await repo.retryPending();
+      final row = (await db.foodDao.getById(food.id))!;
+      expect(row.customSyncPending, isTrue, reason: '$status');
+      expect(row.customSyncFailCount, 0, reason: '$status');
+      expect(row.customSyncFailed, isFalse, reason: '$status');
+    }
+
+    remote.businessError = null;
+    expect(await repo.retryPending(), 1);
+  });
+
+  test('离线 llmEstimate 重试保留 source，不回写成 manual', () async {
+    final remote = _ErroringCustomFoodRemote();
+    final repo = buildRepo(remote);
+    remote.mode = FakeCustomFoodMode.offline;
+    final result = await repo.save(
+      const CustomFoodDraft(
+        nameZh: 'AI 估算菜',
+        aliasesZh: <String>[],
+        per100g: NutritionSnapshot(kcal: 100, proteinG: 5, carbG: 5, fatG: 5),
+        source: CustomFoodSource.llmEstimate,
+      ),
+    );
+    expect(result.food.source, 'llm-estimate');
+
+    remote.mode = FakeCustomFoodMode.success;
+    expect(await repo.retryPending(), 1);
+    expect(remote.lastDraft?.source, CustomFoodSource.llmEstimate);
+    expect((await db.foodDao.getById('srv-food-1'))!.source, 'llm-estimate');
+  });
 
   test('业务错误连续 5 次 → 终态失败停重试；网络错误不计数', () async {
     final remote = _ErroringCustomFoodRemote();
@@ -99,7 +174,7 @@ void main() {
       db: db,
       remote: remote,
       location: tz.getLocation('Asia/Shanghai'),
-      userId: 'u1',
+      userId: 'u-1',
     );
 
     Future<FoodEntry> addFor(Food food) => repo.addEntry(
@@ -189,6 +264,7 @@ FoodsCompanion _customFood(
     carbPer100g: const Value(5),
     fatPer100g: const Value(5),
     isCustom: const Value(true),
+    ownerUserId: const Value('u-1'),
     customSyncPending: Value(pending),
     customClientRequestId: Value('req-$id'),
     customSyncFailCount: Value(failed ? 5 : 0),
@@ -206,6 +282,7 @@ final class _ErroringCustomFoodRemote implements CustomFoodRemote {
 
   BusinessApiException? businessError;
   int createCalls = 0;
+  CustomFoodDraft? lastDraft;
 
   FakeCustomFoodMode get mode => _delegate.mode;
   set mode(FakeCustomFoodMode value) => _delegate.mode = value;
@@ -216,6 +293,7 @@ final class _ErroringCustomFoodRemote implements CustomFoodRemote {
     required String clientRequestId,
   }) async {
     createCalls++;
+    lastDraft = draft;
     final e = businessError;
     if (e != null && mode != FakeCustomFoodMode.offline) throw e;
     return _delegate.createCustom(draft, clientRequestId: clientRequestId);

@@ -3,8 +3,10 @@ import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
+import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
 import 'package:eatwise/features/record/domain/meal_type.dart';
 import 'package:eatwise/features/record/domain/placeholder_food.dart';
@@ -30,6 +32,8 @@ class TodayMealList extends ConsumerWidget {
     final t = Translations.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
+    final shadows = Theme.of(context).extension<AppShadows>()!;
     final groups = groupByMealType(
       entries,
       (e) => displayMealType(e.mealType, DateTime.parse(e.datetimeUtc)),
@@ -38,15 +42,61 @@ class TodayMealList extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
       children: <Widget>[
-        Text(t.record.today.title, style: textStyles.textBase),
+        Text(
+          t.record.today.title,
+          style: textStyles.textLg.copyWith(
+            color: colors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         for (final group in groups) ...<Widget>[
           const SizedBox(height: AppSpacing.s3),
-          Text(
-            MealTypeChips.labelOf(t, group.mealType),
-            style: textStyles.textSm.copyWith(color: colors.textSecondary),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  MealTypeChips.labelOf(t, group.mealType),
+                  style: textStyles.textBase.copyWith(
+                    color: colors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                '${group.items.fold<double>(0, (sum, entry) => sum + entry.kcal).round()} ${t.record.nutrition.kcalUnit}',
+                style: textStyles.textSm.copyWith(color: colors.textSecondary),
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.s1),
-          for (final entry in group.items) _EntryRow(entry: entry),
+          Material(
+            color: colors.bgSecondary,
+            borderRadius: radii.rLg,
+            child: Container(
+              decoration: AppSurfaces.card(
+                colors,
+                shadows,
+                radius: radii.rLg,
+                onMaterial: true,
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: <Widget>[
+                  for (var i = 0; i < group.items.length; i++) ...<Widget>[
+                    if (i > 0)
+                      Divider(
+                        height: 1,
+                        thickness: 1,
+                        indent: AppSpacing.s4,
+                        endIndent: AppSpacing.s4,
+                        color: colors.divider,
+                      ),
+                    _EntryRow(entry: group.items[i]),
+                  ],
+                ],
+              ),
+            ),
+          ),
         ],
       ],
     );
@@ -106,53 +156,69 @@ class _EntryRow extends ConsumerWidget {
         food?.isCustom == true && food?.contributionStatus == 'pending';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s1),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s4,
+        vertical: AppSpacing.s1,
+      ),
       child: Row(
         children: <Widget>[
-          Flexible(
-            child: Text(
-              name,
-              style: textStyles.textBase.copyWith(color: colors.textPrimary),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  name,
+                  style: textStyles.textBase.copyWith(
+                    color: colors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (underReview)
+                  Container(
+                    margin: const EdgeInsets.only(top: AppSpacing.s1),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s2,
+                      vertical: AppSpacing.s1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.brandAccent.withValues(alpha: 0.14),
+                      borderRadius: radii.rSm,
+                    ),
+                    child: Text(
+                      cs.badgePending,
+                      style: textStyles.textXs.copyWith(
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                  ),
+                Text(
+                  '${entry.amountG.round()} ${t.record.nutrition.gramUnit}',
+                  style: textStyles.textSm.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
-          if (underReview)
-            Container(
-              margin: const EdgeInsets.only(left: AppSpacing.s2),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.s2,
-                vertical: AppSpacing.s1,
-              ),
-              decoration: BoxDecoration(
-                color: colors.brandAccent,
-                borderRadius: radii.rSm,
-              ),
-              child: Text(
-                cs.badgePending,
-                style: textStyles.textXs.copyWith(color: colors.bgPrimary),
-              ),
-            ),
           const SizedBox(width: AppSpacing.s2),
           Text(
-            '${entry.amountG.round()} ${t.record.nutrition.gramUnit} · '
             '${entry.kcal.round()} ${t.record.nutrition.kcalUnit}',
-            style: textStyles.textSm.copyWith(color: colors.textSecondary),
+            style: textStyles.textSm.copyWith(
+              color: colors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
           ),
-          // 编辑入口：份量/餐次原地纠错（保存错救回）。食物行缺失时隐藏
-          // ——营养快照无法重算，保存必失败（占位行有行，不受影响）。
           if (food != null)
             IconButton(
               icon: const Icon(Icons.edit_rounded),
               iconSize: 20,
-              visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
               color: colors.textSecondary,
               tooltip: t.record.today.editEntry,
               onPressed: () => unawaited(
                 showFoodEntryEditSheet(context, entry).whenComplete(
-                  // 弹层关闭（含取消/下滑丢弃）复位餐次选择——provider
-                  // 全局共享，残留会污染记录页确认卡预选（chips 契约）。
                   () => ref.read(recordMealTypeProvider.notifier).state = null,
                 ),
               ),
@@ -160,8 +226,7 @@ class _EntryRow extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.delete_outline_rounded),
             iconSize: 20,
-            visualDensity: VisualDensity.compact,
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             color: colors.textSecondary,
             tooltip: t.record.today.deleteEntry,
             onPressed: () => unawaited(_confirmDelete(context, ref)),

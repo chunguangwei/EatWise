@@ -640,7 +640,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                                     child: Text(
                                       badgeText,
                                       style: textStyles.textXs.copyWith(
-                                        color: colors.brandAccent,
+                                        color: colors.textPrimary,
                                       ),
                                     ),
                                   ),
@@ -703,13 +703,15 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                                 vertical: AppSpacing.s1,
                               ),
                               decoration: BoxDecoration(
-                                color: colors.brandAccent,
+                                color: colors.brandAccent.withValues(
+                                  alpha: 0.14,
+                                ),
                                 borderRadius: radii.rSm,
                               ),
                               child: Text(
                                 s.duringFastBadge,
                                 style: textStyles.textXs.copyWith(
-                                  color: colors.bgPrimary,
+                                  color: colors.textPrimary,
                                 ),
                               ),
                             ),
@@ -901,13 +903,13 @@ class _SelectedFoodCard extends ConsumerWidget {
                           vertical: AppSpacing.s1,
                         ),
                         decoration: BoxDecoration(
-                          color: colors.brandAccent,
+                          color: colors.brandAccent.withValues(alpha: 0.14),
                           borderRadius: radii.rSm,
                         ),
                         child: Text(
                           s.cardPleaseConfirm,
                           style: textStyles.textXs.copyWith(
-                            color: colors.bgPrimary,
+                            color: colors.textPrimary,
                           ),
                         ),
                       ),
@@ -923,7 +925,7 @@ class _SelectedFoodCard extends ConsumerWidget {
                       IconButton(
                         icon: const Icon(Icons.close),
                         onPressed: onClose,
-                        tooltip: s.confirm,
+                        tooltip: s.cancelAction,
                       ),
                     ],
                   ),

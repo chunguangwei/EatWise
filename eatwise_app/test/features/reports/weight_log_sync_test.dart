@@ -138,6 +138,28 @@ void main() {
     expect(entry?.synced, isTrue);
   });
 
+  test('下行缺省右端点使用本地日期', () async {
+    final localSync = RemoteWeightLogSync(
+      dio: sync.dio,
+      now: () => DateTime(2026, 10, 25, 0, 30),
+    );
+    adapter.stub(
+      '/weight-logs',
+      StubResponse.json(
+        200,
+        StubResponse.envelope(<String, dynamic>{
+          'logs': const <dynamic>[],
+          'tombstones': const <dynamic>[],
+        }),
+      ),
+    );
+
+    await localSync.pullDown(store);
+
+    expect(adapter.requests.last.queryParameters['from'], '1970-01-01');
+    expect(adapter.requests.last.queryParameters['to'], '2026-10-25');
+  });
+
   group('删除与 tombstone 下行（2026-09-29 拍板）', () {
     test('上行回填 serverId；删除已同步条目 → tombstone → DELETE ack 后物理清除', () async {
       await store.save('2026-09-17', 65.5);

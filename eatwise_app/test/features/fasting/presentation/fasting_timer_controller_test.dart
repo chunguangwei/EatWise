@@ -4,6 +4,7 @@ import 'package:eatwise/features/fasting/data/fasting_plan_api.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
+import 'package:eatwise/features/fasting/domain/fasting_record.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_cycle_store.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
@@ -34,7 +35,9 @@ void main() {
   late RecordingFastingScheduler scheduler;
   late SharedPreferences prefs;
 
-  Future<ProviderContainer> buildContainer() async {
+  Future<ProviderContainer> buildContainer({
+    List<Override> extra = const <Override>[],
+  }) async {
     final container = ProviderContainer(
       overrides: <Override>[
         sharedPreferencesProvider.overrideWithValue(prefs),
@@ -42,6 +45,7 @@ void main() {
         fastingNotificationSchedulerProvider.overrideWithValue(scheduler),
         fastingClockProvider.overrideWithValue(clock.call),
         deviceLocationProvider.overrideWithValue(bjt),
+        ...extra,
       ],
     );
     addTearDown(container.dispose);
@@ -385,6 +389,108 @@ void main() {
       expect(state.lastClosedRecord!.result, CycleResult.completedOnTime);
       expect(state.lastClosedRecord!.date, '2026-07-28');
       expect(cycleStore.loadActiveCycle(), isNull);
+    });
+    test('手动 broken 后旧周期不在 tick 复活或二次关闭为 completed', () async {
+      prefs = await seedActivePlanPrefs(startedAtUtc: bjtUtc(27, 12));
+      final closed = <FastingRecord>[];
+      clock = FakeClock(bjtUtc(27, 16)); // 本地 00:00，距计划终点 12h。
+      final container = await buildContainer(
+        extra: <Override>[
+          fastingStreakHookProvider.overrideWithValue((record) {
+            closed.add(record);
+          }),
+        ],
+      );
+      final controller = container.read(
+        fastingTimerControllerProvider.notifier,
+      );
+      controller.endFast();
+      await Future<void>.delayed(Duration.zero);
+      expect(closed.single.result, CycleResult.brokenEarly);
+
+      // 旧覆盖会在本地 08:00 失效，早于原计划 12:00 终点；此后不得复活。
+      clock.now = bjtUtc(28, 1); // 本地 09:00。
+      controller.tick();
+      expect(container.read(fastingTimerControllerProvider).cycle, isNull);
+      clock.now = bjtUtc(28, 4); // 原计划终点，本地 12:00。
+      controller.tick();
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(fastingTimerControllerProvider);
+      expect(closed, hasLength(1));
+      expect(closed.single.result, CycleResult.brokenEarly);
+      expect(state.celebrating, isFalse);
+    });
+
+    test('手动 broken 后冷启动恢复不重复 _emitClosed、不庆祝、不覆盖 broken', () async {
+      prefs = await seedActivePlanPrefs(startedAtUtc: bjtUtc(27, 12));
+      final closed = <FastingRecord>[];
+      final hook = fastingStreakHookProvider.overrideWithValue((record) {
+        closed.add(record);
+      });
+      clock = FakeClock(bjtUtc(27, 16));
+      final first = await buildContainer(extra: <Override>[hook]);
+      first.read(fastingTimerControllerProvider.notifier).endFast();
+      await Future<void>.delayed(Duration.zero);
+      expect(closed.single.result, CycleResult.brokenEarly);
+      first.dispose();
+
+      clock.now = bjtUtc(28, 1); // 旧进食覆盖已失效、原计划终点未到。
+      final second = await buildContainer(extra: <Override>[hook]);
+      expect(second.read(fastingTimerControllerProvider).cycle, isNull);
+      clock.now = bjtUtc(28, 4);
+      second.read(fastingTimerControllerProvider.notifier).tick();
+      await Future<void>.delayed(Duration.zero);
+
+      final state = second.read(fastingTimerControllerProvider);
+      expect(closed, hasLength(1));
+      expect(state.lastClosedRecord, isNull);
+      expect(state.celebrating, isFalse);
+    });
+  });
+
+  group('周期存储用户隔离', () {
+    test('activeCycle/earlyEatEnd 按 uid 隔离并保留匿名迁移与旧全局迁移', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'fasting.activeCycle':
+            '{"startUtc":1,"plannedEndUtc":2,"eatWindowEndUtc":3,"extendedMinutes":0}',
+        'fasting.earlyEatEndUtc': 4,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      var uid = 'u-A';
+      final store = SharedPreferencesFastingCycleStore(
+        prefs,
+        userId: () => uid,
+      );
+      expect(store.loadActiveCycle()!.startUtc, 1);
+      expect(store.loadEarlyEatEndUtc(), 4);
+      expect(prefs.getString('fasting.activeCycle'), isNull);
+      expect(prefs.getInt('fasting.earlyEatEndUtc'), isNull);
+
+      store.saveActiveCycle(
+        const ActiveCycleSnapshot(
+          startUtc: 10,
+          plannedEndUtc: 20,
+          eatWindowEndUtc: 30,
+          extendedMinutes: 0,
+        ),
+      );
+      store.saveEarlyEatEndUtc(40);
+      uid = 'anonymous';
+      expect(store.loadActiveCycle(), isNull);
+      expect(store.loadEarlyEatEndUtc(), isNull);
+      uid = 'u-B';
+      expect(store.loadActiveCycle(), isNull);
+      expect(store.loadEarlyEatEndUtc(), isNull);
+
+      uid = 'anonymous';
+      store.saveEarlyEatEndUtc(50);
+      uid = 'u-B';
+      expect(store.loadEarlyEatEndUtc(), 50);
+      expect(prefs.getInt('fasting.earlyEatEndUtc.anonymous'), isNull);
+      uid = 'u-A';
+      expect(store.loadActiveCycle()!.startUtc, 10);
+      expect(store.loadEarlyEatEndUtc(), 40);
     });
   });
 

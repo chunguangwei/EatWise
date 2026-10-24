@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { isDeepStrictEqual } from 'node:util';
 import { newId } from '../utils/id.util';
 
 // ===== 实体类型（与 prisma/schema.prisma 对齐）=====
@@ -408,8 +409,144 @@ export class DataStore {
   /** 短信验证码（〔假设〕mock：固定 123456，受 SMS_MOCK_ENABLED 开关控制，生产关闭后本表不再写入） */
   readonly smsCodes = new Map<string, { code: string; sentAt: Date; attempts: number }>();
 
+  private readonly transactionTails = new Map<string, Promise<void>>();
+  private transactionView = false;
+
   constructor() {
     this.seedFoods();
+  }
+
+  private mapState(): Record<string, Map<unknown, unknown>> {
+    return {
+      users: this.users,
+      refreshTokens: this.refreshTokens,
+      fastingPlans: this.fastingPlans,
+      fastingRecords: this.fastingRecords,
+      foods: this.foods,
+      customFoods: this.customFoods,
+      foodCandidates: this.foodCandidates,
+      foodEntries: this.foodEntries,
+      waterLogs: this.waterLogs,
+      exerciseLogs: this.exerciseLogs,
+      weightLogs: this.weightLogs,
+      streaks: this.streaks,
+      idempotency: this.idempotency,
+      posts: this.posts,
+      postReports: this.postReports,
+      adminUsers: this.adminUsers,
+      userBlocks: this.userBlocks,
+      smsCodes: this.smsCodes,
+    } as unknown as Record<string, Map<unknown, unknown>>;
+  }
+
+  private createSnapshot() {
+    const maps = Object.fromEntries(
+      Object.entries(this.mapState()).map(([name, rows]) => [name, structuredClone(rows)]),
+    );
+    return {
+      maps,
+      postLikes: structuredClone(this.postLikes),
+      moderationQueue: structuredClone(this.moderationQueue),
+      foodSeedVersion: this.foodSeedVersion,
+    };
+  }
+
+  private restoreSnapshot(snapshot: ReturnType<DataStore['createSnapshot']>) {
+    const current = this.mapState();
+    for (const [name, rows] of Object.entries(snapshot.maps)) {
+      const target = current[name];
+      target.clear();
+      for (const [key, value] of rows) target.set(key, structuredClone(value));
+    }
+    this.postLikes.clear();
+    for (const key of snapshot.postLikes) this.postLikes.add(key);
+    this.moderationQueue.splice(0, this.moderationQueue.length, ...snapshot.moderationQueue);
+    this.foodSeedVersion = snapshot.foodSeedVersion;
+  }
+
+  private commitTransaction(tx: DataStore, snapshot: ReturnType<DataStore['createSnapshot']>) {
+    const targetState = this.mapState();
+    const afterState = tx.mapState();
+    for (const [name, before] of Object.entries(snapshot.maps)) {
+      const target = targetState[name];
+      const after = afterState[name];
+      const keys = new Set([...before.keys(), ...after.keys()]);
+      for (const key of keys) {
+        const existed = before.has(key);
+        const exists = after.has(key);
+        if (existed === exists && (!exists || isDeepStrictEqual(before.get(key), after.get(key)))) {
+          continue;
+        }
+        if (exists) target.set(key, structuredClone(after.get(key)));
+        else target.delete(key);
+      }
+    }
+    for (const key of snapshot.postLikes) {
+      if (!tx.postLikes.has(key)) this.postLikes.delete(key);
+    }
+    for (const key of tx.postLikes) {
+      if (!snapshot.postLikes.has(key)) this.postLikes.add(key);
+    }
+    const remaining = structuredClone(tx.moderationQueue);
+    const removed: ModerationQueueItem[] = [];
+    for (const before of snapshot.moderationQueue) {
+      const index = remaining.findIndex((after) => isDeepStrictEqual(before, after));
+      if (index >= 0) remaining.splice(index, 1);
+      else removed.push(before);
+    }
+    for (const before of removed) {
+      const index = this.moderationQueue.findIndex((current) => isDeepStrictEqual(before, current));
+      if (index >= 0) this.moderationQueue.splice(index, 1);
+    }
+    if (remaining.length > 0) {
+      this.moderationQueue.push(...structuredClone(remaining));
+    }
+    if (snapshot.foodSeedVersion !== tx.foodSeedVersion) {
+      this.foodSeedVersion = tx.foodSeedVersion;
+    }
+  }
+
+  async runInTransaction<T>(lockKeys: string[], work: (tx: DataStore) => Promise<T>): Promise<T> {
+    if (this.transactionView) {
+      const savepoint = this.createSnapshot();
+      try {
+        return await work(this);
+      } catch (error) {
+        this.restoreSnapshot(savepoint);
+        throw error;
+      }
+    }
+
+    const keys = [...new Set(lockKeys)].sort();
+    const acquired: Array<{ key: string; tail: Promise<void>; release: () => void }> = [];
+    try {
+      for (const key of keys) {
+        const previous = this.transactionTails.get(key) ?? Promise.resolve();
+        let release!: () => void;
+        const gate = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        const tail = Promise.all([previous, gate]).then(() => undefined);
+        this.transactionTails.set(key, tail);
+        acquired.push({ key, tail, release });
+        await previous;
+      }
+
+      const snapshot = this.createSnapshot();
+      const tx = new DataStore();
+      tx.restoreSnapshot(snapshot);
+      tx.transactionView = true;
+      const result = await work(tx);
+      this.commitTransaction(tx, snapshot);
+      return result;
+    } finally {
+      for (const item of acquired.reverse()) {
+        item.release();
+        if (this.transactionTails.get(item.key) === item.tail) {
+          this.transactionTails.delete(item.key);
+        }
+      }
+    }
   }
 
   idemKey(userId: string, endpoint: string, clientRequestId: string): string {

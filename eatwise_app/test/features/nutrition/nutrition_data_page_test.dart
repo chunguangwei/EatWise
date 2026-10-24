@@ -2,10 +2,12 @@ import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
+import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart';
 import 'package:eatwise/features/nutrition/presentation/nutrition_data_page.dart';
 import 'package:eatwise/features/nutrition/presentation/pro_details.dart';
+import 'package:eatwise/features/nutrition/presentation/signal_cards.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:flutter/material.dart';
@@ -104,6 +106,30 @@ void main() {
     await seedToday(kcal: 1700, proteinG: 75, carbG: 80, fatG: 60);
     await pumpPage(tester);
 
+    final cardMaterial = tester.widget<Material>(
+      find
+          .descendant(
+            of: find.byType(SignalCard).first,
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+    expect(cardMaterial.color, AppColors.light.bgSecondary);
+    final cardContainer = tester.widget<Container>(
+      find.byWidget(cardMaterial.child!),
+    );
+    final cardDecoration = cardContainer.decoration! as BoxDecoration;
+    expect(cardDecoration.color, isNull);
+    expect(cardDecoration.gradient, isNull);
+    expect(
+      tester
+          .getSize(
+            find.byKey(const ValueKey<String>('signal.zone.NutrientType.carb')),
+          )
+          .height,
+      greaterThanOrEqualTo(44),
+    );
+
     // 四营养素卡。
     for (final name in <String>['热量', '蛋白质', '碳水', '脂肪']) {
       expect(find.text(name), findsWidgets);
@@ -115,9 +141,8 @@ void main() {
     expect(find.text('达标'), findsNWidgets(2));
     expect(find.text('适量提醒'), findsOneWidget);
     expect(find.text('警示'), findsOneWidget);
-    // 大数值（已摄入）与目标。专业表数值列去单位后，折叠表里的已摄入
-    // 热量单元格与大字同为「1700」。
-    expect(find.text('1700'), findsNWidgets(2));
+    // 信号卡、专业表与趋势大读数均展示同一真实摄入值。
+    expect(find.text('1700'), findsNWidgets(3));
     expect(find.text('/ 目标 2000 千卡'), findsOneWidget);
     // 一句话建议不再占卡面（瘦身）；点红区碳水徽标弹详情对话框读全。
     expect(find.textContaining('今天碳水太少了'), findsNothing);
@@ -156,6 +181,20 @@ void main() {
   testWidgets('专业数据默认折叠，点「查看详情」展开 RDA，可再收起', (tester) async {
     await seedToday(kcal: 2000, proteinG: 100, carbG: 200, fatG: 60);
     await pumpPage(tester);
+
+    final material = tester.widget<Material>(
+      find
+          .descendant(
+            of: find.byType(ProDetailsSection),
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+    expect(material.color, AppColors.light.bgSecondary);
+    final container = tester.widget<Container>(find.byWidget(material.child!));
+    final decoration = container.decoration! as BoxDecoration;
+    expect(decoration.color, isNull);
+    expect(decoration.gradient, isNull);
 
     // 折叠态：区块高度 ≈ 头部一行（AnimatedCrossFade 隐藏子树仍在树中，
     // 以渲染高度判定可见性）。

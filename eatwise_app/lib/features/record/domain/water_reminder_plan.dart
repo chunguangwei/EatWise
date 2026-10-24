@@ -1,5 +1,7 @@
+import 'package:eatwise/features/fasting/domain/fast_cycle.dart';
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
+import 'package:eatwise/features/fasting/domain/fasting_schedule.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -87,14 +89,24 @@ List<PlannedWaterReminder> buildWaterReminderPlan({
   int goalMl = 2000,
   int intervalSec = 3600,
   int horizonSec = 48 * 3600,
+  FastCycle? activeCycle,
+  int? earlyEatEndUtc,
+  String? lastClosedCycleId,
 }) {
   final today = localDateOf(nowUtcSec, location);
+  final windows = buildEffectiveFastingEatingWindows(
+    plan: plan,
+    nowUtcSec: nowUtcSec,
+    location: location,
+    activeCycle: activeCycle,
+    earlyEatEndUtc: earlyEatEndUtc,
+    lastClosedCycleId: lastClosedCycleId,
+  );
 
   // 1) 收集视界内窗口内整点，按归属日分组。
   final byDate = <LocalDate, List<int>>{};
-  for (var offset = -1; offset <= 2; offset++) {
-    final date = today.addDays(offset);
-    final anchors = anchorsFor(plan, date, location);
+  for (final anchors in windows) {
+    final date = localDateOf(anchors.eatStartUtc, location);
     final midnight = localMidnightUtc(date, location);
     // 网格扩到 ±24h：跨午夜窗口（如 20:00→04:00）的次日晨段落在 D 的
     // anchorsFor 区间内、却不在 D 自身的 0..23 整点网格上，必须借相邻日

@@ -96,40 +96,42 @@ class MetricCard extends StatelessWidget {
                       style: textStyles.textSm.copyWith(
                         color: colors.textSecondary,
                       ),
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.s3),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: <Widget>[
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        value,
-                        style: textStyles.textDisplay.copyWith(
-                          color: colors.textPrimary,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: <Widget>[
+                    Text(
+                      value,
+                      style: textStyles.textDisplay.copyWith(
+                        color: colors.textPrimary,
+                      ),
+                      maxLines: 1,
+                      softWrap: false,
+                    ),
+                    if (unit != null) ...<Widget>[
+                      const SizedBox(width: AppSpacing.s1),
+                      Text(
+                        unit!,
+                        style: textStyles.textSm.copyWith(
+                          color: colors.textSecondary,
                         ),
                         maxLines: 1,
+                        softWrap: false,
                       ),
-                    ),
-                  ),
-                  if (unit != null) ...<Widget>[
-                    const SizedBox(width: AppSpacing.s1),
-                    Text(
-                      unit!,
-                      style: textStyles.textSm.copyWith(
-                        color: colors.textSecondary,
-                      ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
               if (progress != null) ...<Widget>[
                 const SizedBox(height: AppSpacing.s3),

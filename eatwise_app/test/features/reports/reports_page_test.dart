@@ -127,6 +127,34 @@ void main() {
   testWidgets('全无数据：趋势/成长轨迹/周报各自走引导空态，无空坐标轴', (tester) async {
     await pumpPage(tester);
 
+    void expectActionButtons() {
+      final buttons = tester
+          .widgetList<FilledButton>(find.byType(FilledButton))
+          .toList();
+      expect(buttons, isNotEmpty);
+      for (final button in buttons) {
+        expect(
+          button.style!.backgroundColor!.resolve(<WidgetState>{}),
+          AppColors.light.actionPrimary,
+        );
+        expect(
+          button.style!.foregroundColor!.resolve(<WidgetState>{}),
+          AppColors.light.onActionPrimary,
+        );
+        final label = tester.widget<Text>(
+          find
+              .descendant(
+                of: find.byWidget(button),
+                matching: find.byType(Text),
+              )
+              .first,
+        );
+        expect(label.style!.color, AppColors.light.onActionPrimary);
+      }
+    }
+
+    expectActionButtons();
+
     // 上周小结卡（页顶）：0 记录 → 引导文案。
     expect(find.text('上周小结'), findsOneWidget);
     expect(find.text('先记录几天，下周这时见'), findsOneWidget);
@@ -142,6 +170,7 @@ void main() {
     // 周报与月报在首屏外，滚动露出（Sliver 懒加载）。
     await tester.drag(find.byType(ListView), const Offset(0, -600));
     await tester.pump();
+    expectActionButtons();
     // 周报空态。
     expect(find.text('周报还差一点点数据，记一笔或完成一次断食就生成啦'), findsOneWidget);
     // 月报卡：月份标题 + 空态引导。

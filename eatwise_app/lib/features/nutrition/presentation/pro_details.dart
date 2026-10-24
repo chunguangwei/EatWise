@@ -67,77 +67,81 @@ class _ProDetailsSectionState extends ConsumerState<ProDetailsSection> {
     final shadows = Theme.of(context).extension<AppShadows>()!;
     final pd = t.nutrition.data.proDetails;
 
-    return Container(
-      decoration: AppSurfaces.card(colors, shadows),
-      child: Column(
-        children: <Widget>[
-          // 展开 affordance：图标 + 标题 + 「查看详情/收起」+ 箭头，≥44px。
-          InkWell(
-            borderRadius: radii.rLg,
-            onTap: _toggle,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 48),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.s4,
-                  vertical: AppSpacing.s2,
-                ),
-                child: Row(
-                  children: <Widget>[
-                    Icon(
-                      Icons.science_rounded,
-                      color: colors.textSecondary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: AppSpacing.s2),
-                    Expanded(
-                      child: Text(
-                        pd.title,
-                        style: textStyles.textBase.copyWith(
-                          color: colors.textPrimary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+    return Material(
+      color: colors.bgSecondary,
+      borderRadius: radii.rLg,
+      child: Container(
+        decoration: AppSurfaces.card(colors, shadows, onMaterial: true),
+        child: Column(
+          children: <Widget>[
+            // 展开 affordance：图标 + 标题 + 「查看详情/收起」+ 箭头，≥44px。
+            InkWell(
+              borderRadius: radii.rLg,
+              onTap: _toggle,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s4,
+                    vertical: AppSpacing.s2,
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.science_rounded,
+                        color: colors.textSecondary,
+                        size: 20,
                       ),
-                    ),
-                    Text(
-                      _expanded ? pd.collapse : pd.expand,
-                      style: textStyles.textSm.copyWith(
+                      const SizedBox(width: AppSpacing.s2),
+                      Expanded(
+                        child: Text(
+                          pd.title,
+                          style: textStyles.textBase.copyWith(
+                            color: colors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        _expanded ? pd.collapse : pd.expand,
+                        style: textStyles.textSm.copyWith(
+                          color: colors.brandPrimary,
+                        ),
+                      ),
+                      Icon(
+                        _expanded
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
                         color: colors.brandPrimary,
                       ),
-                    ),
-                    Icon(
-                      _expanded
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                      color: colors.brandPrimary,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          AnimatedCrossFade(
-            firstChild: const SizedBox(width: double.infinity),
-            secondChild: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.s4,
-                0,
-                AppSpacing.s4,
-                AppSpacing.s4,
+            AnimatedCrossFade(
+              firstChild: const SizedBox(width: double.infinity),
+              secondChild: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.s4,
+                  0,
+                  AppSpacing.s4,
+                  AppSpacing.s4,
+                ),
+                child: _DetailsTable(
+                  intake: widget.intake,
+                  goal: widget.goal,
+                  rda: rdaReference,
+                ),
               ),
-              child: _DetailsTable(
-                intake: widget.intake,
-                goal: widget.goal,
-                rda: rdaReference,
-              ),
+              crossFadeState: _expanded
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              duration: const Duration(milliseconds: 200),
             ),
-            crossFadeState: _expanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 200),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

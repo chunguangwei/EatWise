@@ -3,23 +3,26 @@ import 'package:eatwise/core/network/token_store.dart';
 
 /// 认证拦截器（契约 §1.2 / 规格 §7.1）：
 ///
-/// - onRequest：注入 `Authorization: Bearer <accessToken>`；
-///   `options.extra['skipAuth'] == true` 的请求（登录/发短信/刷新）跳过。
-/// - onError：401 且可刷新时，单飞调 `POST /auth/refresh` 换新令牌后
-///   **重放原请求一次**（复用同一 clientRequestId，幂等保证重放安全）；
+/// - onRequest：仅对当前 API 同源请求注入 `Authorization: Bearer <accessToken>`；
+///   `options.extra['skipAuth'] == true` 的请求（登录/发短信/刷新/图片）跳过。
+/// - onError：仅当前 API 同源请求的 401 可触发单飞 `POST /auth/refresh`，
+///   换新令牌后**重放原请求一次**（复用同一 clientRequestId，幂等保证重放安全）；
 ///   refresh 失败 → 清会话并回调 [onSessionCleared]（跳登录）。
 final class AuthInterceptor extends QueuedInterceptor {
   AuthInterceptor({
     required this.tokenStore,
     required this.refreshDio,
+    required String apiBaseUrl,
     this.onSessionCleared,
-  });
+  }) : _apiBaseUri = Uri.parse(apiBaseUrl);
 
   /// 令牌存储。
   final TokenStore tokenStore;
 
   /// 独立裸 Dio（无本拦截器，避免 401 循环），仅用于 /auth/refresh。
   final Dio refreshDio;
+
+  final Uri _apiBaseUri;
 
   /// 主 Dio（重放原请求走完整拦截链：重新注入 token + 信封解包）。
   /// 由工厂在装配完成后注入。
@@ -33,6 +36,31 @@ final class AuthInterceptor extends QueuedInterceptor {
   Future<bool>? _refreshing;
 
   bool _skipAuth(RequestOptions options) => options.extra['skipAuth'] == true;
+
+  bool _isApiRequest(RequestOptions options) {
+    final target = options.uri;
+    if (!_isHttp(_apiBaseUri) ||
+        !_isHttp(target) ||
+        _apiBaseUri.userInfo.isNotEmpty ||
+        target.userInfo.isNotEmpty) {
+      return false;
+    }
+    return target.scheme == _apiBaseUri.scheme &&
+        target.host == _apiBaseUri.host &&
+        _effectivePort(target) == _effectivePort(_apiBaseUri);
+  }
+
+  bool _isHttp(Uri uri) =>
+      uri.hasAuthority && (uri.scheme == 'http' || uri.scheme == 'https');
+
+  int? _effectivePort(Uri uri) {
+    if (uri.hasPort) return uri.port;
+    return switch (uri.scheme) {
+      'http' => 80,
+      'https' => 443,
+      _ => null,
+    };
+  }
 
   /// 401 是否为「访问令牌失效」类错误（触发 refresh 重放）。
   ///
@@ -56,7 +84,7 @@ final class AuthInterceptor extends QueuedInterceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    if (!_skipAuth(options)) {
+    if (!_skipAuth(options) && _isApiRequest(options)) {
       final token = await tokenStore.accessToken;
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
@@ -74,6 +102,7 @@ final class AuthInterceptor extends QueuedInterceptor {
     final is401 = err.response?.statusCode == 401;
     if (!is401 ||
         _skipAuth(options) ||
+        !_isApiRequest(options) ||
         options.extra['retried'] == true ||
         !_isTokenInvalid(err.response)) {
       handler.next(err);

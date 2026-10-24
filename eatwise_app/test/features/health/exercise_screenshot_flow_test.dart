@@ -1,6 +1,11 @@
 import 'dart:typed_data';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/analytics/analytics_client.dart';
+import 'package:eatwise/core/analytics/analytics_event.dart';
+import 'package:eatwise/core/analytics/analytics_providers.dart';
+import 'package:eatwise/core/analytics/consent_store.dart';
+import 'package:eatwise/core/analytics/event_queue_store.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/health/application/exercise_log_providers.dart';
@@ -64,6 +69,7 @@ void main() {
     WidgetTester tester, {
     AiEngineAvailability availability = AiEngineAvailability.ondeviceReady,
     bool withService = true,
+    _RecordingAnalyticsClient? analyticsClient,
   }) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1;
@@ -81,6 +87,17 @@ void main() {
           aiEngineAvailabilityFnProvider.overrideWithValue(
             () async => availability,
           ),
+          if (analyticsClient != null) ...<Override>[
+            consentStoreProvider.overrideWithValue(
+              InMemoryConsentStore(analyticsGranted: true),
+            ),
+            analyticsQueueStoreProvider.overrideWithValue(
+              InMemoryEventQueueStore(),
+            ),
+            analyticsClientsProvider.overrideWithValue(<AnalyticsClient>[
+              analyticsClient,
+            ]),
+          ],
         ],
         child: TranslationProvider(
           child: MaterialApp(
@@ -286,6 +303,169 @@ void main() {
     await settleUi(tester);
   });
 
+  Future<void> saveScreenshot(WidgetTester tester) async {
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('screenshot.save')),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('screenshot.save')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+  }
+
+  testWidgets('单次运动截图：共享时长/热量上限，端点可保存', (tester) async {
+    service.outcome = const ExerciseScreenshotSuccess(
+      ExerciseScreenshotData(
+        kind: ExerciseScreenshotKind.workout,
+        exerciseTypeKey: 'run',
+        durationMinutes: 1441,
+        burnKcal: 100,
+      ),
+    );
+    await pumpApp(tester);
+    await openAndImport(tester);
+
+    await saveScreenshot(tester);
+    expect(find.text('请输入 1 到 1440 分钟的时长'), findsOneWidget);
+    expect(await repo.logsForDate(todayKey()), isEmpty);
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('screenshot.duration')),
+      '1440',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('screenshot.kcal')),
+      '10001',
+    );
+    await tester.pump();
+    await saveScreenshot(tester);
+    expect(find.text('请输入大于 0 且不超过 10000 的千卡数'), findsOneWidget);
+    expect(await repo.logsForDate(todayKey()), isEmpty);
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('screenshot.kcal')),
+      '10000',
+    );
+    await tester.pump();
+    await saveScreenshot(tester);
+    final saved = (await repo.logsForDate(todayKey())).single;
+    expect(saved.durationMin, 1440);
+    expect(saved.kcal, 10000);
+    expect(saved.source, ExerciseLogRepository.sourceScreenshot);
+
+    await settleUi(tester);
+  });
+
+  testWidgets('汇总截图：步数超过共享上限拦截，200000 端点可保存', (tester) async {
+    service.outcome = const ExerciseScreenshotSuccess(
+      ExerciseScreenshotData(
+        kind: ExerciseScreenshotKind.summary,
+        steps: 200001,
+        activeCaloriesKcal: 100,
+      ),
+    );
+    await pumpApp(tester);
+    await openAndImport(tester);
+
+    await saveScreenshot(tester);
+    expect(find.text('请输入 1 到 200000 的步数'), findsOneWidget);
+    expect(await repo.logsForDate(todayKey()), isEmpty);
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('screenshot.steps')),
+      '200000',
+    );
+    await tester.pump();
+    await saveScreenshot(tester);
+    final saved = (await repo.logsForDate(todayKey())).single;
+    expect(saved.steps, 200000);
+    expect(saved.source, ExerciseLogRepository.sourceScreenshot);
+
+    await settleUi(tester);
+  });
+
+  testWidgets('截图成功复用记运动 flow：一个 success 且无 abandon', (tester) async {
+    service.outcome = const ExerciseScreenshotSuccess(
+      ExerciseScreenshotData(
+        kind: ExerciseScreenshotKind.workout,
+        exerciseTypeKey: 'run',
+        durationMinutes: 32,
+        burnKcal: 285,
+      ),
+    );
+    final client = _RecordingAnalyticsClient();
+    await pumpApp(tester, analyticsClient: client);
+    await openAndImport(tester);
+    await saveScreenshot(tester);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.text('OPEN')),
+    );
+    await tester.pump();
+    await container.read(analyticsServiceProvider).flush();
+    await tester.pump();
+    final starts = client.events
+        .where((event) => event.name == 'record_flow_start')
+        .toList();
+    final successes = client.events
+        .where((event) => event.name == 'record_flow_success')
+        .toList();
+    final abandons = client.events
+        .where((event) => event.name == 'record_flow_abandon')
+        .toList();
+    expect(starts, hasLength(1));
+    expect(successes, hasLength(1));
+    expect(abandons, isEmpty);
+    expect(
+      successes.single.properties['flow_id'],
+      starts.single.properties['flow_id'],
+    );
+    expect(successes.single.properties['entry_type'], 'screenshot');
+
+    await settleUi(tester);
+  });
+
+  testWidgets('冲突取消后重试：仍按 screenshot 来源落库', (tester) async {
+    await repo.add(typeKey: 'jog', durationMin: 30, kcal: 210);
+    service.outcome = const ExerciseScreenshotSuccess(
+      ExerciseScreenshotData(
+        kind: ExerciseScreenshotKind.workout,
+        exerciseTypeKey: 'run',
+        durationMinutes: 32,
+        burnKcal: 285,
+      ),
+    );
+    await pumpApp(tester);
+    await openAndImport(tester);
+
+    await saveScreenshot(tester);
+    expect(find.text('今天已经有运动记录'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('exercise.conflict.cancel')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('确认运动记录'), findsOneWidget);
+
+    await saveScreenshot(tester);
+    expect(find.text('今天已经有运动记录'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('exercise.conflict.add')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final saved = await repo.logsForDate(todayKey());
+    expect(saved, hasLength(2));
+    final imported = saved.singleWhere(
+      (log) => log.source == ExerciseLogRepository.sourceScreenshot,
+    );
+    expect(imported.typeKey, 'run');
+    expect(imported.kcal, 285);
+
+    await settleUi(tester);
+  });
+
   testWidgets('识别失败透出模型原文；引擎缺失弹引导卡；无服务兜底提示', (tester) async {
     // parse_failed 带 detail → 透出原文（含「无法识别」）。
     service.outcome = const ExerciseScreenshotUnavailable(
@@ -336,4 +516,16 @@ final class _FakeScreenshotService implements ExerciseScreenshotService {
     calls++;
     return outcome;
   }
+}
+
+final class _RecordingAnalyticsClient implements AnalyticsClient {
+  final List<AnalyticsEvent> events = <AnalyticsEvent>[];
+
+  @override
+  Future<void> send(List<AnalyticsEvent> batch) async {
+    events.addAll(batch);
+  }
+
+  @override
+  void logSuppressed(String name, Map<String, Object?> properties) {}
 }

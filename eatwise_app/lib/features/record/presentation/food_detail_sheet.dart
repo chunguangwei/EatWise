@@ -276,17 +276,17 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
               _MacroRing(
                 label: s.nutritionProtein,
                 energy: breakdown.protein,
-                color: colors.brandPrimary,
+                color: colors.chartPurple,
               ),
               _MacroRing(
                 label: s.nutritionCarb,
                 energy: breakdown.carb,
-                color: colors.brandAccent,
+                color: colors.ringMove,
               ),
               _MacroRing(
                 label: s.nutritionFat,
                 energy: breakdown.fat,
-                color: colors.brandPrimaryPressed,
+                color: colors.ringStand,
               ),
             ],
           ),
@@ -585,6 +585,7 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
       _food.id,
     );
     if (!mounted) return;
+    final colors = Theme.of(context).extension<AppColors>()!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -597,6 +598,7 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(foregroundColor: colors.signalRed),
             child: Text(cs.deleteAction),
           ),
         ],
@@ -666,6 +668,7 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     ScaffoldMessengerState messenger,
     AppTextStyles textStyles,
   ) async {
+    final colors = Theme.of(context).extension<AppColors>()!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -678,6 +681,7 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(foregroundColor: colors.signalRed),
             child: Text(cs.deleteAction),
           ),
         ],

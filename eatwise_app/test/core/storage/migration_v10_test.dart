@@ -86,7 +86,7 @@ void main() {
     final db = AppDatabase(NativeDatabase(dbFile));
     addTearDown(() async => db.close());
 
-    expect(db.schemaVersion, 14);
+    expect(db.schemaVersion, 15);
 
     // 历史行完整保留，source 为 null（手动录入）。
     final stored = (await db.exerciseLogDao.getByLocalId('e-1'))!;
@@ -111,7 +111,7 @@ void main() {
 
     // 升级后的 user_version 落为 12（重开不再重复迁移）。
     final versionRow = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(versionRow.data['user_version'], 14);
+    expect(versionRow.data['user_version'], 15);
   });
 }
 

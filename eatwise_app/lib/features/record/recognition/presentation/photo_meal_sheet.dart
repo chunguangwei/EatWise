@@ -102,6 +102,9 @@ final class _MealRow {
 
   /// 当前条目（点选「相似食物」后替换为库内条目，不再走新建/送审）。
   RecognizedMealItem item;
+  Food? resolvedFood;
+  var shouldContribute = false;
+  var contributed = false;
   final TextEditingController gramsController;
 
   /// 克数整数化初值（200.0 → "200"，153.5 → "153.5"）。
@@ -115,13 +118,16 @@ final class _MealRow {
 class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
   // 数据通路双保险：空白名称条目不进明细卡（解析层已拒绝空名，
   // 此处兜底上游任何回归——宁可少一行，不渲染空白行）。
-  late final List<_MealRow> _rows = [
+  late final List<_MealRow> _allRows = [
     for (final item in widget.items)
       if (item.name.trim().isNotEmpty) _MealRow(item),
   ];
+  late final List<_MealRow> _rows = List<_MealRow>.of(_allRows);
 
   /// 入账在途（防连点）。
   bool _saving = false;
+  var _loggedCount = 0;
+  var _pendingReviewCount = 0;
 
   /// 各未命中行的相似食物候选（本地 drift 模糊搜索；空 = 无相近结果，
   /// 退化为自动新建+送审）。
@@ -168,13 +174,16 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
         confidence: 0.9, // 用户亲选库内条目，高置信
         food: food,
       );
+      row.resolvedFood = food;
+      row.shouldContribute = false;
+      row.contributed = false;
       _similar.remove(row);
     });
   }
 
   @override
   void dispose() {
-    for (final row in _rows) {
+    for (final row in _allRows) {
       row.gramsController.dispose();
     }
     super.dispose();
@@ -205,22 +214,20 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
   /// （模型估值 + llmEstimate 口径）再入账，并**提交众包审核**
   /// （乐观入账带「审核中」标记：approve 转正、reject 级联软删+同步清理，
   /// v1.12.0 既有链路）。离线/贡献失败不阻断入账（食物仍落个人库，
-  /// 联网后 retryPending 上行）。
+  /// 联网后 retryPending 上行）。成功行即移除，失败重试只处理剩余行。
   Future<void> _logAll() async {
     if (_saving || _rows.isEmpty) return;
     setState(() => _saving = true);
-    final repo = ref.read(recordRepositoryProvider);
+    final writeEntry = ref.read(photoMealEntryWriterProvider);
     final customRepo = ref.read(customFoodRepositoryProvider);
     // 阶段 C：断食计时进行中的用餐打「断食期用餐」本地标记（不上行）。
     final duringFast = ref.read(isFastingInProgressProvider);
     // 餐次（走查修）：拍照/自由记流曾完全不传 mealType，仓储一律按当前
     // 小时智能预判；现在与搜索/详情流同款 chips，未点选时传 null 走预判。
     final mealType = ref.read(recordMealTypeProvider);
-    var logged = 0;
-    var pendingReview = 0;
     try {
       for (final row in List<_MealRow>.of(_rows)) {
-        var food = row.item.food;
+        var food = row.resolvedFood ?? row.item.food;
         if (food == null) {
           final saved = await customRepo.save(
             CustomFoodDraft(
@@ -232,17 +239,18 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
             ),
           );
           food = saved.food;
-          // 送审（离线/失败静默：不阻断入账，日志留痕）。
-          if (saved.uploaded) {
-            try {
-              await customRepo.contribute(food.id);
-              pendingReview++;
-            } on Object catch (e) {
-              debugPrint('[PhotoMeal] 送审失败（食物已落个人库，不影响入账）：$e');
-            }
+          row.resolvedFood = food;
+          row.shouldContribute = saved.uploaded;
+        }
+        if (row.shouldContribute && !row.contributed) {
+          try {
+            await customRepo.contribute(food.id);
+            row.contributed = true;
+          } on Object catch (e) {
+            debugPrint('[PhotoMeal] 送审失败（食物已落个人库，不影响入账）：$e');
           }
         }
-        await repo.addEntry(
+        await writeEntry(
           RecordDraft(
             foodId: food.id,
             amountG: _effectiveGrams(row),
@@ -252,15 +260,22 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
             mealType: mealType,
           ),
         );
-        logged++;
+        _loggedCount++;
+        if (row.contributed) _pendingReviewCount++;
+        if (mounted) {
+          setState(() {
+            _rows.remove(row);
+            _similar.remove(row);
+          });
+        }
       }
       if (mounted) {
         // 提交成功后收起键盘（Y5），避免弹层关闭后键盘滞留。
         FocusManager.instance.primaryFocus?.unfocus();
         Navigator.of(context).pop(
           PhotoMealResult(
-            loggedCount: logged,
-            pendingReviewCount: pendingReview,
+            loggedCount: _loggedCount,
+            pendingReviewCount: _pendingReviewCount,
           ),
         );
       }

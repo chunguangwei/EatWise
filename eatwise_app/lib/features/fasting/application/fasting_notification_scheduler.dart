@@ -1,6 +1,7 @@
 import 'package:eatwise/core/notification/notification_service.dart';
 import 'package:eatwise/core/notification/notification_types.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_plan.dart';
+import 'package:eatwise/features/fasting/domain/fast_cycle.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -120,7 +121,10 @@ class FastingNotificationScheduler {
   /// 全量重排（单一入口，§7.2.3）。
   ///
   /// - [plan] 为 null（NO_PLAN）时仅清空已有通知；
-  /// - [extensionMinutes] 为当前周期累计延长（D-10，默认 0）；
+  /// - [extensionMinutes] 为旧调用方的当前周期累计延长（D-10，默认 0）；
+  /// - [activeCycle] 为当前持久化周期，存在时优先于 extensionMinutes；
+  /// - [earlyEatEndUtc] 为提前破窗后的真实进食结束锚点；
+  /// - [lastClosedCycleId] 为最近关闭周期标识；
   /// - [eatSoonLeadSec] 为进食开始提前量（D-09 默认 15min，设置可调）。
   ///
   /// 权限被拒时不抛异常、不排程，返回 [RescheduleResult.degraded] = true
@@ -128,6 +132,9 @@ class FastingNotificationScheduler {
   Future<RescheduleResult> reschedule({
     required FastingPlan? plan,
     int extensionMinutes = 0,
+    FastCycle? activeCycle,
+    int? earlyEatEndUtc,
+    String? lastClosedCycleId,
     RescheduleReason reason = RescheduleReason.stateTransition,
     int eatSoonLeadSec = 15 * 60,
   }) async {
@@ -157,6 +164,9 @@ class FastingNotificationScheduler {
             location: locationResolver(),
             eatSoonLeadSec: eatSoonLeadSec,
             extensionMinutes: extensionMinutes,
+            activeCycle: activeCycle,
+            earlyEatEndUtc: earlyEatEndUtc,
+            lastClosedCycleId: lastClosedCycleId,
           );
 
     for (final item in items) {

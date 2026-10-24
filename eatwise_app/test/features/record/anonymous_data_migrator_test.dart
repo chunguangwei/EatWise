@@ -194,6 +194,53 @@ void main() {
         isNull,
       );
     });
+
+    test('中途失败不落完成标记；下轮从部分迁移状态继续直至全部成功', () async {
+      await insertAnonymousRows();
+      await db.customStatement('''
+        CREATE TRIGGER fail_anonymous_water_update
+        BEFORE UPDATE ON water_logs
+        BEGIN SELECT RAISE(ABORT, 'injected migration failure'); END
+      ''');
+
+      await expectLater(migrator.migrateIfNeeded('u-1'), throwsA(anything));
+      expect(prefs.getBool('anon_migrated_v1_u-1'), isNull);
+      expect((await db.foodEntryDao.getByLocalId('l-food'))!.userId, 'u-1');
+      expect(
+        (await db.waterLogDao.getByLocalId('l-water'))!.userId,
+        'anonymous',
+      );
+
+      await db.customStatement('DROP TRIGGER fail_anonymous_water_update');
+      expect(await migrator.migrateIfNeeded('u-1'), isTrue);
+      expect(prefs.getBool('anon_migrated_v1_u-1'), isTrue);
+      expect((await db.waterLogDao.getByLocalId('l-water'))!.userId, 'u-1');
+      expect((await db.exerciseLogDao.getByLocalId('l-ex'))!.userId, 'u-1');
+    });
+
+    test('旧库无 owner 与匿名个人食物由首次登录确定性认领；共享行与历史内容保留', () async {
+      await prefs.setBool('anon_migrated_v1_u-1', true); // 老版本已落迁移标记也要补认领。
+      await db.foodDao.upsertAll(<FoodsCompanion>[
+        _migrationFood('cf-legacy', isCustom: true),
+        _migrationFood(
+          'cf-anonymous',
+          isCustom: true,
+          ownerUserId: 'anonymous',
+        ),
+        _migrationFood('shared-1', isCustom: false),
+      ]);
+
+      expect(await migrator.migrateIfNeeded('u-1'), isFalse);
+
+      final legacy = (await db.foodDao.getById('cf-legacy'))!;
+      final anonymous = (await db.foodDao.getById('cf-anonymous'))!;
+      final shared = (await db.foodDao.getById('shared-1'))!;
+      expect(legacy.ownerUserId, 'u-1');
+      expect(anonymous.ownerUserId, 'u-1');
+      expect(shared.ownerUserId, isNull);
+      expect(legacy.nameZh, 'cf-legacy');
+      expect(anonymous.nameZh, 'cf-anonymous');
+    });
   });
 
   group('prefs 命名空间换挂', () {
@@ -361,4 +408,22 @@ void main() {
       await repo.dispose();
     });
   });
+}
+
+FoodsCompanion _migrationFood(
+  String id, {
+  required bool isCustom,
+  String? ownerUserId,
+}) {
+  return FoodsCompanion(
+    id: Value(id),
+    nameZh: Value(id),
+    nameEn: Value(id),
+    kcalPer100g: const Value(100),
+    proteinPer100g: const Value(5),
+    carbPer100g: const Value(5),
+    fatPer100g: const Value(5),
+    isCustom: Value(isCustom),
+    ownerUserId: Value(ownerUserId),
+  );
 }

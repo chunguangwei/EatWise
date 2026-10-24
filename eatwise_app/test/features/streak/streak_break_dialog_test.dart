@@ -1,4 +1,5 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/streak/domain/streak_types.dart';
 import 'package:eatwise/features/streak/presentation/streak_banner.dart';
@@ -52,11 +53,53 @@ void main() {
       // 要素③：可补签主按钮（轻盈绿填充，可点按）。
       final cta = find.widgetWithText(FilledButton, '使用补签卡，恢复 4 天连胜');
       expect(cta, findsOneWidget);
-      expect(tester.widget<FilledButton>(cta).onPressed, isNotNull);
+      final button = tester.widget<FilledButton>(cta);
+      expect(button.onPressed, isNotNull);
+      expect(
+        button.style!.backgroundColor!.resolve(<WidgetState>{}),
+        AppColors.light.actionPrimary,
+      );
+      expect(
+        button.style!.foregroundColor!.resolve(<WidgetState>{}),
+        AppColors.light.onActionPrimary,
+      );
+      expect(
+        tester.widget<Icon>(find.byIcon(Icons.restore)).color,
+        AppColors.light.onActionPrimary,
+      );
+      expect(
+        tester.widget<Text>(find.text('使用补签卡，恢复 4 天连胜')).style!.color,
+        AppColors.light.onActionPrimary,
+      );
       await tester.tap(cta);
       expect(mended, isTrue);
       // 次按钮。
       expect(find.text('知道了，重新开始'), findsOneWidget);
+    });
+
+    testWidgets('可补签暗色：亮绿底配深字 Token', (tester) async {
+      await tester.pumpWidget(
+        TranslationProvider(
+          child: MaterialApp(
+            theme: AppTheme.dark(),
+            home: Scaffold(body: dialogOf(MendCardVisualState.mendable)),
+          ),
+        ),
+      );
+      final cta = find.widgetWithText(FilledButton, '使用补签卡，恢复 4 天连胜');
+      final button = tester.widget<FilledButton>(cta);
+      expect(
+        button.style!.backgroundColor!.resolve(<WidgetState>{}),
+        AppColors.dark.actionPrimary,
+      );
+      expect(
+        button.style!.foregroundColor!.resolve(<WidgetState>{}),
+        AppColors.dark.onActionPrimary,
+      );
+      expect(
+        tester.widget<Icon>(find.byIcon(Icons.restore)).color,
+        AppColors.dark.onActionPrimary,
+      );
     });
 
     testWidgets('已用尽：按钮置灰 + 下月发放说明', (tester) async {

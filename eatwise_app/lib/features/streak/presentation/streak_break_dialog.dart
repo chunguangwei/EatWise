@@ -124,13 +124,16 @@ class _StateSection extends StatelessWidget {
           label: t.streak.kBreak.mendCta(days: restoreDays),
           child: FilledButton.icon(
             onPressed: onMend,
-            icon: const Icon(Icons.restore, color: Colors.white),
+            icon: Icon(Icons.restore, color: colors.onActionPrimary),
             label: Text(
               t.streak.kBreak.mendCta(days: restoreDays),
-              style: textStyles.textBase.copyWith(color: Colors.white),
+              style: textStyles.textBase.copyWith(
+                color: colors.onActionPrimary,
+              ),
             ),
             style: FilledButton.styleFrom(
-              backgroundColor: colors.brandPrimary,
+              backgroundColor: colors.actionPrimary,
+              foregroundColor: colors.onActionPrimary,
               minimumSize: const Size.fromHeight(AppSpacing.s12),
             ),
           ),

@@ -8,18 +8,23 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/time/day_change.dart';
 import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/account/application/weight_unit_controller.dart';
 import 'package:eatwise/features/account/domain/weight_unit.dart';
 import 'package:eatwise/features/record/application/water_reminder_planner.dart'
     show rescheduleWaterReminders;
 import 'package:eatwise/features/record/data/water_log_repository.dart';
+import 'package:eatwise/features/record/domain/meal_type.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:eatwise/features/reports/application/reports_controller.dart';
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+String lightRecordMealPeriod(DateTime at) =>
+    suggestMealType(at.toLocal().hour).name;
 
 /// M3 轻量记录区（PRD M3 功能点 4）：饮水快捷档位一键入账 + 当日累计
 /// （目标 2000ml〔假设〕标注）+ D-11 撤销；体重数字录入（kg，同日覆写），
@@ -231,13 +236,7 @@ class _WaterCard extends ConsumerWidget {
   }
 
   /// 按本地时间推断餐段（§3.3 meal_period；与记录页同口径〔假设〕）。
-  static String _mealPeriod() {
-    final hour = DateTime.now().toLocal().hour;
-    if (hour >= 5 && hour < 10) return 'breakfast';
-    if (hour >= 10 && hour < 15) return 'lunch';
-    if (hour >= 17 && hour < 21) return 'dinner';
-    return 'snack';
-  }
+  static String _mealPeriod() => lightRecordMealPeriod(DateTime.now());
 }
 
 /// 体重卡：展示当日体重（未记录提示「记一下」），点按弹数字录入对话框。
@@ -465,7 +464,9 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
       ),
     );
     if (confirmed != true) return;
-    await ref.read(weightLogStoreProvider).remove(localDateKey(DateTime.now()));
+    await ref
+        .read(weightLogStoreProvider)
+        .remove(localDayKey(ref.read(localDayProvider)));
     // 删除后触发一轮同步（tombstone 上行 DELETE + 下行合并，登录态生效）。
     try {
       unawaited(ref.read(recordSyncEngineProvider).syncNow());
@@ -508,7 +509,11 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
     final kg = (kgValue * 10).round() / 10;
     await ref
         .read(weightLogStoreProvider)
-        .save(localDateKey(DateTime.now()), kg, bodyFatPct: bodyFatPct);
+        .save(
+          localDayKey(ref.read(localDayProvider)),
+          kg,
+          bodyFatPct: bodyFatPct,
+        );
     // 记录后触发一轮同步（体重 pending 上行 + 下行合并，登录态生效）。
     try {
       unawaited(ref.read(recordSyncEngineProvider).syncNow());

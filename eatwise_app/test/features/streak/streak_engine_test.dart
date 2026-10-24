@@ -169,6 +169,23 @@ void main() {
       );
     });
 
+    test('7 天窗口离线 parity：D+8 与 today 均不可补', () {
+      final engine = engineWith(['2026-07-01']);
+      engine.pendingMendDates.addAll(['2026-07-20', today]);
+      for (final date in ['2026-07-20', today]) {
+        expect(
+          () => engine.useMendCard(date, today: today),
+          throwsA(
+            isA<MendRejected>().having(
+              (e) => e.reason,
+              'reason',
+              MendRejectReason.outOfWindow,
+            ),
+          ),
+        );
+      }
+    });
+
     test('服务端达标段收敛：段内陈旧断签标记清除并并入达标集（2026-10-12 补签失败根因）', () {
       // 本机缺下行行：07-25..27 未入账被 settleUpTo 误判为待补签。
       final engine = engineWith(<String>[]);

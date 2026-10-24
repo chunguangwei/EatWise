@@ -261,7 +261,11 @@ final class ContributionReviewSync {
       for (final t in transitions) {
         switch (t.to) {
           case FoodContributionStatus.approved:
-            await db.foodDao.setContributionStatus(t.foodId, 'approved');
+            await db.foodDao.setContributionStatus(
+              t.foodId,
+              'approved',
+              ownerUserId: userId,
+            );
             onStatusApplied?.call(t.foodId);
           case FoodContributionStatus.rejected:
             // 纠错驳回：目标食物仍在共享库、记录不动（服务端同口径）——
@@ -308,14 +312,14 @@ final class ContributionReviewSync {
       // [existingFoodIdsFn] 核验服务端存续决定整行移除（见下）。
       final serverFoodIds = <String>{for (final c in current) c.foodId};
       final ghosts = findGhostContributionFoodIds(
-        localRows: (await db.foodDao.contributedRows()).map(
+        localRows: (await db.foodDao.contributedRows(ownerUserId: userId)).map(
           (final r) => (id: r.id, contributionStatus: r.contributionStatus),
         ),
         serverFoodIds: serverFoodIds,
       );
       final sharedGhosts = <String>{};
       for (final foodId in ghosts) {
-        final row = await db.foodDao.getById(foodId);
+        final row = await db.foodDao.getById(foodId, ownerUserId: userId);
         if (row == null) continue;
         if (!row.isCustom) {
           // 共享/社区行：先清徽标残留（纠错终态写在共享行上，候选删除后
@@ -325,7 +329,11 @@ final class ContributionReviewSync {
           // 非本人贡献物，下架通知只对贡献者有意义）。
           // 占位行（名称==id，下行合成）永不在此路径（contributionStatus
           // 恒 null 进不了 ghost 集），双保险显式排除。
-          await db.foodDao.setContributionStatus(foodId, null);
+          await db.foodDao.setContributionStatus(
+            foodId,
+            null,
+            ownerUserId: userId,
+          );
           onStatusApplied?.call(foodId);
           if (isPlaceholderFood(row)) continue;
           sharedGhosts.add(foodId);
@@ -341,7 +349,7 @@ final class ContributionReviewSync {
       // 旧反查结构性看不到它）：同一批 batch-get，查无 → 自定义行按
       // 下架口径清记录+删行+通知（同管理员删候选），共享行整行静默移除。
       final inListIds = <String>[];
-      for (final r in await db.foodDao.contributedRows()) {
+      for (final r in await db.foodDao.contributedRows(ownerUserId: userId)) {
         if (serverFoodIds.contains(r.id)) inListIds.add(r.id);
       }
       final verifyIds = <String>{...sharedGhosts, ...inListIds}.toList();
@@ -350,13 +358,13 @@ final class ContributionReviewSync {
           final existing = await existingFoodIdsFn!(verifyIds);
           for (final foodId in sharedGhosts) {
             if (existing.contains(foodId)) continue;
-            final row = await db.foodDao.getById(foodId);
+            final row = await db.foodDao.getById(foodId, ownerUserId: userId);
             if (row == null) continue;
             await _removeSharedGhost(foodId);
           }
           for (final foodId in inListIds) {
             if (existing.contains(foodId)) continue;
-            final row = await db.foodDao.getById(foodId);
+            final row = await db.foodDao.getById(foodId, ownerUserId: userId);
             if (row == null || isPlaceholderFood(row)) continue;
             if (row.isCustom) {
               notices.add(await _applyRemoval(foodId, row.nameZh));
@@ -382,14 +390,19 @@ final class ContributionReviewSync {
   }
 
   Future<String> _foodDisplayName(String foodId) async {
-    return (await db.foodDao.getById(foodId))?.nameZh ?? foodId;
+    return (await db.foodDao.getById(foodId, ownerUserId: userId))?.nameZh ??
+        foodId;
   }
 
   /// 本地行存在且状态与权威终态不一致才改写（幂等：已对齐零写入）。
   Future<void> _reconcileStatus(String foodId, String status) async {
-    final food = await db.foodDao.getById(foodId);
+    final food = await db.foodDao.getById(foodId, ownerUserId: userId);
     if (food != null && food.contributionStatus != status) {
-      await db.foodDao.setContributionStatus(foodId, status);
+      await db.foodDao.setContributionStatus(
+        foodId,
+        status,
+        ownerUserId: userId,
+      );
       onStatusApplied?.call(foodId);
     }
   }
@@ -408,7 +421,7 @@ final class ContributionReviewSync {
   /// 驳回落地：删记录 + 重算聚合 + 标记食物；返回驳回通知
   ///（食物行缺失回退 foodId，不隐藏事件）。
   Future<RejectedNotice> _applyRejection(String foodId) async {
-    final food = await db.foodDao.getById(foodId);
+    final food = await db.foodDao.getById(foodId, ownerUserId: userId);
     final entries = await db.foodEntryDao.entriesForFood(userId, foodId);
     final dates = <String>{};
     for (final entry in entries) {
@@ -423,7 +436,11 @@ final class ContributionReviewSync {
         updatedAtUtc: nowIso,
       );
     }
-    await db.foodDao.setContributionStatus(foodId, 'rejected');
+    await db.foodDao.setContributionStatus(
+      foodId,
+      'rejected',
+      ownerUserId: userId,
+    );
     onStatusApplied?.call(foodId);
     return RejectedNotice(name: food?.nameZh ?? foodId);
   }
@@ -446,7 +463,7 @@ final class ContributionReviewSync {
         updatedAtUtc: nowIso,
       );
     }
-    await db.foodDao.deleteById(foodId);
+    await db.foodDao.deleteById(foodId, ownerUserId: userId, customOnly: true);
     onStatusApplied?.call(foodId);
     return RejectedNotice(name: name, removed: true);
   }

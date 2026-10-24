@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
@@ -501,4 +503,204 @@ void main() {
       expect(tokyo.localDateKeyOf(earlier), '2026-09-30');
     });
   });
+
+  group('在途上行代际与删除失败保真', () {
+    Future<
+      ({
+        RecordRepository repository,
+        _ControlledRecordRemote remote,
+        FoodEntry entry,
+      })
+    >
+    inFlightScenario() async {
+      final controlled = _ControlledRecordRemote();
+      final repository = RecordRepository(
+        db: db,
+        remote: controlled,
+        location: location,
+      );
+      addTearDown(repository.dispose);
+      await db.foodEntryDao.insertEntry(
+        const FoodEntriesCompanion(
+          localId: Value('l-inflight'),
+          userId: Value('anonymous'),
+          serverId: Value('srv-inflight'),
+          clientRequestId: Value('req-old'),
+          syncStatus: Value(SyncStatus.submitting),
+          localVersion: Value(2),
+          serverVersion: Value(3),
+          serverUpdatedAt: Value('2026-07-28T03:00:00.000Z'),
+          retryCount: Value(0),
+          deleted: Value(false),
+          datetimeUtc: Value('2026-07-28T04:00:00.000Z'),
+          localDate: Value('2026-07-28'),
+          foodId: Value('f-rice'),
+          amountG: Value(100),
+          kcal: Value(116),
+          proteinG: Value(2.6),
+          carbG: Value(25.9),
+          fatG: Value(0.3),
+          source: Value(EntrySource.manual),
+          createdAtUtc: Value('2026-07-28T04:00:00.000Z'),
+          updatedAtUtc: Value('2026-07-28T04:10:00.000Z'),
+        ),
+      );
+      return (
+        repository: repository,
+        remote: controlled,
+        entry: (await db.foodEntryDao.getByLocalId('l-inflight'))!,
+      );
+    }
+
+    test('旧 ack 不标 synced 新编辑：保留新内容/新幂等键，采用新基线转 pending', () async {
+      final scenario = await inFlightScenario();
+      final push = scenario.repository.flushEntry(scenario.entry.localId);
+      await scenario.remote.started.future;
+      final edited = await scenario.repository.updateEntry(
+        scenario.entry.localId,
+        amountG: 200,
+      );
+      scenario.remote.firstOutcome.complete(
+        const PushAck(
+          serverId: 'srv-inflight',
+          serverVersion: 7,
+          serverUpdatedAtUtc: '2026-07-28T05:00:00.000Z',
+        ),
+      );
+      await push;
+
+      var current = (await db.foodEntryDao.getByLocalId(edited.localId))!;
+      expect(current.amountG, 200);
+      expect(current.syncStatus, SyncStatus.pending);
+      expect(current.clientRequestId, edited.clientRequestId);
+      expect(current.clientRequestId, isNot('req-old'));
+      expect(current.serverVersion, 7);
+      expect(current.serverUpdatedAt, '2026-07-28T05:00:00.000Z');
+
+      await scenario.repository.retryPending();
+      current = (await db.foodEntryDao.getByLocalId(edited.localId))!;
+      expect(current.syncStatus, SyncStatus.synced);
+      expect(
+        scenario.remote.pushed.last.clientRequestId,
+        edited.clientRequestId,
+      );
+      expect(scenario.remote.pushed.last.serverVersion, 7);
+    });
+
+    test('旧 reject 不删在途新编辑、不发旧失败事件：新内容转 pending 可重试', () async {
+      final scenario = await inFlightScenario();
+      final failures = <RecordSyncFailure>[];
+      final subscription = scenario.repository.failures.listen(failures.add);
+      addTearDown(subscription.cancel);
+      final push = scenario.repository.flushEntry(scenario.entry.localId);
+      await scenario.remote.started.future;
+      final edited = await scenario.repository.updateEntry(
+        scenario.entry.localId,
+        amountG: 200,
+      );
+      scenario.remote.firstOutcome.complete(
+        const PushReject('VALIDATION_ERROR'),
+      );
+      await push;
+
+      final current = (await db.foodEntryDao.getByLocalId(edited.localId))!;
+      expect(current.amountG, 200);
+      expect(current.syncStatus, SyncStatus.pending);
+      expect(current.clientRequestId, edited.clientRequestId);
+      expect(current.serverVersion, 3);
+      expect(current.lastError, isNull);
+      expect(failures, isEmpty);
+
+      await scenario.repository.retryPending();
+      expect(
+        scenario.remote.pushed.last.clientRequestId,
+        edited.clientRequestId,
+      );
+      expect(scenario.remote.pushed.last.serverVersion, 3);
+    });
+
+    test('旧 conflict 不覆盖在途新编辑：采用冲突新基线转 pending，后续 update 换新幂等键', () async {
+      final scenario = await inFlightScenario();
+      final push = scenario.repository.flushEntry(scenario.entry.localId);
+      await scenario.remote.started.future;
+      final edited = await scenario.repository.updateEntry(
+        scenario.entry.localId,
+        amountG: 200,
+      );
+      scenario.remote.firstOutcome.complete(
+        const PushConflict(
+          serverVersion: 9,
+          serverUpdatedAtUtc: '2026-07-28T06:00:00.000Z',
+        ),
+      );
+      await push;
+
+      final current = (await db.foodEntryDao.getByLocalId(edited.localId))!;
+      expect(current.amountG, 200);
+      expect(current.syncStatus, SyncStatus.pending);
+      expect(current.clientRequestId, edited.clientRequestId);
+      expect(current.clientRequestId, isNot('req-old'));
+      expect(current.serverVersion, 9);
+      expect(current.serverUpdatedAt, '2026-07-28T06:00:00.000Z');
+      expect(current.lastError, isNull);
+
+      await scenario.repository.retryPending();
+      expect(
+        scenario.remote.pushed.last.clientRequestId,
+        edited.clientRequestId,
+      );
+      expect(scenario.remote.pushed.last.serverVersion, 9);
+    });
+
+    test(
+      'delete 被 VALIDATION_ERROR 拒绝：保留 pending tombstone + lastError',
+      () async {
+        final scenario = await inFlightScenario();
+        await db.foodEntryDao.updateEntry(
+          scenario.entry.localId,
+          const FoodEntriesCompanion(syncStatus: Value(SyncStatus.synced)),
+        );
+        final repository = RecordRepository(
+          db: db,
+          remote: FakeRecordRemote(mode: FakeRemoteMode.reject),
+          location: location,
+        );
+        addTearDown(repository.dispose);
+
+        expect(await repository.deleteEntry(scenario.entry.localId), isTrue);
+
+        final current = (await db.foodEntryDao.getByLocalId(
+          scenario.entry.localId,
+        ))!;
+        expect(current.deleted, isTrue);
+        expect(current.syncStatus, SyncStatus.pending);
+        expect(current.lastError, 'VALIDATION_FAILED');
+      },
+    );
+  });
+}
+
+final class _ControlledRecordRemote implements RecordRemote {
+  final Completer<PushOutcome> firstOutcome = Completer<PushOutcome>();
+  final Completer<void> started = Completer<void>();
+  final List<FoodEntry> pushed = <FoodEntry>[];
+
+  @override
+  bool get isOnline => true;
+
+  @override
+  Future<PushOutcome> push(FoodEntry entry) {
+    pushed.add(entry);
+    if (pushed.length == 1) {
+      started.complete();
+      return firstOutcome.future;
+    }
+    return Future<PushOutcome>.value(
+      PushAck(
+        serverId: entry.serverId ?? 'srv-new',
+        serverVersion: (entry.serverVersion ?? 0) + 1,
+        serverUpdatedAtUtc: '2026-07-28T07:00:00.000Z',
+      ),
+    );
+  }
 }

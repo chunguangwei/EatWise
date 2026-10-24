@@ -129,6 +129,13 @@ class Foods extends Table {
   /// 是否用户自定义食物（K2 个人库；搜索结果带「自定义」标签）。
   BoolColumn get isCustom => boolean().withDefault(const Constant(false))();
 
+  /// 个人食物归属账号；共享食物恒为 null。旧库个人行也为 null，
+  /// 升级时不删数据，由首次登录同步确定性认领。
+  TextColumn get ownerUserId => text().nullable()();
+
+  /// 个人食物来源（manual / llm-estimate），离线重试与下行均保留。
+  TextColumn get source => text().withDefault(const Constant('manual'))();
+
   /// 自定义食物待上行标记（离线保存为 true，上行 /foods/custom 成功转 false）。
   BoolColumn get customSyncPending =>
       boolean().withDefault(const Constant(false))();
@@ -205,6 +212,9 @@ class FastingRecords extends Table {
   /// 本地 tombstone（/sync delete op 待上行标记；v13 起预留，当前无 UI 触发）。
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
+  /// 最近一次上行失败原因；暂态失败保留 pending 待重试。
+  TextColumn get lastError => text().nullable()();
+
   /// 本地创建时间（UTC ISO8601）。
   TextColumn get createdAtUtc => text()();
 
@@ -250,6 +260,9 @@ class WaterLogs extends Table {
 
   /// 本地 tombstone：已上行记录的撤销标记（上行 delete op 后物理清除）。
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  /// 最近一次上行失败原因；删除被拒绝时 tombstone 继续保留。
+  TextColumn get lastError => text().nullable()();
 
   /// 本地创建时间（UTC ISO8601）。
   TextColumn get createdAtUtc => text()();
@@ -311,6 +324,9 @@ class ExerciseLogs extends Table {
 
   /// 本地 tombstone：已上行记录的撤销/删除标记（上行 delete op 后物理清除）。
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  /// 最近一次上行失败原因；删除被拒绝时 tombstone 继续保留。
+  TextColumn get lastError => text().nullable()();
 
   /// 本地创建时间（UTC ISO8601）。
   TextColumn get createdAtUtc => text()();

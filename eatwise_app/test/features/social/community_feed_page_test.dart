@@ -1,4 +1,5 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/social/application/feed_controller.dart';
 import 'package:eatwise/features/social/data/social_api.dart';
@@ -75,7 +76,15 @@ void main() {
     await pumpFeed(tester);
     expect(find.text('这里在等今天第一口美食登场。'), findsOneWidget);
     expect(find.text('发布打卡'), findsOneWidget);
-    expect(find.byType(FloatingActionButton), findsOneWidget);
+    final fab = tester.widget<FloatingActionButton>(
+      find.byType(FloatingActionButton),
+    );
+    expect(fab.backgroundColor, AppColors.light.actionPrimary);
+    expect(fab.foregroundColor, AppColors.light.onActionPrimary);
+    expect(
+      tester.widget<Icon>(find.byIcon(Icons.add)).color,
+      AppColors.light.onActionPrimary,
+    );
     await unmount(tester);
   });
 
@@ -113,19 +122,37 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('点赞按钮：点击 +1 再点 -1（乐观更新 UI）', (tester) async {
+  testWidgets('点赞按钮：空心/实心状态、语义、44px 触控与乐观计数', (tester) async {
     api.posts = <ServerPost>[stubPost(id: 'p1', likeCount: 4)];
     await pumpFeed(tester);
 
-    await tester.tap(find.byIcon(Icons.favorite_rounded));
+    final unlikedIcon = find.byIcon(Icons.favorite_border_rounded);
+    expect(unlikedIcon, findsOneWidget);
+    expect(find.byIcon(Icons.favorite_rounded), findsNothing);
+    final unlikedSemantics = tester
+        .widgetList<Semantics>(find.byType(Semantics))
+        .singleWhere((semantics) => semantics.properties.label == '点赞');
+    expect(unlikedSemantics.properties.selected, isFalse);
+    final likeTarget = find
+        .ancestor(of: unlikedIcon, matching: find.byType(InkWell))
+        .first;
+    expect(tester.getSize(likeTarget).width, greaterThanOrEqualTo(44));
+    expect(tester.getSize(likeTarget).height, greaterThanOrEqualTo(44));
+
+    await tester.tap(unlikedIcon);
     await tester.pump();
     expect(find.text('5'), findsOneWidget);
     expect(find.byIcon(Icons.favorite), findsOneWidget);
+    final likedSemantics = tester
+        .widgetList<Semantics>(find.byType(Semantics))
+        .singleWhere((semantics) => semantics.properties.label == '点赞');
+    expect(likedSemantics.properties.selected, isTrue);
     await tester.pump(const Duration(milliseconds: 50));
 
     await tester.tap(find.byIcon(Icons.favorite));
     await tester.pump();
     expect(find.text('4'), findsOneWidget);
+    expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
     await unmount(tester);
   });
 
@@ -166,6 +193,11 @@ void main() {
     await pumpFeed(tester);
 
     expect(find.text('展开'), findsOneWidget);
+    final toggleTarget = find
+        .ancestor(of: find.text('展开'), matching: find.byType(InkWell))
+        .first;
+    expect(tester.getSize(toggleTarget).width, greaterThanOrEqualTo(44));
+    expect(tester.getSize(toggleTarget).height, greaterThanOrEqualTo(44));
     await tester.tap(find.text('展开'));
     await tester.pump();
     expect(find.text('收起'), findsOneWidget);
@@ -331,6 +363,23 @@ void main() {
       ),
       findsOneWidget, // a2 的爱心预设头像（与点赞图标不重合）
     );
+    for (final icon in <IconData>[
+      Icons.local_fire_department_rounded,
+      Icons.volunteer_activism,
+    ]) {
+      final avatar = tester.widget<CircleAvatar>(
+        find
+            .ancestor(
+              of: find.byIcon(icon),
+              matching: find.byType(CircleAvatar),
+            )
+            .first,
+      );
+      expect(
+        tester.widget<Icon>(find.byIcon(icon)).color,
+        readableForeground(avatar.backgroundColor!),
+      );
+    }
     await unmount(tester);
   });
 

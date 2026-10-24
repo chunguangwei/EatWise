@@ -106,6 +106,7 @@ class ArcGauge extends StatelessWidget {
                 radius: _radiusOf(i),
                 angle: startRad + sweepRad * arcs[i].progress.clamp(0.0, 1.0),
                 diameter: strokeWidth,
+                foreground: readableForeground(arcs[i].color),
               ),
           ?center,
         ],
@@ -119,7 +120,6 @@ class ArcGauge extends StatelessWidget {
   }
 }
 
-/// 进度端圆头内的白色小图标。
 class _EndCapIcon extends StatelessWidget {
   const _EndCapIcon({
     required this.icon,
@@ -127,6 +127,7 @@ class _EndCapIcon extends StatelessWidget {
     required this.radius,
     required this.angle,
     required this.diameter,
+    required this.foreground,
   });
 
   final IconData icon;
@@ -134,6 +135,7 @@ class _EndCapIcon extends StatelessWidget {
   final double radius;
   final double angle;
   final double diameter;
+  final Color foreground;
 
   @override
   Widget build(BuildContext context) {
@@ -141,7 +143,7 @@ class _EndCapIcon extends StatelessWidget {
     final dy = math.sin(angle) * radius;
     return Transform.translate(
       offset: Offset(dx, dy),
-      child: Icon(icon, size: diameter * 0.62, color: Colors.white),
+      child: Icon(icon, size: diameter * 0.62, color: foreground),
     );
   }
 }
@@ -186,26 +188,6 @@ class _ArcGaugePainter extends CustomPainter {
 
       final progress = spec.progress.clamp(0.0, 1.0);
       if (progress <= 0) continue;
-      // 液态玻璃光泽（v1.17.0）：① 柔光晕（弧下叠一层模糊放大版，模拟
-      // 玻璃透光）；② 弧体改扫掠渐变（起点受光提亮 → 基色 → 端点微亮），
-      // 让平面色弧有明暗流动。track 段保持纯色不参与光泽。
-      final sweepColors = <Color>[
-        _brighten(spec.color, 0.22),
-        spec.color,
-        _brighten(spec.color, 0.06),
-      ];
-      canvas.drawArc(
-        arcRect,
-        startRad,
-        sweepRad * progress,
-        false,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = strokeWidth + 2
-          ..strokeCap = StrokeCap.round
-          ..color = spec.color.withValues(alpha: 0.30)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
-      );
       canvas.drawArc(
         arcRect,
         startRad,
@@ -215,22 +197,9 @@ class _ArcGaugePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = strokeWidth
           ..strokeCap = StrokeCap.round
-          ..shader = SweepGradient(
-            startAngle: 0,
-            endAngle: sweepRad * progress,
-            colors: sweepColors,
-            transform: GradientRotation(startRad),
-          ).createShader(arcRect),
+          ..color = spec.color,
       );
     }
-  }
-
-  /// 提亮（HSL 亮度上浮，封顶 1.0）。
-  static Color _brighten(Color color, double amount) {
-    final hsl = HSLColor.fromColor(color);
-    return hsl
-        .withLightness((hsl.lightness + amount).clamp(0.0, 1.0))
-        .toColor();
   }
 
   @override

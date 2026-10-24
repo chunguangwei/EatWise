@@ -23,8 +23,8 @@ import 'package:timezone/timezone.dart' as tz;
 /// plan JSON（存在即脏）；fire-and-forget 尝试一次 PUT，失败保留脏标记，
 /// 由 RecordSyncEngine 开头的 flush 重试（登录态下行 PUT 成功后
 /// 清脏）。匿名期写入的脏方案在登录后的首轮同步迁移到真实 userId 再上行
-/// （与运动/体重 pending「登录成功触发上行」同口径）。服务端生效语义
-/// （首方案立即/改动次日 0 点，D-06）由服务端判定，客户端只管幂等 PUT。
+/// （与运动/体重 pending「登录成功触发上行」同口径）。服务端现行语义为
+/// 最后写入胜并即刻 current；本机 pending 仅作旧流程兼容，客户端只管幂等 PUT。
 ///
 /// 另有两条从属链路共用本类的 prefs 命名空间与同步时机：
 /// - [pull]：方案下行回填（重装/换机，登录成功/恢复会话时触发）；
@@ -115,11 +115,11 @@ class FastingPlanSync {
   /// - **本地脏方案优先**：本机/匿名命名空间有未上行脏标记时直接返回
   ///   （防覆盖匿名期/离线期未 flush 的选择——此时连 GET 都不发）；
   /// - 本地无方案：回填服务端方案并放行引导（原语义）；
-  /// - 本地有方案：服务端无真实方案行（虚拟 default，updatedAt=null）、
-  ///   服务端 updatedAt 不新于本地快照、或窗口一致（sameWindow）→ 不动；
-  /// - 服务端更新且窗口不同（他端写过方案）→ **即刻采纳替换本地方案**
-  ///   （旧语义登记次日 pendingPlan：两台活跃设备互判「服务端更新」会
-  ///   永久 ping-pong——wcg 断签根因，双端 fasting_plans 每日交替上传）。
+  /// - 本地有方案：服务端无真实方案行（虚拟 default，updatedAt=null）或
+  ///   窗口一致（sameWindow）→ 不动；
+  /// - 服务端窗口不同 → **即刻采纳替换本地方案**，不比较服务端 updatedAt
+  ///   与本地设备 startedAtUtc（设备时钟可快可慢，不能阻断 current 收敛；
+  ///   旧语义登记次日 pendingPlan 会让双活跃设备永久 ping-pong）。
   ///   进行中周期锚点冻结由计时主控保证（新方案只作用于下一周期，
   ///   D-06「当日已记录数据不回算」精神保留）；本地已登记的 pendingPlan
   ///   （T12 次日生效）被服务端 LWW 取代，一并清除。
@@ -136,12 +136,11 @@ class FastingPlanSync {
     }
     try {
       final remote = await api.fetchCurrentPlanMeta();
-      if (remote == null) return;
+      if (remote == null || userId() != uid) return;
       final local = store.loadActivePlan();
       if (local != null) {
         final serverUpdatedAtSec = remote.serverUpdatedAtSec;
         if (serverUpdatedAtSec == null) return; // 服务端无真实方案行
-        if (serverUpdatedAtSec <= local.startedAtUtc) return; // 本地不旧
         if (sameWindow(
           remote.plan.eatStartMinutes,
           remote.plan.eatEndMinutes,
@@ -169,8 +168,7 @@ class FastingPlanSync {
         return;
       }
       // 回填（重装/换机）：本机没有「更新的选择」，不再 markDirtyAndTryFlush。
-      // startedAtUtc 与服务端 updatedAt 对齐，供后续收敛比较（虚拟兜底行
-      // updatedAt=null 时退回本机时钟）。
+      // startedAtUtc 保留服务端元数据作快照信息，不再参与下行新旧比较。
       final now = nowUtc();
       final snapshot = resolveState(now, remote.plan, location());
       store.saveActivePlan(

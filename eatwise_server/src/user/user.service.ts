@@ -1,10 +1,16 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { err } from '../common/errors/business.exception';
-import { UserEntity } from '../common/store/data-store';
+import { CustomFoodEntity, FoodCandidateEntity, UserEntity } from '../common/store/data-store';
 import { STORE_DRIVER, StoreDriver, UserDataExport } from '../common/store/store-driver';
 import { maskPhone } from '../common/utils/phone.util';
 import { computeTargets } from '../nutrition/nutrition.rules';
 import { PatchUserDto } from './user.dto';
+
+export type UserDataExportResult = Omit<UserDataExport, 'profile'> & {
+  profile: Omit<UserEntity, 'passwordHash'>;
+  customFoods: CustomFoodEntity[];
+  foodCandidates: FoodCandidateEntity[];
+};
 
 const DELETION_COOLING_OFF_DAYS = 7; // 删除冷静期 7 天〔假设，待法务确认 D-18 / 合规 §4.3〕
 
@@ -40,45 +46,52 @@ export class UserService {
 
   /** U2 修改资料：字段级 LWW（服务端 updatedAt 仲裁，无 409），触发营养目标重算（D-04） */
   async patchMe(userId: string, body: PatchUserDto) {
-    const existing = await this.mustGet(userId);
-    const patch: Record<string, unknown> = {};
-    for (const key of PATCHABLE) {
-      if (body[key] !== undefined) patch[key] = body[key];
-    }
-    // targetDate 只存日期口径：DTO 收 YYYY-MM-DD 字符串，落库前归一化为 UTC 零点
-    // （null 透传 = 清空目标）。
-    if (typeof patch['targetDate'] === 'string') {
-      patch['targetDate'] = new Date(`${patch['targetDate']}T00:00:00.000Z`);
-    }
-    // settingsPrefs 键级合并（2026-09-29 拍板，替代整包 LWW 替换）：上行包
-    // 的键覆盖服务端同键，未上行的键保留——双端各改不同键不再互相覆盖
-    // （旧端整包推送天然兼容：它上行的就是它掌握的全部键）。键集合只增，
-    // 不提供删键语义。
-    // LWW 时间戳由服务端时钟统一打（忽略客户端自报值）：各端设备墙钟有偏差，
-    // 超前设备的旧偏好会永久压制他端改动（走查 L6）。
-    if (patch['settingsPrefs'] && typeof patch['settingsPrefs'] === 'object') {
-      const current = (existing.settingsPrefs ?? {}) as Record<string, unknown>;
-      patch['settingsPrefs'] = {
-        ...current,
-        ...(patch['settingsPrefs'] as Record<string, unknown>),
-        syncedAt: new Date().toISOString(),
-      };
-    }
-    // version+1 / updatedAt=服务端时钟 由驱动赋值（客户端传入的 updatedAt 忽略，防腐层）
-    const user = await this.driver.updateUserProfile(userId, patch);
-    return { user: this.userView(user), nutritionTargets: computeTargets(user) };
+    return this.driver.runInTransaction([`user:${userId}`], async (tx) => {
+      const existing = await this.mustGet(userId, tx);
+      const patch: Record<string, unknown> = {};
+      for (const key of PATCHABLE) {
+        if (body[key] !== undefined) patch[key] = body[key];
+      }
+      // targetDate 只存日期口径：DTO 收 YYYY-MM-DD 字符串，落库前归一化为 UTC 零点
+      // （null 透传 = 清空目标）。
+      if (typeof patch['targetDate'] === 'string') {
+        patch['targetDate'] = new Date(`${patch['targetDate']}T00:00:00.000Z`);
+      }
+      // settingsPrefs 键级合并（2026-09-29 拍板，替代整包 LWW 替换）：上行包
+      // 的键覆盖服务端同键，未上行的键保留——双端各改不同键不再互相覆盖
+      // （旧端整包推送天然兼容：它上行的就是它掌握的全部键）。键集合只增，
+      // 不提供删键语义。读取-合并-写回与并发 PATCH 经用户锁串行化。
+      // LWW 时间戳由服务端时钟统一打（忽略客户端自报值）：各端设备墙钟有偏差，
+      // 超前设备的旧偏好会永久压制他端改动（走查 L6）。
+      if (patch['settingsPrefs'] && typeof patch['settingsPrefs'] === 'object') {
+        const current = (existing.settingsPrefs ?? {}) as Record<string, unknown>;
+        patch['settingsPrefs'] = {
+          ...current,
+          ...(patch['settingsPrefs'] as Record<string, unknown>),
+          syncedAt: new Date().toISOString(),
+        };
+      }
+      // version+1 / updatedAt=服务端时钟 由驱动赋值（客户端传入的 updatedAt 忽略，防腐层）
+      const user = await tx.updateUserProfile(userId, patch);
+      return { user: this.userView(user), nutritionTargets: computeTargets(user) };
+    });
   }
 
   /**
-   * U3 数据导出（合规 §4.2 查阅复制权，D-18）：聚合该用户全量个人数据
-   *（Profile/FoodEntry/FastingPlan/FastingRecord/Streak/Post）返回 JSON。
-   * 只读操作，天然幂等；导出包内含明文手机号（本人数据，PIPL §44/45）。
+   * U3 数据导出（合规 §4.2 查阅复制权，D-18）：只读聚合本人数据。
+   * 手机号按本人权利导出；密码哈希等认证材料永不进入导出包。
    */
-  async exportMe(userId: string): Promise<UserDataExport> {
+  async exportMe(userId: string): Promise<UserDataExportResult> {
     await this.mustGet(userId);
-    const bundle = await this.driver.collectUserExport(userId);
+    const [bundle, customFoods, foodCandidates] = await Promise.all([
+      this.driver.collectUserExport(userId),
+      this.driver.findCustomFoodsByUser(userId),
+      this.driver.findFoodCandidatesByUser(userId),
+    ]);
     if (!bundle) throw err.notFound();
-    return bundle;
+    const { passwordHash, ...profile } = bundle.profile;
+    void passwordHash;
+    return { ...bundle, profile, customFoods, foodCandidates };
   }
 
   /**
@@ -163,8 +176,8 @@ export class UserService {
     };
   }
 
-  private async mustGet(userId: string): Promise<UserEntity> {
-    const user = await this.driver.findUserById(userId);
+  private async mustGet(userId: string, driver: StoreDriver = this.driver): Promise<UserEntity> {
+    const user = await driver.findUserById(userId);
     if (!user || user.deletedAt) throw err.notFound();
     return user;
   }

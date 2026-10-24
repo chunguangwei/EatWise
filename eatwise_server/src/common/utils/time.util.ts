@@ -9,7 +9,9 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export function isValidDateStr(s: string): boolean {
-  return DATE_RE.test(s) && !Number.isNaN(Date.parse(`${s}T00:00:00.000Z`));
+  if (!DATE_RE.test(s)) return false;
+  const parsed = new Date(`${s}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === s;
 }
 
 export function isValidTimeStr(s: string): boolean {

@@ -99,6 +99,7 @@ void main() {
     carbPer100g: 1.8,
     fatPer100g: 40.2,
     isCustom: false,
+    source: 'manual',
     customSyncPending: false,
     customClientRequestId: '',
     customSyncFailCount: 0,

@@ -1,16 +1,22 @@
 import XCTest
 
-/// 远程点屏驱动：轮询 Mac 上的 cmd.json，把命令翻译成 XCUITest 动作，
-/// 用于 devicectl 截屏 + 命令行驱动的真机 UI 走查（可点自家 App 与第三方 App）。
+/// 远程点屏驱动：轮询 Mac 上的 cmd.json，把命令翻译成 XCUITest 动作。
+/// 模拟器固定走宿主机 127.0.0.1；真机可用 UI_DRIVER_URL 覆盖命令服务地址。
+/// 支持 App、SpringBoard 权限弹窗及第三方 App，供命令行 UI 走查使用。
 final class RunnerUITests: XCTestCase {
 
-    private let commandURL = URL(string: "http://172.23.28.168:8899/cmd.json")!
+    #if targetEnvironment(simulator)
+    private let commandURL = URL(string: "http://127.0.0.1:8899/cmd.json")!
+    #else
+    private let commandURL = URL(string: ProcessInfo.processInfo.environment["UI_DRIVER_URL"] ?? "http://172.23.28.168:8899/cmd.json")!
+    #endif
     private let bundleIds: [String: String] = [
         "eatwise": "com.jingchang.eatwise",
         "boohee": "com.boohee.food",
     ]
 
     func testRemoteDriver() {
+        NSLog("[ui-driver] commandURL=%@", commandURL.absoluteString)
         let deadline = Date().addingTimeInterval(25 * 60)
         var lastSeq = 0
 
@@ -77,21 +83,40 @@ final class RunnerUITests: XCTestCase {
                 break
             }
             NSLog("[ui-driver] tapLabel: looking for '%@'", label)
+            let alertButton = app.alerts.buttons[label].firstMatch
+            if alertButton.waitForExistence(timeout: 10) {
+                NSLog("[ui-driver] tapLabel: found app alert button, tapped '%@'", label)
+                alertButton.tap()
+                break
+            }
+            let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+            let systemAlertButton = springboard.alerts.buttons[label].firstMatch
+            if systemAlertButton.waitForExistence(timeout: 10) {
+                NSLog("[ui-driver] tapLabel: found SpringBoard alert button, tapped '%@'", label)
+                systemAlertButton.tap()
+                break
+            }
+            let systemButton = springboard.buttons[label].firstMatch
+            if systemButton.waitForExistence(timeout: 10) {
+                NSLog("[ui-driver] tapLabel: found SpringBoard button, tapped '%@'", label)
+                systemButton.tap()
+                break
+            }
             let predicate = NSPredicate(format: "label CONTAINS[c] %@ OR value CONTAINS[c] %@", label, label)
             let fuzzy = app.descendants(matching: .any).matching(predicate).firstMatch
-            if fuzzy.waitForExistence(timeout: 2) {
+            if fuzzy.waitForExistence(timeout: 5) {
                 NSLog("[ui-driver] tapLabel: found (fuzzy), tapped '%@'", label)
                 fuzzy.tap()
                 break
             }
             let exactStatic = app.staticTexts[label].firstMatch
-            if exactStatic.waitForExistence(timeout: 2) {
+            if exactStatic.waitForExistence(timeout: 5) {
                 NSLog("[ui-driver] tapLabel: found (staticText exact), tapped '%@'", label)
                 exactStatic.tap()
                 break
             }
             let exactButton = app.buttons[label].firstMatch
-            if exactButton.waitForExistence(timeout: 2) {
+            if exactButton.waitForExistence(timeout: 5) {
                 NSLog("[ui-driver] tapLabel: found (button exact), tapped '%@'", label)
                 exactButton.tap()
                 break
@@ -106,14 +131,14 @@ final class RunnerUITests: XCTestCase {
             }
             let field = app.textFields.element(boundBy: 0)
             let search = app.searchFields.element(boundBy: 0)
-            if search.waitForExistence(timeout: 2) {
+            if search.waitForExistence(timeout: 5) {
                 if !search.hasFocus {
                     search.tap()
                     Thread.sleep(forTimeInterval: 0.5)
                 }
                 search.typeText(text)
                 NSLog("[ui-driver] type: typed into searchField '%@'", text)
-            } else if field.waitForExistence(timeout: 2) {
+            } else if field.waitForExistence(timeout: 5) {
                 if !field.hasFocus {
                     field.tap()
                     Thread.sleep(forTimeInterval: 0.5)

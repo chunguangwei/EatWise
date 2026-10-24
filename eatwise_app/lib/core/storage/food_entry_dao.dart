@@ -84,10 +84,19 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
 
   /// 用户删除：软删为 tombstone（已上行行的删除须以 delete op 上行，
   /// 服务端软删后下行同步到其他设备；未上行的撤销走 [deleteEntry]）。
-  Future<void> tombstoneEntry(String localId, String updatedAtUtc) {
+  Future<void> tombstoneEntry(
+    String localId,
+    String updatedAtUtc, {
+    required String clientRequestId,
+    required int localVersion,
+  }) {
     return (update(foodEntries)..where((e) => e.localId.equals(localId))).write(
       FoodEntriesCompanion(
         deleted: const Value(true),
+        clientRequestId: Value(clientRequestId),
+        localVersion: Value(localVersion),
+        syncStatus: const Value(SyncStatus.pending),
+        lastError: const Value(null),
         updatedAtUtc: Value(updatedAtUtc),
       ),
     );

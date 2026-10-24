@@ -98,7 +98,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                         avatar?.icon ?? Icons.person_rounded,
                         color: avatar == null
                             ? colors.brandPrimary
-                            : Colors.white,
+                            : readableForeground(avatar.background),
                       ),
                     );
                   },
@@ -213,6 +213,7 @@ class _PostCardState extends ConsumerState<PostCard> {
               children: <Widget>[
                 Semantics(
                   button: true,
+                  selected: post.likedByMe,
                   label: t.social.feed.like,
                   child: InkWell(
                     onTap: item.pendingSync
@@ -221,14 +222,22 @@ class _PostCardState extends ConsumerState<PostCard> {
                               .read(feedControllerProvider.notifier)
                               .toggleLike(post.id),
                     borderRadius: radii.rLg,
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.s2),
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minWidth: 44,
+                        minHeight: 44,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.s2,
+                      ),
+                      alignment: Alignment.centerLeft,
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
                           Icon(
                             post.likedByMe
                                 ? Icons.favorite
-                                : Icons.favorite_rounded,
+                                : Icons.favorite_border_rounded,
                             size: 22,
                             color: post.likedByMe
                                 ? colors.signalRed
@@ -430,10 +439,15 @@ class _CollapsibleText extends StatelessWidget {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: onToggle,
-                  child: Padding(
+                  child: Container(
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 44,
+                    ),
                     padding: const EdgeInsets.symmetric(
                       vertical: AppSpacing.s1,
                     ),
+                    alignment: Alignment.centerLeft,
                     child: Text(
                       expanded ? collapseLabel : expandLabel,
                       style: style.copyWith(color: linkColor),

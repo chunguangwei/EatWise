@@ -10,7 +10,7 @@ import 'package:eatwise/core/storage/database.dart';
 /// 合入本地缓存（FoodDao.upsertAll），返回「本地命中在前 + 远端补充」
 /// 的并集；远端失败（离线/未登录/5xx）静默降级为纯本地结果。
 final class RemoteFoodSearch {
-  RemoteFoodSearch({required this.dio, required this.db});
+  RemoteFoodSearch({required this.dio, required this.db, required this.userId});
 
   /// 已装配 dio。
   final Dio dio;
@@ -18,9 +18,16 @@ final class RemoteFoodSearch {
   /// 本地库。
   final AppDatabase db;
 
+  /// 当前账号；共享食物对所有账号可见，个人食物仅归属账号可见。
+  final String userId;
+
   /// 搜索（本地优先，远端补充合入本地缓存）。
   Future<List<Food>> search(String query, {int limit = 20}) async {
-    final local = await db.foodDao.searchFoods(query, limit: limit);
+    final local = await db.foodDao.searchFoods(
+      query,
+      limit: limit,
+      ownerUserId: userId,
+    );
     List<Map<String, dynamic>> remoteItems;
     try {
       final response = await dio.get<Map<String, dynamic>>(
@@ -80,6 +87,8 @@ final class RemoteFoodSearch {
       fatPer100g: Value((item['fatPer100g'] as num?)?.toDouble() ?? 0),
       // K1 搜索结果标注 isCustom（个人库排内置后）；缓存保留标记供「自定义」标签。
       isCustom: Value(item['isCustom'] == true),
+      ownerUserId: Value(item['isCustom'] == true ? userId : null),
+      source: Value(item['source'] as String? ?? 'manual'),
       // 社区共享食物下行标记 approved（「社区」标签）；非社区项不动本地
       // 贡献状态（保存/贡献时写入的 pending/rejected 不被下行覆盖）〔假设：
       // 服务端无按 id 批量查候选状态端点，以本地写入 + 本处下行标记为准〕。

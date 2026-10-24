@@ -52,6 +52,11 @@ ExerciseType? exerciseTypeByKey(String key) {
 /// 档案未填体重时的估算兜底体重（kg，中性值；UI 须标注「按 60kg 估算」）。
 const double defaultExerciseWeightKg = 60;
 
+/// 手动录入与截图确认共用的写入上限（与服务端 ExerciseLogPayloadDto 一致）。
+const int maxExerciseDurationMin = 1440;
+const double maxExerciseKcal = 10000;
+const int maxExerciseSteps = 200000;
+
 /// MET 估算消耗（kcal）：MET × 体重 kg × 时长小时（标准公式〔待营养背书〕）。
 ///
 /// [weightKg] 传档案体重；缺省（档案未填）由调用方传 [defaultExerciseWeightKg]

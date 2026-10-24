@@ -52,6 +52,7 @@ final notificationPermissionStatusProvider =
 /// 随之刷新（onboardingStoreProvider 是存储句柄，watch 它不随键值写入重建）。
 final pendingPlanProvider = Provider<PendingPlan?>((ref) {
   ref.watch(planVersionProvider);
+  ref.watch(currentUserIdProvider);
   return ref.read(onboardingStoreProvider).loadPendingPlan();
 });
 
@@ -75,6 +76,7 @@ final fastingNotificationSchedulerProvider =
 final fastingCycleStoreProvider = Provider<FastingCycleStore>((ref) {
   return SharedPreferencesFastingCycleStore(
     ref.watch(sharedPreferencesProvider),
+    userId: () => ref.read(currentUserIdProvider),
   );
 });
 
@@ -174,6 +176,7 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
           plan: plan,
           activeCycle: _store.loadActiveCycle(),
           earlyEatEndUtc: _store.loadEarlyEatEndUtc(),
+          lastClosedCycleId: _store.loadLastClosedCycleId(),
           nowUtcSec: _now(),
           location: _location,
         );
@@ -184,8 +187,10 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
   @override
   FastingTimerState build() {
     // 方案写入信号量：一键启动/换方案登记时 +1（onboardingStoreProvider 是
-    // 普通 Provider，watch 它不会因键值写入触发重建）。
+    // 普通 Provider，watch 它不会因键值写入触发重建）。uid 变化也必须重建，
+    // 防止上一账号的周期/方案留在新会话。
     ref.watch(planVersionProvider);
+    ref.watch(currentUserIdProvider);
     final onboardStore = ref.read(onboardingStoreProvider);
     // T13 兜底转正（§4.1）：pendingPlan 到点（本地 0:00 已过）先生效再读
     // 方案，覆盖杀进程后首开 / 0:00 后首次 build 的场景。
@@ -224,13 +229,15 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
         plan: plan,
         location: _location,
       );
-      _store.clearActiveCycle();
-      final closed = result.closedRecords.isEmpty
+      final firstClose = _markCycleClosed(stored.toCycle());
+      final closed = !firstClose || result.closedRecords.isEmpty
           ? null
           : result.closedRecords.last;
-      // 重启恢复补关闭的周期：逐条触发 streak 接线（落库/推演/上行）。
-      for (final record in result.closedRecords) {
-        _emitClosed(record, plan);
+      // 已有关闭墓碑的恢复分支只清残留活动快照，不重复 streak/庆祝。
+      if (firstClose) {
+        for (final record in result.closedRecords) {
+          _emitClosed(record, plan);
+        }
       }
       _syncWidget(plan);
       return _resolve(
@@ -293,7 +300,7 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
   }
 
   /// 用户主动「立即应用」待生效方案（走查：不想等次日 0:00）。
-  /// 口径与 T13 转正一致（进行中周期作废）；planVersion++ 驱动
+  /// 口径与 T13 转正一致（进行中周期保留冻结锚点）；planVersion++ 驱动
   /// 计时主控与横幅重建。
   void applyPendingPlanNow() {
     final onboardStore = ref.read(onboardingStoreProvider);
@@ -332,8 +339,8 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     // 提前破窗覆盖（T3/T4/T9：以实际破窗时刻作为进食窗口起点，当日进食
     // 结束锚点不后移〔假设〕）。resolveState 只按计划锚点落点，会把
     // 「提前破窗后、计划进食开始前」的区间误判回 fasting，这里按持久化的
-    // 破窗覆盖改判 EATING，倒计时 = 距当日进食窗口结束；回到计划轨道
-    // （now 越过结束锚点，新周期已由锚点推导）后清除覆盖。
+    // 破窗覆盖改判 EATING，倒计时 = 距当日进食窗口结束；越过结束锚点后
+    // 清除覆盖，同一已关闭周期由下方墓碑检查阻止复活。
     final earlyEatEnd = _store.loadEarlyEatEndUtc();
     if (earlyEatEnd != null) {
       if (snapshot.nowUtc < earlyEatEnd) {
@@ -352,11 +359,19 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
       }
     }
 
-    // 锚点冻结：进行中周期（含延长还原）恒以持久化版本为准，与
-    // resolveState 按当前方案算出的周期无关。已过期（plannedEndUtc 已过）
-    // 的 stored cycle 不在此还原——由 build()/tick 的补关闭路径结算。
+    // 关闭墓碑优先于锚点冻结：崩溃残留的 activeCycle 或按计划重新推导出的
+    // 同一周期都不得复活。未关闭的进行中周期仍以持久化锚点为准。
+    final lastClosedCycleId = _store.loadLastClosedCycleId();
     final stored = _store.loadActiveCycle();
-    if (stored != null && effective.nowUtc < stored.plannedEndUtc) {
+    if (stored != null && stored.stableId == lastClosedCycleId) {
+      _store.clearActiveCycle();
+      effective = FastingSnapshot(
+        state: FastingState.eating,
+        nowUtc: effective.nowUtc,
+        targetUtc: effective.targetUtc,
+        attributionPreview: effective.attributionPreview,
+      );
+    } else if (stored != null && effective.nowUtc < stored.plannedEndUtc) {
       final restored = stored.toCycle();
       effective = FastingSnapshot(
         state: restored.state,
@@ -366,14 +381,19 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
         attributionPreview: effective.attributionPreview,
       );
     } else if (stored == null && effective.cycle != null) {
-      // 首次观察到进行中周期即落盘冻结锚点（2026-10-01 真机走查「调整断食
-      // 时间后首页断食不持续」根因）：此前只在「延长」时落盘，普通进行中
-      // 周期完全由当前方案推导——方案变更（换方案上行后 pull 即刻采纳 /
-      // T13 转正 / 立即应用）即重算锚点，把真实进行中的断食无声抹掉；
-      // 且杀进程跨过终点时 build 补关闭路径无 stored 可结算，本地连记录
-      // 都不落（只靠服务端 ghost 兜底）。落盘后上方冻结分支接管，新方案
-      // 只作用于下一周期（D-06 精神不变）。
-      _store.saveActiveCycle(ActiveCycleSnapshot.fromCycle(effective.cycle!));
+      final derived = effective.cycle!;
+      if (ActiveCycleSnapshot.fromCycle(derived).stableId ==
+          lastClosedCycleId) {
+        effective = FastingSnapshot(
+          state: FastingState.eating,
+          nowUtc: effective.nowUtc,
+          targetUtc: effective.targetUtc,
+          attributionPreview: effective.attributionPreview,
+        );
+      } else {
+        // 首次观察到进行中周期即落盘冻结锚点；方案变更只作用于下一周期。
+        _store.saveActiveCycle(ActiveCycleSnapshot.fromCycle(derived));
+      }
     }
     return FastingTimerState(
       plan: plan,
@@ -402,24 +422,26 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     final cycle = state.cycle;
     if (cycle != null && now >= cycle.plannedEndUtc) {
       final record = completeCycleOnTime(cycle, _location);
-      _store.clearActiveCycle();
-      _emitClosed(record, plan);
-      // 状态机迁移埋点（§3.2：自动到点 fasting→eating）。
-      _analytics.track(
-        'fasting_state_change',
-        properties: <String, Object?>{
-          'from_state': 'fasting',
-          'to_state': 'eating',
-          'trigger': 'auto',
-          'attribute_date': record.date,
-        },
-      );
-      _reschedule(plan, 0, RescheduleReason.stateTransition);
+      final firstClose = _markCycleClosed(cycle);
+      if (firstClose) {
+        _emitClosed(record, plan);
+        // 状态机迁移埋点（§3.2：自动到点 fasting→eating）。
+        _analytics.track(
+          'fasting_state_change',
+          properties: <String, Object?>{
+            'from_state': 'fasting',
+            'to_state': 'eating',
+            'trigger': 'auto',
+            'attribute_date': record.date,
+          },
+        );
+        _reschedule(plan, 0, RescheduleReason.stateTransition);
+      }
       state = _resolve(
         plan,
         resolveState(now, plan, _location),
-        celebrating: record.qualified,
-        lastClosed: record,
+        celebrating: firstClose && record.qualified,
+        lastClosed: firstClose ? record : state.lastClosedRecord,
       );
       _syncWidget(plan);
       return;
@@ -477,6 +499,14 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     final now = _now();
     _analytics.track('fasting_end_confirm', properties: _endFastProps());
     final record = manualEndFast(cycle, now, _location);
+    if (!_markCycleClosed(cycle)) {
+      state = _resolve(
+        plan,
+        resolveState(now, plan, _location),
+        lastClosed: state.lastClosedRecord,
+      );
+      return;
+    }
     _analytics.track(
       'fasting_state_change',
       properties: <String, Object?>{
@@ -486,15 +516,13 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
         'attribute_date': record.date,
       },
     );
-    _store.clearActiveCycle();
     _emitClosed(record, plan);
-    // T3/T4/T9：进食窗口以实际破窗时刻开启，终点 = 破窗时刻 + 计划进食
-    // 窗口时长（封顶本周期计划进食结束锚点）。修复：此前直接取
-    // cycle.eatWindowEndUtc，在「进食窗已关闭后的断食段」破窗时会把进食
-    // 终点算到次日计划窗末（倒计时 ~24h，冒烟 C3 复现）。
+    // 进食终点 = 破窗时刻 + 计划进食窗长（封顶本周期计划进食结束锚点）。
+    // 覆盖早于计划终点失效时，由关闭墓碑阻止同一周期复活。
     final eatWindowLenSec = cycle.eatWindowEndUtc - cycle.plannedEndUtc;
-    final earlyEatEndUtc = now + eatWindowLenSec < cycle.eatWindowEndUtc
-        ? now + eatWindowLenSec
+    final shiftedEndUtc = now + eatWindowLenSec;
+    final earlyEatEndUtc = shiftedEndUtc < cycle.eatWindowEndUtc
+        ? shiftedEndUtc
         : cycle.eatWindowEndUtc;
     _store.saveEarlyEatEndUtc(earlyEatEndUtc);
     _reschedule(plan, 0, RescheduleReason.manualEndFast);
@@ -580,6 +608,16 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     }
   }
 
+  /// 持久化关闭标识后再清活动快照；返回是否首次关闭。标识只含周期自身
+  /// 锚点，不依赖记录结果，因此 broken 不会被后续 completed 覆盖。
+  bool _markCycleClosed(FastCycle cycle) {
+    final id = ActiveCycleSnapshot.fromCycle(cycle).stableId;
+    final firstClose = _store.loadLastClosedCycleId() != id;
+    if (firstClose) _store.saveLastClosedCycleId(id);
+    _store.clearActiveCycle();
+    return firstClose;
+  }
+
   /// 周期关闭统一出口：转发 streak 钩子（M5，失败不阻断计时主流程）；
   /// 上报 `fasting_checkin_success`（§3.2 核心事件，§1.5 立即上报）。
   void _emitClosed(FastingRecord record, FastingPlan plan) {
@@ -606,6 +644,7 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     int extensionMinutes,
     RescheduleReason r,
   ) {
+    final active = _store.loadActiveCycle();
     unawaited(() async {
       try {
         final result = await ref
@@ -613,6 +652,9 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
             .reschedule(
               plan: plan,
               extensionMinutes: extensionMinutes,
+              activeCycle: active?.toCycle(),
+              earlyEatEndUtc: _store.loadEarlyEatEndUtc(),
+              lastClosedCycleId: _store.loadLastClosedCycleId(),
               reason: r,
             );
         ref.read(notificationPermissionStatusProvider.notifier).state =
@@ -658,11 +700,15 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     ref.read(notificationPermissionStatusProvider.notifier).state = status;
     if (status == NotificationPermissionStatus.granted) {
       try {
+        final active = _store.loadActiveCycle();
         await ref
             .read(fastingNotificationSchedulerProvider)
             .reschedule(
               plan: state.plan,
-              extensionMinutes: _store.loadActiveCycle()?.extendedMinutes ?? 0,
+              extensionMinutes: active?.extendedMinutes ?? 0,
+              activeCycle: active?.toCycle(),
+              earlyEatEndUtc: _store.loadEarlyEatEndUtc(),
+              lastClosedCycleId: _store.loadLastClosedCycleId(),
               reason: RescheduleReason.appForeground,
             );
       } on Object {

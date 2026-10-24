@@ -3,14 +3,8 @@ import { err } from '../common/errors/business.exception';
 import { WeightLogEntity } from '../common/store/data-store';
 import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { newId } from '../common/utils/id.util';
+import { isValidDateStr } from '../common/utils/time.util';
 import { CreateWeightLogDto } from './weight.dto';
-
-/** yyyy-MM-dd 合法性（含 13 月/40 日等正则漏网的真实日期校验） */
-function isValidDateKey(date: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
-  const parsed = new Date(`${date}T00:00:00Z`);
-  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
-}
 
 /**
  * 体重记录（阶段 C 体重管理闭环）：幂等 upsert（同 userId+date 覆写，
@@ -23,7 +17,7 @@ export class WeightService {
 
   /** POST /v1/weight-logs：幂等 upsert（同日覆写取最新） */
   async upsert(userId: string, dto: CreateWeightLogDto) {
-    if (!isValidDateKey(dto.date)) throw err.validation({ date: 'invalid date' });
+    if (!isValidDateStr(dto.date)) throw err.validation({ date: 'invalid date' });
     const bodyFatPct = dto.bodyFatPct ?? null;
     const dup = await this.driver.findWeightLogByClientRequestId(userId, dto.clientRequestId);
     if (dup) {
@@ -71,8 +65,8 @@ export class WeightService {
   async list(userId: string, from: string | undefined, to: string | undefined) {
     const effectiveFrom = from ?? '1970-01-01';
     const effectiveTo = to ?? new Date().toISOString().slice(0, 10);
-    if (!isValidDateKey(effectiveFrom)) throw err.validation({ from: 'invalid date' });
-    if (!isValidDateKey(effectiveTo)) throw err.validation({ to: 'invalid date' });
+    if (!isValidDateStr(effectiveFrom)) throw err.validation({ from: 'invalid date' });
+    if (!isValidDateStr(effectiveTo)) throw err.validation({ to: 'invalid date' });
     if (effectiveFrom > effectiveTo) throw err.validation({ from: 'from must be <= to' });
     const rows = await this.driver.findWeightLogsByUserRange(userId, effectiveFrom, effectiveTo);
     const tombstones = await this.driver.findWeightLogTombstonesByUserRange(

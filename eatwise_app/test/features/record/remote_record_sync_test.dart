@@ -202,6 +202,34 @@ void main() {
       expect(remote.isOnline, isTrue);
     });
 
+    test('畸形 results/结果项/幂等键/applied 缺服务端行 → 整批可重试，不崩不默认 ack', () async {
+      final entry = makeEntry();
+      final malformedResults = <Object?>[
+        <String, dynamic>{'not': 'a list'},
+        <dynamic>['not-a-map'],
+        <dynamic>[
+          <String, dynamic>{'status': 'applied'},
+        ],
+        <dynamic>[
+          <String, dynamic>{
+            'clientRequestId': entry.clientRequestId,
+            'status': 'applied',
+          },
+        ],
+      ];
+      for (final results in malformedResults) {
+        adapter.stub(
+          '/sync/push',
+          StubResponse.json(
+            200,
+            StubResponse.envelope(<String, dynamic>{'results': results}),
+          ),
+        );
+        final outcome = await remote.push(entry);
+        expect(outcome, isA<PushRetryable>(), reason: '$results');
+      }
+    });
+
     test('批量上行 ≤100/批，分批串行（205 条 → 100+100+5）', () async {
       final entries = List<FoodEntry>.generate(
         205,
@@ -473,6 +501,72 @@ void main() {
       expect(await remote.pullDown(db, 'u-1', 'st_0'), 'st_0');
       entries = await db.foodEntryDao.entriesForDate('u-1', '2026-07-27');
       expect(entries, hasLength(1));
+    });
+
+    test('坏 eatenAt 按畸形 change 跳过：不抛异常、好行落库、游标留待重试', () async {
+      stubPull(<Map<String, dynamic>>[
+        entryView(),
+        entryView(id: 'srv-bad-time', clientRequestId: 'c-bad-time')
+          ..['eatenAt'] = 'not-a-date',
+      ]);
+
+      expect(await remote.pullDown(db, 'u-1', 'st_0'), 'st_0');
+      final entries = await db.foodEntryDao.entriesForDate('u-1', '2026-07-27');
+      expect(entries.map((e) => e.serverId), <String?>['srv-1']);
+      expect(await db.foodEntryDao.getByServerId('srv-bad-time'), isNull);
+    });
+
+    test('hasMore 且 token 不前进：只拉一页并保留可重试游标，不死循环', () async {
+      stubPull(
+        <Map<String, dynamic>>[entryView()],
+        syncToken: 'st_0',
+        hasMore: true,
+      );
+
+      expect(await remote.pullDown(db, 'u-1', 'st_0'), 'st_0');
+      expect(adapter.requestsTo('/sync/pull'), 1);
+      expect(await db.foodEntryDao.getByServerId('srv-1'), isNotNull);
+    });
+
+    test('自定义食物下行持久化 owner/source，个人行不对其他账号搜索可见', () async {
+      adapter.stub(
+        '/sync/pull',
+        StubResponse.json(
+          200,
+          StubResponse.envelope(<String, dynamic>{
+            'changes': const <dynamic>[],
+            'customFoodChanges': <dynamic>[
+              <String, dynamic>{
+                'id': 'cf-owned',
+                'nameZh': '估算私房菜',
+                'nameEn': 'Estimated dish',
+                'aliases': const <dynamic>[],
+                'kcalPer100g': 100,
+                'proteinPer100g': 5,
+                'carbsPer100g': 5,
+                'fatPer100g': 5,
+                'source': 'llm-estimate',
+              },
+            ],
+            'syncToken': 'st_1',
+            'hasMore': false,
+          }),
+        ),
+      );
+
+      await remote.pullDown(db, 'u-1', 'st_0');
+
+      final food = (await db.foodDao.getById('cf-owned'))!;
+      expect(food.ownerUserId, 'u-1');
+      expect(food.source, 'llm-estimate');
+      expect(
+        (await db.foodDao.searchFoods(
+          '估算',
+          ownerUserId: 'u-1',
+        )).map((f) => f.id),
+        contains('cf-owned'),
+      );
+      expect(await db.foodDao.searchFoods('估算', ownerUserId: 'u-2'), isEmpty);
     });
 
     group('占位食物行回查补名（名称=foodId 占位，/foods/batch-get）', () {

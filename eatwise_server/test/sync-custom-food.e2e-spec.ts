@@ -70,6 +70,7 @@ describe('CustomFood sync downlink (e2e)', () => {
     expect(changes[0].proteinPer100g).toBe(3.5);
     expect(changes[0].carbsPer100g).toBe(7);
     expect(changes[0].fatPer100g).toBe(2.5);
+    expect(changes[0].source).toBe('manual');
     expect(changes[0].updatedAt).toBeTruthy();
 
     // A 机删除（软删 tombstone）。

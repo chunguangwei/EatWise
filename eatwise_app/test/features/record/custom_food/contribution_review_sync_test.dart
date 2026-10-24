@@ -77,6 +77,7 @@ void main() {
         carbPer100g: Value(30),
         fatPer100g: Value(5),
         isCustom: Value(true),
+        ownerUserId: Value(userId),
         contributionStatus: Value('pending'),
       ),
     ]);
@@ -277,12 +278,12 @@ void main() {
       final food = await db.foodDao.getById('cf-1');
       expect(food?.contributionStatus, 'approved');
       // 反序输入（新在前）结果一致：与迭代顺序无关。
-      final store2 = ContributionStatusStore.inMemory(userId: 'u-other');
+      final store2 = ContributionStatusStore.inMemory(userId: userId);
       final sync2 = ContributionReviewSync(
         db: db,
         remote: remote,
         store: store2,
-        userId: 'u-other',
+        userId: userId,
       );
       await db.foodDao.setContributionStatus('cf-1', 'pending');
       remote.contributions = remote.contributions.reversed.toList();
@@ -564,6 +565,51 @@ void main() {
 
     expect(await db.foodDao.getById('cf-1'), isNotNull);
   });
+  test('审核 ghost/rejected 清理只作用于当前 owner，不碰其他账号个人食物与记录', () async {
+    await db.foodDao.upsertAll(<FoodsCompanion>[
+      const FoodsCompanion(
+        id: Value('cf-other'),
+        nameZh: Value('他人私房菜'),
+        nameEn: Value('Other user food'),
+        kcalPer100g: Value(100),
+        proteinPer100g: Value(5),
+        carbPer100g: Value(5),
+        fatPer100g: Value(5),
+        isCustom: Value(true),
+        ownerUserId: Value('u-other'),
+        contributionStatus: Value('pending'),
+      ),
+    ]);
+    await db.foodEntryDao.insertEntry(
+      const FoodEntriesCompanion(
+        localId: Value('l-other'),
+        userId: Value('u-other'),
+        clientRequestId: Value('cr-other'),
+        syncStatus: Value(SyncStatus.pending),
+        datetimeUtc: Value('2026-09-19T01:00:00.000Z'),
+        localDate: Value('2026-09-19'),
+        foodId: Value('cf-other'),
+        amountG: Value(100),
+        kcal: Value(100),
+        proteinG: Value(5),
+        carbG: Value(5),
+        fatG: Value(5),
+        source: Value(EntrySource.manual),
+        createdAtUtc: Value('2026-09-19T01:00:00.000Z'),
+        updatedAtUtc: Value('2026-09-19T01:00:00.000Z'),
+      ),
+    );
+    remote.contributions = <FoodContribution>[];
+
+    await sync.syncNow();
+
+    expect(await db.foodDao.getById('cf-other'), isNotNull);
+    expect(
+      await db.foodEntryDao.entriesForFood('u-other', 'cf-other'),
+      hasLength(1),
+    );
+  });
+
   test('匿名用户跳过（贡献需登录，无候选可拉）', () async {
     final anonymous = ContributionReviewSync(
       db: db,

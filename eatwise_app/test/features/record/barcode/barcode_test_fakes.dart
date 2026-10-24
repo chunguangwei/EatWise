@@ -47,6 +47,7 @@ Food barcodeFood({
     carbPer100g: 68.5,
     fatPer100g: 20.4,
     isCustom: false,
+    source: 'manual',
     customSyncPending: false,
     customClientRequestId: '',
     customSyncFailCount: 0,

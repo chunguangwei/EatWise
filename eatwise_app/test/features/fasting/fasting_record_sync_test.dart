@@ -209,6 +209,49 @@ void main() {
       expect(stored.syncStatus, SyncStatus.pending); // 历史行保留，下轮重试
     });
 
+    test('畸形批响应保持 pending + lastError，不强转崩同步', () async {
+      final row = await seedLocal();
+      adapter.stub(
+        '/sync/push',
+        StubResponse.json(
+          200,
+          StubResponse.envelope(<String, dynamic>{
+            'results': <dynamic>[42],
+          }),
+        ),
+      );
+
+      await fastingSync.pushPending(db, 'u-1');
+
+      final stored = (await db.fastingRecordDao.getByLocalId(row.localId))!;
+      expect(stored.syncStatus, SyncStatus.pending);
+      expect(stored.lastError, 'INVALID_PUSH_RESPONSE');
+    });
+
+    test('delete VALIDATION_ERROR/403 保留 tombstone + lastError', () async {
+      for (final code in <String>['VALIDATION_ERROR', 'FORBIDDEN']) {
+        final row = await seedLocal(
+          date: '2026-08-${code == 'FORBIDDEN' ? '03' : '02'}',
+          serverId: 'srv-$code',
+          deleted: true,
+        );
+        stubPush(<Map<String, dynamic>>[
+          <String, dynamic>{
+            'clientRequestId': row.clientRequestId,
+            'status': 'error',
+            'error': <String, dynamic>{'code': code},
+          },
+        ]);
+
+        await fastingSync.pushPending(db, 'u-1');
+
+        final stored = (await db.fastingRecordDao.getByLocalId(row.localId))!;
+        expect(stored.deleted, isTrue, reason: code);
+        expect(stored.syncStatus, SyncStatus.pending, reason: code);
+        expect(stored.lastError, code);
+      }
+    });
+
     test('tombstone 上行 delete applied / NOT_FOUND → 本地物理清除', () async {
       final row = await seedLocal(
         status: SyncStatus.pending,

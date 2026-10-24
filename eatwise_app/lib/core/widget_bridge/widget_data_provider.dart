@@ -1,4 +1,3 @@
-import 'package:eatwise/features/fasting/domain/fast_cycle.dart';
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
 import 'package:eatwise/features/fasting/domain/fasting_engine.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
@@ -126,6 +125,7 @@ final class WidgetDataProvider {
   /// - [plan] 为 null（NO_PLAN）时返回无锚点的引导态；
   /// - [activeCycle] 为持久化的进行中周期（含延长锚点，D-10 唯一真源）；
   /// - [earlyEatEndUtc] 为提前破窗后的当日进食结束锚点（T3/T4/T9）；
+  /// - [lastClosedCycleId] 为最近关闭周期标识，阻止残留/重推导周期复活；
   /// - [nowUtcSec] 当前 UTC epoch 秒；[location] 设备时区（D-07 渲染入口）。
   WidgetFastingData compute({
     required FastingPlan? plan,
@@ -133,6 +133,7 @@ final class WidgetDataProvider {
     required int? earlyEatEndUtc,
     required int nowUtcSec,
     required tz.Location location,
+    String? lastClosedCycleId,
   }) {
     final texts = textResolver(FastingState.noPlan, null, null);
     if (plan == null) {
@@ -157,19 +158,38 @@ final class WidgetDataProvider {
       );
     }
 
-    // 持久化周期与重算周期同根时以持久化版本为准（含延长锚点，D-10）。
-    FastCycle? cycle = snapshot.cycle;
-    if (cycle != null &&
-        activeCycle != null &&
-        activeCycle.startUtc == cycle.startUtc) {
-      cycle = activeCycle.toCycle();
+    // 与主计时同口径：关闭墓碑优先；未结束的 stored 周期即使与新方案
+    // 推导周期的 startUtc 不同，也继续按自身冻结锚点计时。
+    final storedIsClosed =
+        activeCycle != null && activeCycle.stableId == lastClosedCycleId;
+    if (storedIsClosed) {
       snapshot = FastingSnapshot(
-        state: cycle.state,
+        state: FastingState.eating,
         nowUtc: snapshot.nowUtc,
-        cycle: cycle,
-        targetUtc: cycle.plannedEndUtc,
+        targetUtc: snapshot.targetUtc,
         attributionPreview: snapshot.attributionPreview,
       );
+    } else if (activeCycle != null && nowUtcSec < activeCycle.plannedEndUtc) {
+      final restored = activeCycle.toCycle();
+      snapshot = FastingSnapshot(
+        state: restored.state,
+        nowUtc: snapshot.nowUtc,
+        cycle: restored,
+        targetUtc: restored.plannedEndUtc,
+        attributionPreview: snapshot.attributionPreview,
+      );
+    } else {
+      final derived = snapshot.cycle;
+      if (derived != null &&
+          ActiveCycleSnapshot.fromCycle(derived).stableId ==
+              lastClosedCycleId) {
+        snapshot = FastingSnapshot(
+          state: FastingState.eating,
+          nowUtc: snapshot.nowUtc,
+          targetUtc: snapshot.targetUtc,
+          attributionPreview: snapshot.attributionPreview,
+        );
+      }
     }
 
     final state = snapshot.state;
@@ -191,7 +211,7 @@ final class WidgetDataProvider {
       attributionLabel: texts2.attributionLabel,
       planLabel: plan.id,
       eatWindowLabel: _eatWindowLabel(plan),
-      extendedMinutes: cycle?.extendedMinutes ?? 0,
+      extendedMinutes: snapshot.cycle?.extendedMinutes ?? 0,
     );
   }
 

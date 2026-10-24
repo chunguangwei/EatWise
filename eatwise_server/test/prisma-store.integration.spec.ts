@@ -16,6 +16,7 @@ import {
 } from '../src/common/store/data-store';
 import { PrismaStore } from '../src/common/store/prisma-store';
 import { PrismaService } from '../src/infra/prisma.service';
+import { UserService } from '../src/user/user.service';
 
 /**
  * PrismaStore 集成测试：需要真实 PostgreSQL（docker compose up -d postgres +
@@ -313,6 +314,13 @@ describePg('PrismaStore（集成，真实 PostgreSQL）', () => {
       updatedAt: new Date(),
     };
     await store.createFoodCandidate(candidate);
+
+    await prisma.user.update({ where: { id: userId }, data: { passwordHash: 'it-export-secret' } });
+    const userExport = await new UserService(store).exportMe(userId);
+    expect(userExport.customFoods.map((food) => food.id)).toContain(customFood.id);
+    expect(userExport.foodCandidates.map((item) => item.id)).toContain(candidate.id);
+    expect(userExport.profile).not.toHaveProperty('passwordHash');
+    expect(JSON.stringify(userExport)).not.toContain('it-export-secret');
 
     const bundle = await store.collectUserExport(userId);
     expect(bundle).not.toBeNull();

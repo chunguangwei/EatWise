@@ -56,6 +56,109 @@ void main() {
     expect(classify(84.6, NutrientType.kcal, config), SignalZone.yellow);
   });
 
+  test('服务端 computeSignals parity：低侧/高侧边界与细分方向一致', () {
+    const goal = NutritionGoal(
+      bmr: null,
+      tdee: null,
+      targetKcal: 100,
+      proteinG: 100,
+      carbG: 100,
+      fatG: 100,
+      usedFallback: false,
+      configVersion: '1.0.0',
+    );
+    final cases = <(double, SignalVerdict)>[
+      (
+        59.6,
+        const SignalVerdict(
+          zone: SignalZone.red,
+          subZone: SignalSubZone.redLow,
+        ),
+      ),
+      (
+        60,
+        const SignalVerdict(
+          zone: SignalZone.yellow,
+          subZone: SignalSubZone.yellowLow,
+        ),
+      ),
+      (
+        84.6,
+        const SignalVerdict(
+          zone: SignalZone.yellow,
+          subZone: SignalSubZone.yellowLow,
+        ),
+      ),
+      (
+        85,
+        const SignalVerdict(
+          zone: SignalZone.green,
+          subZone: SignalSubZone.green,
+        ),
+      ),
+      (
+        110,
+        const SignalVerdict(
+          zone: SignalZone.green,
+          subZone: SignalSubZone.green,
+        ),
+      ),
+      (
+        110.4,
+        const SignalVerdict(
+          zone: SignalZone.yellow,
+          subZone: SignalSubZone.yellowHigh,
+        ),
+      ),
+      (
+        129.6,
+        const SignalVerdict(
+          zone: SignalZone.yellow,
+          subZone: SignalSubZone.yellowHigh,
+        ),
+      ),
+      (
+        130,
+        const SignalVerdict(
+          zone: SignalZone.yellow,
+          subZone: SignalSubZone.yellowHigh,
+        ),
+      ),
+      (
+        130.4,
+        const SignalVerdict(
+          zone: SignalZone.red,
+          subZone: SignalSubZone.redHigh,
+        ),
+      ),
+    ];
+    for (final c in cases) {
+      final result = evaluateDailySignals(
+        DailyIntake(
+          entryCount: 1,
+          kcal: c.$1,
+          proteinG: 100,
+          carbG: 100,
+          fatG: 100,
+        ),
+        goal,
+        config,
+      );
+      expect(
+        result.verdicts[NutrientType.kcal],
+        c.$2,
+        reason: 'percent=${c.$1}',
+      );
+    }
+  });
+
+  test('餐段边界：15–21 为晚餐，21 点起为加餐', () {
+    expect(mealSegmentForMinutes(14 * 60 + 59), MealSegment.lunch);
+    expect(mealSegmentForMinutes(15 * 60), MealSegment.dinner);
+    expect(mealSegmentForMinutes(20 * 60 + 59), MealSegment.dinner);
+    expect(mealSegmentForMinutes(21 * 60), MealSegment.snack);
+  });
+
   test('U21 当日 0 条 FoodEntry → 不产出信号灯（§3.2）', () {
     const goal = NutritionGoal(
       bmr: null,

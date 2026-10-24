@@ -117,15 +117,53 @@ describe('用户权利（U1/U3/U5/U6，合规 §4.2/§4.3）', () => {
   });
 
   describe('U3 数据导出', () => {
-    it('聚合 Profile/FoodEntry/FastingRecord/Streak/Post 全量数据', async () => {
+    it('聚合本人业务数据与自定义食物/贡献，且不导出密码哈希', async () => {
       seedUserData();
+      const now = new Date();
+      store.users.get(userId)!.passwordHash = 'export-secret-hash';
+      store.customFoods.set('cf-export', {
+        id: 'cf-export',
+        userId,
+        clientRequestId: 'custom-export-req',
+        nameZh: '导出测试食物',
+        nameEn: 'Export test food',
+        aliases: [],
+        kcalPer100g: 100,
+        proteinPer100g: 1,
+        carbsPer100g: 2,
+        fatPer100g: 3,
+        source: 'llm-estimate',
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      });
+      store.foodCandidates.set('candidate-export', {
+        id: 'candidate-export',
+        foodId: 'cf-export',
+        userId,
+        status: 'pending',
+        reason: null,
+        kind: 'custom',
+        barcode: null,
+        evidenceImageUrl: null,
+        suggestion: null,
+        reviewedBy: null,
+        clientRequestId: 'candidate-export-req',
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
       const bundle = await users.exportMe(userId);
       expect(bundle.profile.id).toBe(userId);
       expect(bundle.profile.phone).toBe('+8613800138000'); // 本人导出包含明文（PIPL §44/45）
+      expect(bundle.profile).not.toHaveProperty('passwordHash');
+      expect(JSON.stringify(bundle)).not.toContain('export-secret-hash');
       expect(bundle.foodEntries).toHaveLength(1);
       expect(bundle.fastingRecords).toHaveLength(1);
       expect(bundle.streak?.currentStreak).toBe(3);
       expect(bundle.posts).toHaveLength(1);
+      expect(bundle.customFoods.map((food) => food.id)).toEqual(['cf-export']);
+      expect(bundle.foodCandidates.map((candidate) => candidate.id)).toEqual(['candidate-export']);
       expect(bundle.generatedAt).toMatch(/Z$/);
     });
 

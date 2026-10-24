@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -32,6 +33,7 @@ final class StubAdapter implements HttpClientAdapter {
 
   final List<RequestOptions> requests = <RequestOptions>[];
   final List<Object?> bodies = <Object?>[];
+  Future<void> Function(RequestOptions options)? beforeRespond;
 
   int patches() => requests
       .where((r) => r.method == 'PATCH' && r.path == '/users/me')
@@ -45,6 +47,7 @@ final class StubAdapter implements HttpClientAdapter {
   ) async {
     requests.add(options);
     bodies.add(options.data);
+    await beforeRespond?.call(options);
     final queue = routes[options.path];
     if (queue == null || queue.isEmpty) {
       throw StateError('StubAdapter: 未注册响应 ${options.path}');
@@ -76,9 +79,12 @@ void main() {
     return UserApi(dio);
   }
 
-  Map<String, dynamic> meJson(Map<String, dynamic>? settingsPrefs) {
+  Map<String, dynamic> meJson(
+    Map<String, dynamic>? settingsPrefs, {
+    String id = 'u1',
+  }) {
     return <String, dynamic>{
-      'user': <String, dynamic>{'id': 'u1', 'settingsPrefs': ?settingsPrefs},
+      'user': <String, dynamic>{'id': id, 'settingsPrefs': ?settingsPrefs},
     };
   }
 
@@ -86,6 +92,9 @@ void main() {
     late StubAdapter adapter;
     late List<Map<String, dynamic>> applied;
     late DateTime? storedSyncedAt;
+    late Map<String, DateTime> syncedAtByUser;
+    late Map<String, String> dirtyByUser;
+    late String currentUserId;
     late bool loggedIn;
     late Map<String, Object?> local;
 
@@ -93,10 +102,23 @@ void main() {
       return SettingsPrefsSync(
         api: apiOf(adapter),
         isLoggedIn: () => loggedIn,
+        userId: () => currentUserId,
         collectLocal: () => local,
         applyRemote: applied.add,
-        readLastSyncedAt: () => storedSyncedAt,
-        saveLastSyncedAt: (at) async => storedSyncedAt = at,
+        readDirtyPayload: (uid) => dirtyByUser[uid],
+        saveDirtyPayload: (uid, payload) async {
+          if (payload == null) {
+            dirtyByUser.remove(uid);
+          } else {
+            dirtyByUser[uid] = payload;
+          }
+        },
+        readLastSyncedAt: (uid) =>
+            syncedAtByUser[uid] ?? (uid == 'u1' ? storedSyncedAt : null),
+        saveLastSyncedAt: (uid, at) async {
+          syncedAtByUser[uid] = at;
+          if (uid == 'u1') storedSyncedAt = at;
+        },
         now: now,
       );
     }
@@ -105,6 +127,9 @@ void main() {
       adapter = StubAdapter(<String, List<Object?>>{});
       applied = <Map<String, dynamic>>[];
       storedSyncedAt = null;
+      syncedAtByUser = <String, DateTime>{};
+      dirtyByUser = <String, String>{};
+      currentUserId = 'u1';
       loggedIn = true;
       local = <String, Object?>{
         'locale': 'zh-CN',
@@ -134,15 +159,39 @@ void main() {
       expect(storedSyncedAt, now);
     });
 
-    test('push：未登录 no-op；网络失败静默不抛', () async {
+    test('push：未登录 no-op；失败保留快照，flushDirty 重试成功', () async {
+      final sync = build();
       loggedIn = false;
-      await build().push();
+      await sync.push();
       expect(adapter.requests, isEmpty);
+      expect(dirtyByUser, isEmpty);
 
       loggedIn = true;
-      adapter.routes['/users/me'] = <Object?>[null]; // 网络错误
-      await expectLater(build().push(), completes);
-      expect(storedSyncedAt, isNull); // 失败不记录时间戳
+      adapter.routes['/users/me'] = <Object?>[null];
+      await expectLater(sync.push(), completes);
+      expect(storedSyncedAt, isNull);
+      expect(dirtyByUser['u1'], isNotNull);
+
+      adapter.routes['/users/me'] = <Object?>[meJson(null)];
+      await sync.flushDirty();
+      expect(dirtyByUser['u1'], isNull);
+      expect(adapter.patches(), 2);
+    });
+
+    test('上行基线按 uid 隔离，互不清空对方状态', () async {
+      final sync = build();
+      adapter.routes['/users/me'] = <Object?>[meJson(null)];
+      await sync.push();
+      final firstBaseline = syncedAtByUser['u1'];
+
+      currentUserId = 'u2';
+      local = <String, Object?>{...local, 'theme': 'dark'};
+      adapter.routes['/users/me'] = <Object?>[meJson(null, id: 'u2')];
+      await sync.push();
+
+      expect(syncedAtByUser['u1'], firstBaseline);
+      expect(syncedAtByUser['u2'], isNotNull);
+      expect(dirtyByUser, isEmpty);
     });
 
     test('pull：远端 settingsPrefs 为空 → 不应用', () async {
@@ -217,15 +266,60 @@ void main() {
       guarded = SettingsPrefsSync(
         api: apiOf(adapter),
         isLoggedIn: () => true,
+        userId: () => currentUserId,
         collectLocal: () => local,
         applyRemote: (p) => applyThenPush(p),
-        readLastSyncedAt: () => null,
-        saveLastSyncedAt: (at) async => storedSyncedAt = at,
+        readDirtyPayload: (uid) => dirtyByUser[uid],
+        saveDirtyPayload: (uid, payload) async {
+          if (payload == null) {
+            dirtyByUser.remove(uid);
+          } else {
+            dirtyByUser[uid] = payload;
+          }
+        },
+        readLastSyncedAt: (uid) => null,
+        saveLastSyncedAt: (uid, at) async => storedSyncedAt = at,
       );
       await guarded.pull();
       expect(applied, hasLength(1));
       expect(adapter.patches(), 0);
       expect(guarded.applying, isFalse); // 结束后复位
+    });
+
+    test('pull：本地有待上行快照时优先本地，不发 GET', () async {
+      dirtyByUser['u1'] = '{"theme":"light"}';
+      await build().pull();
+      expect(adapter.requests, isEmpty);
+      expect(applied, isEmpty);
+      expect(dirtyByUser['u1'], isNotNull);
+    });
+
+    test('pull：旧账号的迟到响应不写入新账号', () async {
+      final sync = build();
+      final started = Completer<void>();
+      final release = Completer<void>();
+      adapter.routes['/users/me'] = <Object?>[
+        meJson(<String, dynamic>{
+          'theme': 'dark',
+          'syncedAt': '2026-09-18T09:00:00.000Z',
+        }),
+      ];
+      adapter.beforeRespond = (options) async {
+        if (options.method == 'GET') {
+          started.complete();
+          await release.future;
+        }
+      };
+
+      final pulling = sync.pull();
+      await started.future;
+      currentUserId = 'u2';
+      release.complete();
+      await pulling;
+
+      expect(applied, isEmpty);
+      expect(syncedAtByUser, isEmpty);
+      expect(storedSyncedAt, isNull);
     });
 
     test('pull：网络失败静默不抛', () async {
@@ -289,7 +383,9 @@ void main() {
         meJson(null),
       ];
       container.read(languageModeProvider.notifier).setMode('en');
+      await flush();
       container.read(weightUnitProvider.notifier).setUnit(WeightUnit.jin);
+      await flush();
       await container.read(exerciseGoalsProvider.notifier).setStepsGoal(8000);
       await flush();
       expect(adapter.patches(), 3);
@@ -310,13 +406,13 @@ void main() {
       expect(prefsBody['burnGoalKcal'], 200);
       expect(prefsBody['stepsGoal'], 8000);
       expect(prefsBody['syncedAt'], isA<String>());
-      expect(prefs.getString(lastPrefsSyncedAtKey), isNotNull);
+      expect(prefs.getString(lastPrefsSyncedAtKeyFor('u1')), isNotNull);
     });
 
     test('pull：远端新 → 应用到本地 provider，缺键不动，且不触发回推', () async {
       await setUpContainer(
         initialPrefs: <String, Object>{
-          lastPrefsSyncedAtKey: '2026-09-18T08:00:00.000Z',
+          lastPrefsSyncedAtKeyFor('u1'): '2026-09-18T08:00:00.000Z',
         },
       );
       adapter.routes['/users/me'] = <Object?>[
@@ -338,13 +434,16 @@ void main() {
       expect(container.read(exerciseGoalsProvider).burnGoalKcal, 200);
       // 回环防护：pull 应用触发的 setter 变更没有回推 PATCH。
       expect(adapter.patches(), 0);
-      expect(prefs.getString(lastPrefsSyncedAtKey), '2026-09-18T09:00:00.000Z');
+      expect(
+        prefs.getString(lastPrefsSyncedAtKeyFor('u1')),
+        '2026-09-18T09:00:00.000Z',
+      );
     });
 
     test('pull：远端 syncedAt 比本地旧 → 不覆盖本地偏好', () async {
       await setUpContainer(
         initialPrefs: <String, Object>{
-          lastPrefsSyncedAtKey: '2026-09-18T10:00:00.000Z',
+          lastPrefsSyncedAtKeyFor('u1'): '2026-09-18T10:00:00.000Z',
         },
       );
       adapter.routes['/users/me'] = <Object?>[
@@ -379,6 +478,167 @@ void main() {
       expect(container.read(weightUnitProvider), WeightUnit.jin);
       expect(container.read(exerciseGoalsProvider).stepsGoal, 5000); // 未动
       expect(container.read(exerciseGoalsProvider).burnGoalKcal, 500);
+    });
+  });
+
+  group('userMe 会话边界', () {
+    test('uid 切换使视图失效，A 的管理员/头像慢响应不写入 B', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final prefs = await SharedPreferences.getInstance();
+      final tokenStore = InMemoryTokenStore();
+      final gate = AuthGate();
+      final responses = <Map<String, dynamic>>[
+        <String, dynamic>{
+          'user': <String, dynamic>{
+            'id': 'u-A',
+            'username': 'user-A',
+            'avatarUrl': '/a.png',
+            'role': 'admin',
+          },
+        },
+        <String, dynamic>{
+          'user': <String, dynamic>{
+            'id': 'u-B',
+            'username': 'user-B',
+            'avatarUrl': '/b.png',
+            'role': 'user',
+          },
+        },
+      ];
+      final adapter = StubAdapter(<String, List<Object?>>{});
+      final gates = <Completer<void>>[Completer<void>(), Completer<void>()];
+      var requestIndex = 0;
+      adapter.beforeRespond = (options) {
+        final index = requestIndex++;
+        adapter.routes[options.path] = <Object?>[responses[index]];
+        return gates[index].future;
+      };
+      final container = ProviderContainer(
+        overrides: <Override>[
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          tokenStoreProvider.overrideWithValue(tokenStore),
+          authGateProvider.overrideWithValue(gate),
+          apiDioProvider.overrideWithValue(Dio()),
+          userApiProvider.overrideWithValue(apiOf(adapter)),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tokenStore.saveTokens(
+        accessToken: 'at-A',
+        refreshToken: 'rt-A',
+        userId: 'u-A',
+      );
+      await container.read(authControllerProvider.notifier).restore();
+      final aFuture = container.read(userMeProvider.future);
+      await pumpEventQueue();
+      expect(adapter.requests, hasLength(1));
+
+      await tokenStore.saveTokens(
+        accessToken: 'at-B',
+        refreshToken: 'rt-B',
+        userId: 'u-B',
+      );
+      await container.read(authControllerProvider.notifier).restore();
+      final bFuture = container.read(userMeProvider.future);
+      await pumpEventQueue();
+      expect(adapter.requests, hasLength(2));
+      gates[1].complete();
+      expect((await bFuture)!.id, 'u-B');
+
+      gates[0].complete();
+      await aFuture;
+      final current = await container.read(userMeProvider.future);
+      expect(current!.id, 'u-B');
+      expect(current.role, 'user');
+      expect(current.avatarUrl, '/b.png');
+      expect(prefs.getString(AccountIdentityStore.keyFor('u-B')), 'user-B');
+      expect(prefs.getString(AccountIdentityStore.keyFor('u-A')), isNull);
+    });
+
+    test('A→匿名→A 后旧 A 响应不覆盖新 A 的头像与账号缓存', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final prefs = await SharedPreferences.getInstance();
+      final tokenStore = InMemoryTokenStore();
+      final gate = AuthGate();
+      final responses = <Map<String, dynamic>>[
+        <String, dynamic>{
+          'user': <String, dynamic>{
+            'id': 'u-A',
+            'username': 'old-A',
+            'avatarUrl': '/old-a.png',
+            'role': 'admin',
+          },
+        },
+        <String, dynamic>{
+          'user': <String, dynamic>{
+            'id': '',
+            'username': 'anonymous-session',
+            'role': 'admin',
+          },
+        },
+        <String, dynamic>{
+          'user': <String, dynamic>{
+            'id': 'u-A',
+            'username': 'new-A',
+            'avatarUrl': '/new-a.png',
+            'role': 'user',
+          },
+        },
+      ];
+      final adapter = StubAdapter(<String, List<Object?>>{});
+      final gates = List<Completer<void>>.generate(3, (_) => Completer<void>());
+      var requestIndex = 0;
+      adapter.beforeRespond = (options) {
+        final index = requestIndex++;
+        adapter.routes[options.path] = <Object?>[responses[index]];
+        return gates[index].future;
+      };
+      final container = ProviderContainer(
+        overrides: <Override>[
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          tokenStoreProvider.overrideWithValue(tokenStore),
+          authGateProvider.overrideWithValue(gate),
+          apiDioProvider.overrideWithValue(Dio()),
+          userApiProvider.overrideWithValue(apiOf(adapter)),
+        ],
+      );
+      addTearDown(container.dispose);
+      final auth = container.read(authControllerProvider.notifier);
+      await tokenStore.saveTokens(
+        accessToken: 'at-old-A',
+        refreshToken: 'rt-old-A',
+        userId: 'u-A',
+      );
+      await auth.restore();
+      final oldFuture = container.read(userMeProvider.future);
+      await pumpEventQueue();
+
+      await tokenStore.clear();
+      await auth.restore();
+      final anonymousFuture = container.read(userMeProvider.future);
+      await pumpEventQueue();
+      await tokenStore.saveTokens(
+        accessToken: 'at-new-A',
+        refreshToken: 'rt-new-A',
+        userId: 'u-A',
+      );
+      await auth.restore();
+      final newFuture = container.read(userMeProvider.future);
+      await pumpEventQueue();
+      expect(adapter.requests, hasLength(3));
+
+      gates[2].complete();
+      expect((await newFuture)!.username, 'new-A');
+      gates[0].complete();
+      gates[1].complete();
+      await oldFuture;
+      await anonymousFuture;
+
+      final current = await container.read(userMeProvider.future);
+      expect(current!.username, 'new-A');
+      expect(current.role, 'user');
+      expect(current.avatarUrl, '/new-a.png');
+      expect(prefs.getString(AccountIdentityStore.keyFor('u-A')), 'new-A');
     });
   });
 }

@@ -11,7 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// `SharedPreferencesOnboardingStore`（`onboarding.activePlan`）持久化，
 /// 本存储只负责「当前周期快照」。
 ///
-/// 实现基于 shared_preferences（MVP 单用户本地键值）；读取为同步
+/// 实现基于 shared_preferences（用户态键按 uid 命名空间隔离）；读取为同步
 /// （SharedPreferences 内存缓存），写入 fire-and-forget（失败不阻断计时
 /// 主流程，重启后最多丢失一次未落盘的延长，按原锚点继续，安全降级）。
 
@@ -61,6 +61,9 @@ final class ActiveCycleSnapshot {
     'extendedMinutes': extendedMinutes,
   };
 
+  /// 同一周期跨 tick/冷启动保持稳定，用于关闭去重。
+  String get stableId => '$startUtc:$plannedEndUtc';
+
   /// 还原为领域实体。
   FastCycle toCycle() {
     return FastCycle(
@@ -83,6 +86,12 @@ abstract interface class FastingCycleStore {
   /// 周期关闭（完成/破窗）后清除。
   void clearActiveCycle();
 
+  /// 最近关闭周期的稳定标识；没有关闭过返回 null。
+  String? loadLastClosedCycleId();
+
+  /// 在清除活动周期前记录关闭标识，防止恢复时重复结算。
+  void saveLastClosedCycleId(String id);
+
   /// 提前破窗后的当日进食窗口结束锚点（T3/T4/T9：以实际破窗时刻为进食
   /// 起点、进食结束锚点不后移〔假设〕）；无提前破窗覆盖时返回 null。
   int? loadEarlyEatEndUtc();
@@ -94,18 +103,58 @@ abstract interface class FastingCycleStore {
   void clearEarlyEatEndUtc();
 }
 
-/// SharedPreferences 实现。
+/// SharedPreferences 实现。所有用户态键按 uid 隔离；旧全局键与匿名键
+/// 在首次进入对应命名空间时迁移，已登录侧已有值时不覆盖。
 final class SharedPreferencesFastingCycleStore implements FastingCycleStore {
-  SharedPreferencesFastingCycleStore(this._prefs);
+  SharedPreferencesFastingCycleStore(this._prefs, {String Function()? userId})
+    : _userId = userId ?? (() => 'anonymous');
 
   static const String _keyActiveCycle = 'fasting.activeCycle';
   static const String _keyEarlyEatEndUtc = 'fasting.earlyEatEndUtc';
+  static const String _keyLastClosedCycle = 'fasting.lastClosedCycle';
+  static const List<String> _userKeys = <String>[
+    _keyActiveCycle,
+    _keyEarlyEatEndUtc,
+    _keyLastClosedCycle,
+  ];
 
   final SharedPreferences _prefs;
+  final String Function() _userId;
+  String? _scopedUserId;
+
+  String _key(String base) {
+    _ensureScope();
+    return '$base.${_scopedUserId!}';
+  }
+
+  void _ensureScope() {
+    final uid = _userId();
+    if (uid == _scopedUserId) return;
+    _scopedUserId = uid;
+    for (final base in _userKeys) {
+      _move(base, '$base.$uid');
+      if (uid != 'anonymous') {
+        _move('$base.anonymous', '$base.$uid');
+      }
+    }
+  }
+
+  void _move(String source, String target) {
+    if (source == target || !_prefs.containsKey(source)) return;
+    if (!_prefs.containsKey(target)) {
+      final value = _prefs.get(source);
+      if (value is String) {
+        _prefs.setString(target, value);
+      } else if (value is int) {
+        _prefs.setInt(target, value);
+      }
+    }
+    _prefs.remove(source);
+  }
 
   @override
   ActiveCycleSnapshot? loadActiveCycle() {
-    final raw = _prefs.getString(_keyActiveCycle);
+    final raw = _prefs.getString(_key(_keyActiveCycle));
     if (raw == null) return null;
     try {
       return ActiveCycleSnapshot.fromJson(
@@ -118,31 +167,41 @@ final class SharedPreferencesFastingCycleStore implements FastingCycleStore {
 
   @override
   void saveActiveCycle(ActiveCycleSnapshot snapshot) {
-    _prefs.setString(_keyActiveCycle, jsonEncode(snapshot.toJson()));
+    _prefs.setString(_key(_keyActiveCycle), jsonEncode(snapshot.toJson()));
   }
 
   @override
   void clearActiveCycle() {
-    _prefs.remove(_keyActiveCycle);
+    _prefs.remove(_key(_keyActiveCycle));
   }
 
   @override
-  int? loadEarlyEatEndUtc() => _prefs.getInt(_keyEarlyEatEndUtc);
+  String? loadLastClosedCycleId() =>
+      _prefs.getString(_key(_keyLastClosedCycle));
+
+  @override
+  void saveLastClosedCycleId(String id) {
+    _prefs.setString(_key(_keyLastClosedCycle), id);
+  }
+
+  @override
+  int? loadEarlyEatEndUtc() => _prefs.getInt(_key(_keyEarlyEatEndUtc));
 
   @override
   void saveEarlyEatEndUtc(int utc) {
-    _prefs.setInt(_keyEarlyEatEndUtc, utc);
+    _prefs.setInt(_key(_keyEarlyEatEndUtc), utc);
   }
 
   @override
   void clearEarlyEatEndUtc() {
-    _prefs.remove(_keyEarlyEatEndUtc);
+    _prefs.remove(_key(_keyEarlyEatEndUtc));
   }
 }
 
 /// 内存实现（单元/组件测试用）。
 final class InMemoryFastingCycleStore implements FastingCycleStore {
   ActiveCycleSnapshot? _cycle;
+  String? _lastClosedCycleId;
   int? _earlyEatEndUtc;
 
   @override
@@ -153,6 +212,12 @@ final class InMemoryFastingCycleStore implements FastingCycleStore {
 
   @override
   void clearActiveCycle() => _cycle = null;
+
+  @override
+  String? loadLastClosedCycleId() => _lastClosedCycleId;
+
+  @override
+  void saveLastClosedCycleId(String id) => _lastClosedCycleId = id;
 
   @override
   int? loadEarlyEatEndUtc() => _earlyEatEndUtc;

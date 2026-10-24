@@ -91,6 +91,11 @@ export interface PushEntryResult {
 export abstract class StoreDriver {
   abstract readonly name: 'memory' | 'prisma';
 
+  abstract runInTransaction<T>(
+    lockKeys: string[],
+    work: (tx: StoreDriver) => Promise<T>,
+  ): Promise<T>;
+
   /** U3：聚合该用户全量数据；用户不存在/已删除返回 null */
   abstract collectUserExport(userId: string): Promise<UserDataExport | null>;
 
@@ -416,8 +421,11 @@ export abstract class StoreDriver {
 
   abstract findStreakByUser(userId: string): Promise<StreakEntity | null>;
 
-  /** 按 userId upsert（recompute/rollover 全量落库） */
+  /** 按 userId upsert（初始化、rollover、补签库存落库） */
   abstract saveStreak(streak: StreakEntity): Promise<void>;
+
+  /** 仅写统计字段，保留数据库中的最新 makeupCards，避免重算覆盖补签库存 */
+  abstract saveStreakStats(streak: StreakEntity): Promise<void>;
 
   // ===== 幂等表（idempotency_keys，键 userId|endpoint|clientRequestId）=====
 
@@ -524,6 +532,10 @@ export class MemoryStoreDriver extends StoreDriver {
 
   constructor(private readonly store: DataStore) {
     super();
+  }
+
+  runInTransaction<T>(lockKeys: string[], work: (tx: StoreDriver) => Promise<T>): Promise<T> {
+    return this.store.runInTransaction(lockKeys, (tx) => work(new MemoryStoreDriver(tx)));
   }
 
   collectUserExport(userId: string): Promise<UserDataExport | null> {
@@ -1286,6 +1298,21 @@ export class MemoryStoreDriver extends StoreDriver {
 
   saveStreak(streak: StreakEntity): Promise<void> {
     this.store.streaks.set(streak.userId, streak);
+    return Promise.resolve();
+  }
+
+  saveStreakStats(streak: StreakEntity): Promise<void> {
+    const current = this.store.streaks.get(streak.userId);
+    if (!current) return Promise.reject(err.notFound());
+    this.store.streaks.set(streak.userId, {
+      ...current,
+      currentStreak: streak.currentStreak,
+      longestStreak: streak.longestStreak,
+      lastQualifiedDate: streak.lastQualifiedDate,
+      milestones: structuredClone(streak.milestones),
+      version: streak.version,
+      updatedAt: streak.updatedAt,
+    });
     return Promise.resolve();
   }
 

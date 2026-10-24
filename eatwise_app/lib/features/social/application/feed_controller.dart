@@ -5,10 +5,10 @@ import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/analytics_service.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/network_providers.dart';
+import 'package:eatwise/core/utils/client_request_id.dart';
+import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/social/data/social_api.dart';
 import 'package:eatwise/features/social/data/upload_api.dart';
-import 'package:eatwise/features/streak/application/streak_controller.dart'
-    show newClientRequestId;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 打卡流四态（《规格-全局 UI 四态》§3.2.4 社区·打卡流）。
@@ -122,16 +122,35 @@ final class FeedController extends Notifier<FeedState> {
 
   AnalyticsService get _analytics => ref.read(analyticsServiceProvider);
 
+  int _generation = 0;
+
+  ({int generation, String userId}) _sessionContext() {
+    return (generation: _generation, userId: ref.read(authUserIdProvider));
+  }
+
+  bool _isCurrent(({int generation, String userId}) context) {
+    try {
+      return context.generation == _generation &&
+          ref.read(authUserIdProvider) == context.userId;
+    } on Object {
+      return false;
+    }
+  }
+
   @override
   FeedState build() {
+    ref.watch(authUserIdProvider);
+    _generation++;
     unawaited(refresh());
     return const FeedState(status: FeedStatus.loading);
   }
 
   /// 首屏加载 / 下拉刷新（重置游标）。
   Future<void> refresh() async {
+    final context = _sessionContext();
     try {
       final page = await _api.fetchFeed(limit: pageSize);
+      if (!_isCurrent(context)) return;
       state = FeedState(
         status: FeedStatus.ready,
         items: page.items.map((p) => FeedItem(post: p)).toList(),
@@ -139,6 +158,7 @@ final class FeedController extends Notifier<FeedState> {
         nextCursor: page.nextCursor,
       );
     } on ApiException catch (e) {
+      if (!_isCurrent(context)) return;
       state = FeedState(status: FeedStatus.error, errorMessage: e.message);
     }
   }
@@ -151,12 +171,12 @@ final class FeedController extends Notifier<FeedState> {
         state.nextCursor == null) {
       return;
     }
+    final context = _sessionContext();
+    final cursor = state.nextCursor;
     state = state.copyWith(loadingMore: true);
     try {
-      final page = await _api.fetchFeed(
-        limit: pageSize,
-        cursor: state.nextCursor,
-      );
+      final page = await _api.fetchFeed(limit: pageSize, cursor: cursor);
+      if (!_isCurrent(context)) return;
       final known = state.items.map((i) => i.post.id).toSet();
       state = state.copyWith(
         items: <FeedItem>[
@@ -171,6 +191,7 @@ final class FeedController extends Notifier<FeedState> {
         loadingMore: false,
       );
     } on ApiException {
+      if (!_isCurrent(context)) return;
       // 翻页失败保留已有内容，下次滚动到底可重试。
       state = state.copyWith(loadingMore: false);
     }
@@ -185,6 +206,7 @@ final class FeedController extends Notifier<FeedState> {
     if (index < 0) return;
     final item = state.items[index];
     if (item.pendingSync) return; // 待确认卡不可互动
+    final context = _sessionContext();
     final liked = item.post.likedByMe;
     // 轻互动埋点（§3.5 community_interaction；post_id 哈希不含内容 §1.6-4）。
     _analytics.track(
@@ -204,6 +226,7 @@ final class FeedController extends Notifier<FeedState> {
       final result = liked
           ? await _api.unlike(postId)
           : await _api.like(postId);
+      if (!_isCurrent(context)) return;
       _replaceById(
         postId,
         FeedItem(
@@ -214,6 +237,7 @@ final class FeedController extends Notifier<FeedState> {
         ),
       );
     } on ApiException {
+      if (!_isCurrent(context)) return;
       _replaceById(postId, item); // 回滚（帖子已不在流中则丢弃）
     }
   }
@@ -227,6 +251,7 @@ final class FeedController extends Notifier<FeedState> {
     bool anonymous = false,
     int? avatarId,
   }) async {
+    final context = _sessionContext();
     final trimmed = text.trim();
     final localId = 'local-${newClientRequestId()}';
     final optimistic = FeedItem(
@@ -258,6 +283,7 @@ final class FeedController extends Notifier<FeedState> {
         anonymous: anonymous,
         avatarId: avatarId,
       );
+      if (!_isCurrent(context)) return PublishOk(created);
       _replaceById(localId, FeedItem(post: created));
       // 打卡发布埋点（§3.5 community_post_publish；2.6 活跃判定）。
       _analytics.track(
@@ -275,12 +301,14 @@ final class FeedController extends Notifier<FeedState> {
       );
       return PublishOk(created);
     } on BusinessApiException catch (e) {
+      if (!_isCurrent(context)) return const PublishFailed();
       _removeById(localId);
       if (e.code == 'POST_CONTENT_REJECTED') {
         return PublishRejected(e.message);
       }
       return const PublishFailed();
     } on ApiException {
+      if (!_isCurrent(context)) return const PublishFailed();
       _removeById(localId);
       return const PublishFailed();
     }
@@ -294,6 +322,7 @@ final class FeedController extends Notifier<FeedState> {
   Future<bool> report(String postId) async {
     final index = state.items.indexWhere((i) => i.post.id == postId);
     if (index < 0) return false;
+    final context = _sessionContext();
     final removed = state.items[index];
     final nextId = index + 1 < state.items.length
         ? state.items[index + 1].post.id
@@ -303,6 +332,7 @@ final class FeedController extends Notifier<FeedState> {
       await _api.report(postId);
       return true;
     } on ApiException {
+      if (!_isCurrent(context)) return false;
       if (state.items.any((i) => i.post.id == postId)) return false;
       final anchor = nextId == null
           ? state.items.length
@@ -327,6 +357,7 @@ final class FeedController extends Notifier<FeedState> {
   Future<bool> delete(String postId) async {
     final index = state.items.indexWhere((i) => i.post.id == postId);
     if (index < 0) return false;
+    final context = _sessionContext();
     final removed = state.items[index];
     final nextId = index + 1 < state.items.length
         ? state.items[index + 1].post.id
@@ -336,6 +367,7 @@ final class FeedController extends Notifier<FeedState> {
       await _api.deletePost(postId);
       return true;
     } on ApiException {
+      if (!_isCurrent(context)) return false;
       if (state.items.any((i) => i.post.id == postId)) return false;
       final anchor = nextId == null
           ? state.items.length
@@ -355,6 +387,7 @@ final class FeedController extends Notifier<FeedState> {
   /// 屏蔽作者（App Store 条例 1.2）：服务端落屏蔽关系，本地即时移除该作者
   /// 全部帖（不等整流刷新）；失败回滚 = 整流 refresh 拉回权威口径。
   Future<bool> blockAuthor(String authorId) async {
+    final context = _sessionContext();
     state = state.copyWith(
       items: state.items
           .where((i) => i.post.isAuthor || i.post.authorId != authorId)
@@ -364,6 +397,7 @@ final class FeedController extends Notifier<FeedState> {
       await _api.blockUser(authorId);
       return true;
     } on ApiException {
+      if (!_isCurrent(context)) return false;
       await refresh();
       return false;
     }

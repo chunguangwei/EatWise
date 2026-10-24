@@ -33,10 +33,11 @@ final class PinnedPostImageLoader {
   }
 }
 
-/// 帖图加载器（走 [apiDioProvider]：自带自签名证书锁定 / 401 续期 /
-/// 错误映射；`Image.network` 的裸 HttpClient 不挂 cert pinning，
-/// 生产 https://wcg.polin.tech 握手必失败 → 断图，故 feed 图一律
-/// 经此拉字节后 [Image.memory] 渲染）。
+/// 帖图加载器（走 [apiDioProvider] 保留自签名证书锁定 / 错误映射；
+/// 图片请求显式 skipAuth，既不注入令牌也不触发 401 refresh。
+/// `Image.network` 的裸 HttpClient 不挂 cert pinning，生产
+/// https://wcg.polin.tech 握手必失败 → 断图，故 feed 图一律经此
+/// 拉字节后 [Image.memory] 渲染）。
 final Provider<PinnedPostImageLoader> pinnedPostImageLoaderProvider =
     Provider<PinnedPostImageLoader>((ref) {
       final dio = ref.watch(apiDioProvider);
@@ -44,7 +45,10 @@ final Provider<PinnedPostImageLoader> pinnedPostImageLoaderProvider =
         try {
           final response = await dio.get<List<int>>(
             url,
-            options: Options(responseType: ResponseType.bytes),
+            options: Options(
+              responseType: ResponseType.bytes,
+              extra: const <String, dynamic>{'skipAuth': true},
+            ),
           );
           final data = response.data;
           return data == null ? null : Uint8List.fromList(data);

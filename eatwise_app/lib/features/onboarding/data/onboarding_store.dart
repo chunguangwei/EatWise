@@ -8,9 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// 新手引导本地持久化（M1：进度本地保存可续答 / 方案与营养目标写入）。
 ///
-/// 实现基于 shared_preferences（MVP 单用户本地键值；M7 账号落地后随用户
-/// 数据迁移，见 D-20 同步策略）。所有读取为同步（SharedPreferences 内存
-/// 缓存），写入为 fire-and-forget（失败不阻断引导主流程〔假设〕）。
+/// 实现基于 shared_preferences（用户态键按 uid 命名空间隔离，旧全局键与
+/// 匿名键迁移保留，见 D-20 同步策略）。所有读取为同步（SharedPreferences
+/// 内存缓存），写入为 fire-and-forget（失败不阻断引导主流程〔假设〕）。
 
 /// 问卷进度（可续答）。
 final class QuizProgress {
@@ -177,12 +177,32 @@ abstract interface class OnboardingStore {
   int? loadTargetWeightSetAtUtc();
 }
 
-/// SharedPreferences 实现。
+/// 当前会话 uid 的同步缓存，供未直接注入认证状态的本地存储使用。
+const String sessionUserIdPreferenceKey = 'auth.currentUserId';
+
+String readSessionUserId(SharedPreferences prefs) {
+  return prefs.getString(sessionUserIdPreferenceKey) ?? 'anonymous';
+}
+
+void writeSessionUserId(SharedPreferences prefs, String? userId) {
+  if (userId == null || userId == 'anonymous') {
+    prefs.remove(sessionUserIdPreferenceKey);
+  } else {
+    prefs.setString(sessionUserIdPreferenceKey, userId);
+  }
+}
+
+/// SharedPreferences 实现。所有用户态键按 uid 隔离；旧全局键与匿名键
+/// 在首次进入对应命名空间时迁移，已登录侧已有值时不覆盖。
 final class SharedPreferencesOnboardingStore implements OnboardingStore {
-  SharedPreferencesOnboardingStore(this._prefs, {int Function()? nowUtc})
-    : _nowUtc =
-          nowUtc ??
-          (() => DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000);
+  SharedPreferencesOnboardingStore(
+    this._prefs, {
+    int Function()? nowUtc,
+    String Function()? userId,
+  }) : _nowUtc =
+           nowUtc ??
+           (() => DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000),
+       _userId = userId ?? (() => readSessionUserId(_prefs));
 
   static const String _keyCompleted = 'onboarding.completed';
   static const String _keyQuizProgress = 'onboarding.quizProgress';
@@ -191,18 +211,64 @@ final class SharedPreferencesOnboardingStore implements OnboardingStore {
   static const String _keyNutritionGoal = 'onboarding.nutritionGoal';
   static const String _keyProfile = 'onboarding.profile';
   static const String _keyTargetWeightSetAt = 'onboarding.targetWeightSetAtUtc';
+  static const List<String> _userKeys = <String>[
+    _keyCompleted,
+    _keyQuizProgress,
+    _keyActivePlan,
+    _keyPendingPlan,
+    _keyNutritionGoal,
+    _keyProfile,
+    _keyTargetWeightSetAt,
+  ];
 
   final SharedPreferences _prefs;
+  final String Function() _userId;
+  String? _scopedUserId;
 
   /// 减重锚点写入时钟（测试注入假时钟）。
   final int Function() _nowUtc;
 
+  String _key(String base) {
+    _ensureScope();
+    return '$base.${_scopedUserId!}';
+  }
+
+  void _ensureScope() {
+    final uid = _userId();
+    if (uid == _scopedUserId) return;
+    _scopedUserId = uid;
+    for (final base in _userKeys) {
+      _move(base, base, '$base.$uid');
+      if (uid != 'anonymous') {
+        _move(base, '$base.anonymous', '$base.$uid');
+      }
+    }
+  }
+
+  void _move(String base, String source, String target) {
+    if (source == target || !_prefs.containsKey(source)) return;
+    if (base == _keyCompleted && _prefs.getBool(source) == true) {
+      _prefs.setBool(target, true);
+    } else if (!_prefs.containsKey(target)) {
+      final value = _prefs.get(source);
+      if (value is String) {
+        _prefs.setString(target, value);
+      } else if (value is bool) {
+        _prefs.setBool(target, value);
+      } else if (value is int) {
+        _prefs.setInt(target, value);
+      }
+    }
+    _prefs.remove(source);
+  }
+
   @override
-  bool get isOnboardingCompleted => _prefs.getBool(_keyCompleted) ?? false;
+  bool get isOnboardingCompleted =>
+      _prefs.getBool(_key(_keyCompleted)) ?? false;
 
   @override
   void markOnboardingCompleted() {
-    _prefs.setBool(_keyCompleted, true);
+    _prefs.setBool(_key(_keyCompleted), true);
   }
 
   @override
@@ -211,12 +277,12 @@ final class SharedPreferencesOnboardingStore implements OnboardingStore {
 
   @override
   void saveQuizProgress(QuizProgress progress) {
-    _prefs.setString(_keyQuizProgress, jsonEncode(progress.toJson()));
+    _prefs.setString(_key(_keyQuizProgress), jsonEncode(progress.toJson()));
   }
 
   @override
   void clearQuizProgress() {
-    _prefs.remove(_keyQuizProgress);
+    _prefs.remove(_key(_keyQuizProgress));
   }
 
   @override
@@ -225,7 +291,7 @@ final class SharedPreferencesOnboardingStore implements OnboardingStore {
 
   @override
   void saveActivePlan(ActivePlanSnapshot snapshot) {
-    _prefs.setString(_keyActivePlan, jsonEncode(snapshot.toJson()));
+    _prefs.setString(_key(_keyActivePlan), jsonEncode(snapshot.toJson()));
   }
 
   @override
@@ -235,7 +301,7 @@ final class SharedPreferencesOnboardingStore implements OnboardingStore {
   @override
   void savePendingPlan(PendingPlan pending) {
     _prefs.setString(
-      _keyPendingPlan,
+      _key(_keyPendingPlan),
       jsonEncode(<String, dynamic>{
         'planId': pending.plan.id,
         'eatStartMinutes': pending.plan.eatStartMinutes,
@@ -248,7 +314,7 @@ final class SharedPreferencesOnboardingStore implements OnboardingStore {
 
   @override
   void clearPendingPlan() {
-    _prefs.remove(_keyPendingPlan);
+    _prefs.remove(_key(_keyPendingPlan));
   }
 
   static PendingPlan _pendingPlanFromJson(Map<String, dynamic> json) {
@@ -274,7 +340,7 @@ final class SharedPreferencesOnboardingStore implements OnboardingStore {
 
   @override
   void saveNutritionGoal(NutritionGoalSnapshot snapshot) {
-    _prefs.setString(_keyNutritionGoal, jsonEncode(snapshot.toJson()));
+    _prefs.setString(_key(_keyNutritionGoal), jsonEncode(snapshot.toJson()));
   }
 
   @override
@@ -284,29 +350,27 @@ final class SharedPreferencesOnboardingStore implements OnboardingStore {
   @override
   void saveProfile(OnboardingProfile profile) {
     if (!profile.hasAnyData) {
-      _prefs.remove(_keyProfile); // 空档案按未采集处理（走兜底）
-      _prefs.remove(_keyTargetWeightSetAt);
+      _prefs.remove(_key(_keyProfile)); // 空档案按未采集处理（走兜底）
+      _prefs.remove(_key(_keyTargetWeightSetAt));
       return;
     }
-    // 减重目标锚点维护（见接口注释）：首设落锚 / 值不变保留 / 变更重置 /
-    // 清空移除。
     if (profile.targetWeightKg != null) {
       final prev = loadProfile();
-      if (_prefs.getInt(_keyTargetWeightSetAt) == null ||
+      if (_prefs.getInt(_key(_keyTargetWeightSetAt)) == null ||
           prev?.targetWeightKg != profile.targetWeightKg) {
-        _prefs.setInt(_keyTargetWeightSetAt, _nowUtc());
+        _prefs.setInt(_key(_keyTargetWeightSetAt), _nowUtc());
       }
     } else {
-      _prefs.remove(_keyTargetWeightSetAt);
+      _prefs.remove(_key(_keyTargetWeightSetAt));
     }
-    _prefs.setString(_keyProfile, jsonEncode(profile.toJson()));
+    _prefs.setString(_key(_keyProfile), jsonEncode(profile.toJson()));
   }
 
   @override
-  int? loadTargetWeightSetAtUtc() => _prefs.getInt(_keyTargetWeightSetAt);
+  int? loadTargetWeightSetAtUtc() => _prefs.getInt(_key(_keyTargetWeightSetAt));
 
-  T? _readJson<T>(String key, T Function(Map<String, dynamic>) decode) {
-    final raw = _prefs.getString(key);
+  T? _readJson<T>(String base, T Function(Map<String, dynamic>) decode) {
+    final raw = _prefs.getString(_key(base));
     if (raw == null) return null;
     try {
       return decode(jsonDecode(raw) as Map<String, dynamic>);

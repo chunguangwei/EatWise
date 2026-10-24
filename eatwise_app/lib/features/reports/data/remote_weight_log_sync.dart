@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:eatwise/core/network/api_exception.dart';
+import 'package:eatwise/features/record/data/water_log_repository.dart'
+    show localDateKey;
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
 
 /// 体重记录远端同步（阶段 C：本地优先 + 登录态后台推拉，两态 pending/synced，
@@ -13,10 +15,12 @@ import 'package:eatwise/features/reports/application/weight_log_store.dart';
 /// [WeightLogStore.mergeRemote] LWW 合并 + tombstone 删除传播。
 /// 失败保持 pending 下轮重试（T5 保数据），401/匿名由调用方守门。
 final class RemoteWeightLogSync {
-  RemoteWeightLogSync({required this.dio});
+  RemoteWeightLogSync({required this.dio, DateTime Function()? now})
+    : _now = now ?? DateTime.now;
 
   /// 已装配 dio（鉴权拦截器随登录态附加 token）。
   final Dio dio;
+  final DateTime Function() _now;
 
   bool _online = true;
 
@@ -95,15 +99,14 @@ final class RemoteWeightLogSync {
     }
   }
 
-  /// 下行区间合并（缺省全量：1970-01-01 ～ 今天）：logs LWW 合并 +
+  /// 下行区间合并（缺省全量：1970-01-01 ～ 本地今天）：logs LWW 合并 +
   /// tombstones 删除传播（2026-09-29 拍板：他端删除不再被拉回）。
   Future<void> pullDown(
     WeightLogStore store, {
     String from = '1970-01-01',
     String? to,
   }) async {
-    final effectiveTo =
-        to ?? DateTime.now().toUtc().toIso8601String().substring(0, 10);
+    final effectiveTo = to ?? localDateKey(_now());
     try {
       final response = await dio.get<Map<String, dynamic>>(
         '/weight-logs',

@@ -13,6 +13,7 @@ import 'package:eatwise/features/record/data/remote_record_sync.dart';
 import 'package:eatwise/features/record/data/remote_water_log_sync.dart';
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
 import 'package:eatwise/features/reports/data/remote_weight_log_sync.dart';
+import 'package:eatwise/features/settings/application/settings_prefs_sync.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -39,6 +40,7 @@ final class RecordSyncEngine {
     this.fastingRecordSync,
     this.planSync,
     this.profileSync,
+    this.settingsPrefsSync,
     this.cacheRepair,
     this.anonymousMigrator,
     this.onFoodsBackfilled,
@@ -81,6 +83,9 @@ final class RecordSyncEngine {
 
   /// 身体档案/引导状态上行（可选：脏标记制，v1.13.31；未装配为 null 跳过）。
   final ProfileSyncService? profileSync;
+
+  /// 用户偏好上行（可选：本地 dirty 快照随同步轮重试）。
+  final SettingsPrefsSync? settingsPrefsSync;
 
   /// 每日聚合缓存回填修复（可选：v1.12.5 走查盲区——旧版本下行遗留的
   /// 存量记录不经重算、sync 游标已越过，首页/趋势假空不自愈；未装配为
@@ -147,9 +152,14 @@ final class RecordSyncEngine {
         debugPrint('[Sync] profileSync.flushDirty 失败（下轮重试）：$e');
       }
       try {
+        await settingsPrefsSync?.flushDirty();
+      } on Object catch (e) {
+        debugPrint('[Sync] settingsPrefs.flushDirty 失败（下轮重试）：$e');
+      }
+      try {
         // 自定义食物先上行（饮食记录引用其服务端 id，颠倒顺序会让
         // 引用本地临时 id 的记录上行 4xx）。
-        await customFoodSync?.retryPending();
+        await customFoodSync?.retryPending(repository.userId);
       } on Object catch (e) {
         debugPrint('[Sync] customFood.retryPending 失败（下轮重试）：$e');
       }
@@ -228,6 +238,7 @@ final class RecordSyncEngine {
           try {
             final resolved = await remote.backfillPlaceholderFoods(
               repository.db,
+              userId: repository.userId,
             );
             if (resolved > 0) onFoodsBackfilled?.call();
           } on Object catch (e) {

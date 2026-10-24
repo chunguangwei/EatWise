@@ -88,6 +88,22 @@ void main() {
       expect(controller.state.userId, isNull);
     });
 
+    test('已有 uid 状态恢复旧版本无 uid 会话 → 不沿用上一账号', () async {
+      await tokenStore.saveTokens(
+        accessToken: 'a-A',
+        refreshToken: 'r-A',
+        userId: 'u-A',
+      );
+      await controller.restore();
+      expect(controller.state.userId, 'u-A');
+
+      await tokenStore.clear();
+      await tokenStore.saveTokens(accessToken: 'a-old', refreshToken: 'r-old');
+      await controller.restore();
+      expect(controller.state.status, AuthStatus.loggedIn);
+      expect(controller.state.userId, isNull);
+    });
+
     // v1.13.13 重装恢复：Keychain 令牌存活 + 本地引导标记被清（重装），
     // restore 后异步拉 /users/me 回填引导完成态（登录响应双写无触发点）。
     test('restore 后本地引导未完成 → 拉 /users/me completed 回填双写', () async {

@@ -132,10 +132,10 @@ final class StreakEngine {
         : MendCardVisualState.exhausted;
   }
 
-  /// 断签日 D 的可补窗口：[D, D+6]（today - D ≤ 6，§3.1）。
+  /// 断签日 D 次日起的可补窗口：D+1…D+6（today - D = 1…6，§3.1）。
   bool _withinMendWindow(String missedDate, String today) {
     final diff = diffIsoDays(today, missedDate);
-    return diff >= 0 && diff <= kMendWindowDays;
+    return diff > 0 && diff <= kMendWindowDays;
   }
 
   /// 补签预览：假设 [date] 补签成功后的当前连胜（弹窗 CTA「恢复 N 天连胜」）。

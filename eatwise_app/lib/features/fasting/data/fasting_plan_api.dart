@@ -18,8 +18,8 @@ import 'package:eatwise/features/fasting/domain/window_rules.dart';
 /// （时长 = 24h − 禁食时长，否则 400）由服务端执行，客户端经
 /// [buildWindow] 构造时天然满足。
 ///
-/// 服务端生效语义：首个方案立即生效；已有方案改动次日 0 点本地生效
-/// （D-06），生效同步时序由 FastingPlanSync（脏标记 + 重试）承担。
+/// 服务端生效语义：最后写入胜并即刻 current；本机 pending 仅作旧流程兼容，
+/// 同步时序由 FastingPlanSync（脏标记 + 重试）承担。
 /// GET 下行回填见 [fetchCurrent]（重装/换机恢复）；[extendFast] 为 F3
 /// 延长断食上报（D-10 服务端审计），与 F1/F2 同族端点，recordId 经
 /// [fetchActiveRecordId]（`GET /fasting/status` 的 activeRecord.id）解析。

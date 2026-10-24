@@ -6,6 +6,7 @@ import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/tables.dart';
+import 'package:eatwise/core/time/day_change.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/data/remote_fasting_record_sync.dart';
 import 'package:eatwise/features/health/application/exercise_log_providers.dart'
@@ -38,6 +39,7 @@ import 'package:eatwise/features/record/recognition/voice/speech_gateway.dart';
 import 'package:eatwise/features/record/recognition/voice/voice_text_parser.dart';
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
 import 'package:eatwise/features/reports/data/remote_weight_log_sync.dart';
+import 'package:eatwise/features/settings/application/settings_prefs_sync.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart'
     show currentUserIdProvider;
@@ -74,6 +76,12 @@ final Provider<RecordRepository> recordRepositoryProvider =
       return repo;
     });
 
+typedef RecordEntryWriter = Future<FoodEntry> Function(RecordDraft draft);
+
+final photoMealEntryWriterProvider = Provider<RecordEntryWriter>((ref) {
+  return ref.watch(recordRepositoryProvider).addEntry;
+});
+
 /// 搜索关键词（食物搜索输入框）。
 final StateProvider<String> recordSearchQueryProvider = StateProvider<String>(
   (ref) => '',
@@ -92,6 +100,7 @@ final Provider<RemoteFoodSearch> remoteFoodSearchProvider =
       return RemoteFoodSearch(
         dio: ref.watch(apiDioProvider),
         db: ref.watch(recordRepositoryProvider).db,
+        userId: ref.watch(currentUserIdProvider),
       );
     });
 
@@ -162,6 +171,7 @@ final Provider<RecordSyncEngine> recordSyncEngineProvider =
         fastingRecordSync: ref.watch(fastingRecordSyncProvider),
         planSync: ref.watch(fastingPlanSyncProvider),
         profileSync: ref.watch(profileSyncServiceProvider),
+        settingsPrefsSync: ref.watch(settingsPrefsSyncProvider),
         cacheRepair: ref.watch(dailyNutritionCacheRepairProvider),
         anonymousMigrator: ref.watch(anonymousDataMigratorProvider),
         // 占位食物行补名成功 → 失效名称缓存（今日记录 entryFoodProvider
@@ -225,12 +235,13 @@ final StateProvider<MealType?> recordMealTypeProvider =
 /// 今日有效记录流（优化点 2：记录页「今日记录」餐次分组列表数据源）。
 final StreamProvider<List<FoodEntry>> todayEntriesProvider =
     StreamProvider<List<FoodEntry>>((ref) {
+      ref.watch(localDayProvider);
+      final now = ref.read(localDayClockProvider)();
       final repo = ref.watch(recordRepositoryProvider);
-      // 「今日」与写入侧同口径（repo.location）：进程本地时区在 CI
-      // （TZ=UTC）与北京日期会跨日分叉，勿用 localDateKey(DateTime.now())。
+      // 「今日」与写入侧同口径（repo.location），跨午夜由 localDayProvider 重建。
       return repo.db.foodEntryDao.watchEntriesForDate(
         repo.userId,
-        repo.localDateKeyOf(DateTime.now()),
+        repo.localDateKeyOf(now),
       );
     });
 
@@ -243,9 +254,9 @@ final FutureProviderFamily<Food?, String> entryFoodProvider =
 /// 今日聚合缓存流（本地预估，§2.6；角标注明「待云端校准」）。
 final StreamProvider<DailyNutritionCache?> recordTodayNutritionProvider =
     StreamProvider<DailyNutritionCache?>((ref) {
-      return ref
-          .watch(recordRepositoryProvider)
-          .watchDailyNutrition(DateTime.now());
+      ref.watch(localDayProvider);
+      final now = ref.read(localDayClockProvider)();
+      return ref.watch(recordRepositoryProvider).watchDailyNutrition(now);
     });
 
 // ---- M3 三入口（拍照识别 / 语音录入 / 常吃复用，PRD M3 / D-16） ----
@@ -482,10 +493,9 @@ final Provider<WaterLogRepository> waterLogRepositoryProvider =
 /// 数据库未装配（测试/预览仅注入饮食仓储）时降级 0，与
 /// `analytics_providers` 的兜底口径一致。
 final StreamProvider<int> todayWaterTotalProvider = StreamProvider<int>((ref) {
+  final date = localDayKey(ref.watch(localDayProvider));
   try {
-    return ref
-        .watch(waterLogRepositoryProvider)
-        .watchTotalForDate(localDateKey(DateTime.now()));
+    return ref.watch(waterLogRepositoryProvider).watchTotalForDate(date);
   } on Object {
     return Stream<int>.value(0);
   }
@@ -495,16 +505,18 @@ final StreamProvider<int> todayWaterTotalProvider = StreamProvider<int>((ref) {
 final FutureProvider<double?> todayWeightProvider = FutureProvider<double?>((
   ref,
 ) {
+  ref.watch(weightLogRevisionProvider);
   final store = ref.watch(weightLogStoreProvider);
-  final key = localDateKey(DateTime.now());
+  final key = localDayKey(ref.watch(localDayProvider));
   return store.loadRange(key, key)[key];
 });
 
 /// 当日体重完整条目（含体脂率，录入弹窗预填用；未记录为 null）。
 final FutureProvider<WeightLogEntry?> todayWeightEntryProvider =
     FutureProvider<WeightLogEntry?>((ref) {
+      ref.watch(weightLogRevisionProvider);
       final store = ref.watch(weightLogStoreProvider);
-      final key = localDateKey(DateTime.now());
+      final key = localDayKey(ref.watch(localDayProvider));
       return store.loadEntries(key, key)[key];
     });
 
@@ -512,12 +524,14 @@ final FutureProvider<WeightLogEntry?> todayWeightEntryProvider =
 final StreamProvider<int> todayDuringFastCountProvider = StreamProvider<int>((
   ref,
 ) {
+  ref.watch(localDayProvider);
+  final now = ref.read(localDayClockProvider)();
   try {
     final repo = ref.watch(recordRepositoryProvider);
     return repo.db.foodEntryDao.watchDuringFastCount(
       repo.userId,
       // 「今日」与写入侧同口径（repo.location，与 todayEntriesProvider 同修）。
-      repo.localDateKeyOf(DateTime.now()),
+      repo.localDateKeyOf(now),
     );
   } on Object {
     return Stream<int>.value(0);

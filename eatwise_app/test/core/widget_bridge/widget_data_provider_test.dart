@@ -124,4 +124,87 @@ void main() {
     expect(data.targetAnchorUtcMs, bjtUtc(28, 12) * 1000);
     expect(data.targetWallClockLabel, '20:00');
   });
+
+  test('方案变更后 stored 周期仍未结束：冻结锚点优先于新方案进食态', () {
+    const changedPlan = FastingPlan(
+      id: '18:6@06',
+      eatStartMinutes: 6 * 60,
+      eatEndMinutes: 18 * 60,
+    );
+    final stored = ActiveCycleSnapshot(
+      startUtc: bjtUtc(27, 12),
+      plannedEndUtc: bjtUtc(28, 4),
+      eatWindowEndUtc: bjtUtc(28, 12),
+      extendedMinutes: 0,
+    );
+
+    final data = buildProvider().compute(
+      plan: changedPlan,
+      activeCycle: stored,
+      earlyEatEndUtc: null,
+      nowUtcSec: bjtUtc(28, 0),
+      location: bjt,
+    );
+
+    expect(data.state, FastingState.fasting);
+    expect(data.targetAnchorUtcMs, bjtUtc(28, 4) * 1000);
+    expect(data.targetWallClockLabel, '12:00');
+  });
+
+  test('stored 已到 plannedEnd：不恢复过期周期', () {
+    final stored = ActiveCycleSnapshot(
+      startUtc: bjtUtc(27, 12),
+      plannedEndUtc: bjtUtc(28, 4),
+      eatWindowEndUtc: bjtUtc(28, 12),
+      extendedMinutes: 30,
+    );
+
+    final data = compute(nowUtcSec: bjtUtc(28, 5), cycle: stored);
+
+    expect(data.state, FastingState.eating);
+    expect(data.targetAnchorUtcMs, bjtUtc(28, 12) * 1000);
+    expect(data.extendedMinutes, 0);
+  });
+
+  test('stored 与关闭墓碑相同：不复活已关闭周期', () {
+    final stored = ActiveCycleSnapshot(
+      startUtc: bjtUtc(27, 12),
+      plannedEndUtc: bjtUtc(28, 4),
+      eatWindowEndUtc: bjtUtc(28, 12),
+      extendedMinutes: 0,
+    );
+
+    final data = buildProvider().compute(
+      plan: FastingPlan.plan16x8,
+      activeCycle: stored,
+      earlyEatEndUtc: null,
+      lastClosedCycleId: stored.stableId,
+      nowUtcSec: bjtUtc(28, 0),
+      location: bjt,
+    );
+
+    expect(data.state, FastingState.eating);
+    expect(data.extendedMinutes, 0);
+  });
+
+  test('active 已清除且推导周期带关闭墓碑：不复活该周期', () {
+    final closed = ActiveCycleSnapshot(
+      startUtc: bjtUtc(27, 12),
+      plannedEndUtc: bjtUtc(28, 4),
+      eatWindowEndUtc: bjtUtc(28, 12),
+      extendedMinutes: 0,
+    );
+
+    final data = buildProvider().compute(
+      plan: FastingPlan.plan16x8,
+      activeCycle: null,
+      earlyEatEndUtc: null,
+      lastClosedCycleId: closed.stableId,
+      nowUtcSec: bjtUtc(28, 0),
+      location: bjt,
+    );
+
+    expect(data.state, FastingState.eating);
+    expect(data.targetAnchorUtcMs, bjtUtc(28, 4) * 1000);
+  });
 }

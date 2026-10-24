@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:eatwise/features/fasting/application/fasting_notification_scheduler.dart';
+import 'package:eatwise/features/fasting/domain/fast_cycle.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 
 /// 平台系统事件（《规格-M2 断食计时状态机》§2.2 事件枚举的调度相关子集）。
@@ -51,7 +52,13 @@ class FastingNotificationEventBinder {
     required this.source,
     required this.planProvider,
     int Function()? extensionMinutesProvider,
-  }) : _extensionMinutesProvider = extensionMinutesProvider ?? (() => 0);
+    FastCycle? Function()? activeCycleProvider,
+    int? Function()? earlyEatEndUtcProvider,
+    String? Function()? lastClosedCycleIdProvider,
+  }) : _extensionMinutesProvider = extensionMinutesProvider ?? (() => 0),
+       _activeCycleProvider = activeCycleProvider ?? (() => null),
+       _earlyEatEndUtcProvider = earlyEatEndUtcProvider ?? (() => null),
+       _lastClosedCycleIdProvider = lastClosedCycleIdProvider ?? (() => null);
 
   /// 通知调度器。
   final FastingNotificationScheduler scheduler;
@@ -63,6 +70,9 @@ class FastingNotificationEventBinder {
   final FastingPlan? Function() planProvider;
 
   final int Function() _extensionMinutesProvider;
+  final FastCycle? Function() _activeCycleProvider;
+  final int? Function() _earlyEatEndUtcProvider;
+  final String? Function() _lastClosedCycleIdProvider;
 
   StreamSubscription<FastingSystemEvent>? _subscription;
 
@@ -80,6 +90,9 @@ class FastingNotificationEventBinder {
       scheduler.reschedule(
         plan: planProvider(),
         extensionMinutes: _extensionMinutesProvider(),
+        activeCycle: _activeCycleProvider(),
+        earlyEatEndUtc: _earlyEatEndUtcProvider(),
+        lastClosedCycleId: _lastClosedCycleIdProvider(),
         reason: rescheduleReasonForSystemEvent(event),
       ),
     );

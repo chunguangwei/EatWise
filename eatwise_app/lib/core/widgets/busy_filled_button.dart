@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 /// 带提交中态的主按钮（2026-10-15 走查修复：登录中按钮「全白色看不清」）。
 ///
 /// 根因：忙时 `onPressed: null` 进禁用态（浅灰底 fillSubtle），而按钮文字
-/// 又强制白色——白字压近白底直接隐形。本组件忙时保持品牌绿底（降透明度
-/// 55%）+ 白字 + 迷你转圈，状态可读且明确。
+/// 又强制白色，白字压近白底直接隐形。本组件忙时保持动作色与高对比前景，
+/// 用迷你转圈表达在途状态。
 class BusyFilledButton extends StatelessWidget {
   const BusyFilledButton({
     required this.label,
@@ -35,9 +35,10 @@ class BusyFilledButton extends StatelessWidget {
     return FilledButton(
       onPressed: busy ? null : onPressed,
       style: FilledButton.styleFrom(
-        backgroundColor: colors.brandPrimary,
-        disabledBackgroundColor: colors.brandPrimary.withValues(alpha: 0.55),
-        disabledForegroundColor: Colors.white,
+        backgroundColor: colors.actionPrimary,
+        foregroundColor: colors.onActionPrimary,
+        disabledBackgroundColor: colors.actionPrimary,
+        disabledForegroundColor: colors.onActionPrimary,
         minimumSize: const Size.fromHeight(AppSpacing.s12),
       ),
       child: Row(
@@ -45,19 +46,19 @@ class BusyFilledButton extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           if (busy) ...<Widget>[
-            const SizedBox(
+            SizedBox(
               width: 18,
               height: 18,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: Colors.white,
+                color: colors.onActionPrimary,
               ),
             ),
             const SizedBox(width: AppSpacing.s2),
           ],
           Text(
             busy ? busyLabel : label,
-            style: textStyles.textBase.copyWith(color: Colors.white),
+            style: textStyles.textBase.copyWith(color: colors.onActionPrimary),
           ),
         ],
       ),

@@ -102,6 +102,24 @@ describe('App (e2e)', () => {
     expect(reuse.body.error.code).toBe('AUTH_REFRESH_REUSED');
   });
 
+  it('并发 refresh 仅一个 200，失败方 401 AUTH_REFRESH_REUSED', async () => {
+    const phone = nextPhone();
+    await request(server).post('/v1/auth/sms/send').send({ phone, scene: 'login' }).expect(200);
+    const loginRes = await request(server)
+      .post('/v1/auth/login/phone')
+      .send({ phone, code: '123456' })
+      .expect(200);
+    const rt = loginRes.body.data.refreshToken as string;
+
+    const attempts = await Promise.all([
+      request(server).post('/v1/auth/refresh').send({ refreshToken: rt }),
+      request(server).post('/v1/auth/refresh').send({ refreshToken: rt }),
+    ]);
+    expect(attempts.map((res) => res.status).sort()).toEqual([200, 401]);
+    const failure = attempts.find((res) => res.status === 401);
+    expect(failure?.body.error.code).toBe('AUTH_REFRESH_REUSED');
+  });
+
   it('食物双语搜索需登录且返回 matchedOn/highlight', async () => {
     const token = await login(nextPhone());
     const res = await request(server)
@@ -170,6 +188,19 @@ describe('App (e2e)', () => {
       .send({ username, password: 'Passw0rd123' })
       .expect(409);
     expect(dup.body.error.code).toBe('AUTH_USERNAME_TAKEN');
+  });
+
+  it('并发同名注册仅一个 201，其余全部 409 AUTH_USERNAME_TAKEN', async () => {
+    const username = nextUsername();
+    const attempts = await Promise.all(
+      [username, username.toUpperCase(), username].map((name) =>
+        request(server).post('/v1/auth/register').send({ username: name, password: 'Passw0rd123' }),
+      ),
+    );
+    expect(attempts.map((res) => res.status).sort()).toEqual([201, 409, 409]);
+    for (const failure of attempts.filter((res) => res.status === 409)) {
+      expect(failure.body.error.code).toBe('AUTH_USERNAME_TAKEN');
+    }
   });
 
   it('注册弱密码 → 400 AUTH_PASSWORD_TOO_WEAK', async () => {

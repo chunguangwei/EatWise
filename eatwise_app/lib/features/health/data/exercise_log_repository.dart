@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/tables.dart';
+import 'package:eatwise/features/health/domain/exercise_types.dart';
 import 'package:eatwise/features/record/data/water_log_repository.dart'
     show localDateKey;
 
@@ -51,14 +52,22 @@ final class ExerciseLogRepository {
     String? source,
     int? steps,
   }) async {
-    if (durationMin < 0) {
-      throw ArgumentError.value(durationMin, 'durationMin', '时长不能为负');
+    if (durationMin < 0 || durationMin > maxExerciseDurationMin) {
+      throw ArgumentError.value(
+        durationMin,
+        'durationMin',
+        '时长需在 0 到 $maxExerciseDurationMin 分钟之间',
+      );
     }
-    if (kcal <= 0) {
-      throw ArgumentError.value(kcal, 'kcal', '消耗必须大于 0');
+    if (!kcal.isFinite || kcal <= 0 || kcal > maxExerciseKcal) {
+      throw ArgumentError.value(kcal, 'kcal', '消耗需大于 0 且不超过 $maxExerciseKcal');
     }
-    if (steps != null && steps <= 0) {
-      throw ArgumentError.value(steps, 'steps', '步数必须大于 0');
+    if (steps != null && (steps <= 0 || steps > maxExerciseSteps)) {
+      throw ArgumentError.value(
+        steps,
+        'steps',
+        '步数需在 1 到 $maxExerciseSteps 之间',
+      );
     }
     final nowUtc = _clock().toUtc();
     final nowIso = nowUtc.toIso8601String();

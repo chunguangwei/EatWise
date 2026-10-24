@@ -19,6 +19,7 @@ import 'package:eatwise/core/storage/food_seed_loader.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/sync/foreground_sync_observer.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
+import 'package:eatwise/core/time/day_change.dart';
 import 'package:eatwise/core/time/timezone_bootstrap.dart';
 import 'package:eatwise/core/update/update_dialog.dart';
 import 'package:eatwise/core/update/update_providers.dart';
@@ -36,7 +37,6 @@ import 'package:eatwise/features/legal/data/privacy_consent_store.dart';
 import 'package:eatwise/features/moderation/data/admin_pending_alert.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_gate.dart';
-import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:eatwise/features/record/application/water_reminder_planner.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
@@ -68,10 +68,8 @@ Future<void> main() async {
     // 防御：时区数据缺失按 UTC 渲染，引导主流程不阻断。
   }
   bootstrapTimezone(tzfBytes);
-  // M1：读取引导完成标志位，决定首屏进入 /onboarding 还是首页。
-  final gate = OnboardingGate(
-    completed: SharedPreferencesOnboardingStore(prefs).isOnboardingCompleted,
-  );
+  // 会话恢复后再按 uid 读取引导完成态，避免旧全局键提前迁入 anonymous。
+  final gate = OnboardingGate(completed: false);
   // D-18：首启隐私门禁（§4.1：未同意主隐私政策 → /legal/consent，
   // 同意前 AnalyticsService 保持 suppressed，ConsentStore 缺省 false）。
   final privacyGate = PrivacyGate(
@@ -136,16 +134,19 @@ Future<void> main() async {
         () => handleSessionCleared?.call(),
       ),
       // 首页信号卡数据源：record 仓储当日聚合流（本地预估，§2.6）。
-      todayNutritionCacheProvider.overrideWith(
-        (ref) => ref
-            .watch(recordRepositoryProvider)
-            .watchDailyNutrition(DateTime.now()),
-      ),
+      todayNutritionCacheProvider.overrideWith((ref) {
+        ref.watch(localDayProvider);
+        final now = ref.read(localDayClockProvider)();
+        return ref.watch(recordRepositoryProvider).watchDailyNutrition(now);
+      }),
     ],
   );
   handleSessionCleared = () =>
       container.read(authControllerProvider.notifier).onSessionCleared();
   await container.read(authControllerProvider.notifier).restore();
+  gate.completed = container
+      .read(onboardingStoreProvider)
+      .isOnboardingCompleted;
   // 埋点采集层（D-01 北极星口径 / D-18：默认未授权不采集，授权入口见
   // ConsentStore，隐私弹窗 UI 留 TODO）：定时 flush + 启动重放离线队列 +
   // 前后台会话切分；未授权时下列事件均为 suppressed no-op。

@@ -1,6 +1,7 @@
 import 'package:eatwise/core/notification/notification_service.dart';
 import 'package:eatwise/core/notification/notification_types.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_scheduler.dart';
+import 'package:eatwise/features/fasting/domain/fast_cycle.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -84,6 +85,9 @@ final class RecordingFastingScheduler extends FastingNotificationScheduler {
   Future<RescheduleResult> reschedule({
     required FastingPlan? plan,
     int extensionMinutes = 0,
+    FastCycle? activeCycle,
+    int? earlyEatEndUtc,
+    String? lastClosedCycleId,
     RescheduleReason reason = RescheduleReason.stateTransition,
     int eatSoonLeadSec = 15 * 60,
   }) {
@@ -95,6 +99,9 @@ final class RecordingFastingScheduler extends FastingNotificationScheduler {
     return super.reschedule(
       plan: plan,
       extensionMinutes: extensionMinutes,
+      activeCycle: activeCycle,
+      earlyEatEndUtc: earlyEatEndUtc,
+      lastClosedCycleId: lastClosedCycleId,
       reason: reason,
       eatSoonLeadSec: eatSoonLeadSec,
     );

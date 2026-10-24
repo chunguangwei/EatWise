@@ -147,10 +147,10 @@
 | 实体 | 服务端关键字段（PRD 基础上补充） | 说明与决策依据 |
 |------|----------------------------------|----------------|
 | User | `phone`(E.164，可空)、`wechatOpenId`(可空)、`appleSub`(可空)、`nickname`、`avatarUrl`、`gender`、`birthYear`、`heightCm`、`weightKg`、`activityLevel`(sedentary/light/moderate/high)、`goal`(fat_loss/health_metric/routine/trial)、`locale`(zh-CN/en)、`timezone`、`themePref`(light/dark/system)、`accessibilityPrefs`(json：大字号/减弱动效等)、`onboardingStatus`(none/skipped/completed)、`exportStatus`、`deletionStatus` | 登录方式 D-13；i18n D-15；隐私导出/删除 D-18 |
-| FastingPlan | `planType`(14:10/16:8/18:6；5:2 仅展示不入库，D-03)、`eatingWindowStart`、`eatingWindowEnd`（本地时刻 `HH:mm`，配合 User.timezone 解释）、`effectiveDate`（生效本地日，**次日 0 点生效**，D-06）、`status`(current/pending/expired) | 同 userId 仅一条 current；更换产生一条 pending（次日生效） |
+| FastingPlan | `planType`(14:10/16:8/18:6；5:2 仅展示不入库，D-03)、`eatingWindowStart`、`eatingWindowEnd`（本地时刻 `HH:mm`，配合 User.timezone 解释）、`effectiveDate`、`status`(current/pending/expired) | 同 userId 仅一条 current；新 PUT 最后写入胜并即刻生效，旧 current/pending expired。旧 pending 仅在读取时保留到期翻转兼容；进行中周期锚点冻结 |
 | FastingRecord | `attributionDate`（归属本地日 = 进食窗口所属自然日，服务端算，D-07）、`plannedStartAt/plannedEndAt`（UTC）、`actualStartAt/actualEndAt`（UTC，可空）、`extendedMinutes`（累计延长，≤240，D-10）、`fastedMinutes`（实际断食时长）、`result`(on_track/completed/ended_early/broken)、`isQualified`（达标布尔，D-08）、`eventLog`(jsonb 状态变更日志) | 达标判定在服务端：提前破窗 ≤15 分钟（配置热调）仍算达标（D-08） |
 | FoodEntry | `clientRequestId`、`eatenAt`(UTC)、`foodId`、`grams`、`inputMethod`(photo/voice/frequent/manual)、`nutritionSnapshot`(jsonb：kcal/proteinG/carbsG/fatG 按份量换算后快照)、`version`(int，etag/LWW 版本号)、`syncStatus` 仅客户端本地四态（提交中/已同步/待同步/冲突），**服务端只存权威态**（D-20） | 撤销窗 10 秒为客户端行为（D-11），服务端不感知；快照防止食物库更新回溯改历史 |
-| Food | `nameZh`、`nameEn`、`aliases`(string[] 中英混合)、`kcalPer100g`、`proteinPer100g`、`carbsPer100g`、`fatPer100g`、`category`、`source`(cn_fct/usda) | 双语库 ≥3000 条（D-16）；Food 为平台级共享数据，不含 userId |
+| Food | `nameZh`、`nameEn`、`aliases`(string[] 中英混合)、`kcalPer100g`、`proteinPer100g`、`carbsPer100g`、`fatPer100g`、`category`、`source`、`isCustom`、`createdByUserId`（个人食物归属） | 当前 seed 1956 条双语；共享食物全库可见，个人自定义食物仅归属用户可见 |
 | DailyNutrition | `date`（本地日）、`kcal/proteinG/carbsG/fatG`（累计）、`targets`(jsonb：当日目标快照，D-04)、`signals`(jsonb：四营养素各 {level: green/yellow/red, percent, adviceKey}，D-05) | 由 FoodEntry 服务端实时聚合；阈值/目标公式热配置（D-04/D-05 待外部背书） |
 | Streak | `currentStreak`、`longestStreak`、`lastQualifiedDate`、`milestones`(jsonb：{3: achievedAt, 7: ..., 30: ...})、`makeupCards`(jsonb：{stock, month, usedDates[]}) | 口径 = 断食打卡达标（D-12）；补签卡：每月 1 日发 2 张、当月有效月底清零、库存上限 2、仅补最近 7 天断签日（D-12） |
 | Post | `text`、`imageUrls`(string[])、`streakDaysAtPost`、`likeCount`、`auditStatus`(pending/approved/rejected)、`auditReason`（可空，双语）、`visibility`(self/followers/public 预留) | 先审后发（D-17）；pending 仅作者可见 |
@@ -203,9 +203,8 @@
 | # | 方法 | 路径 | 说明 | 幂等/冲突 |
 |---|------|------|------|-----------|
 | U1 | GET | `/users/me` | 读取当前用户（含营养目标计算结果快照） | — |
-| U2 | PATCH | `/users/me` | 修改资料（基础信息/目标/偏好） | 幂等（带 clientRequestId）；冲突 = 字段级 LWW，以服务端 `updatedAt` 为准；触发营养目标重算（D-04） |
-| U3 | POST | `/users/me/export` | 申请数据导出（敏感个人信息权利，D-18） | 幂等；生成中重复申请返回当前任务状态 |
-| U4 | GET | `/users/me/export/:taskId` | 查询导出任务/下载链接 | 链接有效期 24h〔假设〕 |
+| U2 | PATCH | `/users/me` | 修改资料（基础信息/目标/偏好） | 普通字段整值替换；`settingsPrefs` 键级 merge 并在用户事务锁内串行，服务端写 version/updatedAt/syncedAt；触发营养目标重算（D-04） |
+| U3 | POST | `/users/me/export` | 同步导出本人数据（敏感个人信息权利，D-18） | 只读聚合并直接返回 JSON；无 taskId、异步任务或下载链接端点 |
 | U5 | POST | `/users/me/deletion` | 申请删除账号 | 幂等；7 天冷静期〔假设，待法务确认 D-18〕内可撤销 |
 | U6 | DELETE | `/users/me/deletion` | 冷静期内撤销删除申请 | 幂等 |
 
@@ -242,9 +241,8 @@
 |---|------|------|------|-----------|
 | P1 | GET | `/fasting-plans/catalog` | 方案库目录（14:10/16:8/18:6 说明，双语，D-03；5:2 仅 `displayOnly` 标记） | — |
 | P2 | POST | `/fasting-plans/recommendation` | 提交问卷答案，返回主推荐+备选+推荐理由（D-02/D-03） | 幂等（纯计算，不落库） |
-| P3 | GET | `/fasting-plans/current` | 当前方案（含 pending 更换） | — |
-| P4 | PUT | `/fasting-plans/current` | 一键启动/更换方案，**次日 0 点本地生效**（D-06） | 幂等（带 clientRequestId）；已有 pending 时整体替换该 pending（同义操作，LWW）；当日 current 不受影响 |
-| P5 | PATCH | `/fasting-plans/current/window` | 调整进食窗口时间段（不更换 planType） | 幂等；同样次日生效（归入 D-06 语义）〔假设：窗口调整与换方案生效时机一致〕 |
+| P3 | GET | `/fasting-plans/current` | 当前方案；兼容返回旧客户端 pending | 旧 pending 到期才翻转 |
+| P4 | PUT | `/fasting-plans/current` | 一键启动/更换方案与进食窗口，最后写入胜并即刻生效 | `clientRequestId` 为契约必填；旧 current/pending 转 expired，新行 current。进行中周期锚点与历史记录不回算；无独立 PATCH window 端点 |
 
 **P2 请求**：`{ "q1Goal": "fat_loss", "q2Schedule": "regular", "q3Experience": "beginner" }`（均可空，空 = 跳过，走 16:8 兜底 D-03）
 **响应**：`{ "primary": { "planType": "14:10", "window": {"start":"10:00","end":"20:00"}, "reasonKey": "reco.beginner" }, "alternatives": [ { "planType": "16:8", ... } ] }` — `reasonKey` 为 i18n key，文案客户端本地化（D-03 推荐理由模板化双语）。
@@ -415,17 +413,17 @@
 
 | 规则 | 值 | 违规响应 |
 |------|-----|----------|
-| 发放 | 每月 1 日 2 张（按用户 timezone 的月） | — |
-| 库存上限 | 2 张，不累积 | 发放时已有 2 张则不增发 |
-| 有效期 | 当月有效，月底清零 | — |
-| 可补范围 | 最近 7 个自然日内的断签日 | 超出 → 400 `MAKEUP_OUT_OF_WINDOW` |
+| 发放 | 每月 1 日（按用户 timezone 的月）起可重置为 2 张 | S1、sync push/pull、recompute、makeUp 懒 rollover；滞后数月下一次入口纠正，无定时推送承诺 |
+| 库存上限 | 固定重置为 2 张，未用完不累积，断档/重新开始不额外送卡 | 并发与重复调用不得重复发放 |
+| 有效期 | 当月有效，下一次月初 rollover 清零上月库存 | — |
+| 可补范围 | 断签日 D 起 `[D, D+6]` 且不含操作当天；D+7 起不可补 | 超出或补今天 → 400 `MAKEUP_OUT_OF_WINDOW` |
 | 无卡 | stock=0 | 400 `MAKEUP_CARD_EMPTY` |
 | 中断主流程 | streak 归零（由断食不达标触发，服务端事务内完成）；断签弹窗所需三态由 S1 返回：`available` / `empty` / `broken`（最近断签且不可补） | — |
 
-**S2 请求**：`{ "clientRequestId": "uuid", "date": "2026-07-25" }`（补签的归属日）
-**响应**：更新后 Streak（`currentStreak` 重算连回）+ 该日生成一条 `result: makeup` 的 FastingRecord 标记〔假设：补签在断食历史中留痕〕。
+**S2 请求**：`{ "clientRequestId": "uuid", "date": "2026-07-25" }`（补签的归属日，必须为真实日历日期）
+**响应**：更新后 Streak（`currentStreak` 重算连回）+ 该日生成一条 `result: makeup` 的 FastingRecord 标记。扣卡、usedDates、标记、重算和幂等回执在同一事务提交，失败全部回滚；补签计达标、不计真实断食时长。
 
-**里程碑**：`currentStreak` 跨越 3/7/30 时服务端写入 `milestones` 并（经推送 token）发送成就提醒；客户端首页徽章与庆祝动效以 S1/S3 数据驱动（设计稿 §5.1）。
+**里程碑**：`currentStreak` 跨越 3/7/30 时服务端写入 `milestones`；客户端首页徽章与庆祝动效以 S1/S3 数据驱动。远程推送通道尚未接入。
 
 ---
 
@@ -441,7 +439,7 @@
 | C6 | DELETE | `/posts/:id/like` | 取消点赞 | 幂等 |
 | C7 | POST | `/posts/:id/report` | 举报 | 幂等（同用户同帖一次）；进入人工审核队列 |
 
-**C1 请求**：`{ "clientRequestId": "uuid", "text": "第 7 天！", "imageUrls": ["https://cdn.../a.jpg"], "linkedStreakDays": 7 }`
+**C1 请求**：`{ "clientRequestId": "uuid", "text": "第 7 天！", "imageUrls": ["/v1/uploads/example.jpg"], "linkedStreakDays": 7 }`
 **C1 响应**：
 
 ```json
@@ -449,7 +447,7 @@
   "id": "p_uuid",
   "auditStatus": "pending",
   "text": "第 7 天！",
-  "imageUrls": ["https://cdn.../a.jpg"],
+  "imageUrls": ["/v1/uploads/example.jpg"],
   "streakDaysAtPost": 7,
   "likeCount": 0,
   "createdAt": "2026-07-27T12:00:00.000Z"
@@ -464,8 +462,9 @@
 | `approved` | 审核通过 | 全量可见（MVP UGC 不分语言圈，D-15） | 举报成立 → `rejected`（下架） |
 | `rejected` | 审核拒绝 | 仅作者可见 + `auditReason`（双语） | 作者删除即终态 |
 
-- 审核服务：第三方内容安全 API（阿里云/腾讯云，〔待外部确认：M0 定，D-17〕）；机审目标耗时 ≤30s〔假设〕，超时按 `pending` 持续，不阻塞发布响应。
-- 图片先经 `POST /uploads/images`（获取一次性上传凭证 → 直传 CDN → 回调校验）〔假设〕。
+- 审核服务：当前为关键词机审与人工队列，第三方内容安全 API 尚未接入〔待外部确认，D-17〕；pending 不阻塞发布响应。
+- 图片经 `POST /uploads/images` 上传，存储支持 local 或 S3 兼容驱动。`imageUrls` 仅允许合法 `/v1/uploads/<filename>` 或与 `CDN_BASE_URL` 完全同 origin 的 HTTP(S) URL；其他 origin、凭据 URL、异常转义和路径穿越均拒绝。feed、详情、管理端及旧幂等响应也会过滤存量非法 URL，不直接删除原帖。
+- 客户端帖图/头像请求显式跳过认证；AuthInterceptor 仅对 API 同源请求注入令牌和执行 refresh，避免任意外链收到 Authorization。
 
 ---
 
@@ -476,9 +475,10 @@
 | A1 发短信 | phone+scene 限频 | — | 429 |
 | A5 刷新 | refreshToken 一次性轮换 | 重放 = 安全事件 | 401 `AUTH_REFRESH_REUSED` |
 | A7 推送 token | upsert by deviceId | LWW | 200 |
-| U2 改资料 | clientRequestId | 字段级 LWW（服务端 updatedAt 仲裁） | 200（合并后现值） |
-| U3/U5 导出/删除申请 | 任务唯一 | 重复申请返回在途任务 | 200 |
-| P4 换方案 | clientRequestId | pending 单例替换（LWW） | 200 |
+| U2 改资料 | 普通字段整值替换；settingsPrefs 键级 merge | 用户事务锁串行，服务端 version/updatedAt/syncedAt | 200（合并后现值） |
+| U3 导出 | 只读同步聚合 | 无任务状态；不含密码哈希 | 201 |
+| U5 删除申请 | 用户当前删除状态 | 重复申请不后移冷静期截止时间 | 201 |
+| P4 换方案 | clientRequestId（契约字段） | 最后写入胜、即刻 current；旧 pending 仅兼容读取 | 200 |
 | F2 结束断食 | clientRequestId + 状态机 | 已结束记录拒绝 | 409 `FASTING_ALREADY_ENDED` |
 | F3 延长 | clientRequestId + 上限校验 | 累计超限拒绝 | 400 `FASTING_EXTEND_LIMIT` |
 | E1 创建记录 | clientRequestId 去重 | 同键不同体 = 客户端 bug | 409 `IDEMPOTENCY_PAYLOAD_MISMATCH` |
@@ -686,9 +686,9 @@
 | 1 | TDEE 公式（D-04）与信号灯阈值（D-05）营养侧书面背书 | 〔待外部确认〕，规则已热配置，不阻塞开发 | 产品+营养专家，M4 上线 Gate |
 | 2 | 隐私合规细节：账号删除冷静期时长、UGC 匿名化口径、数据留存期 | 〔待外部确认〕，法务 M0 介入 | 法务，D-18 |
 | 3 | 国内 Android 聚合推送 SDK（个推/极光）与内容安全供应商（阿里云/腾讯云） | 〔待外部确认〕M0 定 | 技术，D-17 |
-| 4 | 正式域名与各环境 Base URL | 〔假设〕占位 | 运维，M0 |
-| 5 | 限流阈值、验证码长度/有效期、导出链接时效等标注〔假设〕的数值 | 压测与安全评审后校准 | 技术，灰度前 |
-| 6 | FastingRecord 补签留痕（`result: makeup`）、窗口调整次日生效（P5）为本文档补充语义 | 〔假设〕，待产品与《规格-M2/M5》对齐确认 | 产品+技术 |
+| 4 | 正式域名与各环境 Base URL | 生产已确定 `https://wcg.polin.tech:8443/v1`；其余环境按部署配置 | 运维 |
+| 5 | 限流阈值、验证码长度/有效期等标注〔假设〕的数值 | 压测与安全评审后校准；当前导出为同步 JSON，无下载链接时效 | 技术，灰度前 |
+| 6 | FastingRecord 补签留痕与方案生效语义 | 已确定：补签 `result=makeup` 计达标不计时长；方案最后写入胜并即刻生效，无独立 P5 端点 | 已关闭 |
 
 
 ---
@@ -707,15 +707,15 @@
 
 | 端点 | 说明 |
 |------|------|
-| `POST /v1/users/me/export`（U3） | 同步聚合该用户 Profile/FoodEntry/FastingPlan/FastingRecord/Streak/Post 返回 JSON（排除 tombstone）。 |
+| `POST /v1/users/me/export`（U3） | 同步聚合 Profile/FoodEntry/FastingPlan/FastingRecord/Streak/Post/WaterLog/WeightLog/ExerciseLog，以及本人 `customFoods` 和 `foodCandidates`，直接返回 JSON（排除 tombstone）。`passwordHash` 永不进入导出包；本人手机号保留。客户端写入本地 JSON 后调系统分享。 |
 | `POST /v1/users/me/deletion`（U5） | 申请删除账号：置 pending + 7 天冷静期（`scheduledDeletionAt`）并吊销全部 refresh token；幂等不后移。到期由调度器物理删除个人数据 + 打卡帖匿名化（posts.userId 置空，该字段已改可空）。 |
 | `DELETE /v1/users/me/deletion`（U6） | 冷静期内撤销删除；冷静期内登录亦自动撤销（登录响应含 `deletionCancelled`）。 |
 
 ### B.3 同步协议扩展
 
-- `/sync/push` 新增 `waterLog` 实体 op：`create`（幂等 clientRequestId）与 `delete`（tombstone）；无 update（饮水无编辑场景〔假设〕）。
-- `/sync/pull` 随行返回 `waterLogChanges`。
-- 已知缺口：Prisma schema 尚未包含 WaterLog 表，饮水同步仅内存驱动可用。
+- `/sync/push` 支持 `waterLog`、`exerciseLog`、`fastingRecord` 的 `create`/`delete` 两态操作；三类均无 update。幂等键、归属日、删除 tombstone 与服务端锚点判定为权威，客户端派生 `result/isQualified` 不作为 fastingRecord 重放同体校验依据。
+- `/sync/pull` 随行返回对应 `*Changes` 与 `customFoodChanges`；自定义食物全量视图含来源或 tombstone，先应用记录 tombstone，再应用食物删除。
+- WaterLog/ExerciseLog/FastingRecord 均已在 Prisma schema 落地，memory 与 Prisma 双驱动可用；体重删除经 `GET /weight-logs` 的 `tombstones` 下行。
 
 ### B.4 社区与激励实现备注
 

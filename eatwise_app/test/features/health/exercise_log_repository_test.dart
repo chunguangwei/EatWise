@@ -49,6 +49,33 @@ void main() {
     expect(imported.source, 'screenshot');
   });
 
+  test('入账边界：1440 分钟 / 10000 kcal / 200000 步含端点，超限拒绝', () async {
+    final maxed = await repo.add(
+      typeKey: 'walk',
+      durationMin: 1440,
+      kcal: 10000,
+      steps: 200000,
+      source: ExerciseLogRepository.sourceScreenshot,
+    );
+    expect(maxed.durationMin, 1440);
+    expect(maxed.kcal, 10000);
+    expect(maxed.steps, 200000);
+
+    await expectLater(
+      repo.add(typeKey: 'jog', durationMin: 1441, kcal: 100),
+      throwsArgumentError,
+    );
+    await expectLater(
+      repo.add(typeKey: 'jog', durationMin: 30, kcal: 10000.1),
+      throwsArgumentError,
+    );
+    await expectLater(
+      repo.add(typeKey: 'walk', durationMin: 0, kcal: 100, steps: 200001),
+      throwsArgumentError,
+    );
+    expect(await repo.logsForDate('2026-09-19'), hasLength(1));
+  });
+
   test('今日合计：多条叠加，他日/他人不计入', () async {
     await repo.add(typeKey: 'jog', durationMin: 30, kcal: 210);
     await repo.add(typeKey: 'yoga', durationMin: 40, kcal: 120);

@@ -1,3 +1,4 @@
+import 'package:eatwise/features/fasting/domain/fast_cycle.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/record/domain/water_reminder_plan.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -149,6 +150,88 @@ void main() {
       expect(
         d29.every((r) => r.attributionDate == d29.first.attributionDate),
         isTrue,
+      );
+    });
+  });
+
+  group('真实周期进食窗口', () {
+    test('提前破窗：立即按真实进食窗提醒，18 点断食后不再排原窗口', () {
+      final items = buildWaterReminderPlan(
+        plan: plan168,
+        alreadyMl: 0,
+        nowUtcSec: utc(28, 2), // 10:00 BJT
+        location: bjt,
+        earlyEatEndUtc: utc(28, 10), // 18:00 BJT
+        lastClosedCycleId: '${utc(27, 12)}:${utc(28, 4)}',
+      );
+      final today = items.where((r) => r.triggerAtUtcSec < utc(29, 0)).toList();
+
+      expect(today.map((r) => r.triggerAtUtcSec).toList(), [
+        utc(28, 3), // 11:00
+        utc(28, 4),
+        utc(28, 5),
+        utc(28, 6),
+        utc(28, 7),
+        utc(28, 8),
+        utc(28, 9), // 17:00
+      ]);
+      expect(today.map((r) => r.triggerAtUtcSec), isNot(contains(utc(28, 11))));
+    });
+
+    test('延长跨原终点：延长后的断食段不排喝水，未来日不继承延长', () {
+      final active = FastCycle(
+        startUtc: utc(27, 12),
+        plannedEndUtc: utc(28, 5, 30), // 13:30 BJT
+        eatWindowEndUtc: utc(28, 13, 30), // 21:30 BJT
+        extendedMinutes: 90,
+      );
+      final items = buildWaterReminderPlan(
+        plan: plan168,
+        alreadyMl: 0,
+        nowUtcSec: utc(28, 4, 10), // 12:10 BJT
+        location: bjt,
+        activeCycle: active,
+      );
+      final today = items.where((r) => r.triggerAtUtcSec < utc(29, 0)).toList();
+      final tomorrow = items
+          .where(
+            (r) =>
+                r.triggerAtUtcSec >= utc(29, 0) &&
+                r.triggerAtUtcSec < utc(30, 0),
+          )
+          .toList();
+
+      expect(today.first.triggerAtUtcSec, utc(28, 6)); // 14:00，13:00 不断食期误排
+      expect(today.last.triggerAtUtcSec, utc(28, 13)); // 21:00
+      expect(tomorrow.first.triggerAtUtcSec, utc(29, 4)); // 次日仍 12:00
+      expect(tomorrow.last.triggerAtUtcSec, utc(29, 11)); // 次日仍 19:00
+    });
+
+    test('方案变更：stored 冻结周期优先，新方案进食态不提前放水提醒', () {
+      const changedPlan = FastingPlan(
+        id: '18:6@06',
+        eatStartMinutes: 6 * 60,
+        eatEndMinutes: 18 * 60,
+      );
+      final active = FastCycle(
+        startUtc: utc(27, 12),
+        plannedEndUtc: utc(28, 4),
+        eatWindowEndUtc: utc(28, 12),
+      );
+      final items = buildWaterReminderPlan(
+        plan: changedPlan,
+        alreadyMl: 0,
+        nowUtcSec: utc(28, 0), // 08:00 BJT，新方案静态进食态
+        location: bjt,
+        activeCycle: active,
+      );
+
+      expect(items.first.triggerAtUtcSec, utc(28, 4)); // 冻结周期 12:00 才可进食
+      expect(
+        items
+            .where((r) => r.triggerAtUtcSec < utc(28, 12))
+            .map((r) => r.triggerAtUtcSec),
+        isNot(contains(utc(28, 1))),
       );
     });
   });

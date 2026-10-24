@@ -491,49 +491,58 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
   /// 端侧 ASR 就绪（提供方非空 = 端侧开关开且模型就绪/快照乐观窗口）。
   bool get _onDeviceAsrReady => ref.watch(onDeviceAsrServiceProvider) != null;
 
+  bool _switchingToOnDevice = false;
+
   /// 切到端侧录音转写：先取消系统听写（独立于端侧面板状态，cancel 只
   /// 作用于系统 ASR 网关，不吞端侧面板），再把端侧转写结果透传为面板
   /// 返回值——下游管线（_handleTranscript）对两条路径完全同构。
   /// 端侧面板取消 → 整个语音流程静默结束（用户可重新点语音记）。
   Future<void> _switchToOnDevice() async {
-    // 模型未下载/未启用 → 与拍照记入口同款引导卡（下载本地模型带进度
-    // /配置云端 API/先手动搜索），修复「没提示下载小模型」：此前按钮
-    // 仅在端侧就绪时出现，首次用户（开关默认关）根本看不到它。
-    if (!_onDeviceAsrReady) {
+    if (_switchingToOnDevice) return;
+    _switchingToOnDevice = true;
+    try {
+      // 模型未下载/未启用 → 与拍照记入口同款引导卡（下载本地模型带进度
+      // /配置云端 API/先手动搜索），修复「没提示下载小模型」：此前按钮
+      // 仅在端侧就绪时出现，首次用户（开关默认关）根本看不到它。
+      if (!_onDeviceAsrReady) {
+        await widget.gateway.cancel();
+        if (!mounted) return;
+        // 语音专属引导：内嵌下载带进度（不跳设置页），完成自动回录音面板。
+        // 引导内「下载→录音→完成」的转写结果必须透传为面板返回值，否则
+        // 下载完录完点完成同样没记录（与 startVoiceInput broken 分支同款坑）。
+        final transcript = await _showVoiceEngineGuide(
+          context,
+          ref,
+          RecordStrings.of(context),
+        );
+        if (!mounted) return;
+        // 引导结束即关闭听写面板：下载/配置完成，手动搜索已对焦。
+        Navigator.of(context).pop(transcript);
+        return;
+      }
+      // 端侧录音走 record 插件的麦克风权限（与系统 ASR 初始化时的申请
+      // 同口径确认一次；拒绝则静默关闭，键盘输入永远可用）。
+      final recorder = ref.read(audioRecorderGatewayProvider);
       await widget.gateway.cancel();
       if (!mounted) return;
-      // 语音专属引导：内嵌下载带进度（不跳设置页），完成自动回录音面板。
-      // 引导内「下载→录音→完成」的转写结果必须透传为面板返回值，否则
-      // 下载完录完点完成同样没记录（与 startVoiceInput broken 分支同款坑）。
-      final transcript = await _showVoiceEngineGuide(
-        context,
-        ref,
-        RecordStrings.of(context),
+      final permitted = await recorder.ensurePermission();
+      if (!mounted) return;
+      if (!permitted) {
+        Navigator.of(context).pop();
+        return;
+      }
+      final transcript = await showModalBottomSheet<VoiceTranscript>(
+        context: context,
+        isDismissible: false,
+        builder: (_) => const OnDeviceRecordingSheet(),
       );
       if (!mounted) return;
-      // 引导结束即关闭听写面板：下载/配置完成，手动搜索已对焦。
+      // null（端侧面板取消）也关闭本面板：系统听写已取消，面板留在原地
+      // 只剩错误态没有意义。
       Navigator.of(context).pop(transcript);
+    } finally {
+      _switchingToOnDevice = false;
     }
-    // 端侧录音走 record 插件的麦克风权限（与系统 ASR 初始化时的申请
-    // 同口径确认一次；拒绝则静默关闭，键盘输入永远可用）。
-    final recorder = ref.read(audioRecorderGatewayProvider);
-    await widget.gateway.cancel();
-    if (!mounted) return;
-    final permitted = await recorder.ensurePermission();
-    if (!mounted) return;
-    if (!permitted) {
-      Navigator.of(context).pop();
-      return;
-    }
-    final transcript = await showModalBottomSheet<VoiceTranscript>(
-      context: context,
-      isDismissible: false,
-      builder: (_) => const OnDeviceRecordingSheet(),
-    );
-    if (!mounted) return;
-    // null（端侧面板取消）也关闭本面板：系统听写已取消，面板留在原地
-    // 只剩错误态没有意义。
-    Navigator.of(context).pop(transcript);
   }
 
   /// 提示配色：良性（没听清/超时）弱化，识别不可用用警示红。

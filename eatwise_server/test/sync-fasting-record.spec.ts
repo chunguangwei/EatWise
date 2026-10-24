@@ -128,4 +128,31 @@ describe('SyncService fastingRecord LWW', () => {
     expect(after.actualEndAt).toBeNull();
     expect(after.version).toBe(1);
   });
+
+  it('同键重放只改派生 result/isQualified：不 mismatch，返回服务端首次判定', async () => {
+    const op = { ...createOp(basePayload), clientRequestId: randomUUID() };
+    await sync.push(userId, [op]);
+    const replay = await sync.push(userId, [
+      { ...op, payload: { ...basePayload, result: 'broken', isQualified: false } },
+    ]);
+    expect(replay.results[0].status).toBe('applied');
+    expect((replay.results[0].serverEntry as { result: string }).result).toBe('completed');
+    expect((replay.results[0].serverEntry as { isQualified: boolean }).isQualified).toBe(true);
+    expect(store.fastingRecords.size).toBe(1);
+  });
+
+  it.each([
+    ['归属日', { attributionDate: '2026-08-02' }],
+    ['计划开始锚点', { plannedStartAt: '2026-07-31T11:00:00.000Z' }],
+    ['计划结束锚点', { plannedEndAt: '2026-08-01T05:00:00.000Z' }],
+    ['实际开始锚点', { actualStartAt: '2026-07-31T11:00:00.000Z' }],
+    ['实际结束锚点', { actualEndAt: '2026-08-01T03:00:00.000Z' }],
+  ])('同键修改%s：IDEMPOTENCY_PAYLOAD_MISMATCH', async (_label, patch) => {
+    const op = { ...createOp(basePayload), clientRequestId: randomUUID() };
+    await sync.push(userId, [op]);
+    const replay = await sync.push(userId, [{ ...op, payload: { ...basePayload, ...patch } }]);
+    expect(replay.results[0].status).toBe('error');
+    expect(replay.results[0].error?.code).toBe('IDEMPOTENCY_PAYLOAD_MISMATCH');
+    expect(store.fastingRecords.size).toBe(1);
+  });
 });

@@ -7,13 +7,15 @@ import { hashToken } from '../src/common/utils/id.util';
 
 describe('AuthService（D-13：验证码/账号密码登录 + JWT 签发/刷新）', () => {
   let store: DataStore;
+  let driver: MemoryStoreDriver;
   let auth: AuthService;
 
   beforeEach(() => {
     store = new DataStore();
+    driver = new MemoryStoreDriver(store);
     auth = new AuthService(
       store,
-      new MemoryStoreDriver(store),
+      driver,
       new JwtService({ secret: 'test-secret', signOptions: { expiresIn: 7200 } }),
       new ConfigService(),
     );
@@ -85,6 +87,46 @@ describe('AuthService（D-13：验证码/账号密码登录 + JWT 签发/刷新�
     const old = store.refreshTokens.get(hashToken(login.refreshToken));
     expect(old?.revokedAt).not.toBeNull();
     expect(old?.replacedBy).toBe(hashToken(rotated.refreshToken));
+  });
+
+  it('并发 refresh 至多一个成功，竞争失败不吊销赢家会话', async () => {
+    auth.sendSms(phone, 'login');
+    const login = await auth.loginPhone(phone, '123456');
+
+    const results = await Promise.allSettled([
+      auth.refresh(login.refreshToken),
+      auth.refresh(login.refreshToken),
+    ]);
+    const fulfilled = results.filter((result) => result.status === 'fulfilled');
+    const rejected = results.filter((result) => result.status === 'rejected');
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect((rejected[0] as PromiseRejectedResult).reason).toMatchObject({
+      code: 'AUTH_REFRESH_REUSED',
+    });
+
+    const winner = (fulfilled[0] as PromiseFulfilledResult<{ refreshToken: string }>).value;
+    const old = store.refreshTokens.get(hashToken(login.refreshToken));
+    const next = store.refreshTokens.get(hashToken(winner.refreshToken));
+    expect(old?.revokedAt).not.toBeNull();
+    expect(next?.revokedAt).toBeNull();
+    await expect(auth.refresh(winner.refreshToken)).resolves.toMatchObject({ isNewUser: false });
+  });
+
+  it('refresh 新令牌持久化失败回滚旧令牌消费，原会话仍可轮换', async () => {
+    auth.sendSms(phone, 'login');
+    const login = await auth.loginPhone(phone, '123456');
+    const createSpy = jest
+      .spyOn(MemoryStoreDriver.prototype, 'createRefreshToken')
+      .mockRejectedValue(new Error('create failed'));
+
+    try {
+      await expect(auth.refresh(login.refreshToken)).rejects.toThrow('create failed');
+    } finally {
+      createSpy.mockRestore();
+    }
+    expect(store.refreshTokens.get(hashToken(login.refreshToken))?.revokedAt).toBeNull();
+    await expect(auth.refresh(login.refreshToken)).resolves.toMatchObject({ isNewUser: false });
   });
 
   it('logout 幂等：重复调用不报错', async () => {
@@ -172,13 +214,15 @@ describe('AuthService 短信 mock 开关（SMS_MOCK_ENABLED=false 关闭验证�
 
 describe('AuthService 账号密码认证（D-13 修订主路径：注册/登录/改密）', () => {
   let store: DataStore;
+  let driver: MemoryStoreDriver;
   let auth: AuthService;
 
   beforeEach(() => {
     store = new DataStore();
+    driver = new MemoryStoreDriver(store);
     auth = new AuthService(
       store,
-      new MemoryStoreDriver(store),
+      driver,
       new JwtService({ secret: 'test-secret', signOptions: { expiresIn: 7200 } }),
       new ConfigService(),
     );
@@ -205,6 +249,41 @@ describe('AuthService 账号密码认证（D-13 修订主路径：注册/登录/
     await expect(auth.register('ALICE_01', 'Other1234')).rejects.toMatchObject({
       code: 'AUTH_USERNAME_TAKEN',
     });
+  });
+
+  it('并发同名注册只有一个成功，其余全部 AUTH_USERNAME_TAKEN', async () => {
+    const results = await Promise.allSettled([
+      auth.register('Race_User', password),
+      auth.register('race_user', password),
+      auth.register('RACE_USER', password),
+    ]);
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    const rejected = results.filter((result) => result.status === 'rejected');
+    expect(rejected).toHaveLength(2);
+    for (const result of rejected) {
+      expect((result as PromiseRejectedResult).reason).toMatchObject({
+        code: 'AUTH_USERNAME_TAKEN',
+      });
+    }
+    expect([...store.users.values()].filter((user) => user.username === 'race_user')).toHaveLength(
+      1,
+    );
+  });
+
+  it('仅 username 目标 P2002 映射 AUTH_USERNAME_TAKEN，其它唯一冲突原样抛出', async () => {
+    const createSpy = jest.spyOn(MemoryStoreDriver.prototype, 'createUser');
+    try {
+      createSpy.mockRejectedValueOnce({ code: 'P2002', meta: { target: ['username'] } });
+      await expect(auth.register('prisma_username', password)).rejects.toMatchObject({
+        code: 'AUTH_USERNAME_TAKEN',
+      });
+
+      const phoneConflict = { code: 'P2002', meta: { target: ['phone'] } };
+      createSpy.mockRejectedValueOnce(phoneConflict);
+      await expect(auth.register('prisma_phone', password)).rejects.toBe(phoneConflict);
+    } finally {
+      createSpy.mockRestore();
+    }
   });
 
   it('register 密码太弱（无数字）→ AUTH_PASSWORD_TOO_WEAK', async () => {

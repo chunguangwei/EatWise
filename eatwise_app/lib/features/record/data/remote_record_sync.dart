@@ -47,6 +47,51 @@ final class SyncPullPage {
   final bool hasMore;
 }
 
+const String kInvalidPushResponse = 'INVALID_PUSH_RESPONSE';
+
+Map<String, dynamic>? _stringKeyedMap(Object? raw) {
+  if (raw is! Map) return null;
+  final result = <String, dynamic>{};
+  for (final entry in raw.entries) {
+    final key = entry.key;
+    if (key is! String) return null;
+    result[key] = entry.value;
+  }
+  return result;
+}
+
+/// 可信批响应索引；results 非 List、项非 Map、幂等键缺失/重复即整批不可信。
+Map<String, Map<String, dynamic>>? syncPushResultsByRequestId(Object? body) {
+  final bodyMap = _stringKeyedMap(body);
+  final rawResults = bodyMap?['results'];
+  if (rawResults is! List) return null;
+  final byRequestId = <String, Map<String, dynamic>>{};
+  for (final raw in rawResults) {
+    final result = _stringKeyedMap(raw);
+    final requestId = result?['clientRequestId'];
+    if (result == null ||
+        requestId is! String ||
+        requestId.isEmpty ||
+        byRequestId.containsKey(requestId)) {
+      return null;
+    }
+    byRequestId[requestId] = result;
+  }
+  return byRequestId;
+}
+
+Map<String, dynamic>? syncPushServerEntry(Map<String, dynamic> result) {
+  return _stringKeyedMap(result['serverEntry']);
+}
+
+String syncPushErrorCode(Map<String, dynamic> result) {
+  final rawError = result['error'];
+  if (rawError == null) return '';
+  final error = _stringKeyedMap(rawError);
+  final code = error?['code'];
+  return code is String && code.isNotEmpty ? code : kInvalidPushResponse;
+}
+
 /// 真实同步远程端（M7，替换 FakeRecordRemote 注入；Fake 保留供测试）。
 ///
 /// - 上行：POST /sync/push（规格 §2.3 ops 协议，≤100/批串行）；
@@ -108,15 +153,17 @@ final class RemoteRecordSync implements RecordRemote {
       );
       _online = true;
       final body = response.data ?? const <String, dynamic>{};
-      final results = (body['results'] as List<dynamic>? ?? const <dynamic>[])
-          .cast<Map<String, dynamic>>();
-      final byRequestId = <String, Map<String, dynamic>>{
-        for (final r in results) r['clientRequestId']! as String: r,
-      };
+      final byRequestId = syncPushResultsByRequestId(body);
+      if (byRequestId == null) {
+        return List<PushOutcome>.filled(
+          chunk.length,
+          const PushRetryable(kInvalidPushResponse),
+        );
+      }
       return chunk.map((entry) {
         final result = byRequestId[entry.clientRequestId];
         if (result == null) return const PushRetryable('MISSING_RESULT');
-        return _outcomeOf(result);
+        return _outcomeOf(result, isDelete: entry.deleted);
       }).toList();
     } on DioException catch (e) {
       final outcome = _outcomeFromError(toApiException(e));
@@ -167,32 +214,47 @@ final class RemoteRecordSync implements RecordRemote {
     };
   }
 
-  PushOutcome _outcomeOf(Map<String, dynamic> result) {
-    final status = result['status'] as String? ?? 'error';
-    final serverEntry = result['serverEntry'];
-    final entryMap = serverEntry is Map<String, dynamic> ? serverEntry : null;
+  PushOutcome _outcomeOf(
+    Map<String, dynamic> result, {
+    required bool isDelete,
+  }) {
+    final status = result['status'];
+    final entryMap = syncPushServerEntry(result);
+    final rawId = entryMap?['id'];
+    final rawVersion = entryMap?['version'];
+    final rawUpdatedAt = entryMap?['updatedAt'];
+    final serverId = rawId is String ? rawId : null;
+    final serverVersion = rawVersion is num ? rawVersion.toInt() : null;
+    final serverUpdatedAt = rawUpdatedAt is String
+        ? rawUpdatedAt
+        : DateTime.now().toUtc().toIso8601String();
     switch (status) {
       case 'applied':
+        if (!isDelete && (serverId == null || serverId.isEmpty)) {
+          return const PushRetryable(kInvalidPushResponse);
+        }
         return PushAck(
-          serverId: entryMap?['id'] as String? ?? '',
-          serverVersion: (entryMap?['version'] as num?)?.toInt() ?? 1,
-          serverUpdatedAtUtc:
-              entryMap?['updatedAt'] as String? ??
-              DateTime.now().toUtc().toIso8601String(),
+          serverId: serverId ?? '',
+          serverVersion: serverVersion ?? 1,
+          serverUpdatedAtUtc: serverUpdatedAt,
         );
       case 'conflict':
+        if (serverVersion == null) {
+          return const PushRetryable(kInvalidPushResponse);
+        }
         return PushConflict(
-          serverVersion: (entryMap?['version'] as num?)?.toInt() ?? 0,
-          serverUpdatedAtUtc:
-              entryMap?['updatedAt'] as String? ??
-              DateTime.now().toUtc().toIso8601String(),
+          serverVersion: serverVersion,
+          serverUpdatedAtUtc: serverUpdatedAt,
         );
-      default:
-        final code =
-            (result['error'] as Map<String, dynamic>?)?['code'] as String? ??
-            'INTERNAL_ERROR';
+      case 'error':
+        final code = syncPushErrorCode(result);
+        if (code.isEmpty || code == kInvalidPushResponse) {
+          return const PushRetryable(kInvalidPushResponse);
+        }
         if (code == 'INTERNAL_ERROR') return PushRetryable(code);
         return PushReject(code);
+      default:
+        return const PushRetryable(kInvalidPushResponse);
     }
   }
 
@@ -226,6 +288,7 @@ final class RemoteRecordSync implements RecordRemote {
       );
       _online = true;
       final body = response.data ?? const <String, dynamic>{};
+      final nextToken = body['syncToken'];
       return SyncPullPage(
         changes: (body['changes'] as List<dynamic>? ?? const <dynamic>[])
             .cast<Map<String, dynamic>>(),
@@ -242,7 +305,7 @@ final class RemoteRecordSync implements RecordRemote {
         customFoodChanges:
             (body['customFoodChanges'] as List<dynamic>? ?? const <dynamic>[])
                 .cast<Map<String, dynamic>>(),
-        nextSyncToken: body['syncToken'] as String?,
+        nextSyncToken: nextToken is String ? nextToken : null,
         hasMore: body['hasMore'] == true,
       );
     } on DioException catch (e) {
@@ -263,7 +326,7 @@ final class RemoteRecordSync implements RecordRemote {
   /// 全量扫存量占位（升级自愈：旧版本落的「名称=foodId」行补名）。
   /// 返回本轮补名成功的条数（>0 时调用方失效相关 UI 缓存）。
   /// 离线/未登录/接口失败 → 返回 0，占位保留下轮重试（不阻断下行主链）。
-  Future<int> backfillPlaceholderFoods(AppDatabase db) async {
+  Future<int> backfillPlaceholderFoods(AppDatabase db, {String? userId}) async {
     final rows = await db.foodDao.placeholderRows();
     if (rows.isEmpty) return 0;
     var resolved = 0;
@@ -272,12 +335,16 @@ final class RemoteRecordSync implements RecordRemote {
         i,
         i + 200 > rows.length ? rows.length : i + 200,
       );
-      resolved += await _backfillChunk(db, chunk);
+      resolved += await _backfillChunk(db, chunk, userId: userId);
     }
     return resolved;
   }
 
-  Future<int> _backfillChunk(AppDatabase db, List<Food> chunk) async {
+  Future<int> _backfillChunk(
+    AppDatabase db,
+    List<Food> chunk, {
+    String? userId,
+  }) async {
     final List<Map<String, dynamic>> items;
     try {
       final response = await dio.post<Map<String, dynamic>>(
@@ -292,7 +359,7 @@ final class RemoteRecordSync implements RecordRemote {
       if (error is NetworkApiException || error is TimeoutApiException) {
         _online = false;
       }
-      return 0; // 失败保留占位，下轮 syncNow 重试
+      return 0;
     }
     if (items.isEmpty) return 0;
     final companions = <FoodsCompanion>[];
@@ -301,6 +368,8 @@ final class RemoteRecordSync implements RecordRemote {
       final nameZh = item['nameZh'] as String?;
       final nameEn = item['nameEn'] as String?;
       if (id == null || nameZh == null || nameEn == null) continue;
+      final isCustom = item['isCustom'] == true;
+      final rawSource = item['source'];
       companions.add(
         FoodsCompanion(
           id: Value(id),
@@ -313,9 +382,11 @@ final class RemoteRecordSync implements RecordRemote {
           ),
           carbPer100g: Value((item['carbsPer100g'] as num?)?.toDouble() ?? 0),
           fatPer100g: Value((item['fatPer100g'] as num?)?.toDouble() ?? 0),
-          // 占位行 isCustom=false；服务端真身是本人自定义食物（他端创建）
-          // 时翻正（「自定义」标签口径与搜索合入一致）。
-          isCustom: Value(item['isCustom'] == true),
+          isCustom: Value(isCustom),
+          ownerUserId: userId == null
+              ? const Value.absent()
+              : Value(isCustom ? userId : null),
+          source: rawSource is String ? Value(rawSource) : const Value.absent(),
         ),
       );
     }
@@ -328,10 +399,9 @@ final class RemoteRecordSync implements RecordRemote {
   ///
   /// 落库规则（§2.4）：本地存在未上行修改（非 synced）的记录不被下行
   /// 覆盖；tombstone 仅软删已同步记录（删改冲突双份保留待人工处理）。
-  /// 防丢约束：某条 change 因数据畸形（缺 foodId / 缺快照）被跳过时，返回的
-  /// 游标停留在首个发生跳过的页面之前——该 change 未落库，token 不得越过
-  /// 它（服务端契约上这两种畸形几乎不可能出现，防御性保留）。食物行缺失
-  /// 但带快照时不再 skip：合成占位行落库（token 正常推进）。
+  /// 防丢约束：change 缺 foodId/快照或时间无法解析时跳过，游标回到首个
+  /// 跳过页之前等待重试；同轮其余好行仍落库。hasMore 但 token 不前进时
+  /// 中断并保留重试游标，避免死循环。食物行缺失但带快照时合成占位行。
   Future<String?> pullDown(
     AppDatabase db,
     String userId,
@@ -358,6 +428,7 @@ final class RemoteRecordSync implements RecordRemote {
     String? token = syncToken;
     // 首个发生跳过的页面之前的游标（存在跳过时返回它，不持久化新 token）。
     String? firstSkippedPageToken;
+    var hasSkippedPage = false;
     // 下行落库涉及的归属日集合（结束后统一重算聚合缓存——下行入库不经
     // 仓储 _recompute，不重算则首页今日汇总/信号卡拿不到重装恢复的记录，
     // v1.12.4 走查「有记录但首页不显示」根因）。
@@ -374,10 +445,12 @@ final class RemoteRecordSync implements RecordRemote {
         if (affected != null) affectedDates.add(affected);
       }
       for (final change in page.waterLogChanges) {
-        await _applyWaterChange(db, userId, change);
+        pageSkipped =
+            await _applyWaterChange(db, userId, change) || pageSkipped;
       }
       for (final change in page.exerciseLogChanges) {
-        await _applyExerciseChange(db, userId, change);
+        pageSkipped =
+            await _applyExerciseChange(db, userId, change) || pageSkipped;
       }
       for (final change in page.fastingRecordChanges) {
         await _applyFastingRecordChange(db, userId, change);
@@ -385,10 +458,25 @@ final class RemoteRecordSync implements RecordRemote {
       // 自定义食物最后应用：服务端删除自定义食物会级联软删引用记录，
       // 记录 tombstone（上方 entry changes）先落库，食物行再移除。
       for (final change in page.customFoodChanges) {
-        await _applyCustomFoodChange(db, change);
+        await _applyCustomFoodChange(db, userId, change);
       }
-      if (pageSkipped) firstSkippedPageToken ??= pageTokenBefore;
-      token = page.nextSyncToken;
+      if (pageSkipped && !hasSkippedPage) {
+        firstSkippedPageToken = pageTokenBefore;
+        hasSkippedPage = true;
+      }
+      final nextToken = page.nextSyncToken;
+      if (page.hasMore &&
+          (nextToken == null ||
+              nextToken.isEmpty ||
+              nextToken == pageTokenBefore)) {
+        if (!hasSkippedPage) {
+          firstSkippedPageToken = pageTokenBefore;
+          hasSkippedPage = true;
+        }
+        token = pageTokenBefore;
+        break;
+      }
+      token = nextToken;
       hasMore = page.hasMore;
     }
     // 聚合缓存重算（§2.6 本地预估；下行 insert/update/tombstone 即时生效）。
@@ -400,52 +488,63 @@ final class RemoteRecordSync implements RecordRemote {
         updatedAtUtc: nowIso,
       );
     }
-    return firstSkippedPageToken ?? token;
+    return hasSkippedPage ? firstSkippedPageToken : token;
   }
 
   /// 饮水记录下行入库（两态轻量口径）：本地 pending 不被下行覆盖；
   /// tombstone 仅清除已同步行。
-  Future<void> _applyWaterChange(
+  Future<bool> _applyWaterChange(
     AppDatabase db,
     String userId,
     Map<String, dynamic> change,
   ) async {
     final tombstone = change['tombstone'];
     if (tombstone is Map<String, dynamic>) {
-      final local = await db.waterLogDao.getByServerId(
-        tombstone['id']! as String,
-      );
+      final serverId = tombstone['id'];
+      if (serverId is! String || serverId.isEmpty) return true;
+      final local = await db.waterLogDao.getByServerId(serverId);
       if (local != null && local.syncState == WaterSyncState.synced) {
         await db.waterLogDao.deleteLog(local.localId);
       }
-      return;
+      return false;
     }
-    final serverId = change['id'] as String?;
-    if (serverId == null) return;
-    final clientRequestId = change['clientRequestId'] as String?;
+    final rawServerId = change['id'];
+    if (rawServerId is! String) return false;
+    final serverId = rawServerId;
+    final rawClientRequestId = change['clientRequestId'];
+    final clientRequestId = rawClientRequestId is String
+        ? rawClientRequestId
+        : null;
     WaterLog? local;
     if (clientRequestId != null) {
       local = await db.waterLogDao.getByClientRequestId(clientRequestId);
     }
     local ??= await db.waterLogDao.getByServerId(serverId);
     if (local != null && local.syncState == WaterSyncState.pending) {
-      // 本地未上行：不被下行覆盖（上行 create 幂等键对账后回填）。
-      return;
+      return false;
     }
-    final loggedAt =
-        change['loggedAt'] as String? ??
-        DateTime.now().toUtc().toIso8601String();
+    final rawLoggedAt = change['loggedAt'];
+    final parsedLoggedAt = rawLoggedAt == null
+        ? DateTime.now().toUtc()
+        : rawLoggedAt is String
+        ? DateTime.tryParse(rawLoggedAt)
+        : null;
+    if (parsedLoggedAt == null) return true;
+    final loggedAt = rawLoggedAt is String
+        ? rawLoggedAt
+        : parsedLoggedAt.toIso8601String();
+    final rawLocalDate = change['localDate'];
     final companion = WaterLogsCompanion(
       userId: Value(userId),
       serverId: Value(serverId),
       clientRequestId: Value(clientRequestId ?? ''),
       syncState: const Value(WaterSyncState.synced),
       deleted: const Value(false),
+      lastError: const Value(null),
       amountMl: Value((change['amountMl'] as num?)?.toInt() ?? 0),
       datetimeUtc: Value(loggedAt),
       localDate: Value(
-        change['localDate'] as String? ??
-            _localDateOf(DateTime.parse(loggedAt)),
+        rawLocalDate is String ? rawLocalDate : _localDateOf(parsedLoggedAt),
       ),
     );
     if (local != null) {
@@ -458,54 +557,68 @@ final class RemoteRecordSync implements RecordRemote {
         ),
       );
     }
+    return false;
   }
 
   /// 运动记录下行入库（两态轻量口径，与 [_applyWaterChange] 同法）：
   /// 本地 pending 不被下行覆盖；tombstone 仅清除已同步行。
-  Future<void> _applyExerciseChange(
+  Future<bool> _applyExerciseChange(
     AppDatabase db,
     String userId,
     Map<String, dynamic> change,
   ) async {
     final tombstone = change['tombstone'];
     if (tombstone is Map<String, dynamic>) {
-      final local = await db.exerciseLogDao.getByServerId(
-        tombstone['id']! as String,
-      );
+      final serverId = tombstone['id'];
+      if (serverId is! String || serverId.isEmpty) return true;
+      final local = await db.exerciseLogDao.getByServerId(serverId);
       if (local != null && local.syncState == ExerciseSyncState.synced) {
         await db.exerciseLogDao.deleteLog(local.localId);
       }
-      return;
+      return false;
     }
-    final serverId = change['id'] as String?;
-    if (serverId == null) return;
-    final clientRequestId = change['clientRequestId'] as String?;
+    final rawServerId = change['id'];
+    if (rawServerId is! String) return false;
+    final serverId = rawServerId;
+    final rawClientRequestId = change['clientRequestId'];
+    final clientRequestId = rawClientRequestId is String
+        ? rawClientRequestId
+        : null;
     ExerciseLog? local;
     if (clientRequestId != null) {
       local = await db.exerciseLogDao.getByClientRequestId(clientRequestId);
     }
     local ??= await db.exerciseLogDao.getByServerId(serverId);
     if (local != null && local.syncState == ExerciseSyncState.pending) {
-      // 本地未上行：不被下行覆盖（上行 create 幂等键对账后回填）。
-      return;
+      return false;
     }
-    final loggedAt =
-        change['loggedAt'] as String? ??
-        DateTime.now().toUtc().toIso8601String();
+    final rawLoggedAt = change['loggedAt'];
+    final parsedLoggedAt = rawLoggedAt == null
+        ? DateTime.now().toUtc()
+        : rawLoggedAt is String
+        ? DateTime.tryParse(rawLoggedAt)
+        : null;
+    if (parsedLoggedAt == null) return true;
+    final loggedAt = rawLoggedAt is String
+        ? rawLoggedAt
+        : parsedLoggedAt.toIso8601String();
+    final rawLocalDate = change['localDate'];
+    final rawTypeKey = change['typeKey'];
+    final rawSource = change['source'];
     final companion = ExerciseLogsCompanion(
       userId: Value(userId),
       serverId: Value(serverId),
       clientRequestId: Value(clientRequestId ?? ''),
       syncState: const Value(ExerciseSyncState.synced),
       deleted: const Value(false),
-      typeKey: Value(change['typeKey'] as String? ?? 'other'),
+      lastError: const Value(null),
+      typeKey: Value(rawTypeKey is String ? rawTypeKey : 'other'),
       durationMin: Value((change['durationMin'] as num?)?.toInt() ?? 0),
       kcal: Value((change['kcal'] as num?)?.toDouble() ?? 0),
       steps: Value((change['steps'] as num?)?.toInt()),
-      source: Value(change['source'] as String?),
+      source: Value(rawSource is String ? rawSource : null),
       localDate: Value(
-        change['localDate'] as String? ??
-            _localDateOf(DateTime.parse(loggedAt)),
+        rawLocalDate is String ? rawLocalDate : _localDateOf(parsedLoggedAt),
       ),
     );
     if (local != null) {
@@ -518,6 +631,7 @@ final class RemoteRecordSync implements RecordRemote {
         ),
       );
     }
+    return false;
   }
 
   /// 应用单条 entry change。返回是否被跳过未落库（仅限畸形 change：缺
@@ -530,9 +644,11 @@ final class RemoteRecordSync implements RecordRemote {
   ) async {
     final tombstone = change['tombstone'];
     if (tombstone is Map<String, dynamic>) {
-      final local = await db.foodEntryDao.getByServerId(
-        tombstone['id']! as String,
-      );
+      final tombstoneId = tombstone['id'];
+      if (tombstoneId is! String || tombstoneId.isEmpty) {
+        return (skipped: true, affectedDate: null);
+      }
+      final local = await db.foodEntryDao.getByServerId(tombstoneId);
       // 删改冲突（D-20 不可合并）：本地有未同步修改 → 双份保留，不软删。
       if (local != null && local.syncStatus == SyncStatus.synced) {
         await db.foodEntryDao.markDeleted(local.localId);
@@ -540,8 +656,12 @@ final class RemoteRecordSync implements RecordRemote {
       }
       return (skipped: false, affectedDate: null);
     }
-    final serverId = change['id'] as String?;
-    final clientRequestId = change['clientRequestId'] as String?;
+    final rawServerId = change['id'];
+    final rawClientRequestId = change['clientRequestId'];
+    final serverId = rawServerId is String ? rawServerId : null;
+    final clientRequestId = rawClientRequestId is String
+        ? rawClientRequestId
+        : null;
     if (serverId == null) return (skipped: false, affectedDate: null);
     // 先按幂等键对账（本机待发记录），再按服务端主键（多端/重装）。
     FoodEntry? local;
@@ -553,26 +673,31 @@ final class RemoteRecordSync implements RecordRemote {
       // 本地有未上行修改：不被下行覆盖（§2.4），上行冲突由 push 处理。
       return (skipped: false, affectedDate: null);
     }
-    final foodId = change['foodId'] as String?;
+    final rawFoodId = change['foodId'];
+    final foodId = rawFoodId is String ? rawFoodId : null;
     final snapshot = change['nutritionSnapshot'];
     final snapshotMap = snapshot is Map<String, dynamic>
         ? snapshot
         : const <String, dynamic>{};
     if (foodId == null || snapshotMap.isEmpty) {
-      // 缺 foodId / 缺快照 = 畸形 change（服务端记录视图恒带快照），
-      // 入账只会写进零营养脏行——skip 等人工介入。
       return (skipped: true, affectedDate: null);
     }
+    final rawEatenAt = change['eatenAt'];
+    final eatenAtDate = rawEatenAt is String
+        ? DateTime.tryParse(rawEatenAt)
+        : null;
+    if (eatenAtDate == null) {
+      return (skipped: true, affectedDate: null);
+    }
+    final eatenAt = rawEatenAt as String;
     if (await db.foodDao.getById(foodId) == null) {
-      // 食物行缺失但带快照：合成占位行落库——食物可能已被 seed 缩量/
-      // 下架（removedIds），行永久消失，「等食物库刷新自愈」假设失效
-      // （v1.12.4 反向案例）：新设备/重装下行会永久卡死在该页。
+      // 食物行缺失但带快照：合成占位行落库。
       await _ensurePlaceholderFood(db, foodId, change, snapshotMap);
     }
-    final eatenAt = change['eatenAt']! as String;
-    final updatedAt =
-        change['updatedAt'] as String? ??
-        DateTime.now().toUtc().toIso8601String();
+    final rawUpdatedAt = change['updatedAt'];
+    final updatedAt = rawUpdatedAt is String
+        ? rawUpdatedAt
+        : DateTime.now().toUtc().toIso8601String();
     final version = (change['version'] as num?)?.toInt() ?? 1;
     final grams = (change['grams'] as num?)?.toDouble() ?? 0;
     final inputMethod = change['inputMethod'] as String? ?? 'manual';
@@ -586,7 +711,7 @@ final class RemoteRecordSync implements RecordRemote {
       retryCount: const Value(0),
       deleted: const Value(false),
       datetimeUtc: Value(eatenAt),
-      localDate: Value(_localDateOf(DateTime.parse(eatenAt))),
+      localDate: Value(_localDateOf(eatenAtDate)),
       foodId: Value(foodId),
       amountG: Value(grams),
       kcal: Value((snapshotMap['kcal'] as num?)?.toDouble() ?? 0),
@@ -608,10 +733,7 @@ final class RemoteRecordSync implements RecordRemote {
         ),
       );
     }
-    return (
-      skipped: false,
-      affectedDate: _localDateOf(DateTime.parse(eatenAt)),
-    );
+    return (skipped: false, affectedDate: _localDateOf(eatenAtDate));
   }
 
   /// 下行记录引用的食物行本地缺失（seed 缩量 removedIds / 共享行被下架软删
@@ -658,25 +780,41 @@ final class RemoteRecordSync implements RecordRemote {
   ///   （贡献审核状态由 ContributionReviewSync 通道维护）。
   Future<void> _applyCustomFoodChange(
     AppDatabase db,
+    String userId,
     Map<String, dynamic> change,
   ) async {
     final tombstone = change['tombstone'];
     if (tombstone is Map<String, dynamic>) {
-      final local = await db.foodDao.getById(tombstone['id']! as String);
+      final tombstoneId = tombstone['id'];
+      if (tombstoneId is! String) return;
+      final local = await db.foodDao.getById(tombstoneId, ownerUserId: userId);
       if (local != null && local.isCustom && !local.customSyncPending) {
-        await db.foodDao.deleteById(local.id);
+        await db.foodDao.deleteById(
+          local.id,
+          ownerUserId: userId,
+          customOnly: true,
+        );
       }
       return;
     }
-    final id = change['id'] as String?;
-    final nameZh = change['nameZh'] as String?;
-    final nameEn = change['nameEn'] as String?;
+    final rawId = change['id'];
+    final rawNameZh = change['nameZh'];
+    final rawNameEn = change['nameEn'];
+    final id = rawId is String ? rawId : null;
+    final nameZh = rawNameZh is String ? rawNameZh : null;
+    final nameEn = rawNameEn is String ? rawNameEn : null;
     if (id == null || nameZh == null || nameEn == null) return;
     final local = await db.foodDao.getById(id);
-    if (local != null && local.customSyncPending) {
-      // 本地未上行（dirty/draft）：不被下行覆盖（上行为准）。
+    if (local != null &&
+        local.isCustom &&
+        local.ownerUserId != null &&
+        local.ownerUserId != userId) {
       return;
     }
+    if (local != null && local.customSyncPending) {
+      return;
+    }
+    final rawSource = change['source'];
     await db.foodDao.upsertAll(<FoodsCompanion>[
       FoodsCompanion(
         id: Value(id),
@@ -690,8 +828,12 @@ final class RemoteRecordSync implements RecordRemote {
         carbPer100g: Value((change['carbsPer100g'] as num?)?.toDouble() ?? 0),
         fatPer100g: Value((change['fatPer100g'] as num?)?.toDouble() ?? 0),
         isCustom: const Value(true),
+        ownerUserId: Value(userId),
+        source: rawSource is String ? Value(rawSource) : const Value.absent(),
         customSyncPending: const Value(false),
         customClientRequestId: const Value(''),
+        customSyncFailCount: const Value(0),
+        customSyncFailed: const Value(false),
       ),
     ]);
   }
@@ -713,9 +855,9 @@ final class RemoteRecordSync implements RecordRemote {
   ) async {
     final tombstone = change['tombstone'];
     if (tombstone is Map<String, dynamic>) {
-      final local = await db.fastingRecordDao.getByServerId(
-        tombstone['id']! as String,
-      );
+      final tombstoneId = tombstone['id'];
+      if (tombstoneId is! String) return;
+      final local = await db.fastingRecordDao.getByServerId(tombstoneId);
       if (local != null && local.syncStatus == SyncStatus.synced) {
         await db.fastingRecordDao.deleteRecord(local.localId);
       }
@@ -844,6 +986,7 @@ final class RemoteRecordSync implements RecordRemote {
       ),
       syncStatus: const Value(SyncStatus.synced),
       serverId: Value(serverId),
+      lastError: const Value(null),
       createdAtUtc: Value(createdAtUtc),
     );
   }

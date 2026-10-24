@@ -12,8 +12,6 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
-import 'package:eatwise/core/analytics/analytics_context.dart';
-import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
@@ -27,7 +25,8 @@ import 'package:eatwise/features/health/domain/exercise_types.dart';
 import 'package:eatwise/features/health/presentation/exercise_save_conflict.dart';
 import 'package:eatwise/features/health/presentation/exercise_type_names.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
-import 'package:eatwise/features/record/presentation/record_providers.dart';
+import 'package:eatwise/features/record/presentation/record_providers.dart'
+    show photoPickerGatewayProvider;
 import 'package:eatwise/features/record/presentation/record_strings.dart';
 import 'package:eatwise/features/record/recognition/data/ondevice_food_recognition_service.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
@@ -87,11 +86,8 @@ Future<void> startExerciseScreenshotImport(
         data,
       );
       if (result == null || !context.mounted) return;
-      _trackSaved(ref, result);
-      // 确认落库后收起记运动弹层，让「已记录·撤销」吐司可见
-      // （SnackBar 在 Scaffold 层，modal sheet 会遮住它）。
-      Navigator.of(context).pop();
-      _showSavedSnackBar(messenger, ref, s, result);
+      // 把截图结果交回原记运动入口，由同一 flow 记录成功并展示撤销吐司。
+      Navigator.of(context).pop(result);
     case ExerciseScreenshotUnavailable(detail: final detail?)
         when detail.isNotEmpty:
       // 模型原文透出（含「无法识别」）：用户能看到模型实际看到了什么。
@@ -101,85 +97,6 @@ Future<void> startExerciseScreenshotImport(
         SnackBar(content: Text(t.record.exercise.screenshot.unavailable)),
       );
   }
-}
-
-/// 识别成功埋点（record_kind=exercise / entry_type=screenshot；运动明细
-/// 属健康明细不上报 §1.6-3；sync_state=pending：本地落库待上行）并触发
-/// 一轮同步（pending 队列上行，仅登录态生效）。
-void _trackSaved(WidgetRef ref, ExerciseSaveResult result) {
-  final analytics = ref.read(analyticsServiceProvider);
-  final flowId = analytics.startRecordFlow();
-  final flow = analytics.endRecordFlow(flowId);
-  try {
-    unawaited(ref.read(recordSyncEngineProvider).syncNow());
-  } on Object {
-    // 防御：同步引擎未装配（如测试环境仅注入仓储）时跳过。
-  }
-  analytics.track(
-    'record_flow_success',
-    properties: <String, Object?>{
-      'flow_id': flowId,
-      'duration_ms': flow?.durationMs ?? 0,
-      'step_count': 3,
-      'entry_type': 'screenshot',
-      'item_count': result.replaced.isEmpty ? 1 : result.replaced.length + 1,
-      'record_kind': 'exercise',
-      'is_edited': true, // 确认弹层字段全部可编辑，按已确认口径记
-      'sync_state': result.replaced.isEmpty ? 'pending' : 'replace',
-    },
-    flushNow: true,
-  );
-}
-
-/// 入账成功吐司（已记录 + D-11 撤销；与记运动手动保存同口径）。
-void _showSavedSnackBar(
-  ScaffoldMessengerState messenger,
-  WidgetRef ref,
-  RecordStrings s,
-  ExerciseSaveResult result,
-) {
-  final saved = result.saved;
-  final analytics = ref.read(analyticsServiceProvider);
-  final repo = ref.read(exerciseLogRepositoryProvider);
-  final confirmedAtMs = DateTime.now().millisecondsSinceEpoch;
-  messenger.hideCurrentSnackBar();
-  messenger.showSnackBar(
-    SnackBar(
-      content: Text(s.toastRecorded),
-      duration: repo.undoWindow,
-      persist: false,
-      action: SnackBarAction(
-        label: s.toastUndo,
-        onPressed: () => unawaited(() async {
-          final ok = result.replaced.isEmpty
-              ? await repo.delete(saved.localId)
-              : await repo
-                    .undoReplace(
-                      savedLocalId: saved.localId,
-                      replaced: result.replaced,
-                    )
-                    .then((_) => true);
-          if (ok) {
-            // 撤销 tombstone 上行（已上行记录）。
-            try {
-              unawaited(ref.read(recordSyncEngineProvider).syncNow());
-            } on Object {
-              // 防御：同步引擎未装配（如测试环境仅注入仓储）时跳过。
-            }
-            analytics.track(
-              'record_undo_click',
-              properties: <String, Object?>{
-                'record_id_hash': anonymizedContentId(saved.localId),
-                'after_ms':
-                    DateTime.now().millisecondsSinceEpoch - confirmedAtMs,
-              },
-            );
-            messenger.showSnackBar(SnackBar(content: Text(s.toastUndone)));
-          }
-        }()),
-      ),
-    ),
-  );
 }
 
 /// 识别中对话框：加载态 + 「取消」（D-16 异步不阻塞；取消不丢输入）。
@@ -408,7 +325,7 @@ class _ExerciseScreenshotConfirmSheetState
   Future<void> _save(Translations t) async {
     if (_saving) return;
     final kcal = double.tryParse(_kcalController.text.trim());
-    if (kcal == null || kcal <= 0) {
+    if (kcal == null || !kcal.isFinite || kcal <= 0 || kcal > maxExerciseKcal) {
       setState(() => _error = t.record.exercise.kcalInvalid);
       return;
     }
@@ -420,6 +337,10 @@ class _ExerciseScreenshotConfirmSheetState
       durationMin = 0;
       // 步数随记录落库（步数持久化：数据页展示 = 系统步数 + 当日合计）。
       final parsedSteps = int.tryParse(_stepsController.text.trim());
+      if (parsedSteps != null && parsedSteps > maxExerciseSteps) {
+        setState(() => _error = t.record.exercise.stepsInvalid);
+        return;
+      }
       steps = (parsedSteps != null && parsedSteps > 0) ? parsedSteps : null;
     } else {
       final type = _selectedType;
@@ -428,7 +349,7 @@ class _ExerciseScreenshotConfirmSheetState
         return;
       }
       final minutes = int.tryParse(_durationController.text.trim());
-      if (minutes == null || minutes <= 0) {
+      if (minutes == null || minutes <= 0 || minutes > maxExerciseDurationMin) {
         setState(() => _error = t.record.exercise.durationInvalid);
         return;
       }

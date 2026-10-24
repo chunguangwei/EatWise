@@ -2,23 +2,35 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { DataStore } from '../src/common/store/data-store';
+
+const POST_CDN_ORIGIN = 'https://cdn.posts.example.com';
+const previousCdnBaseUrl = process.env.CDN_BASE_URL;
 
 /** e2e：社区打卡 C1–C7（先审后发三态 / 流可见性 / 点赞幂等 / 举报下架） */
 describe('Social posts (e2e)', () => {
   let app: INestApplication;
   let server: Parameters<typeof request>[0];
+  let store: DataStore;
 
   beforeAll(async () => {
+    process.env.CDN_BASE_URL = POST_CDN_ORIGIN;
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('v1');
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
     server = app.getHttpServer() as Parameters<typeof request>[0];
+    store = app.get(DataStore);
   });
 
   afterAll(async () => {
     await app.close();
+    if (previousCdnBaseUrl === undefined) {
+      delete process.env.CDN_BASE_URL;
+    } else {
+      process.env.CDN_BASE_URL = previousCdnBaseUrl;
+    }
   });
 
   let seq = 100;
@@ -35,6 +47,64 @@ describe('Social posts (e2e)', () => {
       .expect(200);
     return res.body.data.accessToken as string;
   }
+
+  it.each([
+    'https://evil.example.com/a.jpg',
+    '//cdn.posts.example.com/a.jpg',
+    'https://user:pass@cdn.posts.example.com/a.jpg',
+    'https://cdn.posts.example.com/%ZZ.jpg',
+    'https://cdn.posts.example.com\\@evil.example.com/a.jpg',
+    '/v1/uploads/../secret.jpg',
+    '/v1/uploads/%2e%2e%2fsecret.jpg',
+    'javascript:alert(1)',
+    'http://cdn.posts.example.com/a.jpg',
+    'https://cdn.posts.example.com:444/a.jpg',
+  ])('C1 非法帖图 URL → 400：%s', async (imageUrl) => {
+    const token = await login(nextPhone());
+    const res = await request(server)
+      .post('/v1/posts')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ clientRequestId: crypto.randomUUID(), text: '非法图片地址', imageUrls: [imageUrl] })
+      .expect(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('C1 合法上传/CDN 入库；历史非法外链仅出站过滤且不改库存', async () => {
+    const token = await login(nextPhone());
+    const uploadPath = `/v1/uploads/${crypto.randomUUID()}.jpg`;
+    const cdnUrl = `${POST_CDN_ORIGIN}/feed/${crypto.randomUUID()}.png?variant=feed`;
+    const created = await request(server)
+      .post('/v1/posts')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        clientRequestId: crypto.randomUUID(),
+        text: '合法上传与 CDN 图片',
+        imageUrls: [uploadPath, cdnUrl],
+      })
+      .expect(200);
+    expect(created.body.data.imageUrls).toEqual([uploadPath, cdnUrl]);
+
+    const postId = created.body.data.id as string;
+    const stored = store.posts.get(postId)!;
+    stored.imageUrls.push('https://evil.example.com/legacy.jpg');
+    const detail = await request(server)
+      .get(`/v1/posts/${postId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(detail.body.data.imageUrls).toEqual([uploadPath, cdnUrl]);
+    const feed = await request(server)
+      .get('/v1/posts/feed?limit=50')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    const feedItem = feed.body.data.items.find((item: { id: string }) => item.id === postId);
+    expect(feedItem.imageUrls).toEqual([uploadPath, cdnUrl]);
+    expect(stored.imageUrls).toEqual([uploadPath, cdnUrl, 'https://evil.example.com/legacy.jpg']);
+
+    await request(server)
+      .delete(`/v1/posts/${postId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+  });
 
   it('C1 发布（机审通过 → approved）→ C2 他人可见；点赞幂等；删除后点赞 410', async () => {
     const author = await login(nextPhone());

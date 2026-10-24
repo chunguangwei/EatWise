@@ -179,6 +179,52 @@ void main() {
       expect(await db.waterLogDao.getByLocalId(log.localId), isNull);
       expect(await db.waterLogDao.pendingForUser('anonymous'), isEmpty);
     });
+
+    test('畸形批响应保持 pending + lastError，不强转崩同步', () async {
+      final log = await repo.add(200);
+      adapter.stub(
+        '/sync/push',
+        StubResponse.json(
+          200,
+          StubResponse.envelope(<String, dynamic>{
+            'results': <dynamic>[
+              <String, dynamic>{'status': 'applied'},
+            ],
+          }),
+        ),
+      );
+
+      await waterSync.pushPending(db, 'anonymous');
+
+      final stored = (await db.waterLogDao.getByLocalId(log.localId))!;
+      expect(stored.syncState, WaterSyncState.pending);
+      expect(stored.lastError, 'INVALID_PUSH_RESPONSE');
+    });
+
+    test(
+      'delete VALIDATION_ERROR/403 保留 tombstone + lastError，仅 NOT_FOUND 可替代 ack 清理',
+      () async {
+        for (final code in <String>['VALIDATION_ERROR', 'FORBIDDEN']) {
+          final log = await repo.add(200);
+          await db.waterLogDao.markSynced(log.localId, 'srv-$code');
+          await repo.undo(log.localId);
+          stubPush(<Map<String, dynamic>>[
+            <String, dynamic>{
+              'clientRequestId': log.clientRequestId,
+              'status': 'error',
+              'error': <String, dynamic>{'code': code},
+            },
+          ]);
+
+          await waterSync.pushPending(db, 'anonymous');
+
+          final stored = (await db.waterLogDao.getByLocalId(log.localId))!;
+          expect(stored.deleted, isTrue, reason: code);
+          expect(stored.syncState, WaterSyncState.pending, reason: code);
+          expect(stored.lastError, code);
+        }
+      },
+    );
   });
 
   group('下行 waterLogChanges（/sync/pull 随行）', () {
@@ -232,6 +278,30 @@ void main() {
       });
       await recordSync.pullDown(db, 'u-1', 'st_1');
       expect(await db.waterLogDao.getByServerId('srv-w1'), isNull);
+    });
+
+    test('坏 loggedAt 不抛异常：好行落库，坏行跳过且游标留待重试', () async {
+      stubPull(<String, dynamic>{
+        'changes': const <dynamic>[],
+        'waterLogChanges': <dynamic>[
+          <String, dynamic>{
+            'id': 'srv-good',
+            'amountMl': 200,
+            'loggedAt': '2026-07-29T02:00:00.000Z',
+          },
+          <String, dynamic>{
+            'id': 'srv-bad-time',
+            'amountMl': 300,
+            'loggedAt': 'bad-time',
+          },
+        ],
+        'syncToken': 'st_1',
+        'hasMore': false,
+      });
+
+      expect(await recordSync.pullDown(db, 'u-1', 'st_0'), 'st_0');
+      expect(await db.waterLogDao.getByServerId('srv-good'), isNotNull);
+      expect(await db.waterLogDao.getByServerId('srv-bad-time'), isNull);
     });
 
     test('本地 pending 行不被下行覆盖（幂等键对账后由上行回填）', () async {

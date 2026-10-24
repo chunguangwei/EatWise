@@ -248,12 +248,15 @@ class _MilestoneShareSheetState extends State<MilestoneShareSheet> {
                   child: FilledButton(
                     onPressed: _busy ? null : _shareSystem,
                     style: FilledButton.styleFrom(
-                      backgroundColor: colors.brandPrimary,
+                      backgroundColor: colors.actionPrimary,
+                      foregroundColor: colors.onActionPrimary,
                       minimumSize: const Size(0, AppSpacing.s12),
                     ),
                     child: Text(
                       t.streak.milestone.shareCard.shareSystem,
-                      style: textStyles.textBase.copyWith(color: Colors.white),
+                      style: textStyles.textBase.copyWith(
+                        color: colors.onActionPrimary,
+                      ),
                     ),
                   ),
                 ),

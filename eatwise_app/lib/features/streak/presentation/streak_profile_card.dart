@@ -28,74 +28,95 @@ class StreakProfileCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: AppSurfaces.card(colors, shadows),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
+          final stacked = constraints.maxWidth < 180 * textScale;
+          final metrics = <Widget>[
+            _Metric(
+              label: t.streak.profile.current,
+              value:
+                  '${formatStreakCount(streak.currentStreak).isEmpty ? '0' : formatStreakCount(streak.currentStreak)} '
+                  '${t.streak.profile.daysUnit}',
+            ),
+            _Metric(
+              label: t.streak.profile.longest,
+              value: '${streak.longestStreak} ${t.streak.profile.daysUnit}',
+            ),
+            _Metric(
+              label: t.streak.profile.mendCards,
+              value: t.streak.profile.mendCardsValue(n: streak.mendCardBalance),
+            ),
+          ];
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              // 圆形浅色图标徽标（与本页行图标/MetricCard 同语言）。
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: colors.brandAccent.withValues(alpha: 0.14),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Icon(
-                  Icons.local_fire_department_rounded,
-                  size: 18,
-                  color: streak.currentStreak > 0
-                      ? colors.brandAccent
-                      : colors.textSecondary,
-                ),
+              Row(
+                children: <Widget>[
+                  // 圆形浅色图标徽标（与本页行图标/MetricCard 同语言）。
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: colors.brandAccent.withValues(alpha: 0.14),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.local_fire_department_rounded,
+                      size: 18,
+                      color: streak.currentStreak > 0
+                          ? colors.brandAccent
+                          : colors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.s2),
+                  Expanded(
+                    child: Text(
+                      t.streak.profile.title,
+                      style: textStyles.textXl,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: AppSpacing.s2),
-              Text(t.streak.profile.title, style: textStyles.textXl),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.s4),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: _Metric(
-                  label: t.streak.profile.current,
-                  value:
-                      '${formatStreakCount(streak.currentStreak).isEmpty ? '0' : formatStreakCount(streak.currentStreak)} '
-                      '${t.streak.profile.daysUnit}',
+              const SizedBox(height: AppSpacing.s4),
+              if (stacked)
+                Column(
+                  children: <Widget>[
+                    for (var i = 0; i < metrics.length; i++) ...<Widget>[
+                      if (i > 0) const SizedBox(height: AppSpacing.s3),
+                      metrics[i],
+                    ],
+                  ],
+                )
+              else
+                Row(
+                  children: <Widget>[
+                    for (var i = 0; i < metrics.length; i++) ...<Widget>[
+                      if (i > 0) const SizedBox(width: AppSpacing.s2),
+                      Expanded(child: metrics[i]),
+                    ],
+                  ],
                 ),
-              ),
-              Expanded(
-                child: _Metric(
-                  label: t.streak.profile.longest,
-                  value: '${streak.longestStreak} ${t.streak.profile.daysUnit}',
-                ),
-              ),
-              Expanded(
-                child: _Metric(
-                  label: t.streak.profile.mendCards,
-                  value: t.streak.profile.mendCardsValue(
-                    n: streak.mendCardBalance,
+              if (streak.mendVisualState != MendCardVisualState.unmendable &&
+                  streak.pendingMendDates.isNotEmpty) ...<Widget>[
+                const SizedBox(height: AppSpacing.s4),
+                OutlinedButton.icon(
+                  onPressed: () => _openMendFlow(context, ref, streak),
+                  icon: const Icon(Icons.restore),
+                  label: Text(t.streak.profile.mendEntry),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colors.brandPrimary,
+                    side: BorderSide(color: colors.brandPrimary),
+                    minimumSize: const Size.fromHeight(AppSpacing.s12),
                   ),
                 ),
-              ),
+              ],
             ],
-          ),
-          if (streak.mendVisualState != MendCardVisualState.unmendable &&
-              streak.pendingMendDates.isNotEmpty) ...<Widget>[
-            const SizedBox(height: AppSpacing.s4),
-            OutlinedButton.icon(
-              onPressed: () => _openMendFlow(context, ref, streak),
-              icon: const Icon(Icons.restore),
-              label: Text(t.streak.profile.mendEntry),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: colors.brandPrimary,
-                side: BorderSide(color: colors.brandPrimary),
-                minimumSize: const Size.fromHeight(AppSpacing.s12),
-              ),
-            ),
-          ],
-        ],
+          );
+        },
       ),
     );
   }
@@ -157,14 +178,22 @@ class _Metric extends StatelessWidget {
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     return Column(
       children: <Widget>[
-        Text(
-          value,
-          style: textStyles.text3xl.copyWith(color: colors.textPrimary),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: textStyles.text3xl.copyWith(color: colors.textPrimary),
+            maxLines: 1,
+            softWrap: false,
+          ),
         ),
         const SizedBox(height: AppSpacing.s1),
         Text(
           label,
           style: textStyles.textXs.copyWith(color: colors.textSecondary),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
         ),
       ],
     );

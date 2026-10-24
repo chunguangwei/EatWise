@@ -842,8 +842,9 @@ class _Translations$record$exercise$en extends Translations$record$exercise$zh_C
 	@override String get durationLabel => 'Duration (min)';
 	@override String get kcalLabel => 'Calories (kcal)';
 	@override String get estimatedWeightHint => 'Weight not set — estimated with 60 kg';
-	@override String get durationInvalid => 'Enter minutes greater than 0';
-	@override String get kcalInvalid => 'Enter calories greater than 0';
+	@override String get durationInvalid => 'Enter a duration between 1 and 1440 minutes';
+	@override String get kcalInvalid => 'Enter calories greater than 0 and no more than 10000';
+	@override String get stepsInvalid => 'Enter between 1 and 200000 steps';
 	@override String get todayList => 'Today\'s exercise';
 	@override String minutesValue({required Object min}) => '${min} min';
 	@override String kcalValue({required Object kcal}) => '${kcal} kcal';
@@ -1384,6 +1385,7 @@ class _Translations$settings$privacy$en extends Translations$settings$privacy$zh
 	@override String get blockedUsers => 'Blocked users';
 	@override String get blockedUsersSubtitle => 'You won\'t see posts from blocked users';
 	@override String get exportFailed => 'Export failed. Check your connection and try again.';
+	@override String exportShareFailed({required Object path}) => 'File created, but system sharing could not be opened. File: ${path}';
 }
 
 // Path: settings.health
@@ -1444,7 +1446,7 @@ class _Translations$settings$fastingPlan$en extends Translations$settings$fastin
 
 	// Translations
 	@override String get title => 'Fasting plan';
-	@override String get subtitle => 'View or change your fasting plan — changes take effect at 00:00 the next day';
+	@override String get subtitle => 'Review or change your plan; the current cycle stays unchanged';
 }
 
 // Path: settings.bodyProfile
@@ -2158,6 +2160,7 @@ class _Translations$fasting$home$gauge$en extends Translations$fasting$home$gaug
 
 	// Translations
 	@override String get fasting => 'Fasting';
+	@override String get eating => 'Eating';
 	@override String fastingGoal({required Object hours}) => '/${hours}h';
 	@override String get kcal => 'Calories';
 	@override String kcalGoal({required Object kcal}) => '/${kcal}';
@@ -2891,8 +2894,9 @@ extension on TranslationsEn {
 			'record.exercise.durationLabel' => 'Duration (min)',
 			'record.exercise.kcalLabel' => 'Calories (kcal)',
 			'record.exercise.estimatedWeightHint' => 'Weight not set — estimated with 60 kg',
-			'record.exercise.durationInvalid' => 'Enter minutes greater than 0',
-			'record.exercise.kcalInvalid' => 'Enter calories greater than 0',
+			'record.exercise.durationInvalid' => 'Enter a duration between 1 and 1440 minutes',
+			'record.exercise.kcalInvalid' => 'Enter calories greater than 0 and no more than 10000',
+			'record.exercise.stepsInvalid' => 'Enter between 1 and 200000 steps',
 			'record.exercise.todayList' => 'Today\'s exercise',
 			'record.exercise.minutesValue' => ({required Object min}) => '${min} min',
 			'record.exercise.kcalValue' => ({required Object kcal}) => '${kcal} kcal',
@@ -3017,6 +3021,7 @@ extension on TranslationsEn {
 			'fasting.home.endFastDialog.cancel' => 'Keep fasting',
 			'fasting.home.endFastDialog.confirm' => 'End fast',
 			'fasting.home.gauge.fasting' => 'Fasting',
+			'fasting.home.gauge.eating' => 'Eating',
 			'fasting.home.gauge.fastingGoal' => ({required Object hours}) => '/${hours}h',
 			'fasting.home.gauge.kcal' => 'Calories',
 			'fasting.home.gauge.kcalGoal' => ({required Object kcal}) => '/${kcal}',
@@ -3059,10 +3064,10 @@ extension on TranslationsEn {
 			'nutrition.data.summary.hasRed' => 'A couple of red flags today — no stress, just follow the tips below',
 			'nutrition.data.summary.empty' => 'Nothing logged this day — log a meal and the signal lights come on',
 			'nutrition.data.summary.fallbackGoal' => 'Using default goals for now — complete your profile for sharper targets',
-			'nutrition.data.localEstimate' => 'Local estimate — the cloud fine-tunes it once you\'re online',
-			'nutrition.data.proDetails.title' => 'Pro data',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.data.localEstimate' => 'Local estimate — the cloud fine-tunes it once you\'re online',
+			'nutrition.data.proDetails.title' => 'Pro data',
 			'nutrition.data.proDetails.expand' => 'View details',
 			'nutrition.data.proDetails.collapse' => 'Collapse',
 			'nutrition.data.proDetails.target' => 'Target',
@@ -3293,6 +3298,7 @@ extension on TranslationsEn {
 			'settings.privacy.blockedUsers' => 'Blocked users',
 			'settings.privacy.blockedUsersSubtitle' => 'You won\'t see posts from blocked users',
 			'settings.privacy.exportFailed' => 'Export failed. Check your connection and try again.',
+			'settings.privacy.exportShareFailed' => ({required Object path}) => 'File created, but system sharing could not be opened. File: ${path}',
 			'settings.health.group' => 'Activity data',
 			'settings.health.sync' => 'Sync activity data',
 			'settings.health.syncSubtitle' => 'Read system health data (Apple Health / Health Connect) to show today\'s activity burn',
@@ -3326,7 +3332,7 @@ extension on TranslationsEn {
 			'settings.theme.light' => 'Light',
 			'settings.theme.dark' => 'Dark',
 			'settings.fastingPlan.title' => 'Fasting plan',
-			'settings.fastingPlan.subtitle' => 'View or change your fasting plan — changes take effect at 00:00 the next day',
+			'settings.fastingPlan.subtitle' => 'Review or change your plan; the current cycle stays unchanged',
 			'settings.bodyProfile.title' => 'Body profile',
 			'settings.bodyProfile.subtitle' => 'Height, weight & more — used for precise nutrition goals',
 			'settings.bodyProfile.goalSection' => 'Weight goal (optional; applies to fat-loss goal only)',
@@ -3572,11 +3578,11 @@ extension on TranslationsEn {
 			'update.upToDate' => 'You\'re on the latest version',
 			'update.checkFailed' => 'Couldn\'t check for updates. Try again later.',
 			'update.downloading' => ({required Object percent}) => 'Downloading ${percent}%',
+			_ => null,
+		} ?? switch (path) {
 			'update.downloadingNoProgress' => 'Downloading…',
 			'update.downloadFailed' => 'Download failed. Check your connection and try again.',
 			'update.retry' => 'Retry',
-			_ => null,
-		} ?? switch (path) {
 			'moderation.title' => 'Review Center',
 			'moderation.subtitle' => 'Review food contributions from users',
 			'moderation.empty' => 'No pending food candidates',

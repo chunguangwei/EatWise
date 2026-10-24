@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/food_entry_dao.dart';
 import 'package:eatwise/core/storage/providers.dart';
+import 'package:eatwise/core/time/day_change.dart';
 import 'package:eatwise/features/fasting/domain/daily_nutrition.dart';
 import 'package:eatwise/features/fasting/domain/fasting_result_mapping.dart'
     show isRealFastResult;
@@ -22,7 +23,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 数据页时钟（测试可拨动；日期上限「不可超今天」以它为基准）。
 final Provider<DateTime> nutritionNowProvider = Provider<DateTime>((ref) {
-  return DateTime.now();
+  ref.watch(localDayProvider);
+  return ref.read(localDayClockProvider)();
 });
 
 /// 取本地日期部分（午夜归零）。
@@ -44,7 +46,17 @@ final NotifierProvider<SelectedDateController, DateTime> selectedDateProvider =
 /// 日期切换控制器：前一天 / 后一天（不可超今天）/ 回到今天。
 class SelectedDateController extends Notifier<DateTime> {
   @override
-  DateTime build() => dateOnly(ref.watch(nutritionNowProvider));
+  DateTime build() {
+    ref.listen<DateTime>(nutritionNowProvider, (previous, next) {
+      final previousToday = previous == null ? null : dateOnly(previous);
+      final nextToday = dateOnly(next);
+      if (previousToday == nextToday) return;
+      if (previousToday == null || state == previousToday) {
+        state = nextToday;
+      }
+    });
+    return dateOnly(ref.read(nutritionNowProvider));
+  }
 
   /// 今天（时钟基准的日期部分）。
   DateTime get _today => dateOnly(ref.read(nutritionNowProvider));

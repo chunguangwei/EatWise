@@ -4,6 +4,7 @@ import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/core/storage/tables.dart';
+import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
@@ -34,6 +35,7 @@ void main() {
     carbPer100g: 25.9,
     fatPer100g: 0.3,
     isCustom: false,
+    source: 'manual',
     customSyncPending: false,
     customClientRequestId: 'req-1',
     customSyncFailCount: 0,
@@ -61,6 +63,7 @@ void main() {
     required ValueChanged<String> onConfirm,
     AppLocale locale = AppLocale.zhCn,
     Food food = food,
+    ThemeData? theme,
     List<Override> extraOverrides = const <Override>[],
   }) async {
     await LocaleSettings.setLocale(locale);
@@ -75,7 +78,7 @@ void main() {
         ],
         child: TranslationProvider(
           child: MaterialApp(
-            theme: AppTheme.light(),
+            theme: theme ?? AppTheme.light(),
             home: Scaffold(
               body: FoodDetailSheet(food: food, onConfirm: onConfirm),
             ),
@@ -98,6 +101,7 @@ void main() {
     carbPer100g: 8,
     fatPer100g: 1,
     isCustom: true,
+    source: 'manual',
     customSyncPending: false,
     customClientRequestId: 'req-cf',
     customSyncFailCount: 0,
@@ -127,6 +131,53 @@ void main() {
     // 折叠区默认收起：明细行不可见。
     expect(find.text('每 100 克营养明细'), findsOneWidget);
     expect(find.textContaining('供能 10 千卡'), findsNothing);
+  });
+
+  testWidgets('营养环与餐次 chips 在 320 大字体亮暗主题下可辨且触控达标', (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    for (final theme in <ThemeData>[AppTheme.light(), AppTheme.dark()]) {
+      await pumpSheet(tester, onConfirm: (_) {}, theme: theme);
+      final colors = theme.extension<AppColors>()!;
+
+      Color ringColor(String percent) {
+        final paint = find
+            .ancestor(
+              of: find.text(percent),
+              matching: find.byType(CustomPaint),
+            )
+            .first;
+        final painter = tester.widget<CustomPaint>(paint).painter!;
+        return (painter as dynamic).color as Color;
+      }
+
+      expect(ringColor('9%'), colors.chartPurple);
+      expect(ringColor('89%'), colors.ringMove);
+      expect(ringColor('2%'), colors.ringStand);
+
+      final selected = tester
+          .widgetList<ChoiceChip>(find.byType(ChoiceChip))
+          .singleWhere((chip) => chip.selected);
+      expect(selected.labelStyle!.color, colors.textPrimary);
+      expect(selected.labelStyle!.fontWeight, FontWeight.w600);
+      expect(
+        selected.selectedColor,
+        colors.brandPrimary.withValues(alpha: 0.14),
+      );
+      expect(selected.showCheckmark, isTrue);
+      expect(selected.checkmarkColor, colors.textPrimary);
+      expect(
+        tester.getSize(find.byWidget(selected)).height,
+        greaterThanOrEqualTo(44),
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    }
   });
 
   testWidgets('折叠区展开：NRV% 表 + 三大营养素明细 + 别名', (tester) async {
@@ -270,6 +321,7 @@ void main() {
       carbPer100g: 5,
       fatPer100g: 20,
       isCustom: false,
+      source: 'manual',
       customSyncPending: false,
       customClientRequestId: '',
       customSyncFailCount: 0,
@@ -339,6 +391,44 @@ void main() {
         ),
       );
     }
+
+    testWidgets('owner 与管理员删除确认动作均使用 signalRed 危险语义', (tester) async {
+      for (final owner in <bool>[true, false]) {
+        await pumpSheet(
+          tester,
+          onConfirm: (_) {},
+          food: owner ? customFood : food,
+          extraOverrides: adminOverrides,
+        );
+        final entry = find.byKey(
+          ValueKey<String>(
+            owner ? 'foodDetail.delete' : 'foodDetail.adminDelete',
+          ),
+        );
+        await tester.ensureVisible(entry);
+        await tester.pump();
+        await tester.tap(entry);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        final confirm = tester.widget<TextButton>(
+          find.descendant(
+            of: find.byType(AlertDialog),
+            matching: find.widgetWithText(TextButton, '删除'),
+          ),
+        );
+        expect(
+          confirm.style!.foregroundColor!.resolve(<WidgetState>{}),
+          AppColors.light.signalRed,
+        );
+        await tester.tap(find.text('取消'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump();
+      }
+      expect(remote.receivedFoodDeletes, isEmpty);
+    });
 
     testWidgets('admin 共享食物见「删除（管理员）」；确认弹窗明示级联；删除成功直清+提示条数', (tester) async {
       await seedFoodWithEntry();

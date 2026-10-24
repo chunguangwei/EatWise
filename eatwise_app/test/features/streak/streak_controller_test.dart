@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/network/api_client.dart';
@@ -11,6 +13,8 @@ import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/data/remote_fasting_record_sync.dart';
 import 'package:eatwise/features/fasting/domain/fasting_record.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
+import 'package:eatwise/features/onboarding/application/onboarding_controller.dart'
+    show sharedPreferencesProvider;
 import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/data/record_sync_engine.dart';
@@ -948,6 +952,130 @@ void main() {
     });
   });
 
+  group('会话边界', () {
+    test('streak 引擎/server 缓存随 uid 重建，A 慢对账不覆盖 B', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final prefs = await SharedPreferences.getInstance();
+      final db = AppDatabase.memory();
+      addTearDown(db.close);
+      final uid = StateProvider<String>((ref) => 'u-A');
+      final api = _FakeStreakApi()..deferFetch = true;
+      final reportApi = _FakeFastingReportApi()..offline = true;
+      final engineA = StreakEngine()..applyDayAchieved(today, today: today);
+      SharedPreferencesStreakLocalStore(
+        prefs,
+        userId: 'u-A',
+      ).saveEngine(engineA);
+      SharedPreferencesStreakLocalStore(
+        prefs,
+        userId: 'u-B',
+      ).saveEngine(StreakEngine());
+      final container = ProviderContainer(
+        overrides: <Override>[
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          currentUserIdProvider.overrideWith((ref) => ref.watch(uid)),
+          streakLocalStoreProvider.overrideWith(
+            (ref) => SharedPreferencesStreakLocalStore(
+              ref.watch(sharedPreferencesProvider),
+              userId: ref.watch(currentUserIdProvider),
+            ),
+          ),
+          streakApiProvider.overrideWithValue(api),
+          fastingReportApiProvider.overrideWithValue(reportApi),
+          appDatabaseProvider.overrideWithValue(db),
+          streakTodayProvider.overrideWithValue(() => today),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(container.read(streakControllerProvider).currentStreak, 1);
+      expect(api.streakRequests, hasLength(1));
+      container.read(uid.notifier).state = 'u-B';
+      expect(container.read(streakControllerProvider).currentStreak, 0);
+      expect(api.streakRequests, hasLength(2));
+
+      api.streakRequests[1].complete(
+        _view(currentStreak: 2, longestStreak: 2, stock: 1),
+      );
+      await pumpEventQueue();
+      expect(container.read(streakControllerProvider).currentStreak, 2);
+      expect(container.read(streakControllerProvider).fromServer, isTrue);
+
+      api.streakRequests[0].complete(
+        _view(currentStreak: 9, longestStreak: 9, stock: 2),
+      );
+      await pumpEventQueue();
+      final state = container.read(streakControllerProvider);
+      expect(state.currentStreak, 2);
+      expect(state.longestStreak, 2);
+      expect(state.mendCardBalance, 1);
+      expect(
+        SharedPreferencesStreakLocalStore(
+          prefs,
+          userId: 'u-A',
+        ).loadEngine()!.qualifiedDates,
+        contains(today),
+      );
+    });
+
+    test('A→匿名→A 后上一代同 uid 对账仍不得覆盖新会话', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final prefs = await SharedPreferences.getInstance();
+      final db = AppDatabase.memory();
+      addTearDown(db.close);
+      final uid = StateProvider<String>((ref) => 'u-A');
+      final api = _FakeStreakApi()..deferFetch = true;
+      final reportApi = _FakeFastingReportApi()..offline = true;
+      final engineA = StreakEngine()..applyDayAchieved(today, today: today);
+      SharedPreferencesStreakLocalStore(
+        prefs,
+        userId: 'u-A',
+      ).saveEngine(engineA);
+      final container = ProviderContainer(
+        overrides: <Override>[
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          currentUserIdProvider.overrideWith((ref) => ref.watch(uid)),
+          streakLocalStoreProvider.overrideWith(
+            (ref) => SharedPreferencesStreakLocalStore(
+              ref.watch(sharedPreferencesProvider),
+              userId: ref.watch(currentUserIdProvider),
+            ),
+          ),
+          streakApiProvider.overrideWithValue(api),
+          fastingReportApiProvider.overrideWithValue(reportApi),
+          appDatabaseProvider.overrideWithValue(db),
+          streakTodayProvider.overrideWithValue(() => today),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(streakControllerProvider);
+      container.read(uid.notifier).state = 'anonymous';
+      container.read(streakControllerProvider);
+      container.read(uid.notifier).state = 'u-A';
+      container.read(streakControllerProvider);
+      expect(api.streakRequests, hasLength(3));
+
+      api.streakRequests[2].complete(
+        _view(currentStreak: 3, longestStreak: 3, stock: 1),
+      );
+      await pumpEventQueue();
+      expect(container.read(streakControllerProvider).currentStreak, 3);
+      api.streakRequests[0].complete(
+        _view(currentStreak: 9, longestStreak: 9, stock: 2),
+      );
+      api.streakRequests[1].complete(
+        _view(currentStreak: 8, longestStreak: 8, stock: 0),
+      );
+      await pumpEventQueue();
+
+      final state = container.read(streakControllerProvider);
+      expect(state.currentStreak, 3);
+      expect(state.longestStreak, 3);
+      expect(state.mendCardBalance, 1);
+    });
+  });
+
   group('SharedPreferences 本地存储', () {
     test('引擎快照 + 弹窗频控 + 幂等键往返', () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -1013,10 +1141,19 @@ final class _FakeStreakApi extends StreakApi {
   /// S3 里程碑桩（默认空集）。
   List<ServerMilestone> milestones = const <ServerMilestone>[];
 
+  bool deferFetch = false;
+  final List<Completer<ServerStreakView>> streakRequests =
+      <Completer<ServerStreakView>>[];
+
   @override
   Future<ServerStreakView> fetchStreak() async {
     fetchCount++;
     if (offline) throw const NetworkApiException();
+    if (deferFetch) {
+      final request = Completer<ServerStreakView>();
+      streakRequests.add(request);
+      return request.future;
+    }
     return view ?? _view(currentStreak: 0, longestStreak: 0, stock: 2);
   }
 

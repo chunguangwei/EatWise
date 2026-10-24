@@ -62,21 +62,18 @@ final class WaterReminderEnabledController extends StateNotifier<bool> {
 void rescheduleWaterReminders(WidgetRef ref) {
   try {
     final plan = ref.read(onboardingStoreProvider).loadActivePlan()?.plan;
-    // 延长中的断食：重排必须带上累计延长量，否则 eatSoon/eatStart 锚点
-    // 会被挪回未延息的旧时刻（与 controller._reschedule 同口径）。
-    final extensionMinutes =
-        ref
-            .read(fastingCycleStoreProvider)
-            .loadActiveCycle()
-            ?.extendedMinutes ??
-        0;
+    final cycleStore = ref.read(fastingCycleStoreProvider);
+    final activeCycle = cycleStore.loadActiveCycle();
     unawaited(() async {
       try {
         await ref
             .read(fastingNotificationSchedulerProvider)
             .reschedule(
               plan: plan,
-              extensionMinutes: extensionMinutes,
+              extensionMinutes: activeCycle?.extendedMinutes ?? 0,
+              activeCycle: activeCycle?.toCycle(),
+              earlyEatEndUtc: cycleStore.loadEarlyEatEndUtc(),
+              lastClosedCycleId: cycleStore.loadLastClosedCycleId(),
               reason: RescheduleReason.waterIntake,
             );
       } on Object {
@@ -128,6 +125,8 @@ final waterReminderExtraPlannerProvider =
       return () async {
         final store = ref.read(waterReminderStoreProvider);
         if (!store.isEnabled) return const <ScheduledNotification>[];
+        final cycleStore = ref.read(fastingCycleStoreProvider);
+        final activeCycle = cycleStore.loadActiveCycle();
         final plan =
             // NO_PLAN（跳过引导/未启动断食）回落 16:8 进食窗口（D-03 同款
             // 兜底口径）——此类用户全程「非断食」，恰是喝水提醒目标人群，
@@ -152,6 +151,9 @@ final waterReminderExtraPlannerProvider =
           nowUtcSec: nowUtcSec,
           location: location,
           goalMl: WaterLogRepository.dailyGoalMl,
+          activeCycle: activeCycle?.toCycle(),
+          earlyEatEndUtc: cycleStore.loadEarlyEatEndUtc(),
+          lastClosedCycleId: cycleStore.loadLastClosedCycleId(),
         ).map((r) {
           final text = slangWaterReminderText(t, r);
           return ScheduledNotification(

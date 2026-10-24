@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:eatwise/features/health/data/health_gateway.dart';
 import 'package:eatwise/features/health/domain/health_activity.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart'
@@ -66,7 +68,7 @@ final healthGatewayProvider = Provider<HealthGateway>((ref) {
 /// - unsupported：设备不支持（Android 未装 Health Connect 等）；
 /// - denied：系统授权被拒（iOS 健康 App 内被关也落此态）；
 /// - ready：已授权且读取成功（[HealthSyncState.today] 为最新快照）；
-/// - error：读取失败（可重试）。
+/// - error：支持态/授权检查或读取失败（可重试）。
 enum HealthSyncStatus { off, connecting, unsupported, denied, ready, error }
 
 final class HealthSyncState {
@@ -104,71 +106,143 @@ final class HealthSyncController extends StateNotifier<HealthSyncState> {
   final ExerciseSyncConsentStore _consentStore;
   final DateTime Function() _now;
 
+  int _operation = 0;
+  Future<void>? _refreshFuture;
+
+  bool _isCurrent(int operation) {
+    return mounted && operation == _operation && _consentStore.consented;
+  }
+
+  void _setState(HealthSyncState next, int operation) {
+    if (_isCurrent(operation)) state = next;
+  }
+
   /// 开启同步（调用方须先完成单独同意弹窗并得到用户同意）。
   Future<void> enable() async {
+    final operation = ++_operation;
     await _consentStore.setConsented(true);
-    state = const HealthSyncState(status: HealthSyncStatus.connecting);
-    if (!await _guardSupported()) return;
-    final granted = await _gateway.requestAuthorization();
-    if (!granted) {
-      state = const HealthSyncState(status: HealthSyncStatus.denied);
-      return;
+    _setState(
+      const HealthSyncState(status: HealthSyncStatus.connecting),
+      operation,
+    );
+    if (!_isCurrent(operation)) return;
+    try {
+      if (!await _guardSupported(operation) || !_isCurrent(operation)) return;
+      final granted = await _gateway.requestAuthorization();
+      if (!_isCurrent(operation)) return;
+      if (!granted) {
+        _setState(
+          const HealthSyncState(status: HealthSyncStatus.denied),
+          operation,
+        );
+        return;
+      }
+      await _loadToday(operation);
+    } on Object {
+      _setState(
+        const HealthSyncState(status: HealthSyncStatus.error),
+        operation,
+      );
     }
-    await _loadToday();
   }
 
   /// 关闭同步：撤销系统授权 + 清同意记录 + 丢弃内存数据。
   Future<void> disable() async {
+    final operation = ++_operation;
     try {
       await _gateway.revokeAuthorization();
     } on Object {
       // 撤销失败不阻断本地关闭（iOS 本就无撤销 API）。
     }
     await _consentStore.setConsented(false);
-    state = const HealthSyncState(status: HealthSyncStatus.off);
+    if (mounted && operation == _operation) {
+      state = const HealthSyncState(status: HealthSyncStatus.off);
+    }
   }
 
-  /// 重新读取（页面曝光/下拉刷新；未同意时静默返回）。
-  Future<void> refresh() async {
+  /// 重新读取（冷启动恢复/页面曝光/下拉刷新；未同意时静默返回）。
+  Future<void> refresh() {
+    if (!mounted) return Future<void>.value();
     if (!_consentStore.consented) {
       state = const HealthSyncState(status: HealthSyncStatus.off);
-      return;
+      return Future<void>.value();
     }
-    if (!await _guardSupported()) return;
-    if (!await _gateway.hasAuthorization()) {
-      state = const HealthSyncState(status: HealthSyncStatus.denied);
-      return;
-    }
-    await _loadToday();
+    final active = _refreshFuture;
+    if (active != null) return active;
+
+    final operation = _operation;
+    late final Future<void> future;
+    future = _refreshConsented(operation).whenComplete(() {
+      if (identical(_refreshFuture, future)) _refreshFuture = null;
+    });
+    _refreshFuture = future;
+    return future;
   }
 
-  Future<bool> _guardSupported() async {
+  Future<void> _refreshConsented(int operation) async {
+    try {
+      if (!await _guardSupported(operation) || !_isCurrent(operation)) return;
+      final granted = await _gateway.hasAuthorization();
+      if (!_isCurrent(operation)) return;
+      if (!granted) {
+        _setState(
+          const HealthSyncState(status: HealthSyncStatus.denied),
+          operation,
+        );
+        return;
+      }
+      await _loadToday(operation);
+    } on Object {
+      _setState(
+        const HealthSyncState(status: HealthSyncStatus.error),
+        operation,
+      );
+    }
+  }
+
+  Future<bool> _guardSupported(int operation) async {
     final supported = await _gateway.isSupported();
     if (!supported) {
-      state = const HealthSyncState(status: HealthSyncStatus.unsupported);
+      _setState(
+        const HealthSyncState(status: HealthSyncStatus.unsupported),
+        operation,
+      );
     }
     return supported;
   }
 
-  Future<void> _loadToday() async {
-    try {
-      final now = _now();
-      final summary = HealthTodaySummary(
-        steps: await _gateway.getTodaySteps(now),
-        activeEnergyKcal: await _gateway.getTodayActiveEnergyKcal(now),
-        latestWeightKg: await _gateway.getLatestWeightKg(now),
-      );
-      state = HealthSyncState(status: HealthSyncStatus.ready, today: summary);
-    } on Object {
-      state = const HealthSyncState(status: HealthSyncStatus.error);
-    }
+  Future<void> _loadToday(int operation) async {
+    if (!_isCurrent(operation)) return;
+    final now = _now();
+    final steps = await _gateway.getTodaySteps(now);
+    if (!_isCurrent(operation)) return;
+    final activeEnergyKcal = await _gateway.getTodayActiveEnergyKcal(now);
+    if (!_isCurrent(operation)) return;
+    final latestWeightKg = await _gateway.getLatestWeightKg(now);
+    if (!_isCurrent(operation)) return;
+    _setState(
+      HealthSyncState(
+        status: HealthSyncStatus.ready,
+        today: HealthTodaySummary(
+          steps: steps,
+          activeEnergyKcal: activeEnergyKcal,
+          latestWeightKg: latestWeightKg,
+        ),
+      ),
+      operation,
+    );
   }
 }
 
 final healthSyncControllerProvider =
     StateNotifierProvider<HealthSyncController, HealthSyncState>((ref) {
-      return HealthSyncController(
+      final consentStore = ref.watch(exerciseSyncConsentStoreProvider);
+      final controller = HealthSyncController(
         gateway: ref.watch(healthGatewayProvider),
-        consentStore: ref.watch(exerciseSyncConsentStoreProvider),
+        consentStore: consentStore,
       );
+      if (consentStore.consented) {
+        unawaited(Future<void>.microtask(controller.refresh));
+      }
+      return controller;
     });

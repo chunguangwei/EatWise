@@ -271,7 +271,7 @@ void main() {
       expect(api.fetchCurrentCalls, 0);
     });
 
-    test('多端收敛：服务端不新于本地 / 窗口一致 → 不动', () async {
+    test('多端收敛：窗口一致时仅元数据不同 → 不动', () async {
       final store = InMemoryOnboardingStore();
       store.saveActivePlan(
         ActivePlanSnapshot(
@@ -280,15 +280,6 @@ void main() {
           startedAtUtc: fixedNowUtc,
         ),
       );
-      // 服务端更旧
-      await buildPullSync(
-        _FakeApi(current: custom8, serverUpdatedAtSec: fixedNowUtc - 10),
-        store: store,
-      ).pull();
-      expect(store.loadActivePlan()!.plan, FastingPlan.plan14x10);
-      expect(store.loadPendingPlan(), isNull);
-      // 服务端更新但窗口一致（14:10 = 10h@10:00？custom8 是 16:8@09:00，
-      // 另造同窗不同 id 方案——14:10 窗 10:00-20:00）
       final same = FastingPlan(
         id: '14:10@10:00',
         eatStartMinutes: 600,
@@ -300,6 +291,31 @@ void main() {
       ).pull();
       expect(store.loadActivePlan()!.plan, FastingPlan.plan14x10);
       expect(store.loadPendingPlan(), isNull);
+    });
+
+    test('本机时钟快/慢一天：无 dirty 都直接跟随服务端 current', () async {
+      for (final startedAtUtc in <int>[
+        fixedNowUtc - 86400,
+        fixedNowUtc + 86400,
+      ]) {
+        final store = InMemoryOnboardingStore();
+        store.saveActivePlan(
+          ActivePlanSnapshot(
+            plan: FastingPlan.plan14x10,
+            initialState: 'fasting',
+            startedAtUtc: startedAtUtc,
+          ),
+        );
+        final api = _FakeApi(current: custom8, serverUpdatedAtSec: fixedNowUtc);
+        await buildPullSync(api, store: store).pull();
+
+        expect(
+          store.loadActivePlan()!.plan,
+          custom8,
+          reason: 'startedAtUtc=$startedAtUtc 不应参与服务端收敛比较',
+        );
+        expect(prefs.getString(dirtyKey), isNull);
+      }
     });
 
     test(

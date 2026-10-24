@@ -27,8 +27,24 @@ final StateNotifierProvider<AuthController, AuthState> authControllerProvider =
         // 引导门禁/存储未装配（如纯认证测试）时降级为不同步。
         onboardingGate: _readOnboardingGate(ref),
         onboardingStore: _readOnboardingStore(ref),
+        onUserIdChanged: (userId) {
+          try {
+            writeSessionUserId(ref.read(sharedPreferencesProvider), userId);
+          } on Object {
+            // prefs 未装配的纯认证测试无需本地命名空间缓存。
+          }
+        },
       );
     });
+
+/// 当前会话 uid（未登录或纯测试未装配认证时为 anonymous）。
+final authUserIdProvider = Provider<String>((ref) {
+  try {
+    return ref.watch(authControllerProvider).userId ?? 'anonymous';
+  } on Object {
+    return 'anonymous';
+  }
+});
 
 /// 引导门禁读取（未 override 的测试环境会抛 UnimplementedError，降级 null）。
 OnboardingGate? _readOnboardingGate(Ref ref) {

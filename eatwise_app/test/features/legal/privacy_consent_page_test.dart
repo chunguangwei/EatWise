@@ -1,6 +1,7 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/analytics/consent_store.dart';
+import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/legal/application/legal_providers.dart';
 import 'package:eatwise/features/legal/application/privacy_gate.dart';
@@ -110,6 +111,19 @@ void main() {
     // 初始：两项均未勾，主按钮不可用（无默认勾选，§4.1）。
     expect(find.byType(Checkbox), findsNWidgets(2));
     expect(agreeButton(tester).onPressed, isNull);
+    final button = agreeButton(tester);
+    expect(
+      button.style!.backgroundColor!.resolve(<WidgetState>{}),
+      AppColors.light.actionPrimary,
+    );
+    expect(
+      button.style!.foregroundColor!.resolve(<WidgetState>{}),
+      AppColors.light.onActionPrimary,
+    );
+    expect(
+      tester.widget<Text>(find.text('同意并继续')).style!.color,
+      AppColors.light.onActionPrimary,
+    );
 
     // 仅勾健康数据单独同意 → 主按钮仍不可用（不能替代主同意）。
     await tester.tap(find.text('健康数据单独同意（可选）'));

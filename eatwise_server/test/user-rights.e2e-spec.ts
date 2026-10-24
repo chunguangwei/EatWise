@@ -88,6 +88,23 @@ describe('用户权利 (e2e)', () => {
     expect(bundle.posts).toEqual([]);
     expect(bundle).toHaveProperty('streak');
     expect(bundle).toHaveProperty('fastingPlans');
+    expect(bundle.profile).not.toHaveProperty('passwordHash');
+    expect(bundle.customFoods).toEqual([]);
+    expect(bundle.foodCandidates).toEqual([]);
+  });
+
+  it('U3：账号密码用户导出不含密码哈希', async () => {
+    const username = `ex${Date.now()}`;
+    const registered = await request(server)
+      .post('/v1/auth/register')
+      .send({ username, password: 'Passw0rd123' })
+      .expect(201);
+    const res = await request(server)
+      .post('/v1/users/me/export')
+      .set('Authorization', `Bearer ${registered.body.data.accessToken}`)
+      .expect(201);
+    expect(res.body.data.profile.username).toBe(username);
+    expect(res.body.data.profile).not.toHaveProperty('passwordHash');
   });
 
   it('U5/U6：申请删除 → 冷静期标记 + 会话吊销 → 撤销', async () => {

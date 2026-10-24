@@ -6,6 +6,7 @@ import 'package:eatwise/core/analytics/analytics_service.dart';
 import 'package:eatwise/core/analytics/consent_store.dart';
 import 'package:eatwise/core/analytics/device_identity_store.dart';
 import 'package:eatwise/core/analytics/event_queue_store.dart';
+import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/streak/presentation/milestone_badge.dart';
 import 'package:eatwise/features/streak/presentation/milestone_share_card.dart';
@@ -176,6 +177,21 @@ void main() {
       expect(find.byType(MilestoneShareCard), findsOneWidget);
       expect(find.text('保存到相册'), findsOneWidget);
       expect(find.text('系统分享'), findsOneWidget);
+      final share = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, '系统分享'),
+      );
+      expect(
+        share.style!.backgroundColor!.resolve(<WidgetState>{}),
+        AppColors.light.actionPrimary,
+      );
+      expect(
+        share.style!.foregroundColor!.resolve(<WidgetState>{}),
+        AppColors.light.onActionPrimary,
+      );
+      expect(
+        tester.widget<Text>(find.text('系统分享')).style!.color,
+        AppColors.light.onActionPrimary,
+      );
       await analytics.flush();
       final expose = client.events
           .where((e) => e.name == 'share_card_expose')
@@ -303,6 +319,21 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      final accept = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(
+        accept.style!.backgroundColor!.resolve(<WidgetState>{}),
+        AppColors.light.actionPrimary,
+      );
+      expect(
+        accept.style!.foregroundColor!.resolve(<WidgetState>{}),
+        AppColors.light.onActionPrimary,
+      );
+      final acceptLabel = tester.widget<Text>(
+        find
+            .descendant(of: find.byWidget(accept), matching: find.byType(Text))
+            .first,
+      );
+      expect(acceptLabel.style!.color, AppColors.light.onActionPrimary);
       await tester.tap(find.text('分享'));
       await tester.pumpAndSettle();
       expect(find.text('点亮成就 · 分享图卡'), findsOneWidget);

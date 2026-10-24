@@ -96,6 +96,87 @@ void main() {
       expect(adapter.requests.single.headers['Authorization'], 'Bearer at-1');
     });
 
+    test('同源绝对 URL 注入认证，跨源绝对 URL 不注入', () async {
+      await tokenStore.saveTokens(accessToken: 'at-1', refreshToken: 'rt-1');
+      final apiOrigin = Uri.parse(dio.options.baseUrl).origin;
+      final sameOriginUrl = '$apiOrigin/v1/uploads/same.png';
+      const crossOriginUrl = 'https://images.eatwise.invalid/a.png';
+      for (final url in <String>[sameOriginUrl, crossOriginUrl]) {
+        adapter.stub(url, StubResponse.json(200, StubResponse.envelope(true)));
+        await dio.get<dynamic>(url);
+      }
+
+      expect(adapter.requests[0].headers['Authorization'], 'Bearer at-1');
+      expect(adapter.requests[1].headers.containsKey('Authorization'), isFalse);
+      expect(adapter.requestsTo('/auth/refresh'), 0);
+    });
+
+    test('跨源绝对 URL 401 不 refresh、不重放、不清会话', () async {
+      await tokenStore.saveTokens(accessToken: 'at-old', refreshToken: 'rt-1');
+      const crossOriginUrl = 'https://images.eatwise.invalid/private.png';
+      adapter.stub(
+        crossOriginUrl,
+        StubResponse.json(
+          401,
+          StubResponse.errorEnvelope('AUTH_TOKEN_EXPIRED', '令牌已过期'),
+        ),
+      );
+
+      try {
+        await dio.get<dynamic>(crossOriginUrl);
+        fail('应抛出');
+      } on DioException {
+        // 原错误继续交给错误映射，不进入 refresh。
+      }
+
+      expect(adapter.requests.single.path, crossOriginUrl);
+      expect(
+        adapter.requests.single.headers.containsKey('Authorization'),
+        isFalse,
+      );
+      expect(adapter.requestsTo('/auth/refresh'), 0);
+      expect(await tokenStore.accessToken, 'at-old');
+      expect(await tokenStore.refreshToken, 'rt-1');
+      expect(sessionClearedCount, 0);
+    });
+
+    test('同源绝对 URL 401 仍 refresh 并重放', () async {
+      await tokenStore.saveTokens(accessToken: 'at-old', refreshToken: 'rt-1');
+      final apiOrigin = Uri.parse(dio.options.baseUrl).origin;
+      final sameOriginUrl = '$apiOrigin/v1/posts/feed';
+      adapter.stub(
+        sameOriginUrl,
+        StubResponse.json(
+          401,
+          StubResponse.errorEnvelope('AUTH_TOKEN_EXPIRED', '令牌已过期'),
+        ),
+      );
+      adapter.stub(
+        '/auth/refresh',
+        StubResponse.json(
+          200,
+          StubResponse.envelope(<String, dynamic>{
+            'accessToken': 'at-new',
+            'refreshToken': 'rt-2',
+          }),
+        ),
+      );
+      adapter.stub(
+        sameOriginUrl,
+        StubResponse.json(200, StubResponse.envelope(true)),
+      );
+
+      await dio.get<dynamic>(sameOriginUrl);
+
+      expect(adapter.requests.map((r) => r.path).toList(), <String>[
+        sameOriginUrl,
+        '/auth/refresh',
+        sameOriginUrl,
+      ]);
+      expect(adapter.requests.last.headers['Authorization'], 'Bearer at-new');
+      expect(await tokenStore.refreshToken, 'rt-2');
+    });
+
     test('401 → refresh 换令牌并重放原请求一次（新 token）', () async {
       await tokenStore.saveTokens(accessToken: 'at-old', refreshToken: 'rt-1');
       adapter.stub(

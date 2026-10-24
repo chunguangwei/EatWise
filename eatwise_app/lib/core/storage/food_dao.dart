@@ -9,11 +9,30 @@ part 'food_dao.g.dart';
 class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
   FoodDao(super.db);
 
-  /// 双语模糊搜索：中文名/英文名/中文别名/英文别名 LIKE 匹配，
-  /// 空串返回前 [limit] 条（常吃/浏览占位）。
-  Future<List<Food>> searchFoods(String query, {int limit = 20}) {
+  Expression<bool> _visibleTo(Foods f, String userId) {
+    final legacyAnonymous = userId == 'anonymous'
+        ? (f.isCustom & f.ownerUserId.isNull())
+        : const Constant(false);
+    return f.isCustom.equals(false) |
+        f.ownerUserId.equals(userId) |
+        legacyAnonymous;
+  }
+
+  Expression<bool> _ownedCustom(Foods f, String userId) {
+    return f.isCustom & f.ownerUserId.equals(userId);
+  }
+
+  /// 共享食物全局可见；个人食物只对 owner 可见。匿名兼容升级前
+  /// owner=null 的历史行，首次登录认领后即从匿名命名空间移出。
+  Future<List<Food>> searchFoods(
+    String query, {
+    int limit = 20,
+    String ownerUserId = 'anonymous',
+  }) {
     final keyword = query.trim();
-    final statement = select(foods)..limit(limit);
+    final statement = select(foods)
+      ..where((f) => _visibleTo(f, ownerUserId))
+      ..limit(limit);
     if (keyword.isNotEmpty) {
       final pattern = '%$keyword%';
       statement.where(
@@ -27,15 +46,18 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
     return statement.get();
   }
 
-  /// 按主键取食物（份量换算营养快照用）。
-  Future<Food?> getById(String id) {
-    return (select(foods)..where((f) => f.id.equals(id))).getSingleOrNull();
+  /// 按主键取食物；传 owner 时共享食物放行、他人个人食物排除。
+  Future<Food?> getById(String id, {String? ownerUserId}) {
+    final statement = select(foods)..where((f) => f.id.equals(id));
+    if (ownerUserId != null) {
+      statement.where((f) => _visibleTo(f, ownerUserId));
+    }
+    return statement.getSingleOrNull();
   }
 
-  /// 全量食物（语音录入词典构建用：食物库量级约 7.5k 条，内存可行，
-  /// 不做 limit 截断——截断会让尾部词条永远匹配不到）。
-  Future<List<Food>> allFoods() {
-    return select(foods).get();
+  /// 全量可见食物（语音录入词典构建用，不做 limit 截断）。
+  Future<List<Food>> allFoods({String ownerUserId = 'anonymous'}) {
+    return (select(foods)..where((f) => _visibleTo(f, ownerUserId))).get();
   }
 
   /// 批量写入（食物库初始化/下行刷新用）。
@@ -45,27 +67,50 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
     });
   }
 
-  /// 待上行的自定义食物（离线保存 pending，联网后重试 /foods/custom）。
-  Future<List<Food>> pendingCustomFoods() {
+  /// 待上行的当前 owner 自定义食物；旧 null 行须先认领，不跨账号扫描。
+  Future<List<Food>> pendingCustomFoods({String ownerUserId = 'anonymous'}) {
     return (select(
       foods,
-    )..where((f) => f.isCustom & f.customSyncPending)).get();
+    )..where((f) => _ownedCustom(f, ownerUserId) & f.customSyncPending)).get();
   }
 
-  /// 自定义食物上行成功：清除 pending 标记。
-  Future<void> markCustomSynced(String id) {
-    return (update(foods)..where((f) => f.id.equals(id))).write(
-      const FoodsCompanion(customSyncPending: Value(false)),
+  /// 旧库 null owner 仅由首次登录调用方确定性认领，不在 schema 升级时删改。
+  Future<int> claimLegacyCustomFoods(String userId) {
+    return (update(foods)..where((f) => f.isCustom & f.ownerUserId.isNull()))
+        .write(FoodsCompanion(ownerUserId: Value(userId)));
+  }
+
+  /// 匿名个人食物随登录换挂；共享食物不受此 UPDATE 影响。
+  Future<int> reassignCustomFoodOwner(String fromUserId, String toUserId) {
+    return (update(foods)..where((f) => _ownedCustom(f, fromUserId))).write(
+      FoodsCompanion(ownerUserId: Value(toUserId)),
     );
   }
 
-  /// 上行业务失败计数/终态标记回写（v1.13.31 终态收敛）。
+  /// 自定义食物上行成功：清除 pending、幂等键与失败标记。
+  Future<void> markCustomSynced(String id, {required String ownerUserId}) {
+    return (update(
+      foods,
+    )..where((f) => _ownedCustom(f, ownerUserId) & f.id.equals(id))).write(
+      const FoodsCompanion(
+        customSyncPending: Value(false),
+        customClientRequestId: Value(''),
+        customSyncFailCount: Value(0),
+        customSyncFailed: Value(false),
+      ),
+    );
+  }
+
+  /// 明确永久业务失败的计数/终态标记回写（限定当前 owner）。
   Future<void> writeCustomSyncFailure(
     String id, {
+    required String ownerUserId,
     required int failCount,
     required bool failed,
   }) {
-    return (update(foods)..where((f) => f.id.equals(id))).write(
+    return (update(
+      foods,
+    )..where((f) => _ownedCustom(f, ownerUserId) & f.id.equals(id))).write(
       FoodsCompanion(
         customSyncFailCount: Value(failCount),
         customSyncFailed: Value(failed),
@@ -74,8 +119,13 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
   }
 
   /// 手动重试复位（pending=true、失败计数与终态标记清零）。
-  Future<void> resetCustomSyncFailure(String id) {
-    return (update(foods)..where((f) => f.id.equals(id))).write(
+  Future<void> resetCustomSyncFailure(
+    String id, {
+    required String ownerUserId,
+  }) {
+    return (update(
+      foods,
+    )..where((f) => _ownedCustom(f, ownerUserId) & f.id.equals(id))).write(
       const FoodsCompanion(
         customSyncPending: Value(true),
         customSyncFailCount: Value(0),
@@ -84,33 +134,44 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
     );
   }
 
-  /// 离线自定义食物上行成功后重映射主键：本地临时 id（custom-*）改写为
-  /// 服务端 id 并清除 pending；引用级联（food_entries.foodId）由调用方
-  /// 同事务更新（见 CustomFoodRepository.retryPending）。
-  Future<void> remapCustomFoodId(String localId, String serverId) {
-    return (update(foods)..where((f) => f.id.equals(localId))).write(
+  /// 上行成功后重映射主键，owner/source 保持不变并清同步失败态。
+  Future<void> remapCustomFoodId(
+    String localId,
+    String serverId, {
+    required String ownerUserId,
+  }) {
+    return (update(
+      foods,
+    )..where((f) => _ownedCustom(f, ownerUserId) & f.id.equals(localId))).write(
       FoodsCompanion(
         id: Value(serverId),
         customSyncPending: const Value(false),
         customClientRequestId: const Value(''),
+        customSyncFailCount: const Value(0),
+        customSyncFailed: const Value(false),
       ),
     );
   }
 
-  /// 写入共享贡献审核状态（贡献成功/拒收时落本地，搜索行状态标签数据源）；
-  /// null=清除标记（幽灵贡献行收敛：候选已被管理员删除，痕迹复位）。
-  Future<void> setContributionStatus(String id, String? status) {
-    return (update(foods)..where((f) => f.id.equals(id))).write(
-      FoodsCompanion(contributionStatus: Value(status)),
-    );
+  /// 写入共享贡献审核状态；传 owner 时仅共享行或本人个人行可写。
+  Future<void> setContributionStatus(
+    String id,
+    String? status, {
+    String? ownerUserId,
+  }) {
+    final statement = update(foods)..where((f) => f.id.equals(id));
+    if (ownerUserId != null) {
+      statement.where((f) => _visibleTo(f, ownerUserId));
+    }
+    return statement.write(FoodsCompanion(contributionStatus: Value(status)));
   }
 
-  /// 带贡献审核状态的食物行（幽灵收敛扫描：状态非空即曾走过贡献链路；
-  /// 共享行的徽标残留也在列，由调用方按 isCustom 分流）。
-  Future<List<Food>> contributedRows() {
-    return (select(
-      foods,
-    )..where((f) => f.contributionStatus.isNotNull())).get();
+  /// 当前账号可见的贡献行：共享行全局，个人行严格按 owner 过滤。
+  Future<List<Food>> contributedRows({String ownerUserId = 'anonymous'}) {
+    return (select(foods)..where(
+          (f) => f.contributionStatus.isNotNull() & _visibleTo(f, ownerUserId),
+        ))
+        .get();
   }
 
   /// 占位行（名称==id 双列）：下行记录引用的食物行本地缺失时合成的占位
@@ -125,10 +186,21 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
     return rows.map((row) => foods.map(row.data)).toList();
   }
 
-  /// 物理删除食物行（自定义食物删除用；调用方须先处理引用它的
-  /// food_entries——两态删除/tombstone 由 CustomFoodRepository.delete 负责）。
-  Future<void> deleteById(String id) {
-    return (delete(foods)..where((f) => f.id.equals(id))).go();
+  /// 物理删除食物行。管理端不传 owner 保持原权限；个人删除必须传
+  /// ownerUserId + customOnly，避免跨账号或误删共享行。
+  Future<void> deleteById(
+    String id, {
+    String? ownerUserId,
+    bool customOnly = false,
+  }) {
+    final statement = delete(foods)..where((f) => f.id.equals(id));
+    if (ownerUserId != null) {
+      statement.where((f) => _visibleTo(f, ownerUserId));
+    }
+    if (customOnly) {
+      statement.where((f) => f.isCustom);
+    }
+    return statement.go();
   }
 
   /// 批量删除（seed 版本收敛：上一版有、本版删掉的行）。自定义行由调用方

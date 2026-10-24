@@ -151,11 +151,15 @@ class _MyContributionsPageState extends ConsumerState<MyContributionsPage> {
                 ref.read(contributionsControllerProvider.notifier).refresh(),
               ),
               style: FilledButton.styleFrom(
+                backgroundColor: colors.actionPrimary,
+                foregroundColor: colors.onActionPrimary,
                 minimumSize: const Size.fromHeight(AppSpacing.s12),
               ),
               child: Text(
                 t.common.action.retry,
-                style: textStyles.textBase.copyWith(color: Colors.white),
+                style: textStyles.textBase.copyWith(
+                  color: colors.onActionPrimary,
+                ),
               ),
             ),
           ],

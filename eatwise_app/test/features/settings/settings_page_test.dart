@@ -6,6 +6,7 @@ import 'package:eatwise/core/network/api_config.dart';
 import 'package:eatwise/core/network/auth_interceptor.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/network/token_store.dart';
+import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/features/auth/application/auth_gate.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
@@ -17,6 +18,7 @@ import 'package:eatwise/features/onboarding/application/onboarding_controller.da
 import 'package:eatwise/features/record/presentation/record_providers.dart'
     show photoPickerGatewayProvider;
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
+import 'package:eatwise/features/settings/application/data_export_share.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:eatwise/features/settings/data/user_api.dart';
 import 'package:eatwise/features/settings/presentation/settings_page.dart';
@@ -126,6 +128,9 @@ void main() {
               return dio;
             }),
             dataExportServiceProvider.overrideWithValue(exportService),
+            dataExportShareProvider.overrideWithValue((path) async {
+              exportService.sharedPaths.add(path);
+            }),
             accountDeletionServiceProvider.overrideWithValue(deletionService),
             ...extraOverrides,
           ],
@@ -264,7 +269,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('导出数据走 U3：返回服务端聚合 JSON 保存路径并提示', (tester) async {
+  testWidgets('导出数据走 U3：生成文件并调用系统分享', (tester) async {
     await pumpSettings(tester);
 
     await scrollTo(tester, find.text('导出我的数据'));
@@ -272,11 +277,32 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(exportService.calls, 1);
+    expect(exportService.sharedPaths, <String>[
+      '/tmp/eatwise_data_export_20260729.json',
+    ]);
     expect(find.textContaining('数据已导出'), findsOneWidget);
-    expect(
-      find.textContaining('/tmp/eatwise_data_export_20260729.json'),
-      findsOneWidget,
+
+    await unmount(tester);
+  });
+
+  testWidgets('系统分享不可用：保留文件位置并明确提示，不伪报分享成功', (tester) async {
+    await pumpSettings(
+      tester,
+      extraOverrides: <Override>[
+        dataExportShareProvider.overrideWithValue((path) async {
+          throw StateError('share unavailable');
+        }),
+      ],
     );
+
+    await scrollTo(tester, find.text('导出我的数据'));
+    await tester.tap(find.text('导出我的数据'));
+    await tester.pump();
+    await tester.pump();
+    expect(exportService.calls, 1);
+    expect(exportService.sharedPaths, isEmpty);
+    expect(find.textContaining('文件已生成，但无法打开系统分享'), findsOneWidget);
+    expect(find.textContaining('数据已导出'), findsNothing);
 
     await unmount(tester);
   });
@@ -328,7 +354,10 @@ void main() {
 
     expect(find.text('+8613****8000'), findsOneWidget);
     // 成功拉取即写入本地缓存（离线兜底数据源）。
-    expect(prefs.getString(AccountIdentityStore.key), '+8613****8000');
+    expect(
+      prefs.getString(AccountIdentityStore.keyFor('anonymous')),
+      '+8613****8000',
+    );
 
     await unmount(tester);
   });
@@ -355,13 +384,16 @@ void main() {
     expect(find.text('wcg'), findsOneWidget);
     expect(find.text('未登录'), findsNothing);
     // 缓存内容为实际显示值（username 优先于脱敏手机号）。
-    expect(prefs.getString(AccountIdentityStore.key), 'wcg');
+    expect(prefs.getString(AccountIdentityStore.keyFor('anonymous')), 'wcg');
 
     await unmount(tester);
   });
 
   testWidgets('账号标识兜底：U1 失败但有本地缓存时显示缓存标识', (tester) async {
-    await prefs.setString(AccountIdentityStore.key, '+8613****8000');
+    await prefs.setString(
+      AccountIdentityStore.keyFor('anonymous'),
+      '+8613****8000',
+    );
     // U1 接口失败（断网）→ userMeProvider 回落 null。
     adapter.stub('/users/me', StubResponse.networkError('offline'));
     await pumpSettings(tester);
@@ -415,7 +447,10 @@ void main() {
     await pumpSettings(tester);
     await tester.pumpAndSettle();
     // U1 成功已写入缓存。
-    expect(prefs.getString(AccountIdentityStore.key), '+8613****8000');
+    expect(
+      prefs.getString(AccountIdentityStore.keyFor('anonymous')),
+      '+8613****8000',
+    );
 
     await scrollTo(tester, find.text('登出'));
     await tester.tap(find.text('登出'));
@@ -426,7 +461,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(authGate.loggedIn, isFalse);
-    expect(prefs.getString(AccountIdentityStore.key), isNull);
+    expect(prefs.getString(AccountIdentityStore.keyFor('anonymous')), isNull);
 
     await unmount(tester);
   });
@@ -633,6 +668,26 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('设置分组卡片：Material 承载底色，装饰不遮挡水波纹', (tester) async {
+    await pumpSettings(tester);
+
+    final material = tester.widget<Material>(
+      find
+          .ancestor(of: find.text('身体档案'), matching: find.byType(Material))
+          .first,
+    );
+    expect(material.color, AppColors.light.bgSecondary);
+    final container = tester.widget<Container>(find.byWidget(material.child!));
+    final decoration = container.decoration! as BoxDecoration;
+    expect(decoration.color, isNull);
+    expect(decoration.gradient, isNull);
+
+    await tester.tap(find.text('通知设置'));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    await unmount(tester);
+  });
+
   testWidgets('英文渲染（双语，D-15）', (tester) async {
     await LocaleSettings.setLocale(AppLocale.en);
     await pumpSettings(tester);
@@ -651,6 +706,7 @@ void main() {
 
 class _FakeExportService implements DataExportService {
   int calls = 0;
+  final sharedPaths = <String>[];
 
   @override
   Future<String> requestExport() async {

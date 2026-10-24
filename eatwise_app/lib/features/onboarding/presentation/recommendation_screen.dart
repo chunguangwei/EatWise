@@ -72,7 +72,8 @@ class RecommendationScreen extends ConsumerWidget {
               key: const ValueKey<String>('onboarding.recommendation.start'),
               onPressed: () => _onStartPressed(context, ref),
               style: FilledButton.styleFrom(
-                backgroundColor: colors.brandPrimary,
+                backgroundColor: colors.actionPrimary,
+                foregroundColor: colors.onActionPrimary,
                 minimumSize: const Size.fromHeight(AppSpacing.s12),
               ),
               child: Text(
@@ -249,7 +250,8 @@ class RecommendationScreen extends ConsumerWidget {
                   ? () => Navigator.pop(dialogContext, true)
                   : null,
               style: FilledButton.styleFrom(
-                backgroundColor: colors.brandPrimary,
+                backgroundColor: colors.actionPrimary,
+                foregroundColor: colors.onActionPrimary,
               ),
               child: Text(t.onboarding.ageConfirm.confirm),
             ),
@@ -356,7 +358,9 @@ class _PlanCard extends StatelessWidget {
                   ),
                   child: Text(
                     badge!,
-                    style: textStyles.textXs.copyWith(color: Colors.white),
+                    style: textStyles.textXs.copyWith(
+                      color: readableForeground(colors.brandPrimary),
+                    ),
                   ),
                 ),
             ],

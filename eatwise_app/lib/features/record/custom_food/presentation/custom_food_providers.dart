@@ -25,6 +25,7 @@ final Provider<CustomFoodRepository> customFoodRepositoryProvider =
       return CustomFoodRepository(
         db: ref.watch(recordRepositoryProvider).db,
         remote: ref.watch(customFoodRemoteProvider),
+        userId: ref.watch(currentUserIdProvider),
         // owner 删除 404 时的服务端存续核验（POST /foods/batch-get 命中集）。
         existingFoodIdsFn: (foodIds) async {
           final dio = ref.read(apiDioProvider);

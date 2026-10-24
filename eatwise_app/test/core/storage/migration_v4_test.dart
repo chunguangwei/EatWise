@@ -113,7 +113,7 @@ void main() {
       final db = AppDatabase(NativeDatabase(dbFile));
       addTearDown(() async => db.close());
 
-      expect(db.schemaVersion, 14);
+      expect(db.schemaVersion, 15);
 
       // 历史行完整保留，新列走默认值（pending/无 serverId/无幂等键/非 tombstone）。
       final old = (await db.waterLogDao.getByLocalId('w-old'))!;
@@ -145,7 +145,7 @@ void main() {
       final versionRow = await db
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(versionRow.data['user_version'], 14);
+      expect(versionRow.data['user_version'], 15);
     },
   );
 }

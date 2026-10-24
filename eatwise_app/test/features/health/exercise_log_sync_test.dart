@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/network/api_client.dart';
 import 'package:eatwise/core/network/api_config.dart';
 import 'package:eatwise/core/storage/database.dart';
@@ -183,12 +184,22 @@ void main() {
     test('create 被 VALIDATION_ERROR 永久拒绝 → 本地清除不再重试', () async {
       // 步数超服务端 200000 硬上限等硬边界校验＝永久拒绝；保留 pending 会
       // 每轮 syncNow 重复上行永不归零（走查 L4），必须本地清出。
-      final log = await repo.add(
-        typeKey: 'walk',
-        durationMin: 30,
-        kcal: 120,
-        steps: 300000,
+      await db.exerciseLogDao.insertLog(
+        ExerciseLogsCompanion.insert(
+          localId: 'legacy-invalid-steps',
+          userId: 'anonymous',
+          typeKey: 'walk',
+          durationMin: 30,
+          kcal: 120,
+          steps: const Value(300000),
+          clientRequestId: const Value('legacy-invalid-steps'),
+          localDate: '2026-09-19',
+          createdAtUtc: '2026-09-19T02:00:00.000Z',
+        ),
       );
+      final log = (await db.exerciseLogDao.getByLocalId(
+        'legacy-invalid-steps',
+      ))!;
       stubPush(<Map<String, dynamic>>[
         <String, dynamic>{
           'clientRequestId': log.clientRequestId,
@@ -202,6 +213,52 @@ void main() {
       expect(await db.exerciseLogDao.getByLocalId(log.localId), isNull);
       expect(await db.exerciseLogDao.pendingForUser('anonymous'), isEmpty);
     });
+
+    test('畸形批响应保持 pending + lastError，不强转崩同步', () async {
+      final log = await repo.add(typeKey: 'jog', durationMin: 30, kcal: 210);
+      adapter.stub(
+        '/sync/push',
+        StubResponse.json(
+          200,
+          StubResponse.envelope(<String, dynamic>{'results': 'not-a-list'}),
+        ),
+      );
+
+      await exerciseSync.pushPending(db, 'anonymous');
+
+      final stored = (await db.exerciseLogDao.getByLocalId(log.localId))!;
+      expect(stored.syncState, ExerciseSyncState.pending);
+      expect(stored.lastError, 'INVALID_PUSH_RESPONSE');
+    });
+
+    test(
+      'delete VALIDATION_ERROR/403 保留 tombstone + lastError，仅 NOT_FOUND 可替代 ack 清理',
+      () async {
+        for (final code in <String>['VALIDATION_ERROR', 'FORBIDDEN']) {
+          final log = await repo.add(
+            typeKey: 'jog',
+            durationMin: 30,
+            kcal: 210,
+          );
+          await db.exerciseLogDao.markSynced(log.localId, 'srv-$code');
+          await repo.delete(log.localId);
+          stubPush(<Map<String, dynamic>>[
+            <String, dynamic>{
+              'clientRequestId': log.clientRequestId,
+              'status': 'error',
+              'error': <String, dynamic>{'code': code},
+            },
+          ]);
+
+          await exerciseSync.pushPending(db, 'anonymous');
+
+          final stored = (await db.exerciseLogDao.getByLocalId(log.localId))!;
+          expect(stored.deleted, isTrue, reason: code);
+          expect(stored.syncState, ExerciseSyncState.pending, reason: code);
+          expect(stored.lastError, code);
+        }
+      },
+    );
   });
 
   group('下行 exerciseLogChanges（/sync/pull 随行，跨端合并）', () {
@@ -262,6 +319,30 @@ void main() {
       });
       await recordSync.pullDown(db, 'u-A', 'st_1');
       expect(await db.exerciseLogDao.getByServerId('srv-e1'), isNull);
+    });
+
+    test('坏 loggedAt 不抛异常：好行落库，坏行跳过且游标留待重试', () async {
+      stubPull(<String, dynamic>{
+        'changes': const <dynamic>[],
+        'exerciseLogChanges': <dynamic>[
+          <String, dynamic>{
+            'id': 'srv-good',
+            'typeKey': 'walk',
+            'loggedAt': '2026-09-19T02:00:00.000Z',
+          },
+          <String, dynamic>{
+            'id': 'srv-bad-time',
+            'typeKey': 'walk',
+            'loggedAt': 'bad-time',
+          },
+        ],
+        'syncToken': 'st_1',
+        'hasMore': false,
+      });
+
+      expect(await recordSync.pullDown(db, 'u-A', 'st_0'), 'st_0');
+      expect(await db.exerciseLogDao.getByServerId('srv-good'), isNotNull);
+      expect(await db.exerciseLogDao.getByServerId('srv-bad-time'), isNull);
     });
 
     test('本地 pending 行不被下行覆盖（幂等键对账后由上行回填）', () async {

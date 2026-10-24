@@ -126,8 +126,34 @@ final streakTodayProvider = Provider<String Function()>((ref) {
 /// - 离线推演：网络失败保留本地结果并标 fromServer=false，恢复后
 ///   [refreshFromServer] 以对账为准。
 final class StreakController extends Notifier<StreakUiState> {
-  StreakEngine get _engine => _engineRef ??= _loadEngine();
+  StreakEngine get _engine {
+    _ensureUserScope();
+    return _engineRef ??= _loadEngine();
+  }
+
   StreakEngine? _engineRef;
+  String? _engineUserId;
+  int _userGeneration = 0;
+
+  void _ensureUserScope() {
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == _engineUserId) return;
+    _engineUserId = userId;
+    _userGeneration++;
+    _engineRef = null;
+    _serverCurrentStreak = null;
+    _historyBackfillAttempted = false;
+  }
+
+  bool _isCurrentUser(String userId, [int? generation]) {
+    try {
+      _ensureUserScope();
+      return (generation == null || generation == _userGeneration) &&
+          ref.read(currentUserIdProvider) == userId;
+    } on Object {
+      return false;
+    }
+  }
 
   StreakLocalStore get _store => ref.read(streakLocalStoreProvider);
 
@@ -149,10 +175,12 @@ final class StreakController extends Notifier<StreakUiState> {
   /// 通道补一次（幂等只补缺，不造新端点），每会话最多一次；无缺口/
   /// 未登录/未装配直接返回。失败静默。
   Future<void> ensureFastingHistoryBackfilled() async {
+    _ensureUserScope();
     if (_historyBackfillAttempted) return;
     _historyBackfillAttempted = true;
     try {
       final userId = ref.read(currentUserIdProvider);
+      final generation = _userGeneration;
       if (userId == 'anonymous') return; // 未登录无服务端历史可补
       final db = ref.read(appDatabaseProvider);
       final today = _today();
@@ -167,7 +195,9 @@ final class StreakController extends Notifier<StreakUiState> {
           break;
         }
       }
-      if (hasGap) await _backfillRecentFastingRecords();
+      if (hasGap && _isCurrentUser(userId, generation)) {
+        await _backfillRecentFastingRecords(userId, generation);
+      }
     } on Object {
       // 离线/未装配（测试/预览）：本地既有数据照常展示。
     }
@@ -175,6 +205,8 @@ final class StreakController extends Notifier<StreakUiState> {
 
   @override
   StreakUiState build() {
+    ref.watch(currentUserIdProvider);
+    _ensureUserScope();
     // 启动补结算（§2.4：本地 0 点结算为主，App 启动时对未结算日补结算）。
     final settlement = _engine.settleUpTo(_today());
     if (settlement.newlyMissed.isNotEmpty ||
@@ -203,19 +235,23 @@ final class StreakController extends Notifier<StreakUiState> {
   /// 副作用：① FastingRecord 落 drift（M6 趋势数据源）；② 本地引擎即时更新；
   /// ③ 尽力上行 F2 后拉 S1 对账（离线跳过，恢复后 [refreshFromServer]）。
   Future<void> onFastClosed(FastingRecord record) async {
+    _ensureUserScope();
+    final userId = ref.read(currentUserIdProvider);
+    final generation = _userGeneration;
     final today = _today();
     var milestones = const <int>[];
     if (record.qualified) {
       milestones = _engine.applyDayAchieved(record.date, today: today);
     }
     _store.saveEngine(_engine);
-    await _persistRecord(record);
+    await _persistRecord(record, userId);
+    if (!_isCurrentUser(userId, generation)) return;
     state = _uiState(fromServer: state.fromServer, newMilestones: milestones);
-    unawaited(_reportAndRefresh(record));
+    unawaited(_reportAndRefresh(record, userId, generation));
   }
 
   /// FastingRecord 落 drift（幂等：同归属日 upsert；无库注入时跳过）。
-  Future<void> _persistRecord(FastingRecord record) async {
+  Future<void> _persistRecord(FastingRecord record, String userId) async {
     AppDatabase? db;
     try {
       db = ref.read(appDatabaseProvider);
@@ -223,7 +259,6 @@ final class StreakController extends Notifier<StreakUiState> {
       return; // 未注入数据库（测试/预览场景）：跳过持久化，不阻断计时流
     }
     if (db == null) return;
-    final userId = ref.read(currentUserIdProvider);
     final requestId =
         _store.loadReportRequestId(record.date) ?? newClientRequestId();
     _store.saveReportRequestId(record.date, requestId);
@@ -248,10 +283,15 @@ final class StreakController extends Notifier<StreakUiState> {
 
   /// 达标事件上行（F1 物化进行中记录 → F2 结束上报，幂等键稳定复用）
   /// 后拉 S1/S3 对账；任一环节失败保留本地推演（离线，§2.4 服务端兜底）。
-  Future<void> _reportAndRefresh(FastingRecord record) async {
+  Future<void> _reportAndRefresh(
+    FastingRecord record,
+    String userId,
+    int generation,
+  ) async {
     try {
       final report = ref.read(fastingReportApiProvider);
       final active = await report.fetchActiveFast();
+      if (!_isCurrentUser(userId, generation)) return;
       if (active != null) {
         // 归属校验（v1.13.27 修）：fetchActiveFast 物化/返回的是「当前窗口」
         // 记录，而本地刚关闭的可能是上一周期（前台对账补关闭）。归属日不一致
@@ -286,8 +326,10 @@ final class StreakController extends Notifier<StreakUiState> {
                 isUtc: true,
               ),
             );
-            await _markRecordSynced(record);
+            if (!_isCurrentUser(userId, generation)) return;
+            await _markRecordSynced(record, userId);
           } on BusinessApiException catch (e) {
+            if (!_isCurrentUser(userId, generation)) return;
             if (e.code == 'FASTING_WINDOW_MISMATCH') {
               // 多端方案分叉（本机窗口 ≠ 服务端窗口）：触发一次方案下行
               // 收敛（v1.14.x：服务端方案即刻采纳替换本地）。闭环：本地
@@ -302,13 +344,12 @@ final class StreakController extends Notifier<StreakUiState> {
     } on Object {
       // 未物化/网络失败不阻断：服务端兜底结算为准（§2.4），恢复后对账。
     }
-    await refreshFromServer();
+    if (_isCurrentUser(userId, generation)) await refreshFromServer();
   }
 
-  Future<void> _markRecordSynced(FastingRecord record) async {
+  Future<void> _markRecordSynced(FastingRecord record, String userId) async {
     try {
       final db = ref.read(appDatabaseProvider);
-      final userId = ref.read(currentUserIdProvider);
       await db.fastingRecordDao.updateSyncStatus(
         '$userId-${record.date}',
         SyncStatus.synced,
@@ -320,15 +361,22 @@ final class StreakController extends Notifier<StreakUiState> {
 
   /// 拉取 S1/S3 对账（服务端权威覆盖，§2.4 冲突原则）。
   Future<void> refreshFromServer() async {
+    _ensureUserScope();
+    final userId = ref.read(currentUserIdProvider);
+    final generation = _userGeneration;
     try {
       final api = ref.read(streakApiProvider);
       final view = await api.fetchStreak();
+      if (!_isCurrentUser(userId, generation)) return;
       final milestones = await api.fetchMilestones();
-      _reconcile(view, milestones);
+      if (!_isCurrentUser(userId, generation)) return;
+      _reconcile(view, milestones, userId, generation);
     } on Object {
       // 离线：保留本地推演，fromServer 维持 false。
     }
-    unawaited(_backfillRecentFastingRecords());
+    if (_isCurrentUser(userId, generation)) {
+      unawaited(_backfillRecentFastingRecords(userId, generation));
+    }
   }
 
   /// 近 30 天断食历史下行回填 + 对账重传（v1.13.28：fastingRecord 无 /sync
@@ -339,9 +387,14 @@ final class StreakController extends Notifier<StreakUiState> {
   /// 回填行 syncStatus=synced、clientRequestId=`server-<id>`（与本地 UUID
   /// 幂等键不撞）。反向方向（本地 synced 但服务端查无 → 置回 pending 重传）
   /// 见函数内「对账重传」段。失败静默（离线保留本地既有展示，下轮对账再补）。
-  Future<void> _backfillRecentFastingRecords() async {
+  Future<void> _backfillRecentFastingRecords([
+    String? expectedUserId,
+    int? expectedGeneration,
+  ]) async {
     try {
-      final userId = ref.read(currentUserIdProvider);
+      final String userId =
+          expectedUserId ?? ref.read(currentUserIdProvider) ?? 'anonymous';
+      final generation = expectedGeneration ?? _userGeneration;
       if (userId == 'anonymous') return; // 未登录无服务端历史可补
       AppDatabase? db;
       try {
@@ -355,7 +408,9 @@ final class StreakController extends Notifier<StreakUiState> {
       final records = await ref
           .read(fastingReportApiProvider)
           .fetchRecentRecords(from: from, to: today);
+      if (!_isCurrentUser(userId, generation)) return;
       final existing = await db.fastingRecordDao.recordsOf(userId);
+      if (!_isCurrentUser(userId, generation)) return;
       // 对账重传（v1.14.x 拍板，堵「本地有、服务端没有」自愈盲区）：本地
       // 质态（非 on_track、非 deleted）且已标 synced 的记录，归属日落在拉取
       // 范围内但**服务端完整返回集**（含 on_track——进行中也算有，不算缺）
@@ -377,6 +432,7 @@ final class StreakController extends Notifier<StreakUiState> {
         final date = local.attributionDate;
         if (date.compareTo(from) < 0 || date.compareTo(today) > 0) continue;
         if (serverDates.contains(date)) continue;
+        if (!_isCurrentUser(userId, generation)) return;
         await db.fastingRecordDao.resetForReupload(local.localId);
         reuploadCount++;
       }
@@ -427,6 +483,7 @@ final class StreakController extends Notifier<StreakUiState> {
             local.qualified == r.isQualified) {
           continue; // 内容一致，不动（幂等稳定，不重复写）
         }
+        if (!_isCurrentUser(userId, generation)) return;
         await db.fastingRecordDao.upsertRecord(
           FastingRecordsCompanion(
             localId: Value(local.localId),
@@ -473,6 +530,7 @@ final class StreakController extends Notifier<StreakUiState> {
       for (final local in existing) {
         if (local.syncStatus == SyncStatus.pending &&
             serverTerminalDates.contains(local.attributionDate)) {
+          if (!_isCurrentUser(userId, generation)) return;
           await db.fastingRecordDao.updateSyncStatus(
             local.localId,
             SyncStatus.synced,
@@ -492,6 +550,7 @@ final class StreakController extends Notifier<StreakUiState> {
         final start = r.actualStartAt ?? r.plannedStartAt;
         // 补签行无 actualEndAt：锚点回落计划终点（满足存储约束，时长=0）。
         final end = r.actualEndAt ?? r.plannedEndAt;
+        if (!_isCurrentUser(userId, generation)) return;
         await db.fastingRecordDao.upsertRecord(
           FastingRecordsCompanion(
             localId: Value('$userId-${r.attributionDate}'),
@@ -529,7 +588,13 @@ final class StreakController extends Notifier<StreakUiState> {
     }
   }
 
-  void _reconcile(ServerStreakView view, List<ServerMilestone> milestones) {
+  void _reconcile(
+    ServerStreakView view,
+    List<ServerMilestone> milestones,
+    String userId,
+    int generation,
+  ) {
+    if (!_isCurrentUser(userId, generation)) return;
     // 服务端判分断签检测（v1.13.27）：服务端权威 streak 低于本地推演，且本地
     // 引擎没有未告知的断签弹窗（有则 D-12 弹窗已覆盖原因）——说明服务端把本地
     // 认为达标的周期判了不达标（如时区错配期的误判 broken），补一次带日期的
@@ -612,11 +677,21 @@ final class StreakController extends Notifier<StreakUiState> {
   /// USE_MEND_CARD（T6）：在线走 S2（服务端强制窗口/库存规则）；
   /// 离线时本地推演先行，恢复后以服务端对账为准（〔假设〕乐观补签）。
   Future<MendResult> useMendCard(String date) async {
+    _ensureUserScope();
+    final userId = ref.read(currentUserIdProvider);
+    final generation = _userGeneration;
     final today = _today();
+    void checkSession() {
+      if (!_isCurrentUser(userId, generation)) {
+        throw StateError('Streak session changed');
+      }
+    }
+
     try {
       final view = await ref
           .read(streakApiProvider)
           .useMendCard(clientRequestId: newClientRequestId(), date: date);
+      checkSession();
       // S2 成功：本地账本同步推进（断签日 → MENDED，链式重算 §2.5）。
       final result = _engine.useMendCard(date, today: today);
       _serverCurrentStreak = view.currentStreak;
@@ -630,6 +705,7 @@ final class StreakController extends Notifier<StreakUiState> {
       _trackMendCardUsed();
       return result;
     } on BusinessApiException catch (e) {
+      checkSession();
       // 服务端业务拒绝原样上抛给 UI 映射精确文案。「已达标」= 本地断签
       // 标记陈旧（下行缺行误判）且服务端权威口径该日计入连胜 → 摘除
       // 标记并入达标集；「窗口外」只摘标记（不计入）。否则「去补签」入口
@@ -648,6 +724,7 @@ final class StreakController extends Notifier<StreakUiState> {
       unawaited(refreshFromServer());
       rethrow;
     } on ApiException {
+      checkSession();
       // 离线（网络/超时）：本地推演先行，恢复后 refreshFromServer 对账为准。
       final result = _engine.useMendCard(date, today: today);
       _store.saveEngine(_engine);
@@ -733,9 +810,5 @@ final streakControllerProvider =
 
 /// 当前用户 ID（未登录为 anonymous；与 FoodEntry 同口径）。
 final currentUserIdProvider = Provider<String>((ref) {
-  try {
-    return ref.watch(authControllerProvider).userId ?? 'anonymous';
-  } on Object {
-    return 'anonymous';
-  }
+  return ref.watch(authUserIdProvider);
 });

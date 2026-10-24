@@ -26,6 +26,7 @@ import 'package:eatwise/features/moderation/application/moderation_controller.da
 import 'package:eatwise/features/record/application/water_reminder_planner.dart';
 import 'package:eatwise/features/record/recognition/data/photo_picker_gateway.dart';
 import 'package:eatwise/features/settings/application/avatar_upload.dart';
+import 'package:eatwise/features/settings/application/data_export_share.dart';
 import 'package:eatwise/features/settings/application/settings_providers.dart';
 import 'package:eatwise/features/settings/data/user_api.dart';
 import 'package:eatwise/features/social/presentation/pinned_post_image.dart';
@@ -567,6 +568,18 @@ class SettingsPage extends ConsumerWidget {
     final t = Translations.of(context);
     try {
       final path = await ref.read(dataExportServiceProvider).requestExport();
+      try {
+        await ref.read(dataExportShareProvider)(path);
+      } on Object {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(t.settings.privacy.exportShareFailed(path: path)),
+            ),
+          );
+        }
+        return;
+      }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(t.settings.privacy.exportSuccess(path: path))),
@@ -581,6 +594,11 @@ class SettingsPage extends ConsumerWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(message)));
+    } on Object {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.settings.privacy.exportFailed)));
     }
   }
 
@@ -866,8 +884,8 @@ class _ProfileHeaderCard extends ConsumerWidget {
                 child: Stack(
                   children: <Widget>[
                     Container(
-                      width: 48,
-                      height: 48,
+                      width: 64,
+                      height: 64,
                       decoration: BoxDecoration(
                         color: colors.brandPrimary.withValues(alpha: 0.14),
                         shape: BoxShape.circle,
@@ -876,8 +894,8 @@ class _ProfileHeaderCard extends ConsumerWidget {
                       child: uploading
                           ? Center(
                               child: SizedBox(
-                                width: 20,
-                                height: 20,
+                                width: 24,
+                                height: 24,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   color: colors.brandPrimary,
@@ -891,7 +909,7 @@ class _ProfileHeaderCard extends ConsumerWidget {
                             )
                           : Icon(
                               Icons.person_rounded,
-                              size: 26,
+                              size: 34,
                               color: colors.brandPrimary,
                             ),
                     ),
@@ -900,8 +918,8 @@ class _ProfileHeaderCard extends ConsumerWidget {
                         right: 0,
                         bottom: 0,
                         child: Container(
-                          width: 16,
-                          height: 16,
+                          width: 20,
+                          height: 20,
                           decoration: BoxDecoration(
                             color: colors.brandPrimary,
                             shape: BoxShape.circle,
@@ -912,7 +930,7 @@ class _ProfileHeaderCard extends ConsumerWidget {
                           ),
                           child: const Icon(
                             Icons.photo_camera_rounded,
-                            size: 10,
+                            size: 12,
                             color: Colors.white,
                           ),
                         ),
@@ -927,7 +945,7 @@ class _ProfileHeaderCard extends ConsumerWidget {
                   children: <Widget>[
                     Text(
                       display,
-                      style: textStyles.textLg.copyWith(
+                      style: textStyles.textXl.copyWith(
                         color: colors.textPrimary,
                         fontWeight: FontWeight.w600,
                       ),
@@ -938,7 +956,7 @@ class _ProfileHeaderCard extends ConsumerWidget {
                       uploading
                           ? t.settings.account.avatar.uploading
                           : t.settings.account.account,
-                      style: textStyles.textXs.copyWith(
+                      style: textStyles.textSm.copyWith(
                         color: colors.textSecondary,
                       ),
                     ),
@@ -971,6 +989,7 @@ class _SettingsGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
+    final radii = Theme.of(context).extension<AppRadii>()!;
     final shadows = Theme.of(context).extension<AppShadows>()!;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.s4),
@@ -984,28 +1003,35 @@ class _SettingsGroup extends StatelessWidget {
             ),
             child: Text(
               title,
-              style: textStyles.textSm.copyWith(color: colors.textSecondary),
+              style: textStyles.textBase.copyWith(
+                color: colors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-          Container(
-            decoration: AppSurfaces.card(colors, shadows),
-            clipBehavior: Clip.antiAlias,
-            // 组内行间细分隔线（hairline，缩进对齐图标右侧文字起点
-            // 56px = 行左右边距 16 + 图标徽标 32 + 图标-文字间距 8，
-            // 参考华为运动健康「我的」分隔线留白）。
-            child: Column(
-              children: <Widget>[
-                for (var i = 0; i < children.length; i++) ...<Widget>[
-                  if (i > 0)
-                    Divider(
-                      height: 1,
-                      thickness: 1,
-                      indent: 56,
-                      color: colors.textSecondary.withValues(alpha: 0.12),
-                    ),
-                  children[i],
+          Material(
+            color: colors.bgSecondary,
+            borderRadius: radii.rLg,
+            child: Container(
+              decoration: AppSurfaces.card(colors, shadows, onMaterial: true),
+              clipBehavior: Clip.antiAlias,
+              // 组内行间细分隔线（hairline，缩进对齐图标右侧文字起点
+              // 56px = 行左右边距 16 + 图标徽标 32 + 图标-文字间距 8，
+              // 参考华为运动健康「我的」分隔线留白）。
+              child: Column(
+                children: <Widget>[
+                  for (var i = 0; i < children.length; i++) ...<Widget>[
+                    if (i > 0)
+                      Divider(
+                        height: 1,
+                        thickness: 1,
+                        indent: 56,
+                        color: colors.textSecondary.withValues(alpha: 0.12),
+                      ),
+                    children[i],
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],
@@ -1014,9 +1040,8 @@ class _SettingsGroup extends StatelessWidget {
   }
 }
 
-/// 设置行（≥56px 触控区，对齐华为「我的」行高节奏；前置品牌绿浅底
-/// 圆形图标徽标（与 MetricCard 徽标同语言，全页统一），trailing 文案或
-/// 自定义控件如 Switch）。
+/// 设置行（至少 60px 触控区）：前置线性图标、右侧值或控件、
+/// 组内发丝线；导航行保留 chevron，Switch 行不重复显示。
 class _SettingsTile extends StatelessWidget {
   const _SettingsTile({
     required this.title,
@@ -1031,7 +1056,7 @@ class _SettingsTile extends StatelessWidget {
 
   final String title;
 
-  /// 前置线性图标（Icons.rounded 圆润系，18px）。
+  /// 前置线性图标（Icons.rounded 圆润系，23px）。
   final IconData icon;
 
   final String? subtitle;
@@ -1039,7 +1064,7 @@ class _SettingsTile extends StatelessWidget {
   final Widget? trailingWidget;
   final Color? titleColor;
 
-  /// 图标与徽标底色（默认品牌绿；危险动作用 signalRed）。
+  /// 图标色（默认 textSecondary；危险动作用 signalRed）。
   final Color? iconColor;
   final VoidCallback? onTap;
 
@@ -1047,11 +1072,11 @@ class _SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
-    final tint = iconColor ?? colors.brandPrimary;
+    final tint = iconColor ?? colors.textSecondary;
     return InkWell(
       onTap: onTap,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 56),
+        constraints: const BoxConstraints(minHeight: 60),
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.s4,
@@ -1059,16 +1084,10 @@ class _SettingsTile extends StatelessWidget {
           ),
           child: Row(
             children: <Widget>[
-              // 品牌绿浅底圆形徽标（32px，与首页 MetricCard 同语言）。
-              Container(
+              SizedBox(
                 width: 32,
                 height: 32,
-                decoration: BoxDecoration(
-                  color: tint.withValues(alpha: 0.14),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Icon(icon, size: 18, color: tint),
+                child: Icon(icon, size: 23, color: tint),
               ),
               const SizedBox(width: AppSpacing.s2),
               Expanded(
@@ -1109,7 +1128,7 @@ class _SettingsTile extends StatelessWidget {
                     ),
                   ),
                 ),
-              if (onTap != null && trailingWidget == null)
+              if (onTap != null && trailingWidget is! Switch)
                 Icon(
                   Icons.chevron_right,
                   size: 20,
@@ -1149,15 +1168,15 @@ class _AvatarImageState extends ConsumerState<_AvatarImage> {
         if (bytes == null || bytes.isEmpty) {
           return Icon(
             Icons.person_rounded,
-            size: 26,
+            size: 34,
             color: colors.brandPrimary,
           );
         }
         return Image.memory(
           bytes,
           fit: BoxFit.cover,
-          width: 48,
-          height: 48,
+          width: 64,
+          height: 64,
           gaplessPlayback: true,
         );
       },
@@ -1189,7 +1208,7 @@ class _ModerationPendingBadge extends ConsumerWidget {
       child: Text(
         count > 99 ? '99+' : '$count',
         style: textStyles.textXs.copyWith(
-          color: Colors.white,
+          color: readableForeground(colors.signalRed),
           fontWeight: FontWeight.w600,
         ),
       ),

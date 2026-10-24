@@ -58,9 +58,28 @@ type Tx = Prisma.TransactionClient;
 export class PrismaStore extends StoreDriver {
   readonly name = 'prisma' as const;
   private readonly logger = new Logger('PrismaStore');
+  private inTransaction = false;
 
   constructor(private readonly prisma: PrismaService) {
     super();
+  }
+
+  private withTransaction<T>(work: (tx: Tx) => Promise<T>): Promise<T> {
+    if (this.inTransaction) return work(this.prisma as unknown as Tx);
+    return this.prisma.$transaction(work);
+  }
+
+  async runInTransaction<T>(lockKeys: string[], work: (tx: StoreDriver) => Promise<T>): Promise<T> {
+    if (this.inTransaction) return work(this);
+    return this.withTransaction(async (tx) => {
+      const keys = [...new Set(lockKeys)].sort();
+      for (const key of keys) {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
+      }
+      const bound = new PrismaStore(tx as unknown as PrismaService);
+      bound.inTransaction = true;
+      return work(bound);
+    });
   }
 
   // ===== U3 导出聚合（合规 §4.2）=====
@@ -102,7 +121,7 @@ export class PrismaStore extends StoreDriver {
 
   // ===== U5 到期执行（合规 §4.3：物理删除个人数据 + UGC 匿名化，单事务）=====
   async purgeUserData(userId: string): Promise<PurgeReport> {
-    return this.prisma.$transaction(async (tx) => {
+    return this.withTransaction(async (tx) => {
       // 审核队列无 userId 列（仅 postId 外键），须在匿名化解除用户关联前按该用户帖集合定位；
       // 含已 tombstone 帖（帖子留存但队列条目属个人派生数据，随账号清除）
       const ownedPostIds = (
@@ -164,8 +183,8 @@ export class PrismaStore extends StoreDriver {
     let done = 0;
     for (let i = 0; i < rows.length; i += SEED_CHUNK) {
       const chunk = rows.slice(i, i + SEED_CHUNK);
-      await this.prisma.$transaction(
-        chunk.map((f) => {
+      await this.withTransaction(async (tx) => {
+        for (const f of chunk) {
           const data = {
             nameZh: f.nameZh,
             nameEn: f.nameEn,
@@ -177,13 +196,13 @@ export class PrismaStore extends StoreDriver {
             category: f.category,
             source: f.source,
           };
-          return this.prisma.food.upsert({
+          await tx.food.upsert({
             where: { id: f.id },
             create: { id: f.id, ...data },
             update: data,
           });
-        }),
-      );
+        }
+      });
       done += chunk.length;
     }
     return done;
@@ -194,7 +213,7 @@ export class PrismaStore extends StoreDriver {
     if (ops.length > PUSH_BATCH_MAX) {
       throw err.validation({ ops: `batch size ${ops.length} exceeds ${PUSH_BATCH_MAX}` });
     }
-    return this.prisma.$transaction(async (tx) => {
+    return this.withTransaction(async (tx) => {
       const results: PushEntryResult[] = [];
       for (const op of ops) {
         try {
@@ -1496,6 +1515,24 @@ export class PrismaStore extends StoreDriver {
     }
   }
 
+  async saveStreakStats(streak: StreakEntity): Promise<void> {
+    try {
+      await this.prisma.streak.update({
+        where: { userId: streak.userId },
+        data: {
+          currentStreak: streak.currentStreak,
+          longestStreak: streak.longestStreak,
+          lastQualifiedDate: streak.lastQualifiedDate,
+          milestones: streak.milestones as unknown as Prisma.InputJsonValue,
+          version: streak.version,
+          updatedAt: streak.updatedAt,
+        },
+      });
+    } catch (e) {
+      throw this.fail('saveStreakStats', e);
+    }
+  }
+
   // ===== 幂等表 =====
 
   async findIdempotencyRecord(
@@ -1624,7 +1661,7 @@ export class PrismaStore extends StoreDriver {
   /** 点赞：post_likes 插入 + likeCount/version 自增，单事务；(postId,userId) 冲突 = 幂等静默 */
   async likePost(postId: string, userId: string): Promise<void> {
     try {
-      await this.prisma.$transaction(async (tx) => {
+      await this.withTransaction(async (tx) => {
         const post = await tx.post.findUnique({ where: { id: postId }, select: { id: true } });
         if (!post) throw err.notFound();
         try {
@@ -1645,7 +1682,7 @@ export class PrismaStore extends StoreDriver {
 
   async unlikePost(postId: string, userId: string): Promise<void> {
     try {
-      await this.prisma.$transaction(async (tx) => {
+      await this.withTransaction(async (tx) => {
         const post = await tx.post.findUnique({ where: { id: postId }, select: { id: true } });
         if (!post) throw err.notFound();
         const removed = await tx.postLike.deleteMany({ where: { postId, userId } });

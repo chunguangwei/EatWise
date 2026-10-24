@@ -72,13 +72,28 @@ class TodayMetricGrid extends ConsumerWidget {
           : t.nutrition.data.burn.manualGuide,
     );
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Expanded(child: exerciseCard),
-        const SizedBox(width: AppSpacing.s3),
-        Expanded(child: stepsCard),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
+        final twoColumns = constraints.maxWidth >= 240 * textScale;
+        if (twoColumns) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(child: exerciseCard),
+              const SizedBox(width: AppSpacing.s3),
+              Expanded(child: stepsCard),
+            ],
+          );
+        }
+        return Column(
+          children: <Widget>[
+            exerciseCard,
+            const SizedBox(height: AppSpacing.s3),
+            stepsCard,
+          ],
+        );
+      },
     );
   }
 }

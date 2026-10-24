@@ -1,4 +1,5 @@
 import 'package:eatwise/features/fasting/application/fasting_notification_plan.dart';
+import 'package:eatwise/features/fasting/domain/fast_cycle.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -140,6 +141,114 @@ void main() {
         expect(item.id, lessThan(1 << 31));
         expect(item.id, greaterThan(0));
       }
+    });
+  });
+
+  group('真实周期锚点', () {
+    test('提前破窗：取消原进食提醒，fastStart 使用真实进食终点', () {
+      final items = buildFastingNotificationPlan(
+        plan: plan,
+        nowUtcSec: utc(28, 2), // d 10:00 BJT，已提前破窗
+        location: bjt,
+        earlyEatEndUtc: utc(28, 10), // 实际进食至 18:00，而非计划 20:00
+        lastClosedCycleId: '${utc(27, 12)}:${utc(28, 4)}',
+      );
+
+      expect(items.map((e) => (e.kind, e.triggerAtUtcSec)).toList(), [
+        (FastingNotificationKind.fastStart, utc(28, 10)),
+        (FastingNotificationKind.eatSoon, utc(29, 3, 45)),
+        (FastingNotificationKind.eatStart, utc(29, 4)),
+        (FastingNotificationKind.fastStart, utc(29, 12)),
+      ]);
+    });
+
+    test('原终点已过但延长终点未到：仍排当前周期，不延长次日', () {
+      final active = FastCycle(
+        startUtc: utc(27, 12),
+        plannedEndUtc: utc(28, 4, 30),
+        eatWindowEndUtc: utc(28, 12, 30),
+        extendedMinutes: 30,
+      );
+      final items = buildFastingNotificationPlan(
+        plan: plan,
+        nowUtcSec: utc(28, 4, 10),
+        location: bjt,
+        activeCycle: active,
+        extensionMinutes: 30,
+      );
+
+      expect(items.take(3).map((e) => (e.kind, e.triggerAtUtcSec)).toList(), [
+        (FastingNotificationKind.eatSoon, utc(28, 4, 15)),
+        (FastingNotificationKind.eatStart, utc(28, 4, 30)),
+        (FastingNotificationKind.fastStart, utc(28, 12, 30)),
+      ]);
+      expect(
+        items
+            .where((e) => e.triggerAtUtcSec >= utc(29, 0))
+            .take(3)
+            .map((e) => (e.kind, e.triggerAtUtcSec)),
+        [
+          (FastingNotificationKind.eatSoon, utc(29, 3, 45)),
+          (FastingNotificationKind.eatStart, utc(29, 4)),
+          (FastingNotificationKind.fastStart, utc(29, 12)),
+        ],
+      );
+    });
+
+    test('方案变更：冻结旧周期，后续周期按新方案且不掉通知', () {
+      const changedPlan = FastingPlan(
+        id: '18:6@06',
+        eatStartMinutes: 6 * 60,
+        eatEndMinutes: 18 * 60,
+      );
+      final active = FastCycle(
+        startUtc: utc(27, 12),
+        plannedEndUtc: utc(28, 4),
+        eatWindowEndUtc: utc(28, 12),
+      );
+      final items = buildFastingNotificationPlan(
+        plan: changedPlan,
+        nowUtcSec: utc(28, 0),
+        location: bjt,
+        activeCycle: active,
+      );
+
+      expect(items.take(3).map((e) => (e.kind, e.triggerAtUtcSec)).toList(), [
+        (FastingNotificationKind.eatSoon, utc(28, 3, 45)),
+        (FastingNotificationKind.eatStart, utc(28, 4)),
+        (FastingNotificationKind.fastStart, utc(28, 12)),
+      ]);
+      expect(
+        items.map((e) => (e.kind, e.triggerAtUtcSec)),
+        containsAll(<(FastingNotificationKind, int)>[
+          (FastingNotificationKind.eatSoon, utc(28, 21, 45)),
+          (FastingNotificationKind.eatStart, utc(28, 22)),
+          (FastingNotificationKind.fastStart, utc(29, 10)),
+        ]),
+      );
+    });
+
+    test('过期或已关闭 active：不错误延长未来周期', () {
+      final active = FastCycle(
+        startUtc: utc(27, 12),
+        plannedEndUtc: utc(28, 4, 30),
+        eatWindowEndUtc: utc(28, 12, 30),
+        extendedMinutes: 30,
+      );
+      final items = buildFastingNotificationPlan(
+        plan: plan,
+        nowUtcSec: utc(28, 5),
+        location: bjt,
+        activeCycle: active,
+        extensionMinutes: 30,
+        lastClosedCycleId: '${active.startUtc}:${active.plannedEndUtc}',
+      );
+
+      expect(items.take(3).map((e) => (e.kind, e.triggerAtUtcSec)).toList(), [
+        (FastingNotificationKind.fastStart, utc(28, 12)),
+        (FastingNotificationKind.eatSoon, utc(29, 3, 45)),
+        (FastingNotificationKind.eatStart, utc(29, 4)),
+      ]);
     });
   });
 

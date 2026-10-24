@@ -2,11 +2,10 @@ import 'package:eatwise/core/llm/ondevice/ondevice_providers.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
+import 'package:eatwise/core/time/day_change.dart';
 import 'package:eatwise/features/health/data/exercise_log_repository.dart';
 import 'package:eatwise/features/health/data/exercise_screenshot_service.dart';
 import 'package:eatwise/features/health/data/remote_exercise_log_sync.dart';
-import 'package:eatwise/features/record/data/water_log_repository.dart'
-    show localDateKey;
 import 'package:eatwise/features/record/presentation/record_providers.dart'
     show onDeviceRecognitionActive;
 import 'package:eatwise/features/streak/application/streak_controller.dart'
@@ -40,7 +39,7 @@ final StreamProvider<double> todayExerciseKcalProvider = StreamProvider<double>(
     try {
       return ref
           .watch(exerciseLogRepositoryProvider)
-          .watchTotalKcalForDate(localDateKey(DateTime.now()));
+          .watchTotalKcalForDate(localDayKey(ref.watch(localDayProvider)));
     } on Object {
       return Stream<double>.value(0);
     }
@@ -55,7 +54,7 @@ final StreamProvider<int> todayExerciseStepsProvider = StreamProvider<int>((
   try {
     return ref
         .watch(exerciseLogRepositoryProvider)
-        .watchTotalStepsForDate(localDateKey(DateTime.now()));
+        .watchTotalStepsForDate(localDayKey(ref.watch(localDayProvider)));
   } on Object {
     return Stream<int>.value(0);
   }
@@ -67,7 +66,7 @@ final StreamProvider<List<ExerciseLog>> todayExerciseLogsProvider =
       try {
         return ref
             .watch(exerciseLogRepositoryProvider)
-            .watchLogsForDate(localDateKey(DateTime.now()));
+            .watchLogsForDate(localDayKey(ref.watch(localDayProvider)));
       } on Object {
         return Stream<List<ExerciseLog>>.value(const <ExerciseLog>[]);
       }

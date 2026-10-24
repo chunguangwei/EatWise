@@ -51,11 +51,14 @@ final class FakeSocialApi extends SocialApi {
 
   Object? feedError;
   Object? createError;
+  Completer<void>? createGate;
   Object? likeError;
   Object? reportError;
   Object? deleteError;
 
   int fetchFeedCalls = 0;
+  bool deferFeed = false;
+  final List<Completer<FeedPage>> feedRequests = <Completer<FeedPage>>[];
   int createCalls = 0;
   final List<String> liked = <String>[];
   final List<String> unliked = <String>[];
@@ -69,6 +72,11 @@ final class FakeSocialApi extends SocialApi {
   Future<FeedPage> fetchFeed({int limit = 20, String? cursor}) async {
     fetchFeedCalls += 1;
     if (feedError != null) throw feedError!;
+    if (deferFeed) {
+      final request = Completer<FeedPage>();
+      feedRequests.add(request);
+      return request.future;
+    }
     final offset = int.tryParse(cursor ?? '0') ?? 0;
     final page = posts.skip(offset).take(limit).toList();
     final next = offset + limit;
@@ -96,6 +104,8 @@ final class FakeSocialApi extends SocialApi {
     lastImageUrls = imageUrls;
     lastAnonymous = anonymous;
     lastAvatarId = avatarId;
+    final pending = createGate;
+    if (pending != null) await pending.future;
     if (createError != null) throw createError!;
     return stubPost(
       id: 'srv-$createCalls',

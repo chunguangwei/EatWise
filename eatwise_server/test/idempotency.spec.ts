@@ -10,19 +10,17 @@ import { CreateEntryDto } from '../src/sync/sync.dto';
 /** 幂等重放（D-20）：同 clientRequestId 不重复入账 */
 describe('幂等：clientRequestId 去重', () => {
   let store: DataStore;
+  let driver: MemoryStoreDriver;
+  let streak: StreakService;
   let sync: SyncService;
   let userId: string;
   let foodId: string;
 
   beforeEach(() => {
     store = new DataStore();
-    const driver = new MemoryStoreDriver(store);
-    sync = new SyncService(
-      driver,
-      new NutritionService(driver),
-      new StreakService(driver),
-      new ConfigService(),
-    );
+    driver = new MemoryStoreDriver(store);
+    streak = new StreakService(driver);
+    sync = new SyncService(driver, new NutritionService(driver), streak, new ConfigService());
     userId = store.createUser({ phone: '+8613800138000' }).id;
     foodId = [...store.foods.values()][0].id;
   });
@@ -86,5 +84,56 @@ describe('幂等：clientRequestId 去重', () => {
     expect(res.results[0].status).toBe('error');
     expect(res.results[0].error?.code).toBe('IDEMPOTENCY_PAYLOAD_MISMATCH');
     expect(res.results[1].status).toBe('applied');
+  });
+
+  it('E1 业务行已落但回执缺失：同体重建 entry + dailyNutrition 并补回执', async () => {
+    const req = dto();
+    const first = await sync.createEntry(userId, req);
+    store.idempotency.clear();
+
+    const recovered = await sync.createEntry(userId, req);
+    expect(recovered).toEqual(first);
+    expect(store.idempotency.size).toBe(1);
+    expect([...store.foodEntries.values()]).toHaveLength(1);
+    expect(
+      (recovered as { entry: { id: string }; dailyNutrition: { kcal: number } }).dailyNutrition
+        .kcal,
+    ).toBeGreaterThan(0);
+  });
+
+  it('E1 回执缺失但同键异体：409，不覆盖业务行也不补回执', async () => {
+    const req = dto();
+    const first = (await sync.createEntry(userId, req)) as { entry: { id: string } };
+    store.idempotency.clear();
+
+    await expect(sync.createEntry(userId, { ...req, grams: req.grams + 1 })).rejects.toThrow(
+      expect.objectContaining({ code: 'IDEMPOTENCY_PAYLOAD_MISMATCH' }) as unknown as Error,
+    );
+    expect([...store.foodEntries.values()]).toHaveLength(1);
+    expect(store.foodEntries.get(first.entry.id)?.grams).toBe(req.grams);
+    expect(store.idempotency.size).toBe(0);
+  });
+
+  it('push/pull 即使无断食变更也触发滞后月份 rollover', async () => {
+    const initial = await streak.getOrCreate(userId);
+    const currentMonth = initial.makeupCards.month;
+    initial.makeupCards = { stock: 0, month: '2000-01', usedDates: ['2000-01-02'] };
+    await driver.saveStreak(initial);
+    await sync.pull(userId, undefined);
+    expect((await driver.findStreakByUser(userId))?.makeupCards).toEqual({
+      stock: 2,
+      month: currentMonth,
+      usedDates: [],
+    });
+
+    const stale = await driver.findStreakByUser(userId);
+    stale!.makeupCards = { stock: 0, month: '2000-01', usedDates: ['2000-01-02'] };
+    await driver.saveStreak(stale!);
+    await sync.push(userId, []);
+    expect((await driver.findStreakByUser(userId))?.makeupCards).toEqual({
+      stock: 2,
+      month: currentMonth,
+      usedDates: [],
+    });
   });
 });

@@ -131,7 +131,7 @@ DailySignal evaluateDailySignals(
   for (final entry in inputs.entries) {
     final nutrient = entry.key;
     final actual = entry.value.actual;
-    final p = actual / entry.value.target * 100; // 未取整原始值（§3.1）
+    final p = actual * 100 / entry.value.target; // 未取整原始值（§3.1）
     final verdict = classifyVerdict(p, nutrient, config);
     verdicts[nutrient] = verdict;
     keys.add(adviceKeyFor(nutrient, verdict.subZone, zeroIntake: actual == 0));

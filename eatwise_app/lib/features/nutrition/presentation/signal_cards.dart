@@ -259,89 +259,95 @@ class SignalCard extends StatelessWidget {
 
     return Semantics(
       label: '$name $zoneLabel',
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.s4),
-        decoration: AppSurfaces.card(colors, shadows),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Text(
-              name,
-              style: textStyles.textSm.copyWith(color: colors.textPrimary),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: AppSpacing.s1),
-            // 主数值保留完整位数；极长值缩放，正常大字体由栅格减列承接。
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                actual.toStringAsFixed(0),
-                style: textStyles.text3xl.copyWith(color: colors.textPrimary),
+      child: Material(
+        color: colors.bgSecondary,
+        borderRadius: radii.rLg,
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.s4),
+          decoration: AppSurfaces.card(colors, shadows, onMaterial: true),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                name,
+                style: textStyles.textSm.copyWith(color: colors.textPrimary),
                 maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            // 目标行窄屏（2 列 ~136dp）整体缩放，不省略号（同 pro 表
-            // v1.13.3 手法）。
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '/ ${t.nutrition.data.proDetails.target} $target $unit',
-                style: textStyles.textXs.copyWith(color: colors.textSecondary),
-                maxLines: 1,
-                softWrap: false,
+              const SizedBox(height: AppSpacing.s1),
+              // 主数值保留完整位数；极长值缩放，正常大字体由栅格减列承接。
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  actual.toStringAsFixed(0),
+                  style: textStyles.text3xl.copyWith(color: colors.textPrimary),
+                  maxLines: 1,
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.s2),
-            // 三重编码：色 + 图标 + 文字（绝不单靠颜色，PRD M8）；点徽标
-            // 弹详情对话框读一句话建议（卡片瘦身，警示信息按需查看）。
-            Align(
-              alignment: Alignment.centerLeft,
-              child: InkWell(
-                key: ValueKey<String>('signal.zone.$nutrient'),
-                borderRadius: radii.rFull,
-                onTap: openAdviceDialog,
-                child: Ink(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.s2,
-                    vertical: AppSpacing.s1,
+              // 目标行窄屏（2 列 ~136dp）整体缩放，不省略号（同 pro 表
+              // v1.13.3 手法）。
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '/ ${t.nutrition.data.proDetails.target} $target $unit',
+                  style: textStyles.textXs.copyWith(
+                    color: colors.textSecondary,
                   ),
-                  decoration: BoxDecoration(
-                    color: zoneColor.withValues(alpha: 0.16),
-                    borderRadius: radii.rFull,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Icon(zoneIcon, color: zoneIconColor, size: 16),
-                      const SizedBox(width: AppSpacing.s1),
-                      Flexible(
-                        child: Text(
-                          zoneLabel,
-                          style: textStyles.textXs.copyWith(
-                            color: colors.textPrimary,
+                  maxLines: 1,
+                  softWrap: false,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.s2),
+              // 三重编码：色 + 图标 + 文字（绝不单靠颜色，PRD M8）；点徽标
+              // 弹详情对话框读一句话建议（卡片瘦身，警示信息按需查看）。
+              Align(
+                alignment: Alignment.centerLeft,
+                child: InkWell(
+                  key: ValueKey<String>('signal.zone.$nutrient'),
+                  borderRadius: radii.rFull,
+                  onTap: openAdviceDialog,
+                  child: Ink(
+                    height: 44,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: zoneColor.withValues(alpha: 0.16),
+                      borderRadius: radii.rFull,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Icon(zoneIcon, color: zoneIconColor, size: 16),
+                        const SizedBox(width: AppSpacing.s1),
+                        Flexible(
+                          child: Text(
+                            zoneLabel,
+                            style: textStyles.textXs.copyWith(
+                              color: colors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      // 提示图标取落区文字色（黄灯用 signalYellowText 保证
-                      // 白卡可读）——旧 textSecondary 灰与正文同色，可点击
-                      // 感知弱（走查）。
-                      Icon(
-                        Icons.info_outline_rounded,
-                        color: zoneIconColor,
-                        size: 14,
-                      ),
-                    ],
+                        // 提示图标取落区文字色（黄灯用 signalYellowText 保证
+                        // 白卡可读）——旧 textSecondary 灰与正文同色，可点击
+                        // 感知弱（走查）。
+                        Icon(
+                          Icons.info_outline_rounded,
+                          color: zoneIconColor,
+                          size: 14,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

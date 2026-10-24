@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/features/auth/application/auth_controller.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
@@ -19,9 +20,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// 脏标记制（v1.13.31，与 FastingPlanSync 同口径——此前 fire-and-forget
 /// 无重试，离线瞬间上行失败则服务端永无档案，换机无值可回落）：
 /// 任何档案/引导状态写入先落 prefs 脏键 `profile_dirty_<userId>`
-/// （键级 LWW 合并），再尽力即时上行；失败保留脏键，由
-/// RecordSyncEngine.syncNow 每轮 [flushDirty] 重试。匿名期脏键在登录后
-/// 首轮同步迁移到真实 uid（与方案/延长队列同口径）。
+/// （键级 LWW 合并），再尽力即时上行；网络/429/5xx 保留脏键，由
+/// RecordSyncEngine.syncNow 每轮 [flushDirty] 重试；明确 400 保留 payload
+/// 并退避，手动重试或新编辑后才再发。匿名期脏键在登录后首轮同步迁移到
+/// 真实 uid（与方案/延长队列同口径）。
 
 /// 同步动作抽象（测试可换记录型假实现）。
 abstract interface class ProfileSyncService {
@@ -39,7 +41,7 @@ abstract interface class ProfileSyncService {
   void markDirtyAndTryFlush(Map<String, Object?> patch);
 
   /// 同步轮重试入口（RecordSyncEngine.syncNow 挂接）：脏键存在时 PATCH，
-  /// 成功按 compare-and-delete 清脏，失败保留下轮。未登录 no-op。
+  /// 成功按 compare-and-delete 清脏；400 退避期间不发请求。未登录 no-op。
   Future<void> flushDirty();
 }
 
@@ -137,39 +139,51 @@ OnboardingProfile mergeProfileWithServer(
   );
 }
 
-/// U2 真实实现（脏标记制：失败保留重试，见文件头注释）。
+/// U2 真实实现。网络、429、5xx 保留下轮重试；明确 400 将当前
+/// payload 标记为失败退避，保留 dirty，手动重试或新编辑后才再发。
 final class RemoteProfileSyncService implements ProfileSyncService {
-  const RemoteProfileSyncService(
+  RemoteProfileSyncService(
     this._patchMe,
     this._isLoggedIn,
     this._prefs,
     this._userId,
   );
 
-  /// PATCH /users/me 通道（生产 `UserApi.patchMe`；测试注入假实现）。
   final Future<UserMeView> Function(Map<String, Object?> patch) _patchMe;
   final bool Function() _isLoggedIn;
   final SharedPreferences _prefs;
   final String Function() _userId;
 
-  /// 脏键前缀（用户命名空间；匿名期落 `profile_dirty_anonymous`，登录后
-  /// 首轮 flush 迁移到真实 uid——与 FastingPlanSync 登录迁移同口径）。
   static const String _dirtyPrefix = 'profile_dirty_';
+  static const String _failedPrefix = 'profile_failed_';
+
+  bool _flushRequested = false;
+  Future<void>? _activeFlush;
 
   String _dirtyKey(String uid) => '$_dirtyPrefix$uid';
+  String _failedKey(String uid) => '$_failedPrefix$uid';
 
-  /// 键级 LWW 合并落脏（后写键覆盖先写键，其余键保留）。
+  bool get hasSyncFailure {
+    final uid = _userId();
+    final failed = _prefs.getString(_failedKey(uid));
+    return failed != null && failed == _prefs.getString(_dirtyKey(uid));
+  }
+
   void _markDirty(Map<String, Object?> patch) {
-    final key = _dirtyKey(_userId());
+    final uid = _userId();
+    final key = _dirtyKey(uid);
     final raw = _prefs.getString(key);
-    final merged = <String, Object?>{
-      if (raw != null)
-        ...(jsonDecode(raw) as Map<String, dynamic>).map(
-          (k, v) => MapEntry(k, v),
-        ),
-      ...patch,
-    };
+    var existing = <String, Object?>{};
+    if (raw != null) {
+      try {
+        existing = Map<String, Object?>.from(jsonDecode(raw) as Map);
+      } on Object {
+        // 新写入覆盖无法解析的旧快照。
+      }
+    }
+    final merged = <String, Object?>{...existing, ...patch};
     unawaited(_prefs.setString(key, jsonEncode(merged)));
+    unawaited(_prefs.remove(_failedKey(uid)));
   }
 
   @override
@@ -194,47 +208,102 @@ final class RemoteProfileSyncService implements ProfileSyncService {
   @override
   void markDirtyAndTryFlush(Map<String, Object?> patch) {
     _markDirty(patch);
-    if (!_isLoggedIn()) return; // 匿名/离线：脏保留，登录后首轮同步迁移上行
+    if (!_isLoggedIn()) return;
     unawaited(flushDirty());
   }
 
+  /// 手动解除 400 退避；不删除 dirty payload，直接按原内容重试。
+  Future<void> retryFailedNow() async {
+    await _prefs.remove(_failedKey(_userId()));
+    await flushDirty();
+  }
+
   @override
-  Future<void> flushDirty() async {
-    final uid = _userId();
-    if (uid == 'anonymous') return; // 匿名 PATCH 必 401：脏保留待登录迁移
-    final key = _dirtyKey(uid);
-    var raw = _prefs.getString(key);
-    if (raw == null) {
-      // 登录迁移：匿名期写入的脏档案换挂真实 uid 后上行。
-      final anonKey = _dirtyKey('anonymous');
-      raw = _prefs.getString(anonKey);
-      if (raw == null) return;
-      await _prefs.setString(key, raw);
-      await _prefs.remove(anonKey);
-    }
-    final Map<String, Object?> patch;
-    try {
-      patch = Map<String, Object?>.from(jsonDecode(raw) as Map);
-    } on Object {
-      await _prefs.remove(key); // 脏数据损坏：清键，等下次写入重落
-      return;
-    }
-    if (patch.isEmpty) {
-      await _prefs.remove(key);
-      return;
-    }
-    try {
-      await _patchMe(patch);
-      // compare-and-delete：PATCH 在途期间又有新写入（raw 被覆写）时
-      // 保留脏键给下一轮，绝不误擦未上行的新档案。
-      if (_prefs.getString(key) == raw) {
-        await _prefs.remove(key);
+  Future<void> flushDirty() {
+    if (!_isLoggedIn()) return Future<void>.value();
+    _flushRequested = true;
+    final active = _activeFlush;
+    if (active != null) return active;
+
+    final future = _drainFlush();
+    _activeFlush = future;
+    unawaited(
+      future.whenComplete(() {
+        if (identical(_activeFlush, future)) _activeFlush = null;
+      }),
+    );
+    return future;
+  }
+
+  Future<void> _drainFlush() async {
+    while (_flushRequested) {
+      _flushRequested = false;
+      if (!_isLoggedIn()) return;
+      final uid = _userId();
+      if (uid == 'anonymous') continue;
+      final key = _dirtyKey(uid);
+      final failedKey = _failedKey(uid);
+      var raw = _prefs.getString(key);
+      if (raw == null) {
+        final anonKey = _dirtyKey('anonymous');
+        raw = _prefs.getString(anonKey);
+        if (raw == null) continue;
+        await _prefs.setString(key, raw);
+        await _prefs.remove(anonKey);
       }
-    } on Object catch (e) {
-      // 失败保留脏键（网络/4xx/5xx 一律下轮重试；字段级校验问题由
-      // 服务端 DTO 白名单 + 契约测试防线兜底，不产生永败组合）。
-      debugPrint('ProfileSyncService: 档案上行失败（保留脏标记，下轮重试） $e');
+
+      final failedRaw = _prefs.getString(failedKey);
+      if (failedRaw == raw) continue;
+      if (failedRaw != null) await _prefs.remove(failedKey);
+
+      final Map<String, Object?> patch;
+      try {
+        patch = Map<String, Object?>.from(jsonDecode(raw) as Map);
+      } on Object {
+        await _prefs.remove(key);
+        await _prefs.remove(failedKey);
+        continue;
+      }
+      if (patch.isEmpty) {
+        await _prefs.remove(key);
+        await _prefs.remove(failedKey);
+        continue;
+      }
+
+      try {
+        final me = await _patchMe(patch);
+        if (me.id.isNotEmpty && me.id != uid) continue;
+        if (_prefs.getString(key) == raw) {
+          await _prefs.remove(key);
+          if (_prefs.getString(failedKey) == raw) {
+            await _prefs.remove(failedKey);
+          }
+        }
+      } on Object catch (e) {
+        final error = toApiException(e);
+        if (error is BusinessApiException && error.httpStatus == 400) {
+          if (_prefs.getString(key) == raw) {
+            await _prefs.setString(failedKey, raw);
+          }
+          debugPrint('ProfileSyncService: 档案上行 400，payload 已保留并进入退避 $error');
+        } else {
+          debugPrint('ProfileSyncService: 档案上行失败（保留脏标记，下轮重试） $error');
+        }
+      }
     }
+  }
+}
+
+/// 在保持既有 fake 实现兼容的前提下暴露失败查询与手动重试。
+extension ProfileSyncFailureRecovery on ProfileSyncService {
+  bool get hasSyncFailure {
+    final self = this;
+    return self is RemoteProfileSyncService && self.hasSyncFailure;
+  }
+
+  Future<void> retryFailedNow() async {
+    final self = this;
+    if (self is RemoteProfileSyncService) await self.retryFailedNow();
   }
 }
 

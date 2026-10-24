@@ -192,6 +192,88 @@ void main() {
       store.saveProfile(const OnboardingProfile());
       expect(store.loadTargetWeightSetAtUtc(), isNull);
     });
+
+    test('A→匿名→B 方案与待生效方案按 uid 隔离，A 再登录完整恢复', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final prefs = await SharedPreferences.getInstance();
+      var uid = 'u-A';
+      final store = SharedPreferencesOnboardingStore(prefs, userId: () => uid);
+      const aPlan = ActivePlanSnapshot(
+        plan: FastingPlan.plan16x8,
+        initialState: 'fasting',
+        startedAtUtc: 100,
+      );
+      const aPending = PendingPlan(
+        plan: FastingPlan.plan14x10,
+        effectiveDate: LocalDate(2026, 7, 29),
+        effectiveUtc: 200,
+      );
+      store.saveActivePlan(aPlan);
+      store.savePendingPlan(aPending);
+
+      uid = 'anonymous';
+      expect(store.loadActivePlan(), isNull);
+      expect(store.loadPendingPlan(), isNull);
+
+      uid = 'u-B';
+      expect(store.loadActivePlan(), isNull);
+      expect(store.loadPendingPlan(), isNull);
+      store.saveActivePlan(
+        const ActivePlanSnapshot(
+          plan: FastingPlan(
+            id: '18:6',
+            eatStartMinutes: 720,
+            eatEndMinutes: 1080,
+          ),
+          initialState: 'eating',
+          startedAtUtc: 300,
+        ),
+      );
+
+      uid = 'u-A';
+      expect(store.loadActivePlan()!.plan, FastingPlan.plan16x8);
+      expect(store.loadPendingPlan()!.plan, FastingPlan.plan14x10);
+      expect(
+        prefs.getString('onboarding.activePlan.u-A'),
+        contains('"planId":"16:8"'),
+      );
+    });
+
+    test('旧全局方案键无损迁移，匿名方案登录后换挂且不回流匿名侧', () async {
+      final legacyPlan = jsonEncode(
+        const ActivePlanSnapshot(
+          plan: FastingPlan.plan16x8,
+          initialState: 'fasting',
+          startedAtUtc: 100,
+        ).toJson(),
+      );
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'onboarding.activePlan': legacyPlan,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      var uid = 'u-A';
+      final store = SharedPreferencesOnboardingStore(prefs, userId: () => uid);
+
+      expect(store.loadActivePlan()!.plan, FastingPlan.plan16x8);
+      expect(prefs.getString('onboarding.activePlan'), isNull);
+      expect(prefs.getString('onboarding.activePlan.u-A'), legacyPlan);
+
+      uid = 'anonymous';
+      store.saveActivePlan(
+        const ActivePlanSnapshot(
+          plan: FastingPlan.plan14x10,
+          initialState: 'eating',
+          startedAtUtc: 200,
+        ),
+      );
+      uid = 'u-B';
+      expect(store.loadActivePlan()!.plan, FastingPlan.plan14x10);
+      expect(prefs.getString('onboarding.activePlan.anonymous'), isNull);
+      uid = 'anonymous';
+      expect(store.loadActivePlan(), isNull);
+      uid = 'u-A';
+      expect(store.loadActivePlan()!.plan, FastingPlan.plan16x8);
+    });
   });
 
   group('InMemoryOnboardingStore', () {

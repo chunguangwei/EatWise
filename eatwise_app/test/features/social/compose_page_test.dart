@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
+import 'package:eatwise/core/widgets/busy_filled_button.dart';
 import 'package:eatwise/features/social/application/feed_controller.dart';
 import 'package:eatwise/features/social/application/post_polish_providers.dart';
 import 'package:eatwise/features/social/application/post_polish_service.dart';
@@ -149,6 +151,41 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('发布失败，请稍后重试'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('发布提交中：BusyFilledButton 保持可读并防重复提交', (tester) async {
+    api.createGate = Completer<void>();
+    await pumpCompose(tester);
+    await tester.enterText(find.byType(TextField), '提交中的打卡');
+    await tester.tap(find.text('发布'));
+    await tester.pump();
+
+    final busy = tester.widget<BusyFilledButton>(find.byType(BusyFilledButton));
+    expect(busy.busy, isTrue);
+    final button = tester.widget<FilledButton>(
+      find.descendant(
+        of: find.byType(BusyFilledButton),
+        matching: find.byType(FilledButton),
+      ),
+    );
+    const disabled = <WidgetState>{WidgetState.disabled};
+    expect(button.onPressed, isNull);
+    expect(
+      button.style!.backgroundColor!.resolve(disabled),
+      AppColors.light.actionPrimary,
+    );
+    expect(
+      button.style!.foregroundColor!.resolve(disabled),
+      AppColors.light.onActionPrimary,
+    );
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(api.createCalls, 1);
+
+    api.createGate!.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('FEED'), findsOneWidget);
     await unmount(tester);
   });
 
@@ -328,6 +365,18 @@ void main() {
       // 选第 4 个头像（下标 3 = 静坐）
       await tester.tap(find.byIcon(Icons.self_improvement));
       await tester.pump();
+      final avatar = tester.widget<CircleAvatar>(
+        find
+            .ancestor(
+              of: find.byIcon(Icons.self_improvement),
+              matching: find.byType(CircleAvatar),
+            )
+            .first,
+      );
+      expect(
+        tester.widget<Icon>(find.byIcon(Icons.self_improvement)).color,
+        readableForeground(avatar.backgroundColor!),
+      );
       await tester.enterText(find.byType(TextField), '匿名打卡');
       await tester.tap(find.text('发布'));
       await tester.pump();

@@ -75,6 +75,7 @@ void main() {
     WidgetTester tester, {
     double width = 1080,
     double height = 2400,
+    RecordEntryWriter? entryWriter,
   }) async {
     // 放大测试屏幕：明细弹层字段多，默认尺寸按钮不可点。
     tester.view.physicalSize = Size(width, height);
@@ -91,6 +92,8 @@ void main() {
           foodRecognitionServiceProvider.overrideWithValue(recognitionService),
           speechGatewayProvider.overrideWithValue(FakeSpeechGateway()),
           customFoodRemoteProvider.overrideWithValue(customRemote),
+          if (entryWriter != null)
+            photoMealEntryWriterProvider.overrideWithValue(entryWriter),
         ],
         child: TranslationProvider(
           child: MaterialApp(theme: AppTheme.light(), home: const RecordPage()),
@@ -225,6 +228,140 @@ void main() {
     expect(saved.single.isCustom, isTrue);
     expect(saved.single.kcalPer100g, 536);
     expect(entries.map((e) => e.foodId), contains(saved.single.id));
+    await settleUi(tester);
+  });
+
+  testWidgets('全部记录重复点击：在途防连点，只入账一批', (tester) async {
+    recognitionService.outcome = await comboOutcome();
+    await pumpPage(tester);
+    await pickPhotoAndRecognize(tester);
+    recordRemote.mode = FakeRemoteMode.offline;
+
+    final logAll = inSheet(find.widgetWithText(FilledButton, '全部记录'));
+    await tester.tap(logAll);
+    await tester.tap(logAll);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+
+    final entries = await repository.entriesForDate(DateTime.now().toUtc());
+    expect(entries, hasLength(3));
+    expect(entries.where((e) => e.foodId == 'f-rice'), hasLength(1));
+    expect(entries.where((e) => e.foodId == 'f-egg'), hasLength(1));
+    expect(customRemote.receivedRequestIds, hasLength(1));
+    expect(customRemote.receivedContributeIds, hasLength(1));
+    expect(find.text('已记录 3 条（1 条待审核）'), findsOneWidget);
+    await settleUi(tester);
+  });
+
+  testWidgets('全部记录中途失败：成功行即移除，重试只写剩余项且不重复入账', (tester) async {
+    final outcome = await comboOutcome();
+    recognitionService.outcome = RecognitionSuccess(<RecognizedMealItem>[
+      outcome.items[2],
+      outcome.items[1],
+      outcome.items[0],
+    ]);
+    await pumpPage(tester);
+    await pickPhotoAndRecognize(tester);
+    recordRemote.mode = FakeRemoteMode.offline;
+
+    // 第二行入账时其食物行缺失：首行自定义食物已保存并入账，随后抛错。
+    await db.foodDao.deleteById('f-egg');
+    await tester.tap(inSheet(find.text('全部记录')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+
+    var entries = await repository.entriesForDate(DateTime.now().toUtc());
+    final saved = await db.foodDao.searchFoods('薯片');
+    expect(saved, hasLength(1));
+    expect(entries.single.foodId, saved.single.id);
+    expect(customRemote.receivedRequestIds, hasLength(1));
+    expect(customRemote.receivedContributeIds, hasLength(1));
+    expect(inSheet(find.text('确认这餐明细')), findsOneWidget);
+    expect(inSheet(find.text('薯片')), findsNothing);
+    expect(inSheet(find.text('鸡蛋')), findsOneWidget);
+    expect(inSheet(find.text('白米饭')), findsOneWidget);
+    expect(inSheet(find.byIcon(Icons.close)), findsNWidgets(2));
+    expect(
+      tester
+          .widget<FilledButton>(
+            inSheet(find.widgetWithText(FilledButton, '全部记录')),
+          )
+          .onPressed,
+      isNotNull,
+    );
+
+    // 故障恢复后重试：只写鸡蛋/白米饭，薯片不重复建食物或入账。
+    await seedFoods(db);
+    await tester.tap(inSheet(find.text('全部记录')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+
+    expect(inSheet(find.text('确认这餐明细')), findsNothing);
+    expect(find.text('已记录 3 条（1 条待审核）'), findsOneWidget);
+    entries = await repository.entriesForDate(DateTime.now().toUtc());
+    expect(entries, hasLength(3));
+    expect(entries.where((e) => e.foodId == saved.single.id), hasLength(1));
+    expect(entries.where((e) => e.foodId == 'f-rice'), hasLength(1));
+    expect(entries.where((e) => e.foodId == 'f-egg'), hasLength(1));
+    expect(entries.every((e) => e.source == EntrySource.photo), isTrue);
+    expect(customRemote.receivedRequestIds, hasLength(1));
+    expect(customRemote.receivedContributeIds, hasLength(1));
+    expect(await db.foodDao.searchFoods('薯片'), hasLength(1));
+
+    // 批量入账仍走既有仓储撤销口径。
+    final chips = entries.singleWhere((e) => e.foodId == saved.single.id);
+    expect(await repository.undo(chips.localId), isTrue);
+    entries = await repository.entriesForDate(DateTime.now().toUtc());
+    expect(entries, hasLength(2));
+    expect(entries.map((e) => e.foodId), isNot(contains(saved.single.id)));
+    await settleUi(tester);
+  });
+
+  testWidgets('自定义食物已保存但入账失败：重试复用食物且不重复送审', (tester) async {
+    final outcome = await comboOutcome();
+    recognitionService.outcome = RecognitionSuccess(<RecognizedMealItem>[
+      outcome.items[2],
+    ]);
+    var failNextAdd = true;
+    await pumpPage(
+      tester,
+      entryWriter: (draft) async {
+        if (failNextAdd) {
+          failNextAdd = false;
+          throw StateError('injected add failure');
+        }
+        return repository.addEntry(draft);
+      },
+    );
+    await pickPhotoAndRecognize(tester);
+    recordRemote.mode = FakeRemoteMode.offline;
+
+    await tester.tap(inSheet(find.text('全部记录')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+
+    final saved = await db.foodDao.searchFoods('薯片');
+    expect(saved, hasLength(1));
+    expect(customRemote.receivedRequestIds, hasLength(1));
+    expect(customRemote.receivedContributeIds, hasLength(1));
+    expect(await repository.entriesForDate(DateTime.now().toUtc()), isEmpty);
+    expect(inSheet(find.text('确认这餐明细')), findsOneWidget);
+
+    await tester.tap(inSheet(find.text('全部记录')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+
+    final entries = await repository.entriesForDate(DateTime.now().toUtc());
+    expect(entries.single.foodId, saved.single.id);
+    expect(await db.foodDao.searchFoods('薯片'), hasLength(1));
+    expect(customRemote.receivedRequestIds, hasLength(1));
+    expect(customRemote.receivedContributeIds, hasLength(1));
+    expect(find.text('已记录 1 条（1 条待审核）'), findsOneWidget);
     await settleUi(tester);
   });
 

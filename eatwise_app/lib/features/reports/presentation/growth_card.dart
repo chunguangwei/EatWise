@@ -198,12 +198,15 @@ class _GrowthEmpty extends StatelessWidget {
           FilledButton(
             onPressed: () => context.go('/record'),
             style: FilledButton.styleFrom(
-              backgroundColor: colors.brandPrimary,
+              backgroundColor: colors.actionPrimary,
+              foregroundColor: colors.onActionPrimary,
               minimumSize: const Size(0, AppSpacing.s12),
             ),
             child: Text(
               t.reports.trend.ctaRecord,
-              style: textStyles.textBase.copyWith(color: Colors.white),
+              style: textStyles.textBase.copyWith(
+                color: colors.onActionPrimary,
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.s2),

@@ -55,7 +55,15 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
+
+  Future<bool> _tableExists(String name) async {
+    final row = await customSelect(
+      "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = ?",
+      variables: <Variable<Object>>[Variable<String>(name)],
+    ).getSingleOrNull();
+    return row != null;
+  }
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -143,6 +151,21 @@ class AppDatabase extends _$AppDatabase {
       if (from < 14) {
         await m.addColumn(foods, foods.customSyncFailCount);
         await m.addColumn(foods, foods.customSyncFailed);
+      }
+      // v15：Foods 同一次增量补 ownerUserId/source；三类轻量同步记录补
+      // lastError。只加列不删除/回填 owner，历史个人行由首次登录认领。
+      if (from < 15) {
+        await m.addColumn(foods, foods.ownerUserId);
+        await m.addColumn(foods, foods.source);
+        if (from >= 3 && await _tableExists('water_logs')) {
+          await m.addColumn(waterLogs, waterLogs.lastError);
+        }
+        if (from >= 9 && await _tableExists('exercise_logs')) {
+          await m.addColumn(exerciseLogs, exerciseLogs.lastError);
+        }
+        if (from >= 2 && await _tableExists('fasting_records')) {
+          await m.addColumn(fastingRecords, fastingRecords.lastError);
+        }
       }
     },
   );

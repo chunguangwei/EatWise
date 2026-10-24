@@ -89,6 +89,7 @@ final class AuthController extends StateNotifier<AuthState> {
     required this.gate,
     this.onboardingGate,
     this.onboardingStore,
+    this.onUserIdChanged,
   }) : super(const AuthState());
 
   /// 认证接口。
@@ -109,38 +110,45 @@ final class AuthController extends StateNotifier<AuthState> {
   /// 本地标记从此只是服务端状态的缓存）。
   final OnboardingStore? onboardingStore;
 
+  /// 在认证状态翻转前同步本地用户作用域（prefs 命名空间读取）。
+  final void Function(String? userId)? onUserIdChanged;
+
+  int _sessionEpoch = 0;
+
   /// 启动时恢复会话：本地有 refreshToken 即视为登录
   /// （accessToken 过期由拦截器 401 refresh 无感续期）。
   /// userId 随令牌持久化、此处一并恢复——否则重启后
   /// currentUserIdProvider 恒 anonymous，历史数据按真实 userId
   /// 查询落空（假空态，v1.2.1 走查 B1）。
   Future<void> restore() async {
+    final epoch = ++_sessionEpoch;
     final refreshToken = await tokenStore.refreshToken;
+    if (epoch != _sessionEpoch) return;
     if (refreshToken != null && refreshToken.isNotEmpty) {
+      final userId = await tokenStore.userId;
+      if (epoch != _sessionEpoch) return;
+      onUserIdChanged?.call(userId);
       gate.loggedIn = true;
-      state = state.copyWith(
-        status: AuthStatus.loggedIn,
-        userId: await tokenStore.userId,
-      );
-      // 重装恢复（v1.13.13）：iOS Keychain 令牌卸载重装后存活，但引导
-      // 完成标记在 SharedPreferences 里被清——登录/注册响应不再发生，
-      // v1.12.4 的 _applySession 双写没有触发点，老用户被重弹引导。
-      // 本地标记未完成时主动拉一次服务端 onboardingStatus 补写（内存
-      // 门禁翻转经 ChangeNotifier 触发路由重算，用户即刻被送出引导页）；
-      // 失败/离线静默（下次启动再试），不阻断会话恢复。
+      state = AuthState(status: AuthStatus.loggedIn, userId: userId);
+      // 重装后服务端引导态回填也必须属于当前会话，慢响应不得写入下一账号。
       final onboardingGate = this.onboardingGate;
       if (onboardingGate != null && !onboardingGate.completed) {
-        unawaited(_backfillOnboardingStatus(onboardingGate));
+        unawaited(_backfillOnboardingStatus(onboardingGate, epoch, userId));
       }
     } else {
-      state = state.copyWith(status: AuthStatus.loggedOut);
+      _clearLocalSession();
     }
   }
 
   /// 会话恢复后的引导态回填（fire-and-forget；任何异常静默）。
-  Future<void> _backfillOnboardingStatus(OnboardingGate onboardingGate) async {
+  Future<void> _backfillOnboardingStatus(
+    OnboardingGate onboardingGate,
+    int epoch,
+    String? userId,
+  ) async {
     try {
       final status = await api.fetchOnboardingStatus();
+      if (epoch != _sessionEpoch || state.userId != userId) return;
       if (status == 'completed' || status == 'skipped') {
         onboardingStore?.markOnboardingCompleted();
         onboardingGate.completed = true;
@@ -176,6 +184,7 @@ final class AuthController extends StateNotifier<AuthState> {
     required String phone,
     required String code,
   }) async {
+    final epoch = ++_sessionEpoch;
     state = state.copyWith(
       loggingIn: true,
       errorCode: () => null,
@@ -183,9 +192,12 @@ final class AuthController extends StateNotifier<AuthState> {
     );
     try {
       final session = await api.loginPhone(phone: phone, code: code);
-      await _applySession(session);
+      if (epoch != _sessionEpoch) return;
+      await _applySession(session, epoch);
+      if (epoch != _sessionEpoch) return;
       state = state.copyWith(loggingIn: false);
     } on ApiException catch (e) {
+      if (epoch != _sessionEpoch) return;
       state = state.copyWith(
         loggingIn: false,
         errorCode: () => e.code,
@@ -200,6 +212,7 @@ final class AuthController extends StateNotifier<AuthState> {
     required String username,
     required String password,
   }) async {
+    final epoch = ++_sessionEpoch;
     state = state.copyWith(
       registering: true,
       errorCode: () => null,
@@ -210,9 +223,12 @@ final class AuthController extends StateNotifier<AuthState> {
         username: username,
         password: password,
       );
-      await _applySession(session);
+      if (epoch != _sessionEpoch) return;
+      await _applySession(session, epoch);
+      if (epoch != _sessionEpoch) return;
       state = state.copyWith(registering: false);
     } on ApiException catch (e) {
+      if (epoch != _sessionEpoch) return;
       state = state.copyWith(
         registering: false,
         errorCode: () => e.code,
@@ -227,6 +243,7 @@ final class AuthController extends StateNotifier<AuthState> {
     required String username,
     required String password,
   }) async {
+    final epoch = ++_sessionEpoch;
     state = state.copyWith(
       loggingIn: true,
       errorCode: () => null,
@@ -234,9 +251,12 @@ final class AuthController extends StateNotifier<AuthState> {
     );
     try {
       final session = await api.login(username: username, password: password);
-      await _applySession(session);
+      if (epoch != _sessionEpoch) return;
+      await _applySession(session, epoch);
+      if (epoch != _sessionEpoch) return;
       state = state.copyWith(loggingIn: false);
     } on ApiException catch (e) {
+      if (epoch != _sessionEpoch) return;
       state = state.copyWith(
         loggingIn: false,
         errorCode: () => e.code,
@@ -252,6 +272,7 @@ final class AuthController extends StateNotifier<AuthState> {
     required String oldPassword,
     required String newPassword,
   }) async {
+    final epoch = ++_sessionEpoch;
     state = state.copyWith(
       changingPassword: true,
       errorCode: () => null,
@@ -263,6 +284,7 @@ final class AuthController extends StateNotifier<AuthState> {
         newPassword: newPassword,
       );
     } on ApiException catch (e) {
+      if (epoch != _sessionEpoch) return;
       state = state.copyWith(
         changingPassword: false,
         errorCode: () => e.code,
@@ -270,21 +292,25 @@ final class AuthController extends StateNotifier<AuthState> {
       );
       rethrow;
     }
+    if (epoch != _sessionEpoch) return;
     await tokenStore.clear();
-    gate.loggedIn = false;
-    state = const AuthState(status: AuthStatus.loggedOut);
+    if (epoch != _sessionEpoch) return;
+    _clearLocalSession();
   }
 
   /// 会话落库 + 门禁翻转（登录/注册共用；服务端 onboardingStatus
   /// 为 completed/skipped 时恢复本地引导完成态——**内存门禁 + 持久化
   /// 存储双写**：只写内存会在杀进程重开后丢失，老用户重装被重导；
   /// 时序上先于路由状态翻转完成，登录后路由直接进首页不闪引导页）。
-  Future<void> _applySession(AuthSession session) async {
+  Future<void> _applySession(AuthSession session, int epoch) async {
+    if (epoch != _sessionEpoch) return;
     await tokenStore.saveTokens(
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
       userId: session.userId,
     );
+    if (epoch != _sessionEpoch) return;
+    onUserIdChanged?.call(session.userId);
     if (session.onboardingStatus == 'completed' ||
         session.onboardingStatus == 'skipped') {
       onboardingStore?.markOnboardingCompleted();
@@ -305,18 +331,26 @@ final class AuthController extends StateNotifier<AuthState> {
   /// 登出：A6 尽力而为通知服务端，本地清会话并翻转门禁（T15：
   /// 本地未同步数据按 userId 隔离保留，不随登出清除）。
   Future<void> logout() async {
+    final epoch = ++_sessionEpoch;
     try {
       await api.logout();
     } on ApiException {
       // 尽力而为：服务端不可达也允许本地登出。
     }
+    if (epoch != _sessionEpoch) return;
     await tokenStore.clear();
-    gate.loggedIn = false;
-    state = const AuthState(status: AuthStatus.loggedOut);
+    if (epoch != _sessionEpoch) return;
+    _clearLocalSession();
   }
 
   /// refresh 失败被拦截器清会话后同步状态（强制回登录页）。
   void onSessionCleared() {
+    _sessionEpoch++;
+    _clearLocalSession();
+  }
+
+  void _clearLocalSession() {
+    onUserIdChanged?.call(null);
     gate.loggedIn = false;
     state = const AuthState(status: AuthStatus.loggedOut);
   }

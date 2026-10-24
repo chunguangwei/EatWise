@@ -1,12 +1,12 @@
 import 'package:eatwise/core/widgets/arc_gauge.dart';
 import 'package:flutter/material.dart';
 
-/// 断食计时环（设计稿 §4.1：直径 220px；断食进行态轻盈绿弧、进食窗暖阳橙弧，
-/// 中心 48px 倒计时数字 + 状态文案）。
+/// 断食计时环（默认直径 240px；断食进行态品牌绿弧、进食窗琥珀弧，
+/// 中心倒计时数字与状态文案按内环空间缩放）。
 ///
 /// 2026-09-30 UI 换代 v2：由闭合整圈（苹果活动环语言）改为**底部开口的
 /// 多环仪表**（[ArcGauge]，华为运动健康「今日」页语言）。改动理由：
-/// - 开口处天然让出视觉呼吸位，中心倒计时（48px 大数字 + 状态行）不再被
+/// - 开口处天然让出视觉呼吸位，中心倒计时（34px 大数字 + 状态行）不再被
 ///   整圈环线包死，可读性提升；
 /// - 支持在同一盘面上并置多个今日指标（断食/热量/饮水），与下方三列图例
 ///   构成华为式「一盘三指标」总览，而不是环 + 卡片两套割裂的信息。
@@ -22,7 +22,7 @@ class FastingRing extends StatelessWidget {
     required this.arcColor,
     required this.child,
     super.key,
-    this.size = 220,
+    this.size = 240,
     this.secondary,
     this.tertiary,
   });
@@ -36,7 +36,7 @@ class FastingRing extends StatelessWidget {
   /// 环中心内容（倒计时数字 + 状态文案）。
   final Widget child;
 
-  /// 环直径（设计稿 220px）。
+  /// 环直径。
   final double size;
 
   /// 第二环（中环，通常为今日热量；null 则只画主环）。
@@ -49,10 +49,10 @@ class FastingRing extends StatelessWidget {
   Widget build(BuildContext context) {
     return ArcGauge(
       size: size,
-      strokeWidth: 13,
-      gap: 5,
+      strokeWidth: 14,
+      gap: 6,
       arcs: <ArcSpec>[
-        ArcSpec(progress: progress, color: arcColor),
+        ArcSpec(progress: progress, color: arcColor, icon: Icons.timer_rounded),
         ?secondary,
         ?tertiary,
       ],

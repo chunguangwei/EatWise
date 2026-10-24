@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:eatwise/core/notification/notification_service.dart';
 import 'package:eatwise/core/notification/notification_types.dart';
+import 'package:eatwise/features/fasting/application/fasting_notification_plan.dart';
 import 'package:eatwise/features/fasting/application/fasting_notification_scheduler.dart';
 import 'package:eatwise/features/fasting/application/fasting_system_events.dart';
+import 'package:eatwise/features/fasting/domain/fast_cycle.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -114,6 +116,61 @@ void main() {
       expect(service.scheduled[0].triggerAtUtcSec, utc(28, 4, 15)); // eatSoon
       expect(service.scheduled[1].triggerAtUtcSec, utc(28, 4, 30)); // eatStart
       expect(service.scheduled[2].triggerAtUtcSec, utc(28, 12, 30)); // fastEnd
+    });
+    test('提前破窗重排：真实进食终点替换原窗口提醒', () async {
+      final service = FakeNotificationService();
+      final scheduler = buildScheduler(
+        service,
+        locationResolver: () => bjt,
+        nowUtcSec: () => utc(28, 2),
+      );
+
+      final result = await scheduler.reschedule(
+        plan: plan,
+        earlyEatEndUtc: utc(28, 10),
+        lastClosedCycleId: '${utc(27, 12)}:${utc(28, 4)}',
+        reason: RescheduleReason.manualEndFast,
+      );
+
+      expect(service.calls.first, 'cancelAll');
+      expect(result.plan.map((e) => (e.kind, e.triggerAtUtcSec)).toList(), [
+        (FastingNotificationKind.fastStart, utc(28, 10)),
+        (FastingNotificationKind.eatSoon, utc(29, 3, 45)),
+        (FastingNotificationKind.eatStart, utc(29, 4)),
+        (FastingNotificationKind.fastStart, utc(29, 12)),
+      ]);
+    });
+
+    test('延长跨原终点：组件排程采用 activeCycle 而非次日延长', () async {
+      final service = FakeNotificationService();
+      final scheduler = buildScheduler(
+        service,
+        locationResolver: () => bjt,
+        nowUtcSec: () => utc(28, 4, 10),
+      );
+      final active = FastCycle(
+        startUtc: utc(27, 12),
+        plannedEndUtc: utc(28, 4, 30),
+        eatWindowEndUtc: utc(28, 12, 30),
+        extendedMinutes: 30,
+      );
+
+      final result = await scheduler.reschedule(
+        plan: plan,
+        activeCycle: active,
+        extensionMinutes: 30,
+        reason: RescheduleReason.extensionApplied,
+      );
+
+      expect(result.plan.take(3).map((e) => e.triggerAtUtcSec).toList(), [
+        utc(28, 4, 15),
+        utc(28, 4, 30),
+        utc(28, 12, 30),
+      ]);
+      expect(
+        service.scheduled.take(3).map((e) => e.id),
+        result.plan.take(3).map((e) => e.id),
+      );
     });
   });
 

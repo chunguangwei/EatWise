@@ -41,9 +41,9 @@ export class NutritionService {
   }
 
   /** 按本地日聚合 FoodEntry（驱动返回含 tombstone，此处过滤软删） */
-  async aggregate(userId: string, date: string, tz: string) {
+  async aggregate(userId: string, date: string, tz: string, driver: StoreDriver = this.driver) {
     const totals = { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0, count: 0 };
-    const entries = await this.driver.listFoodEntriesByUser(userId);
+    const entries = await driver.listFoodEntriesByUser(userId);
     for (const e of entries) {
       if (e.deletedAt) continue;
       if (localDateOf(e.eatenAt, tz) !== date) continue;

@@ -95,43 +95,69 @@ export class FoodService {
       per100g: dto.per100g,
       source: dto.source,
     });
-    const hit = await this.driver.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
-    if (hit) {
-      if (hit.payloadHash !== hash) throw err.payloadMismatch();
-      return hit.responseBody;
-    }
+    return this.driver.runInTransaction(
+      [`idempotency:${userId}:${endpoint}:${dto.clientRequestId}`],
+      async (tx) => {
+        const hit = await tx.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
+        if (hit) {
+          if (hit.payloadHash !== hash) throw err.payloadMismatch();
+          return hit.responseBody;
+        }
 
-    const nameZh = dto.nameZh.trim();
-    if (nameZh.length < 1 || nameZh.length > 50) {
-      throw err.validation({ nameZh: 'trimmed length must be 1-50' });
-    }
-    if (!isPer100gInRange(dto.per100g)) {
-      throw err.validation({ per100g: 'out of range (kcal 0-900, macros 0-100)' });
-    }
+        const nameZh = dto.nameZh.trim();
+        if (nameZh.length < 1 || nameZh.length > 50) {
+          throw err.validation({ nameZh: 'trimmed length must be 1-50' });
+        }
+        if (!isPer100gInRange(dto.per100g)) {
+          throw err.validation({ per100g: 'out of range (kcal 0-900, macros 0-100)' });
+        }
 
-    const food: CustomFoodEntity = {
-      id: `cf_${newId().slice(0, 8)}`,
-      userId,
-      clientRequestId: dto.clientRequestId,
-      nameZh,
-      nameEn: dto.nameEn?.trim() || nameZh, // 〔假设〕未给英文名时回退中文名
-      aliases: [...(dto.aliasesZh ?? []), ...(dto.aliasesEn ?? [])]
-        .map((a) => a.trim())
-        .filter(Boolean),
-      kcalPer100g: dto.per100g.kcal,
-      proteinPer100g: dto.per100g.proteinG,
-      carbsPer100g: dto.per100g.carbG,
-      fatPer100g: dto.per100g.fatG,
-      source: dto.source,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      deletedAt: null,
-    };
-    await this.driver.createCustomFood(food);
+        const existing = (await tx.findCustomFoodsByUser(userId))
+          .filter((food) => food.clientRequestId === dto.clientRequestId)
+          .sort(
+            (a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id),
+          )[0];
+        if (existing) {
+          const same =
+            existing.nameZh === nameZh &&
+            existing.nameEn === (dto.nameEn?.trim() || nameZh) &&
+            existing.kcalPer100g === dto.per100g.kcal &&
+            existing.proteinPer100g === dto.per100g.proteinG &&
+            existing.carbsPer100g === dto.per100g.carbG &&
+            existing.fatPer100g === dto.per100g.fatG &&
+            existing.source === dto.source;
+          if (!same) throw err.payloadMismatch();
+          const response = this.customView(existing);
+          await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response, tx);
+          return response;
+        }
 
-    const response = this.customView(food);
-    await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response);
-    return response;
+        const now = new Date();
+        const food: CustomFoodEntity = {
+          id: `cf_${newId().slice(0, 8)}`,
+          userId,
+          clientRequestId: dto.clientRequestId,
+          nameZh,
+          nameEn: dto.nameEn?.trim() || nameZh,
+          aliases: [...(dto.aliasesZh ?? []), ...(dto.aliasesEn ?? [])]
+            .map((a) => a.trim())
+            .filter(Boolean),
+          kcalPer100g: dto.per100g.kcal,
+          proteinPer100g: dto.per100g.proteinG,
+          carbsPer100g: dto.per100g.carbG,
+          fatPer100g: dto.per100g.fatG,
+          source: dto.source,
+          createdAt: now,
+          updatedAt: now,
+          deletedAt: null,
+        };
+        await tx.createCustomFood(food);
+
+        const response = this.customView(food);
+        await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response, tx);
+        return response;
+      },
+    );
   }
 
   /**
@@ -229,7 +255,6 @@ export class FoodService {
     const endpoint = 'foods/custom/contribute';
     const barcode = dto.barcode?.trim() || null;
     const evidenceImageUrl = dto.evidenceImageUrl?.trim() || null;
-    // 条码与佐证照片成对出现：条码贡献必须带营养表照片（「对答案」根基），单传照片无意义同样拒
     if (barcode && !BARCODE_PATTERN.test(barcode)) {
       throw err.validation({ barcode: 'barcode must be 8-14 digits' });
     }
@@ -240,69 +265,85 @@ export class FoodService {
       throw err.validation({ barcode: 'required when evidenceImageUrl is present' });
     }
     const hash = payloadHash({ foodId, barcode, evidenceImageUrl });
-    const hit = await this.driver.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
-    if (hit) {
-      if (hit.payloadHash !== hash) throw err.payloadMismatch();
-      return hit.responseBody;
-    }
-
-    const food = await this.driver.findCustomFoodById(foodId);
-    if (!food || food.userId !== userId) throw err.notFound();
-
-    // 同一食物只允许一个候选：pending/approved 重复贡献幂等返回原状态；
-    // rejected 视为重新提交——重置回 pending（清驳回理由/审核留痕）回到人工审核池。
-    // 机审不再重跑：名称首次提交已过机审，池内 rejected 是人工终审结论，重提交通道
-    // 本就该由终审再裁（改名走 PATCH 后重提交同样成立，池内可见最新行）。
-    const existing = await this.driver.findFoodCandidateByFoodId(foodId);
-    if (existing) {
-      if (existing.status === 'rejected') {
-        await this.driver.updateFoodCandidateStatus(existing.id, 'pending', '', null);
+    const lockKeys = [
+      `idempotency:${userId}:${endpoint}:${dto.clientRequestId}`,
+      `food-candidate:${foodId}`,
+      ...(barcode ? [`food-barcode:${barcode}`] : []),
+    ];
+    return this.driver.runInTransaction(lockKeys, async (tx) => {
+      const hit = await tx.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
+      if (hit) {
+        if (hit.payloadHash !== hash) throw err.payloadMismatch();
+        return hit.responseBody;
       }
-      const response = await this.candidateView(await this.mustGetCandidate(existing.id));
-      await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response);
-      return response;
-    }
 
-    // 条码查重（同 barcode 的阻断性候选：pending/approved；rejected 已被驱动过滤）
-    if (barcode) {
-      const dup = await this.driver.findFoodCandidateByBarcode(barcode);
-      if (dup?.status === 'approved') {
-        throw err.conflict({ barcode, status: 'approved' }); // 已上架共享库，无需重复贡献
+      const byRequestKey = await tx.findFoodCandidateByUserAndRequestId(
+        userId,
+        dto.clientRequestId,
+      );
+      if (
+        byRequestKey &&
+        byRequestKey.kind !== 'correction' &&
+        (byRequestKey.foodId !== foodId ||
+          byRequestKey.barcode !== barcode ||
+          byRequestKey.evidenceImageUrl !== evidenceImageUrl)
+      ) {
+        throw err.payloadMismatch();
       }
-      if (dup) {
-        const response = await this.candidateView(dup);
-        await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response);
+
+      const food = await tx.findCustomFoodById(foodId);
+      if (!food || food.userId !== userId) throw err.notFound();
+
+      const existing = await tx.findFoodCandidateByFoodId(foodId);
+      if (existing) {
+        if (existing.status === 'rejected') {
+          await tx.updateFoodCandidateStatus(existing.id, 'pending', '', null);
+        }
+        const response = await this.candidateView(await this.mustGetCandidate(existing.id, tx), tx);
+        await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response, tx);
         return response;
       }
-    }
 
-    const verdict = await this.moderation.moderate(food.nameZh, []);
-    if (verdict.verdict === 'rejected') {
-      throw err.foodContributeRejected(verdict.reason);
-    }
+      if (barcode) {
+        const dup = await tx.findFoodCandidateByBarcode(barcode);
+        if (dup?.status === 'approved') {
+          throw err.conflict({ barcode, status: 'approved' });
+        }
+        if (dup) {
+          const response = await this.candidateView(dup, tx);
+          await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response, tx);
+          return response;
+        }
+      }
 
-    const now = new Date();
-    const candidate: FoodCandidateEntity = {
-      id: `fc_${newId().slice(0, 8)}`,
-      foodId,
-      userId,
-      status: 'pending', // manual 与 approved 机审结果均先入 pending 池，由人工终审晋升
-      reason: null,
-      kind: barcode ? 'barcode' : 'custom',
-      barcode,
-      evidenceImageUrl,
-      suggestion: null,
-      reviewedBy: null,
-      clientRequestId: dto.clientRequestId,
-      version: 1,
-      createdAt: now,
-      updatedAt: now,
-    };
-    await this.driver.createFoodCandidate(candidate);
+      const verdict = await this.moderation.moderate(food.nameZh, []);
+      if (verdict.verdict === 'rejected') {
+        throw err.foodContributeRejected(verdict.reason);
+      }
 
-    const response = await this.candidateView(candidate);
-    await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response);
-    return response;
+      const now = new Date();
+      const candidate: FoodCandidateEntity = {
+        id: `fc_${newId().slice(0, 8)}`,
+        foodId,
+        userId,
+        status: 'pending',
+        reason: null,
+        kind: barcode ? 'barcode' : 'custom',
+        barcode,
+        evidenceImageUrl,
+        suggestion: null,
+        reviewedBy: null,
+        clientRequestId: dto.clientRequestId,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await tx.createFoodCandidate(candidate);
+
+      const response = await this.candidateView(candidate, tx);
+      await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response, tx);
+      return response;
+    });
   }
 
   /**
@@ -324,63 +365,86 @@ export class FoodService {
       throw err.validation({ per100g: 'out of range (kcal 0-900, macros 0-100)' });
     }
     const hash = payloadHash({ foodId, nameZh, nameEn, per100g: dto.per100g });
-    const hit = await this.driver.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
-    if (hit) {
-      if (hit.payloadHash !== hash) throw err.payloadMismatch();
-      return hit.responseBody;
-    }
+    return this.driver.runInTransaction(
+      [
+        `idempotency:${userId}:${endpoint}:${dto.clientRequestId}`,
+        `food-correction:${userId}:${foodId}`,
+      ],
+      async (tx) => {
+        const hit = await tx.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
+        if (hit) {
+          if (hit.payloadHash !== hash) throw err.payloadMismatch();
+          return hit.responseBody;
+        }
 
-    const food = await this.driver.findFoodById(foodId);
-    if (!food) throw err.notFound();
+        const food = await tx.findFoodById(foodId);
+        if (!food) throw err.notFound();
+        const suggestion: FoodCorrectionSuggestion = {
+          nameZh: nameZh && nameZh !== food.nameZh ? nameZh : null,
+          nameEn: nameEn && nameEn !== food.nameEn ? nameEn : null,
+          per100g: {
+            kcal: dto.per100g.kcal,
+            proteinG: dto.per100g.proteinG,
+            carbG: dto.per100g.carbG,
+            fatG: dto.per100g.fatG,
+          },
+        };
 
-    // 同人同食物已有 pending 纠错：幂等返回原候选（不同建议值不覆盖，避免审核目标漂移）
-    const mine = await this.driver.findFoodCandidatesByUser(userId, 'pending');
-    const dup = mine.find((c) => c.kind === 'correction' && c.foodId === foodId);
-    if (dup) {
-      const response = await this.candidateView(dup);
-      await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response);
-      return response;
-    }
+        const byRequestKey = await tx.findFoodCandidateByUserAndRequestId(
+          userId,
+          dto.clientRequestId,
+        );
+        if (byRequestKey?.kind === 'correction') {
+          if (
+            byRequestKey.foodId !== foodId ||
+            JSON.stringify(byRequestKey.suggestion) !== JSON.stringify(suggestion)
+          ) {
+            throw err.payloadMismatch();
+          }
+          const response = await this.candidateView(byRequestKey, tx);
+          await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response, tx);
+          return response;
+        }
 
-    if (nameZh) {
-      const verdict = await this.moderation.moderate(nameZh, []);
-      if (verdict.verdict === 'rejected') {
-        throw err.foodContributeRejected(verdict.reason);
-      }
-    }
+        const mine = await tx.findFoodCandidatesByUser(userId, 'pending');
+        const dup = mine.find((c) => c.kind === 'correction' && c.foodId === foodId);
+        if (dup) {
+          const response = await this.candidateView(dup, tx);
+          await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response, tx);
+          return response;
+        }
 
-    const suggestion: FoodCorrectionSuggestion = {
-      nameZh: nameZh && nameZh !== food.nameZh ? nameZh : null,
-      nameEn: nameEn && nameEn !== food.nameEn ? nameEn : null,
-      per100g: {
-        kcal: dto.per100g.kcal,
-        proteinG: dto.per100g.proteinG,
-        carbG: dto.per100g.carbG,
-        fatG: dto.per100g.fatG,
+        if (nameZh) {
+          const verdict = await this.moderation.moderate(nameZh, []);
+          if (verdict.verdict === 'rejected') {
+            throw err.foodContributeRejected(verdict.reason);
+          }
+        }
+
+        const now = new Date();
+        const candidate: FoodCandidateEntity = {
+          id: `fc_${newId().slice(0, 8)}`,
+          foodId,
+          userId,
+          status: 'pending',
+          reason: null,
+          kind: 'correction',
+          barcode: null,
+          evidenceImageUrl: null,
+          suggestion,
+          reviewedBy: null,
+          clientRequestId: dto.clientRequestId,
+          version: 1,
+          createdAt: now,
+          updatedAt: now,
+        };
+        await tx.createFoodCandidate(candidate);
+
+        const response = await this.candidateView(candidate, tx);
+        await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response, tx);
+        return response;
       },
-    };
-    const now = new Date();
-    const candidate: FoodCandidateEntity = {
-      id: `fc_${newId().slice(0, 8)}`,
-      foodId,
-      userId,
-      status: 'pending',
-      reason: null,
-      kind: 'correction',
-      barcode: null,
-      evidenceImageUrl: null,
-      suggestion,
-      reviewedBy: null,
-      clientRequestId: dto.clientRequestId,
-      version: 1,
-      createdAt: now,
-      updatedAt: now,
-    };
-    await this.driver.createFoodCandidate(candidate);
-
-    const response = await this.candidateView(candidate);
-    await this.saveIdempotency(userId, endpoint, dto.clientRequestId, hash, response);
-    return response;
+    );
   }
 
   /**
@@ -581,17 +645,19 @@ export class FoodService {
   }
 
   /** 状态落库后回读（驱动侧 version+1 / updatedAt 已生效），不存在视为内部异常 */
-  private async mustGetCandidate(id: string): Promise<FoodCandidateEntity> {
-    const candidate = await this.driver.findFoodCandidateById(id);
+  private async mustGetCandidate(
+    id: string,
+    driver: StoreDriver = this.driver,
+  ): Promise<FoodCandidateEntity> {
+    const candidate = await driver.findFoodCandidateById(id);
     if (!candidate) throw err.notFound();
     return candidate;
   }
 
   /** 审核前候选食物在个人库，晋升后在共享库（id 不变）；两处都查不到 = 食物已删 */
-  private async candidateView(c: FoodCandidateEntity) {
+  private async candidateView(c: FoodCandidateEntity, driver: StoreDriver = this.driver) {
     const food =
-      (await this.driver.findCustomFoodById(c.foodId)) ??
-      (await this.driver.findFoodById(c.foodId));
+      (await driver.findCustomFoodById(c.foodId)) ?? (await driver.findFoodById(c.foodId));
     return {
       id: c.id,
       foodId: c.foodId,
@@ -664,8 +730,9 @@ export class FoodService {
     clientRequestId: string,
     payloadHashValue: string,
     responseBody: unknown,
+    driver: StoreDriver = this.driver,
   ) {
-    await this.driver.saveIdempotencyRecord({
+    await driver.saveIdempotencyRecord({
       userId,
       clientRequestId,
       endpoint,

@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/tables.dart';
+import 'package:eatwise/core/time/day_change.dart';
 import 'package:eatwise/features/fasting/domain/daily_nutrition.dart';
 import 'package:eatwise/features/fasting/domain/fasting_result_mapping.dart'
     show isRealFastResult;
@@ -31,7 +32,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 报告页时钟（测试可拨动；范围终点 = 今天，不看未来）。
 final Provider<DateTime> reportsNowProvider = Provider<DateTime>((ref) {
-  return DateTime.now();
+  ref.watch(localDayProvider);
+  return ref.read(localDayClockProvider)();
 });
 
 /// 趋势时间范围。
@@ -244,6 +246,7 @@ final FutureProvider<List<FastingRecord>> reportFastingProvider =
 /// 窗口内体重日志。
 final FutureProvider<Map<String, double>> reportWeightProvider =
     FutureProvider<Map<String, double>>((ref) {
+      ref.watch(weightLogRevisionProvider);
       final window = ref.watch(reportWindowProvider);
       return ref
           .watch(reportsDataSourceProvider)
@@ -478,6 +481,7 @@ final FutureProvider<WeeklyReportStats> weeklyReportProvider =
     FutureProvider<WeeklyReportStats>((ref) async {
       ref.watch(_fastingTableChangesProvider);
       ref.watch(_nutritionCacheTableChangesProvider);
+      ref.watch(weightLogRevisionProvider);
       final now = dateOnly(ref.watch(reportsNowProvider));
       final weekStart = now.subtract(Duration(days: now.weekday - 1));
       final from = localDateOf(weekStart);
@@ -511,6 +515,7 @@ final FutureProvider<WeeklySummary> weeklySummaryProvider =
     FutureProvider<WeeklySummary>((ref) async {
       ref.watch(_fastingTableChangesProvider);
       ref.watch(_nutritionCacheTableChangesProvider);
+      ref.watch(weightLogRevisionProvider);
       final now = dateOnly(ref.watch(reportsNowProvider));
       final thisMonday = now.subtract(Duration(days: now.weekday - 1));
       final lastMonday = thisMonday.subtract(const Duration(days: 7));
@@ -555,7 +560,15 @@ monthlyReportMonthProvider =
 class MonthlyReportMonthController extends Notifier<DateTime> {
   @override
   DateTime build() {
-    final now = ref.watch(reportsNowProvider);
+    ref.listen<DateTime>(reportsNowProvider, (previous, next) {
+      if (previous == null) return;
+      final previousMonth = DateTime(previous.year, previous.month, 1);
+      final nextMonth = DateTime(next.year, next.month, 1);
+      if (previousMonth != nextMonth && state == previousMonth) {
+        state = nextMonth;
+      }
+    });
+    final now = ref.read(reportsNowProvider);
     return DateTime(now.year, now.month, 1);
   }
 
@@ -578,6 +591,7 @@ final FutureProvider<MonthlyReport> monthlyReportProvider =
     FutureProvider<MonthlyReport>((ref) async {
       ref.watch(_fastingTableChangesProvider);
       ref.watch(_nutritionCacheTableChangesProvider);
+      ref.watch(weightLogRevisionProvider);
       final monthStart = ref.watch(monthlyReportMonthProvider);
       final now = dateOnly(ref.watch(reportsNowProvider));
       final from = localDateOf(monthStart);

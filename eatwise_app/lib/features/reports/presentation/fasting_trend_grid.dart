@@ -85,7 +85,7 @@ class FastingTrendGrid extends StatelessWidget {
                   style: textStyles.textXs.copyWith(
                     color: state == FastingDayState.noRecord
                         ? colors.textSecondary
-                        : Colors.white,
+                        : readableForeground(colorOf(state)),
                   ),
                 ),
               ),

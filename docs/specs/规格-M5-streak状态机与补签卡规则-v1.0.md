@@ -51,8 +51,8 @@
 | T3 | IN_STREAK | MIDNIGHT_SETTLEMENT | 前一日未达标 | PENDING_MEND | currentStreak=0；记录 lastMissedDate=前一日；置「待弹断签弹窗」标记 |
 | T4 | NO_STREAK | MIDNIGHT_SETTLEMENT | 前一日未达标且用户已有过 streak 历史 | PENDING_MEND | 同 T3（currentStreak 保持 0） |
 | T5 | NO_STREAK | MIDNIGHT_SETTLEMENT | 前一日未达标且用户从未有 streak（未启动方案） | NO_STREAK | 无（不弹窗）〔假设〕 |
-| T6 | PENDING_MEND | USE_MEND_CARD | 库存 ≥1 且断签日距结算日 ≤7 天 | IN_STREAK | 断签日记为「已补签」；库存 −1；**streak 恢复为连续（含补签日）**：重算 currentStreak = 断签前 streak + 其后已连续达标天数（见 2.5 重算规则）；重检里程碑；刷新 longestStreak |
-| T7 | PENDING_MEND | MIDNIGHT_SETTLEMENT | 最近断签日距今日 >7 天（窗口关闭） | BROKEN | 清除补签入口；断签弹窗不再弹出 |
+| T6 | PENDING_MEND | USE_MEND_CARD | 库存 ≥1 且断签日距结算日 ≤6 天 | IN_STREAK | 断签日记为「已补签」；库存 −1；**streak 恢复为连续（含补签日）**：重算 currentStreak = 断签前 streak + 其后已连续达标天数（见 2.5 重算规则）；重检里程碑；刷新 longestStreak |
+| T7 | PENDING_MEND | MIDNIGHT_SETTLEMENT | 最近断签日距今日 ≥7 天（窗口关闭） | BROKEN | 清除补签入口；断签弹窗不再弹出 |
 | T8 | PENDING_MEND | DAY_ACHIEVED | 新一天达标（尚未补旧签） | IN_STREAK | currentStreak 从新达标日起算 = 1；旧断签日仍可补，补签成功后按 2.5 重算合并为连续 |
 | T9 | BROKEN | DAY_ACHIEVED | — | IN_STREAK | currentStreak=1，开启新一段连胜 |
 | T10 | 任意 | DAY_MISSED | 当日进行中破窗 >15 分钟 | 不变 | 仅记录 FastingRecord 不达标；真正归零发生在次日 0 点结算（T3/T4） |
@@ -64,8 +64,8 @@
 | 场景 | 机制 | 说明 |
 |------|------|------|
 | 本地 0 点结算（主） | Flutter 端监听应用生命周期 + 定时器：App 处于前台跨过本地 0 点时，立即对前一日执行 `MIDNIGHT_SETTLEMENT`；iOS 用 `AppLifecycleState` + `Timer`，Android 相同（单代码库逻辑一致） | 结算在用户**本地时区** 0 点触发；时间戳 UTC 存储、本地渲染（D-07） |
-| 后台结算（辅，尽力而为） | iOS：`BGTaskScheduler`（BGAppRefreshTask）；Android：`WorkManager` 每日周期任务 | 系统不保证精确 0 点执行，仅作体验增强，**不作为正确性依赖** |
-| 服务端兜底结算（正确性保证） | 服务端定时任务按用户最近上报的时区，在其本地 0 点后（〔假设〕0 点后 30 分钟内）对未结算用户批量执行结算 | App 多日未启动时 streak 状态仍正确；客户端下次启动拉取服务端结算结果为准 |
+| 后台结算（未接入） | 当前未接 iOS BGTaskScheduler / Android WorkManager 每日任务 | 不把原生后台每日结算写成既有能力，也不作为正确性依赖 |
+| 服务端兜底结算（正确性保证） | `getStatus`、同步与相关读取路径对过期 `on_track` 周期执行 ghost 自动结算并重算 streak | 依赖读取/同步触发，不虚构定时批量任务；客户端下次启动拉取服务端结果为准 |
 | 冲突原则 | 以**服务端结算结果为权威**；本地先算先展示（乐观），拉取到服务端结果后覆盖（对齐 D-20 LWW） | 本地与服务端归属日判定逻辑必须共用同一份规则实现/同一参数（容差 15 分钟为服务端配置） |
 | 时区变更 | 用户跨时区时，归属日按**断食发生时段用户本地时区**判定（沿用《规格-M2 断食计时状态机》结论）；streak 结算按用户当前本地时区 0 点 | 〔待外部确认〕与 M2 规格中对「跨时区当日归属」的最终拍板保持一致 |
 | 回拨系统时间 | 结算依赖服务端时间校验：本地 0 点结算结果需与服务端对账，发现本地时钟异常（偏差 >5 分钟）时以服务端为准并标记 `syncState=冲突` | 对齐 D-20 冲突队列 |
@@ -87,14 +87,14 @@
 
 | 规则项 | 规则 | 备注 |
 |--------|------|------|
-| 发放时间 | 每月 1 日 00:00（用户本地时区）发放 2 张 | 服务端定时任务发放，发放入库留痕（见第六章发放记录） |
-| 发放数量 | 每月 2 张 | 固定值，服务端配置可热调〔假设〕 |
-| 库存计算 | 每月 1 日**重置为 2 张**（等价于：月底清零 + 月初发 2，不累积） | 上月剩余作废，不存在「攒卡」 |
+| 发放时间 | 每月 1 日 00:00（用户本地时区）起可重置为 2 张 | S1、sync push/pull、recompute、makeUp 等读取/同步入口执行懒 rollover；滞后数月也在下一次入口一次纠正，无定时推送承诺 |
+| 发放数量 | 每月 2 张 | 当前实现固定为 2，不支持热调 |
+| 库存计算 | 每月 1 日**重置为 2 张**（等价于：月底清零 + 月初发 2，不累积） | 上月剩余作废，不存在「攒卡」；重复调用与并发不得重复发放 |
 | 库存上限 | 2 张 | 任何途径不得突破上限 |
 | 每月使用上限 | 2 张/自然月 | 与库存一致；即便月中通过活动赠卡（V1.1+ 候选）也受此上限约束〔假设〕 |
-| 新用户 | 注册当日即发放当月 2 张（当月剩余天数不足整月也发 2 张） | 〔假设〕 |
-| 有效期 | 当月有效，月底 24:00（本地）清零 | 清零动作由月初重置覆盖实现，无需单独清零任务 |
-| 使用范围 | 仅可补**最近 7 天内**的断签日：断签日 D 的可补窗口为 [D, D+6] 共 7 个自然日（含 D 当天），第 8 天起不可补 | 窗口按用户本地自然日计算 |
+| 新用户 | 首次初始化 Streak 时发放当月 2 张 | 不要求再完成一次断食，也不因断档/重新开始额外送卡 |
+| 有效期 | 当月有效，月底 24:00（本地）清零 | 清零由下一次月初 rollover 完成，无单独清零任务 |
+| 使用范围 | 断签日 D 的可补窗口为 [D, D+6] 共 7 个自然日，**且不含操作当天**；D+7 起不可补 | 窗口按用户本地自然日计算；S1 `usableWindowDays=7`，客户端/离线推演与服务端一致 |
 | 使用对象 | 仅可补「断食打卡未达标」的断签日；无方案日、未启动方案前的日期不可补 | — |
 | 使用次数 | 同一断签日只能补 1 次；补签不可撤销 | 〔假设〕不可撤销 |
 
@@ -104,14 +104,14 @@
 
 | 状态 | 判定条件（按序求值，命中即止） | UI 表现 |
 |------|------------------------------|---------|
-| 可补签 `MENDABLE` | 存在距今日 ≤7 天的未补签断签日 **且** 当月库存 ≥1 | 主按钮「使用补签卡恢复连胜」（轻盈绿填充），展示「本月剩余 N 张」 |
-| 已用尽 `EXHAUSTED` | 存在距今日 ≤7 天的未补签断签日 **且** 当月库存 = 0 | 按钮置灰「本月补签卡已用完」，副文案「下月 1 日将发放 2 张新卡」 |
-| 已断签 `UNMENDABLE` | 最近断签日距今日 >7 天（无可补断签日） | 不展示补签按钮，仅展示「连胜如何计算」说明 + 「补签窗口已关闭」 |
+| 可补签 `MENDABLE` | 存在距今日 ≤6 天的未补签断签日 **且** 当月库存 ≥1 | 主按钮「使用补签卡恢复连胜」（轻盈绿填充），展示「本月剩余 N 张」 |
+| 已用尽 `EXHAUSTED` | 存在距今日 ≤6 天的未补签断签日 **且** 当月库存 = 0 | 按钮置灰「本月补签卡已用完」，副文案「下月 1 日将发放 2 张新卡」 |
+| 已断签 `UNMENDABLE` | 最近断签日距今日 ≥7 天（无可补断签日） | 不展示补签按钮，仅展示「连胜如何计算」说明 + 「补签窗口已关闭」 |
 
 伪代码：
 
 ```
-if exists(missedDay where today - missedDay <= 7 and not mended):
+if exists(missedDay where 0 < today - missedDay < 7 and not mended):
     return balance >= 1 ? MENDABLE : EXHAUSTED
 else:
     return UNMENDABLE
@@ -175,45 +175,33 @@ else:
 
 ## 六、数据模型
 
-### 6.1 Streak 实体（每用户一条）
+### 6.1 服务端 Streak 实体（每用户一条）
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `userId` | String (PK) | 用户 ID |
-| `currentStreak` | Int | 当前连续天数（断签/未补时 = 0） |
-| `longestStreak` | Int | 历史最长连续天数 |
-| `status` | Enum | `NO_STREAK / IN_STREAK / PENDING_MEND / BROKEN`（第二章） |
-| `lastAchievedDate` | Date? | 最近一个有效达标日（含已补签日），本地自然日 |
-| `lastMissedDate` | Date? | 最近断签日（用于 7 天窗口与三态判定） |
-| `pendingMendDates` | List\<Date\> | 7 天窗口内全部未补签断签日（支持多日 gap） |
-| `milestones` | JSON | `{ "3": achievedAt?, "7": achievedAt?, "30": achievedAt? }`，null=未解锁 |
-| `mendCardBalance` | Int | 当月补签卡库存（0–2） |
-| `mendCardMonth` | String | 当前库存所属月份 `yyyy-MM`，用于月初重置判定 |
-| `mendCardUsedThisMonth` | Int | 本月已用张数（≤2） |
-| `timezone` | String | 用户最近上报时区（IANA，如 `Asia/Shanghai`），供服务端兜底结算 |
-| `syncState` | Enum | `提交中 / 已同步 / 待同步 / 冲突`（D-20 四态） |
-| `updatedAt` | DateTime (UTC) | 服务端时间戳，LWW 依据 |
+| `id` / `userId` | String | 主键与全库唯一用户 ID |
+| `currentStreak` | Int | 当前连续达标天数；断签未补时为 0 |
+| `longestStreak` | Int | 历史最长连续天数，只增不减 |
+| `lastQualifiedDate` | String? | 最近有效达标日（含补签），格式 `yyyy-MM-dd` |
+| `milestones` | JSON | 已解锁里程碑及首次达成时刻 |
+| `makeupCards` | JSON | `{ stock, month, usedDates[] }`；库存、所属本地月与实际扣减日期 |
+| `version` / `updatedAt` | Int / DateTime | 乐观版本与同步时间；统计和卡片可分离写入，recompute 不得拿旧统计覆盖新扣卡 |
 
-### 6.2 补签卡发放/使用记录（MendCardLedger，追加写）
+`NO_STREAK / IN_STREAK / PENDING_MEND / BROKEN` 与补签三态由记录、日期和库存推导，不作为服务端 Streak 的持久化枚举字段。客户端离线 `StreakEngine` 另保存结算游标、待补签日期和弹窗频控，并按 uid 隔离。
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | String (PK) | 记录 ID |
-| `userId` | String | 用户 ID |
-| `type` | Enum | `GRANT`（发放）/ `USE`（使用）/ `EXPIRE`（月底清零留痕） |
-| `month` | String | 所属月份 `yyyy-MM` |
-| `count` | Int | 张数（GRANT=2；USE=1；EXPIRE=清零张数） |
-| `mendedDate` | Date? | type=USE 时补签的断签日 |
-| `createdAt` | DateTime (UTC) | 发生时间 |
+### 6.2 补签留痕与原子性
 
-### 6.3 StreakDay（每日明细，供日历/趋势展示与重算审计）
+不另设 `MendCardLedger` 或 `StreakDay` 表。一次补签在同一事务内完成：
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `userId + date` | 复合 PK | 归属日（D-07：进食窗口所属自然日） |
-| `dayStatus` | Enum | `ACHIEVED`（达标）/ `MISSED`（未达标）/ `MENDED`（已补签）/ `NO_PLAN`（无方案） |
-| `fastingRecordId` | String? | 关联 FastingRecord（D-08 判定来源） |
-| `mendLedgerId` | String? | dayStatus=MENDED 时关联 6.2 记录 |
+1. 校验并真实扣减 `makeupCards.stock`，追加 `makeupCards.usedDates`；
+2. 在 `fasting_records` 写一条 `result=makeup`、`isQualified=true` 的标记，归属日明确，实际锚点/时长为空，补签不计真实断食时长；
+3. 重算统计并保存幂等回执。`clientRequestId` 负责重放，归属日及 `usedDates` 防重复补签，任一写入失败全部回滚。
+
+趋势、达标集合和导出均读取实际记录并排除 tombstone；补签计达标，不计时长。月度 rollover 同样受用户锁与事务保护，无独立发放流水或定时推送。
+
+### 6.3 时间与时区
+
+用户 `timezone` 是 IANA 名称，缺省 `Asia/Shanghai`；S1/S2 与 sync 可经 `X-Timezone` 显式传递当前设备时区。库存月份和可补日期均按该时区的自然日计算，UTC 时间戳仅用于持久化与同步排序。
 
 ---
 
@@ -240,7 +228,7 @@ else:
 1. 当日达标（完整窗口 / 提前 ≤15 分钟 / 延长后达标）三种路径均触发 T1/T2 且 streak +1；提前 >15 分钟破窗当日不 +1、次日 0 点结算后归零（T10→T3）。
 2. 饮食记录天数变化不影响 streak：只记饮食不断食，streak 不涨也不断（当日无方案判定外）；只断食不记饮食，streak 正常累计。
 3. 同一归属日重复上报达标事件不重复 +1（幂等，`clientRequestId` 去重）。
-4. 无方案用户不进入状态机、不弹断签弹窗（T5）；更换方案（次日生效）不清零 streak。
+4. 无方案用户不进入状态机、不弹断签弹窗（T5）；方案变更不改写历史，进行中周期锚点冻结，新方案只作用于下一周期。
 
 **结算时机与边界**
 5. 前台跨本地 0 点：前一日未达标立即结算归零并置弹窗标记；前一日达标 streak +1。
@@ -255,7 +243,7 @@ else:
 12. 库存 0 时存在可补断签日 → 三态 = 已用尽，按钮置灰；库存 ≥1 → 可补签；窗口外 → 已断签。
 13. 补签成功：断签日记 MENDED，streak 按 2.5 恢复（含补签日、含其后续达标日 k），最长连胜刷新，补签不可撤销、同日不可重复补。
 14. 多日 gap：gap 内 2 个断签日用 2 张卡全补 → 恢复连续；3 个断签日只能补 2 个 → 不恢复为原 streak，按最近连续段重算。
-15. 新用户注册当日发放 2 张；每月使用 ≤2 张上限不可突破。
+15. 新用户首次初始化即发 2 张；滞后数月后下一次读取/同步仍重置为当月 2 张；每月使用 ≤2 张且不可突破。
 
 **断签弹窗（评审硬性验收）**
 16. 弹窗同时包含：「连胜如何计算」说明 + 剩余次数 + 三态之一，中英双语各走查一遍（i18n key 无硬编码）。
@@ -274,7 +262,7 @@ else:
 - 〔假设〕无方案用户不进 streak、不弹断签弹窗（2.1/T5）。
 - 〔假设〕更换方案不清零 streak（第一章）。
 - 〔假设〕已补签日计入 streak 与里程碑、分享图卡不标注补签来源；补签不可撤销（2.5/3.1/5.1）。
-- 〔假设〕新用户注册当日发放当月 2 张；发放数量走服务端热配置（3.1）。
+- 已拍板：新用户首次初始化发放当月 2 张；每月固定重置为 2 张、上限 2，断档或重新开始不额外送卡（3.1）。
 - 〔假设〕同一里程碑在新一段连胜中再次达到仅轻量庆祝、不重复解锁（5.1）。
 - 〔待外部确认〕跨时区归属与 M2 规格最终拍板对齐（2.4）。
 - 〔待外部确认〕里程碑「超过 80% 伙伴」是否接真实分位数据（5.1）。

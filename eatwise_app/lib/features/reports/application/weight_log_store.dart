@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart'
@@ -140,6 +141,20 @@ class WeightLogStore {
   final String? Function(String key) readFn;
   final Future<bool> Function(String key, String value) writeFn;
   final Future<bool> Function(String key) deleteFn;
+
+  final StreamController<int> _revisionController =
+      StreamController<int>.broadcast(sync: true);
+  int _revision = 0;
+
+  int get revision => _revision;
+  Stream<int> get changes => _revisionController.stream;
+
+  void _notifyChanged() {
+    _revision += 1;
+    _revisionController.add(_revision);
+  }
+
+  Future<void> close() => _revisionController.close();
 
   String get _key => '$_keyPrefix$userId';
 
@@ -285,6 +300,7 @@ class WeightLogStore {
       updatedAtUtc: DateTime.now().toUtc().toIso8601String(),
     );
     await writeFn(_key, jsonEncode(all));
+    _notifyChanged();
   }
 
   /// 删除某日体重（2026-09-29 拍板下行 tombstone）：已上行条目置 tombstone
@@ -301,6 +317,7 @@ class WeightLogStore {
       all.remove(localDate);
     }
     await writeFn(_key, jsonEncode(all));
+    _notifyChanged();
     return true;
   }
 
@@ -328,6 +345,7 @@ class WeightLogStore {
     final all = _loadAll();
     if (all.remove(localDate) != null) {
       await writeFn(_key, jsonEncode(all));
+      _notifyChanged();
     }
   }
 
@@ -342,6 +360,7 @@ class WeightLogStore {
     if (entry == null || entry.clientRequestId != clientRequestId) return;
     all[localDate] = entry.copyWith(synced: true, serverId: serverId);
     await writeFn(_key, jsonEncode(all));
+    _notifyChanged();
   }
 
   /// 下行合并（LWW）：本地 pending 条目不动（上行后服务端同日覆写收敛）；
@@ -389,7 +408,10 @@ class WeightLogStore {
       );
       changed = true;
     }
-    if (changed) await writeFn(_key, jsonEncode(all));
+    if (changed) {
+      await writeFn(_key, jsonEncode(all));
+      _notifyChanged();
+    }
   }
 }
 
@@ -399,12 +421,40 @@ class WeightLogStore {
 /// `analytics_providers` 的兜底口径一致；生产由 main() 注入后自然生效。
 final Provider<WeightLogStore> weightLogStoreProvider =
     Provider<WeightLogStore>((ref) {
-      try {
-        return WeightLogStore(
-          ref.watch(sharedPreferencesProvider),
-          userId: ref.watch(currentUserIdProvider),
-        );
-      } on Object {
-        return WeightLogStore.inMemory();
-      }
+      final store = () {
+        try {
+          return WeightLogStore(
+            ref.watch(sharedPreferencesProvider),
+            userId: ref.watch(currentUserIdProvider),
+          );
+        } on Object {
+          return WeightLogStore.inMemory();
+        }
+      }();
+      ref.onDispose(() => unawaited(store.close()));
+      return store;
     });
+
+/// 本地保存/删除与远端合并共用的体重变更信号。初始值同步可读，
+/// 后续每次实际落库递增；报告与首页 FutureProvider 以此重取。
+final StateNotifierProvider<WeightLogRevisionController, int>
+weightLogRevisionProvider =
+    StateNotifierProvider<WeightLogRevisionController, int>((ref) {
+      return WeightLogRevisionController(ref.watch(weightLogStoreProvider));
+    });
+
+final class WeightLogRevisionController extends StateNotifier<int> {
+  WeightLogRevisionController(WeightLogStore store) : super(store.revision) {
+    _subscription = store.changes.listen((revision) {
+      if (mounted) state = revision;
+    });
+  }
+
+  late final StreamSubscription<int> _subscription;
+
+  @override
+  void dispose() {
+    unawaited(_subscription.cancel());
+    super.dispose();
+  }
+}

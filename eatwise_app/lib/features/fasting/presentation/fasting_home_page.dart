@@ -36,10 +36,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// 断食计时主页（设计稿 §4.2-① / §3.2：顶部问候语+方案标签 → 居中
-/// 220px 计时环 → 归属日文案 → 双主按钮 → 底部 mini signal-card，
-/// 暖阳橙 FAB 跳记录；四态规范 3.4：本地计算永不等网络，无方案态显示
-/// 引导 CTA 卡）。
+/// 断食计时主页（设计稿 §4.2-① / §3.2：问候与方案标签 → 240px 三环仪表
+/// → 归属日 → 双主按钮 → 连胜/目标 → 指标与 mini signal-card；
+/// 四态规范 3.4：本地计算永不等网络，无方案态显示引导 CTA 卡）。
 class FastingHomePage extends ConsumerStatefulWidget {
   const FastingHomePage({super.key});
 
@@ -175,12 +174,14 @@ class _NoPlanBody extends StatelessWidget {
                 child: FilledButton(
                   onPressed: () => context.go('/onboarding'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: colors.brandPrimary,
+                    backgroundColor: colors.actionPrimary,
                     minimumSize: const Size.fromHeight(AppSpacing.s12),
                   ),
                   child: Text(
                     t.fasting.home.startPlan,
-                    style: textStyles.textBase.copyWith(color: Colors.white),
+                    style: textStyles.textBase.copyWith(
+                      color: colors.onActionPrimary,
+                    ),
                   ),
                 ),
               ),
@@ -368,7 +369,9 @@ class _TimerBody extends ConsumerWidget {
                 // 可立即应用）。
                 Padding(
                   padding: const EdgeInsets.only(left: 14, top: AppSpacing.s1),
-                  child: Row(
+                  child: Wrap(
+                    spacing: AppSpacing.s1,
+                    runSpacing: AppSpacing.s1,
                     children: <Widget>[
                       TextButton(
                         key: const ValueKey<String>('fasting.pendingPlan.edit'),
@@ -406,16 +409,6 @@ class _TimerBody extends ConsumerWidget {
               ],
             ),
           ),
-        // M5 问候区连胜展示（streak=0 不显示火焰，显示引导文案；999+ 截断）。
-        Align(
-          alignment: Alignment.centerLeft,
-          child: StreakBanner(currentStreak: streak.currentStreak),
-        ),
-        // 方案进度条（薄荷走查 P0：设了减重目标才露出，未设目标不渲染）。
-        const Padding(
-          padding: EdgeInsets.only(top: AppSpacing.s2),
-          child: PlanProgressBar(),
-        ),
         // M5 里程碑徽章滑入（3/7/30 首次解锁；reduced-motion 降级静态淡入）。
         // 徽章触达埋点（§3.5 badge_reach：徽章展示触发；组件级
         // ≥50%+500ms，§4.1；去重键含里程碑档位——新档位重计）。
@@ -475,7 +468,7 @@ class _TimerBody extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: AppSpacing.s6),
-        // 双主按钮（设计稿 §4.2-① 环下横排；进食态无动作，T11）。
+        // 双主按钮（设计稿 §4.2-① 环下横排；进食态点击给出提示）。
         // 2026-10-01 真机走查五轮：进食态「置灰=死按钮」被当成坏按钮——
         // 改「可点 + 明确反馈」：进食态点击弹 SnackBar 告知断食自动开始
         // 时刻（视觉仍用 fillSubtle 浅底 + textSecondary 区分非行动态，
@@ -498,10 +491,10 @@ class _TimerBody extends ConsumerWidget {
                   },
                   style: FilledButton.styleFrom(
                     backgroundColor: isFasting
-                        ? colors.brandPrimary
+                        ? colors.actionPrimary
                         : colors.fillSubtle,
                     foregroundColor: isFasting
-                        ? Colors.white
+                        ? colors.onActionPrimary
                         : colors.textSecondary,
                     // 进食态补描边（2026-10-01 安卓走查）：fillSubtle 浅底
                     // 与页面灰底近乎同色，无描边时按钮整体隐形。
@@ -519,7 +512,9 @@ class _TimerBody extends ConsumerWidget {
                   label: Text(
                     t.fasting.home.endFast,
                     style: textStyles.textBase.copyWith(
-                      color: isFasting ? Colors.white : colors.textSecondary,
+                      color: isFasting
+                          ? colors.onActionPrimary
+                          : colors.textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -577,6 +572,15 @@ class _TimerBody extends ConsumerWidget {
               ),
             ),
           ),
+        const SizedBox(height: AppSpacing.s4),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: StreakBanner(currentStreak: streak.currentStreak),
+        ),
+        const Padding(
+          padding: EdgeInsets.only(top: AppSpacing.s2),
+          child: PlanProgressBar(),
+        ),
         const SizedBox(height: AppSpacing.s6),
         // 运动与步数两列卡（三指标已上移至仪表，此区只留运动/步数）。
         const TodayMetricGrid(),
@@ -615,7 +619,7 @@ class _TimerBody extends ConsumerWidget {
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final controller = ref.read(fastingTimerControllerProvider.notifier);
     final cycle = timer.cycle;
-    // EATING 下按钮置灰不可达，防御性丢弃（T11）。
+    // 进食态没有进行中周期，不打开结束确认弹窗。
     if (cycle == null) return;
     controller.trackEndFastClick();
     final elapsedSec = ref.read(fastingClockProvider)() - cycle.startUtc;
@@ -676,10 +680,14 @@ class _TimerBody extends ConsumerWidget {
               Navigator.pop(dialogContext);
               controller.endFast();
             },
-            style: FilledButton.styleFrom(backgroundColor: colors.brandPrimary),
+            style: FilledButton.styleFrom(
+              backgroundColor: colors.actionPrimary,
+            ),
             child: Text(
               t.fasting.home.endFastDialog.confirm,
-              style: textStyles.textBase.copyWith(color: Colors.white),
+              style: textStyles.textBase.copyWith(
+                color: colors.onActionPrimary,
+              ),
             ),
           ),
         ],
@@ -745,10 +753,9 @@ class _TimerBody extends ConsumerWidget {
     );
   }
 
-  /// 紧凑文字按钮样式（横幅三个操作并排，普通 TextButton 内边距会挤爆）。
+  /// 紧凑水平间距 + 至少 44px 触控高度。
   static ButtonStyle _pendingActionStyle() => TextButton.styleFrom(
-    visualDensity: VisualDensity.compact,
-    minimumSize: Size.zero,
+    minimumSize: const Size(0, 44),
     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s2),
     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
   );
@@ -879,8 +886,21 @@ class _HomeGaugeSection extends ConsumerWidget {
     final waterProgress = waterMl / waterGoal;
 
     final plan = timer.plan!;
-    final fastHours = plan.fastWindowMinutes ~/ 60;
     final gauge = t.fasting.home.gauge;
+    final cycle = timer.cycle;
+    final eatingWindowSec = plan.eatWindowMinutes * 60;
+    final primaryGoalSec = isFasting
+        ? (cycle?.plannedSec ?? plan.fastWindowMinutes * 60)
+        : eatingWindowSec;
+    final rawPrimaryElapsedSec = isFasting
+        ? (cycle == null ? 0 : snapshot.nowUtc - cycle.startUtc)
+        : eatingWindowSec - snapshot.countdownSec;
+    final primaryElapsedSec = rawPrimaryElapsedSec.clamp(0, primaryGoalSec);
+    final primaryHours = primaryElapsedSec / 3600;
+    final primaryGoalHours = primaryGoalSec / 3600;
+    String formatHours(double hours) => hours == hours.roundToDouble()
+        ? hours.toStringAsFixed(0)
+        : hours.toStringAsFixed(1);
 
     return Column(
       children: <Widget>[
@@ -895,10 +915,14 @@ class _HomeGaugeSection extends ConsumerWidget {
                 secondary: ArcSpec(
                   progress: kcalProgress,
                   color: colors.gaugeRed,
+                  icon: Icons.local_fire_department_rounded,
+                  label: gauge.kcal,
                 ),
                 tertiary: ArcSpec(
                   progress: waterProgress,
                   color: colors.gaugeBlue,
+                  icon: Icons.water_drop_rounded,
+                  label: gauge.water,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -919,10 +943,16 @@ class _HomeGaugeSection extends ConsumerWidget {
                       showSeconds: isFasting,
                     ),
                     const SizedBox(height: AppSpacing.s1),
-                    Text(
-                      _TimerBody._stateText(t, timer.state),
-                      style: textStyles.textBase.copyWith(
-                        color: colors.textSecondary,
+                    SizedBox(
+                      width: CountdownText.maxWidth,
+                      child: Text(
+                        _TimerBody._stateText(t, timer.state),
+                        style: textStyles.textSm.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ],
@@ -931,8 +961,8 @@ class _HomeGaugeSection extends ConsumerWidget {
               // 破壳庆祝（归零/结束断食且达标，覆盖整个区域）。
               if (timer.celebrating)
                 SizedBox(
-                  width: 220,
-                  height: 220,
+                  width: 240,
+                  height: 240,
                   child: FastingCelebration(
                     onDismiss: controller.dismissCelebration,
                   ),
@@ -946,11 +976,9 @@ class _HomeGaugeSection extends ConsumerWidget {
           items: <GaugeLegendItem>[
             GaugeLegendItem(
               color: fastArcColor,
-              label: gauge.fasting,
-              value: fastProgress > 0
-                  ? (fastProgress * fastHours).toStringAsFixed(1)
-                  : '0',
-              goal: gauge.fastingGoal(hours: fastHours),
+              label: isFasting ? gauge.fasting : gauge.eating,
+              value: primaryHours > 0 ? primaryHours.toStringAsFixed(1) : '0',
+              goal: gauge.fastingGoal(hours: formatHours(primaryGoalHours)),
             ),
             GaugeLegendItem(
               color: colors.gaugeRed,
@@ -971,13 +999,10 @@ class _HomeGaugeSection extends ConsumerWidget {
   }
 }
 
-/// 环内倒计时数字（2026-09-30 真机走查二轮）：原 maxWidth 184 超出三环
-/// 仪表内环自由直径（220 − 2×(2×(13+5)+13) = 122），秒级倒计时整行压到
-/// 环弧上——收窄到 118 并改「HH:MM 大字 + :SS 小字后缀」（断食态），
-/// 主数字用指标大数字样式 textDisplay（34pt），秒位降级小字，既有
-/// 秒级跳动的逼近感又完全不压环。进食态（showSeconds=false）只渲染
-/// HH:MM。FittedBox(scaleDown) 保证 textScaler 放大与超长时间
-///（>99h 三位小时）都只缩小不溢出。
+/// 环内倒计时使用「HH:MM 大字 + :SS 小字后缀」（断食态）与
+/// textDisplay（34pt）主数字；进食态（showSeconds=false）只渲染 HH:MM。
+/// 当前 240px 三环仪表的内环自由直径为 136px，118px 内容宽度保留视觉余量。
+/// FittedBox(scaleDown) 保证大字体与超长时间（>99h）都不压环。
 class CountdownText extends StatelessWidget {
   const CountdownText({
     required this.seconds,
@@ -991,7 +1016,7 @@ class CountdownText extends StatelessWidget {
   /// 是否渲染秒位后缀（进食态传 false：只 HH:MM，配合状态图标更适配）。
   final bool showSeconds;
 
-  /// 可渲染最大宽度（三环内环自由直径 122 − 4 视觉余量）。
+  /// 可渲染最大宽度（136px 内环自由直径内的安全余量）。
   static const double maxWidth = 118;
 
   @override

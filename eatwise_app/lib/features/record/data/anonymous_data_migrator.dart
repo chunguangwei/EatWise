@@ -23,9 +23,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// - 匿名聚合缓存行随记录换主成为孤儿，直接清空（回填修复/入账重算
 ///   会在本轮同步后立即补建真实 uid 侧缓存）。
 ///
-/// 幂等：每用户一次标记 `anon_migrated_v1_<uid>`（标记先于迁移落盘，
-/// 半途失败下次启动不再重试——drift UPDATE 与 prefs 换挂各自也是
-/// 幂等/一次性语义，重复执行无害）。
+/// 幂等：每用户一次标记 `anon_migrated_v1_<uid>`，所有表与 Store 成功后
+/// 才落标记；中途失败下轮从部分迁移状态继续。Foods 的 null/匿名 owner
+/// 认领独立于旧标记执行，保证老库升级后也能补齐，且不删除历史行。
 class AnonymousDataMigrator {
   AnonymousDataMigrator({required this.db, required this.prefs});
 
@@ -46,15 +46,17 @@ class AnonymousDataMigrator {
   /// 失败上抛（调用方静默吞掉，不阻断同步主链；标记未落则下轮重试）。
   Future<bool> migrateIfNeeded(String userId) async {
     if (userId == anonymousUserId) return false;
+    await db.transaction(() async {
+      await db.foodDao.claimLegacyCustomFoods(userId);
+      await db.foodDao.reassignCustomFoodOwner(anonymousUserId, userId);
+    });
     final doneKey = '$_doneKeyPrefix$userId';
     if (prefs.getBool(doneKey) == true) return false;
-    // 标记先行：半途异常也不反复重跑（各步本身幂等，重跑也无害，
-    // 但避免坏数据导致的每轮同步重试风暴）。
-    await prefs.setBool(doneKey, true);
     await _reassignDrift(userId);
     WeightLogStore.migrateAnonymous(prefs, userId);
     ContributionStatusStore.migrateAnonymous(prefs, userId);
     SharedPreferencesStreakLocalStore.migrateAnonymous(prefs, userId);
+    await prefs.setBool(doneKey, true);
     return true;
   }
 

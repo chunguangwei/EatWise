@@ -43,10 +43,8 @@ const int kMendCardStockCap = 2;
 /// 每月使用上限（张/自然月）。
 const int kMendCardMonthlyUseCap = 2;
 
-/// 补签窗口（自然日）：断签日 D 可补窗口为 [D, D+6]，第 8 天起不可补（§3.1）。
-///
-/// 〔遗留〕服务端 S2 现按 `today - D <= 7` 放行（比规格表多 1 天），
-/// 客户端按规格表 `today - D <= 6` 判定，QA 用例 #11 以客户端口径为准。
+/// 补签窗口（自然日）：断签日 D 次日起至 D+6 可补，D+7 起不可补（§3.1）。
+/// 与服务端 S2 / S1 usableWindowDays=7 同口径；today 本身不可补。
 const int kMendWindowDays = 6;
 
 /// streak 天数显示边界（《规格-设计交付规范与全局UI四态》）：

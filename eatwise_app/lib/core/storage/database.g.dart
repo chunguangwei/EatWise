@@ -118,6 +118,27 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _ownerUserIdMeta = const VerificationMeta(
+    'ownerUserId',
+  );
+  @override
+  late final GeneratedColumn<String> ownerUserId = GeneratedColumn<String>(
+    'owner_user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('manual'),
+  );
   static const VerificationMeta _customSyncPendingMeta = const VerificationMeta(
     'customSyncPending',
   );
@@ -194,6 +215,8 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     carbPer100g,
     fatPer100g,
     isCustom,
+    ownerUserId,
+    source,
     customSyncPending,
     customClientRequestId,
     customSyncFailCount,
@@ -292,6 +315,21 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         isCustom.isAcceptableOrUnknown(data['is_custom']!, _isCustomMeta),
       );
     }
+    if (data.containsKey('owner_user_id')) {
+      context.handle(
+        _ownerUserIdMeta,
+        ownerUserId.isAcceptableOrUnknown(
+          data['owner_user_id']!,
+          _ownerUserIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
     if (data.containsKey('custom_sync_pending')) {
       context.handle(
         _customSyncPendingMeta,
@@ -386,6 +424,14 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_custom'],
       )!,
+      ownerUserId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner_user_id'],
+      ),
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
       customSyncPending: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}custom_sync_pending'],
@@ -446,6 +492,13 @@ class Food extends DataClass implements Insertable<Food> {
   /// 是否用户自定义食物（K2 个人库；搜索结果带「自定义」标签）。
   final bool isCustom;
 
+  /// 个人食物归属账号；共享食物恒为 null。旧库个人行也为 null，
+  /// 升级时不删数据，由首次登录同步确定性认领。
+  final String? ownerUserId;
+
+  /// 个人食物来源（manual / llm-estimate），离线重试与下行均保留。
+  final String source;
+
   /// 自定义食物待上行标记（离线保存为 true，上行 /foods/custom 成功转 false）。
   final bool customSyncPending;
 
@@ -476,6 +529,8 @@ class Food extends DataClass implements Insertable<Food> {
     required this.carbPer100g,
     required this.fatPer100g,
     required this.isCustom,
+    this.ownerUserId,
+    required this.source,
     required this.customSyncPending,
     required this.customClientRequestId,
     required this.customSyncFailCount,
@@ -495,6 +550,10 @@ class Food extends DataClass implements Insertable<Food> {
     map['carb_per100g'] = Variable<double>(carbPer100g);
     map['fat_per100g'] = Variable<double>(fatPer100g);
     map['is_custom'] = Variable<bool>(isCustom);
+    if (!nullToAbsent || ownerUserId != null) {
+      map['owner_user_id'] = Variable<String>(ownerUserId);
+    }
+    map['source'] = Variable<String>(source);
     map['custom_sync_pending'] = Variable<bool>(customSyncPending);
     map['custom_client_request_id'] = Variable<String>(customClientRequestId);
     map['custom_sync_fail_count'] = Variable<int>(customSyncFailCount);
@@ -517,6 +576,10 @@ class Food extends DataClass implements Insertable<Food> {
       carbPer100g: Value(carbPer100g),
       fatPer100g: Value(fatPer100g),
       isCustom: Value(isCustom),
+      ownerUserId: ownerUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ownerUserId),
+      source: Value(source),
       customSyncPending: Value(customSyncPending),
       customClientRequestId: Value(customClientRequestId),
       customSyncFailCount: Value(customSyncFailCount),
@@ -543,6 +606,8 @@ class Food extends DataClass implements Insertable<Food> {
       carbPer100g: serializer.fromJson<double>(json['carbPer100g']),
       fatPer100g: serializer.fromJson<double>(json['fatPer100g']),
       isCustom: serializer.fromJson<bool>(json['isCustom']),
+      ownerUserId: serializer.fromJson<String?>(json['ownerUserId']),
+      source: serializer.fromJson<String>(json['source']),
       customSyncPending: serializer.fromJson<bool>(json['customSyncPending']),
       customClientRequestId: serializer.fromJson<String>(
         json['customClientRequestId'],
@@ -570,6 +635,8 @@ class Food extends DataClass implements Insertable<Food> {
       'carbPer100g': serializer.toJson<double>(carbPer100g),
       'fatPer100g': serializer.toJson<double>(fatPer100g),
       'isCustom': serializer.toJson<bool>(isCustom),
+      'ownerUserId': serializer.toJson<String?>(ownerUserId),
+      'source': serializer.toJson<String>(source),
       'customSyncPending': serializer.toJson<bool>(customSyncPending),
       'customClientRequestId': serializer.toJson<String>(customClientRequestId),
       'customSyncFailCount': serializer.toJson<int>(customSyncFailCount),
@@ -589,6 +656,8 @@ class Food extends DataClass implements Insertable<Food> {
     double? carbPer100g,
     double? fatPer100g,
     bool? isCustom,
+    Value<String?> ownerUserId = const Value.absent(),
+    String? source,
     bool? customSyncPending,
     String? customClientRequestId,
     int? customSyncFailCount,
@@ -605,6 +674,8 @@ class Food extends DataClass implements Insertable<Food> {
     carbPer100g: carbPer100g ?? this.carbPer100g,
     fatPer100g: fatPer100g ?? this.fatPer100g,
     isCustom: isCustom ?? this.isCustom,
+    ownerUserId: ownerUserId.present ? ownerUserId.value : this.ownerUserId,
+    source: source ?? this.source,
     customSyncPending: customSyncPending ?? this.customSyncPending,
     customClientRequestId: customClientRequestId ?? this.customClientRequestId,
     customSyncFailCount: customSyncFailCount ?? this.customSyncFailCount,
@@ -633,6 +704,10 @@ class Food extends DataClass implements Insertable<Food> {
           ? data.fatPer100g.value
           : this.fatPer100g,
       isCustom: data.isCustom.present ? data.isCustom.value : this.isCustom,
+      ownerUserId: data.ownerUserId.present
+          ? data.ownerUserId.value
+          : this.ownerUserId,
+      source: data.source.present ? data.source.value : this.source,
       customSyncPending: data.customSyncPending.present
           ? data.customSyncPending.value
           : this.customSyncPending,
@@ -664,6 +739,8 @@ class Food extends DataClass implements Insertable<Food> {
           ..write('carbPer100g: $carbPer100g, ')
           ..write('fatPer100g: $fatPer100g, ')
           ..write('isCustom: $isCustom, ')
+          ..write('ownerUserId: $ownerUserId, ')
+          ..write('source: $source, ')
           ..write('customSyncPending: $customSyncPending, ')
           ..write('customClientRequestId: $customClientRequestId, ')
           ..write('customSyncFailCount: $customSyncFailCount, ')
@@ -685,6 +762,8 @@ class Food extends DataClass implements Insertable<Food> {
     carbPer100g,
     fatPer100g,
     isCustom,
+    ownerUserId,
+    source,
     customSyncPending,
     customClientRequestId,
     customSyncFailCount,
@@ -705,6 +784,8 @@ class Food extends DataClass implements Insertable<Food> {
           other.carbPer100g == this.carbPer100g &&
           other.fatPer100g == this.fatPer100g &&
           other.isCustom == this.isCustom &&
+          other.ownerUserId == this.ownerUserId &&
+          other.source == this.source &&
           other.customSyncPending == this.customSyncPending &&
           other.customClientRequestId == this.customClientRequestId &&
           other.customSyncFailCount == this.customSyncFailCount &&
@@ -723,6 +804,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
   final Value<double> carbPer100g;
   final Value<double> fatPer100g;
   final Value<bool> isCustom;
+  final Value<String?> ownerUserId;
+  final Value<String> source;
   final Value<bool> customSyncPending;
   final Value<String> customClientRequestId;
   final Value<int> customSyncFailCount;
@@ -740,6 +823,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     this.carbPer100g = const Value.absent(),
     this.fatPer100g = const Value.absent(),
     this.isCustom = const Value.absent(),
+    this.ownerUserId = const Value.absent(),
+    this.source = const Value.absent(),
     this.customSyncPending = const Value.absent(),
     this.customClientRequestId = const Value.absent(),
     this.customSyncFailCount = const Value.absent(),
@@ -758,6 +843,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     required double carbPer100g,
     required double fatPer100g,
     this.isCustom = const Value.absent(),
+    this.ownerUserId = const Value.absent(),
+    this.source = const Value.absent(),
     this.customSyncPending = const Value.absent(),
     this.customClientRequestId = const Value.absent(),
     this.customSyncFailCount = const Value.absent(),
@@ -782,6 +869,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Expression<double>? carbPer100g,
     Expression<double>? fatPer100g,
     Expression<bool>? isCustom,
+    Expression<String>? ownerUserId,
+    Expression<String>? source,
     Expression<bool>? customSyncPending,
     Expression<String>? customClientRequestId,
     Expression<int>? customSyncFailCount,
@@ -800,6 +889,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       if (carbPer100g != null) 'carb_per100g': carbPer100g,
       if (fatPer100g != null) 'fat_per100g': fatPer100g,
       if (isCustom != null) 'is_custom': isCustom,
+      if (ownerUserId != null) 'owner_user_id': ownerUserId,
+      if (source != null) 'source': source,
       if (customSyncPending != null) 'custom_sync_pending': customSyncPending,
       if (customClientRequestId != null)
         'custom_client_request_id': customClientRequestId,
@@ -822,6 +913,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Value<double>? carbPer100g,
     Value<double>? fatPer100g,
     Value<bool>? isCustom,
+    Value<String?>? ownerUserId,
+    Value<String>? source,
     Value<bool>? customSyncPending,
     Value<String>? customClientRequestId,
     Value<int>? customSyncFailCount,
@@ -840,6 +933,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       carbPer100g: carbPer100g ?? this.carbPer100g,
       fatPer100g: fatPer100g ?? this.fatPer100g,
       isCustom: isCustom ?? this.isCustom,
+      ownerUserId: ownerUserId ?? this.ownerUserId,
+      source: source ?? this.source,
       customSyncPending: customSyncPending ?? this.customSyncPending,
       customClientRequestId:
           customClientRequestId ?? this.customClientRequestId,
@@ -883,6 +978,12 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     if (isCustom.present) {
       map['is_custom'] = Variable<bool>(isCustom.value);
     }
+    if (ownerUserId.present) {
+      map['owner_user_id'] = Variable<String>(ownerUserId.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
     if (customSyncPending.present) {
       map['custom_sync_pending'] = Variable<bool>(customSyncPending.value);
     }
@@ -919,6 +1020,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
           ..write('carbPer100g: $carbPer100g, ')
           ..write('fatPer100g: $fatPer100g, ')
           ..write('isCustom: $isCustom, ')
+          ..write('ownerUserId: $ownerUserId, ')
+          ..write('source: $source, ')
           ..write('customSyncPending: $customSyncPending, ')
           ..write('customClientRequestId: $customClientRequestId, ')
           ..write('customSyncFailCount: $customSyncFailCount, ')
@@ -3103,6 +3206,17 @@ class $FastingRecordsTable extends FastingRecords
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
     'createdAtUtc',
   );
@@ -3130,6 +3244,7 @@ class $FastingRecordsTable extends FastingRecords
     syncStatus,
     serverId,
     deleted,
+    lastError,
     createdAtUtc,
   ];
   @override
@@ -3253,6 +3368,12 @@ class $FastingRecordsTable extends FastingRecords
         deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
       );
     }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
     if (data.containsKey('created_at_utc')) {
       context.handle(
         _createdAtUtcMeta,
@@ -3331,6 +3452,10 @@ class $FastingRecordsTable extends FastingRecords
         DriftSqlType.bool,
         data['${effectivePrefix}deleted'],
       )!,
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
       createdAtUtc: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at_utc'],
@@ -3390,6 +3515,9 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
   /// 本地 tombstone（/sync delete op 待上行标记；v13 起预留，当前无 UI 触发）。
   final bool deleted;
 
+  /// 最近一次上行失败原因；暂态失败保留 pending 待重试。
+  final String? lastError;
+
   /// 本地创建时间（UTC ISO8601）。
   final String createdAtUtc;
   const FastingRecord({
@@ -3407,6 +3535,7 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
     required this.syncStatus,
     this.serverId,
     required this.deleted,
+    this.lastError,
     required this.createdAtUtc,
   });
   @override
@@ -3432,6 +3561,9 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
       map['server_id'] = Variable<String>(serverId);
     }
     map['deleted'] = Variable<bool>(deleted);
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
     map['created_at_utc'] = Variable<String>(createdAtUtc);
     return map;
   }
@@ -3454,6 +3586,9 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
           ? const Value.absent()
           : Value(serverId),
       deleted: Value(deleted),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
       createdAtUtc: Value(createdAtUtc),
     );
   }
@@ -3480,6 +3615,7 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
       ),
       serverId: serializer.fromJson<String?>(json['serverId']),
       deleted: serializer.fromJson<bool>(json['deleted']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
       createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
     );
   }
@@ -3503,6 +3639,7 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
       ),
       'serverId': serializer.toJson<String?>(serverId),
       'deleted': serializer.toJson<bool>(deleted),
+      'lastError': serializer.toJson<String?>(lastError),
       'createdAtUtc': serializer.toJson<String>(createdAtUtc),
     };
   }
@@ -3522,6 +3659,7 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
     SyncStatus? syncStatus,
     Value<String?> serverId = const Value.absent(),
     bool? deleted,
+    Value<String?> lastError = const Value.absent(),
     String? createdAtUtc,
   }) => FastingRecord(
     localId: localId ?? this.localId,
@@ -3538,6 +3676,7 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
     syncStatus: syncStatus ?? this.syncStatus,
     serverId: serverId.present ? serverId.value : this.serverId,
     deleted: deleted ?? this.deleted,
+    lastError: lastError.present ? lastError.value : this.lastError,
     createdAtUtc: createdAtUtc ?? this.createdAtUtc,
   );
   FastingRecord copyWithCompanion(FastingRecordsCompanion data) {
@@ -3566,6 +3705,7 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
           : this.syncStatus,
       serverId: data.serverId.present ? data.serverId.value : this.serverId,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
       createdAtUtc: data.createdAtUtc.present
           ? data.createdAtUtc.value
           : this.createdAtUtc,
@@ -3589,6 +3729,7 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
           ..write('syncStatus: $syncStatus, ')
           ..write('serverId: $serverId, ')
           ..write('deleted: $deleted, ')
+          ..write('lastError: $lastError, ')
           ..write('createdAtUtc: $createdAtUtc')
           ..write(')'))
         .toString();
@@ -3610,6 +3751,7 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
     syncStatus,
     serverId,
     deleted,
+    lastError,
     createdAtUtc,
   );
   @override
@@ -3630,6 +3772,7 @@ class FastingRecord extends DataClass implements Insertable<FastingRecord> {
           other.syncStatus == this.syncStatus &&
           other.serverId == this.serverId &&
           other.deleted == this.deleted &&
+          other.lastError == this.lastError &&
           other.createdAtUtc == this.createdAtUtc);
 }
 
@@ -3648,6 +3791,7 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
   final Value<SyncStatus> syncStatus;
   final Value<String?> serverId;
   final Value<bool> deleted;
+  final Value<String?> lastError;
   final Value<String> createdAtUtc;
   final Value<int> rowid;
   const FastingRecordsCompanion({
@@ -3665,6 +3809,7 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
     this.syncStatus = const Value.absent(),
     this.serverId = const Value.absent(),
     this.deleted = const Value.absent(),
+    this.lastError = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -3683,6 +3828,7 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
     required SyncStatus syncStatus,
     this.serverId = const Value.absent(),
     this.deleted = const Value.absent(),
+    this.lastError = const Value.absent(),
     required String createdAtUtc,
     this.rowid = const Value.absent(),
   }) : localId = Value(localId),
@@ -3713,6 +3859,7 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
     Expression<String>? syncStatus,
     Expression<String>? serverId,
     Expression<bool>? deleted,
+    Expression<String>? lastError,
     Expression<String>? createdAtUtc,
     Expression<int>? rowid,
   }) {
@@ -3731,6 +3878,7 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
       if (syncStatus != null) 'sync_status': syncStatus,
       if (serverId != null) 'server_id': serverId,
       if (deleted != null) 'deleted': deleted,
+      if (lastError != null) 'last_error': lastError,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
       if (rowid != null) 'rowid': rowid,
     });
@@ -3751,6 +3899,7 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
     Value<SyncStatus>? syncStatus,
     Value<String?>? serverId,
     Value<bool>? deleted,
+    Value<String?>? lastError,
     Value<String>? createdAtUtc,
     Value<int>? rowid,
   }) {
@@ -3769,6 +3918,7 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
       syncStatus: syncStatus ?? this.syncStatus,
       serverId: serverId ?? this.serverId,
       deleted: deleted ?? this.deleted,
+      lastError: lastError ?? this.lastError,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
       rowid: rowid ?? this.rowid,
     );
@@ -3821,6 +3971,9 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
     if (deleted.present) {
       map['deleted'] = Variable<bool>(deleted.value);
     }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
     if (createdAtUtc.present) {
       map['created_at_utc'] = Variable<String>(createdAtUtc.value);
     }
@@ -3847,6 +4000,7 @@ class FastingRecordsCompanion extends UpdateCompanion<FastingRecord> {
           ..write('syncStatus: $syncStatus, ')
           ..write('serverId: $serverId, ')
           ..write('deleted: $deleted, ')
+          ..write('lastError: $lastError, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3961,6 +4115,17 @@ class $WaterLogsTable extends WaterLogs
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
     'createdAtUtc',
   );
@@ -3983,6 +4148,7 @@ class $WaterLogsTable extends WaterLogs
     serverId,
     syncState,
     deleted,
+    lastError,
     createdAtUtc,
   ];
   @override
@@ -4061,6 +4227,12 @@ class $WaterLogsTable extends WaterLogs
         deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
       );
     }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
     if (data.containsKey('created_at_utc')) {
       context.handle(
         _createdAtUtcMeta,
@@ -4119,6 +4291,10 @@ class $WaterLogsTable extends WaterLogs
         DriftSqlType.bool,
         data['${effectivePrefix}deleted'],
       )!,
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
       createdAtUtc: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at_utc'],
@@ -4165,6 +4341,9 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
   /// 本地 tombstone：已上行记录的撤销标记（上行 delete op 后物理清除）。
   final bool deleted;
 
+  /// 最近一次上行失败原因；删除被拒绝时 tombstone 继续保留。
+  final String? lastError;
+
   /// 本地创建时间（UTC ISO8601）。
   final String createdAtUtc;
   const WaterLog({
@@ -4177,6 +4356,7 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
     this.serverId,
     required this.syncState,
     required this.deleted,
+    this.lastError,
     required this.createdAtUtc,
   });
   @override
@@ -4197,6 +4377,9 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
       );
     }
     map['deleted'] = Variable<bool>(deleted);
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
     map['created_at_utc'] = Variable<String>(createdAtUtc);
     return map;
   }
@@ -4214,6 +4397,9 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
           : Value(serverId),
       syncState: Value(syncState),
       deleted: Value(deleted),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
       createdAtUtc: Value(createdAtUtc),
     );
   }
@@ -4235,6 +4421,7 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
         serializer.fromJson<String>(json['syncState']),
       ),
       deleted: serializer.fromJson<bool>(json['deleted']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
       createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
     );
   }
@@ -4253,6 +4440,7 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
         $WaterLogsTable.$convertersyncState.toJson(syncState),
       ),
       'deleted': serializer.toJson<bool>(deleted),
+      'lastError': serializer.toJson<String?>(lastError),
       'createdAtUtc': serializer.toJson<String>(createdAtUtc),
     };
   }
@@ -4267,6 +4455,7 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
     Value<String?> serverId = const Value.absent(),
     WaterSyncState? syncState,
     bool? deleted,
+    Value<String?> lastError = const Value.absent(),
     String? createdAtUtc,
   }) => WaterLog(
     localId: localId ?? this.localId,
@@ -4278,6 +4467,7 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
     serverId: serverId.present ? serverId.value : this.serverId,
     syncState: syncState ?? this.syncState,
     deleted: deleted ?? this.deleted,
+    lastError: lastError.present ? lastError.value : this.lastError,
     createdAtUtc: createdAtUtc ?? this.createdAtUtc,
   );
   WaterLog copyWithCompanion(WaterLogsCompanion data) {
@@ -4295,6 +4485,7 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
       serverId: data.serverId.present ? data.serverId.value : this.serverId,
       syncState: data.syncState.present ? data.syncState.value : this.syncState,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
       createdAtUtc: data.createdAtUtc.present
           ? data.createdAtUtc.value
           : this.createdAtUtc,
@@ -4313,6 +4504,7 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
           ..write('serverId: $serverId, ')
           ..write('syncState: $syncState, ')
           ..write('deleted: $deleted, ')
+          ..write('lastError: $lastError, ')
           ..write('createdAtUtc: $createdAtUtc')
           ..write(')'))
         .toString();
@@ -4329,6 +4521,7 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
     serverId,
     syncState,
     deleted,
+    lastError,
     createdAtUtc,
   );
   @override
@@ -4344,6 +4537,7 @@ class WaterLog extends DataClass implements Insertable<WaterLog> {
           other.serverId == this.serverId &&
           other.syncState == this.syncState &&
           other.deleted == this.deleted &&
+          other.lastError == this.lastError &&
           other.createdAtUtc == this.createdAtUtc);
 }
 
@@ -4357,6 +4551,7 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
   final Value<String?> serverId;
   final Value<WaterSyncState> syncState;
   final Value<bool> deleted;
+  final Value<String?> lastError;
   final Value<String> createdAtUtc;
   final Value<int> rowid;
   const WaterLogsCompanion({
@@ -4369,6 +4564,7 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
     this.serverId = const Value.absent(),
     this.syncState = const Value.absent(),
     this.deleted = const Value.absent(),
+    this.lastError = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -4382,6 +4578,7 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
     this.serverId = const Value.absent(),
     this.syncState = const Value.absent(),
     this.deleted = const Value.absent(),
+    this.lastError = const Value.absent(),
     required String createdAtUtc,
     this.rowid = const Value.absent(),
   }) : localId = Value(localId),
@@ -4400,6 +4597,7 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
     Expression<String>? serverId,
     Expression<String>? syncState,
     Expression<bool>? deleted,
+    Expression<String>? lastError,
     Expression<String>? createdAtUtc,
     Expression<int>? rowid,
   }) {
@@ -4413,6 +4611,7 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
       if (serverId != null) 'server_id': serverId,
       if (syncState != null) 'sync_state': syncState,
       if (deleted != null) 'deleted': deleted,
+      if (lastError != null) 'last_error': lastError,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
       if (rowid != null) 'rowid': rowid,
     });
@@ -4428,6 +4627,7 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
     Value<String?>? serverId,
     Value<WaterSyncState>? syncState,
     Value<bool>? deleted,
+    Value<String?>? lastError,
     Value<String>? createdAtUtc,
     Value<int>? rowid,
   }) {
@@ -4441,6 +4641,7 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
       serverId: serverId ?? this.serverId,
       syncState: syncState ?? this.syncState,
       deleted: deleted ?? this.deleted,
+      lastError: lastError ?? this.lastError,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
       rowid: rowid ?? this.rowid,
     );
@@ -4478,6 +4679,9 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
     if (deleted.present) {
       map['deleted'] = Variable<bool>(deleted.value);
     }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
     if (createdAtUtc.present) {
       map['created_at_utc'] = Variable<String>(createdAtUtc.value);
     }
@@ -4499,6 +4703,7 @@ class WaterLogsCompanion extends UpdateCompanion<WaterLog> {
           ..write('serverId: $serverId, ')
           ..write('syncState: $syncState, ')
           ..write('deleted: $deleted, ')
+          ..write('lastError: $lastError, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4640,6 +4845,17 @@ class $ExerciseLogsTable extends ExerciseLogs
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
     'createdAtUtc',
   );
@@ -4665,6 +4881,7 @@ class $ExerciseLogsTable extends ExerciseLogs
     serverId,
     syncState,
     deleted,
+    lastError,
     createdAtUtc,
   ];
   @override
@@ -4763,6 +4980,12 @@ class $ExerciseLogsTable extends ExerciseLogs
         deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
       );
     }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
     if (data.containsKey('created_at_utc')) {
       context.handle(
         _createdAtUtcMeta,
@@ -4833,6 +5056,10 @@ class $ExerciseLogsTable extends ExerciseLogs
         DriftSqlType.bool,
         data['${effectivePrefix}deleted'],
       )!,
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
       createdAtUtc: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at_utc'],
@@ -4889,6 +5116,9 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
   /// 本地 tombstone：已上行记录的撤销/删除标记（上行 delete op 后物理清除）。
   final bool deleted;
 
+  /// 最近一次上行失败原因；删除被拒绝时 tombstone 继续保留。
+  final String? lastError;
+
   /// 本地创建时间（UTC ISO8601）。
   final String createdAtUtc;
   const ExerciseLog({
@@ -4904,6 +5134,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
     this.serverId,
     required this.syncState,
     required this.deleted,
+    this.lastError,
     required this.createdAtUtc,
   });
   @override
@@ -4931,6 +5162,9 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
       );
     }
     map['deleted'] = Variable<bool>(deleted);
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
     map['created_at_utc'] = Variable<String>(createdAtUtc);
     return map;
   }
@@ -4955,6 +5189,9 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
           : Value(serverId),
       syncState: Value(syncState),
       deleted: Value(deleted),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
       createdAtUtc: Value(createdAtUtc),
     );
   }
@@ -4979,6 +5216,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
         serializer.fromJson<String>(json['syncState']),
       ),
       deleted: serializer.fromJson<bool>(json['deleted']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
       createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
     );
   }
@@ -5000,6 +5238,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
         $ExerciseLogsTable.$convertersyncState.toJson(syncState),
       ),
       'deleted': serializer.toJson<bool>(deleted),
+      'lastError': serializer.toJson<String?>(lastError),
       'createdAtUtc': serializer.toJson<String>(createdAtUtc),
     };
   }
@@ -5017,6 +5256,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
     Value<String?> serverId = const Value.absent(),
     ExerciseSyncState? syncState,
     bool? deleted,
+    Value<String?> lastError = const Value.absent(),
     String? createdAtUtc,
   }) => ExerciseLog(
     localId: localId ?? this.localId,
@@ -5031,6 +5271,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
     serverId: serverId.present ? serverId.value : this.serverId,
     syncState: syncState ?? this.syncState,
     deleted: deleted ?? this.deleted,
+    lastError: lastError.present ? lastError.value : this.lastError,
     createdAtUtc: createdAtUtc ?? this.createdAtUtc,
   );
   ExerciseLog copyWithCompanion(ExerciseLogsCompanion data) {
@@ -5051,6 +5292,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
       serverId: data.serverId.present ? data.serverId.value : this.serverId,
       syncState: data.syncState.present ? data.syncState.value : this.syncState,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
       createdAtUtc: data.createdAtUtc.present
           ? data.createdAtUtc.value
           : this.createdAtUtc,
@@ -5072,6 +5314,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
           ..write('serverId: $serverId, ')
           ..write('syncState: $syncState, ')
           ..write('deleted: $deleted, ')
+          ..write('lastError: $lastError, ')
           ..write('createdAtUtc: $createdAtUtc')
           ..write(')'))
         .toString();
@@ -5091,6 +5334,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
     serverId,
     syncState,
     deleted,
+    lastError,
     createdAtUtc,
   );
   @override
@@ -5109,6 +5353,7 @@ class ExerciseLog extends DataClass implements Insertable<ExerciseLog> {
           other.serverId == this.serverId &&
           other.syncState == this.syncState &&
           other.deleted == this.deleted &&
+          other.lastError == this.lastError &&
           other.createdAtUtc == this.createdAtUtc);
 }
 
@@ -5125,6 +5370,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
   final Value<String?> serverId;
   final Value<ExerciseSyncState> syncState;
   final Value<bool> deleted;
+  final Value<String?> lastError;
   final Value<String> createdAtUtc;
   final Value<int> rowid;
   const ExerciseLogsCompanion({
@@ -5140,6 +5386,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
     this.serverId = const Value.absent(),
     this.syncState = const Value.absent(),
     this.deleted = const Value.absent(),
+    this.lastError = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -5156,6 +5403,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
     this.serverId = const Value.absent(),
     this.syncState = const Value.absent(),
     this.deleted = const Value.absent(),
+    this.lastError = const Value.absent(),
     required String createdAtUtc,
     this.rowid = const Value.absent(),
   }) : localId = Value(localId),
@@ -5178,6 +5426,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
     Expression<String>? serverId,
     Expression<String>? syncState,
     Expression<bool>? deleted,
+    Expression<String>? lastError,
     Expression<String>? createdAtUtc,
     Expression<int>? rowid,
   }) {
@@ -5194,6 +5443,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
       if (serverId != null) 'server_id': serverId,
       if (syncState != null) 'sync_state': syncState,
       if (deleted != null) 'deleted': deleted,
+      if (lastError != null) 'last_error': lastError,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
       if (rowid != null) 'rowid': rowid,
     });
@@ -5212,6 +5462,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
     Value<String?>? serverId,
     Value<ExerciseSyncState>? syncState,
     Value<bool>? deleted,
+    Value<String?>? lastError,
     Value<String>? createdAtUtc,
     Value<int>? rowid,
   }) {
@@ -5228,6 +5479,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
       serverId: serverId ?? this.serverId,
       syncState: syncState ?? this.syncState,
       deleted: deleted ?? this.deleted,
+      lastError: lastError ?? this.lastError,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
       rowid: rowid ?? this.rowid,
     );
@@ -5274,6 +5526,9 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
     if (deleted.present) {
       map['deleted'] = Variable<bool>(deleted.value);
     }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
     if (createdAtUtc.present) {
       map['created_at_utc'] = Variable<String>(createdAtUtc.value);
     }
@@ -5298,6 +5553,7 @@ class ExerciseLogsCompanion extends UpdateCompanion<ExerciseLog> {
           ..write('serverId: $serverId, ')
           ..write('syncState: $syncState, ')
           ..write('deleted: $deleted, ')
+          ..write('lastError: $lastError, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -5350,6 +5606,8 @@ typedef $$FoodsTableCreateCompanionBuilder =
       required double carbPer100g,
       required double fatPer100g,
       Value<bool> isCustom,
+      Value<String?> ownerUserId,
+      Value<String> source,
       Value<bool> customSyncPending,
       Value<String> customClientRequestId,
       Value<int> customSyncFailCount,
@@ -5369,6 +5627,8 @@ typedef $$FoodsTableUpdateCompanionBuilder =
       Value<double> carbPer100g,
       Value<double> fatPer100g,
       Value<bool> isCustom,
+      Value<String?> ownerUserId,
+      Value<String> source,
       Value<bool> customSyncPending,
       Value<String> customClientRequestId,
       Value<int> customSyncFailCount,
@@ -5455,6 +5715,16 @@ class $$FoodsTableFilterComposer extends Composer<_$AppDatabase, $FoodsTable> {
 
   ColumnFilters<bool> get isCustom => $composableBuilder(
     column: $table.isCustom,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ownerUserId => $composableBuilder(
+    column: $table.ownerUserId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5568,6 +5838,16 @@ class $$FoodsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get ownerUserId => $composableBuilder(
+    column: $table.ownerUserId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get customSyncPending => $composableBuilder(
     column: $table.customSyncPending,
     builder: (column) => ColumnOrderings(column),
@@ -5640,6 +5920,14 @@ class $$FoodsTableAnnotationComposer
 
   GeneratedColumn<bool> get isCustom =>
       $composableBuilder(column: $table.isCustom, builder: (column) => column);
+
+  GeneratedColumn<String> get ownerUserId => $composableBuilder(
+    column: $table.ownerUserId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
 
   GeneratedColumn<bool> get customSyncPending => $composableBuilder(
     column: $table.customSyncPending,
@@ -5730,6 +6018,8 @@ class $$FoodsTableTableManager
                 Value<double> carbPer100g = const Value.absent(),
                 Value<double> fatPer100g = const Value.absent(),
                 Value<bool> isCustom = const Value.absent(),
+                Value<String?> ownerUserId = const Value.absent(),
+                Value<String> source = const Value.absent(),
                 Value<bool> customSyncPending = const Value.absent(),
                 Value<String> customClientRequestId = const Value.absent(),
                 Value<int> customSyncFailCount = const Value.absent(),
@@ -5747,6 +6037,8 @@ class $$FoodsTableTableManager
                 carbPer100g: carbPer100g,
                 fatPer100g: fatPer100g,
                 isCustom: isCustom,
+                ownerUserId: ownerUserId,
+                source: source,
                 customSyncPending: customSyncPending,
                 customClientRequestId: customClientRequestId,
                 customSyncFailCount: customSyncFailCount,
@@ -5766,6 +6058,8 @@ class $$FoodsTableTableManager
                 required double carbPer100g,
                 required double fatPer100g,
                 Value<bool> isCustom = const Value.absent(),
+                Value<String?> ownerUserId = const Value.absent(),
+                Value<String> source = const Value.absent(),
                 Value<bool> customSyncPending = const Value.absent(),
                 Value<String> customClientRequestId = const Value.absent(),
                 Value<int> customSyncFailCount = const Value.absent(),
@@ -5783,6 +6077,8 @@ class $$FoodsTableTableManager
                 carbPer100g: carbPer100g,
                 fatPer100g: fatPer100g,
                 isCustom: isCustom,
+                ownerUserId: ownerUserId,
+                source: source,
                 customSyncPending: customSyncPending,
                 customClientRequestId: customClientRequestId,
                 customSyncFailCount: customSyncFailCount,
@@ -6871,6 +7167,7 @@ typedef $$FastingRecordsTableCreateCompanionBuilder =
       required SyncStatus syncStatus,
       Value<String?> serverId,
       Value<bool> deleted,
+      Value<String?> lastError,
       required String createdAtUtc,
       Value<int> rowid,
     });
@@ -6890,6 +7187,7 @@ typedef $$FastingRecordsTableUpdateCompanionBuilder =
       Value<SyncStatus> syncStatus,
       Value<String?> serverId,
       Value<bool> deleted,
+      Value<String?> lastError,
       Value<String> createdAtUtc,
       Value<int> rowid,
     });
@@ -6971,6 +7269,11 @@ class $$FastingRecordsTableFilterComposer
 
   ColumnFilters<bool> get deleted => $composableBuilder(
     column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7059,6 +7362,11 @@ class $$FastingRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
     builder: (column) => ColumnOrderings(column),
@@ -7127,6 +7435,9 @@ class $$FastingRecordsTableAnnotationComposer
   GeneratedColumn<bool> get deleted =>
       $composableBuilder(column: $table.deleted, builder: (column) => column);
 
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
   GeneratedColumn<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
     builder: (column) => column,
@@ -7180,6 +7491,7 @@ class $$FastingRecordsTableTableManager
                 Value<SyncStatus> syncStatus = const Value.absent(),
                 Value<String?> serverId = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
                 Value<String> createdAtUtc = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FastingRecordsCompanion(
@@ -7197,6 +7509,7 @@ class $$FastingRecordsTableTableManager
                 syncStatus: syncStatus,
                 serverId: serverId,
                 deleted: deleted,
+                lastError: lastError,
                 createdAtUtc: createdAtUtc,
                 rowid: rowid,
               ),
@@ -7216,6 +7529,7 @@ class $$FastingRecordsTableTableManager
                 required SyncStatus syncStatus,
                 Value<String?> serverId = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
                 required String createdAtUtc,
                 Value<int> rowid = const Value.absent(),
               }) => FastingRecordsCompanion.insert(
@@ -7233,6 +7547,7 @@ class $$FastingRecordsTableTableManager
                 syncStatus: syncStatus,
                 serverId: serverId,
                 deleted: deleted,
+                lastError: lastError,
                 createdAtUtc: createdAtUtc,
                 rowid: rowid,
               ),
@@ -7272,6 +7587,7 @@ typedef $$WaterLogsTableCreateCompanionBuilder =
       Value<String?> serverId,
       Value<WaterSyncState> syncState,
       Value<bool> deleted,
+      Value<String?> lastError,
       required String createdAtUtc,
       Value<int> rowid,
     });
@@ -7286,6 +7602,7 @@ typedef $$WaterLogsTableUpdateCompanionBuilder =
       Value<String?> serverId,
       Value<WaterSyncState> syncState,
       Value<bool> deleted,
+      Value<String?> lastError,
       Value<String> createdAtUtc,
       Value<int> rowid,
     });
@@ -7342,6 +7659,11 @@ class $$WaterLogsTableFilterComposer
 
   ColumnFilters<bool> get deleted => $composableBuilder(
     column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7405,6 +7727,11 @@ class $$WaterLogsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
     builder: (column) => ColumnOrderings(column),
@@ -7451,6 +7778,9 @@ class $$WaterLogsTableAnnotationComposer
   GeneratedColumn<bool> get deleted =>
       $composableBuilder(column: $table.deleted, builder: (column) => column);
 
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
   GeneratedColumn<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
     builder: (column) => column,
@@ -7494,6 +7824,7 @@ class $$WaterLogsTableTableManager
                 Value<String?> serverId = const Value.absent(),
                 Value<WaterSyncState> syncState = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
                 Value<String> createdAtUtc = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => WaterLogsCompanion(
@@ -7506,6 +7837,7 @@ class $$WaterLogsTableTableManager
                 serverId: serverId,
                 syncState: syncState,
                 deleted: deleted,
+                lastError: lastError,
                 createdAtUtc: createdAtUtc,
                 rowid: rowid,
               ),
@@ -7520,6 +7852,7 @@ class $$WaterLogsTableTableManager
                 Value<String?> serverId = const Value.absent(),
                 Value<WaterSyncState> syncState = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
                 required String createdAtUtc,
                 Value<int> rowid = const Value.absent(),
               }) => WaterLogsCompanion.insert(
@@ -7532,6 +7865,7 @@ class $$WaterLogsTableTableManager
                 serverId: serverId,
                 syncState: syncState,
                 deleted: deleted,
+                lastError: lastError,
                 createdAtUtc: createdAtUtc,
                 rowid: rowid,
               ),
@@ -7571,6 +7905,7 @@ typedef $$ExerciseLogsTableCreateCompanionBuilder =
       Value<String?> serverId,
       Value<ExerciseSyncState> syncState,
       Value<bool> deleted,
+      Value<String?> lastError,
       required String createdAtUtc,
       Value<int> rowid,
     });
@@ -7588,6 +7923,7 @@ typedef $$ExerciseLogsTableUpdateCompanionBuilder =
       Value<String?> serverId,
       Value<ExerciseSyncState> syncState,
       Value<bool> deleted,
+      Value<String?> lastError,
       Value<String> createdAtUtc,
       Value<int> rowid,
     });
@@ -7659,6 +7995,11 @@ class $$ExerciseLogsTableFilterComposer
 
   ColumnFilters<bool> get deleted => $composableBuilder(
     column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7737,6 +8078,11 @@ class $$ExerciseLogsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
     builder: (column) => ColumnOrderings(column),
@@ -7792,6 +8138,9 @@ class $$ExerciseLogsTableAnnotationComposer
   GeneratedColumn<bool> get deleted =>
       $composableBuilder(column: $table.deleted, builder: (column) => column);
 
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
   GeneratedColumn<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
     builder: (column) => column,
@@ -7841,6 +8190,7 @@ class $$ExerciseLogsTableTableManager
                 Value<String?> serverId = const Value.absent(),
                 Value<ExerciseSyncState> syncState = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
                 Value<String> createdAtUtc = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ExerciseLogsCompanion(
@@ -7856,6 +8206,7 @@ class $$ExerciseLogsTableTableManager
                 serverId: serverId,
                 syncState: syncState,
                 deleted: deleted,
+                lastError: lastError,
                 createdAtUtc: createdAtUtc,
                 rowid: rowid,
               ),
@@ -7873,6 +8224,7 @@ class $$ExerciseLogsTableTableManager
                 Value<String?> serverId = const Value.absent(),
                 Value<ExerciseSyncState> syncState = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
                 required String createdAtUtc,
                 Value<int> rowid = const Value.absent(),
               }) => ExerciseLogsCompanion.insert(
@@ -7888,6 +8240,7 @@ class $$ExerciseLogsTableTableManager
                 serverId: serverId,
                 syncState: syncState,
                 deleted: deleted,
+                lastError: lastError,
                 createdAtUtc: createdAtUtc,
                 rowid: rowid,
               ),

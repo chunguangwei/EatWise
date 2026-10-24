@@ -180,14 +180,21 @@ export function computeSignals(
     ['fat', totals.fatG, targets.fatG],
   ];
   return pairs.map(([nutrient, actual, target]) => {
-    const percent = target > 0 ? Math.round((actual / target) * 100) : 0;
+    const rawPercent = target > 0 ? (actual * 100) / target : 0;
     const t = THRESHOLDS[nutrient];
     let level: Signal['level'] = 'red';
-    if (percent >= t.green[0] && percent <= t.green[1]) level = 'green';
-    else if (t.yellow.some(([lo, hi]) => percent >= lo && percent < hi)) level = 'yellow';
+    if (rawPercent >= t.green[0] && rawPercent <= t.green[1]) level = 'green';
+    else if (t.yellow.some(([lo, hi]) => rawPercent >= lo && rawPercent <= hi)) {
+      level = 'yellow';
+    }
     // 方向按 percent 相对 green 区间判定：偏高黄灯（如 kcal 110–130%）是「吃多了」而非「吃少了」
-    const zone = level === 'green' ? 'ok' : percent > t.green[1] ? 'high' : 'low';
-    return { nutrient, level, percent, adviceKey: `advice.${nutrient}.${zone}` };
+    const zone = level === 'green' ? 'ok' : rawPercent > t.green[1] ? 'high' : 'low';
+    return {
+      nutrient,
+      level,
+      percent: Math.round(rawPercent),
+      adviceKey: `advice.${nutrient}.${zone}`,
+    };
   });
 }
 

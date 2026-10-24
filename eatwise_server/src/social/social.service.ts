@@ -6,7 +6,7 @@ import { newId, payloadHash } from '../common/utils/id.util';
 import { clampPageLimit } from '../common/utils/pagination.util';
 import { StreakService } from '../streak/streak.service';
 import { ContentModerationService } from './moderation/content-moderation.service';
-import { CreatePostDto, ReviewPostDto } from './social.dto';
+import { allowedPostImageUrls, CreatePostDto, ReviewPostDto } from './social.dto';
 
 const FEED_PAGE_MAX = 50;
 
@@ -43,7 +43,11 @@ export class SocialService {
     const hit = await this.driver.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
     if (hit) {
       if (hit.payloadHash !== hash) throw err.payloadMismatch();
-      return hit.responseBody;
+      const cached = hit.responseBody;
+      if (cached !== null && typeof cached === 'object' && 'imageUrls' in cached) {
+        return { ...cached, imageUrls: allowedPostImageUrls(cached.imageUrls) };
+      }
+      return cached;
     }
 
     // 社区开放模式（2026-09-08 决策）：发帖直接 approved 上架，不做先审后发。
@@ -300,7 +304,7 @@ export class SocialService {
     return {
       id: post.id,
       text: post.text,
-      imageUrls: post.imageUrls,
+      imageUrls: allowedPostImageUrls(post.imageUrls),
       author: {
         id: post.userId,
         nickname: names.get(post.userId) ?? null,
@@ -348,7 +352,7 @@ export class SocialService {
         return {
           id: post.id,
           text: post.text,
-          imageUrls: post.imageUrls,
+          imageUrls: allowedPostImageUrls(post.imageUrls),
           streakDaysAtPost: post.streakDaysAtPost,
           likeCount: post.likeCount,
           likedByMe: await this.driver.hasPostLike(post.id, viewerId),

@@ -105,6 +105,7 @@ Dio createApiDio({
     final authInterceptor = AuthInterceptor(
       tokenStore: tokenStore,
       refreshDio: refreshDio,
+      apiBaseUrl: resolvedConfig.baseUrl,
       onSessionCleared: onSessionCleared,
     );
     authInterceptor.dio = dio;

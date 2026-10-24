@@ -48,11 +48,11 @@ abstract final class AppTheme {
       colorScheme: ColorScheme(
         brightness: brightness,
         primary: colors.brandPrimary,
-        onPrimary: Colors.white,
+        onPrimary: readableForeground(colors.brandPrimary),
         secondary: colors.brandAccent,
-        onSecondary: colors.textPrimary,
+        onSecondary: readableForeground(colors.brandAccent),
         error: colors.signalRed,
-        onError: Colors.white,
+        onError: readableForeground(colors.signalRed),
         surface: colors.bgSecondary,
         onSurface: colors.textPrimary,
       ),
@@ -71,8 +71,8 @@ abstract final class AppTheme {
       // 由调用点显式覆盖）。
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: colors.brandPrimary,
-          foregroundColor: Colors.white,
+          backgroundColor: colors.actionPrimary,
+          foregroundColor: colors.onActionPrimary,
           disabledBackgroundColor: colors.fillSubtle,
           disabledForegroundColor: colors.textSecondary,
           minimumSize: const Size(64, AppSpacing.s12),

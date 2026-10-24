@@ -139,12 +139,15 @@ class _MilestoneBadgeCard extends ConsumerWidget {
                 FilledButton(
                   onPressed: onDismiss,
                   style: FilledButton.styleFrom(
-                    backgroundColor: colors.brandPrimary,
+                    backgroundColor: colors.actionPrimary,
+                    foregroundColor: colors.onActionPrimary,
                     minimumSize: const Size(0, AppSpacing.s12),
                   ),
                   child: Text(
                     t.streak.milestone.accept,
-                    style: textStyles.textBase.copyWith(color: Colors.white),
+                    style: textStyles.textBase.copyWith(
+                      color: colors.onActionPrimary,
+                    ),
                   ),
                 ),
               ],

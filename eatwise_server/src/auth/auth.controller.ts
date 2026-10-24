@@ -1,4 +1,5 @@
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { CurrentUser, AuthUser } from './current-user.decorator';
 import {
   ChangePasswordDto,
@@ -31,8 +32,9 @@ export class AuthController {
     return this.auth.register(dto.username, dto.password, dto.device);
   }
 
-  /** A2b 账号密码登录 */
+  /** A2b 账号密码登录：独立 5 次/分钟/IP，仍由全局 ThrottlerGuard 执行 */
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('login')
   @HttpCode(200)
   login(@Body() dto: LoginDto) {

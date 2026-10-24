@@ -76,8 +76,8 @@ describe('FastingRecord sync (e2e)', () => {
       .expect(200);
     expect(replay.body.data.results[0].serverEntry.id).toBe(serverId);
 
-    // 同键不同体 → IDEMPOTENCY_PAYLOAD_MISMATCH。
-    const mismatch = await request(server)
+    // result/isQualified 是服务端派生值：同键仅改派生值仍按首次记录成功重放。
+    const derivedReplay = await request(server)
       .post('/v1/sync/push')
       .set(auth())
       .send({
@@ -87,6 +87,24 @@ describe('FastingRecord sync (e2e)', () => {
             entity: 'fastingRecord',
             op: 'create',
             payload: { ...payload, result: 'broken', isQualified: false },
+          },
+        ],
+      })
+      .expect(200);
+    expect(derivedReplay.body.data.results[0].status).toBe('applied');
+    expect(derivedReplay.body.data.results[0].serverEntry.result).toBe('completed');
+
+    // 同键修改真实计划锚点 → IDEMPOTENCY_PAYLOAD_MISMATCH。
+    const mismatch = await request(server)
+      .post('/v1/sync/push')
+      .set(auth())
+      .send({
+        ops: [
+          {
+            clientRequestId,
+            entity: 'fastingRecord',
+            op: 'create',
+            payload: { ...payload, plannedStartAt: '2026-07-31T11:00:00.000Z' },
           },
         ],
       })

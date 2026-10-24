@@ -6,6 +6,7 @@ import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/core/widgets/chart_labels.dart';
 import 'package:eatwise/core/widgets/glass.dart';
+import 'package:eatwise/core/widgets/quiet_tabs.dart';
 import 'package:eatwise/features/reports/application/report_aggregation.dart'
     show TrendBucket, TrendPoint;
 import 'package:eatwise/features/reports/application/reports_controller.dart';
@@ -93,6 +94,13 @@ class _ReportTrendSectionState extends ConsumerState<ReportTrendSection> {
     final drawValues = isRate
         ? values.map((v) => v == null ? null : v * 100).toList(growable: false)
         : values;
+    final latestDrawIndex = drawValues.lastIndexWhere((value) => value != null);
+    final latestDrawValue = latestDrawIndex < 0
+        ? null
+        : drawValues[latestDrawIndex]!;
+    final showLatestMetric =
+        latestDrawValue != null &&
+        !(isFastingConsistency && !range.isLongRange);
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
@@ -109,107 +117,83 @@ class _ReportTrendSectionState extends ConsumerState<ReportTrendSection> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: AppSpacing.s3),
-          // 维度切换（三维）。
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<ReportDimension>(
-              showSelectedIcon: false,
-              style: SegmentedButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s2),
-              ),
-              segments: <ButtonSegment<ReportDimension>>[
-                ButtonSegment<ReportDimension>(
-                  value: ReportDimension.weight,
-                  label: Text(
-                    trend.dim.weight,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                ButtonSegment<ReportDimension>(
-                  value: ReportDimension.kcal,
-                  label: Text(
-                    trend.dim.kcal,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                ButtonSegment<ReportDimension>(
-                  value: ReportDimension.fasting,
-                  label: Text(
-                    trend.dim.fasting,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-              selected: <ReportDimension>{dimension},
-              onSelectionChanged: (selection) => ref
-                  .read(reportDimensionProvider.notifier)
-                  .select(selection.first),
-            ),
-          ),
           const SizedBox(height: AppSpacing.s2),
-          // 时间范围切换（7/30/90/365 天）。四档横排在窄屏会挤，
-          // 故整行可横向滚动（英文 "1y"/"90d" 较短，中文「90 天」较长）。
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SegmentedButton<ReportRange>(
-              showSelectedIcon: false,
-              style: SegmentedButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s2),
-              ),
-              segments: <ButtonSegment<ReportRange>>[
-                ButtonSegment<ReportRange>(
-                  value: ReportRange.d7,
-                  label: Text(trend.range.d7, maxLines: 1),
-                ),
-                ButtonSegment<ReportRange>(
-                  value: ReportRange.d30,
-                  label: Text(trend.range.d30, maxLines: 1),
-                ),
-                ButtonSegment<ReportRange>(
-                  value: ReportRange.d90,
-                  label: Text(trend.range.d90, maxLines: 1),
-                ),
-                ButtonSegment<ReportRange>(
-                  value: ReportRange.d365,
-                  label: Text(trend.range.d365, maxLines: 1),
-                ),
-              ],
-              selected: <ReportRange>{range},
-              onSelectionChanged: (selection) => ref
-                  .read(reportRangeProvider.notifier)
-                  .select(selection.first),
-            ),
+          AppQuietTabs<ReportDimension>(
+            values: const <ReportDimension>[
+              ReportDimension.weight,
+              ReportDimension.kcal,
+              ReportDimension.fasting,
+            ],
+            selected: dimension,
+            labelOf: (value) => switch (value) {
+              ReportDimension.weight => trend.dim.weight,
+              ReportDimension.kcal => trend.dim.kcal,
+              ReportDimension.fasting => trend.dim.fasting,
+            },
+            onSelected: ref.read(reportDimensionProvider.notifier).select,
           ),
-          // 断食维度：时长 / 坚持度双视图切换（P0：时长趋势此前完全缺失）。
-          if (dimension == ReportDimension.fasting) ...<Widget>[
-            const SizedBox(height: AppSpacing.s2),
-            SegmentedButton<_FastingView>(
-              showSelectedIcon: false,
-              style: SegmentedButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s2),
-              ),
-              segments: <ButtonSegment<_FastingView>>[
-                ButtonSegment<_FastingView>(
-                  value: _FastingView.duration,
-                  label: Text(trend.fastingView.duration, maxLines: 1),
+          AppQuietTabs<ReportRange>(
+            values: const <ReportRange>[
+              ReportRange.d7,
+              ReportRange.d30,
+              ReportRange.d90,
+              ReportRange.d365,
+            ],
+            selected: range,
+            labelOf: (value) => switch (value) {
+              ReportRange.d7 => trend.range.d7,
+              ReportRange.d30 => trend.range.d30,
+              ReportRange.d90 => trend.range.d90,
+              ReportRange.d365 => trend.range.d365,
+            },
+            onSelected: ref.read(reportRangeProvider.notifier).select,
+          ),
+          if (dimension == ReportDimension.fasting)
+            AppQuietTabs<_FastingView>(
+              values: const <_FastingView>[
+                _FastingView.duration,
+                _FastingView.consistency,
+              ],
+              selected: _fastingView,
+              labelOf: (value) => switch (value) {
+                _FastingView.duration => trend.fastingView.duration,
+                _FastingView.consistency => trend.fastingView.consistency,
+              },
+              onSelected: (value) => setState(() => _fastingView = value),
+            ),
+          if (showLatestMetric) ...<Widget>[
+            const SizedBox(height: AppSpacing.s3),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: <Widget>[
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      latestDrawValue.toStringAsFixed(
+                        latestDrawValue == latestDrawValue.roundToDouble()
+                            ? 0
+                            : dimension == ReportDimension.kcal || isRate
+                            ? 0
+                            : 1,
+                      ),
+                      style: textStyles.textDisplay.copyWith(
+                        color: colors.textPrimary,
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
                 ),
-                ButtonSegment<_FastingView>(
-                  value: _FastingView.consistency,
-                  label: Text(trend.fastingView.consistency, maxLines: 1),
+                const SizedBox(width: AppSpacing.s1),
+                Text(
+                  unit,
+                  style: textStyles.textSm.copyWith(
+                    color: colors.textSecondary,
+                  ),
                 ),
               ],
-              selected: <_FastingView>{_fastingView},
-              onSelectionChanged: (s) => setState(() => _fastingView = s.first),
             ),
           ],
           const SizedBox(height: AppSpacing.s4),
@@ -392,12 +376,15 @@ class _TrendEmpty extends StatelessWidget {
           FilledButton(
             onPressed: () => context.go(route),
             style: FilledButton.styleFrom(
-              backgroundColor: colors.brandPrimary,
+              backgroundColor: colors.actionPrimary,
+              foregroundColor: colors.onActionPrimary,
               minimumSize: const Size(0, AppSpacing.s12),
             ),
             child: Text(
               cta,
-              style: textStyles.textBase.copyWith(color: Colors.white),
+              style: textStyles.textBase.copyWith(
+                color: colors.onActionPrimary,
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.s4),

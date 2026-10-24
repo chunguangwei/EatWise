@@ -1,3 +1,4 @@
+import 'package:eatwise/core/widgets/busy_filled_button.dart';
 import 'package:eatwise/main.dart' as app;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -51,6 +52,29 @@ void main() {
     return false;
   }
 
+  Future<void> tapRequiredText(
+    WidgetTester tester,
+    String text, {
+    bool last = false,
+    bool contains = false,
+  }) async {
+    final target = contains ? find.textContaining(text) : find.text(text);
+    try {
+      await tester.scrollUntilVisible(target, 250, maxScrolls: 16);
+      await tester.pump(const Duration(milliseconds: 400));
+    } on Object {
+      // 目标已在首屏或页面不可滚时直接交给点击断言处理。
+    }
+    final tapped = await tapIfVisible(
+      tester,
+      text,
+      last: last,
+      contains: contains,
+      retries: 2,
+    );
+    if (!tapped) fail('关键走查目标不可见或不可点：$text');
+  }
+
   /// ValueKey 精确点按（轮询等待；引导链路关键按钮专用，防文案歧义）。
   Future<bool> tapByKeyIfVisible(
     WidgetTester tester,
@@ -86,7 +110,7 @@ void main() {
 
     // ① 隐私同意（首启门禁：必勾主同意 CheckboxListTile（点标题行即翻转
     // 勾选，按钮才可用）→ 同意并继续。反复点直到按钮可用，而非盲点一次。
-    var agreed = false;
+    var agreed = find.text('首页').evaluate().isNotEmpty;
     for (var i = 0; i < 60 && !agreed; i++) {
       final consentText = find.text('同意并继续');
       if (consentText.evaluate().isNotEmpty) {
@@ -117,7 +141,12 @@ void main() {
           'Review#2026EatWise',
         );
         await tester.pump(const Duration(milliseconds: 300));
-        await tapIfVisible(tester, '登录', last: true);
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pump(const Duration(milliseconds: 300));
+        final submit = find.byType(BusyFilledButton);
+        expect(submit, findsOneWidget);
+        await tester.tap(submit);
+        await tester.pump(const Duration(milliseconds: 1200));
         // 等待登录结果：进首页（底栏「首页」）或出错误文案。
         for (var i = 0; i < 45; i++) {
           await tester.pump(const Duration(seconds: 1));
@@ -151,6 +180,10 @@ void main() {
       retries: 3,
     );
     await loginIfVisible();
+    if (find.text('首页').evaluate().isEmpty) {
+      dumpTexts(tester, 'home-unreachable');
+      fail('登录后未进入首页，停止无效走查');
+    }
 
     // ── 首页 ──────────────────────────────────────────────
     await tapIfVisible(tester, '首页');
@@ -166,8 +199,20 @@ void main() {
       await tester.pump(const Duration(milliseconds: 1600));
     }
     await station(tester, '03_record_search');
-    // 食物详情弹层（份量输入框新形态）。
-    await tapIfVisible(tester, '白米饭');
+    // 只在搜索结果 ListTile 内点食物，避免误点今日记录里的同名文本。
+    final riceText = find.descendant(
+      of: find.byType(ListTile),
+      matching: find.textContaining('米饭'),
+    );
+    expect(riceText, findsWidgets);
+    final riceTile = find.ancestor(
+      of: riceText.first,
+      matching: find.byType(ListTile),
+    );
+    expect(riceTile, findsOneWidget);
+    await tester.tap(riceTile);
+    await tester.pump(const Duration(milliseconds: 1200));
+    expect(find.text('确认记录'), findsOneWidget);
     await station(tester, '04_record_food_detail');
     // 份量入账 → 今日记录列表。
     final amountBase = find.byType(TextField);
@@ -175,7 +220,12 @@ void main() {
       await tester.enterText(amountBase.last, '200');
       await tester.pump(const Duration(milliseconds: 400));
     }
-    await tapIfVisible(tester, '确认记录');
+    final confirmButton = find.widgetWithText(FilledButton, '确认记录');
+    expect(confirmButton, findsOneWidget);
+    expect(tester.widget<FilledButton>(confirmButton).onPressed, isNotNull);
+    await tester.tap(confirmButton);
+    await tester.pump(const Duration(milliseconds: 1200));
+    expect(confirmButton, findsNothing);
     await station(tester, '05_record_today_list');
     // 饮水快捷 +200。
     await tapIfVisible(tester, '+200');
@@ -184,7 +234,7 @@ void main() {
     // ── 数据页 ────────────────────────────────────────────
     await tapIfVisible(tester, '数据');
     await station(tester, '07_data_trend');
-    await tapIfVisible(tester, '断食时长');
+    await tapRequiredText(tester, '断食时长');
     await station(tester, '08_data_fasting_trend');
     // 日期切换（前一天）。
     final prevBase = find.byIcon(Icons.chevron_left);
@@ -232,15 +282,15 @@ void main() {
     }
     await station(tester, '13_profile_bottom');
     // 协议 Hub 弹层。
-    await tapIfVisible(tester, '协议与说明');
+    await tapRequiredText(tester, '协议与说明');
     await station(tester, '14_profile_legal_hub');
     // 关弹层。
     await tester.tapAt(const Offset(20, 20));
     await tester.pump(const Duration(milliseconds: 800));
 
     // ── 深色模式一轮 ──────────────────────────────────────
-    await tapIfVisible(tester, '主题');
-    await tapIfVisible(tester, '深色');
+    await tapRequiredText(tester, '主题');
+    await tapRequiredText(tester, '深色');
     await tapIfVisible(tester, '首页');
     await station(tester, '15_dark_home');
     await tapIfVisible(tester, '记录');
@@ -249,31 +299,18 @@ void main() {
     await station(tester, '17_dark_profile');
 
     // ── 英文一轮 ──────────────────────────────────────────
-    await tapIfVisible(tester, '主题');
-    await tapIfVisible(tester, '浅色');
-    final settingsScrollBase2 = find.byType(Scrollable);
-    if (settingsScrollBase2.evaluate().isNotEmpty) {
-      try {
-        await tester.drag(
-          settingsScrollBase2.first,
-          const Offset(0, -400),
-          warnIfMissed: false,
-        );
-        await tester.pump(const Duration(milliseconds: 800));
-      } on Object {
-        // 忽略。
-      }
-    }
-    await tapIfVisible(tester, '语言');
-    await tapIfVisible(tester, 'English');
+    await tapRequiredText(tester, '主题');
+    await tapRequiredText(tester, '浅色');
+    await tapRequiredText(tester, '语言');
+    await tapRequiredText(tester, 'English');
     await tapIfVisible(tester, 'Home');
     await station(tester, '18_en_home');
     await tapIfVisible(tester, 'Me');
     await station(tester, '19_en_profile');
 
     // ── 还原中文（设备状态留给用户）────────────────────────
-    await tapIfVisible(tester, 'Language');
-    await tapIfVisible(tester, '简体中文');
+    await tapRequiredText(tester, 'Language');
+    await tapRequiredText(tester, '简体中文');
     await station(tester, '20_restore_zh');
   });
 }

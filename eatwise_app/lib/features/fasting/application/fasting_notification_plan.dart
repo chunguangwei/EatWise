@@ -1,5 +1,7 @@
+import 'package:eatwise/features/fasting/domain/fast_cycle.dart';
 import 'package:eatwise/features/fasting/domain/fasting_clock.dart';
 import 'package:eatwise/features/fasting/domain/fasting_plan.dart';
+import 'package:eatwise/features/fasting/domain/fasting_schedule.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -71,9 +73,11 @@ int fastingNotificationId(int triggerAtUtcSec, FastingNotificationKind kind) =>
 /// - [nowUtcSec]：当前时刻（注入时钟，便于测试）；
 /// - [location]：设备当前时区；
 /// - [eatSoonLeadSec]：进食开始提前量（D-09 默认 15min，设置可调）；
-/// - [extensionMinutes]：当前 FastCycle 累计延长（D-10）。延长只后移
-///   「当前周期目标日」的进食开始与进食结束锚点（T5：进食窗口时长不压缩），
-///   其余周期锚点不受影响。
+/// - [extensionMinutes]：旧调用方的周期延长量；有 [activeCycle] 时以其实际
+///   锚点为准，不再猜测延长目标日；
+/// - [activeCycle]：主计时持久化的当前周期，未结束且未关闭时冻结生效；
+/// - [earlyEatEndUtc]：提前破窗后的真实进食结束锚点；
+/// - [lastClosedCycleId]：最近关闭周期标识，用于校验 activeCycle 有效性。
 ///
 /// 返回按触发时刻升序的列表；仅含 `(now, now + horizon]` 内的触发点
 /// （48h 窗口裁剪，§7.2.2）。
@@ -84,37 +88,21 @@ List<PlannedFastingNotification> buildFastingNotificationPlan({
   int eatSoonLeadSec = 15 * 60,
   int horizonSec = 48 * 3600,
   int extensionMinutes = 0,
+  FastCycle? activeCycle,
+  int? earlyEatEndUtc,
+  String? lastClosedCycleId,
 }) {
-  final today = localDateOf(nowUtcSec, location);
-
-  // 当前断食周期的目标日 = now 之后第一个进食开始锚点所在的本地自然日；
-  // 延长只作用于该日锚点（T5/T6），次日及以后周期不继承（§4.3）。
-  LocalDate? extensionTargetDate;
-  if (extensionMinutes > 0) {
-    for (
-      var offset = -1;
-      offset <= 2 && extensionTargetDate == null;
-      offset++
-    ) {
-      final date = today.addDays(offset);
-      if (anchorsFor(plan, date, location).eatStartUtc > nowUtcSec) {
-        extensionTargetDate = date;
-      }
-    }
-  }
-
+  final windows = buildEffectiveFastingEatingWindows(
+    plan: plan,
+    nowUtcSec: nowUtcSec,
+    location: location,
+    extensionMinutes: extensionMinutes,
+    activeCycle: activeCycle,
+    earlyEatEndUtc: earlyEatEndUtc,
+    lastClosedCycleId: lastClosedCycleId,
+  );
   final items = <PlannedFastingNotification>[];
-  for (var offset = -1; offset <= 2; offset++) {
-    final date = today.addDays(offset);
-    var anchors = anchorsFor(plan, date, location);
-    if (extensionTargetDate != null && date == extensionTargetDate) {
-      final shiftSec = extensionMinutes * 60;
-      anchors = (
-        eatStartUtc: anchors.eatStartUtc + shiftSec,
-        eatEndUtc: anchors.eatEndUtc + shiftSec,
-      );
-    }
-
+  for (final anchors in windows) {
     void add(FastingNotificationKind kind, int triggerAtUtcSec) {
       if (triggerAtUtcSec <= nowUtcSec ||
           triggerAtUtcSec > nowUtcSec + horizonSec) {

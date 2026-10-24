@@ -71,7 +71,7 @@ final class RecordRepository {
     if (draft.amountG <= 0) {
       throw ArgumentError.value(draft.amountG, 'amountG', '份量必须大于 0');
     }
-    final food = await db.foodDao.getById(draft.foodId);
+    final food = await db.foodDao.getById(draft.foodId, ownerUserId: userId);
     if (food == null) {
       throw ArgumentError.value(draft.foodId, 'foodId', '食物不存在于食物库');
     }
@@ -149,6 +149,8 @@ final class RecordRepository {
       await db.foodEntryDao.tombstoneEntry(
         localId,
         _clock().toUtc().toIso8601String(),
+        clientRequestId: _uuid(),
+        localVersion: entry.localVersion + 1,
       );
       // 即时尝试上行 delete（成功物理清除/失败留 tombstone 下轮 retryPending）；
       // 列表与聚合在 tombstone 落库即更新，不阻塞 UI 观感。
@@ -159,8 +161,8 @@ final class RecordRepository {
   }
 
   /// 记录编辑（份量/餐次原地纠正）：快照随份量重算，localVersion+1。
-  /// synced 记录被编辑 → 重新生成 clientRequestId 并转 submitting 待上行
-  /// （T9）；pending/submitting 原位修改保留状态（T10）。
+  /// 份量变化一律轮换 clientRequestId 防在途/暂态重放错配；synced 行转
+  /// submitting（T9），pending/submitting 原位修改保留状态（T10）。
   /// [mealType] 为 null 表示不改餐次（纯本地列，不上行——见 v1.15.4 口径）。
   Future<FoodEntry> updateEntry(
     String localId, {
@@ -174,7 +176,7 @@ final class RecordRepository {
     if (entry == null) {
       throw ArgumentError.value(localId, 'localId', '记录不存在');
     }
-    final food = await db.foodDao.getById(entry.foodId);
+    final food = await db.foodDao.getById(entry.foodId, ownerUserId: userId);
     if (food == null) {
       throw StateError('记录引用的食物不存在: ${entry.foodId}');
     }
@@ -205,7 +207,7 @@ final class RecordRepository {
         carbG: Value(snapshot.carbG),
         fatG: Value(snapshot.fatG),
         localVersion: Value(entry.localVersion + 1),
-        clientRequestId: Value(wasSynced ? _uuid() : entry.clientRequestId),
+        clientRequestId: Value(_uuid()),
         syncStatus: Value(wasSynced ? SyncStatus.submitting : entry.syncStatus),
         updatedAtUtc: Value(nowIso),
       ),
@@ -272,13 +274,13 @@ final class RecordRepository {
 
   /// 双语食物搜索（D-15/D-16）。
   Future<List<Food>> searchFoods(String query, {int limit = 20}) {
-    return db.foodDao.searchFoods(query, limit: limit);
+    return db.foodDao.searchFoods(query, limit: limit, ownerUserId: userId);
   }
 
   /// 语音录入词典全量加载（食物库量级约 7.5k 条，内存可行；
   /// 不复用 searchFoods 的 limit 截断——截断会让尾部词条永远匹配不到）。
   Future<List<Food>> allFoodsForVoiceDict() {
-    return db.foodDao.allFoods();
+    return db.foodDao.allFoods(ownerUserId: userId);
   }
 
   /// 释放资源：取消全部待发上行与事件流。
@@ -322,22 +324,26 @@ final class RecordRepository {
       return;
     }
     if (!isDelete && entry.syncStatus == SyncStatus.synced) return;
-    // 乐观入账守卫：引用未上行自定义食物（customSyncPending 且未终态失败 /
-    // 本地行缺失）的记录保持 pending 留待下轮——服务端按服务端 id 解析食物，
-    // 本地临时 id 上行必 4xx，放行会走 T7 回滚静默删除（「不报错就没了」
-    // 根因的客户端侧）。终态失败（customSyncFailed）放行：payload 带客户端
-    // 营养快照，服务端 snapshotOf 有快照兜底（记录本体合法，不被食物行
-    // 卡死——v1.13.31 收敛）。
     if (!isDelete) {
-      final food = await db.foodDao.getById(entry.foodId);
+      final food = await db.foodDao.getById(entry.foodId, ownerUserId: userId);
       if (food == null || (food.customSyncPending && !food.customSyncFailed)) {
         return;
       }
     }
     final outcome = await remote.push(entry);
+    final current = await db.foodEntryDao.getByLocalId(localId);
+    if (current == null) return;
+    final sameGeneration =
+        current.clientRequestId == entry.clientRequestId &&
+        current.localVersion == entry.localVersion &&
+        current.deleted == entry.deleted;
+    if (!sameGeneration) {
+      await _requeueChangedEntry(entry, current, outcome);
+      return;
+    }
     switch (outcome) {
       case PushAck():
-        if (isDelete) {
+        if (current.deleted) {
           await db.foodEntryDao.deleteEntry(localId);
           break;
         }
@@ -357,33 +363,74 @@ final class RecordRepository {
           localId,
           FoodEntriesCompanion(
             syncStatus: const Value(SyncStatus.pending),
-            retryCount: Value(entry.retryCount + 1),
+            retryCount: Value(current.retryCount + 1),
             lastError: Value(outcome.code),
           ),
         );
       case PushReject():
-        if (isDelete) {
-          // NOT_FOUND 等：云端已无此行（或从未成功上行）→ 直接物理清除。
-          await db.foodEntryDao.deleteEntry(localId);
+        if (current.deleted) {
+          if (outcome.code == 'NOT_FOUND') {
+            await db.foodEntryDao.deleteEntry(localId);
+          } else {
+            await db.foodEntryDao.updateEntry(
+              localId,
+              FoodEntriesCompanion(
+                syncStatus: const Value(SyncStatus.pending),
+                retryCount: Value(current.retryCount + 1),
+                lastError: Value(outcome.code),
+              ),
+            );
+          }
           break;
         }
-        // T7：4xx 校验拒绝 → 回滚乐观更新（本地删除），提示用户重新提交。
         await db.foodEntryDao.deleteEntry(localId);
-        await _recompute(DateTime.parse(entry.datetimeUtc));
+        await _recompute(DateTime.parse(current.datetimeUtc));
         _failures.add(RecordSyncFailure(localId: localId, code: outcome.code));
       case PushConflict():
-        // T6/T11：409 且自动合并未覆盖 → conflicted 入冲突队列。记下响应
-        // 里的服务端最新 version 作基线，retryPending 重试以本地内容上行
-        // （后写者胜收敛；不记则 baseVersion 永旧、重试永撞 409，走查 L3）。
         await db.foodEntryDao.updateEntry(
           localId,
           FoodEntriesCompanion(
-            syncStatus: const Value(SyncStatus.conflicted),
+            syncStatus: Value(
+              current.deleted ? SyncStatus.pending : SyncStatus.conflicted,
+            ),
             serverVersion: Value(outcome.serverVersion),
+            serverUpdatedAt: Value(outcome.serverUpdatedAtUtc),
             lastError: const Value('VERSION_CONFLICT'),
           ),
         );
     }
+  }
+
+  Future<void> _requeueChangedEntry(
+    FoodEntry sent,
+    FoodEntry current,
+    PushOutcome outcome,
+  ) async {
+    final requestId = current.clientRequestId == sent.clientRequestId
+        ? _uuid()
+        : current.clientRequestId;
+    var companion = FoodEntriesCompanion(
+      clientRequestId: Value(requestId),
+      syncStatus: const Value(SyncStatus.pending),
+      lastError: const Value(null),
+    );
+    switch (outcome) {
+      case PushAck():
+        companion = companion.copyWith(
+          serverId: Value(outcome.serverId),
+          serverVersion: Value(outcome.serverVersion),
+          serverUpdatedAt: Value(outcome.serverUpdatedAtUtc),
+        );
+      case PushConflict():
+        companion = companion.copyWith(
+          serverVersion: Value(outcome.serverVersion),
+          serverUpdatedAt: Value(outcome.serverUpdatedAtUtc),
+        );
+      case PushRetryable():
+      case PushReject():
+        break;
+    }
+    await db.foodEntryDao.updateEntry(current.localId, companion);
   }
 
   /// 重算该记录归属日的聚合缓存（份量修改/撤销/回滚后实时刷新）。

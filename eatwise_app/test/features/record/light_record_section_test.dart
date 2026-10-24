@@ -30,6 +30,18 @@ void main() {
 
   String todayKey() => localDateKey(DateTime.now());
 
+  test('轻记录餐段埋点复用统一餐次时段', () {
+    String at(int hour) => lightRecordMealPeriod(DateTime(2026, 10, 24, hour));
+
+    expect(at(5), 'breakfast');
+    expect(at(10), 'lunch');
+    expect(at(15), 'dinner');
+    expect(at(16), 'dinner');
+    expect(at(20), 'dinner');
+    expect(at(21), 'snack');
+    expect(at(23), 'snack');
+  });
+
   /// 测试收尾：失焦输入框 → 隐藏吐司（取消时长 Timer）→ 卸载并多次 pump
   /// （drift 流退订经 `Timer.run` 清理，须冲刷假时钟区，同 record_page_test）。
   Future<void> settleUi(WidgetTester tester) async {

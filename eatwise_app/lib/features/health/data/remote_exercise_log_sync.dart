@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/record/data/remote_record_sync.dart';
 
 /// 运动记录上行同步（手动记运动/截图导入，2026-09-19 拍板上行；轻量两态
@@ -40,57 +42,85 @@ final class RemoteExerciseLogSync {
   }
 
   Future<void> _pushChunk(AppDatabase db, List<ExerciseLog> chunk) async {
-    late final List<Map<String, dynamic>> results;
+    late final Map<String, Map<String, dynamic>> byRequestId;
     try {
       final response = await dio.post<Map<String, dynamic>>(
         '/sync/push',
         data: <String, dynamic>{'ops': chunk.map(_opFor).toList()},
       );
       _online = true;
-      results =
-          ((response.data?['results'] as List<dynamic>?) ?? const <dynamic>[])
-              .cast<Map<String, dynamic>>();
+      final parsed = syncPushResultsByRequestId(response.data);
+      if (parsed == null) {
+        for (final row in chunk) {
+          await _writeError(db, row, kInvalidPushResponse);
+        }
+        return;
+      }
+      byRequestId = parsed;
     } on DioException catch (e) {
       final error = toApiException(e);
       if (error is NetworkApiException || error is TimeoutApiException) {
         _online = false;
       }
-      // 请求级失败：整批保持 pending，下轮 syncNow 重试（T5 保数据）。
+      for (final row in chunk) {
+        await _writeError(db, row, error.code);
+      }
       return;
     }
-    final byRequestId = <String, Map<String, dynamic>>{
-      for (final r in results) r['clientRequestId']! as String: r,
-    };
     for (final row in chunk) {
       final result = byRequestId[row.clientRequestId];
-      if (result == null) continue; // 缺结果保持 pending 重试
-      final status = result['status'] as String? ?? 'error';
-      final code =
-          (result['error'] as Map<String, dynamic>?)?['code'] as String? ?? '';
+      if (result == null) {
+        await _writeError(db, row, 'MISSING_RESULT');
+        continue;
+      }
+      final status = result['status'];
+      final code = syncPushErrorCode(result);
       if (status == 'applied') {
         if (row.deleted) {
-          // tombstone 上行成功 → 本地物理清除。
           await db.exerciseLogDao.deleteLog(row.localId);
         } else {
-          final serverEntry = result['serverEntry'];
-          final serverId = serverEntry is Map<String, dynamic>
-              ? serverEntry['id'] as String?
-              : null;
-          if (serverId != null) {
-            await db.exerciseLogDao.markSynced(row.localId, serverId);
+          final rawServerId = syncPushServerEntry(result)?['id'];
+          if (rawServerId is! String || rawServerId.isEmpty) {
+            await _writeError(db, row, kInvalidPushResponse);
+            continue;
           }
+          await db.exerciseLogDao.applyServerRow(
+            row.localId,
+            ExerciseLogsCompanion(
+              serverId: Value(rawServerId),
+              syncState: Value(ExerciseSyncState.synced),
+              lastError: const Value(null),
+            ),
+          );
         }
-      } else if (row.deleted && code == 'NOT_FOUND') {
-        // 服务端本无此行（create 未到达）：tombstone 无意义，本地清除。
+      } else if (row.deleted && status == 'error' && code == 'NOT_FOUND') {
         await db.exerciseLogDao.deleteLog(row.localId);
-      } else if (!row.deleted && code == 'VALIDATION_ERROR') {
-        // 硬边界校验（kcal>10000 / steps>200000 / durationMin>1440）＝永久
-        // 拒绝：保留 pending 每轮重复上行永不归零（走查 L4）——同延长队列
-        // 终态丢弃口径，本地清除。
+      } else if (!row.deleted &&
+          status == 'error' &&
+          code == 'VALIDATION_ERROR') {
         await db.exerciseLogDao.deleteLog(row.localId);
+      } else {
+        await _writeError(
+          db,
+          row,
+          status == 'conflict' && code.isEmpty
+              ? 'VERSION_CONFLICT'
+              : code.isEmpty
+              ? kInvalidPushResponse
+              : code,
+        );
       }
-      // 其余 error/conflict：保持 pending，下轮重试。
     }
+  }
+
+  Future<void> _writeError(AppDatabase db, ExerciseLog row, String code) {
+    return db.exerciseLogDao.applyServerRow(
+      row.localId,
+      ExerciseLogsCompanion(
+        syncState: Value(ExerciseSyncState.pending),
+        lastError: Value(code),
+      ),
+    );
   }
 
   /// ExerciseLog → sync/push op（两态：仅 create/delete，无 update）。

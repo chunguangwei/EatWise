@@ -137,14 +137,39 @@ describe('营养目标（D-04）与信号灯（D-05）', () => {
       { kcal: 1600, proteinG: 100, carbsG: 200, fatG: 53, fallback: false },
     );
     const by = (n: string) => signals.find((s) => s.nutrient === n)!;
-    expect(by('kcal').level).toBe('yellow'); // 120% ∈ [110,130)
+    expect(by('kcal').level).toBe('yellow'); // 120% ∈ (110,130]
     expect(by('kcal').adviceKey).toBe('advice.kcal.high');
-    expect(by('carbs').level).toBe('yellow'); // 120% ∈ [115,135)
+    expect(by('carbs').level).toBe('yellow'); // 120% ∈ (115,135]
     expect(by('carbs').adviceKey).toBe('advice.carbs.high');
     expect(by('protein').level).toBe('red'); // 160% > 150%
     expect(by('protein').adviceKey).toBe('advice.protein.high');
     expect(by('fat').level).toBe('yellow'); // 70% ∈ [55,80) 偏低
     expect(by('fat').adviceKey).toBe('advice.fat.low');
+  });
+
+  it('客户端 parity：原始百分比判定灯色与方向，展示 percent 才取整', () => {
+    const cases = [
+      { actual: 59.6, level: 'red', percent: 60, adviceKey: 'advice.kcal.low' },
+      { actual: 60, level: 'yellow', percent: 60, adviceKey: 'advice.kcal.low' },
+      { actual: 84.6, level: 'yellow', percent: 85, adviceKey: 'advice.kcal.low' },
+      { actual: 85, level: 'green', percent: 85, adviceKey: 'advice.kcal.ok' },
+      { actual: 110, level: 'green', percent: 110, adviceKey: 'advice.kcal.ok' },
+      { actual: 110.4, level: 'yellow', percent: 110, adviceKey: 'advice.kcal.high' },
+      { actual: 129.6, level: 'yellow', percent: 130, adviceKey: 'advice.kcal.high' },
+      { actual: 130, level: 'yellow', percent: 130, adviceKey: 'advice.kcal.high' },
+      { actual: 130.4, level: 'red', percent: 130, adviceKey: 'advice.kcal.high' },
+    ] as const;
+    for (const c of cases) {
+      const signal = computeSignals(
+        { kcal: c.actual, proteinG: 100, carbsG: 100, fatG: 100 },
+        { kcal: 100, proteinG: 100, carbsG: 100, fatG: 100, fallback: false },
+      )[0];
+      expect({
+        level: signal.level,
+        percent: signal.percent,
+        adviceKey: signal.adviceKey,
+      }).toEqual({ level: c.level, percent: c.percent, adviceKey: c.adviceKey });
+    }
   });
 });
 

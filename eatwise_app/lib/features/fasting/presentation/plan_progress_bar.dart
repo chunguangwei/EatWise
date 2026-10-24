@@ -4,32 +4,42 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/time/day_change.dart';
 import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart'
     show fastingClockProvider;
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
-import 'package:eatwise/features/record/data/water_log_repository.dart'
-    show localDateKey;
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 最新一条体重记录（kg，按归属日取最大日期；无记录为 null）。
-final FutureProvider<double?>
-latestWeightLogProvider = FutureProvider<double?>((ref) {
-  final store = ref.watch(weightLogStoreProvider);
-  final entries = store.loadEntries('2000-01-01', localDateKey(DateTime.now()));
-  if (entries.isEmpty) return null;
-  final latestDate = entries.keys.reduce((a, b) => a.compareTo(b) >= 0 ? a : b);
-  return entries[latestDate]!.kg;
-});
+final FutureProvider<double?> latestWeightLogProvider = FutureProvider<double?>(
+  (ref) {
+    ref.watch(weightLogRevisionProvider);
+    final store = ref.watch(weightLogStoreProvider);
+    final entries = store.loadEntries(
+      '2000-01-01',
+      localDayKey(ref.watch(localDayProvider)),
+    );
+    if (entries.isEmpty) return null;
+    final latestDate = entries.keys.reduce(
+      (a, b) => a.compareTo(b) >= 0 ? a : b,
+    );
+    return entries[latestDate]!.kg;
+  },
+);
 
 /// 最早一条体重记录的日期（UTC epoch 秒，本地零点；无记录为 null）。
 final FutureProvider<int?> earliestWeightLogUtcProvider = FutureProvider<int?>((
   ref,
 ) {
+  ref.watch(weightLogRevisionProvider);
   final store = ref.watch(weightLogStoreProvider);
-  final entries = store.loadEntries('2000-01-01', localDateKey(DateTime.now()));
+  final entries = store.loadEntries(
+    '2000-01-01',
+    localDayKey(ref.watch(localDayProvider)),
+  );
   if (entries.isEmpty) return null;
   final earliestDate = entries.keys.reduce(
     (a, b) => a.compareTo(b) <= 0 ? a : b,

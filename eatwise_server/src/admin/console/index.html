@@ -787,22 +787,6 @@
             '<td style="white-space:nowrap">' +
             actions +
             '</td>';
-          // 角色下拉（一般用户/管理员；非 admin 身份只读禁用）
-          var roleCell = tr.querySelector('.roleCell');
-          var select = document.createElement('select');
-          select.setAttribute('data-prev', u.role || 'user');
-          ['user', 'admin'].forEach(function (r) {
-            var opt = document.createElement('option');
-            opt.value = r;
-            opt.textContent = USER_ROLE_LABEL[r];
-            select.appendChild(opt);
-          });
-          select.value = u.role || 'user';
-          select.disabled = !canSetUserRole();
-          select.onchange = function () {
-            setUserRole(u.id, select.value, select);
-          };
-          roleCell.appendChild(select);
           tbody.appendChild(tr);
         });
       }
@@ -923,22 +907,6 @@
             '<td style="white-space:nowrap">' +
             actions +
             '</td>';
-          // 角色下拉（一般用户/管理员；非 admin 身份只读禁用）
-          var roleCell = tr.querySelector('.roleCell');
-          var select = document.createElement('select');
-          select.setAttribute('data-prev', u.role || 'user');
-          ['user', 'admin'].forEach(function (r) {
-            var opt = document.createElement('option');
-            opt.value = r;
-            opt.textContent = USER_ROLE_LABEL[r];
-            select.appendChild(opt);
-          });
-          select.value = u.role || 'user';
-          select.disabled = !canSetUserRole();
-          select.onchange = function () {
-            setUserRole(u.id, select.value, select);
-          };
-          roleCell.appendChild(select);
           tbody.appendChild(tr);
         });
       }
@@ -1120,14 +1088,8 @@
         if (!append) tbody.innerHTML = '';
         items.forEach(function (f) {
           var tr = document.createElement('tr');
-          // 删除仅 admin 角色可操作（reviewer 按钮禁用；服务端 @AdminRole('admin') 双重把关）
-          var actions = canSetUserRole()
-            ? '<button class="btn danger" onclick="deleteFood(\'' +
-              esc(f.id) +
-              "', '" +
-              esc(f.nameZh) +
-              "')\">删除</button>"
-            : '<span class="muted">仅管理员可删</span>';
+          // 删除仅 admin 角色可操作（reviewer 仅提示；服务端 @AdminRole('admin') 双重把关）
+          var canDelete = canSetUserRole();
           tr.innerHTML =
             '<td><span class="muted">' + esc(f.id) + '</span></td>' +
             '<td><strong>' + esc(f.nameZh) + '</strong>' +
@@ -1138,7 +1100,19 @@
             '<td>' +
             (f.isCustom ? '<span class="badge pending">自定义</span>' : '<span class="muted">共享库</span>') +
             '</td>' +
-            '<td style="white-space:nowrap">' + actions + '</td>';
+            '<td class="foodActionsCell" style="white-space:nowrap">' +
+            (canDelete ? '' : '<span class="muted">仅管理员可删</span>') +
+            '</td>';
+          if (canDelete) {
+            var deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'btn danger';
+            deleteButton.textContent = '删除';
+            deleteButton.onclick = function () {
+              return deleteFood(f.id, f.nameZh);
+            };
+            tr.querySelector('.foodActionsCell').appendChild(deleteButton);
+          }
           tbody.appendChild(tr);
         });
       }

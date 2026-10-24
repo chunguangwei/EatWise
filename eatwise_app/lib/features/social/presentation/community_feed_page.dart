@@ -56,10 +56,11 @@ class _CommunityFeedPageState extends ConsumerState<CommunityFeedPage> {
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'community-compose',
-        backgroundColor: colors.brandAccent,
+        backgroundColor: colors.actionPrimary,
+        foregroundColor: colors.onActionPrimary,
         tooltip: t.social.compose.title,
         onPressed: () => context.push('/community/compose'),
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Icon(Icons.add, color: colors.onActionPrimary),
       ),
       body: SafeArea(child: _buildBody(context, feed)),
     );

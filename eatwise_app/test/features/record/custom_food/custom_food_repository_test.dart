@@ -36,7 +36,7 @@ void main() {
   setUp(() {
     db = AppDatabase.memory();
     remote = FakeCustomFoodRemote();
-    repository = CustomFoodRepository(db: db, remote: remote);
+    repository = CustomFoodRepository(db: db, remote: remote, userId: 'u-1');
   });
 
   tearDown(() async {
@@ -53,9 +53,9 @@ void main() {
     expect(remote.receivedRequestIds, hasLength(1));
 
     // 保存后立即可搜（名称 + 别名 LIKE 命中）。
-    final byName = await db.foodDao.searchFoods('燕窝羹');
+    final byName = await db.foodDao.searchFoods('燕窝羹', ownerUserId: 'u-1');
     expect(byName.map((f) => f.id), contains('srv-food-1'));
-    final byAlias = await db.foodDao.searchFoods('燕窝');
+    final byAlias = await db.foodDao.searchFoods('燕窝', ownerUserId: 'u-1');
     expect(byAlias.map((f) => f.id), contains('srv-food-1'));
   });
 
@@ -71,8 +71,69 @@ void main() {
     expect(remote.receivedRequestIds, isEmpty); // 未到达远端
 
     // 本地仍可搜（离线期间照常可记）。
-    final hits = await db.foodDao.searchFoods('燕窝羹');
+    final hits = await db.foodDao.searchFoods('燕窝羹', ownerUserId: 'u-1');
     expect(hits, hasLength(1));
+  });
+
+  test('个人搜索与 retry 按 owner 过滤：其他账号不可见也不会上行', () async {
+    remote.mode = FakeCustomFoodMode.offline;
+    final saved = await repository.save(draft);
+    expect(saved.food.ownerUserId, 'u-1');
+    final other = CustomFoodRepository(db: db, remote: remote, userId: 'u-2');
+
+    expect(
+      await db.foodDao.searchFoods('燕窝', ownerUserId: 'u-1'),
+      hasLength(1),
+    );
+    expect(await db.foodDao.searchFoods('燕窝', ownerUserId: 'u-2'), isEmpty);
+    remote.mode = FakeCustomFoodMode.success;
+    expect(await other.retryPending(), 0);
+    expect(remote.receivedRequestIds, isEmpty);
+
+    expect(await repository.retryPending(), 1);
+    expect(remote.receivedRequestIds, hasLength(1));
+  });
+
+  test('delete 拒绝跨 owner 操作：不发远端删除、不删食物或他人记录', () async {
+    final saved = await repository.save(draft);
+    await db.foodEntryDao.insertEntry(
+      FoodEntriesCompanion(
+        localId: const Value('l-owner-food'),
+        userId: const Value('u-1'),
+        clientRequestId: const Value('cr-owner-food'),
+        syncStatus: const Value(SyncStatus.pending),
+        datetimeUtc: const Value('2026-09-14T01:10:00.000Z'),
+        localDate: const Value('2026-09-14'),
+        foodId: Value(saved.food.id),
+        amountG: const Value(100),
+        kcal: const Value(60),
+        proteinG: const Value(5),
+        carbG: const Value(8),
+        fatG: const Value(1),
+        source: const Value(EntrySource.manual),
+        createdAtUtc: const Value('2026-09-14T01:10:00.000Z'),
+        updatedAtUtc: const Value('2026-09-14T01:10:00.000Z'),
+      ),
+    );
+    final other = CustomFoodRepository(db: db, remote: remote, userId: 'u-2');
+    final otherRecords = RecordRepository(
+      db: db,
+      remote: FakeRecordRemote(mode: FakeRemoteMode.offline),
+      location: tz.getLocation('Asia/Shanghai'),
+      userId: 'u-2',
+    );
+    addTearDown(otherRecords.dispose);
+
+    await expectLater(
+      other.delete(saved.food, recordRepository: otherRecords, userId: 'u-2'),
+      throwsA(
+        isA<BusinessApiException>().having((e) => e.httpStatus, 'status', 403),
+      ),
+    );
+
+    expect(remote.receivedDeleteIds, isEmpty);
+    expect(await db.foodDao.getById(saved.food.id), isNotNull);
+    expect(await db.foodEntryDao.getByLocalId('l-owner-food'), isNotNull);
   });
 
   test('联网后 retryPending：原幂等键上行成功，本地行重映射为服务端 id', () async {
@@ -141,7 +202,7 @@ void main() {
       rejectingRepo.save(draft),
       throwsA(isA<BusinessApiException>()),
     );
-    expect(await db.foodDao.searchFoods('燕窝羹'), isEmpty);
+    expect(await db.foodDao.searchFoods('燕窝羹', ownerUserId: 'u-1'), isEmpty);
   });
 
   test('贡献成功：返回候选状态并落本地 contributionStatus', () async {
@@ -339,7 +400,7 @@ void main() {
     expect(remote.receivedDeleteIds, <String>[saved.food.id]);
     // 食物行移除 + 搜索不再命中。
     expect(await db.foodDao.getById(saved.food.id), isNull);
-    expect(await db.foodDao.searchFoods('燕窝羹'), isEmpty);
+    expect(await db.foodDao.searchFoods('燕窝羹', ownerUserId: 'u-1'), isEmpty);
     // 未上行记录物理删；已上行记录转 tombstone（下行同步他端）。
     expect(await db.foodEntryDao.getByLocalId('l-pending'), isNull);
     expect((await db.foodEntryDao.getByLocalId('l-synced'))!.deleted, isTrue);

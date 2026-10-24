@@ -4,7 +4,7 @@ import { err } from '../common/errors/business.exception';
 import { FastingPlanEntity, FastingRecordEntity } from '../common/store/data-store';
 import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { newId, payloadHash } from '../common/utils/id.util';
-import { addDays, localDateOf, zonedTimeToUtc } from '../common/utils/time.util';
+import { addDays, isValidDateStr, localDateOf, zonedTimeToUtc } from '../common/utils/time.util';
 import { StreakService } from '../streak/streak.service';
 
 export const MAX_EXTEND_MINUTES = 240; // D-10：累计 ≤4h
@@ -222,8 +222,7 @@ export class FastingService {
    * 范围上限 [MAX_RECORDS_RANGE_DAYS] 天防全表拖取。
    */
   async listRecords(userId: string, from: string, to: string) {
-    const dateRe = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRe.test(from) || !dateRe.test(to) || from > to) {
+    if (!isValidDateStr(from) || !isValidDateStr(to) || from > to) {
       throw err.validation({ from: 'invalid date range (yyyy-MM-dd, from <= to)' });
     }
     if (addDays(from, MAX_RECORDS_RANGE_DAYS) < to) {
@@ -286,127 +285,134 @@ export class FastingService {
   ) {
     const endpoint = 'fasting/end';
     const hash = payloadHash({ recordId, endedAt });
-    const hit = await this.driver.findIdempotencyRecord(userId, endpoint, clientRequestId);
-    if (hit) {
-      if (hit.payloadHash !== hash) throw err.payloadMismatch();
-      return hit.responseBody;
-    }
+    return this.driver.runInTransaction(
+      [
+        `fasting:${userId}`,
+        `idempotency:${userId}:${endpoint}:${clientRequestId}`,
+        `streak:${userId}`,
+      ],
+      async (tx) => {
+        const hit = await tx.findIdempotencyRecord(userId, endpoint, clientRequestId);
+        if (hit) {
+          if (hit.payloadHash !== hash) throw err.payloadMismatch();
+          return hit.responseBody;
+        }
 
-    const record = await this.driver.findFastingRecordById(recordId);
-    if (!record || record.userId !== userId) throw err.notFound();
-    if (record.result !== 'on_track') throw err.fastingAlreadyEnded();
+        const record = await tx.findFastingRecordById(recordId);
+        if (!record || record.userId !== userId) throw err.notFound();
+        if (record.result !== 'on_track') throw err.fastingAlreadyEnded();
 
-    // B2 窗口签名防御（v1.13.28）：客户端带上本地周期计划锚点时，与服务端
-    // 记录窗口不一致（>60s 容差）= 多端方案分叉互踩（分叉端按各自本地窗口
-    // 结束周期，服务端按另一窗口判定→系统性误判 broken）。明确拒绝且
-    // 不动记录，客户端吃 409 后触发方案下行收敛。缺签名（旧客户端）跳过。
-    if (opts.plannedStartAt && opts.plannedEndAt) {
-      const skewMs = 60 * 1000;
-      if (
-        Math.abs(opts.plannedStartAt.getTime() - record.plannedStartAt.getTime()) > skewMs ||
-        Math.abs(opts.plannedEndAt.getTime() - record.plannedEndAt.getTime()) > skewMs
-      ) {
-        throw err.fastingWindowMismatch();
-      }
-    }
+        // B2 窗口签名防御：客户端锚点与服务端记录不一致时明确拒绝，缺签名兼容旧客户端。
+        if (opts.plannedStartAt && opts.plannedEndAt) {
+          const skewMs = 60 * 1000;
+          if (
+            Math.abs(opts.plannedStartAt.getTime() - record.plannedStartAt.getTime()) > skewMs ||
+            Math.abs(opts.plannedEndAt.getTime() - record.plannedEndAt.getTime()) > skewMs
+          ) {
+            throw err.fastingWindowMismatch();
+          }
+        }
 
-    // 归属防御（v1.13.27）：endedAt 落在本记录窗口 [实际开始−容差, 计划结束+容差]
-    // 之外 = 上报归属错误（旧周期 endedAt 错挂当前 recordId，客户端 v1.13.27
-    // 前 _reportAndRefresh 缺陷可制造）——拒绝结算，绝不把当前 on_track 记录
-    // 结掉（wcg 四连 broken 根因之二）。幂等记录不落：重放必然同样拒绝。
-    const toleranceMs = this.toleranceMinutes * 60 * 1000;
-    const windowStartMs = (record.actualStartAt ?? record.plannedStartAt).getTime() - toleranceMs;
-    const windowEndMs = record.plannedEndAt.getTime() + toleranceMs;
-    if (endedAt.getTime() < windowStartMs || endedAt.getTime() > windowEndMs) {
-      throw err.fastingEndOutOfWindow();
-    }
+        const toleranceMs = this.toleranceMinutes * 60 * 1000;
+        const windowStartMs =
+          (record.actualStartAt ?? record.plannedStartAt).getTime() - toleranceMs;
+        const windowEndMs = record.plannedEndAt.getTime() + toleranceMs;
+        if (endedAt.getTime() < windowStartMs || endedAt.getTime() > windowEndMs) {
+          throw err.fastingEndOutOfWindow();
+        }
 
-    // TODO 〔假设〕契约要求 endedAt 与服务端收到时间漂移 >5min 时采信服务端时间；骨架阶段采信客户端上报值
-    const actualEnd = endedAt;
-    const earlyByMs = record.plannedEndAt.getTime() - actualEnd.getTime();
+        const actualEnd = endedAt;
+        const earlyByMs = record.plannedEndAt.getTime() - actualEnd.getTime();
+        if (earlyByMs <= 0) {
+          record.result = 'completed';
+          record.isQualified = true;
+        } else if (earlyByMs <= toleranceMs) {
+          record.result = 'ended_early';
+          record.isQualified = true;
+        } else {
+          record.result = 'broken';
+          record.isQualified = false;
+        }
+        record.actualEndAt = actualEnd;
+        record.fastedMinutes = Math.max(
+          0,
+          Math.round(
+            (actualEnd.getTime() - (record.actualStartAt ?? record.plannedStartAt).getTime()) /
+              60000,
+          ),
+        );
+        record.version += 1;
+        record.updatedAt = new Date();
+        record.eventLog.push({
+          at: new Date().toISOString(),
+          event: 'ended',
+          detail: { result: record.result, isQualified: record.isQualified },
+        });
+        await tx.saveFastingRecord(record);
 
-    if (earlyByMs <= 0) {
-      record.result = 'completed';
-      record.isQualified = true;
-    } else if (earlyByMs <= toleranceMs) {
-      record.result = 'ended_early';
-      record.isQualified = true;
-    } else {
-      record.result = 'broken';
-      record.isQualified = false;
-    }
-    record.actualEndAt = actualEnd;
-    record.fastedMinutes = Math.max(
-      0,
-      Math.round(
-        (actualEnd.getTime() - (record.actualStartAt ?? record.plannedStartAt).getTime()) / 60000,
-      ),
+        await this.streak.recompute(userId, tx);
+        const response = this.recordView(record);
+        await tx.saveIdempotencyRecord({
+          userId,
+          clientRequestId,
+          endpoint,
+          payloadHash: hash,
+          responseBody: response,
+          createdAt: new Date(),
+        });
+        return response;
+      },
     );
-    record.version += 1;
-    record.updatedAt = new Date();
-    record.eventLog.push({
-      at: new Date().toISOString(),
-      event: 'ended',
-      detail: { result: record.result, isQualified: record.isQualified },
-    });
-    await this.driver.saveFastingRecord(record);
-
-    await this.streak.recompute(userId);
-    const response = this.recordView(record);
-    await this.driver.saveIdempotencyRecord({
-      userId,
-      clientRequestId,
-      endpoint,
-      payloadHash: hash,
-      responseBody: response,
-      createdAt: new Date(),
-    });
-    return response;
   }
 
   /** F3 延长：步进 30min、累计 ≤240min（D-10），进食窗口后移不压缩 */
   async extend(userId: string, clientRequestId: string, recordId: string, extendMinutes: number) {
     const endpoint = 'fasting/extend';
     const hash = payloadHash({ recordId, extendMinutes });
-    const hit = await this.driver.findIdempotencyRecord(userId, endpoint, clientRequestId);
-    if (hit) {
-      if (hit.payloadHash !== hash) throw err.payloadMismatch();
-      return hit.responseBody;
-    }
+    return this.driver.runInTransaction(
+      [`fasting:${userId}`, `idempotency:${userId}:${endpoint}:${clientRequestId}`],
+      async (tx) => {
+        const hit = await tx.findIdempotencyRecord(userId, endpoint, clientRequestId);
+        if (hit) {
+          if (hit.payloadHash !== hash) throw err.payloadMismatch();
+          return hit.responseBody;
+        }
 
-    const record = await this.driver.findFastingRecordById(recordId);
-    if (!record || record.userId !== userId) throw err.notFound();
-    if (record.result !== 'on_track') throw err.fastingAlreadyEnded();
-    if (extendMinutes % EXTEND_STEP_MINUTES !== 0) {
-      throw err.validation({ extendMinutes: `must be a multiple of ${EXTEND_STEP_MINUTES}` });
-    }
-    const remaining = MAX_EXTEND_MINUTES - record.extendedMinutes;
-    if (extendMinutes > remaining) throw err.fastingExtendLimit(remaining);
+        const record = await tx.findFastingRecordById(recordId);
+        if (!record || record.userId !== userId) throw err.notFound();
+        if (record.result !== 'on_track') throw err.fastingAlreadyEnded();
+        if (extendMinutes % EXTEND_STEP_MINUTES !== 0) {
+          throw err.validation({ extendMinutes: `must be a multiple of ${EXTEND_STEP_MINUTES}` });
+        }
+        const remaining = MAX_EXTEND_MINUTES - record.extendedMinutes;
+        if (extendMinutes > remaining) throw err.fastingExtendLimit(remaining);
 
-    record.extendedMinutes += extendMinutes;
-    record.plannedEndAt = new Date(record.plannedEndAt.getTime() + extendMinutes * 60000);
-    record.version += 1;
-    record.updatedAt = new Date();
-    record.eventLog.push({
-      at: new Date().toISOString(),
-      event: 'extended',
-      detail: { extendMinutes, extendedMinutes: record.extendedMinutes },
-    });
-    await this.driver.saveFastingRecord(record);
+        record.extendedMinutes += extendMinutes;
+        record.plannedEndAt = new Date(record.plannedEndAt.getTime() + extendMinutes * 60000);
+        record.version += 1;
+        record.updatedAt = new Date();
+        record.eventLog.push({
+          at: new Date().toISOString(),
+          event: 'extended',
+          detail: { extendMinutes, extendedMinutes: record.extendedMinutes },
+        });
+        await tx.saveFastingRecord(record);
 
-    const response = {
-      ...this.recordView(record),
-      extendRemainingMinutes: MAX_EXTEND_MINUTES - record.extendedMinutes,
-    };
-    await this.driver.saveIdempotencyRecord({
-      userId,
-      clientRequestId,
-      endpoint,
-      payloadHash: hash,
-      responseBody: response,
-      createdAt: new Date(),
-    });
-    return response;
+        const response = {
+          ...this.recordView(record),
+          extendRemainingMinutes: MAX_EXTEND_MINUTES - record.extendedMinutes,
+        };
+        await tx.saveIdempotencyRecord({
+          userId,
+          clientRequestId,
+          endpoint,
+          payloadHash: hash,
+          responseBody: response,
+          createdAt: new Date(),
+        });
+        return response;
+      },
+    );
   }
 
   private planView(p: FastingPlanEntity) {

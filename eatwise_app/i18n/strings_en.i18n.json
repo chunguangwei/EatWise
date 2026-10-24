@@ -445,8 +445,9 @@
       "durationLabel": "Duration (min)",
       "kcalLabel": "Calories (kcal)",
       "estimatedWeightHint": "Weight not set — estimated with 60 kg",
-      "durationInvalid": "Enter minutes greater than 0",
-      "kcalInvalid": "Enter calories greater than 0",
+      "durationInvalid": "Enter a duration between 1 and 1440 minutes",
+      "kcalInvalid": "Enter calories greater than 0 and no more than 10000",
+      "stepsInvalid": "Enter between 1 and 200000 steps",
       "todayList": "Today's exercise",
       "minutesValue": "${min} min",
       "kcalValue": "${kcal} kcal",
@@ -600,6 +601,7 @@
       },
       "gauge": {
         "fasting": "Fasting",
+        "eating": "Eating",
         "fastingGoal": "/${hours}h",
         "kcal": "Calories",
         "kcalGoal": "/${kcal}",
@@ -979,7 +981,8 @@
       "analyticsSubtitle": "Anonymous usage stats that help us improve — no health data included",
       "blockedUsers": "Blocked users",
       "blockedUsersSubtitle": "You won't see posts from blocked users",
-      "exportFailed": "Export failed. Check your connection and try again."
+      "exportFailed": "Export failed. Check your connection and try again.",
+      "exportShareFailed": "File created, but system sharing could not be opened. File: ${path}"
     },
     "health": {
       "group": "Activity data",
@@ -1019,7 +1022,7 @@
     },
     "fastingPlan": {
       "title": "Fasting plan",
-      "subtitle": "View or change your fasting plan — changes take effect at 00:00 the next day"
+      "subtitle": "Review or change your plan; the current cycle stays unchanged"
     },
     "bodyProfile": {
       "title": "Body profile",

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/social/application/feed_controller.dart';
 import 'package:eatwise/features/social/data/social_api.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -303,6 +304,97 @@ void main() {
       'p3',
       'p4',
     ]);
+  });
+
+  test('uid 切换重建 feed，A 慢响应不覆盖 B 的作者/点赞/游标视图', () async {
+    container.dispose();
+    final uid = StateProvider<String>((ref) => 'u-A');
+    container = ProviderContainer(
+      overrides: <Override>[
+        socialApiProvider.overrideWithValue(api),
+        authUserIdProvider.overrideWith((ref) => ref.watch(uid)),
+      ],
+    );
+    api.deferFeed = true;
+    controller();
+    expect(api.feedRequests, hasLength(1));
+
+    container.read(uid.notifier).state = 'u-B';
+    controller();
+    expect(api.feedRequests, hasLength(2));
+    api.feedRequests[1].complete(
+      FeedPage(
+        items: <ServerPost>[
+          stubPost(id: 'p-B', isAuthor: false, likedByMe: false),
+        ],
+        nextCursor: 'cursor-B',
+        hasMore: true,
+      ),
+    );
+    await settle();
+    expect(state().items.single.post.id, 'p-B');
+    expect(state().nextCursor, 'cursor-B');
+
+    api.feedRequests[0].complete(
+      FeedPage(
+        items: <ServerPost>[
+          stubPost(id: 'p-A', isAuthor: true, likedByMe: true),
+        ],
+        nextCursor: 'cursor-A',
+        hasMore: true,
+      ),
+    );
+    await settle();
+    expect(state().items.single.post.id, 'p-B');
+    expect(state().items.single.post.isAuthor, isFalse);
+    expect(state().items.single.post.likedByMe, isFalse);
+    expect(state().nextCursor, 'cursor-B');
+  });
+
+  test('A→匿名→A 重新登录后，上一代同 uid 响应仍不得回写', () async {
+    container.dispose();
+    final uid = StateProvider<String>((ref) => 'u-A');
+    container = ProviderContainer(
+      overrides: <Override>[
+        socialApiProvider.overrideWithValue(api),
+        authUserIdProvider.overrideWith((ref) => ref.watch(uid)),
+      ],
+    );
+    api.deferFeed = true;
+    controller();
+    container.read(uid.notifier).state = 'anonymous';
+    controller();
+    container.read(uid.notifier).state = 'u-A';
+    controller();
+    expect(api.feedRequests, hasLength(3));
+
+    api.feedRequests[2].complete(
+      FeedPage(
+        items: <ServerPost>[stubPost(id: 'p-new-A')],
+        nextCursor: 'cursor-new-A',
+        hasMore: true,
+      ),
+    );
+    await settle();
+    expect(state().items.single.post.id, 'p-new-A');
+
+    api.feedRequests[0].complete(
+      FeedPage(
+        items: <ServerPost>[stubPost(id: 'p-old-A')],
+        nextCursor: 'cursor-old-A',
+        hasMore: true,
+      ),
+    );
+    api.feedRequests[1].complete(
+      FeedPage(
+        items: <ServerPost>[stubPost(id: 'p-anonymous')],
+        nextCursor: 'cursor-anonymous',
+        hasMore: true,
+      ),
+    );
+    await settle();
+    expect(state().items.single.post.id, 'p-new-A');
+    expect(state().nextCursor, 'cursor-new-A');
   });
 
   test('发布透传匿名参数：乐观卡与服务端视图均带 anonymous/avatarId', () async {

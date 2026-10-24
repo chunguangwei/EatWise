@@ -41,7 +41,7 @@ export class FastingController {
     };
   }
 
-  /** P4 一键启动/更换方案，次日 0 点本地生效（D-06） */
+  /** P4 一键启动/更换方案：最后写入胜并即刻生效；进行中周期锚点不变 */
   @Put('fasting-plans/current')
   async putCurrentPlan(
     @CurrentUser() user: AuthUser,

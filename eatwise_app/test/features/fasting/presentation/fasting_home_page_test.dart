@@ -280,6 +280,10 @@ void main() {
     expect(find.text('06:00'), findsOneWidget); // 进食态无秒倒计时（HH:MM）
     expect(find.text('06:00:00'), findsNothing);
     expect(find.text('进食窗口中'), findsOneWidget);
+    expect(find.text('进食'), findsOneWidget);
+    expect(find.text('2.0'), findsOneWidget);
+    expect(find.text('/8 小时'), findsOneWidget);
+    expect(find.text('4.0'), findsNothing);
     // 进食态无进行中断食：归属日文案用将来时（走查 B-9）。
     expect(find.text('下一段断食将计入 7月29日'), findsOneWidget);
     expect(find.textContaining('本次断食计入'), findsNothing);
@@ -350,6 +354,8 @@ void main() {
     await tester.pump();
     expect(find.text('已延长 +30 分钟'), findsOneWidget);
     expect(find.text('断食中 · 已延长'), findsOneWidget);
+    expect(find.text('12.0'), findsOneWidget);
+    expect(find.text('/16.5 小时'), findsOneWidget);
     expect(
       scheduler.rescheduleCalls.last.reason,
       RescheduleReason.extensionApplied,
@@ -567,6 +573,37 @@ void main() {
       findsNothing,
     );
     expect(SharedPreferencesOnboardingStore(prefs).loadPendingPlan(), isNull);
+    await unmount(tester);
+  });
+
+  testWidgets('待生效操作在 320 宽大字体下至少 44px 高且不横向溢出', (tester) async {
+    SharedPreferencesOnboardingStore(prefs).savePendingPlan(
+      PendingPlan(
+        plan: const FastingPlan(
+          id: '14:10',
+          eatStartMinutes: 10 * 60,
+          eatEndMinutes: 20 * 60,
+        ),
+        effectiveDate: const LocalDate(2026, 7, 29),
+        effectiveUtc: bjtUtc(29, 0),
+      ),
+    );
+    await pumpHome(tester, textScaler: 1.3);
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    await tester.pump();
+
+    for (final key in <String>[
+      'fasting.pendingPlan.edit',
+      'fasting.pendingPlan.apply',
+      'fasting.pendingPlan.cancel',
+    ]) {
+      final action = find.byKey(ValueKey<String>(key));
+      expect(tester.getSize(action).height, greaterThanOrEqualTo(44));
+      expect(tester.getRect(action).left, greaterThanOrEqualTo(0));
+      expect(tester.getRect(action).right, lessThanOrEqualTo(320));
+    }
+    expect(tester.takeException(), isNull);
     await unmount(tester);
   });
 

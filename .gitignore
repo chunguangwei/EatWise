@@ -10,3 +10,6 @@ __pycache__/
 
 # 构建符号产物
 release_symbols/
+
+# 浏览器与集成走查临时产物
+.playwright-cli/

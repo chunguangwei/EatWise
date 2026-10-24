@@ -1474,11 +1474,14 @@ class Translations$record$exercise$zh_CN {
 	/// zh-CN: '未填体重，按 60 千克估算'
 	String get estimatedWeightHint => '未填体重，按 60 千克估算';
 
-	/// zh-CN: '请输入大于 0 的分钟数'
-	String get durationInvalid => '请输入大于 0 的分钟数';
+	/// zh-CN: '请输入 1 到 1440 分钟的时长'
+	String get durationInvalid => '请输入 1 到 1440 分钟的时长';
 
-	/// zh-CN: '请输入大于 0 的千卡数'
-	String get kcalInvalid => '请输入大于 0 的千卡数';
+	/// zh-CN: '请输入大于 0 且不超过 10000 的千卡数'
+	String get kcalInvalid => '请输入大于 0 且不超过 10000 的千卡数';
+
+	/// zh-CN: '请输入 1 到 200000 的步数'
+	String get stepsInvalid => '请输入 1 到 200000 的步数';
 
 	/// zh-CN: '今日运动'
 	String get todayList => '今日运动';
@@ -2499,6 +2502,9 @@ class Translations$settings$privacy$zh_CN {
 
 	/// zh-CN: '导出失败，请检查网络后重试'
 	String get exportFailed => '导出失败，请检查网络后重试';
+
+	/// zh-CN: '文件已生成，但无法打开系统分享。文件位置：${path}'
+	String exportShareFailed({required Object path}) => '文件已生成，但无法打开系统分享。文件位置：${path}';
 }
 
 // Path: settings.health
@@ -2626,8 +2632,8 @@ class Translations$settings$fastingPlan$zh_CN {
 	/// zh-CN: '断食方案'
 	String get title => '断食方案';
 
-	/// zh-CN: '查看或更换断食方案，新方案次日 0:00 生效'
-	String get subtitle => '查看或更换断食方案，新方案次日 0:00 生效';
+	/// zh-CN: '查看或更换断食方案，进行中周期保持不变'
+	String get subtitle => '查看或更换断食方案，进行中周期保持不变';
 }
 
 // Path: settings.bodyProfile
@@ -4024,6 +4030,9 @@ class Translations$fasting$home$gauge$zh_CN {
 	/// zh-CN: '断食'
 	String get fasting => '断食';
 
+	/// zh-CN: '进食'
+	String get eating => '进食';
+
 	/// zh-CN: '/${hours} 小时'
 	String fastingGoal({required Object hours}) => '/${hours} 小时';
 
@@ -5022,8 +5031,9 @@ extension on Translations {
 			'record.exercise.durationLabel' => '时长（分钟）',
 			'record.exercise.kcalLabel' => '消耗（千卡）',
 			'record.exercise.estimatedWeightHint' => '未填体重，按 60 千克估算',
-			'record.exercise.durationInvalid' => '请输入大于 0 的分钟数',
-			'record.exercise.kcalInvalid' => '请输入大于 0 的千卡数',
+			'record.exercise.durationInvalid' => '请输入 1 到 1440 分钟的时长',
+			'record.exercise.kcalInvalid' => '请输入大于 0 且不超过 10000 的千卡数',
+			'record.exercise.stepsInvalid' => '请输入 1 到 200000 的步数',
 			'record.exercise.todayList' => '今日运动',
 			'record.exercise.minutesValue' => ({required Object min}) => '${min} 分钟',
 			'record.exercise.kcalValue' => ({required Object kcal}) => '${kcal} 千卡',
@@ -5148,6 +5158,7 @@ extension on Translations {
 			'fasting.home.endFastDialog.cancel' => '继续断食',
 			'fasting.home.endFastDialog.confirm' => '确认结束',
 			'fasting.home.gauge.fasting' => '断食',
+			'fasting.home.gauge.eating' => '进食',
 			'fasting.home.gauge.fastingGoal' => ({required Object hours}) => '/${hours} 小时',
 			'fasting.home.gauge.kcal' => '热量',
 			'fasting.home.gauge.kcalGoal' => ({required Object kcal}) => '/${kcal} 千卡',
@@ -5190,10 +5201,10 @@ extension on Translations {
 			'nutrition.data.summary.hasRed' => '有几盏小红灯，别急，跟着下面的建议慢慢调',
 			'nutrition.data.summary.empty' => '这一天还没有记录，记一笔信号灯就会亮起来',
 			'nutrition.data.summary.fallbackGoal' => '当前按默认目标估算，补全身体资料后会更准哦',
-			'nutrition.data.localEstimate' => '本地预估，联网后云端自动校准',
-			'nutrition.data.proDetails.title' => '专业数据',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.data.localEstimate' => '本地预估，联网后云端自动校准',
+			'nutrition.data.proDetails.title' => '专业数据',
 			'nutrition.data.proDetails.expand' => '查看详情',
 			'nutrition.data.proDetails.collapse' => '收起',
 			'nutrition.data.proDetails.target' => '目标',
@@ -5424,6 +5435,7 @@ extension on Translations {
 			'settings.privacy.blockedUsers' => '已屏蔽用户',
 			'settings.privacy.blockedUsersSubtitle' => '屏蔽后不再看到对方发布的内容',
 			'settings.privacy.exportFailed' => '导出失败，请检查网络后重试',
+			'settings.privacy.exportShareFailed' => ({required Object path}) => '文件已生成，但无法打开系统分享。文件位置：${path}',
 			'settings.health.group' => '运动数据',
 			'settings.health.sync' => '同步运动数据',
 			'settings.health.syncSubtitle' => '读取系统健康数据（Apple 健康 / Health Connect），展示今日活动消耗',
@@ -5457,7 +5469,7 @@ extension on Translations {
 			'settings.theme.light' => '浅色',
 			'settings.theme.dark' => '深色',
 			'settings.fastingPlan.title' => '断食方案',
-			'settings.fastingPlan.subtitle' => '查看或更换断食方案，新方案次日 0:00 生效',
+			'settings.fastingPlan.subtitle' => '查看或更换断食方案，进行中周期保持不变',
 			'settings.bodyProfile.title' => '身体档案',
 			'settings.bodyProfile.subtitle' => '身高体重等，用于计算精准营养目标',
 			'settings.bodyProfile.goalSection' => '减重目标（选填，仅减脂目标生效）',
@@ -5703,11 +5715,11 @@ extension on Translations {
 			'update.upToDate' => '当前已是最新版本',
 			'update.checkFailed' => '检查更新失败，请稍后重试',
 			'update.downloading' => ({required Object percent}) => '下载中 ${percent}%',
+			_ => null,
+		} ?? switch (path) {
 			'update.downloadingNoProgress' => '下载中…',
 			'update.downloadFailed' => '下载失败，请检查网络后重试',
 			'update.retry' => '重试',
-			_ => null,
-		} ?? switch (path) {
 			'moderation.title' => '审批中心',
 			'moderation.subtitle' => '审核用户贡献的食品',
 			'moderation.empty' => '暂无待审批的食品候选',

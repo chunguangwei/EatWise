@@ -100,6 +100,7 @@ void main() {
   Future<void> pumpPage(
     WidgetTester tester, {
     AnalyticsService? analytics,
+    ThemeData? theme,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -129,7 +130,10 @@ void main() {
             analyticsServiceProvider.overrideWithValue(analytics),
         ],
         child: TranslationProvider(
-          child: MaterialApp(theme: AppTheme.light(), home: const RecordPage()),
+          child: MaterialApp(
+            theme: theme ?? AppTheme.light(),
+            home: const RecordPage(),
+          ),
         ),
       ),
     );
@@ -590,6 +594,89 @@ void main() {
     expect(find.text('今日记录'), findsOneWidget);
     expect(find.text('未知食物'), findsOneWidget);
     expect(find.text('cf_223767c7'), findsNothing);
+
+    await tester.pump(const Duration(seconds: 11));
+    await settleUi(tester);
+  });
+
+  testWidgets('徽标在 360 暗色大字体下高对比，记录动作触控与关闭语义正确', (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    await db.foodDao.upsertAll(<FoodsCompanion>[
+      FoodsCompanion.insert(
+        id: 'cf-ui',
+        nameZh: '审核食物',
+        nameEn: 'Review food',
+        kcalPer100g: 80,
+        proteinPer100g: 4,
+        carbPer100g: 10,
+        fatPer100g: 2,
+        isCustom: const Value(true),
+        contributionStatus: const Value('pending'),
+      ),
+    ]);
+    await repository.addEntry(
+      RecordDraft(
+        foodId: 'cf-ui',
+        amountG: 100,
+        mealUtc: DateTime.now().toUtc(),
+        source: EntrySource.manual,
+        duringFast: true,
+      ),
+    );
+    await pumpPage(tester, theme: AppTheme.dark());
+
+    void expectBadge(String label) {
+      final text = tester.widget<Text>(find.text(label));
+      expect(text.style!.color, AppColors.dark.textPrimary);
+      final container = tester.widget<Container>(
+        find
+            .ancestor(of: find.text(label), matching: find.byType(Container))
+            .first,
+      );
+      final decoration = container.decoration! as BoxDecoration;
+      expect(
+        decoration.color,
+        AppColors.dark.brandAccent.withValues(alpha: 0.14),
+      );
+    }
+
+    expectBadge('审核中');
+    expectBadge('断食期用餐');
+    for (final icon in <IconData>[
+      Icons.edit_rounded,
+      Icons.delete_outline_rounded,
+    ]) {
+      final target = find.widgetWithIcon(IconButton, icon);
+      final button = tester.widget<IconButton>(target);
+      expect(button.constraints!.minWidth, greaterThanOrEqualTo(44));
+      expect(button.constraints!.minHeight, greaterThanOrEqualTo(44));
+      expect(tester.getSize(target).width, greaterThanOrEqualTo(44));
+      expect(tester.getSize(target).height, greaterThanOrEqualTo(44));
+    }
+
+    await tester.enterText(find.byType(TextField).first, '审核');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expectBadge('审核中');
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordPage)),
+    );
+    container.read(recordSelectedFoodProvider.notifier).state = await db.foodDao
+        .getById('cf-ui');
+    container.read(recordAmountTextProvider.notifier).state = '100';
+    container.read(recordLowConfidenceProvider.notifier).state = true;
+    await tester.pump();
+
+    expectBadge('请确认');
+    expect(find.byTooltip('取消'), findsOneWidget);
+    expect(find.byTooltip('确认记录'), findsNothing);
+    expect(tester.takeException(), isNull);
 
     await tester.pump(const Duration(seconds: 11));
     await settleUi(tester);

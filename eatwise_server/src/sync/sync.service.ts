@@ -14,7 +14,7 @@ import { newId, payloadHash } from '../common/utils/id.util';
 import { clampPageLimit } from '../common/utils/pagination.util';
 import { NutritionService, round1 } from '../nutrition/nutrition.service';
 import { StreakService } from '../streak/streak.service';
-import { localDateOf } from '../common/utils/time.util';
+import { isValidDateStr, localDateOf } from '../common/utils/time.util';
 import { CreateEntryDto, SyncOpDto } from './sync.dto';
 
 const SYNC_TOKEN_TTL_MS = 30 * 24 * 3600 * 1000; // syncToken 有效期 30 天〔假设〕
@@ -66,41 +66,73 @@ export class SyncService {
   async createEntry(userId: string, dto: CreateEntryDto) {
     const endpoint = 'food-entries/create';
     const hash = payloadHash(dto);
-    const existing = await this.driver.findFoodEntryByClientRequestId(userId, dto.clientRequestId);
-    if (existing) {
-      const hit = await this.driver.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
-      if (hit && hit.payloadHash !== hash) throw err.payloadMismatch(); // 同键不同体 = 客户端 bug
-      return hit?.responseBody;
-    }
-    const entry = await this.buildEntry(userId, dto.clientRequestId, dto);
-    const response = {
-      entry: this.entryView(entry),
-      dailyNutrition: await this.dailyNutritionOf(entry),
-    };
-    await this.driver.saveIdempotencyRecord({
-      userId,
-      clientRequestId: dto.clientRequestId,
-      endpoint,
-      payloadHash: hash,
-      responseBody: response,
-      createdAt: new Date(),
-    });
-    return response;
+    return this.driver.runInTransaction(
+      [`idempotency:${userId}:${endpoint}:${dto.clientRequestId}`],
+      async (tx) => {
+        const hit = await tx.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
+        if (hit) {
+          if (hit.payloadHash !== hash) throw err.payloadMismatch();
+          return hit.responseBody;
+        }
+
+        const existing = await tx.findFoodEntryByClientRequestId(userId, dto.clientRequestId);
+        if (existing) {
+          const same =
+            existing.foodId === dto.foodId &&
+            existing.grams === dto.grams &&
+            existing.eatenAt.toISOString() === new Date(dto.eatenAt).toISOString() &&
+            existing.inputMethod === dto.inputMethod &&
+            existing.photoUrl === (dto.photoUrl ?? null);
+          if (!same) throw err.payloadMismatch();
+          const response = {
+            entry: this.entryView(existing),
+            dailyNutrition: await this.dailyNutritionOf(existing, tx),
+          };
+          await tx.saveIdempotencyRecord({
+            userId,
+            clientRequestId: dto.clientRequestId,
+            endpoint,
+            payloadHash: hash,
+            responseBody: response,
+            createdAt: new Date(),
+          });
+          return response;
+        }
+
+        const entry = await this.buildEntry(userId, dto.clientRequestId, dto, tx);
+        const response = {
+          entry: this.entryView(entry),
+          dailyNutrition: await this.dailyNutritionOf(entry, tx),
+        };
+        await tx.saveIdempotencyRecord({
+          userId,
+          clientRequestId: dto.clientRequestId,
+          endpoint,
+          payloadHash: hash,
+          responseBody: response,
+          createdAt: new Date(),
+        });
+        return response;
+      },
+    );
   }
 
   // ===== E4 / sync/push 批量上行（逐条幂等、逐条 LWW 冲突返回，整体永不整体失败）=====
-  async push(userId: string, ops: SyncOpDto[]) {
+  async push(userId: string, ops: SyncOpDto[], timezone?: string) {
+    await this.streak.getOrCreate(userId, timezone);
     // 批内顺序处理（保持历史语义：同批同 clientRequestId 的后续 op 能看到前序写入）
     const results: OpResult[] = [];
-    for (const op of ops) results.push(await this.applyOp(userId, op));
+    for (const op of ops) results.push(await this.applyOp(userId, op, timezone));
     return { results, syncToken: this.encodeToken(new Date(), newId()) };
   }
 
-  private async applyOp(userId: string, op: SyncOpDto): Promise<OpResult> {
+  private async applyOp(userId: string, op: SyncOpDto, timezone?: string): Promise<OpResult> {
     try {
       if (op.entity === 'waterLog') return await this.applyWaterOp(userId, op);
       if (op.entity === 'exerciseLog') return await this.applyExerciseOp(userId, op);
-      if (op.entity === 'fastingRecord') return await this.applyFastingRecordOp(userId, op);
+      if (op.entity === 'fastingRecord') {
+        return await this.applyFastingRecordOp(userId, op, timezone);
+      }
       if (op.entity !== 'foodEntry') {
         return {
           clientRequestId: op.clientRequestId,
@@ -500,19 +532,25 @@ export class SyncService {
   // 分叉——streak 以服务端既有判定为权威，与客户端「本机为准」对齐）。
   // 新落行/删除后重算 streak（历史达标记录并入/移出达标集合）。
 
-  private async applyFastingRecordOp(userId: string, op: SyncOpDto): Promise<OpResult> {
-    switch (op.op) {
-      case 'create':
-        return await this.applyFastingRecordCreate(userId, op);
-      case 'delete':
-        return await this.applyFastingRecordDelete(userId, op);
-      default:
-        return {
-          clientRequestId: op.clientRequestId,
-          status: 'error',
-          error: { code: 'VALIDATION_ERROR' },
-        };
-    }
+  private async applyFastingRecordOp(
+    userId: string,
+    op: SyncOpDto,
+    timezone?: string,
+  ): Promise<OpResult> {
+    return this.driver.runInTransaction([`fasting:${userId}`, `streak:${userId}`], async (tx) => {
+      switch (op.op) {
+        case 'create':
+          return await this.applyFastingRecordCreate(userId, op, tx, timezone);
+        case 'delete':
+          return await this.applyFastingRecordDelete(userId, op, tx, timezone);
+        default:
+          return {
+            clientRequestId: op.clientRequestId,
+            status: 'error',
+            error: { code: 'VALIDATION_ERROR' },
+          };
+      }
+    });
   }
 
   /** create 允许的结果集（仅关闭周期；on_track 进行中不经本通道上行） */
@@ -523,13 +561,18 @@ export class SyncService {
     'makeup',
   ]);
 
-  private async applyFastingRecordCreate(userId: string, op: SyncOpDto): Promise<OpResult> {
+  private async applyFastingRecordCreate(
+    userId: string,
+    op: SyncOpDto,
+    driver: StoreDriver,
+    timezone?: string,
+  ): Promise<OpResult> {
     const p = op.payload;
     const attributionDate = p?.attributionDate;
     const result = p?.result;
     if (
       !attributionDate ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(attributionDate) ||
+      !isValidDateStr(attributionDate) ||
       !p?.plannedStartAt ||
       !p?.plannedEndAt ||
       !p?.actualEndAt ||
@@ -557,16 +600,31 @@ export class SyncService {
         error: { code: 'VALIDATION_ERROR' },
       };
     }
-    const records = await this.driver.listFastingRecordsByUser(userId);
-    // 结算对齐（拍板 C）：result/isQualified 按记录自身锚点重算，不采信 payload。
+    const parsedActualStart = p.actualStartAt ? new Date(p.actualStartAt) : null;
+    const actualStartAt =
+      parsedActualStart && !Number.isNaN(parsedActualStart.getTime()) ? parsedActualStart : null;
+    const extendedMinutes = typeof p.extendedMinutes === 'number' ? p.extendedMinutes : 0;
+    const fastedMinutes =
+      typeof p.fastedMinutes === 'number'
+        ? p.fastedMinutes
+        : Math.max(
+            0,
+            Math.round(
+              (actualEndAt.getTime() - (actualStartAt ?? plannedStartAt).getTime()) / 60000,
+            ),
+          );
+    const records = await driver.listFastingRecordsByUser(userId);
     const judged = this.judgeFastingResult(plannedEndAt, actualEndAt, result);
     const dupByKey = records.find((r) => r.clientRequestId === op.clientRequestId);
     if (dupByKey) {
-      // 幂等重放：同键同体返回首次结果；同键不同体 = 客户端 bug
       const same =
         dupByKey.attributionDate === attributionDate &&
+        dupByKey.plannedStartAt.getTime() === plannedStartAt.getTime() &&
+        dupByKey.plannedEndAt.getTime() === plannedEndAt.getTime() &&
+        (dupByKey.actualStartAt?.getTime() ?? null) === (actualStartAt?.getTime() ?? null) &&
         dupByKey.actualEndAt?.getTime() === actualEndAt.getTime() &&
-        dupByKey.result === result;
+        dupByKey.extendedMinutes === extendedMinutes &&
+        dupByKey.fastedMinutes === fastedMinutes;
       if (!same) {
         return {
           clientRequestId: op.clientRequestId,
@@ -580,13 +638,6 @@ export class SyncService {
         serverEntry: this.fastingRecordView(dupByKey),
       };
     }
-    // 归属日天然幂等键：服务端已有该日存活记录（F2 结算/他端上行/ghost
-    // 自动结算）→ 默认返回既有视图不覆盖（客户端据 serverEntry 回填 serverId）。
-    // LWW（2026-09-29 拍板同日双端分叉确定性收敛）：客户端本地写入时刻
-    // （payload.updatedAtUtc）新于服务端记录 updatedAt 时覆盖内容——
-    // 仅限**终态对终态**：on_track 进行中记录由 F2/ghost 结算链路拥有，
-    // /sync 永不覆盖（保 F2 窗口校验语义）。重复上行幂等稳定：覆盖后
-    // updatedAt=服务端时钟，同载荷重放不再新于它，不再重复写。
     const dupByDate = records.find((r) => !r.deletedAt && r.attributionDate === attributionDate);
     if (dupByDate) {
       const clientUpdatedAt = p.updatedAtUtc ? new Date(p.updatedAtUtc) : null;
@@ -597,25 +648,15 @@ export class SyncService {
         clientUpdatedAt.getTime() > dupByDate.updatedAt.getTime()
       ) {
         const now = new Date();
-        const actualStartAt = p.actualStartAt ? new Date(p.actualStartAt) : null;
         dupByDate.plannedStartAt = plannedStartAt;
         dupByDate.plannedEndAt = plannedEndAt;
-        dupByDate.actualStartAt =
-          actualStartAt && !Number.isNaN(actualStartAt.getTime()) ? actualStartAt : null;
+        dupByDate.actualStartAt = actualStartAt;
         dupByDate.actualEndAt = actualEndAt;
-        dupByDate.extendedMinutes = typeof p.extendedMinutes === 'number' ? p.extendedMinutes : 0;
-        dupByDate.fastedMinutes =
-          typeof p.fastedMinutes === 'number'
-            ? p.fastedMinutes
-            : Math.max(
-                0,
-                Math.round(
-                  (actualEndAt.getTime() - (actualStartAt ?? plannedStartAt).getTime()) / 60000,
-                ),
-              );
+        dupByDate.extendedMinutes = extendedMinutes;
+        dupByDate.fastedMinutes = fastedMinutes;
         dupByDate.result = judged.result;
         dupByDate.isQualified = judged.isQualified;
-        dupByDate.clientRequestId = op.clientRequestId; // 换绑最新写入端幂等键
+        dupByDate.clientRequestId = op.clientRequestId;
         dupByDate.version += 1;
         dupByDate.updatedAt = now;
         dupByDate.eventLog.push({
@@ -623,9 +664,8 @@ export class SyncService {
           event: 'synced_overwrite',
           detail: { clientUpdatedAt: clientUpdatedAt.toISOString() },
         });
-        await this.driver.saveFastingRecord(dupByDate);
-        // 覆盖改变达标集合 → streak 重算（与 create/delete 同口径）。
-        await this.streak.recompute(userId);
+        await driver.saveFastingRecord(dupByDate);
+        await this.streak.recompute(userId, driver, timezone);
       }
       return {
         clientRequestId: op.clientRequestId,
@@ -634,26 +674,16 @@ export class SyncService {
       };
     }
     const now = new Date();
-    const actualStartAt = p.actualStartAt ? new Date(p.actualStartAt) : null;
-    const extendedMinutes = typeof p.extendedMinutes === 'number' ? p.extendedMinutes : 0;
     const record: FastingRecordEntity = {
       id: newId(),
       userId,
       attributionDate,
       plannedStartAt,
       plannedEndAt,
-      actualStartAt: actualStartAt && !Number.isNaN(actualStartAt.getTime()) ? actualStartAt : null,
+      actualStartAt,
       actualEndAt,
       extendedMinutes,
-      fastedMinutes:
-        typeof p.fastedMinutes === 'number'
-          ? p.fastedMinutes
-          : Math.max(
-              0,
-              Math.round(
-                (actualEndAt.getTime() - (actualStartAt ?? plannedStartAt).getTime()) / 60000,
-              ),
-            ),
+      fastedMinutes,
       result: judged.result,
       isQualified: judged.isQualified,
       eventLog: [{ at: now.toISOString(), event: 'synced_create' }],
@@ -663,9 +693,8 @@ export class SyncService {
       updatedAt: now,
       deletedAt: null,
     };
-    await this.driver.saveFastingRecord(record);
-    // 历史达标记录并入 streak 权威口径（换机恢复场景服务端原本缺这些日）。
-    await this.streak.recompute(userId);
+    await driver.saveFastingRecord(record);
+    await this.streak.recompute(userId, driver, timezone);
     return {
       clientRequestId: op.clientRequestId,
       status: 'applied',
@@ -673,9 +702,14 @@ export class SyncService {
     };
   }
 
-  private async applyFastingRecordDelete(userId: string, op: SyncOpDto): Promise<OpResult> {
+  private async applyFastingRecordDelete(
+    userId: string,
+    op: SyncOpDto,
+    driver: StoreDriver,
+    timezone?: string,
+  ): Promise<OpResult> {
     const id = op.serverId ?? op.payload?.id;
-    const records = await this.driver.listFastingRecordsByUser(userId);
+    const records = await driver.listFastingRecordsByUser(userId);
     const record =
       (id ? records.find((r) => r.id === id) : undefined) ??
       (op.payload?.clientRequestId
@@ -688,11 +722,9 @@ export class SyncService {
       record.deletedAt = new Date();
       record.version += 1;
       record.updatedAt = new Date();
-      await this.driver.saveFastingRecord(record);
-      // 删除把该日移出达标集合 → streak 重算（下行 tombstone 清他端）。
-      await this.streak.recompute(userId);
+      await driver.saveFastingRecord(record);
+      await this.streak.recompute(userId, driver, timezone);
     }
-    // 软删幂等：重复删除返回 applied
     return { clientRequestId: op.clientRequestId, status: 'applied' };
   }
 
@@ -733,10 +765,11 @@ export class SyncService {
     };
   }
   // ===== E6 / sync/pull 增量下行（syncToken 游标）=====
-  async pull(userId: string, syncToken: string | undefined, limit = 200) {
+  async pull(userId: string, syncToken: string | undefined, limit = 200, timezone?: string) {
     limit = clampPageLimit(limit, 200, 1000); // 非法 limit（负数/NaN）回落默认，防游标死循环
     let after: { ts: number; id: string } | null = null;
     if (syncToken) after = this.decodeToken(syncToken);
+    await this.streak.getOrCreate(userId, timezone);
 
     // 驱动已按 (updatedAt asc, id asc) 排序 —— 与 syncToken 游标语义同口径（含 tombstone）
     const rows = await this.driver.listFoodEntriesByUser(userId);
@@ -832,6 +865,7 @@ export class SyncService {
       snapshotCarbG?: number;
       snapshotFatG?: number;
     },
+    driver: StoreDriver = this.driver,
   ): Promise<FoodEntryEntity> {
     const now = new Date();
     const entry: FoodEntryEntity = {
@@ -843,18 +877,24 @@ export class SyncService {
       grams: dto.grams,
       inputMethod: dto.inputMethod,
       photoUrl: dto.photoUrl ?? null,
-      nutritionSnapshot: await this.snapshotOf(userId, dto.foodId, dto.grams, {
-        kcal: dto.snapshotKcal,
-        proteinG: dto.snapshotProteinG,
-        carbG: dto.snapshotCarbG,
-        fatG: dto.snapshotFatG,
-      }),
+      nutritionSnapshot: await this.snapshotOf(
+        userId,
+        dto.foodId,
+        dto.grams,
+        {
+          kcal: dto.snapshotKcal,
+          proteinG: dto.snapshotProteinG,
+          carbG: dto.snapshotCarbG,
+          fatG: dto.snapshotFatG,
+        },
+        driver,
+      ),
       version: 1,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
     };
-    await this.driver.saveFoodEntry(entry);
+    await driver.saveFoodEntry(entry);
     return entry;
   }
 
@@ -874,9 +914,9 @@ export class SyncService {
       carbG?: number;
       fatG?: number;
     },
+    driver: StoreDriver = this.driver,
   ): Promise<NutritionSnapshot> {
-    const food =
-      (await this.driver.findFoodById(foodId)) ?? (await this.driver.findCustomFoodById(foodId));
+    const food = (await driver.findFoodById(foodId)) ?? (await driver.findCustomFoodById(foodId));
     if (!food || ('userId' in food && food.userId !== userId)) {
       // 客户端快照兜底（2026-09-29 收敛）：食物行服务端查无（自定义食物
       // 终态失败/seed 裁剪幽灵行）时按客户端入账快照接收——记录本体合法，
@@ -905,11 +945,11 @@ export class SyncService {
     };
   }
 
-  private async dailyNutritionOf(entry: FoodEntryEntity) {
-    const user = await this.driver.findUserById(entry.userId);
+  private async dailyNutritionOf(entry: FoodEntryEntity, driver: StoreDriver = this.driver) {
+    const user = await driver.findUserById(entry.userId);
     const tz = user?.timezone ?? 'Asia/Shanghai';
     const date = localDateOf(entry.eatenAt, tz);
-    const totals = await this.nutrition.aggregate(entry.userId, date, tz);
+    const totals = await this.nutrition.aggregate(entry.userId, date, tz, driver);
     return {
       date,
       kcal: totals.kcal,

@@ -63,6 +63,44 @@ describe('streak 与补签卡（D-12）', () => {
     expect(rolled.makeupCards.usedDates).toEqual([]);
   });
 
+  it('recompute 与 makeUp 自身也会纠正滞后月份，S1 窗口常量保持 7', async () => {
+    const stale = await streak.getOrCreate(userId, TZ);
+    stale.makeupCards = { stock: 0, month: '2000-01', usedDates: ['2000-01-02'] };
+    await driver.saveStreak(stale);
+    await streak.recompute(userId);
+    expect((await driver.findStreakByUser(userId))?.makeupCards).toEqual({
+      stock: 2,
+      month: today.slice(0, 7),
+      usedDates: [],
+    });
+
+    const staleAgain = await driver.findStreakByUser(userId);
+    staleAgain!.makeupCards = { stock: 0, month: '2000-01', usedDates: ['2000-01-02'] };
+    await driver.saveStreak(staleAgain!);
+    const response = (await streak.makeUp(userId, randomUUID(), addDays(today, -1))) as {
+      makeupCards: { stock: number; usableWindowDays: number };
+    };
+    expect(response.makeupCards.stock).toBe(1);
+    expect(response.makeupCards.usableWindowDays).toBe(7);
+  });
+
+  it('断档/重新开始不额外送卡；跨月未用完也只重置为 2 不叠加', async () => {
+    const current = await streak.getOrCreate(userId, TZ);
+    current.makeupCards.stock = 1;
+    await driver.saveStreak(current);
+    addQualifiedRecord(addDays(today, -3));
+    await streak.recompute(userId);
+    expect((await driver.findStreakByUser(userId))?.makeupCards.stock).toBe(1);
+    addQualifiedRecord(today);
+    await streak.recompute(userId);
+    expect((await driver.findStreakByUser(userId))?.makeupCards.stock).toBe(1);
+
+    const previousMonth = await driver.findStreakByUser(userId);
+    previousMonth!.makeupCards = { stock: 1, month: '2000-01', usedDates: [] };
+    await driver.saveStreak(previousMonth!);
+    expect((await streak.getOrCreate(userId, TZ)).makeupCards.stock).toBe(2);
+  });
+
   it('补签成功：库存 -1、生成 makeup 留痕记录、streak 重算连回', async () => {
     const date = addDays(today, -1);
     const res = (await streak.makeUp(userId, randomUUID(), date)) as {
@@ -87,10 +125,14 @@ describe('streak 与补签卡（D-12）', () => {
     expect(res.currentStreak).toBe(3);
   });
 
-  it('仅可补最近 7 天内：第 8 天前 → 400 MAKEUP_OUT_OF_WINDOW', async () => {
-    await expect(streak.makeUp(userId, randomUUID(), addDays(today, -8))).rejects.toThrow(
-      expect.objectContaining({ code: 'MAKEUP_OUT_OF_WINDOW' }) as unknown as Error,
-    );
+  it('7 天窗口 parity：D+6 可补，D+7/D+8 均 MAKEUP_OUT_OF_WINDOW', async () => {
+    await streak.makeUp(userId, randomUUID(), addDays(today, -6));
+    expect((await driver.findStreakByUser(userId))?.makeupCards.stock).toBe(1);
+    for (const date of [addDays(today, -7), addDays(today, -8)]) {
+      await expect(streak.makeUp(userId, randomUUID(), date)).rejects.toThrow(
+        expect.objectContaining({ code: 'MAKEUP_OUT_OF_WINDOW' }) as unknown as Error,
+      );
+    }
   });
 
   it('不能补今天（断食可能仍在进行）→ MAKEUP_OUT_OF_WINDOW', async () => {
@@ -149,5 +191,88 @@ describe('streak 与补签卡（D-12）', () => {
     expect(s.milestones['3']).toBeTruthy();
     expect(s.milestones['7']).toBeTruthy();
     expect(s.milestones['30']).toBeUndefined();
+  });
+
+  it('补签日期必须是真实日历日：2026-02-29 → VALIDATION_ERROR', async () => {
+    await expect(streak.makeUp(userId, randomUUID(), '2026-02-29')).rejects.toThrow(
+      expect.objectContaining({ code: 'VALIDATION_ERROR' }) as unknown as Error,
+    );
+    expect([...store.fastingRecords.values()].filter((r) => r.result === 'makeup')).toHaveLength(0);
+    expect((await streak.getOrCreate(userId)).makeupCards.stock).toBe(2);
+  });
+
+  it('同键并发补签只扣一次并只生成一个 marker', async () => {
+    const clientRequestId = randomUUID();
+    const date = addDays(today, -1);
+    const [first, replay] = await Promise.all([
+      streak.makeUp(userId, clientRequestId, date),
+      streak.makeUp(userId, clientRequestId, date),
+    ]);
+    expect(replay).toEqual(first);
+    const fresh = await driver.findStreakByUser(userId);
+    expect(fresh?.makeupCards.stock).toBe(1);
+    expect(fresh?.makeupCards.usedDates).toEqual([date]);
+    expect([...store.fastingRecords.values()].filter((r) => r.result === 'makeup')).toHaveLength(1);
+  });
+
+  it('并发补签与 recompute 不用旧快照覆盖 cards', async () => {
+    const dates = [addDays(today, -1), addDays(today, -2)];
+    await Promise.all([
+      streak.makeUp(userId, randomUUID(), dates[0]),
+      streak.makeUp(userId, randomUUID(), dates[1]),
+      streak.recompute(userId),
+      streak.recompute(userId),
+    ]);
+    const fresh = await driver.findStreakByUser(userId);
+    expect(fresh?.makeupCards.stock).toBe(0);
+    expect(fresh?.makeupCards.usedDates.sort()).toEqual([...dates].sort());
+    expect(fresh?.currentStreak).toBe(2);
+    expect([...store.fastingRecords.values()].filter((r) => r.result === 'makeup')).toHaveLength(2);
+  });
+
+  it('跨时区月初按用户本地月 rollover，UTC 尚未进入新月时不提前发', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-02-28T16:30:00.000Z'));
+    try {
+      const stale = await streak.getOrCreate(userId, TZ);
+      stale.makeupCards = { stock: 0, month: '2026-02', usedDates: ['2026-02-20'] };
+      await driver.saveStreak(stale);
+      const shanghai = await streak.getOrCreate(userId, TZ);
+      expect(shanghai.makeupCards).toEqual({ stock: 2, month: '2026-03', usedDates: [] });
+
+      shanghai.makeupCards = { stock: 0, month: '2026-02', usedDates: ['2026-02-20'] };
+      await driver.saveStreak(shanghai);
+      const utc = await streak.getOrCreate(userId, 'UTC');
+      expect(utc.makeupCards).toEqual({ stock: 0, month: '2026-02', usedDates: ['2026-02-20'] });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('重复调用不叠加；滞后月份并发读取只 rollover 一次语义且库存不超过 2', async () => {
+    const current = await streak.getOrCreate(userId, TZ);
+    current.makeupCards.stock = 1;
+    await driver.saveStreak(current);
+    const repeated = await Promise.all(
+      Array.from({ length: 8 }, () => streak.getOrCreate(userId, TZ)),
+    );
+    expect(repeated.every((s) => s.makeupCards.stock === 1)).toBe(true);
+
+    const stale = await driver.findStreakByUser(userId);
+    stale!.makeupCards = { stock: 0, month: '2000-01', usedDates: ['2000-01-02'] };
+    await driver.saveStreak(stale!);
+    const rolled = await Promise.all(
+      Array.from({ length: 12 }, () => streak.getOrCreate(userId, TZ)),
+    );
+    expect(rolled.every((s) => s.makeupCards.stock === 2)).toBe(true);
+    expect((await driver.findStreakByUser(userId))?.makeupCards).toEqual({
+      stock: 2,
+      month: today.slice(0, 7),
+      usedDates: [],
+    });
+
+    const corrupted = await driver.findStreakByUser(userId);
+    corrupted!.makeupCards.stock = 9;
+    await driver.saveStreak(corrupted!);
+    expect((await streak.getOrCreate(userId, TZ)).makeupCards.stock).toBe(2);
   });
 });

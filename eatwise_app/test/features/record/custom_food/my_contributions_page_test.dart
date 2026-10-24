@@ -213,6 +213,17 @@ void main() {
     customRemote.mode = FakeCustomFoodMode.offline;
     await pumpPage(tester);
     expect(find.text('加载失败，请稍后重试'), findsOneWidget);
+    final retry = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, '重试'),
+    );
+    expect(
+      retry.style!.backgroundColor!.resolve(<WidgetState>{}),
+      AppColors.light.actionPrimary,
+    );
+    expect(
+      tester.widget<Text>(find.text('重试')).style!.color,
+      AppColors.light.onActionPrimary,
+    );
 
     customRemote.mode = FakeCustomFoodMode.success;
     customRemote.contributions = <FoodContribution>[

@@ -48,15 +48,17 @@ class MealTypeChips extends ConsumerWidget {
           ChoiceChip(
             label: Text(labelOf(t, mealType)),
             labelStyle: textStyles.textXs.copyWith(
-              color: selected == mealType
-                  ? colors.bgPrimary
-                  : colors.textPrimary,
+              color: colors.textPrimary,
+              fontWeight: selected == mealType
+                  ? FontWeight.w600
+                  : FontWeight.w400,
             ),
             selected: selected == mealType,
-            selectedColor: colors.brandPrimary,
+            selectedColor: colors.brandPrimary.withValues(alpha: 0.14),
             backgroundColor: colors.bgPrimary,
-            showCheckmark: false,
-            visualDensity: VisualDensity.compact,
+            showCheckmark: true,
+            checkmarkColor: colors.textPrimary,
+            materialTapTargetSize: MaterialTapTargetSize.padded,
             onSelected: (_) =>
                 ref.read(recordMealTypeProvider.notifier).state = mealType,
           ),
