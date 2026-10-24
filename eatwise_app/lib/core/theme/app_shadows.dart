@@ -23,7 +23,13 @@ class AppShadows extends ThemeExtension<AppShadows> {
   /// 更低 alpha，对齐华为白卡「浮起但不割裂」的观感）。
   static const AppShadows light = AppShadows(
     shadowSm: <BoxShadow>[
-      BoxShadow(offset: Offset(0, 2), blurRadius: 12, color: Color(0x0F1E2A28)),
+      BoxShadow(offset: Offset(0, 1), blurRadius: 2, color: Color(0x081E2A28)),
+      BoxShadow(
+        offset: Offset(0, 6),
+        blurRadius: 20,
+        spreadRadius: -3,
+        color: Color(0x141E2A28),
+      ),
     ],
     shadowMd: <BoxShadow>[
       BoxShadow(offset: Offset(0, 6), blurRadius: 24, color: Color(0x141E2A28)),
@@ -34,7 +40,12 @@ class AppShadows extends ThemeExtension<AppShadows> {
   /// 叠加暗色卡片底与页面底的微小亮度差后层级完全消失）。
   static const AppShadows dark = AppShadows(
     shadowSm: <BoxShadow>[
-      BoxShadow(offset: Offset(0, 2), blurRadius: 12, color: Color(0x1F1E2A28)),
+      BoxShadow(
+        offset: Offset(0, 6),
+        blurRadius: 20,
+        spreadRadius: -3,
+        color: Color(0x40000000),
+      ),
     ],
     shadowMd: <BoxShadow>[
       BoxShadow(offset: Offset(0, 6), blurRadius: 24, color: Color(0x291E2A28)),

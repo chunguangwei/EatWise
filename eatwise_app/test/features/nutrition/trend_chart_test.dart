@@ -12,7 +12,12 @@ void main() {
     await LocaleSettings.setLocale(AppLocale.zhCn);
   });
 
-  Widget buildApp({List<double?>? kcal, List<double?>? fasting}) {
+  Widget buildApp({
+    List<double?>? kcal,
+    List<double?>? fasting,
+    double scale = 1,
+    bool dark = false,
+  }) {
     return TranslationProvider(
       child: ProviderScope(
         overrides: <Override>[
@@ -24,7 +29,13 @@ void main() {
           ),
         ],
         child: MaterialApp(
-          theme: AppTheme.light(),
+          theme: dark ? AppTheme.dark() : AppTheme.light(),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(scale)),
+            child: child!,
+          ),
           home: const Scaffold(
             body: SingleChildScrollView(child: TrendChartSection()),
           ),
@@ -66,4 +77,25 @@ void main() {
     expect(find.text('记满几天，趋势曲线就跑起来啦'), findsNothing);
     expect(find.byType(CustomPaint), findsWidgets);
   });
+  for (final dark in [false, true]) {
+    testWidgets('320px large text trend has no overflow (dark=$dark)', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(320, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        buildApp(
+          kcal: [2100, 2200, 2150, 2250, 2200, 2180, 2190],
+          scale: 2,
+          dark: dark,
+        ),
+      );
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('断食时长'));
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

@@ -18,7 +18,7 @@ import 'package:flutter/material.dart';
 /// - 按钮双级：FilledButton 品牌绿实心 48px 胶囊（页面级主行动）/
 ///   OutlinedButton 绿描边 48px 胶囊（次级）；56px 强转化胶囊仅首页等
 ///   个别调用点显式覆盖；
-/// - 弹窗/弹层圆角统一 rLg=20；SnackBar 悬浮 rMd 胶囊；
+/// - 弹窗/弹层圆角统一 rLg=20；SnackBar 主题底色、顶部圆角与关闭入口；
 /// - 输入框填充 + rMd 描边（portion_input 等显式装饰不受影响）。
 abstract final class AppTheme {
   static ThemeData light() {
@@ -91,6 +91,28 @@ abstract final class AppTheme {
           textStyle: buttonTextStyle,
         ),
       ),
+      // Filters share a quiet green selection and subtle boundaries throughout
+      // the app, instead of the default orange fill and heavy dark outlines.
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          minimumSize: const WidgetStatePropertyAll(Size(44, 44)),
+          textStyle: WidgetStatePropertyAll(
+            textStyles.textSm.copyWith(fontWeight: FontWeight.w500),
+          ),
+          foregroundColor: WidgetStatePropertyAll(colors.textPrimary),
+          backgroundColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? colors.brandPrimary.withValues(alpha: 0.14)
+                : colors.fillSubtle.withValues(alpha: 0.45),
+          ),
+          side: WidgetStatePropertyAll(
+            BorderSide(color: colors.border.withValues(alpha: 0.3)),
+          ),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: radii.rMd),
+          ),
+        ),
+      ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(foregroundColor: colors.brandPrimary),
       ),
@@ -111,10 +133,19 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.vertical(top: radii.rLg.topLeft),
         ),
       ),
-      // SnackBar 悬浮胶囊（苹果式反馈条，替代贴底长条）。
+      // 提示条贴合键盘上沿，明确提供关闭入口，保留撤销，避免持久黑色浮层。
       snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: radii.rMd),
+        behavior: SnackBarBehavior.fixed,
+        backgroundColor: colors.bgSecondary,
+        contentTextStyle: textStyles.textSm.copyWith(color: colors.textPrimary),
+        actionTextColor: colors.brandPrimary,
+        closeIconColor: colors.textSecondary,
+        showCloseIcon: true,
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: radii.rMd.topLeft),
+          side: BorderSide(color: colors.border.withValues(alpha: 0.35)),
+        ),
       ),
       dividerTheme: DividerThemeData(
         color: colors.divider,
@@ -124,7 +155,7 @@ abstract final class AppTheme {
       // 输入框：填充 + rMd 描边（华为填充圆角语言；focus 品牌绿 2px）。
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: colors.bgSecondary,
+        fillColor: colors.fillSubtle,
         border: OutlineInputBorder(
           borderRadius: radii.rMd,
           borderSide: BorderSide(color: colors.border.withValues(alpha: 0.4)),

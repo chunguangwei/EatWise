@@ -32,73 +32,83 @@ class HomeShell extends ConsumerWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
 
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+
     return Scaffold(
+      // Each branch Scaffold owns keyboard avoidance; preserve its viewInsets.
+      resizeToAvoidBottomInset: false,
       // 内容延伸到磨砂导航栏后方（滚动时透过模糊透出，液态玻璃观感）。
-      extendBody: true,
-      body: navigationShell,
-      bottomNavigationBar: GlassPanel(
-        topHighlight: true,
-        child: NavigationBarTheme(
-          data: NavigationBarThemeData(
-            backgroundColor: Colors.transparent, // 磨砂底色由 GlassPanel 提供
-            elevation: 0,
-            indicatorColor: colors.brandPrimary.withValues(alpha: 0.16),
-            iconTheme: WidgetStateProperty.resolveWith((states) {
-              return IconThemeData(
-                size: 24,
-                color: states.contains(WidgetState.selected)
-                    ? colors.brandPrimary
-                    : colors.textSecondary,
-              );
-            }),
-            labelTextStyle: WidgetStateProperty.resolveWith((states) {
-              final base = textStyles.textXs;
-              return states.contains(WidgetState.selected)
-                  ? base.copyWith(color: colors.brandPrimary)
-                  : base.copyWith(color: colors.textSecondary);
-            }),
-          ),
-          child: NavigationBar(
-            selectedIndex: navigationShell.currentIndex,
-            onDestinationSelected: (index) {
-              navigationShell.goBranch(
-                index,
-                // 再次点按当前 Tab：回分支根路由（go_router 惯例）。
-                initialLocation: index == navigationShell.currentIndex,
-              );
-              // 页面停留分段（§4.2：end_reason=tab_switch；同页重按 no-op）。
-              ref.read(pageStayTrackerProvider).onTabSwitch(_tabPageIds[index]);
-            },
-            destinations: <NavigationDestination>[
-              NavigationDestination(
-                icon: const Icon(Icons.timer_rounded),
-                selectedIcon: const Icon(Icons.timer),
-                label: t.home.tab.home,
+      extendBody: !keyboardVisible,
+      // Keep notifications on the active page Scaffold so they stay above
+      // the keyboard and their close/undo buttons remain reachable.
+      body: ScaffoldMessenger(child: navigationShell),
+      bottomNavigationBar: keyboardVisible
+          ? null
+          : GlassPanel(
+              topHighlight: true,
+              child: NavigationBarTheme(
+                data: NavigationBarThemeData(
+                  backgroundColor: Colors.transparent, // 磨砂底色由 GlassPanel 提供
+                  elevation: 0,
+                  indicatorColor: colors.brandPrimary.withValues(alpha: 0.16),
+                  iconTheme: WidgetStateProperty.resolveWith((states) {
+                    return IconThemeData(
+                      size: 24,
+                      color: states.contains(WidgetState.selected)
+                          ? colors.brandPrimary
+                          : colors.textSecondary,
+                    );
+                  }),
+                  labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                    final base = textStyles.textXs;
+                    return states.contains(WidgetState.selected)
+                        ? base.copyWith(color: colors.brandPrimary)
+                        : base.copyWith(color: colors.textSecondary);
+                  }),
+                ),
+                child: NavigationBar(
+                  selectedIndex: navigationShell.currentIndex,
+                  onDestinationSelected: (index) {
+                    navigationShell.goBranch(
+                      index,
+                      // 再次点按当前 Tab：回分支根路由（go_router 惯例）。
+                      initialLocation: index == navigationShell.currentIndex,
+                    );
+                    // 页面停留分段（§4.2：end_reason=tab_switch；同页重按 no-op）。
+                    ref
+                        .read(pageStayTrackerProvider)
+                        .onTabSwitch(_tabPageIds[index]);
+                  },
+                  destinations: <NavigationDestination>[
+                    NavigationDestination(
+                      icon: const Icon(Icons.timer_rounded),
+                      selectedIcon: const Icon(Icons.timer),
+                      label: t.home.tab.home,
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.edit_note_rounded),
+                      selectedIcon: const Icon(Icons.edit_note),
+                      label: t.home.tab.record,
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.insights_rounded),
+                      selectedIcon: const Icon(Icons.insights),
+                      label: t.home.tab.data,
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.people_outline_rounded),
+                      selectedIcon: const Icon(Icons.people),
+                      label: t.home.tab.community,
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.person_outline_rounded),
+                      selectedIcon: const Icon(Icons.person),
+                      label: t.home.tab.profile,
+                    ),
+                  ],
+                ),
               ),
-              NavigationDestination(
-                icon: const Icon(Icons.edit_note_rounded),
-                selectedIcon: const Icon(Icons.edit_note),
-                label: t.home.tab.record,
-              ),
-              NavigationDestination(
-                icon: const Icon(Icons.insights_rounded),
-                selectedIcon: const Icon(Icons.insights),
-                label: t.home.tab.data,
-              ),
-              NavigationDestination(
-                icon: const Icon(Icons.people_outline_rounded),
-                selectedIcon: const Icon(Icons.people),
-                label: t.home.tab.community,
-              ),
-              NavigationDestination(
-                icon: const Icon(Icons.person_outline_rounded),
-                selectedIcon: const Icon(Icons.person),
-                label: t.home.tab.profile,
-              ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

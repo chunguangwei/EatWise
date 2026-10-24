@@ -53,7 +53,10 @@ class MonthlyReportCard extends ConsumerWidget {
                   DateFormat.yMMMM(
                     Localizations.localeOf(context).toString(),
                   ).format(month),
-                  style: textStyles.textLg.copyWith(color: colors.textPrimary),
+                  style: textStyles.textLg.copyWith(
+                    color: colors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

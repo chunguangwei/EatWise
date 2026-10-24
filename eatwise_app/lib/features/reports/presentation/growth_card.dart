@@ -36,7 +36,10 @@ class GrowthSummaryCard extends ConsumerWidget {
         children: <Widget>[
           Text(
             growth.title(days: range.days),
-            style: textStyles.textLg.copyWith(color: colors.textPrimary),
+            style: textStyles.textLg.copyWith(
+              color: colors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

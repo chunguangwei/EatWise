@@ -84,6 +84,8 @@ class AppBottomSheet extends StatelessWidget {
                   children: <Widget>[
                     Flexible(
                       child: SingleChildScrollView(
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
                         padding: contentPadding,
                         child: content,
                       ),

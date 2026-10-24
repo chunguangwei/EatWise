@@ -4,6 +4,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/chart_labels.dart';
 import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/reports/application/report_aggregation.dart'
     show TrendBucket, TrendPoint;
@@ -101,7 +102,10 @@ class _ReportTrendSectionState extends ConsumerState<ReportTrendSection> {
         children: <Widget>[
           Text(
             trend.title,
-            style: textStyles.textLg.copyWith(color: colors.textPrimary),
+            style: textStyles.textLg.copyWith(
+              color: colors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -225,9 +229,17 @@ class _ReportTrendSectionState extends ConsumerState<ReportTrendSection> {
               style: textStyles.textXs.copyWith(color: colors.textSecondary),
               maxLines: 1,
             ),
-            const SizedBox(height: AppSpacing.s2),
+            if (targetKg != null)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s2),
+                child: Text(
+                  trend.targetLine(kg: targetKg.toStringAsFixed(1)),
+                  style: textStyles.textSm.copyWith(color: colors.brandAccent),
+                ),
+              ),
+            const SizedBox(height: AppSpacing.s4),
             SizedBox(
-              height: 160,
+              height: 184 + MediaQuery.textScalerOf(context).scale(24),
               width: double.infinity,
               child: Stack(
                 fit: StackFit.expand,
@@ -241,6 +253,7 @@ class _ReportTrendSectionState extends ConsumerState<ReportTrendSection> {
                           : colors.brandPrimary,
                       labelColor: colors.textSecondary,
                       labelStyle: textStyles.textXs,
+                      textScaler: MediaQuery.textScalerOf(context),
                       fractionDigits:
                           dimension == ReportDimension.kcal || isRate ? 0 : 1,
                       // 体重保留 min-max 量程（零基线会压平 60~80kg 曲线）；
@@ -394,7 +407,7 @@ class _TrendEmpty extends StatelessWidget {
   }
 }
 
-/// 绿描线趋势图：折线 + 节点圆点 + 底部稀疏日期标签 + 末点数值标签。
+/// 趋势图：独立数值带 + 折线 + 日期带，优先保留最新值并避让相邻文字。
 /// 无记录日（null）跳过不连线段（断点处理）。
 class ReportTrendPainter extends CustomPainter {
   ReportTrendPainter({
@@ -403,6 +416,7 @@ class ReportTrendPainter extends CustomPainter {
     required this.lineColor,
     required this.labelColor,
     required this.labelStyle,
+    this.textScaler = TextScaler.noScaling,
     this.fractionDigits = 0,
     this.targetValue,
     this.targetColor,
@@ -417,6 +431,7 @@ class ReportTrendPainter extends CustomPainter {
   final Color lineColor;
   final Color labelColor;
   final TextStyle labelStyle;
+  final TextScaler textScaler;
   final int fractionDigits;
 
   /// 目标参考线值（阶段 C：体重维度传目标体重；null 不画）。
@@ -425,7 +440,7 @@ class ReportTrendPainter extends CustomPainter {
   /// 目标参考线颜色。
   final Color? targetColor;
 
-  /// 目标参考线标签（如「目标 55 kg」）。
+  /// 目标参考线描述（布局层单独展示，避免盖住曲线）。
   final String? targetLabel;
 
   /// Y 轴从零起画（热量/断食时长/达标率）：min-max 归一化会把「16h→14h」
@@ -433,9 +448,6 @@ class ReportTrendPainter extends CustomPainter {
   /// 「趋势 0 值」最终根因——数据早已修复，图一直被误读）。体重仍走
   /// min-max（零基线会把 60~80kg 压成顶部一条平线，不可读）。
   final bool zeroBaseline;
-
-  static const double _labelHeight = 20;
-  static const double _topPadding = 24;
 
   /// 数值标签格式：整数不带小数位（14 而非 14.0），非整数按
   /// [fractionDigits]（保底 1 位）。
@@ -461,12 +473,13 @@ class ReportTrendPainter extends CustomPainter {
     final span = (maxV - minV) == 0
         ? (maxV == 0 ? 1.0 : maxV * 0.2)
         : maxV - minV;
-    final chartBottom = size.height - _labelHeight;
-    final chartTop = _topPadding;
+    final labelHeight = textScaler.scale(12) * 1.4;
+    final chartBottom = size.height - labelHeight - 16;
+    final chartTop = labelHeight + 24;
 
     double xOf(int i) => values.length == 1
         ? size.width / 2
-        : size.width * i / (values.length - 1);
+        : 8 + (size.width - 16) * i / (values.length - 1);
 
     Offset pointOf(int i) {
       final v = values[i]!;
@@ -492,17 +505,16 @@ class ReportTrendPainter extends CustomPainter {
           dashPaint,
         );
       }
-      final label = targetLabel;
-      if (label != null) {
-        _drawText(
-          canvas,
-          label,
-          Offset(0, targetY - 14),
-          labelStyle.copyWith(color: targetColor),
-        );
-      }
     }
 
+    // Quiet reference lines separate the plotting area from both label bands.
+    final gridPaint = Paint()
+      ..color = labelColor.withValues(alpha: 0.12)
+      ..strokeWidth = 1;
+    for (var row = 0; row <= 2; row++) {
+      final y = chartTop + (chartBottom - chartTop) * row / 2;
+      canvas.drawLine(Offset(8, y), Offset(size.width - 8, y), gridPaint);
+    }
     // 折线（只连接两侧都有值的相邻点）。
     final linePaint = Paint()
       ..color = lineColor
@@ -515,73 +527,48 @@ class ReportTrendPainter extends CustomPainter {
         canvas.drawLine(pointOf(i), pointOf(i + 1), linePaint);
       }
     }
-    // 节点圆点 + 数值标签（≤10 点逐点标注，更多点只标末点防糊；
-    // clampX 钳制首末点文字不被左右边缘裁掉）。
     final dotPaint = Paint()..color = lineColor;
-    final lastIndex = values.lastIndexWhere((v) => v != null);
-    final labelEveryPoint = values.length <= 10;
     for (var i = 0; i < values.length; i++) {
-      final v = values[i];
-      if (v == null) continue;
-      canvas.drawCircle(pointOf(i), 3, dotPaint);
-      if (labelEveryPoint || i == lastIndex) {
-        _drawText(
-          canvas,
-          _fmt(v),
-          Offset(pointOf(i).dx, pointOf(i).dy - 16),
-          labelStyle.copyWith(color: lineColor),
-          center: true,
-          clampX: size.width,
-        );
-      }
+      if (values[i] != null) canvas.drawCircle(pointOf(i), 3, dotPaint);
     }
-    // 底部日期标签（稀疏）。
-    for (var i = 0; i < labels.length; i++) {
+    // Values live in their own band, never on top of the line or target.
+    final valueLayout = ChartLabelLayout(
+      width: size.width,
+      style: labelStyle.copyWith(color: lineColor, fontWeight: FontWeight.w600),
+      textScaler: textScaler,
+    );
+    final lastIndex = values.lastIndexWhere((v) => v != null);
+    for (final i in {lastIndex, ...chartLabelPriority(values.length)}) {
+      final value = values[i];
+      if (value == null || (values.length > 10 && i != lastIndex)) continue;
+      valueLayout.paint(canvas, _fmt(value), pointOf(i).dx, 0);
+    }
+    final dateLayout = ChartLabelLayout(
+      width: size.width,
+      style: labelStyle.copyWith(color: labelColor),
+      textScaler: textScaler,
+    );
+    for (final i in chartLabelPriority(labels.length)) {
       final label = labels[i];
       if (label == null) continue;
-      _drawText(
-        canvas,
-        label,
-        Offset(xOf(i), size.height - _labelHeight + 4),
-        labelStyle.copyWith(color: labelColor),
-        center: true,
-        clampX: size.width,
-      );
+      final x = values.length == 1
+          ? size.width / 2
+          : 8 + (size.width - 16) * i / (values.length - 1);
+      dateLayout.paint(canvas, label, x, size.height - labelHeight);
     }
-  }
-
-  void _drawText(
-    Canvas canvas,
-    String text,
-    Offset position,
-    TextStyle style, {
-    bool center = false,
-    bool alignRight = false,
-    double clampX = 0,
-  }) {
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: TextDirection.ltr,
-      maxLines: 1,
-      ellipsis: '…',
-    )..layout(maxWidth: 72);
-    var dx = position.dx;
-    if (center) dx -= painter.width / 2;
-    if (alignRight) dx -= painter.width;
-    if (clampX > 0) {
-      // 居中/右对齐后可能越出左右边缘：钳回 [0, clampX-文字宽]。
-      final maxDx = clampX - painter.width;
-      if (dx < 0) dx = 0;
-      if (dx > maxDx) dx = maxDx > 0 ? maxDx : 0;
-    }
-    painter.paint(canvas, Offset(dx, position.dy));
   }
 
   @override
   bool shouldRepaint(ReportTrendPainter oldDelegate) {
     return oldDelegate.values != values ||
         oldDelegate.labels != labels ||
+        oldDelegate.labelColor != labelColor ||
+        oldDelegate.labelStyle != labelStyle ||
+        oldDelegate.textScaler != textScaler ||
         oldDelegate.lineColor != lineColor ||
+        oldDelegate.zeroBaseline != zeroBaseline ||
+        oldDelegate.fractionDigits != fractionDigits ||
+        oldDelegate.targetColor != targetColor ||
         oldDelegate.targetValue != targetValue ||
         oldDelegate.targetLabel != targetLabel;
   }

@@ -17,8 +17,8 @@ import 'package:flutter/material.dart';
 /// 性能纪律：BackdropFilter 在低端安卓昂贵，只用在底部导航与弹层两个
 /// 常驻/关键视觉位；卡片光泽一律走纯 BoxDecoration（零模糊成本）。
 abstract final class AppGlass {
-  /// 磨砂面板底色透明度（亮色 0.72 / 暗色 0.62：暗色底色深，再透明会糊）。
-  static double tintOpacity(AppColors colors) => _isDark(colors) ? 0.62 : 0.72;
+  /// 增强磨砂底色，背景文字不透进输入面板，仍保留轻微材质层次。
+  static double tintOpacity(AppColors colors) => _isDark(colors) ? 0.90 : 0.88;
 
   /// 受光描边色（亮色=白 55%；暗色=白 10%）。
   static Color highlight(AppColors colors) =>
@@ -47,6 +47,16 @@ abstract final class AppSurfaces {
   }) {
     return BoxDecoration(
       color: onMaterial ? null : colors.bgSecondary,
+      gradient: onMaterial
+          ? null
+          : LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                colors.bgSecondary,
+                Color.lerp(colors.bgSecondary, colors.bgPrimary, 0.16)!,
+              ],
+            ),
       borderRadius: radius ?? AppRadii.standard.rLg,
       boxShadow: shadows.shadowSm,
       border: Border.all(color: AppGlass.highlight(colors)),

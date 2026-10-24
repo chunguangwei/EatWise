@@ -4,6 +4,7 @@ import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/chart_labels.dart';
 import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart';
 import 'package:flutter/material.dart';
@@ -52,16 +53,19 @@ class _TrendChartSectionState extends ConsumerState<TrendChartSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Expanded(
-                child: Text(
-                  trend.title,
-                  style: textStyles.textLg.copyWith(color: colors.textPrimary),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              Text(
+                trend.title,
+                style: textStyles.textLg.copyWith(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w600,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
+              const SizedBox(height: AppSpacing.s3),
               SegmentedButton<bool>(
                 showSelectedIcon: false,
                 style: SegmentedButton.styleFrom(
@@ -108,7 +112,7 @@ class _TrendChartSectionState extends ConsumerState<TrendChartSection> {
             _TrendEmpty(message: trend.empty)
           else
             SizedBox(
-              height: 160,
+              height: 184 + MediaQuery.textScalerOf(context).scale(24),
               width: double.infinity,
               child: CustomPaint(
                 painter: _TrendLinePainter(
@@ -121,6 +125,7 @@ class _TrendChartSectionState extends ConsumerState<TrendChartSection> {
                       : colors.ringExercise,
                   labelColor: colors.textSecondary,
                   labelStyle: textStyles.textXs,
+                  textScaler: MediaQuery.textScalerOf(context),
                 ),
               ),
             ),
@@ -141,7 +146,7 @@ class _TrendEmpty extends StatelessWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     return SizedBox(
-      height: 160,
+      height: 184 + MediaQuery.textScalerOf(context).scale(24),
       width: double.infinity,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -172,7 +177,7 @@ class _TrendEmpty extends StatelessWidget {
   }
 }
 
-/// 绿描线趋势图：折线 + 节点圆点 + 数值标签 + 单位图例 + 底部日期标签。
+/// 趋势图：上方数值带、中央折线、下方日期带，标签按实测宽度避让。
 /// 无记录日（null）跳过不连线段。
 class _TrendLinePainter extends CustomPainter {
   _TrendLinePainter({
@@ -181,6 +186,7 @@ class _TrendLinePainter extends CustomPainter {
     required this.lineColor,
     required this.labelColor,
     required this.labelStyle,
+    this.textScaler = TextScaler.noScaling,
   });
 
   final List<double?> values;
@@ -188,9 +194,7 @@ class _TrendLinePainter extends CustomPainter {
   final Color lineColor;
   final Color labelColor;
   final TextStyle labelStyle;
-
-  static const double _labelHeight = 20;
-  static const double _topPadding = 24;
+  final TextScaler textScaler;
 
   /// 数值标签格式：整数不带小数位（14 而非 14.0），非整数保留 1 位。
   String _fmt(double v) =>
@@ -206,18 +210,27 @@ class _TrendLinePainter extends CustomPainter {
     // 三轮「趋势 0 值」最终根因——数据早已修复，图被误读为仍是 0）。
     const minV = 0.0;
     final span = maxV == 0 ? 1.0 : maxV;
-    final chartBottom = size.height - _labelHeight;
-    final chartTop = _topPadding;
+    final labelHeight = textScaler.scale(12) * 1.4;
+    final chartBottom = size.height - labelHeight - 16;
+    final chartTop = labelHeight + 24;
 
     Offset pointOf(int i) {
       final x = values.length == 1
           ? size.width / 2
-          : size.width * i / (values.length - 1);
+          : 8 + (size.width - 16) * i / (values.length - 1);
       final v = values[i]!;
       final y = chartBottom - (v - minV) / span * (chartBottom - chartTop);
       return Offset(x, y);
     }
 
+    // Quiet reference lines separate the plotting area from both label bands.
+    final gridPaint = Paint()
+      ..color = labelColor.withValues(alpha: 0.12)
+      ..strokeWidth = 1;
+    for (var row = 0; row <= 2; row++) {
+      final y = chartTop + (chartBottom - chartTop) * row / 2;
+      canvas.drawLine(Offset(8, y), Offset(size.width - 8, y), gridPaint);
+    }
     // 折线（只连接两侧都有值的相邻点）。
     final linePaint = Paint()
       ..color = lineColor
@@ -230,69 +243,43 @@ class _TrendLinePainter extends CustomPainter {
         canvas.drawLine(pointOf(i), pointOf(i + 1), linePaint);
       }
     }
-    // 节点圆点 + 逐点数值标签（本图固定 7 点，全标不糊；clampX 钳制
-    // 首末点文字不被左右边缘裁掉）。
     final dotPaint = Paint()..color = lineColor;
     for (var i = 0; i < values.length; i++) {
-      final v = values[i];
-      if (v == null) continue;
-      canvas.drawCircle(pointOf(i), 3, dotPaint);
-      _drawText(
-        canvas,
-        _fmt(v),
-        Offset(pointOf(i).dx, pointOf(i).dy - 16),
-        labelStyle.copyWith(color: lineColor),
-        center: true,
-        clampX: size.width,
-      );
+      if (values[i] != null) canvas.drawCircle(pointOf(i), 3, dotPaint);
     }
-    // 底部日期标签。
-    for (var i = 0; i < labels.length; i++) {
+    // Values live in their own band, never on top of the line or target.
+    final valueLayout = ChartLabelLayout(
+      width: size.width,
+      style: labelStyle.copyWith(color: lineColor, fontWeight: FontWeight.w600),
+      textScaler: textScaler,
+    );
+    final lastIndex = values.lastIndexWhere((v) => v != null);
+    for (final i in {lastIndex, ...chartLabelPriority(values.length)}) {
+      final value = values[i];
+      if (value == null || (values.length > 10 && i != lastIndex)) continue;
+      valueLayout.paint(canvas, _fmt(value), pointOf(i).dx, 0);
+    }
+    final dateLayout = ChartLabelLayout(
+      width: size.width,
+      style: labelStyle.copyWith(color: labelColor),
+      textScaler: textScaler,
+    );
+    for (final i in chartLabelPriority(labels.length)) {
+      final label = labels[i];
       final x = values.length == 1
           ? size.width / 2
-          : size.width * i / (values.length - 1);
-      _drawText(
-        canvas,
-        labels[i],
-        Offset(x, size.height - _labelHeight + 4),
-        labelStyle.copyWith(color: labelColor),
-        center: true,
-        clampX: size.width,
-      );
+          : 8 + (size.width - 16) * i / (values.length - 1);
+      dateLayout.paint(canvas, label, x, size.height - labelHeight);
     }
-  }
-
-  void _drawText(
-    Canvas canvas,
-    String text,
-    Offset position,
-    TextStyle style, {
-    bool center = false,
-    bool alignRight = false,
-    double clampX = 0,
-  }) {
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: TextDirection.ltr,
-      maxLines: 1,
-      ellipsis: '…',
-    )..layout(maxWidth: 72);
-    var dx = position.dx;
-    if (center) dx -= painter.width / 2;
-    if (alignRight) dx -= painter.width;
-    if (clampX > 0) {
-      // 居中/右对齐后可能越出左右边缘：钳回 [0, clampX-文字宽]。
-      final maxDx = clampX - painter.width;
-      if (dx < 0) dx = 0;
-      if (dx > maxDx) dx = maxDx > 0 ? maxDx : 0;
-    }
-    painter.paint(canvas, Offset(dx, position.dy));
   }
 
   @override
   bool shouldRepaint(_TrendLinePainter oldDelegate) {
     return oldDelegate.values != values ||
         oldDelegate.labels != labels ||
+        oldDelegate.labelColor != labelColor ||
+        oldDelegate.labelStyle != labelStyle ||
+        oldDelegate.textScaler != textScaler ||
         oldDelegate.lineColor != lineColor;
   }
 }

@@ -59,11 +59,14 @@ class SignalCardsGrid extends StatelessWidget {
     final nutrients = NutrientType.values;
     return LayoutBuilder(
       builder: (context, constraints) {
-        // auto-fit：能放几列放几列，卡宽最小 136（移动适配，见 minCardWidth）。
+        // 默认最小宽 136；随系统字号增加卡宽，避免放大字体后仍硬塞两列。
         final cols = math.max(
           1,
           ((constraints.maxWidth + AppSpacing.s4) /
-                  (minCardWidth + AppSpacing.s4))
+                  (minCardWidth *
+                          MediaQuery.textScalerOf(context).scale(14) /
+                          14 +
+                      AppSpacing.s4))
               .floor(),
         );
         final rows = <Widget>[];
@@ -270,12 +273,15 @@ class SignalCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: AppSpacing.s1),
-            // Inter 大数值：已摄入（四态规范 4.1：数字按字截断）。
-            Text(
-              actual.toStringAsFixed(0),
-              style: textStyles.text3xl.copyWith(color: colors.textPrimary),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            // 主数值保留完整位数；极长值缩放，正常大字体由栅格减列承接。
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                actual.toStringAsFixed(0),
+                style: textStyles.text3xl.copyWith(color: colors.textPrimary),
+                maxLines: 1,
+              ),
             ),
             // 目标行窄屏（2 列 ~136dp）整体缩放，不省略号（同 pro 表
             // v1.13.3 手法）。
