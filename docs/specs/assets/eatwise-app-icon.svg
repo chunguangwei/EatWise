@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#245D4B"/>
+      <stop offset="0.5" stop-color="#124837"/>
+      <stop offset="1" stop-color="#0A3027"/>
+    </linearGradient>
+    <radialGradient id="light" cx="0.18" cy="0.08" r="0.9">
+      <stop stop-color="#B9F4D6" stop-opacity="0.24"/>
+      <stop offset="0.65" stop-color="#B9F4D6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="0.16" y1="0" x2="0.86" y2="1">
+      <stop stop-color="#F3FFF7"/>
+      <stop offset="0.48" stop-color="#D6F5E4"/>
+      <stop offset="1" stop-color="#8BD8B4"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="0" y1="1" x2="1" y2="0">
+      <stop stop-color="#3DBE8B"/>
+      <stop offset="1" stop-color="#A5E9C8"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FFD08B"/>
+      <stop offset="1" stop-color="#F3A04D"/>
+    </linearGradient>
+  </defs>
+  <g id="background">
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+    <rect width="1024" height="1024" fill="url(#light)"/>
+  </g>
+  <g id="mark">
+    <path d="M 775.9 617.8 A 286 286 0 1 1 621.9 261.0" fill="none" stroke="url(#ring)" stroke-width="94" stroke-linecap="round"/>
+    <path d="M 786 520 A 286 286 0 0 1 779.1 597.0" fill="none" stroke="url(#sun)" stroke-width="94" stroke-linecap="round"/>
+    <path d="M 659 390 C 640 314 691 242 797 217 C 803 321 753 389 659 390 Z" fill="url(#leaf)"/>
+    <path d="M 668 380 C 704 329 742 278 783 234" fill="none" stroke="#E0F9EB" stroke-opacity="0.55" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>

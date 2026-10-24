@@ -6,6 +6,7 @@
 > 撰写日期：2026-07-27。关联文档：PRD v1.0、设计方案定稿、需求评审记录、决策记录 v1.0。
 > 修订：2026-09-29 全项目 UI 重构（参考苹果健身「活动三环/大数字紧凑卡」与华为运动健康「白卡 2 列看板/健康环/迷你图表卡」，保持轻盈绿品牌浅色优先）——色彩表新增环图/图表强调色组（ring*/chart*），rLg 16→20，阴影调柔调扩散，字号表新增 textDisplay。
 > 修订：2026-10-01 v1.16.0 全局设计感优化（华为运动健康+苹果简约，对比度 P0 修复）——亮色 brandPrimary 轻盈绿 #3DBE8B → 沉稳绿 #2A9970（白字 CTA 达大字级 AA）、textSecondary #8A9694 → #5F6B69（达 AA）、新增 signalYellowText（黄灯徽标文字专用）；暗色层级修复（bgPrimary #0C1110 / bgSecondary #222C29 / divider 上浮、阴影 alpha 与亮色持平）；删 textTimer（48pt 倒计时统一用 textDisplay 34pt）与 shadowLg（弹窗走 dialogTheme rLg+M3 elevation）；主题层收口（appBarTheme 左对齐 textXl / filledButtonTheme 品牌绿 48px 胶囊 / outlinedButtonTheme 绿描边 / dialog+bottomSheet 圆角统一 rLg=20 / snackBar 悬浮 rMd / inputDecoration 填充+rMd）；图标统一 Rounded 圆润系；空态统一共享组件 `AppStateView`（lib/core/widgets/state_views.dart）；删除零引用组件 MultiRingProgress/ChartCard/SectionHeader/list_group/mini_charts。
+> 修订：2026-10-24 新增 1.3.4 品牌 Logo 与应用图标规范——「节律之环」矢量母版、双端生成工具、iOS 不透明 RGB 与 Android 自适应/单色图标要求。
 
 ### 文档信息
 
@@ -97,6 +98,16 @@ Flutter 端统一采用 **1x 基准 + 分辨率变体目录**；原生侧（小�
 | 启动图 | LaunchScreen storyboard 用图 | `drawable-*` + `windowBackground` |
 | 小组件 | WidgetKit 预览图进 Assets.xcassets | AppWidget 预览图进 `drawable-*` |
 | 通知小图标 | —（APNs 用 App Icon） | `drawable-*` 单色剪影（alpha 通道，禁止彩色） |
+
+### 1.3.4 品牌 Logo 与应用图标（2026-10-24）
+
+**「节律之环」**：开放圆环表示每日断食节律，新叶表示健康饮食，暖橙短弧表示进食窗口；深林绿渐变背景提供克制的明暗质感。图形弧段是品牌符号，不表示实际断食/进食时长比例，也不替代界面中的数据环。
+
+- 矢量母版：`docs/specs/assets/eatwise-app-icon.svg`；`background` 与 `mark` 分组分别用于完整图标与自适应前景。渐变专属于品牌素材，不改变 App 运行时 Token。
+- 在仓库根目录执行 `python3 eatwise_app/tool/generate_app_icons.py` 重建双端全部 PNG。工具需本机已有 Python 3 + Pillow + Google Chrome；Chrome 仅用于离线 SVG 渲染，不访问网络、不增加 App 依赖。
+- iOS：按 `AppIcon.appiconset/Contents.json` 输出全尺寸 RGB 不透明 PNG，不自带圆角、外阴影或透明通道，圆角交给系统。
+- Android：保留 48–192dp 传统图标；API 26+ 使用 `mipmap-anydpi-v26/ic_launcher.xml`，背景与前景分层，前景在 108dp 画布中缩放至 76%，主图形全部落入保守的 66dp 直径安全圆，避免圆形/圆角裁切叶尖；`ic_launcher_monochrome.xml` 供 Android 13+ 单色主题图标使用。
+- 验收：1024px 主图清晰，48px 仍能识别环/叶/橙弧；iOS 全尺寸无 alpha；Android 前景角点透明；圆形与圆角裁切不压主图形。
 
 ## 1.4 标注规范
 
