@@ -17,7 +17,6 @@ import 'package:eatwise/features/social/domain/social_avatars.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 /// 打卡配图选择（复用 M3 拍照/相册抽象，便于测试注入 fake）。
 final composePhotoPickerProvider = Provider<PhotoPickerGateway>((ref) {
@@ -54,6 +53,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
   /// AI 润色在途标志 + 当前阶段（null = 不在润色）。
   bool _polishing = false;
   PostPolishPhase? _polishPhase;
+  int _textRevision = 0;
 
   /// 润色前原文（撤销用；一次撤销后清空，再润色重新快照）。
   String? _prePolishText;
@@ -119,6 +119,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
     final service = ref.read(postPolishServiceProvider);
     final text = _controller.text.trim();
     if (service == null || _polishing || text.isEmpty) return;
+    final revision = _textRevision;
     // 润色期间收键盘：模型推理可能持续数秒，键盘悬空占屏。
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
@@ -135,6 +136,13 @@ class _ComposePageState extends ConsumerState<ComposePage> {
       service.onPhaseChanged = null;
     }
     if (!mounted) return;
+    if (revision != _textRevision) {
+      setState(() {
+        _polishing = false;
+        _polishPhase = null;
+      });
+      return;
+    }
     switch (result) {
       case PostPolishOk(:final text):
         setState(() {
@@ -221,6 +229,8 @@ class _ComposePageState extends ConsumerState<ComposePage> {
       });
     }
     setState(() => _submitting = true);
+    final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
     final streakDays = ref.read(streakControllerProvider).currentStreak;
     final result = await ref
         .read(feedControllerProvider.notifier)
@@ -233,10 +243,10 @@ class _ComposePageState extends ConsumerState<ComposePage> {
           anonymous: _anonymous,
           avatarId: _anonymous ? _avatarId : null,
         );
-    if (!mounted) return;
+    if (!mounted || route?.isCurrent == false) return;
     switch (result) {
       case PublishOk():
-        context.pop();
+        navigator.pop();
       case PublishRejected(:final message):
         // 先审后发拒绝：服务端双语提示直接上屏（D-17）。
         messenger.showSnackBar(SnackBar(content: Text(message)));
@@ -483,6 +493,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
                           FocusManager.instance.primaryFocus?.unfocus(),
                       // 任何编辑作废润色前快照（撤销入口随之消失，不会覆盖新文字）。
                       onChanged: (_) {
+                        _textRevision++;
                         if (_prePolishText != null) _prePolishText = null;
                         setState(() {});
                       },

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
@@ -140,7 +141,7 @@ void main() {
   });
 
   testWidgets('拍营养表读数成功：kJ 换算预填四营养 + 「AI 读表，请核对」徽标', (tester) async {
-    gateway.imageResponse = '1540 kJ => 7.2 => 53.0 => 32.1';
+    gateway.imageResponse = '1540 kJ => 7.2 => 53.0 => 32.1 => per100g';
     await pumpPage(tester, ocrAvailable: true);
     await openSheet(tester);
 
@@ -157,6 +158,46 @@ void main() {
     await tester.enterText(find.byType(TextFormField).at(2), '370');
     await tester.pump();
     expect(find.text('AI 读表，请核对'), findsNothing);
+    await settleUi(tester);
+  });
+
+  testWidgets('OCR 等待期间手改营养：旧读数不得覆盖', (tester) async {
+    gateway.imageResponse = '1540 kJ => 7.2 => 53.0 => 32.1 => per100g';
+    final gate = Completer<void>();
+    gateway.gate = gate;
+    await pumpPage(tester, ocrAvailable: true);
+    await openSheet(tester);
+    await tapOcrAndPick(tester);
+    await tester.enterText(find.byType(TextFormField).at(2), '370');
+    await tester.pump();
+    expect(fieldText(tester, 2), '370');
+
+    gate.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(fieldText(tester, 2), '370');
+    expect(find.text('AI 读表，请核对'), findsNothing);
+    await settleUi(tester);
+  });
+
+  testWidgets('合法零碳水：OCR 预填后可以保存', (tester) async {
+    gateway.imageResponse = '2016千焦 => 8.0 => 0 => 89 => per100g';
+    await pumpPage(tester, ocrAvailable: true);
+    await openSheet(tester);
+    await tester.enterText(find.byType(TextFormField).at(0), '零碳水食品');
+    await tapOcrAndPick(tester);
+    expect(fieldText(tester, 4), '0');
+
+    await tester.tap(find.text('保存'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final saved = await db.foodDao.searchFoods('零碳水食品');
+    expect(saved, hasLength(1));
+    expect(saved.single.carbPer100g, 0);
+    expect(saved.single.proteinPer100g, 8);
+    expect(saved.single.kcalPer100g, closeTo(481.8, 0.1));
     await settleUi(tester);
   });
 
@@ -181,6 +222,7 @@ final class _FakeGateway implements OnDeviceLlmGateway {
   bool loaded = false;
   bool vision = false;
   String imageResponse = '';
+  Completer<void>? gate;
   int inferImageCalls = 0;
 
   @override
@@ -241,6 +283,8 @@ final class _FakeGateway implements OnDeviceLlmGateway {
     int seed = 42,
   }) async {
     inferImageCalls++;
+    final pending = gate;
+    if (pending != null) await pending.future;
     return imageResponse;
   }
 

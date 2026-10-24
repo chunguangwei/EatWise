@@ -52,7 +52,7 @@ final class CustomFoodDraft {
   /// 英文别名。
   final List<String> aliasesEn;
 
-  /// 每 100g 四营养（全部 >0；kcal ≤900，宏量 ≤100）。
+  /// 每 100g 四营养（允许合法零值；kcal ≤900，宏量 ≤100）。
   final NutritionSnapshot per100g;
 
   /// 来源（manual / llm-estimate）。

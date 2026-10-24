@@ -12,13 +12,20 @@ import 'package:eatwise/features/record/recognition/domain/nutrition_label_ocr_l
 
 /// 营养表读数结果（每 100g 值 + 存疑标记）。
 final class LabelOcrReading {
-  const LabelOcrReading({required this.values, required this.dubious});
+  const LabelOcrReading({
+    required this.values,
+    required this.dubious,
+    this.basis = NutritionLabelBasis.per100g,
+  });
 
   /// 读出的每 100g 营养（kJ 已在解析层换算 kcal）。
   final OnDeviceNutritionValues values;
 
   /// 合理性校验命中（宏量超限/折算偏差/热量物理上限）→ UI 标「请核对」。
   final bool dubious;
+
+  /// 严格协议已确认的计量基准，不把每份/每100ml 混作每100g。
+  final NutritionLabelBasis basis;
 }
 
 /// 端侧营养表 OCR 服务（模型已下载且开关启用时由
@@ -59,7 +66,7 @@ final class OnDeviceNutritionLabelOcrService {
         buildNutritionLabelPrompt(),
         normalized,
         systemInstruction: kNutritionLabelOcrSystemPrompt,
-        maxOutputTokens: 96, // 单行「能量 单位 => 三宏量」，比识别更短
+        maxOutputTokens: 96, // 单行「能量 单位 => 三宏量 => per100g」
       );
       final values = parseNutritionLabelOutput(raw);
       if (values == null) return null;

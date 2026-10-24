@@ -290,6 +290,7 @@ final class FakePostPolishService implements PostPolishService {
   FakePostPolishService(this.result);
 
   PostPolishResult result;
+  Completer<PostPolishResult>? gate;
   int calls = 0;
   String? lastText;
   Uint8List? lastImage;
@@ -304,6 +305,8 @@ final class FakePostPolishService implements PostPolishService {
     lastText = text;
     lastImage = imageBytes;
     _onPhase?.call(PostPolishPhase.inferring);
+    final pending = gate;
+    if (pending != null) return pending.future;
     return result;
   }
 }

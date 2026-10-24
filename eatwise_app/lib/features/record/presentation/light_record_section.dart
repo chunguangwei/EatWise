@@ -446,6 +446,8 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
   /// WeightLogStore.remove（已上行置 tombstone 待上行 DELETE）→ 触发一轮
   /// 同步 → 刷新记录页与 M6 趋势。
   Future<void> _delete(RecordStrings s) async {
+    final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -467,6 +469,7 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
     await ref
         .read(weightLogStoreProvider)
         .remove(localDayKey(ref.read(localDayProvider)));
+    if (!mounted || route?.isCurrent == false) return;
     // 删除后触发一轮同步（tombstone 上行 DELETE + 下行合并，登录态生效）。
     try {
       unawaited(ref.read(recordSyncEngineProvider).syncNow());
@@ -476,7 +479,7 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
     ref.invalidate(todayWeightProvider);
     ref.invalidate(todayWeightEntryProvider);
     ref.invalidate(reportWeightProvider);
-    if (mounted) Navigator.of(context).pop(true);
+    navigator.pop(true);
   }
 
   /// 保存：校验（按存储单位 kg，斤输入先换算）→ 写 M6 WeightLogStore
@@ -507,6 +510,8 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
     }
     // 统一一位小数存储（i18n 规格：存储层统一 kg，展示保留 1 位小数）。
     final kg = (kgValue * 10).round() / 10;
+    final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
     await ref
         .read(weightLogStoreProvider)
         .save(
@@ -514,6 +519,7 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
           kg,
           bodyFatPct: bodyFatPct,
         );
+    if (!mounted || route?.isCurrent == false) return;
     // 记录后触发一轮同步（体重 pending 上行 + 下行合并，登录态生效）。
     try {
       unawaited(ref.read(recordSyncEngineProvider).syncNow());
@@ -524,7 +530,7 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
     ref.invalidate(todayWeightEntryProvider);
     // M6 趋势（reportWeightProvider）即刻反映新体重。
     ref.invalidate(reportWeightProvider);
-    if (mounted) Navigator.of(context).pop(true);
+    navigator.pop(true);
   }
 
   @override

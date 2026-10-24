@@ -256,6 +256,7 @@
       "loggedItems": "Logged ${count} items",
       "unmatchedItemTag": "Not in library — will be created",
       "labelValueTag": "From label",
+      "nutritionInvalid": "Nutrition values look invalid. Check or remove this item before logging.",
       "engineGuideTitle": "AI recognition needs a model",
       "engineGuideBody": "Download the on-device model (works offline, ~2.4GB, no network needed after download), or configure a cloud API with your own model service.",
       "engineGuideDownload": "On-device model (recommended)",
@@ -349,7 +350,7 @@
       "proteinLabel": "Protein (g / 100 g)",
       "carbLabel": "Carbs (g / 100 g)",
       "fatLabel": "Fat (g / 100 g)",
-      "nutritionRequired": "Enter a number greater than 0",
+      "nutritionRequired": "Enter a number of 0 or more",
       "kcalRange": "Calories must be between 0 and 900 kcal",
       "macroRange": "Must be between 0 and 100 g",
       "savedOffline": "Saved on this device — will sync when online",
@@ -476,7 +477,11 @@
         "floorsLabel": "Elevation (m, display only)",
         "activeKcalLabel": "Active calories (kcal)",
         "burnLabel": "Counted burn (kcal)",
-        "pickTypeHint": "Type not recognized — please pick one manually"
+        "pickTypeHint": "Type not recognized — please pick one manually",
+        "unitCorrectedHint": "Calorie scale looked wrong and was corrected. Check it against the screenshot.",
+        "reviewKcalHint": "The calorie value couldn't be read reliably. Check or enter it manually.",
+        "outlierKcalHint": "Calories look inconsistent with the activity. Please check.",
+        "distanceInvalid": "Enter a distance greater than 0 km, or leave it blank."
       },
       "types": {
         "walk": "Walking",

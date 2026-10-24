@@ -256,6 +256,7 @@
       "loggedItems": "已记录 ${count} 条",
       "unmatchedItemTag": "库未收录，将自动新建",
       "labelValueTag": "标签值",
+      "nutritionInvalid": "营养数值异常，请检查或删除该条后再记录",
       "engineGuideTitle": "AI 识别需要一个模型",
       "engineGuideBody": "下载本地模型（离线可用，约 2.4GB，下载后无需联网），或配置云端 API 使用你的模型服务。",
       "engineGuideDownload": "下载本地模型（推荐）",
@@ -349,7 +350,7 @@
       "proteinLabel": "蛋白质（克 / 100 克）",
       "carbLabel": "碳水（克 / 100 克）",
       "fatLabel": "脂肪（克 / 100 克）",
-      "nutritionRequired": "请填写大于 0 的数值",
+      "nutritionRequired": "请填写 0 或更大的数值",
       "kcalRange": "热量需在 0–900 千卡之间",
       "macroRange": "需在 0–100 克之间",
       "savedOffline": "已保存到本机，联网后自动同步",
@@ -476,7 +477,11 @@
         "floorsLabel": "爬楼（米，仅展示）",
         "activeKcalLabel": "活动热量（千卡）",
         "burnLabel": "计入消耗（千卡）",
-        "pickTypeHint": "截图里的类型没对上，请手动选择运动类型"
+        "pickTypeHint": "截图里的类型没对上，请手动选择运动类型",
+        "unitCorrectedHint": "热量单位识别异常，已按千卡口径纠偏，请对照截图确认",
+        "reviewKcalHint": "截图热量无法可靠读取，请核对或手动填写",
+        "outlierKcalHint": "热量与运动量差异较大，请核对",
+        "distanceInvalid": "请输入大于 0 的公里数，或留空"
       },
       "types": {
         "walk": "走路",

@@ -246,6 +246,8 @@ class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
     }
     // 当日已有记录 → 选择「再加一条 / 替换今天记录」（截图全天汇总重复
     // 导入防重复累计）；取消则留在弹层不丢输入。
+    final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
     final outcome = await saveExerciseWithConflict(
       context: context,
       t: t,
@@ -255,12 +257,10 @@ class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
       kcal: kcal,
       steps: bySteps ? steps : null,
     );
-    if (outcome == null) return;
-    if (mounted) {
-      Navigator.of(context).pop(
-        ExerciseSaveResult(saved: outcome.saved!, replaced: outcome.replaced),
-      );
-    }
+    if (outcome == null || !mounted || route?.isCurrent == false) return;
+    navigator.pop(
+      ExerciseSaveResult(saved: outcome.saved!, replaced: outcome.replaced),
+    );
   }
 
   @override

@@ -235,6 +235,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
 
   /// 拍营养表 OCR 在途（按钮转 loading，防连点）。
   bool _ocrReading = false;
+  int _nutritionRevision = 0;
 
   /// 勾选「分享给所有用户」（默认不勾；保存成功后调 /contribute 提交审核）。
   bool _shareToAll = false;
@@ -260,6 +261,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
       _formKey.currentState?.validate(); // 触发菜名必填错误
       return;
     }
+    final revision = _nutritionRevision;
     setState(() {
       _estimating = true;
       _estimateUnavailable = false;
@@ -279,6 +281,10 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
           'result': 'success',
         },
       );
+      if (revision != _nutritionRevision ||
+          name != _nameController.text.trim()) {
+        return;
+      }
       setState(() {
         _kcalController.text = _formatNumber(estimate.per100g.kcal);
         _proteinController.text = _formatNumber(estimate.per100g.proteinG);
@@ -338,6 +344,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
       return;
     }
     setState(() => _ocrReading = true);
+    final revision = _nutritionRevision;
     final reading = await ocr.read(bytes);
     if (!mounted) return;
     if (reading == null) {
@@ -359,15 +366,17 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
           'result': 'success',
         },
       );
-      setState(() {
-        _kcalController.text = _formatNumber(reading.values.kcal);
-        _proteinController.text = _formatNumber(reading.values.proteinG);
-        _carbController.text = _formatNumber(reading.values.carbsG);
-        _fatController.text = _formatNumber(reading.values.fatG);
-        _estimateApplied = true;
-        _estimateLow = reading.dubious;
-        _estimateSource = FoodEstimateSource.photoOcr;
-      });
+      if (revision == _nutritionRevision) {
+        setState(() {
+          _kcalController.text = _formatNumber(reading.values.kcal);
+          _proteinController.text = _formatNumber(reading.values.proteinG);
+          _carbController.text = _formatNumber(reading.values.carbsG);
+          _fatController.text = _formatNumber(reading.values.fatG);
+          _estimateApplied = true;
+          _estimateLow = reading.dubious;
+          _estimateSource = FoodEstimateSource.photoOcr;
+        });
+      }
     }
     if (mounted) setState(() => _ocrReading = false);
   }
@@ -378,6 +387,15 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
     if (_saving) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
     _saving = true;
+    final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
+    final repository = ref.read(customFoodRepositoryProvider);
+    void close(Object? result) {
+      if (!mounted || route?.isCurrent == false) return;
+      FocusManager.instance.primaryFocus?.unfocus();
+      navigator.pop(result);
+    }
+
     try {
       final name = _nameController.text.trim();
       final draft = CustomFoodDraft(
@@ -399,52 +417,40 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
       // 编辑模式：PATCH 更新后带最新行出弹层（详情页据此刷新展示）。
       final editTarget = widget.editTarget;
       if (editTarget != null) {
-        final updated = await ref
-            .read(customFoodRepositoryProvider)
-            .update(editTarget, draft);
-        if (mounted) {
-          FocusManager.instance.primaryFocus?.unfocus();
-          Navigator.of(
-            context,
-          ).pop(CustomFoodSaveResult(food: updated, uploaded: true));
-        }
+        final updated = await repository.update(editTarget, draft);
+        close(CustomFoodSaveResult(food: updated, uploaded: true));
         return;
       }
       // 纠错模式：建议值提交众包审核池，不动本地食物库。
       final correctionTarget = widget.correctionTarget;
       if (correctionTarget != null) {
-        await ref
-            .read(customFoodRepositoryProvider)
-            .submitCorrection(correctionTarget.id, draft);
-        if (mounted) {
-          FocusManager.instance.primaryFocus?.unfocus();
-          Navigator.of(context).pop(true);
-        }
+        await repository.submitCorrection(correctionTarget.id, draft);
+        close(true);
         return;
       }
-      var result = await ref.read(customFoodRepositoryProvider).save(draft);
+      var result = await repository.save(draft);
       // 勾选共享且已上行：立即贡献（幂等）；拒收展示服务端双语原因，
       // 保存本身不受影响（食物仍落本地可搜可记）。
       if (_shareToAll && result.uploaded) {
         try {
-          await ref
-              .read(customFoodRepositoryProvider)
-              .contribute(result.food.id);
+          await repository.contribute(result.food.id);
           result = CustomFoodSaveResult(
             food: result.food,
             uploaded: result.uploaded,
             contributeSubmitted: true,
           );
           // 状态落库后刷新搜索结果，「审核中」标签立即可见。
-          ref.invalidate(recordFoodSearchProvider);
+          if (mounted && route?.isCurrent != false) {
+            ref.invalidate(recordFoodSearchProvider);
+          }
         } on ApiException catch (e) {
           result = CustomFoodSaveResult(
             food: result.food,
             uploaded: result.uploaded,
             contributionFailed: true,
           );
-          ref.invalidate(recordFoodSearchProvider);
-          if (mounted) {
+          if (mounted && route?.isCurrent != false) {
+            ref.invalidate(recordFoodSearchProvider);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
@@ -455,13 +461,9 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
           }
         }
       }
-      if (mounted) {
-        // 提交成功后收起键盘（Y5），避免弹层关闭后键盘滞留遮挡 toast。
-        FocusManager.instance.primaryFocus?.unfocus();
-        Navigator.of(context).pop(result);
-      }
+      close(result);
     } on ApiException catch (e) {
-      if (mounted) {
+      if (mounted && route?.isCurrent != false) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(apiErrorDisplayMessage(Translations.of(context), e)),
@@ -493,7 +495,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
         : value.toString();
   }
 
-  /// 营养字段校验：必填 >0；热量 ≤900，宏量 ≤100。
+  /// 营养字段校验：必填且 ≥0（合法零值允许）；热量 ≤900，宏量 ≤100。
   FormFieldValidator<String> _nutritionValidator(
     CustomFoodStrings cs,
     double max,
@@ -501,7 +503,9 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
   ) {
     return (value) {
       final parsed = double.tryParse((value ?? '').trim());
-      if (parsed == null || parsed <= 0) return cs.nutritionRequired;
+      if (parsed == null || !parsed.isFinite || parsed < 0) {
+        return cs.nutritionRequired;
+      }
       if (parsed > max) return rangeMsg;
       return null;
     };
@@ -509,6 +513,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
 
   /// 估算值被手动改动：清除估算徽标（保存时按 manual 上报）。
   void _onNutritionEdited(String _) {
+    _nutritionRevision++;
     if (_estimateApplied || _estimateLow) {
       setState(() {
         _estimateApplied = false;
@@ -720,7 +725,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                 ),
               ),
             const SizedBox(height: AppSpacing.s3),
-            // 四营养输入（每 100g；全部必填 >0，热量 ≤900 / 宏量 ≤100）。
+            // 四营养输入（每 100g；必填且允许 0，热量 ≤900 / 宏量 ≤100）。
             TextFormField(
               controller: _kcalController,
               keyboardType: numberKeyboard,

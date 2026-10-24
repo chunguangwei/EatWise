@@ -1001,6 +1001,9 @@ class Translations$record$photo$zh_CN {
 	/// zh-CN: '标签值'
 	String get labelValueTag => '标签值';
 
+	/// zh-CN: '营养数值异常，请检查或删除该条后再记录'
+	String get nutritionInvalid => '营养数值异常，请检查或删除该条后再记录';
+
 	/// zh-CN: 'AI 识别需要一个模型'
 	String get engineGuideTitle => 'AI 识别需要一个模型';
 
@@ -1252,8 +1255,8 @@ class Translations$record$customFood$zh_CN {
 	/// zh-CN: '脂肪（克 / 100 克）'
 	String get fatLabel => '脂肪（克 / 100 克）';
 
-	/// zh-CN: '请填写大于 0 的数值'
-	String get nutritionRequired => '请填写大于 0 的数值';
+	/// zh-CN: '请填写 0 或更大的数值'
+	String get nutritionRequired => '请填写 0 或更大的数值';
 
 	/// zh-CN: '热量需在 0–900 千卡之间'
 	String get kcalRange => '热量需在 0–900 千卡之间';
@@ -3900,6 +3903,18 @@ class Translations$record$exercise$screenshot$zh_CN {
 
 	/// zh-CN: '截图里的类型没对上，请手动选择运动类型'
 	String get pickTypeHint => '截图里的类型没对上，请手动选择运动类型';
+
+	/// zh-CN: '热量单位识别异常，已按千卡口径纠偏，请对照截图确认'
+	String get unitCorrectedHint => '热量单位识别异常，已按千卡口径纠偏，请对照截图确认';
+
+	/// zh-CN: '截图热量无法可靠读取，请核对或手动填写'
+	String get reviewKcalHint => '截图热量无法可靠读取，请核对或手动填写';
+
+	/// zh-CN: '热量与运动量差异较大，请核对'
+	String get outlierKcalHint => '热量与运动量差异较大，请核对';
+
+	/// zh-CN: '请输入大于 0 的公里数，或留空'
+	String get distanceInvalid => '请输入大于 0 的公里数，或留空';
 }
 
 // Path: record.exercise.types
@@ -4870,6 +4885,7 @@ extension on Translations {
 			'record.photo.loggedItems' => ({required Object count}) => '已记录 ${count} 条',
 			'record.photo.unmatchedItemTag' => '库未收录，将自动新建',
 			'record.photo.labelValueTag' => '标签值',
+			'record.photo.nutritionInvalid' => '营养数值异常，请检查或删除该条后再记录',
 			'record.photo.engineGuideTitle' => 'AI 识别需要一个模型',
 			'record.photo.engineGuideBody' => '下载本地模型（离线可用，约 2.4GB，下载后无需联网），或配置云端 API 使用你的模型服务。',
 			'record.photo.engineGuideDownload' => '下载本地模型（推荐）',
@@ -4951,7 +4967,7 @@ extension on Translations {
 			'record.customFood.proteinLabel' => '蛋白质（克 / 100 克）',
 			'record.customFood.carbLabel' => '碳水（克 / 100 克）',
 			'record.customFood.fatLabel' => '脂肪（克 / 100 克）',
-			'record.customFood.nutritionRequired' => '请填写大于 0 的数值',
+			'record.customFood.nutritionRequired' => '请填写 0 或更大的数值',
 			'record.customFood.kcalRange' => '热量需在 0–900 千卡之间',
 			'record.customFood.macroRange' => '需在 0–100 克之间',
 			'record.customFood.savedOffline' => '已保存到本机，联网后自动同步',
@@ -5060,6 +5076,10 @@ extension on Translations {
 			'record.exercise.screenshot.activeKcalLabel' => '活动热量（千卡）',
 			'record.exercise.screenshot.burnLabel' => '计入消耗（千卡）',
 			'record.exercise.screenshot.pickTypeHint' => '截图里的类型没对上，请手动选择运动类型',
+			'record.exercise.screenshot.unitCorrectedHint' => '热量单位识别异常，已按千卡口径纠偏，请对照截图确认',
+			'record.exercise.screenshot.reviewKcalHint' => '截图热量无法可靠读取，请核对或手动填写',
+			'record.exercise.screenshot.outlierKcalHint' => '热量与运动量差异较大，请核对',
+			'record.exercise.screenshot.distanceInvalid' => '请输入大于 0 的公里数，或留空',
 			'record.exercise.types.walk' => '走路',
 			'record.exercise.types.jog' => '慢跑',
 			'record.exercise.types.run' => '快跑',
@@ -5196,13 +5216,13 @@ extension on Translations {
 			'nutrition.data.dateSwitcher.nextDay' => '后一天',
 			'nutrition.data.dateSwitcher.backToToday' => '回到今天',
 			'nutrition.data.dateSwitcher.today' => '今天',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.data.summary.allGreen' => '今天的营养节奏很稳，给你点个赞 🌱',
 			'nutrition.data.summary.hasYellow' => '今天总体不错，个别营养素还差一点点',
 			'nutrition.data.summary.hasRed' => '有几盏小红灯，别急，跟着下面的建议慢慢调',
 			'nutrition.data.summary.empty' => '这一天还没有记录，记一笔信号灯就会亮起来',
 			'nutrition.data.summary.fallbackGoal' => '当前按默认目标估算，补全身体资料后会更准哦',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.data.localEstimate' => '本地预估，联网后云端自动校准',
 			'nutrition.data.proDetails.title' => '专业数据',
 			'nutrition.data.proDetails.expand' => '查看详情',
@@ -5710,13 +5730,13 @@ extension on Translations {
 			'auth.error.passwordTooWeak' => '密码需 8-64 位且包含字母和数字',
 			'update.title' => '发现新版本',
 			'update.newVersion' => ({required Object version}) => '最新版本：${version}',
+			_ => null,
+		} ?? switch (path) {
 			'update.updateNow' => '立即更新',
 			'update.later' => '以后再说',
 			'update.upToDate' => '当前已是最新版本',
 			'update.checkFailed' => '检查更新失败，请稍后重试',
 			'update.downloading' => ({required Object percent}) => '下载中 ${percent}%',
-			_ => null,
-		} ?? switch (path) {
 			'update.downloadingNoProgress' => '下载中…',
 			'update.downloadFailed' => '下载失败，请检查网络后重试',
 			'update.retry' => '重试',

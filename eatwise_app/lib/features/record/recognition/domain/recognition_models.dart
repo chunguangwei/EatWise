@@ -36,8 +36,8 @@ final class RecognizedMealItem {
   /// 食物（模型估值 + llmEstimate 口径）再入账）。
   final Food? food;
 
-  /// 每 100g 营养来自包装营养表照抄（ground truth；明细行显「标签值」
-  /// 标记，sanity-clamp 只做警告不覆盖数值）。
+  /// 实际采用包装标签数值（而非库值）时为 true；明细行显「标签值」，
+  /// 仍需用户核对识别与换算，不表示免确认的绝对真值。
   final bool fromLabel;
 
   /// 低置信度阈值（PRD M3「识别置信度低 → 标记请确认」）。

@@ -44,7 +44,7 @@ flutter pub get
 dart run slang                                   # i18n 代码生成（唯一正确方式）
 dart run build_runner build                      # drift 代码生成
 dart analyze                                     # 零 issue 门禁（禁止 flutter analyze，中文路径 SDK bug 会崩）
-flutter test                                     # 1613 条测试（本轮全量基线）
+flutter test                                     # 1648 条测试（本轮全量基线）
 flutter run                                      # 模拟器/真机运行
 ```
 
@@ -109,8 +109,8 @@ python3 eatwise_data/scripts/build_seed.py       # 生成 foods.seed.json + 校�
 
 ## 当前状态
 
-- **版本**：v1.17.4+134（全量可靠性审查、月度补签事务、账号隔离、同步保真与华为参考设计；验收记录见 `docs/qa/代码与UI走查-2026-10-24.md`）。
-- **测试**：App 1613 条全绿；服务端内存 339 单测 + 167 e2e 全绿；真实 PostgreSQL 388 项全绿。
+- **版本**：v1.17.5+135（连续录入与焦点可靠性、异步防过期回填、AI 识别数值与入库校验；验收记录见 `docs/qa/代码与UI走查-2026-10-24.md`）。
+- **测试**：App 1648 条全绿；服务端内存 339 单测 + 167 e2e 全绿；真实 PostgreSQL 388 项全绿。
 - **食物库**：seed 2026.09.23，1956 条（双语 100%，CFCT 1616 + 策展 340），removedIds 累计 7328。
 - **服务端**：生产在美国 VPS（`wcg.polin.tech:8443`，Caddy 反代 + Docker 自部署，见 `docs/tech/部署-云主机自部署-v1.0.md`）。
 

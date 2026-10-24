@@ -631,6 +631,7 @@ class _Translations$record$photo$en extends Translations$record$photo$zh_CN {
 	@override String loggedItems({required Object count}) => 'Logged ${count} items';
 	@override String get unmatchedItemTag => 'Not in library — will be created';
 	@override String get labelValueTag => 'From label';
+	@override String get nutritionInvalid => 'Nutrition values look invalid. Check or remove this item before logging.';
 	@override String get engineGuideTitle => 'AI recognition needs a model';
 	@override String get engineGuideBody => 'Download the on-device model (works offline, ~2.4GB, no network needed after download), or configure a cloud API with your own model service.';
 	@override String get engineGuideDownload => 'On-device model (recommended)';
@@ -745,7 +746,7 @@ class _Translations$record$customFood$en extends Translations$record$customFood$
 	@override String get proteinLabel => 'Protein (g / 100 g)';
 	@override String get carbLabel => 'Carbs (g / 100 g)';
 	@override String get fatLabel => 'Fat (g / 100 g)';
-	@override String get nutritionRequired => 'Enter a number greater than 0';
+	@override String get nutritionRequired => 'Enter a number of 0 or more';
 	@override String get kcalRange => 'Calories must be between 0 and 900 kcal';
 	@override String get macroRange => 'Must be between 0 and 100 g';
 	@override String get savedOffline => 'Saved on this device — will sync when online';
@@ -2093,6 +2094,10 @@ class _Translations$record$exercise$screenshot$en extends Translations$record$ex
 	@override String get activeKcalLabel => 'Active calories (kcal)';
 	@override String get burnLabel => 'Counted burn (kcal)';
 	@override String get pickTypeHint => 'Type not recognized — please pick one manually';
+	@override String get unitCorrectedHint => 'Calorie scale looked wrong and was corrected. Check it against the screenshot.';
+	@override String get reviewKcalHint => 'The calorie value couldn\'t be read reliably. Check or enter it manually.';
+	@override String get outlierKcalHint => 'Calories look inconsistent with the activity. Please check.';
+	@override String get distanceInvalid => 'Enter a distance greater than 0 km, or leave it blank.';
 }
 
 // Path: record.exercise.types
@@ -2733,6 +2738,7 @@ extension on TranslationsEn {
 			'record.photo.loggedItems' => ({required Object count}) => 'Logged ${count} items',
 			'record.photo.unmatchedItemTag' => 'Not in library — will be created',
 			'record.photo.labelValueTag' => 'From label',
+			'record.photo.nutritionInvalid' => 'Nutrition values look invalid. Check or remove this item before logging.',
 			'record.photo.engineGuideTitle' => 'AI recognition needs a model',
 			'record.photo.engineGuideBody' => 'Download the on-device model (works offline, ~2.4GB, no network needed after download), or configure a cloud API with your own model service.',
 			'record.photo.engineGuideDownload' => 'On-device model (recommended)',
@@ -2814,7 +2820,7 @@ extension on TranslationsEn {
 			'record.customFood.proteinLabel' => 'Protein (g / 100 g)',
 			'record.customFood.carbLabel' => 'Carbs (g / 100 g)',
 			'record.customFood.fatLabel' => 'Fat (g / 100 g)',
-			'record.customFood.nutritionRequired' => 'Enter a number greater than 0',
+			'record.customFood.nutritionRequired' => 'Enter a number of 0 or more',
 			'record.customFood.kcalRange' => 'Calories must be between 0 and 900 kcal',
 			'record.customFood.macroRange' => 'Must be between 0 and 100 g',
 			'record.customFood.savedOffline' => 'Saved on this device — will sync when online',
@@ -2923,6 +2929,10 @@ extension on TranslationsEn {
 			'record.exercise.screenshot.activeKcalLabel' => 'Active calories (kcal)',
 			'record.exercise.screenshot.burnLabel' => 'Counted burn (kcal)',
 			'record.exercise.screenshot.pickTypeHint' => 'Type not recognized — please pick one manually',
+			'record.exercise.screenshot.unitCorrectedHint' => 'Calorie scale looked wrong and was corrected. Check it against the screenshot.',
+			'record.exercise.screenshot.reviewKcalHint' => 'The calorie value couldn\'t be read reliably. Check or enter it manually.',
+			'record.exercise.screenshot.outlierKcalHint' => 'Calories look inconsistent with the activity. Please check.',
+			'record.exercise.screenshot.distanceInvalid' => 'Enter a distance greater than 0 km, or leave it blank.',
 			'record.exercise.types.walk' => 'Walking',
 			'record.exercise.types.jog' => 'Jogging',
 			'record.exercise.types.run' => 'Running',
@@ -3059,13 +3069,13 @@ extension on TranslationsEn {
 			'nutrition.data.dateSwitcher.nextDay' => 'Next day',
 			'nutrition.data.dateSwitcher.backToToday' => 'Back to today',
 			'nutrition.data.dateSwitcher.today' => 'Today',
+			_ => null,
+		} ?? switch (path) {
 			'nutrition.data.summary.allGreen' => 'Nice and steady today — give yourself a pat on the back 🌱',
 			'nutrition.data.summary.hasYellow' => 'Solid day overall — a nutrient or two needs a small top-up',
 			'nutrition.data.summary.hasRed' => 'A couple of red flags today — no stress, just follow the tips below',
 			'nutrition.data.summary.empty' => 'Nothing logged this day — log a meal and the signal lights come on',
 			'nutrition.data.summary.fallbackGoal' => 'Using default goals for now — complete your profile for sharper targets',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.data.localEstimate' => 'Local estimate — the cloud fine-tunes it once you\'re online',
 			'nutrition.data.proDetails.title' => 'Pro data',
 			'nutrition.data.proDetails.expand' => 'View details',
@@ -3573,13 +3583,13 @@ extension on TranslationsEn {
 			'auth.error.passwordTooWeak' => 'Password must be 8-64 characters with letters and digits',
 			'update.title' => 'Update available',
 			'update.newVersion' => ({required Object version}) => 'Latest version: ${version}',
+			_ => null,
+		} ?? switch (path) {
 			'update.updateNow' => 'Update now',
 			'update.later' => 'Later',
 			'update.upToDate' => 'You\'re on the latest version',
 			'update.checkFailed' => 'Couldn\'t check for updates. Try again later.',
 			'update.downloading' => ({required Object percent}) => 'Downloading ${percent}%',
-			_ => null,
-		} ?? switch (path) {
 			'update.downloadingNoProgress' => 'Downloading…',
 			'update.downloadFailed' => 'Download failed. Check your connection and try again.',
 			'update.retry' => 'Retry',

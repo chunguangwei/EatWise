@@ -104,6 +104,8 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
   LlmConfig? _stored;
 
   bool _testing = false;
+  bool _saving = false;
+  int _editRevision = 0;
 
   /// 校验时机（Y2）：字段失焦（touched）或首次保存（submitted）后才
   /// 亮红错；未交互不预亮，输入/清除后按当前文本实时重算。
@@ -133,9 +135,16 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
 
   void _onFormChanged() => setState(() {});
 
+  void _onUserEdited([String? _]) => _editRevision++;
+
   Future<void> _load() async {
+    final revision = _editRevision;
     final config = await ref.read(llmConfigStoreProvider).read();
     if (!mounted || config == null) return;
+    if (revision != _editRevision) {
+      setState(() => _stored = config);
+      return;
+    }
     setState(() {
       _stored = config;
       if (_providers.contains(config.provider)) _provider = config.provider;
@@ -181,6 +190,7 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
       _provider == 'custom' && _modelController.text.trim().isEmpty;
 
   Future<void> _save() async {
+    if (_saving) return;
     final t = Translations.of(context);
     final baseUrl = _baseUrlController.text.trim();
     final model = _modelController.text.trim();
@@ -189,22 +199,27 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
     if (_baseUrlMissing || _modelMissing) return;
     final apiKeyText = _apiKeyController.text.trim();
     final store = ref.read(llmConfigStoreProvider);
-    await store.save(
-      LlmConfig(
-        provider: _provider,
-        baseUrl: baseUrl,
-        model: model,
-        // apiKey 留空 = null → store 保持已存 key 不变（控制台密码框语义）。
-        apiKey: apiKeyText.isEmpty ? null : apiKeyText,
-      ),
-    );
-    _stored = await store.read();
-    if (!mounted) return;
-    // 提交成功后收起键盘（Y5），避免遮挡保存成功 toast。
     FocusManager.instance.primaryFocus?.unfocus();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(t.settings.aiModel.saved)));
+    setState(() => _saving = true);
+    try {
+      await store.save(
+        LlmConfig(
+          provider: _provider,
+          baseUrl: baseUrl,
+          model: model,
+          // apiKey 留空 = null → store 保持已存 key 不变（控制台密码框语义）。
+          apiKey: apiKeyText.isEmpty ? null : apiKeyText,
+        ),
+      );
+      final saved = await store.read();
+      if (!mounted) return;
+      setState(() => _stored = saved);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.settings.aiModel.saved)));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _test() async {
@@ -318,7 +333,10 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
                     ],
                     onChanged: (value) {
                       if (value == null) return;
-                      setState(() => _provider = value);
+                      setState(() {
+                        _editRevision++;
+                        _provider = value;
+                      });
                     },
                   ),
                   const SizedBox(height: AppSpacing.s3),
@@ -327,6 +345,7 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
                     focusNode: _baseUrlFocus,
                     keyboardType: TextInputType.url,
                     autocorrect: false,
+                    onChanged: _onUserEdited,
                     decoration: InputDecoration(
                       labelText: t.settings.aiModel.baseUrl,
                       // 内置供应商：hint 显示 preset 值，可留空。
@@ -342,6 +361,7 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
                     controller: _modelController,
                     focusNode: _modelFocus,
                     autocorrect: false,
+                    onChanged: _onUserEdited,
                     decoration: InputDecoration(
                       labelText: t.settings.aiModel.model,
                       hintText: preset?.model,
@@ -355,6 +375,7 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
                     controller: _apiKeyController,
                     obscureText: true,
                     autocorrect: false,
+                    onChanged: _onUserEdited,
                     decoration: InputDecoration(
                       labelText: t.settings.aiModel.apiKey,
                       hintText: t.settings.aiModel.apiKeyHint,
@@ -368,7 +389,7 @@ class _AiModelSettingsPageState extends ConsumerState<AiModelSettingsPage> {
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(48),
               ),
-              onPressed: _save,
+              onPressed: _saving ? null : _save,
               child: Text(t.settings.aiModel.save),
             ),
             const SizedBox(height: AppSpacing.s3),

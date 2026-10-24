@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
@@ -228,6 +230,8 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
   /// 当前模式（测试中可随时切换，如「先离线再联网」）。
   FakeCustomFoodMode mode;
 
+  Completer<void>? createGate;
+
   /// 已收到的 clientRequestId 列表（服务端幂等表替身，§2.2）。
   final List<String> receivedRequestIds = <String>[];
 
@@ -270,6 +274,9 @@ final class FakeCustomFoodRemote implements CustomFoodRemote {
     CustomFoodDraft draft, {
     required String clientRequestId,
   }) async {
+    final gate = createGate;
+    createGate = null;
+    if (gate != null) await gate.future;
     if (mode == FakeCustomFoodMode.offline) {
       throw const NetworkApiException();
     }

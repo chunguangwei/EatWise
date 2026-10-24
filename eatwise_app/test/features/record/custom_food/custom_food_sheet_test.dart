@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/llm/llm_config.dart';
 import 'package:eatwise/core/llm/llm_config_store.dart';
@@ -24,6 +26,7 @@ import '../record_test_helper.dart';
 /// 用户自配 API 窄抽象替身（可注入结果；ok=false 模拟直连失败 503）。
 final class _FakeUserClient implements UserEstimateSource {
   bool ok = true;
+  Completer<void>? gate;
   FoodEstimate result = const FoodEstimate(
     per100g: NutritionSnapshot(kcal: 200, proteinG: 10, carbG: 20, fatG: 5),
     confidence: 'high',
@@ -31,6 +34,8 @@ final class _FakeUserClient implements UserEstimateSource {
 
   @override
   Future<FoodEstimate> estimate(String name, {String? description}) async {
+    final pending = gate;
+    if (pending != null) await pending.future;
     if (!ok) {
       throw const BusinessApiException(
         httpStatus: 503,
@@ -181,7 +186,7 @@ void main() {
     await settleUi(tester);
   });
 
-  testWidgets('空表单校验：菜名必填 + 四营养必填 >0', (tester) async {
+  testWidgets('空表单校验：菜名与四营养必填，合法零值除外', (tester) async {
     await pumpPage(tester);
     await openSheet(tester);
     // 搜索词已预填菜名（走查修：空态 CTA initialName）；清空验证必填。
@@ -190,26 +195,32 @@ void main() {
     await tapSave(tester);
 
     expect(find.text('请输入菜名'), findsOneWidget);
-    expect(find.text('请填写大于 0 的数值'), findsNWidgets(4));
+    expect(find.text('请填写 0 或更大的数值'), findsNWidgets(4));
     expect(find.text('添加自定义食物'), findsOneWidget); // 弹层未关闭
     expect(await db.foodDao.searchFoods('不存在的食物'), isEmpty);
     await settleUi(tester);
   });
 
-  testWidgets('越界与非正数校验：热量 ≤900、宏量 ≤100、必须 >0', (tester) async {
+  testWidgets('越界与负数校验：热量 ≤900、宏量 ≤100、允许 0', (tester) async {
     await pumpPage(tester);
     await openSheet(tester);
     await enterSheetField(tester, 0, '测试菜');
     await enterSheetField(tester, 2, '1000'); // 热量越界
     await enterSheetField(tester, 3, '200'); // 宏量越界
-    await enterSheetField(tester, 4, '0'); // 非正数
-    await enterSheetField(tester, 5, '10');
+    await enterSheetField(tester, 4, '0'); // 合法零碳水
+    // 输入过滤器会吞掉负号，直接注入非法值验证校验分支。
+    tester
+            .widget<TextFormField>(find.byType(TextFormField).at(5))
+            .controller!
+            .text =
+        '-1';
+    await tester.pump();
 
     await tapSave(tester);
 
     expect(find.text('热量需在 0–900 千卡之间'), findsOneWidget);
     expect(find.text('需在 0–100 克之间'), findsOneWidget);
-    expect(find.text('请填写大于 0 的数值'), findsOneWidget);
+    expect(find.text('请填写 0 或更大的数值'), findsOneWidget);
     expect(await db.foodDao.searchFoods('测试菜'), isEmpty);
     await settleUi(tester);
   });
@@ -243,6 +254,32 @@ void main() {
     );
     expect(find.text('自定义 API 估算，请确认'), findsOneWidget);
     expect(find.text('置信度较低，请仔细核对数值'), findsOneWidget);
+    await settleUi(tester);
+  });
+
+  testWidgets('AI 估算等待期间手改营养：旧结果不得覆盖', (tester) async {
+    final gate = Completer<void>();
+    userClient.gate = gate;
+    await pumpPage(tester);
+    await openSheet(tester);
+    await enterSheetField(tester, 0, '手工丸子');
+    await tester.tap(find.text('AI 估算'));
+    await tester.pump();
+    await enterSheetField(tester, 2, '321');
+    await tester.pump();
+
+    gate.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      tester
+          .widget<TextFormField>(find.byType(TextFormField).at(2))
+          .controller!
+          .text,
+      '321',
+    );
+    expect(find.text('自定义 API 估算，请确认'), findsNothing);
     await settleUi(tester);
   });
 
@@ -329,6 +366,39 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('自定义'), findsOneWidget);
+    await settleUi(tester);
+  });
+
+  testWidgets('保存中打开新页面：旧完成回调不得将其关闭', (tester) async {
+    final gate = Completer<void>();
+    customRemote.createGate = gate;
+    await pumpPage(tester);
+    await openSheet(tester);
+    await enterSheetField(tester, 0, '手工丸子');
+    await enterSheetField(tester, 2, '180');
+    await enterSheetField(tester, 3, '12');
+    await enterSheetField(tester, 4, '15');
+    await enterSheetField(tester, 5, '6');
+    await tester.tap(find.text('保存'));
+    await tester.pump();
+    final sheetContext = tester.element(find.text('添加自定义食物'));
+    unawaited(
+      Navigator.of(sheetContext).push(
+        MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: Text('NEXT')),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('NEXT'), findsOneWidget);
+
+    gate.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('NEXT'), findsOneWidget);
+    expect(tester.takeException(), isNull);
     await settleUi(tester);
   });
 

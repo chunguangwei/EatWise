@@ -200,6 +200,42 @@ void main() {
     await settleUi(tester);
   });
 
+  testWidgets('汇总截图：异常放大热量纠偏、提示核对并按 349 落库', (tester) async {
+    service.outcome = const ExerciseScreenshotSuccess(
+      ExerciseScreenshotData(
+        kind: ExerciseScreenshotKind.summary,
+        steps: 7063,
+        distanceKm: 5.06,
+        activeCaloriesKcal: 349000,
+      ),
+    );
+    await pumpApp(tester);
+    await openAndImport(tester);
+
+    for (final key in <String>['screenshot.activeKcal', 'screenshot.kcal']) {
+      expect(
+        tester
+            .widget<TextField>(find.byKey(ValueKey<String>(key)))
+            .controller!
+            .text,
+        '349',
+      );
+    }
+    expect(find.text('热量单位识别异常，已按千卡口径纠偏，请对照截图确认'), findsOneWidget);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('screenshot.save')),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('screenshot.save')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    final saved = (await repo.logsForDate(todayKey())).single;
+    expect(saved.kcal, 349);
+    expect(saved.steps, 7063);
+    expect(saved.source, ExerciseLogRepository.sourceScreenshot);
+    await settleUi(tester);
+  });
+
   testWidgets('单次运动截图：类型映射+截图消耗预填，直接确认落库', (tester) async {
     service.outcome = const ExerciseScreenshotSuccess(
       ExerciseScreenshotData(

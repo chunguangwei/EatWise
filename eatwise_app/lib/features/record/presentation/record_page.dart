@@ -72,11 +72,59 @@ class _RecordPageState extends ConsumerState<RecordPage> {
   /// 上次确认入账时刻（`record_undo_click.after_ms`）。
   int? _lastConfirmMs;
 
+  int _searchRevision = 0;
+  int _draftRevision = 0;
+  int? _pendingPrefillSearchRevision;
+  bool _prefillScheduled = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scheduleSearchPrefill();
+  }
+
+  void _scheduleSearchPrefill() {
+    if (ref.read(recordSearchPrefillProvider) == null) {
+      _pendingPrefillSearchRevision = null;
+      return;
+    }
+    _pendingPrefillSearchRevision ??= _searchRevision;
+    if (_prefillScheduled || !TickerMode.valuesOf(context).enabled) return;
+    _prefillScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _prefillScheduled = false;
+      if (!mounted || !TickerMode.valuesOf(context).enabled) return;
+      final next = ref.read(recordSearchPrefillProvider);
+      if (next == null) {
+        _pendingPrefillSearchRevision = null;
+        return;
+      }
+      if (_searchRevision != _pendingPrefillSearchRevision) {
+        _pendingPrefillSearchRevision = null;
+        ref.read(recordSearchPrefillProvider.notifier).state = null;
+        return;
+      }
+      _pendingPrefillSearchRevision = null;
+      ref.read(recordSearchPrefillProvider.notifier).state = null;
+      if (next.isNotEmpty) {
+        _searchController.value = TextEditingValue(
+          text: next,
+          selection: TextSelection.collapsed(offset: next.length),
+        );
+        ref.read(recordSearchQueryProvider.notifier).state = next;
+      }
+      _searchFocusNode.requestFocus();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
-    // 搜索框清空键显隐跟随文本（含程序化 clear）。
-    _searchController.addListener(() => setState(() {}));
+    // 输入代际与 controller 同步推进，旧异步收尾不得清空更新的搜索。
+    _searchController.addListener(() {
+      _searchRevision++;
+      setState(() {});
+    });
     // T7 同步拒绝用户告警（v1.13.31）：服务端校验拒绝 → 本地记录被回滚
     // 删除，此前 _failures 流无监听=数据凭空消失无任何告知。批量节流：
     // 一次 syncNow 的成片回滚合并为一条 SnackBar（800ms 收集窗）。
@@ -234,6 +282,9 @@ class _RecordPageState extends ConsumerState<RecordPage> {
       return;
     }
     _stepCount++;
+    final confirmFocus = FocusManager.instance.primaryFocus;
+    final confirmedSearchRevision = _searchRevision;
+    final confirmedDraftRevision = _draftRevision;
     final repo = ref.read(recordRepositoryProvider);
     final entrySource = ref.read(recordEntrySourceProvider);
     final isEdited = ref.read(recordAmountTextProvider) != '100';
@@ -280,14 +331,21 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     _flowId = _analytics.startRecordFlow();
     _stepCount = 0;
     if (!mounted) return;
-    // 提交成功后收起键盘（Y5），避免遮挡 toast 与底部内容。
-    FocusManager.instance.primaryFocus?.unfocus();
-    ref.read(recordSelectedFoodProvider.notifier).state = null;
-    ref.read(recordSearchQueryProvider.notifier).state = '';
-    ref.read(recordEntrySourceProvider.notifier).state = EntrySource.manual;
-    ref.read(recordLowConfidenceProvider.notifier).state = false;
-    ref.read(recordMealTypeProvider.notifier).state = null;
-    _searchController.clear();
+    // 提交成功后收起原焦点的键盘（Y5）；若用户已重新聚焦搜索框，
+    // 不能因首单异步收尾而关闭第二次录入的键盘。
+    if (identical(FocusManager.instance.primaryFocus, confirmFocus)) {
+      confirmFocus?.unfocus();
+    }
+    if (_draftRevision == confirmedDraftRevision) {
+      ref.read(recordSelectedFoodProvider.notifier).state = null;
+      ref.read(recordEntrySourceProvider.notifier).state = EntrySource.manual;
+      ref.read(recordLowConfidenceProvider.notifier).state = false;
+      ref.read(recordMealTypeProvider.notifier).state = null;
+    }
+    if (_searchRevision == confirmedSearchRevision) {
+      ref.read(recordSearchQueryProvider.notifier).state = '';
+      _searchController.clear();
+    }
     // 连续入账：新吐司顶替旧的（不排队），与饮水流一致（D-11）。
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
@@ -333,22 +391,28 @@ class _RecordPageState extends ConsumerState<RecordPage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<Food?>(recordSelectedFoodProvider, (previous, next) {
+      _draftRevision++;
+    });
     // 三入口（拍照/语音/常吃）填充份量时同步进输入框。
     ref.listen<String>(recordAmountTextProvider, (previous, next) {
+      _draftRevision++;
       if (_amountController.text != next) _amountController.text = next;
+    });
+    ref.listen<EntrySource>(recordEntrySourceProvider, (previous, next) {
+      _draftRevision++;
+    });
+    ref.listen<bool>(recordLowConfidenceProvider, (previous, next) {
+      _draftRevision++;
+    });
+    ref.listen<MealType?>(recordMealTypeProvider, (previous, next) {
+      _draftRevision++;
     });
     // 识别降级对话框「手动搜索」出口：预填识别名（如有）+ 对焦搜索框。
     ref.listen<String?>(recordSearchPrefillProvider, (previous, next) {
       if (next == null) return;
-      ref.read(recordSearchPrefillProvider.notifier).state = null;
-      if (next.isNotEmpty) {
-        _searchController.value = TextEditingValue(
-          text: next,
-          selection: TextSelection.collapsed(offset: next.length),
-        );
-        ref.read(recordSearchQueryProvider.notifier).state = next;
-      }
-      _searchFocusNode.requestFocus();
+      _pendingPrefillSearchRevision = _searchRevision;
+      _scheduleSearchPrefill();
     });
     // 记录同步（启动/前台/登录）发现驳回并入队通知时，页在打开状态
     // 也要即时提示。

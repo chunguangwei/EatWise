@@ -48,10 +48,12 @@ Future<void> startExerciseScreenshotImport(
   final s = RecordStrings.of(context);
   final t = Translations.of(context);
   final messenger = ScaffoldMessenger.of(context);
+  final navigator = Navigator.of(context);
+  final route = ModalRoute.of(context);
   // 引擎可用性前置探测：无任何引擎 → 引导卡（下载模型/配置 API），
   // 不让用户选完图才发现死胡同。
   if (await guideIfNoAiEngine(context, ref, s)) return;
-  if (!context.mounted) return;
+  if (!context.mounted || route?.isCurrent == false) return;
   final service = ref.read(exerciseScreenshotServiceProvider);
   if (service == null) {
     // 有云端 API 但无视觉链路（或端侧开关关）：识别不可用兜底。
@@ -65,19 +67,21 @@ Future<void> startExerciseScreenshotImport(
   try {
     final picked = await ref.read(photoPickerGatewayProvider).pick(source);
     // 用户主动取消取图：静默返回，不动弹层内已输入内容。
-    if (picked == null || !context.mounted) return;
+    if (picked == null || !context.mounted || route?.isCurrent == false) {
+      return;
+    }
     bytes = picked;
   } on PhotoPermissionDeniedException {
-    if (context.mounted) {
+    if (context.mounted && route?.isCurrent != false) {
       await showPhotoPermissionDeniedCard(context, s);
     }
     return;
   }
-  if (!context.mounted) return;
+  if (!context.mounted || route?.isCurrent == false) return;
 
   final outcome = await _recognizeWithCancel(context, t, service, bytes);
   // null = 用户在识别中点了取消：原地不动，不丢已输入内容。
-  if (outcome == null || !context.mounted) return;
+  if (outcome == null || !context.mounted || route?.isCurrent == false) return;
   switch (outcome) {
     case ExerciseScreenshotSuccess(data: final data):
       final result = await showExerciseScreenshotConfirmSheet(
@@ -85,9 +89,11 @@ Future<void> startExerciseScreenshotImport(
         ref,
         data,
       );
-      if (result == null || !context.mounted) return;
+      if (result == null || !context.mounted || route?.isCurrent == false) {
+        return;
+      }
       // 把截图结果交回原记运动入口，由同一 flow 记录成功并展示撤销吐司。
-      Navigator.of(context).pop(result);
+      navigator.pop(result);
     case ExerciseScreenshotUnavailable(detail: final detail?)
         when detail.isNotEmpty:
       // 模型原文透出（含「无法识别」）：用户能看到模型实际看到了什么。
@@ -242,8 +248,7 @@ class _ExerciseScreenshotConfirmSheetState
   late final TextEditingController _floorsController = TextEditingController(
     text: _fmt(widget.data.floorsClimbedM),
   );
-  late final TextEditingController _activeKcalController =
-      TextEditingController(text: _fmt(widget.data.activeCaloriesKcal));
+  late final TextEditingController _activeKcalController;
 
   // 单次运动字段。
   late final TextEditingController _durationController = TextEditingController(
@@ -256,6 +261,9 @@ class _ExerciseScreenshotConfirmSheetState
   // 共用：计入消耗 kcal。
   late final TextEditingController _kcalController;
   bool _kcalOverridden = false;
+  bool _kcalUnitCorrected = false;
+  bool _kcalRejected = false;
+  bool _kcalNeedsReview = false;
   String? _error;
   bool _saving = false;
 
@@ -277,9 +285,15 @@ class _ExerciseScreenshotConfirmSheetState
     final draft = _isSummary
         ? draftFromSummaryScreenshot(widget.data, weightKg: _weightKg)
         : draftFromWorkoutScreenshot(widget.data, weightKg: _weightKg);
+    _activeKcalController = TextEditingController(
+      text: _fmt(draft?.sourceKcal),
+    );
     _kcalController = TextEditingController(
       text: _fmt(draft?.kcal?.roundToDouble()),
     );
+    _kcalUnitCorrected = draft?.kcalUnitCorrected ?? false;
+    _kcalRejected = draft?.kcalRejected ?? false;
+    _kcalNeedsReview = draft?.kcalNeedsReview ?? false;
   }
 
   @override
@@ -296,30 +310,33 @@ class _ExerciseScreenshotConfirmSheetState
   /// 字段编辑 → 未手改 kcal 时按当前字段实时重算计入消耗。
   void _recomputeKcal() {
     if (_kcalOverridden) return;
-    double? next;
-    if (_isSummary) {
-      next = draftFromSummaryScreenshot(
-        ExerciseScreenshotData(
-          kind: ExerciseScreenshotKind.summary,
-          steps: int.tryParse(_stepsController.text.trim()),
-          distanceKm: double.tryParse(_distanceController.text.trim()),
-          activeCaloriesKcal: double.tryParse(
-            _activeKcalController.text.trim(),
-          ),
-        ),
-        weightKg: _weightKg,
-      )?.kcal;
-    } else {
-      next = draftFromWorkoutScreenshot(
-        ExerciseScreenshotData(
-          kind: ExerciseScreenshotKind.workout,
-          exerciseTypeKey: _selectedType?.key,
-          durationMinutes: int.tryParse(_durationController.text.trim()),
-        ),
-        weightKg: _weightKg,
-      ).kcal;
-    }
-    _kcalController.text = _fmt(next?.roundToDouble());
+    final draft = _isSummary
+        ? draftFromSummaryScreenshot(
+            ExerciseScreenshotData(
+              kind: ExerciseScreenshotKind.summary,
+              steps: int.tryParse(_stepsController.text.trim()),
+              distanceKm: double.tryParse(_distanceController.text.trim()),
+              activeCaloriesKcal: double.tryParse(
+                _activeKcalController.text.trim(),
+              ),
+            ),
+            weightKg: _weightKg,
+            allowUnitRecovery: false,
+          )
+        : draftFromWorkoutScreenshot(
+            ExerciseScreenshotData(
+              kind: ExerciseScreenshotKind.workout,
+              exerciseTypeKey: _selectedType?.key,
+              durationMinutes: int.tryParse(_durationController.text.trim()),
+            ),
+            weightKg: _weightKg,
+            allowUnitRecovery: false,
+          );
+    _kcalUnitCorrected = draft?.kcalUnitCorrected ?? false;
+    _kcalRejected = draft?.kcalRejected ?? false;
+    _kcalNeedsReview = draft?.kcalNeedsReview ?? false;
+    _kcalController.text = _fmt(draft?.kcal?.roundToDouble());
+    setState(() {});
   }
 
   Future<void> _save(Translations t) async {
@@ -333,15 +350,38 @@ class _ExerciseScreenshotConfirmSheetState
     final int durationMin;
     final int? steps;
     if (_isSummary) {
+      final activeText = _activeKcalController.text.trim();
+      if (activeText.isNotEmpty) {
+        final active = double.tryParse(activeText);
+        if (active == null ||
+            !active.isFinite ||
+            active <= 0 ||
+            active > maxExerciseKcal) {
+          setState(() => _error = t.record.exercise.kcalInvalid);
+          return;
+        }
+      }
+      final distanceText = _distanceController.text.trim();
+      if (distanceText.isNotEmpty) {
+        final distance = double.tryParse(distanceText);
+        if (distance == null || !distance.isFinite || distance <= 0) {
+          setState(() => _error = t.record.exercise.screenshot.distanceInvalid);
+          return;
+        }
+      }
       typeKey = 'summary';
       durationMin = 0;
       // 步数随记录落库（步数持久化：数据页展示 = 系统步数 + 当日合计）。
-      final parsedSteps = int.tryParse(_stepsController.text.trim());
-      if (parsedSteps != null && parsedSteps > maxExerciseSteps) {
+      final stepsText = _stepsController.text.trim();
+      final parsedSteps = int.tryParse(stepsText);
+      if (stepsText.isNotEmpty &&
+          (parsedSteps == null ||
+              parsedSteps <= 0 ||
+              parsedSteps > maxExerciseSteps)) {
         setState(() => _error = t.record.exercise.stepsInvalid);
         return;
       }
-      steps = (parsedSteps != null && parsedSteps > 0) ? parsedSteps : null;
+      steps = parsedSteps;
     } else {
       final type = _selectedType;
       if (type == null) {
@@ -358,6 +398,8 @@ class _ExerciseScreenshotConfirmSheetState
       steps = null;
     }
     _saving = true;
+    final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
     try {
       // 当日已有记录 → 「再加一条 / 替换今天记录」选择（全天汇总截图
       // 重复导入防重复累计）；取消则留在确认弹层。
@@ -371,12 +413,10 @@ class _ExerciseScreenshotConfirmSheetState
         source: ExerciseLogRepository.sourceScreenshot,
         steps: steps,
       );
-      if (outcome == null) return;
-      if (mounted) {
-        Navigator.of(context).pop(
-          ExerciseSaveResult(saved: outcome.saved!, replaced: outcome.replaced),
-        );
-      }
+      if (outcome == null || !mounted || route?.isCurrent == false) return;
+      navigator.pop(
+        ExerciseSaveResult(saved: outcome.saved!, replaced: outcome.replaced),
+      );
     } finally {
       _saving = false;
     }
@@ -514,9 +554,27 @@ class _ExerciseScreenshotConfirmSheetState
             ).copyWith(errorText: _error),
             onChanged: (_) {
               _kcalOverridden = true;
-              setState(() => _error = null);
+              setState(() {
+                _error = null;
+                _kcalUnitCorrected = false;
+                _kcalRejected = false;
+                _kcalNeedsReview = false;
+              });
             },
           ),
+          if (_kcalUnitCorrected ||
+              _kcalRejected ||
+              _kcalNeedsReview) ...<Widget>[
+            const SizedBox(height: AppSpacing.s1),
+            Text(
+              _kcalUnitCorrected
+                  ? t.record.exercise.screenshot.unitCorrectedHint
+                  : _kcalRejected
+                  ? t.record.exercise.screenshot.reviewKcalHint
+                  : t.record.exercise.screenshot.outlierKcalHint,
+              style: textStyles.textXs.copyWith(color: colors.signalYellowText),
+            ),
+          ],
           // 估算标注（60kg 兜底 / MET / 步数口径）。
           if (_profileWeightKg == null) ...<Widget>[
             const SizedBox(height: AppSpacing.s1),

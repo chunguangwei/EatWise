@@ -210,4 +210,109 @@ void main() {
       expect(draft.kcal, isNull);
     });
   });
+
+  group('异常热量与数值防御', () {
+    test('汇总热量放大 1000 倍：结合步数和距离纠偏为 349', () {
+      final draft = draftFromSummaryScreenshot(
+        const ExerciseScreenshotData(
+          kind: ExerciseScreenshotKind.summary,
+          steps: 7063,
+          distanceKm: 5.06,
+          activeCaloriesKcal: 349000,
+        ),
+        weightKg: 60,
+      )!;
+      expect(draft.kcal, 349);
+      expect(draft.sourceKcal, 349);
+      expect(draft.kcalUnitCorrected, isTrue);
+      expect(draft.kcalNeedsReview, isTrue);
+      expect(draft.kcalRejected, isFalse);
+    });
+
+    test('单次运动热量放大 1000 倍：结合类型和时长纠偏', () {
+      final draft = draftFromWorkoutScreenshot(
+        const ExerciseScreenshotData(
+          kind: ExerciseScreenshotKind.workout,
+          exerciseTypeKey: 'run',
+          durationMinutes: 32,
+          burnKcal: 349000,
+        ),
+        weightKg: 60,
+      );
+      expect(draft.kcal, 349);
+      expect(draft.sourceKcal, 349);
+      expect(draft.kcalUnitCorrected, isTrue);
+      expect(draft.kcalNeedsReview, isTrue);
+    });
+
+    test('无法交叉验证的异常热量：不直接采用，按步数估算', () {
+      final draft = draftFromSummaryScreenshot(
+        const ExerciseScreenshotData(
+          kind: ExerciseScreenshotKind.summary,
+          steps: 7063,
+          distanceKm: 5.06,
+          activeCaloriesKcal: 100000000,
+        ),
+        weightKg: 60,
+      )!;
+      expect(draft.kcal, moreOrLessEquals(314.5296, epsilon: 1e-6));
+      expect(draft.estimated, isTrue);
+      expect(draft.sourceKcal, isNull);
+      expect(draft.kcalRejected, isTrue);
+      expect(draft.kcalNeedsReview, isTrue);
+    });
+
+    test('可保存但偏离参考的热量：保留原值并要求核对', () {
+      final draft = draftFromSummaryScreenshot(
+        const ExerciseScreenshotData(
+          kind: ExerciseScreenshotKind.summary,
+          steps: 7063,
+          distanceKm: 5.06,
+          activeCaloriesKcal: 9000,
+        ),
+        weightKg: 60,
+      )!;
+      expect(draft.kcal, 9000);
+      expect(draft.kcalNeedsReview, isTrue);
+      expect(draft.kcalUnitCorrected, isFalse);
+      expect(draft.kcalRejected, isFalse);
+    });
+
+    test('手工输入不走自动纠偏：异常原值不直接采用', () {
+      final draft = draftFromSummaryScreenshot(
+        const ExerciseScreenshotData(
+          kind: ExerciseScreenshotKind.summary,
+          steps: 7063,
+          distanceKm: 5.06,
+          activeCaloriesKcal: 349000,
+        ),
+        weightKg: 60,
+        allowUnitRecovery: false,
+      )!;
+      expect(draft.kcal, isNot(349));
+      expect(draft.sourceKcal, isNull);
+      expect(draft.kcalUnitCorrected, isFalse);
+      expect(draft.kcalRejected, isTrue);
+    });
+
+    test('非有限/负数数值被忽略，非法运动类型不抛异常', () {
+      expect(
+        parseExerciseScreenshotJson(
+          '{"kind":"summary","steps":-3,"distanceKm":-1,'
+          '"floorsClimbedM":-2,"activeCaloriesKcal":1e999}',
+        ),
+        isNull,
+      );
+      expect(
+        parseExerciseScreenshotJson('{"kind":"summary","steps":1e999}'),
+        isNull,
+      );
+      expect(
+        parseExerciseScreenshotJson(
+          '{"kind":"workout","exerciseType":42,"durationMinutes":32}',
+        ),
+        isNotNull,
+      );
+    });
+  });
 }

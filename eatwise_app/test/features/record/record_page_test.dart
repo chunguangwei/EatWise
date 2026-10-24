@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' show Value;
+import 'package:drift/native.dart';
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_client.dart';
 import 'package:eatwise/core/analytics/analytics_context.dart';
@@ -9,6 +12,7 @@ import 'package:eatwise/core/analytics/consent_store.dart';
 import 'package:eatwise/core/analytics/device_identity_store.dart';
 import 'package:eatwise/core/analytics/event_queue_store.dart';
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/storage/food_entry_dao.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
@@ -43,6 +47,29 @@ final class _RecordingClient implements AnalyticsClient {
   void logSuppressed(String name, Map<String, Object?> properties) {}
 }
 
+final class _DelayedRecordDatabase extends AppDatabase {
+  _DelayedRecordDatabase() : super(NativeDatabase.memory());
+
+  late final _DelayedRecordEntryDao _entries = _DelayedRecordEntryDao(this);
+
+  @override
+  FoodEntryDao get foodEntryDao => _entries;
+}
+
+final class _DelayedRecordEntryDao extends FoodEntryDao {
+  _DelayedRecordEntryDao(super.db);
+
+  Completer<void>? nextRead;
+
+  @override
+  Future<FoodEntry?> getByLocalId(String localId) async {
+    final gate = nextRead;
+    nextRead = null;
+    if (gate != null) await gate.future;
+    return super.getByLocalId(localId);
+  }
+}
+
 /// M3 记录页 widget 测试：主流程（搜索 → 选食物 → 份量实时重算 →
 /// 确认乐观更新 → 「已记录·撤销」吐司 → 撤销撤回）+ 三入口占位 + 待同步角标。
 void main() {
@@ -56,7 +83,7 @@ void main() {
 
   setUp(() async {
     await LocaleSettings.setLocale(AppLocale.zhCn);
-    db = AppDatabase.memory();
+    db = _DelayedRecordDatabase();
     await seedFoods(db);
     remote = FakeRecordRemote();
     repository = RecordRepository(
@@ -101,6 +128,7 @@ void main() {
     WidgetTester tester, {
     AnalyticsService? analytics,
     ThemeData? theme,
+    ValueNotifier<bool>? active,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -132,7 +160,13 @@ void main() {
         child: TranslationProvider(
           child: MaterialApp(
             theme: theme ?? AppTheme.light(),
-            home: const RecordPage(),
+            home: active == null
+                ? const RecordPage()
+                : ValueListenableBuilder<bool>(
+                    valueListenable: active,
+                    builder: (context, enabled, _) =>
+                        TickerMode(enabled: enabled, child: const RecordPage()),
+                  ),
           ),
         ),
       ),
@@ -270,6 +304,188 @@ void main() {
     expect(find.text('今日已记 2 笔 · 今日约 304 千卡'), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 11));
+    await settleUi(tester);
+  });
+
+  testWidgets('连续录入：首单异步收尾不关闭第二次搜索键盘', (tester) async {
+    await pumpPage(tester);
+    await tester.enterText(find.byType(TextField).first, '米饭');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('白米饭'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.enterText(find.byType(TextField).last, '100');
+    await tester.pump();
+
+    await tester.tap(find.text('确认记录'));
+    final searchField = tester.widget<TextField>(find.byType(TextField).first);
+    searchField.focusNode!.requestFocus();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('已记录'), findsOneWidget);
+    expect(searchField.focusNode!.hasFocus, isTrue);
+    await tester.enterText(find.byType(TextField).first, '鸡蛋');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.widgetWithText(ListTile, '鸡蛋'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 11));
+    await settleUi(tester);
+  });
+
+  testWidgets('连续录入：首单返回不得清空已输入的第二查询', (tester) async {
+    await pumpPage(tester);
+    await tester.enterText(find.byType(TextField).first, '米饭');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('白米饭'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.enterText(find.byType(TextField).last, '100');
+    await tester.pump();
+
+    final dao = db.foodEntryDao as _DelayedRecordEntryDao;
+    final gate = Completer<void>();
+    dao.nextRead = gate;
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('已记录'), findsNothing);
+    await tester.enterText(find.byType(TextField).first, '鸡蛋');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordPage)),
+    );
+    final searchField = tester.widget<TextField>(find.byType(TextField).first);
+    expect(searchField.controller!.text, '鸡蛋');
+    expect(container.read(recordSearchQueryProvider), '鸡蛋');
+    gate.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('已记录'), findsOneWidget);
+    expect(searchField.controller!.text, '鸡蛋');
+    expect(searchField.focusNode!.hasFocus, isTrue);
+    expect(container.read(recordSearchQueryProvider), '鸡蛋');
+    expect(find.widgetWithText(ListTile, '鸡蛋'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 11));
+    await settleUi(tester);
+  });
+
+  testWidgets('连续录入：首单返回不得清空已选择的第二草稿', (tester) async {
+    await pumpPage(tester);
+    await tester.enterText(find.byType(TextField).first, '米饭');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('白米饭'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.enterText(find.byType(TextField).last, '100');
+    await tester.pump();
+
+    final dao = db.foodEntryDao as _DelayedRecordEntryDao;
+    final gate = Completer<void>();
+    dao.nextRead = gate;
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('已记录'), findsNothing);
+    await tester.enterText(find.byType(TextField).first, '鸡蛋');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.widgetWithText(ListTile, '鸡蛋'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.enterText(find.byType(TextField).last, '50');
+    await tester.pump();
+    await tester.tap(find.text('确认记录').last);
+    await tester.pump();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordPage)),
+    );
+    gate.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(container.read(recordSelectedFoodProvider)?.id, 'f-egg');
+    expect(container.read(recordAmountTextProvider), '50');
+    expect(container.read(recordSearchQueryProvider), '鸡蛋');
+    expect(
+      await repository.entriesForDate(DateTime.now().toUtc()),
+      hasLength(1),
+    );
+    expect(find.text('确认记录'), findsOneWidget);
+
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+      await repository.entriesForDate(DateTime.now().toUtc()),
+      hasLength(2),
+    );
+
+    await tester.pump(const Duration(seconds: 11));
+    await settleUi(tester);
+  });
+
+  testWidgets('搜索预填：隐藏记录页不抢焦点，重新激活后才消费', (tester) async {
+    final active = ValueNotifier<bool>(false);
+    addTearDown(active.dispose);
+    await pumpPage(tester, active: active);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordPage)),
+    );
+    final searchField = tester.widget<TextField>(find.byType(TextField).first);
+
+    container.read(recordSearchPrefillProvider.notifier).state = '米饭';
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(searchField.controller!.text, isEmpty);
+    expect(searchField.focusNode!.hasFocus, isFalse);
+    expect(container.read(recordSearchPrefillProvider), '米饭');
+
+    active.value = true;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(searchField.controller!.text, '米饭');
+    expect(container.read(recordSearchQueryProvider), '米饭');
+    expect(container.read(recordSearchPrefillProvider), isNull);
+    expect(searchField.focusNode!.hasFocus, isTrue);
+    expect(find.widgetWithText(ListTile, '白米饭'), findsOneWidget);
+
+    await settleUi(tester);
+  });
+
+  testWidgets('搜索预填：等待期间的新输入不被隐藏页旧请求覆盖', (tester) async {
+    final active = ValueNotifier<bool>(false);
+    addTearDown(active.dispose);
+    await pumpPage(tester, active: active);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordPage)),
+    );
+    final searchField = tester.widget<TextField>(find.byType(TextField).first);
+
+    container.read(recordSearchPrefillProvider.notifier).state = '米饭';
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(searchField.focusNode!.hasFocus, isFalse);
+    await tester.enterText(find.byType(TextField).first, '鸡蛋');
+    await tester.pump();
+
+    active.value = true;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(searchField.controller!.text, '鸡蛋');
+    expect(container.read(recordSearchQueryProvider), '鸡蛋');
+    expect(container.read(recordSearchPrefillProvider), isNull);
+    expect(find.widgetWithText(ListTile, '鸡蛋'), findsOneWidget);
+
     await settleUi(tester);
   });
 

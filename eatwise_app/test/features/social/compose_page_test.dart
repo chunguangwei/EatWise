@@ -189,6 +189,34 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('发布中打开新页面：旧完成回调不得将其关闭', (tester) async {
+    final gate = Completer<void>();
+    api.createGate = gate;
+    await pumpCompose(tester);
+    await tester.enterText(find.byType(TextField), '提交中的打卡');
+    await tester.tap(find.text('发布'));
+    await tester.pump();
+    final composeContext = tester.element(find.byType(ComposePage));
+    unawaited(
+      Navigator.of(composeContext).push(
+        MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: Text('NEXT')),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('NEXT'), findsOneWidget);
+
+    gate.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('NEXT'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await unmount(tester);
+  });
+
   testWidgets('选图即上传：上传中禁用发布，成功后发布带服务端图片 URL', (tester) async {
     pickedPhoto = pngBytes;
     upload.gate = Completer<void>(); // 挂起上传，断言「上传中」态
@@ -348,6 +376,31 @@ void main() {
         tester.widget<TextField>(find.byType(TextField)).controller!.text,
         '带图打卡',
       ); // 原文未被改写
+      await unmount(tester);
+    });
+
+    testWidgets('润色等待期间继续编辑：旧结果不得覆盖新文字', (tester) async {
+      final polish = FakePostPolishService(const PostPolishOk('过期润色结果'));
+      final gate = Completer<PostPolishResult>();
+      polish.gate = gate;
+      await pumpCompose(tester, polishService: polish);
+      await tester.enterText(find.byType(TextField), '原始文案');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(TextButton, 'AI 润色'));
+      await tester.pump();
+      await tester.enterText(find.byType(TextField), '用户继续编辑的新文案');
+      await tester.pump();
+
+      gate.complete(const PostPolishOk('过期润色结果'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        '用户继续编辑的新文案',
+      );
+      expect(find.text('已完成润色'), findsNothing);
+      expect(find.text('撤销润色'), findsNothing);
       await unmount(tester);
     });
   });

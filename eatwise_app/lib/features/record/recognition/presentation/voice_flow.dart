@@ -407,6 +407,7 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
   /// 当前是否在听写（错误/停止后为 false → 显示「再说一次」重录入口，
   /// 修复真机走查：没听清后面板只剩错误态，没有语音重录入口）。
   bool _listening = false;
+  int _listenSession = 0;
 
   @override
   void initState() {
@@ -416,6 +417,7 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
 
   /// 开始/重新开始听写（清残留错误态 + 重挂静默兜底定时器）。
   void _startListening() {
+    final session = ++_listenSession;
     setState(() {
       _error = null;
       _noResultHint = false;
@@ -425,10 +427,11 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
       widget.gateway.start(
         localeId: widget.localeId,
         onText: (text) {
-          if (mounted) setState(() => _text = text);
+          if (!mounted || session != _listenSession || _typing) return;
+          setState(() => _text = text);
         },
         onError: (error) {
-          if (!mounted) return;
+          if (!mounted || session != _listenSession || _typing) return;
           setState(() {
             _error = error;
             _listening = false;
@@ -500,13 +503,15 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
   Future<void> _switchToOnDevice() async {
     if (_switchingToOnDevice) return;
     _switchingToOnDevice = true;
+    final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
     try {
       // 模型未下载/未启用 → 与拍照记入口同款引导卡（下载本地模型带进度
       // /配置云端 API/先手动搜索），修复「没提示下载小模型」：此前按钮
       // 仅在端侧就绪时出现，首次用户（开关默认关）根本看不到它。
       if (!_onDeviceAsrReady) {
         await widget.gateway.cancel();
-        if (!mounted) return;
+        if (!mounted || route?.isCurrent == false) return;
         // 语音专属引导：内嵌下载带进度（不跳设置页），完成自动回录音面板。
         // 引导内「下载→录音→完成」的转写结果必须透传为面板返回值，否则
         // 下载完录完点完成同样没记录（与 startVoiceInput broken 分支同款坑）。
@@ -515,20 +520,20 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
           ref,
           RecordStrings.of(context),
         );
-        if (!mounted) return;
+        if (!mounted || route?.isCurrent == false) return;
         // 引导结束即关闭听写面板：下载/配置完成，手动搜索已对焦。
-        Navigator.of(context).pop(transcript);
+        navigator.pop(transcript);
         return;
       }
       // 端侧录音走 record 插件的麦克风权限（与系统 ASR 初始化时的申请
       // 同口径确认一次；拒绝则静默关闭，键盘输入永远可用）。
       final recorder = ref.read(audioRecorderGatewayProvider);
       await widget.gateway.cancel();
-      if (!mounted) return;
+      if (!mounted || route?.isCurrent == false) return;
       final permitted = await recorder.ensurePermission();
-      if (!mounted) return;
+      if (!mounted || route?.isCurrent == false) return;
       if (!permitted) {
-        Navigator.of(context).pop();
+        navigator.pop();
         return;
       }
       final transcript = await showModalBottomSheet<VoiceTranscript>(
@@ -536,10 +541,10 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
         isDismissible: false,
         builder: (_) => const OnDeviceRecordingSheet(),
       );
-      if (!mounted) return;
+      if (!mounted || route?.isCurrent == false) return;
       // null（端侧面板取消）也关闭本面板：系统听写已取消，面板留在原地
       // 只剩错误态没有意义。
-      Navigator.of(context).pop(transcript);
+      navigator.pop(transcript);
     } finally {
       _switchingToOnDevice = false;
     }
@@ -672,8 +677,12 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
                     height: 48,
                     child: OutlinedButton(
                       onPressed: () async {
+                        final navigator = Navigator.of(context);
+                        final route = ModalRoute.of(context);
                         await widget.gateway.cancel();
-                        if (context.mounted) Navigator.of(context).pop();
+                        if (context.mounted && route?.isCurrent != false) {
+                          navigator.pop();
+                        }
                       },
                       child: Text(s.cancelAction),
                     ),
@@ -685,11 +694,16 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
                     height: 48,
                     child: FilledButton(
                       onPressed: () async {
+                        final navigator = Navigator.of(context);
+                        final route = ModalRoute.of(context);
                         await widget.gateway.stop();
-                        if (context.mounted) {
-                          Navigator.of(
-                            context,
-                          ).pop(VoiceTranscript(_text, typed: _typing));
+                        if (context.mounted && route?.isCurrent != false) {
+                          navigator.pop(
+                            VoiceTranscript(
+                              _typing ? _typeController.text : _text,
+                              typed: _typing,
+                            ),
+                          );
                         }
                       },
                       child: Text(s.voiceFinish),

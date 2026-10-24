@@ -161,4 +161,31 @@ void main() {
     expect(find.text('没听清，请再说一次，或点右边键盘图标打字'), findsOneWidget);
     await settleUi(tester);
   });
+
+  testWidgets('键盘编辑后收到迟到 ASR：提交仍使用屏幕上的手改文本', (tester) async {
+    await pumpPage(tester);
+    await tester.tap(find.text('语音记'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    speechGateway.onText!('一碗米饭');
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.keyboard_rounded));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField).last, '未收录的手工餐');
+    await tester.pump();
+    speechGateway.onText!('一碗燕窝羹');
+    await tester.pump();
+
+    await tester.tap(find.text('完成'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('确认这餐明细'), findsNothing);
+    expect(find.text('燕窝羹'), findsNothing);
+    expect(
+      tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+      '未收录的手工餐',
+    );
+    await settleUi(tester);
+  });
 }

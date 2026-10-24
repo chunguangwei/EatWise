@@ -32,7 +32,7 @@ const String kPhotoRecognitionSystemPrompt =
     '一盘菜约250克，一个鸡蛋约50克）。'
     '食物名必须是最具体的常见中文食物名（如 米饭、番茄炒蛋、苹果、鸡胸肉），'
     '禁止只输出类别词（水果、蔬菜、肉类、主食、饮料、零食、菜肴这类词都不可以）；'
-    '不要品牌名，不要份量和形容词（红富士就写苹果）。'
+    '散装食物不要品牌名、份量和形容词（红富士就写苹果）；包装食品保留品名及必要品牌信息。'
     '英文名给最常见的通用名（generic name，小写，如 potato chips、fried rice）。'
     '按通常食用状态估算每100克可食部营养：米饭、面条等主食指煮熟后的成品，'
     '菜名指烧制完成的成品菜，肉蛋水果按生鲜。'
@@ -42,10 +42,11 @@ const String kPhotoRecognitionSystemPrompt =
     '可乐、果汁等纯饮料的脂肪和蛋白质为0。'
     '散装食物估算克数时利用画面参照物判断大小（手、筷子、常见碗盘直径约11-13厘米），按参照物比例估算实际份量。'
     '如果画面中是带包装的食品且包装上有可读的营养成分表：优先照抄标签上的每100克数值（能量如果是千焦，照抄数值并在数字后标注 kJ；是千卡则标注 kcal），不要自己换算；包装上有净含量（如 净含量：50克）时，估算克数直接填净含量数值；食物名用包装上的品牌加品名（如 清叶堂洋芋片）。'
+    '实际读到包装标签时，在该行最后追加 => label；估算值绝不能加这个标记。'
     '示例：一碗白米饭 → 米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3；'
     '一包薯片 → 薯片 => potato chips => 60 => 536 => 7 => 53 => 32。'
     '包装食品示例：一袋清叶堂洋芋片（营养表 每100克：能量2141千焦、蛋白质6.1克、碳水53.0克、脂肪30.7克；净含量50克）→\n'
-    '清叶堂洋芋片 => potato chips => 50 => 2141 kJ => 6.1 => 53.0 => 30.7。'
+    '清叶堂洋芋片 => potato chips => 50 => 2141 kJ => 6.1 => 53.0 => 30.7 => label。'
     '组合餐示例，一份火腿蛋炒饭（一碗）→ 三行：\n'
     '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3\n'
     '鸡蛋 => egg => 50 => 144 => 13.3 => 2.8 => 8.8\n'
@@ -120,11 +121,11 @@ final class ParsedPhotoItem {
   final double? grams;
 
   /// 每 100g 营养（kJ 已在解析层换算 kcal）。散装=模型估算（只作匹配
-  /// 参考/存疑判定/表单初值，不直接入账）；包装=标签照抄值（ground
-  /// truth，sanity-clamp 只警告不覆盖，见 [fromLabel]）。
+  /// 参考/存疑判定/表单初值，不直接入账）；包装=标签提取值（仍需确认，
+  /// 只有实际采用标签值时保留 [fromLabel]）。
   final OnDeviceNutritionValues values;
 
-  /// 是否来自包装营养表照抄（热量段带单位标记）。
+  /// 是否有包装标签来源证据（label 后缀或 kJ 单位，且能量单位明确）。
   final bool fromLabel;
 }
 
@@ -146,23 +147,27 @@ double clampPhotoGrams(double grams) {
 /// 热量段允许单位后缀（kJ/千焦 → 包装营养表照抄场景，Dart 层统一换算
 /// kcal，数值换算不放模型侧）；无单位 = 散装估算路径（fromLabel=false）。
 final RegExp _itemWithGramsRegex = RegExp(
-  r'([^\s=>\d][^=>]*?)\s*=>\s*([A-Za-z][^=>]*?)\s*=>\s*'
-  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)(?:\s*(kJ|kcal|千焦|千卡))?\s*=>\s*'
-  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)',
+  r'^([^\s=>\d][^=>]*?)\s*=>\s*([A-Za-z][^=>]*?)\s*=>\s*'
+  r'(\d+(?:\.\d+)?)\s*(?:g|克)?\s*=>\s*'
+  r'(\d+(?:\.\d+)?)(?:\s*(kJ|kcal|千焦|千卡))?\s*=>\s*'
+  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*'
+  r'(\d+(?:\.\d+)?)(?:\s*=>\s*(label))?\s*(?:=>\s*)?[。\.]?\s*$',
   caseSensitive: false,
 );
 
 /// 六段兼容格式（无克数）：`中文名 => 英文名 => 4个营养数字`
 /// （英文段须以字母开头，与五段格式区分）。
 final RegExp _itemBilingualRegex = RegExp(
-  r'([^\s=>\d][^=>]*?)\s*=>\s*([A-Za-z][^=>]*?)\s*=>\s*'
-  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)',
+  r'^([^\s=>\d][^=>]*?)\s*=>\s*([A-Za-z][^=>]*?)\s*=>\s*'
+  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*'
+  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*(?:=>\s*)?[。\.]?\s*$',
 );
 
 /// 五段兼容格式（无英文名无克数）：`名 => 4个营养数字`（v5 宽松策略）。
 final RegExp _itemLegacyRegex = RegExp(
-  r'([^\s=>\d][^=>]*?)\s*=>\s*'
-  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)',
+  r'^([^\s=>\d][^=>]*?)\s*=>\s*'
+  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*=>\s*'
+  r'(\d+(?:\.\d+)?)\s*=>\s*(\d+(?:\.\d+)?)\s*(?:=>\s*)?[。\.]?\s*$',
 );
 
 /// 食物名前缀杂质（模型偶发复述「食物：」「结果：」等提示词片段）。
@@ -205,6 +210,7 @@ ParsedPhotoItem? _parseItemLine(String line) {
       energyGroup: full.group(4)!,
       energyUnit: full.group(5),
       macroGroups: <String>[full.group(6)!, full.group(7)!, full.group(8)!],
+      labelMarked: full.group(9) != null,
     );
   }
   final bilingual = _itemBilingualRegex.firstMatch(line);
@@ -241,8 +247,8 @@ ParsedPhotoItem? _parseItemLine(String line) {
 }
 
 /// 构造明细条目（统一名字清理与数字校验）。热量段带单位（kJ/千焦）时
-/// 在 Dart 层按 1kcal=4.184kJ 换算（不信模型口算），并标记 fromLabel
-///（包装营养表照抄 = ground truth，sanity-clamp 只警告不覆盖）。
+/// 在 Dart 层按 1kcal=4.184kJ 换算（不信模型口算）。label 后缀或 kJ 才
+/// 提供标签来源证据；散装估算带 kcal 不冒充包装标签。
 ParsedPhotoItem? _buildItem({
   required String rawName,
   required String? nameEn,
@@ -250,6 +256,7 @@ ParsedPhotoItem? _buildItem({
   required String energyGroup,
   required String? energyUnit,
   required List<String> macroGroups,
+  bool labelMarked = false,
 }) {
   final name = rawName.replaceAll(_namePrefixRegex, '').trim();
   if (name.isEmpty || name.contains('无法识别')) return null;
@@ -262,7 +269,8 @@ ParsedPhotoItem? _buildItem({
   if (energyRaw == null || !energyRaw.isFinite) return null;
   if (macros.any((v) => !v.isFinite)) return null;
   final unit = (energyUnit ?? '').toLowerCase();
-  final fromLabel = unit.isNotEmpty;
+  final fromLabel =
+      unit.isNotEmpty && (labelMarked || unit == 'kj' || unit == '千焦');
   // kJ/千焦 → kcal（Dart 层定值换算）；kcal/千卡/缺省照用。
   final kcal = (unit == 'kj' || unit == '千焦')
       ? double.parse((energyRaw / kKjPerKcal).toStringAsFixed(1))
@@ -292,28 +300,32 @@ final class FoodNameMatch {
   final bool exact;
 }
 
-/// 用识别名搜食物库并取最优条目：先中文名精确/模糊匹配，未命中再用
-/// [nameEn] 匹配（USDA 库英文为主，双语输出命中率显著提升）；
-/// 均无结果返回 null（上层走降级）。
-///
-/// [search] 即仓储的 searchFoods（本地 drift 双语 LIKE）。
+/// 用识别名搜食物库并取最优条目：先中文精确、再英文精确，最后才允许
+/// 模糊首条，避免中文模糊结果抢在英文精确命中前误导入库。
 Future<FoodNameMatch?> matchFoodByName(
   Future<List<Food>> Function(String query) search,
   String name, {
   String? nameEn,
 }) async {
+  final byZhExact = await _matchOnce(search, name, allowFuzzy: false);
+  if (byZhExact != null) return byZhExact;
+  final en = nameEn?.trim() ?? '';
+  if (en.isNotEmpty) {
+    final byEnExact = await _matchOnce(search, en, allowFuzzy: false);
+    if (byEnExact != null) return byEnExact;
+  }
   final byZh = await _matchOnce(search, name);
   if (byZh != null) return byZh;
-  final en = nameEn?.trim() ?? '';
   if (en.isEmpty) return null;
   return _matchOnce(search, en);
 }
 
-/// 单关键词匹配：中/英文名精确命中优先，否则取搜索首条（LIKE 模糊）。
+/// 单关键词匹配：中/英文名精确命中优先，否则按调用方许可取搜索首条。
 Future<FoodNameMatch?> _matchOnce(
   Future<List<Food>> Function(String query) search,
-  String name,
-) async {
+  String name, {
+  bool allowFuzzy = true,
+}) async {
   final query = name.trim();
   if (query.isEmpty) return null;
   final hits = await search(query);
@@ -325,6 +337,7 @@ Future<FoodNameMatch?> _matchOnce(
       return FoodNameMatch(food: food, exact: true);
     }
   }
+  if (!allowFuzzy) return null;
   return FoodNameMatch(food: hits.first, exact: false);
 }
 
@@ -361,23 +374,20 @@ Future<RecognizedMealItem> recognizedMealItemFromParsed(
   final dubious = isNutritionEstimateDubious(parsed.values);
   // 类别词兜底（prompt 已禁，命中即「不够具体」→ 必走请确认）。
   final tooGeneric = isGenericCategoryName(parsed.name);
-  // 包装标签照抄值是 ground truth：sanity-clamp 只警告不覆盖——不走
-  // dubious 降级，命中按匹配档置信，未命中 0.6（仍低于阈值，明细行
-  // 「请确认」徽标即警告通道；数值永不改写）。
-  if (parsed.fromLabel) {
-    final food = match?.food;
+  // 只有未命中库、实际采用标签原值时才标 fromLabel；命中库后走普通
+  // 库值分支，避免库值被误标为标签值或模糊命中获得高置信。
+  if (parsed.fromLabel && match == null) {
     return RecognizedMealItem(
-      name: food?.nameZh ?? parsed.name,
-      nameEn: food?.nameEn ?? parsed.nameEn,
+      name: parsed.name,
+      nameEn: parsed.nameEn,
       grams: grams,
       per100g: NutritionSnapshot(
-        kcal: food?.kcalPer100g ?? parsed.values.kcal,
-        proteinG: food?.proteinPer100g ?? parsed.values.proteinG,
-        carbG: food?.carbPer100g ?? parsed.values.carbsG,
-        fatG: food?.fatPer100g ?? parsed.values.fatG,
+        kcal: parsed.values.kcal,
+        proteinG: parsed.values.proteinG,
+        carbG: parsed.values.carbsG,
+        fatG: parsed.values.fatG,
       ),
-      confidence: food == null ? 0.6 : (match!.exact ? 0.9 : 0.75),
-      food: food,
+      confidence: gramsSuspicious ? 0.4 : 0.6,
       fromLabel: true,
     );
   }

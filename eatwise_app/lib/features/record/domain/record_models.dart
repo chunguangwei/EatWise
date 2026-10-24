@@ -35,6 +35,18 @@ final class NutritionSnapshot {
   }
 }
 
+/// 每 100g 营养入库边界（与服务端 food.rules 一致）：允许合法零值，
+/// 热量 0–900 kcal、三大营养素各 0–100g，所有值必须有限。
+bool isNutritionPer100gInRange(NutritionSnapshot value) {
+  bool validMacro(double value) => value.isFinite && value >= 0 && value <= 100;
+  return value.kcal.isFinite &&
+      value.kcal >= 0 &&
+      value.kcal <= 900 &&
+      validMacro(value.proteinG) &&
+      validMacro(value.carbG) &&
+      validMacro(value.fatG);
+}
+
 /// 记一笔的输入草稿（记录页确认时提交）。
 final class RecordDraft {
   const RecordDraft({

@@ -1,5 +1,6 @@
 import 'package:eatwise/core/llm/ondevice/nutrition_estimate_logic.dart';
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/recognition/domain/photo_recognition_logic.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -179,9 +180,32 @@ void main() {
       expect(items.single.grams, 200);
     });
 
+    test('非标准数字序列不得把克数错当热量或从局部截断', () {
+      expect(
+        parsePhotoRecognitionItems('米饭 => 200 => 116 => 2.6 => 23 => 0.3'),
+        isEmpty,
+      );
+      expect(
+        parsePhotoRecognitionItems('米饭 => 116 => 2.6 => 23 => 0.3 => 99'),
+        isEmpty,
+      );
+    });
+
+    test('克数单位 g/克可解析，不从单位伪造食物名', () {
+      for (final raw in <String>[
+        '米饭 => rice => 200克 => 116 => 2.6 => 23 => 0.3',
+        '米饭 => rice => 200 g => 116 => 2.6 => 23 => 0.3',
+      ]) {
+        final item = parsePhotoRecognitionItems(raw).single;
+        expect(item.name, '米饭');
+        expect(item.grams, 200);
+        expect(item.values.kcal, 116);
+      }
+    });
+
     test('包装标签行：kJ 单位透出 → Dart 层换算 kcal + fromLabel 标记', () {
       final items = parsePhotoRecognitionItems(
-        '清叶堂洋芋片 => potato chips => 50 => 2141 kJ => 6.1 => 53.0 => 30.7',
+        '清叶堂洋芋片 => potato chips => 50 => 2141 kJ => 6.1 => 53.0 => 30.7。',
       );
       expect(items, hasLength(1));
       final item = items.single;
@@ -197,7 +221,7 @@ void main() {
 
     test('包装标签行：千卡标注/中文单位 原样或换算正确', () {
       final kcal = parsePhotoRecognitionItems(
-        '某饼干 => cookies => 40 => 480 kcal => 6 => 60 => 22',
+        '某饼干 => cookies => 40 => 480 kcal => 6 => 60 => 22 => label',
       );
       expect(kcal.single.fromLabel, isTrue);
       expect(kcal.single.values.kcal, 480);
@@ -208,9 +232,9 @@ void main() {
       expect(kj.single.values.kcal, closeTo(479.9, 0.1)); // 2008 / 4.184
     });
 
-    test('散装估算行（无单位）→ fromLabel=false（向后兼容）', () {
+    test('散装估算行（无单位或仅 kcal）不冒充标签', () {
       final items = parsePhotoRecognitionItems(
-        '米饭 => rice => 200 => 116 => 2.6 => 23 => 0.3',
+        '米饭 => rice => 200 => 116 kcal => 2.6 => 23 => 0.3',
       );
       expect(items.single.fromLabel, isFalse);
       expect(items.single.values.kcal, 116);
@@ -243,6 +267,52 @@ void main() {
       expect(clampPhotoGrams(200), 200);
       expect(clampPhotoGrams(0), 1);
       expect(clampPhotoGrams(3000), 2000);
+    });
+  });
+
+  group('isNutritionPer100gInRange（与服务端一致的入库边界）', () {
+    test('合法零值与区间端点允许', () {
+      expect(
+        isNutritionPer100gInRange(
+          const NutritionSnapshot(kcal: 0, proteinG: 0, carbG: 0, fatG: 0),
+        ),
+        isTrue,
+      );
+      expect(
+        isNutritionPer100gInRange(
+          const NutritionSnapshot(
+            kcal: 900,
+            proteinG: 100,
+            carbG: 100,
+            fatG: 100,
+          ),
+        ),
+        isTrue,
+      );
+    });
+
+    test('负数/超限/NaN/Infinity 拒绝', () {
+      for (final value in <NutritionSnapshot>[
+        const NutritionSnapshot(kcal: -1, proteinG: 0, carbG: 0, fatG: 0),
+        const NutritionSnapshot(kcal: 901, proteinG: 0, carbG: 0, fatG: 0),
+        const NutritionSnapshot(kcal: 100, proteinG: 101, carbG: 0, fatG: 0),
+        const NutritionSnapshot(kcal: 100, proteinG: 0, carbG: 101, fatG: 0),
+        const NutritionSnapshot(kcal: 100, proteinG: 0, carbG: 0, fatG: 101),
+        const NutritionSnapshot(
+          kcal: 100,
+          proteinG: double.nan,
+          carbG: 0,
+          fatG: 0,
+        ),
+        const NutritionSnapshot(
+          kcal: 100,
+          proteinG: 0,
+          carbG: double.infinity,
+          fatG: 0,
+        ),
+      ]) {
+        expect(isNutritionPer100gInRange(value), isFalse, reason: '$value');
+      }
     });
   });
 
@@ -337,6 +407,23 @@ void main() {
       expect(match, isNotNull);
       expect(match!.food.id, 'f-rice');
       expect(queries, <String>['米饭']);
+    });
+
+    test('中文模糊命中不得抢在英文精确命中前', () async {
+      final wrong = food(id: 'wrong', zh: '米饭制品', en: 'other');
+      final expected = food(id: 'expected', zh: '薯片', en: 'potato chips');
+      final match = await matchFoodByName(
+        (query) async => switch (query) {
+          '米饭' => [wrong],
+          'potato chips' => [expected],
+          _ => <Food>[],
+        },
+        '米饭',
+        nameEn: 'potato chips',
+      );
+      expect(match, isNotNull);
+      expect(match!.food.id, 'expected');
+      expect(match.exact, isTrue);
     });
 
     test('双语均未命中 → null', () async {

@@ -124,11 +124,14 @@ class _OnDeviceRecordingSheetState
 
   /// 取消：录音中取消本次录音；转写中标记取消；然后关闭面板（不丢已输入）。
   Future<void> _onCancel() async {
+    final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
     if (_stage == _Stage.recording) {
       await ref.read(audioRecorderGatewayProvider).cancel();
     }
     _cancelRequested = true;
-    if (mounted) Navigator.of(context).pop();
+    if (!mounted || route?.isCurrent == false) return;
+    navigator.pop();
   }
 
   @override

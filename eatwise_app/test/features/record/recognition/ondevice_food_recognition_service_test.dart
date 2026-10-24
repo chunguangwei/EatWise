@@ -492,7 +492,7 @@ void main() {
       expect(item.isLowConfidence, isTrue); // 警告通道：请确认徽标
     });
 
-    test('标签行命中库：库内精准值 + 置信 0.9（标签+库双确认）', () async {
+    test('标签行命中库：实际采用库值则 fromLabel=false', () async {
       final gateway = _FakeGateway()
         ..response =
             '薯片 => potato chips => 50 => 2141 kJ => 6.1 => 53.0 => 30.7';
@@ -507,10 +507,46 @@ void main() {
       final outcome = await service.recognize(photoBytes);
 
       final item = (outcome as RecognitionSuccess).items.single;
-      expect(item.fromLabel, isTrue);
+      expect(item.fromLabel, isFalse);
       expect(item.per100g.kcal, 116); // 命中用库内值（food() 默认 116）
-      expect(item.confidence, 0.9);
+      expect(item.confidence, 0.85);
       expect(item.isLowConfidence, isFalse);
+    });
+
+    test('标签行模糊命中库：库值来源清楚且仍需确认', () async {
+      final gateway = _FakeGateway()
+        ..response =
+            '薯片 => potato chips => 50 => 2141 kJ => 6.1 => 53.0 => 30.7';
+      final chips = food(id: 'f-chips', zh: '薯片（油炸）', en: 'other');
+      final service = makeService(
+        gateway: gateway,
+        searchResults: <String, List<Food>>{
+          '薯片': [chips],
+        },
+      );
+
+      final outcome = await service.recognize(photoBytes);
+
+      final item = (outcome as RecognitionSuccess).items.single;
+      expect(item.fromLabel, isFalse);
+      expect(item.per100g.kcal, 116);
+      expect(item.confidence, 0.6);
+      expect(item.isLowConfidence, isTrue);
+    });
+
+    test('标签克数越界：clamp 后仍标请确认', () async {
+      final gateway = _FakeGateway()
+        ..response =
+            '清叶堂洋芋片 => potato chips => 3000 => 2141 kJ => 6.1 => 53.0 => 30.7';
+      final service = makeService(gateway: gateway);
+
+      final outcome = await service.recognize(photoBytes);
+
+      final item = (outcome as RecognitionSuccess).items.single;
+      expect(item.grams, 2000);
+      expect(item.fromLabel, isTrue);
+      expect(item.confidence, 0.4);
+      expect(item.isLowConfidence, isTrue);
     });
 
     test('标签值 sanity-clamp 不降级：宏量超限的标签行不被压到 0.5', () async {

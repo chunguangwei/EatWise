@@ -51,25 +51,38 @@ void main() {
   group('OnDeviceNutritionLabelOcrService', () {
     test('读表成功：kJ 换算 + 正常值不存疑', () async {
       final gateway = _FakeGateway()
-        ..imageResponse = '1540 kJ => 7.2 => 53.0 => 32.1';
+        ..imageResponse = '1540 kJ => 7.2 => 53.0 => 32.1 => per100g';
       final service = makeOcr(gateway);
 
       final reading = await service.read(photoBytes);
 
       expect(reading, isNotNull);
       expect(reading!.values.kcal, closeTo(368.1, 0.1));
+      expect(reading.basis.name, 'per100g');
       expect(reading.dubious, isFalse);
     });
 
     test('读表成功但合理性命中 → dubious 标「请核对」', () async {
       final gateway = _FakeGateway()
-        ..imageResponse = '6200 kJ => 10 => 10 => 10'; // ≈1481 kcal 超限
+        ..imageResponse =
+            '6200 kJ => 10 => 10 => 10 => per100g'; // ≈1481 kcal 超限
       final service = makeOcr(gateway);
 
       final reading = await service.read(photoBytes);
 
       expect(reading, isNotNull);
       expect(reading!.dubious, isTrue);
+    });
+
+    test('缺单位/缺基准/每100ml → null，不把未知口径当每100g', () async {
+      for (final raw in <String>[
+        '800 => 10 => 20 => 5 => per100g',
+        '1540 kJ => 7.2 => 53.0 => 32.1',
+        '1540 kJ => 7.2 => 53.0 => 32.1 => per100ml',
+      ]) {
+        final gateway = _FakeGateway()..imageResponse = raw;
+        expect(await makeOcr(gateway).read(photoBytes), isNull, reason: raw);
+      }
     });
 
     test('读不出（无法识别/乱码）→ null（UI 降级手动填写）', () async {
@@ -81,7 +94,7 @@ void main() {
 
     test('以视觉能力加载（与拍照识别共用热引擎）', () async {
       final gateway = _FakeGateway()
-        ..imageResponse = '1540 kJ => 7.2 => 53.0 => 32.1';
+        ..imageResponse = '1540 kJ => 7.2 => 53.0 => 32.1 => per100g';
       final service = makeOcr(gateway);
 
       await service.read(photoBytes);

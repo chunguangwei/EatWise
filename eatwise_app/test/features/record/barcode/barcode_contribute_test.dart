@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:eatwise/app/l10n/strings.g.dart';
@@ -253,6 +254,21 @@ void main() {
     await settleUi(tester);
   });
 
+  testWidgets('合法零碳水：条码补录允许提交', (tester) async {
+    await pumpPage(tester);
+    await openContributeSheet(tester);
+    await pickAndUploadPhoto(tester);
+    await fillForm(tester);
+    await tester.enterText(find.byType(TextFormField).at(3), '0');
+    await tester.pump();
+
+    await tapSubmit(tester);
+
+    expect(customRemote.receivedRequestIds, hasLength(1));
+    expect(customRemote.receivedContributeIds, hasLength(1));
+    await settleUi(tester);
+  });
+
   testWidgets('两步提交链路：创建自定义食物 → 贡献带 barcode + evidenceImageUrl', (
     tester,
   ) async {
@@ -339,7 +355,7 @@ void main() {
   });
   testWidgets('一图两用：选图即佐证上传 + 端侧读表预填四营养（AI 读表徽标）', (tester) async {
     final gateway = _FakeOcrGateway()
-      ..imageResponse = '1540 kJ => 7.2 => 53.0 => 32.1';
+      ..imageResponse = '1540 kJ => 7.2 => 53.0 => 32.1 => per100g';
     await pumpPage(
       tester,
       ocrService: OnDeviceNutritionLabelOcrService(
@@ -365,6 +381,39 @@ void main() {
     expect(field(4), '32.1');
     expect(find.text('AI 读表，请核对'), findsOneWidget);
     expect(uploadApi.uploaded, hasLength(1)); // 佐证上传不受影响
+    await settleUi(tester);
+  });
+
+  testWidgets('条码 OCR 等待期间手改营养：旧读数不得覆盖', (tester) async {
+    final gateway = _FakeOcrGateway()
+      ..imageResponse = '1540 kJ => 7.2 => 53.0 => 32.1 => per100g';
+    final gate = Completer<void>();
+    gateway.gate = gate;
+    await pumpPage(
+      tester,
+      ocrService: OnDeviceNutritionLabelOcrService(
+        gateway: gateway,
+        modelPath: () async => '/fake/gemma4-e2b.litertlm',
+        normalizeImage: (bytes) async => bytes,
+      ),
+    );
+    await openContributeSheet(tester);
+    await pickAndUploadPhoto(tester);
+    await tester.enterText(find.byType(TextFormField).at(1), '370');
+    await tester.pump();
+
+    gate.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      tester
+          .widget<TextFormField>(find.byType(TextFormField).at(1))
+          .controller!
+          .text,
+      '370',
+    );
+    expect(find.text('AI 读表，请核对'), findsNothing);
     await settleUi(tester);
   });
 
@@ -422,6 +471,7 @@ final class _FakeOcrGateway implements OnDeviceLlmGateway {
   bool loaded = false;
   bool vision = false;
   String imageResponse = '';
+  Completer<void>? gate;
 
   @override
   bool get isLoaded => loaded;
@@ -480,6 +530,8 @@ final class _FakeOcrGateway implements OnDeviceLlmGateway {
     double? topP,
     int seed = 42,
   }) async {
+    final pending = gate;
+    if (pending != null) await pending.future;
     return imageResponse;
   }
 

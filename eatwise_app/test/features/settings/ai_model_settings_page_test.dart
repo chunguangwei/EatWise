@@ -13,7 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// AI 模型配置页：初始回填、保存写 store（apiKey 留空保持不变）、
 /// 清除配置（确认弹窗）、测试连接禁用态/loading 态与成功/失败提示。
 void main() {
-  late InMemoryLlmConfigStore store;
+  late LlmConfigStore store;
   late _FakeConnectionTester tester2;
 
   setUp(() async {
@@ -26,7 +26,7 @@ void main() {
     await LocaleSettings.setLocale(AppLocale.zhCn);
   });
 
-  Future<void> pumpPage(WidgetTester tester) async {
+  Future<void> pumpPage(WidgetTester tester, {bool settle = true}) async {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -44,7 +44,11 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump();
+    }
   }
 
   Future<void> scrollTo(WidgetTester tester, Finder finder) async {
@@ -339,6 +343,98 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('首载延迟：不覆盖等待期间用户已输入的字段', (tester) async {
+    final gated = _GatedLlmConfigStore();
+    store = gated;
+    await gated.save(
+      const LlmConfig(
+        provider: 'deepseek',
+        baseUrl: 'https://saved.example.com/v1',
+        model: 'saved-model',
+        apiKey: 'sk-saved',
+      ),
+    );
+    final gate = Completer<void>();
+    gated.readGate = gate;
+    await pumpPage(tester, settle: false);
+    final t = Translations.of(tester.element(find.byType(AiModelSettingsPage)));
+    final baseUrl = find.widgetWithText(TextField, t.settings.aiModel.baseUrl);
+    await tester.scrollUntilVisible(
+      baseUrl,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+    await tester.enterText(baseUrl, 'http://localhost:11434/v1');
+    await tester.pump();
+    final field = tester.widget<TextField>(baseUrl);
+    expect(field.controller!.text, 'http://localhost:11434/v1');
+
+    gate.complete();
+    await tester.pump();
+    await tester.pump();
+
+    expect(field.controller!.text, 'http://localhost:11434/v1');
+  });
+
+  testWidgets('保存延迟：完成时不收起重新聚焦字段的键盘', (tester) async {
+    final gated = _GatedLlmConfigStore();
+    store = gated;
+    await pumpPage(tester);
+    final t = Translations.of(tester.element(find.byType(AiModelSettingsPage)));
+    final baseUrl = find.widgetWithText(TextField, t.settings.aiModel.baseUrl);
+    final model = find.widgetWithText(TextField, t.settings.aiModel.model);
+    await tester.enterText(baseUrl, 'http://localhost:11434/v1');
+    await tester.enterText(model, 'qwen2.5:7b');
+    await scrollTo(tester, find.text(t.settings.aiModel.save));
+
+    final gate = Completer<void>();
+    gated.saveGate = gate;
+    await tester.tap(find.text(t.settings.aiModel.save));
+    await tester.pump();
+    expect(gated.saveCalls, 1);
+    await tester.enterText(baseUrl, 'http://localhost:11435/v1');
+    await tester.pump();
+    final field = tester.widget<TextField>(baseUrl);
+    expect(field.focusNode!.hasFocus, isTrue);
+
+    gate.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(field.focusNode!.hasFocus, isTrue);
+    expect(field.controller!.text, 'http://localhost:11435/v1');
+    expect(find.text(t.settings.aiModel.saved), findsOneWidget);
+  });
+}
+
+final class _GatedLlmConfigStore implements LlmConfigStore {
+  final InMemoryLlmConfigStore _delegate = InMemoryLlmConfigStore();
+
+  Completer<void>? readGate;
+  Completer<void>? saveGate;
+  int saveCalls = 0;
+
+  @override
+  Future<LlmConfig?> read() async {
+    final gate = readGate;
+    readGate = null;
+    if (gate != null) await gate.future;
+    return _delegate.read();
+  }
+
+  @override
+  Future<void> save(LlmConfig config) async {
+    saveCalls++;
+    final gate = saveGate;
+    saveGate = null;
+    if (gate != null) await gate.future;
+    await _delegate.save(config);
+  }
+
+  @override
+  Future<void> clear() => _delegate.clear();
 }
 
 /// 测试连接窄接口的 Fake（模式同 FakeCustomFoodRemote）：

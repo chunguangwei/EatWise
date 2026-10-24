@@ -142,6 +142,7 @@ class _BarcodeContributeSheetState
   /// 营养表 OCR 已预填四营养（显示「AI 读表，请核对」徽标；
   /// 用户改值即清除——徽标只覆盖未改动的读数）。
   bool _ocrApplied = false;
+  int _nutritionRevision = 0;
 
   /// 埋点服务（与记录页同一实例；未授权时 track 为 no-op）。
   late final AnalyticsService _analytics = ref.read(analyticsServiceProvider);
@@ -209,6 +210,7 @@ class _BarcodeContributeSheetState
   Future<void> _runLabelOcr(Uint8List bytes) async {
     final ocr = ref.read(nutritionLabelOcrServiceProvider);
     if (ocr == null) return;
+    final revision = _nutritionRevision;
     final reading = await ocr.read(bytes);
     if (!mounted) return;
     // 换图后旧读数不回填（与上传代际同思路）。
@@ -220,7 +222,7 @@ class _BarcodeContributeSheetState
         'result': reading == null ? 'failed' : 'success',
       },
     );
-    if (reading == null) return;
+    if (reading == null || revision != _nutritionRevision) return;
     setState(() {
       _kcalController.text = _formatNumber(reading.values.kcal);
       _proteinController.text = _formatNumber(reading.values.proteinG);
@@ -273,6 +275,14 @@ class _BarcodeContributeSheetState
     }
     if (!valid) return;
     _saving = true;
+    final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
+    final repository = ref.read(customFoodRepositoryProvider);
+    void finish(BarcodeContributeResult result) {
+      if (!mounted || route?.isCurrent == false) return;
+      navigator.pop(result);
+    }
+
     _analytics.track(
       'record_barcode_contribute',
       properties: <String, Object?>{'result': 'submit'},
@@ -293,7 +303,7 @@ class _BarcodeContributeSheetState
         ),
         source: CustomFoodSource.manual,
       );
-      final saved = await ref.read(customFoodRepositoryProvider).save(draft);
+      final saved = await repository.save(draft);
       if (!saved.uploaded) {
         // 离线：不做离线队列（照片 URL 已上传但贡献必须到服务端）；
         // 食物已落本地可记餐，提示联网后重新提交。
@@ -301,36 +311,30 @@ class _BarcodeContributeSheetState
           'record_barcode_contribute',
           properties: <String, Object?>{'result': 'fail', 'reason': 'offline'},
         );
-        if (mounted) {
-          Navigator.of(context).pop(
-            BarcodeContributeResult(
-              food: saved.food,
-              outcome: BarcodeContributeOutcome.offlineSaved,
-            ),
-          );
-        }
+        finish(
+          BarcodeContributeResult(
+            food: saved.food,
+            outcome: BarcodeContributeOutcome.offlineSaved,
+          ),
+        );
         return;
       }
       try {
-        await ref
-            .read(customFoodRepositoryProvider)
-            .contribute(
-              saved.food.id,
-              barcode: widget.barcode,
-              evidenceImageUrl: _photoUrl,
-            );
+        await repository.contribute(
+          saved.food.id,
+          barcode: widget.barcode,
+          evidenceImageUrl: _photoUrl,
+        );
         _analytics.track(
           'record_barcode_contribute',
           properties: <String, Object?>{'result': 'success'},
         );
-        if (mounted) {
-          Navigator.of(context).pop(
-            BarcodeContributeResult(
-              food: saved.food,
-              outcome: BarcodeContributeOutcome.submitted,
-            ),
-          );
-        }
+        finish(
+          BarcodeContributeResult(
+            food: saved.food,
+            outcome: BarcodeContributeOutcome.submitted,
+          ),
+        );
       } on BusinessApiException catch (e) {
         if (e.httpStatus == 409) {
           // 同条码已上架：食物已在库，直接预填本地食物记账。
@@ -341,14 +345,12 @@ class _BarcodeContributeSheetState
               'reason': 'conflict',
             },
           );
-          if (mounted) {
-            Navigator.of(context).pop(
-              BarcodeContributeResult(
-                food: saved.food,
-                outcome: BarcodeContributeOutcome.alreadyListed,
-              ),
-            );
-          }
+          finish(
+            BarcodeContributeResult(
+              food: saved.food,
+              outcome: BarcodeContributeOutcome.alreadyListed,
+            ),
+          );
         } else if (e.code == 'FOOD_CONTRIBUTE_REJECTED') {
           // 机审拒收：食物仍落本地可记餐，服务端双语原因由流程层展示。
           _analytics.track(
@@ -358,22 +360,20 @@ class _BarcodeContributeSheetState
               'reason': 'rejected',
             },
           );
-          if (mounted) {
-            Navigator.of(context).pop(
-              BarcodeContributeResult(
-                food: saved.food,
-                outcome: BarcodeContributeOutcome.rejected,
-                message: e.message,
-              ),
-            );
-          }
+          finish(
+            BarcodeContributeResult(
+              food: saved.food,
+              outcome: BarcodeContributeOutcome.rejected,
+              message: e.message,
+            ),
+          );
         } else {
           _analytics.track(
             'record_barcode_contribute',
             properties: <String, Object?>{'result': 'fail', 'reason': 'error'},
           );
           // 留在表单可重试（贡献幂等，重试不产生重复候选）。
-          if (mounted) {
+          if (mounted && route?.isCurrent != false) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(apiErrorDisplayMessage(t, e))),
             );
@@ -385,7 +385,7 @@ class _BarcodeContributeSheetState
           'record_barcode_contribute',
           properties: <String, Object?>{'result': 'fail', 'reason': 'network'},
         );
-        if (mounted) {
+        if (mounted && route?.isCurrent != false) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(apiErrorDisplayMessage(t, e))));
@@ -397,7 +397,7 @@ class _BarcodeContributeSheetState
         'record_barcode_contribute',
         properties: <String, Object?>{'result': 'fail', 'reason': 'error'},
       );
-      if (mounted) {
+      if (mounted && route?.isCurrent != false) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.message)));
@@ -409,13 +409,14 @@ class _BarcodeContributeSheetState
 
   /// OCR 读数被手动改动：清除「AI 读表」徽标（徽标只覆盖未改动读数）。
   void _clearOcrBadge() {
+    _nutritionRevision++;
     if (_ocrApplied) setState(() => _ocrApplied = false);
   }
 
   /// 是否纯英文名（粗略：不含 CJK 字符，与自定义食物弹层同口径）。
   static bool _looksEnglish(String name) => !RegExp(r'[一-鿿]').hasMatch(name);
 
-  /// 营养字段校验：必填 >0；热量 ≤900，宏量 ≤100（与自定义食物同口径）。
+  /// 营养字段校验：必填且 ≥0（合法零值允许）；热量 ≤900，宏量 ≤100。
   FormFieldValidator<String> _nutritionValidator(
     CustomFoodStrings cs,
     double max,
@@ -423,7 +424,9 @@ class _BarcodeContributeSheetState
   ) {
     return (value) {
       final parsed = double.tryParse((value ?? '').trim());
-      if (parsed == null || parsed <= 0) return cs.nutritionRequired;
+      if (parsed == null || !parsed.isFinite || parsed < 0) {
+        return cs.nutritionRequired;
+      }
       if (parsed > max) return rangeMsg;
       return null;
     };
@@ -627,7 +630,7 @@ class _BarcodeContributeSheetState
                   (value ?? '').trim().isEmpty ? t.nameRequired : null,
             ),
             const SizedBox(height: AppSpacing.s3),
-            // 四营养输入（每 100g；全部必填 >0，热量 ≤900 / 宏量 ≤100）。
+            // 四营养输入（每 100g；必填且允许 0，热量 ≤900 / 宏量 ≤100）。
             TextFormField(
               controller: _kcalController,
               keyboardType: numberKeyboard,

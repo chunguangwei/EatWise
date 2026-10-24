@@ -189,8 +189,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
     super.dispose();
   }
 
-  /// 行的有效克数（非法输入回退模型估算克数——输入框可清空编辑中，
-  /// 不以中间态拦截用户）。
+  /// 预览克数（非法输入暂回退模型估值）；保存前另行逐行校验，非法克数不入账。
   double _effectiveGrams(_MealRow row) {
     final parsed = double.tryParse(row.gramsController.text.trim());
     return parsed != null && parsed > 0 ? parsed : row.item.grams;
@@ -215,9 +214,33 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
   /// （乐观入账带「审核中」标记：approve 转正、reject 级联软删+同步清理，
   /// v1.12.0 既有链路）。离线/贡献失败不阻断入账（食物仍落个人库，
   /// 联网后 retryPending 上行）。成功行即移除，失败重试只处理剩余行。
+  void _rejectRow(String message) {
+    if (!mounted) return;
+    setState(() => _saving = false);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _logAll() async {
     if (_saving || _rows.isEmpty) return;
+    final s = RecordStrings.of(context);
+    final t = Translations.of(context);
+    for (final row in _rows) {
+      final grams = double.tryParse(row.gramsController.text.trim());
+      if (grams == null || !grams.isFinite || grams <= 0) {
+        _rejectRow(s.amountInvalid);
+        return;
+      }
+      if ((row.resolvedFood ?? row.item.food) == null &&
+          !isNutritionPer100gInRange(row.item.per100g)) {
+        _rejectRow(t.record.photo.nutritionInvalid);
+        return;
+      }
+    }
     setState(() => _saving = true);
+    final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
     final writeEntry = ref.read(photoMealEntryWriterProvider);
     final customRepo = ref.read(customFoodRepositoryProvider);
     // 阶段 C：断食计时进行中的用餐打「断食期用餐」本地标记（不上行）。
@@ -227,6 +250,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
     final mealType = ref.read(recordMealTypeProvider);
     try {
       for (final row in List<_MealRow>.of(_rows)) {
+        if (!mounted || route?.isCurrent == false) return;
         var food = row.resolvedFood ?? row.item.food;
         if (food == null) {
           final saved = await customRepo.save(
@@ -269,18 +293,18 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
           });
         }
       }
-      if (mounted) {
-        // 提交成功后收起键盘（Y5），避免弹层关闭后键盘滞留。
-        FocusManager.instance.primaryFocus?.unfocus();
-        Navigator.of(context).pop(
-          PhotoMealResult(
-            loggedCount: _loggedCount,
-            pendingReviewCount: _pendingReviewCount,
-          ),
-        );
-      }
+      if (!mounted || route?.isCurrent == false) return;
+      // 提交成功后收起键盘（Y5），避免弹层关闭后键盘滞留。
+      FocusManager.instance.primaryFocus?.unfocus();
+      navigator.pop(
+        PhotoMealResult(
+          loggedCount: _loggedCount,
+          pendingReviewCount: _pendingReviewCount,
+        ),
+      );
     } on Object {
       // 入账失败（如自定义食物 4xx）：留在弹层内，用户可重试/删条目。
+    } finally {
       if (mounted) setState(() => _saving = false);
     }
   }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/tables.dart';
@@ -228,6 +230,49 @@ void main() {
     expect(saved.single.isCustom, isTrue);
     expect(saved.single.kcalPer100g, 536);
     expect(entries.map((e) => e.foodId), contains(saved.single.id));
+    await settleUi(tester);
+  });
+
+  testWidgets('全部记录中打开新页面：旧完成回调不得将其关闭', (tester) async {
+    final outcome = await comboOutcome();
+    recognitionService.outcome = RecognitionSuccess(<RecognizedMealItem>[
+      outcome.items.first,
+    ]);
+    final gate = Completer<void>();
+    recordRemote.mode = FakeRemoteMode.offline;
+    await pumpPage(
+      tester,
+      entryWriter: (draft) async {
+        await gate.future;
+        return repository.addEntry(draft);
+      },
+    );
+    await pickPhotoAndRecognize(tester);
+    await tester.tap(inSheet(find.text('全部记录')));
+    await tester.pump();
+    final sheetContext = tester.element(inSheet(find.text('确认这餐明细')));
+    final navigator = Navigator.of(sheetContext);
+    final sheetRoute = ModalRoute.of(sheetContext);
+    unawaited(
+      navigator.push(
+        MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: Text('NEXT')),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('NEXT'), findsOneWidget);
+    expect(sheetContext.mounted, isTrue);
+    expect(sheetRoute, isNotNull);
+    expect(sheetRoute!.isCurrent, isFalse);
+
+    gate.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('NEXT'), findsOneWidget);
+    expect(tester.takeException(), isNull);
     await settleUi(tester);
   });
 
@@ -551,10 +596,7 @@ void main() {
     await settleUi(tester);
   });
 
-  testWidgets('无相近结果：退化为自动新建+送审，toast 提示待审核；'
-      '模型幻觉值按克数正确缩放（无换算 bug）', (tester) async {
-    // 「牛肉炒时蔬」库未收录且前缀递减也搜不到（种子库无「牛」）；
-    // per100g 脂肪 150g（物理不可能，sanity-clamp 应已标请确认）。
+  testWidgets('无相近结果：非法营养阻止自动新建/送审并提示', (tester) async {
     recognitionService.outcome = const RecognitionSuccess(<RecognizedMealItem>[
       RecognizedMealItem(
         name: '牛肉炒时蔬',
@@ -566,7 +608,7 @@ void main() {
           carbG: 10,
           fatG: 150,
         ),
-        confidence: 0.5, // sanity-clamp 命中 → 必走请确认
+        confidence: 0.5,
       ),
     ]);
     await pumpPage(tester);
@@ -574,28 +616,40 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    // 无相似候选区；幻觉脂肪按 300g 正确缩放为 450.0（换算口径回归，
-    // 不是展示 bug——sanity-clamp 已标「请确认」）。
+    // 预览换算保持正确，但物理不可能的脂肪不得落库。
     expect(inSheet(find.text('库中已有相似食物：')), findsNothing);
     expect(inSheet(find.textContaining('脂肪 450.0 克')), findsOneWidget);
     expect(inSheet(find.text('请确认')), findsOneWidget);
-
-    // 全部记录 → 自动新建自定义食物（模型估值入库）+ 提交众包审核。
     recordRemote.mode = FakeRemoteMode.offline;
     await tester.tap(inSheet(find.text('全部记录')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
 
-    final saved = await db.foodDao.searchFoods('牛肉炒时蔬');
-    expect(saved, hasLength(1));
-    expect(saved.single.isCustom, isTrue);
-    expect(saved.single.fatPer100g, 150);
-    expect(customRemote.receivedContributeIds, isNotEmpty);
-    // toast：N 条（M 条待审核）。
-    expect(find.text('已记录 1 条（1 条待审核）'), findsOneWidget);
-    final entries = await repository.entriesForDate(DateTime.now().toUtc());
-    expect(entries.single.foodId, saved.single.id);
+    expect(await db.foodDao.searchFoods('牛肉炒时蔬'), isEmpty);
+    expect(customRemote.receivedContributeIds, isEmpty);
+    expect(await repository.entriesForDate(DateTime.now().toUtc()), isEmpty);
+    expect(find.text('营养数值异常，请检查或删除该条后再记录'), findsOneWidget);
+    expect(inSheet(find.text('确认这餐明细')), findsOneWidget);
+    await settleUi(tester);
+  });
+
+  testWidgets('克数为 0：不回退 AI 估值静默入账', (tester) async {
+    final outcome = await comboOutcome();
+    recognitionService.outcome = RecognitionSuccess(<RecognizedMealItem>[
+      outcome.items.first,
+    ]);
+    await pumpPage(tester);
+    await pickPhotoAndRecognize(tester);
+    await tester.enterText(inSheet(find.byType(TextField)).first, '0');
+    await tester.pump();
+    await tester.tap(inSheet(find.text('全部记录')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(await repository.entriesForDate(DateTime.now().toUtc()), isEmpty);
+    expect(find.text('请输入大于 0 的份量'), findsOneWidget);
+    expect(inSheet(find.text('确认这餐明细')), findsOneWidget);
     await settleUi(tester);
   });
 

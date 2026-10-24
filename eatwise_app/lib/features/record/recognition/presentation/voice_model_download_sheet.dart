@@ -34,6 +34,7 @@ class _VoiceModelDownloadSheetState
 
   /// 最近一次失败原因（可重试；取消不算失败）。
   Object? _error;
+  bool _closeScheduled = false;
 
   @override
   void initState() {
@@ -73,9 +74,13 @@ class _VoiceModelDownloadSheetState
         const OnDeviceModelSnapshot(status: OnDeviceModelStatus.notDownloaded);
 
     // 模型就绪：下一帧自动关闭并回 true（调用方直接进录音面板）。
-    if (snapshot.status == OnDeviceModelStatus.ready) {
+    if (snapshot.status == OnDeviceModelStatus.ready && !_closeScheduled) {
+      _closeScheduled = true;
+      final navigator = Navigator.of(context);
+      final route = ModalRoute.of(context);
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) Navigator.of(context).pop(true);
+        if (!mounted || route?.isCurrent == false) return;
+        navigator.pop(true);
       });
     }
     final progress = snapshot.progress;

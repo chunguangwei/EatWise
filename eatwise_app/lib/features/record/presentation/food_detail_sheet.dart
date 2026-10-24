@@ -514,17 +514,18 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     CustomFoodStrings cs,
     AppTextStyles textStyles,
   ) async {
+    final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
     final result = await showModalBottomSheet<CustomFoodSaveResult>(
       context: context,
       isScrollControlled: true,
       // 键盘避让已收进 AppBottomSheet 骨架（外层再垫会双倍扣高）。
       builder: (_) => CustomFoodSheet(editTarget: _food),
     );
-    if (result == null) return;
+    if (result == null || !mounted || route?.isCurrent == false) return;
     ref.invalidate(recordFoodSearchProvider);
-    if (!mounted) return;
     messenger.showSnackBar(SnackBar(content: Text(cs.savedOnline)));
-    Navigator.of(context).pop();
+    navigator.pop();
   }
 
   /// 手动重试终态失败同步：复位失败态 → 立即重试一轮 → 重读行刷新徽标；
@@ -579,12 +580,14 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     ScaffoldMessengerState messenger,
     AppTextStyles textStyles,
   ) async {
+    final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
     final recordRepo = ref.read(recordRepositoryProvider);
     final entries = await recordRepo.db.foodEntryDao.entriesForFood(
       recordRepo.userId,
       _food.id,
     );
-    if (!mounted) return;
+    if (!mounted || route?.isCurrent == false) return;
     final colors = Theme.of(context).extension<AppColors>()!;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -604,7 +607,7 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
         ],
       ),
     );
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !mounted || route?.isCurrent == false) return;
     if (_deleting) return;
     _deleting = true;
     try {
@@ -615,6 +618,7 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
             recordRepository: recordRepo,
             userId: recordRepo.userId,
           );
+      if (!mounted || route?.isCurrent == false) return;
       ref.invalidate(recordFoodSearchProvider);
       // 机会性上行 tombstone（失败不影响本地删除结果，下轮 sync 兜底）。
       try {
@@ -633,8 +637,9 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
           ),
         ),
       );
-      if (mounted) Navigator.of(context).pop();
+      navigator.pop();
     } on ApiException catch (e) {
+      if (!mounted || route?.isCurrent == false) return;
       if (e is FoodApprovedSharedApiException) {
         // 仓储已自愈写 approved；同步内存行让动作行门控立即生效。
         setState(
@@ -668,6 +673,8 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     ScaffoldMessengerState messenger,
     AppTextStyles textStyles,
   ) async {
+    final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
     final colors = Theme.of(context).extension<AppColors>()!;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -695,11 +702,13 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
       );
       return;
     }
+    if (route?.isCurrent == false) return;
     // 删除在途防连点（重复确认窗二次提交曾触发重复 DELETE + 双 snackbar）。
     if (_deleting) return;
     _deleting = true;
     try {
       final result = await deleteFoodAsAdmin(ref, _food);
+      if (!mounted || route?.isCurrent == false) return;
       // 404 友好口径：目标已不在服务端 → 本地已移除提示（v1.13.18 走查：
       // 管理台手工软删过的行客户端滞留，点删除曾弹原始「资源不存在」）。
       messenger.showSnackBar(
@@ -711,8 +720,9 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
           ),
         ),
       );
-      if (mounted) Navigator.of(context).pop();
+      navigator.pop();
     } on ApiException catch (e) {
+      if (!mounted || route?.isCurrent == false) return;
       messenger.showSnackBar(
         SnackBar(
           content: Text(
@@ -723,6 +733,7 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
         ),
       );
     } on Object catch (e) {
+      if (!mounted || route?.isCurrent == false) return;
       // 非 ApiException（信封解析/装配异常等）经 unawaited 逃逸后在 release
       // 包完全静默（真机「点了毫无反应」根因候选）——统一给可见反馈。
       debugPrint('[FoodDetail] adminDelete 未预期异常：$e');
