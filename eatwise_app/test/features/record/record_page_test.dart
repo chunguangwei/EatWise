@@ -307,6 +307,87 @@ void main() {
     await settleUi(tester);
   });
 
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    testWidgets('连续录入：已有记录后键盘切换保留输入连接 $platform', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      remote.mode = FakeRemoteMode.offline;
+      final food = (await db.select(db.foods).get()).first;
+      await repository.addEntry(
+        RecordDraft(
+          foodId: food.id,
+          amountG: 100,
+          mealUtc: DateTime.now().toUtc(),
+          source: EntrySource.manual,
+        ),
+      );
+      await pumpPage(
+        tester,
+        theme: AppTheme.light().copyWith(platform: platform),
+      );
+      final input = find.byType(TextField).first;
+      await tester.tap(input);
+      await tester.pump();
+      final original = tester.state<EditableTextState>(
+        find.byType(EditableText).first,
+      );
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        tester.state<EditableTextState>(find.byType(EditableText).first),
+        same(original),
+      );
+      expect(original.widget.focusNode.hasFocus, isTrue);
+      expect(tester.testTextInput.isVisible, isTrue);
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: 'ji',
+          selection: TextSelection.collapsed(offset: 2),
+          composing: TextRange(start: 0, end: 2),
+        ),
+      );
+      await tester.pump();
+      // The pending banner disappears after synchronization while IME composition
+      // is still active. Neither it nor keyboard resizing may replace the editor.
+      remote.mode = FakeRemoteMode.success;
+      await repository.retryPending();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(
+        tester.state<EditableTextState>(find.byType(EditableText).first),
+        same(original),
+      );
+      expect(
+        original.widget.controller.value.composing,
+        const TextRange(start: 0, end: 2),
+      );
+      tester.testTextInput.enterText('鸡蛋');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.widgetWithText(ListTile, '鸡蛋'), findsOneWidget);
+      FocusManager.instance.primaryFocus?.unfocus();
+      tester.view.viewInsets = const FakeViewPadding();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(input);
+      await tester.pump();
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        tester.state<EditableTextState>(find.byType(EditableText).first),
+        same(original),
+      );
+      tester.testTextInput.enterText('米饭');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.widgetWithText(ListTile, '白米饭'), findsOneWidget);
+      await settleUi(tester);
+    });
+  }
+
   testWidgets('连续录入：首单异步收尾不关闭第二次搜索键盘', (tester) async {
     await pumpPage(tester);
     await tester.enterText(find.byType(TextField).first, '米饭');

@@ -64,9 +64,21 @@ void main() {
         );
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('input')));
+        final originalInput = tester.state<EditableTextState>(
+          find.byType(EditableText),
+        );
         tester.view.viewInsets = const FakeViewPadding(bottom: 300);
         await tester.pumpAndSettle();
         expect(inset, 300);
+        expect(
+          tester.state<EditableTextState>(find.byType(EditableText)),
+          same(originalInput),
+        );
+        expect(originalInput.widget.focusNode.hasFocus, isTrue);
+        expect(tester.testTextInput.isVisible, isTrue);
+        tester.testTextInput.enterText('first');
+        await tester.pump();
+        expect(find.text('first'), findsOneWidget);
         expect(find.byType(NavigationBar), findsNothing);
         ScaffoldMessenger.of(pageContext).showSnackBar(
           SnackBar(

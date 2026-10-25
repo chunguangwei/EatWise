@@ -199,6 +199,32 @@ void main() {
     await settleUi(tester);
   });
 
+  testWidgets('删除前一项不迁移后一项的输入焦点与编辑连接', (tester) async {
+    recognitionService.outcome = await comboOutcome();
+    await pumpPage(tester);
+    await pickPhotoAndRecognize(tester);
+    final fields = inSheet(find.byType(TextField));
+    await tester.tap(fields.at(1));
+    await tester.pump();
+    final eggInput = tester.state<EditableTextState>(
+      inSheet(find.byType(EditableText)).at(1),
+    );
+    tester.testTextInput.enterText('75');
+    await tester.pump();
+    await tester.tap(inSheet(find.byIcon(Icons.close)).first);
+    await tester.pump();
+    expect(
+      tester.state<EditableTextState>(inSheet(find.byType(EditableText)).first),
+      same(eggInput),
+    );
+    expect(eggInput.widget.focusNode.hasFocus, isTrue);
+    tester.testTextInput.enterText('85');
+    await tester.pump();
+    expect(tester.widget<TextField>(fields.first).controller!.text, '85');
+    expect(tester.widget<TextField>(fields.last).controller!.text, '60');
+    await settleUi(tester);
+  });
+
   testWidgets('删除条目 + 全部记录：入账仅保留条目，多条 entry 均 photo 来源', (tester) async {
     recognitionService.outcome = await comboOutcome();
     await pumpPage(tester);

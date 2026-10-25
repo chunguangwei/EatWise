@@ -381,6 +381,8 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
   ) {
     final item = row.item;
     return Container(
+      // Removing another meal must not reuse this editor for a different food.
+      key: ObjectKey(row),
       padding: const EdgeInsets.all(AppSpacing.s3),
       decoration: BoxDecoration(
         color: colors.bgSecondary,

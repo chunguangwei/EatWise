@@ -565,8 +565,12 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                     ),
                   ),
                 if (showLightSection) const LightRecordSection(),
-                // 食物搜索（双语匹配，D-15/D-16）。
+                // Keep the entire search subtree stable when keyboard avoidance
+                // removes entry cards or sync updates insert another Padding.
+                // A key on TextField alone cannot preserve its editing connection
+                // if its unkeyed parent is matched to a different sibling.
                 Padding(
+                  key: const ValueKey('record-search'),
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.s4,
                   ),
