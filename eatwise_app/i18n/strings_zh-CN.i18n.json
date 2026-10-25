@@ -256,6 +256,7 @@
       "loggedItems": "已记录 ${count} 条",
       "unmatchedItemTag": "库未收录，将自动新建",
       "labelValueTag": "标签值",
+      "saveFailed": "未完成的记录已保留，请重试。已保存的记录不会重复添加。",
       "nutritionInvalid": "营养数值异常，请检查或删除该条后再记录",
       "engineGuideTitle": "AI 识别需要一个模型",
       "engineGuideBody": "下载本地模型（离线可用，约 2.4GB，下载后无需联网），或配置云端 API 使用你的模型服务。",

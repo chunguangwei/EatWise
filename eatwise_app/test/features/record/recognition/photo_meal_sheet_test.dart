@@ -391,6 +391,7 @@ void main() {
     expect(inSheet(find.text('确认这餐明细')), findsOneWidget);
     expect(inSheet(find.text('薯片')), findsNothing);
     expect(inSheet(find.text('鸡蛋')), findsOneWidget);
+    expect(inSheet(find.text('未完成的记录已保留，请重试。已保存的记录不会重复添加。')), findsOneWidget);
     expect(inSheet(find.text('白米饭')), findsOneWidget);
     expect(inSheet(find.byIcon(Icons.close)), findsNWidgets(2));
     expect(

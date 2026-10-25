@@ -1001,6 +1001,9 @@ class Translations$record$photo$zh_CN {
 	/// zh-CN: '标签值'
 	String get labelValueTag => '标签值';
 
+	/// zh-CN: '未完成的记录已保留，请重试。已保存的记录不会重复添加。'
+	String get saveFailed => '未完成的记录已保留，请重试。已保存的记录不会重复添加。';
+
 	/// zh-CN: '营养数值异常，请检查或删除该条后再记录'
 	String get nutritionInvalid => '营养数值异常，请检查或删除该条后再记录';
 
@@ -4931,6 +4934,7 @@ extension on Translations {
 			'record.photo.loggedItems' => ({required Object count}) => '已记录 ${count} 条',
 			'record.photo.unmatchedItemTag' => '库未收录，将自动新建',
 			'record.photo.labelValueTag' => '标签值',
+			'record.photo.saveFailed' => '未完成的记录已保留，请重试。已保存的记录不会重复添加。',
 			'record.photo.nutritionInvalid' => '营养数值异常，请检查或删除该条后再记录',
 			'record.photo.engineGuideTitle' => 'AI 识别需要一个模型',
 			'record.photo.engineGuideBody' => '下载本地模型（离线可用，约 2.4GB，下载后无需联网），或配置云端 API 使用你的模型服务。',
@@ -5261,9 +5265,9 @@ extension on Translations {
 			'nutrition.data.dateSwitcher.prevDay' => '前一天',
 			'nutrition.data.dateSwitcher.nextDay' => '后一天',
 			'nutrition.data.dateSwitcher.backToToday' => '回到今天',
-			'nutrition.data.dateSwitcher.today' => '今天',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.data.dateSwitcher.today' => '今天',
 			'nutrition.data.summary.allGreen' => '今天的营养节奏很稳，给你点个赞 🌱',
 			'nutrition.data.summary.hasYellow' => '今天总体不错，个别营养素还差一点点',
 			'nutrition.data.summary.hasRed' => '有几盏小红灯，别急，跟着下面的建议慢慢调',
@@ -5775,9 +5779,9 @@ extension on Translations {
 			'auth.changePassword.oldLabel' => '当前密码',
 			'auth.changePassword.oldHint' => '请输入当前密码',
 			'auth.changePassword.oldRequired' => '请输入当前密码',
-			'auth.changePassword.newLabel' => '新密码',
 			_ => null,
 		} ?? switch (path) {
+			'auth.changePassword.newLabel' => '新密码',
 			'auth.changePassword.newHint' => '8-64 位，需包含字母和数字',
 			'auth.changePassword.confirmLabel' => '确认新密码',
 			'auth.changePassword.confirmHint' => '再次输入新密码',

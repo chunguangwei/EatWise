@@ -126,6 +126,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
 
   /// 入账在途（防连点）。
   bool _saving = false;
+  bool _saveFailed = false;
   var _loggedCount = 0;
   var _pendingReviewCount = 0;
 
@@ -244,7 +245,10 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
       for (final row in _rows)
         (row: row, grams: double.parse(row.gramsController.text.trim())),
     ];
-    setState(() => _saving = true);
+    setState(() {
+      _saving = true;
+      _saveFailed = false;
+    });
     final navigator = Navigator.of(context);
     final route = ModalRoute.of(context);
     final writeEntry = ref.read(photoMealEntryWriterProvider);
@@ -310,7 +314,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
         ),
       );
     } on Object {
-      // 入账失败（如自定义食物 4xx）：留在弹层内，用户可重试/删条目。
+      if (mounted) setState(() => _saveFailed = true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -327,33 +331,47 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
     // 统一弹层骨架（封顶 90% + 明细内滚 + 动作行常驻底部——真机走查：
     // 条目多/键盘弹起时「全部记录」曾随内容滚出可视区）。
     return AppBottomSheet(
-      bottomBar: Row(
-        children: <Widget>[
-          if (widget.showRetake)
-            TextButton(
-              onPressed: _saving
-                  ? null
-                  : () => Navigator.of(
-                      context,
-                    ).pop(const PhotoMealResult(retake: true)),
-              child: Text(s.photoRetake),
+      bottomBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_saveFailed)
+            Semantics(
+              liveRegion: true,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+                child: Text(t.record.photo.saveFailed),
+              ),
             ),
-          TextButton(
-            onPressed: _saving
-                ? null
-                : () => Navigator.of(context).pop(const PhotoMealResult()),
-            child: Text(s.cancelAction),
-          ),
-          const Spacer(),
-          FilledButton(
-            onPressed: _saving || _rows.isEmpty
-                ? null
-                : () => unawaited(_logAll()),
-            style: FilledButton.styleFrom(
-              backgroundColor: colors.actionPrimary,
-              minimumSize: const Size(0, AppSpacing.s12),
-            ),
-            child: Text(s.photoLogAll, style: textStyles.textBase),
+          Row(
+            children: <Widget>[
+              if (widget.showRetake)
+                TextButton(
+                  onPressed: _saving
+                      ? null
+                      : () => Navigator.of(
+                          context,
+                        ).pop(const PhotoMealResult(retake: true)),
+                  child: Text(s.photoRetake),
+                ),
+              TextButton(
+                onPressed: _saving
+                    ? null
+                    : () => Navigator.of(context).pop(const PhotoMealResult()),
+                child: Text(s.cancelAction),
+              ),
+              const Spacer(),
+              FilledButton(
+                onPressed: _saving || _rows.isEmpty
+                    ? null
+                    : () => unawaited(_logAll()),
+                style: FilledButton.styleFrom(
+                  backgroundColor: colors.actionPrimary,
+                  minimumSize: const Size(0, AppSpacing.s12),
+                ),
+                child: Text(s.photoLogAll, style: textStyles.textBase),
+              ),
+            ],
           ),
         ],
       ),

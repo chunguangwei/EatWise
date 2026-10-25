@@ -256,6 +256,7 @@
       "loggedItems": "Logged ${count} items",
       "unmatchedItemTag": "Not in library — will be created",
       "labelValueTag": "From label",
+      "saveFailed": "Unfinished entries are kept. Please try again; saved entries will not be added twice.",
       "nutritionInvalid": "Nutrition values look invalid. Check or remove this item before logging.",
       "engineGuideTitle": "AI recognition needs a model",
       "engineGuideBody": "Download the on-device model (works offline, ~2.4GB, no network needed after download), or configure a cloud API with your own model service.",

@@ -631,6 +631,7 @@ class _Translations$record$photo$en extends Translations$record$photo$zh_CN {
 	@override String loggedItems({required Object count}) => 'Logged ${count} items';
 	@override String get unmatchedItemTag => 'Not in library — will be created';
 	@override String get labelValueTag => 'From label';
+	@override String get saveFailed => 'Unfinished entries are kept. Please try again; saved entries will not be added twice.';
 	@override String get nutritionInvalid => 'Nutrition values look invalid. Check or remove this item before logging.';
 	@override String get engineGuideTitle => 'AI recognition needs a model';
 	@override String get engineGuideBody => 'Download the on-device model (works offline, ~2.4GB, no network needed after download), or configure a cloud API with your own model service.';
@@ -2760,6 +2761,7 @@ extension on TranslationsEn {
 			'record.photo.loggedItems' => ({required Object count}) => 'Logged ${count} items',
 			'record.photo.unmatchedItemTag' => 'Not in library — will be created',
 			'record.photo.labelValueTag' => 'From label',
+			'record.photo.saveFailed' => 'Unfinished entries are kept. Please try again; saved entries will not be added twice.',
 			'record.photo.nutritionInvalid' => 'Nutrition values look invalid. Check or remove this item before logging.',
 			'record.photo.engineGuideTitle' => 'AI recognition needs a model',
 			'record.photo.engineGuideBody' => 'Download the on-device model (works offline, ~2.4GB, no network needed after download), or configure a cloud API with your own model service.',
@@ -3090,9 +3092,9 @@ extension on TranslationsEn {
 			'nutrition.data.dateSwitcher.prevDay' => 'Previous day',
 			'nutrition.data.dateSwitcher.nextDay' => 'Next day',
 			'nutrition.data.dateSwitcher.backToToday' => 'Back to today',
-			'nutrition.data.dateSwitcher.today' => 'Today',
 			_ => null,
 		} ?? switch (path) {
+			'nutrition.data.dateSwitcher.today' => 'Today',
 			'nutrition.data.summary.allGreen' => 'Nice and steady today — give yourself a pat on the back 🌱',
 			'nutrition.data.summary.hasYellow' => 'Solid day overall — a nutrient or two needs a small top-up',
 			'nutrition.data.summary.hasRed' => 'A couple of red flags today — no stress, just follow the tips below',
@@ -3604,9 +3606,9 @@ extension on TranslationsEn {
 			'auth.changePassword.oldLabel' => 'Current password',
 			'auth.changePassword.oldHint' => 'Enter your current password',
 			'auth.changePassword.oldRequired' => 'Enter your current password',
-			'auth.changePassword.newLabel' => 'New password',
 			_ => null,
 		} ?? switch (path) {
+			'auth.changePassword.newLabel' => 'New password',
 			'auth.changePassword.newHint' => '8-64 characters with letters and digits',
 			'auth.changePassword.confirmLabel' => 'Confirm new password',
 			'auth.changePassword.confirmHint' => 'Re-enter your new password',
