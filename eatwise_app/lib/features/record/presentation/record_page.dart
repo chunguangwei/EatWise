@@ -12,6 +12,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/widgets/busy_filled_button.dart';
 import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/core/widgets/state_views.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
@@ -262,15 +263,19 @@ class _RecordPageState extends ConsumerState<RecordPage> {
   /// 一键确认：乐观更新入账（UI 立即经流展示）+「已记录·撤销」吐司（D-11）。
   Future<void> _confirm(RecordStrings s) async {
     if (_confirming) return; // 防连点重复入账
-    _confirming = true;
+    setState(() {
+      _confirming = true;
+      _failedDraftRevision = null;
+    });
     try {
       await _doConfirm(s);
     } finally {
-      _confirming = false;
+      if (mounted) setState(() => _confirming = false);
     }
   }
 
   bool _confirming = false;
+  int? _failedDraftRevision;
 
   Future<void> _doConfirm(RecordStrings s) async {
     final food = ref.read(recordSelectedFoodProvider);
@@ -288,18 +293,36 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     final repo = ref.read(recordRepositoryProvider);
     final entrySource = ref.read(recordEntrySourceProvider);
     final isEdited = ref.read(recordAmountTextProvider) != '100';
-    final entry = await repo.addEntry(
-      RecordDraft(
-        foodId: food.id,
-        amountG: amount,
-        mealUtc: DateTime.now().toUtc(),
-        source: entrySource,
-        // 阶段 C：断食计时进行中的用餐打「断食期用餐」本地标记（不上行）。
-        duringFast: ref.read(isFastingInProgressProvider),
-        // 餐次（优化点 2）：chips 未手动选择时为 null，仓储按当前时间智能预判。
-        mealType: ref.read(recordMealTypeProvider),
-      ),
-    );
+    final FoodEntry entry;
+    try {
+      entry = await repo.addEntry(
+        RecordDraft(
+          foodId: food.id,
+          amountG: amount,
+          mealUtc: DateTime.now().toUtc(),
+          source: entrySource,
+          // 阶段 C：断食计时进行中的用餐打「断食期用餐」本地标记（不上行）。
+          duringFast: ref.read(isFastingInProgressProvider),
+          // 餐次（优化点 2）：chips 未手动选择时为 null，仓储按当前时间智能预判。
+          mealType: ref.read(recordMealTypeProvider),
+        ),
+      );
+    } on Object {
+      if (mounted) {
+        setState(() => _failedDraftRevision = confirmedDraftRevision);
+        if (_draftRevision != confirmedDraftRevision) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                Translations.of(context).record.page.previousSaveFailed,
+              ),
+            ),
+          );
+        }
+      }
+      return;
+    }
     // 确认记录成功（§3.3 record_flow_success，核心事件 §1.5 立即上报；
     // 健康明细不上报，仅枚举与计数 §1.6-3）。
     final flowId = _flowId;
@@ -331,9 +354,11 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     _flowId = _analytics.startRecordFlow();
     _stepCount = 0;
     if (!mounted) return;
-    // 提交成功后收起原焦点的键盘（Y5）；若用户已重新聚焦搜索框，
-    // 不能因首单异步收尾而关闭第二次录入的键盘。
-    if (identical(FocusManager.instance.primaryFocus, confirmFocus)) {
+    // 仅未继续编辑时收起原焦点；同一输入框也可能已承载下一份草稿，
+    // 不能因首单异步收尾而结束新的键盘输入或 composing。
+    if (_draftRevision == confirmedDraftRevision &&
+        _searchRevision == confirmedSearchRevision &&
+        identical(FocusManager.instance.primaryFocus, confirmFocus)) {
       confirmFocus?.unfocus();
     }
     if (_draftRevision == confirmedDraftRevision) {
@@ -456,7 +481,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
               children: <Widget>[
                 // 「待同步 N 条」可见入口（§4.1：>0 时展示，点击进同步详情页
                 // ——详情页由主代理集成，当前占位提示）。
-                if (pendingCount > 0)
+                if (pendingCount > 0 && !keyboardVisible)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(
                       AppSpacing.s4,
@@ -737,7 +762,9 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                 // 今日聚合（本地预估，§2.6 注明待云端校准；键盘顶起时
                 // 收起此行给主流程让位，走查 Y1；结果卡展开时同样让位——
                 // 优化点 2 餐次 chips 行加高结果卡后，小屏二者并存会溢出）。
-                if (today != null &&
+                if ((MediaQuery.textScalerOf(context).scale(14) <= 18 ||
+                        constraints.maxHeight >= 680) &&
+                    today != null &&
                     today.entryCount > 0 &&
                     !keyboardVisible &&
                     selected == null)
@@ -801,6 +828,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                       isEn: isEn,
                       amountController: _amountController,
                       onConfirm: () => unawaited(_confirm(s)),
+                      busy: _confirming,
+                      saveFailed: _failedDraftRevision == _draftRevision,
                       onClose: () {
                         ref.read(recordSelectedFoodProvider.notifier).state =
                             null;
@@ -961,6 +990,8 @@ class _SelectedFoodCard extends ConsumerWidget {
     required this.isEn,
     required this.amountController,
     required this.onConfirm,
+    required this.busy,
+    required this.saveFailed,
     required this.onClose,
     required this.shadows,
   });
@@ -969,6 +1000,8 @@ class _SelectedFoodCard extends ConsumerWidget {
   final bool isEn;
   final TextEditingController amountController;
   final VoidCallback onConfirm;
+  final bool busy;
+  final bool saveFailed;
   final VoidCallback onClose;
   final AppShadows shadows;
 
@@ -1095,18 +1128,33 @@ class _SelectedFoodCard extends ConsumerWidget {
                   const SizedBox(height: AppSpacing.s2),
                   // 餐次选择（优化点 2：默认按当前时间智能预判，可点选修改）。
                   const MealTypeChips(),
+                  if (saveFailed)
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        Translations.of(context).record.page.saveFailed,
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: AppSpacing.s3),
-          FilledButton(
-            onPressed: amountValid ? onConfirm : null,
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(AppSpacing.s12),
+          if (amountValid)
+            BusyFilledButton(
+              label: s.confirm,
+              busyLabel: Translations.of(context).record.page.saving,
+              busy: busy,
+              onPressed: onConfirm,
+            )
+          else
+            FilledButton(
+              onPressed: null,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(AppSpacing.s12),
+              ),
+              child: Text(s.confirm, style: textStyles.textBase),
             ),
-            child: Text(s.confirm, style: textStyles.textBase),
-          ),
         ],
       ),
     );

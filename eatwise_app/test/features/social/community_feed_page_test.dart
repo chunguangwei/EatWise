@@ -50,7 +50,7 @@ void main() {
     ],
   );
 
-  Future<void> pumpFeed(WidgetTester tester) async {
+  Future<void> pumpFeed(WidgetTester tester, {double textScale = 1}) async {
     await tester.pumpWidget(
       TranslationProvider(
         child: ProviderScope(
@@ -58,6 +58,12 @@ void main() {
           child: MaterialApp.router(
             theme: AppTheme.light(),
             routerConfig: router(),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: TextScaler.linear(textScale)),
+              child: child!,
+            ),
           ),
         ),
       ),
@@ -204,6 +210,38 @@ void main() {
     expect(tester.takeException(), isNull); // 展开后无溢出错
     await unmount(tester);
   });
+
+  for (final locale in <AppLocale>[AppLocale.zhCn, AppLocale.en]) {
+    testWidgets('360dp 双倍字号：正文截断时始终可展开 $locale', (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await LocaleSettings.setLocale(locale);
+      final isEn = locale == AppLocale.en;
+      final text = isEn
+          ? 'A warm meal and a quiet walk today.'
+          : '今天认真吃了一顿温暖的饭，也出去散步了一会儿，感觉慢慢找回自己的生活节奏。';
+      final expand = isEn ? 'Expand' : '展开';
+      final collapse = isEn ? 'Collapse' : '收起';
+      api.posts = <ServerPost>[stubPost(id: 'p1', text: text)];
+
+      // 普通字号无需展开；仅放大字号后正文才超过三行。
+      await pumpFeed(tester);
+      expect(find.text(expand), findsNothing);
+      await unmount(tester);
+      await pumpFeed(tester, textScale: 2);
+      expect(tester.widget<Text>(find.text(text)).maxLines, 3);
+      expect(find.text(expand), findsOneWidget);
+
+      await tester.ensureVisible(find.text(expand));
+      await tester.tap(find.text(expand));
+      await tester.pump();
+      expect(find.text(collapse), findsOneWidget);
+      expect(tester.widget<Text>(find.text(text)).maxLines, isNull);
+      expect(tester.takeException(), isNull);
+      await unmount(tester);
+    });
+  }
 
   testWidgets('下拉刷新触发重新拉取', (tester) async {
     api.posts = <ServerPost>[stubPost(id: 'p1')];

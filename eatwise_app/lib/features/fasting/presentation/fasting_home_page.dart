@@ -24,6 +24,8 @@ import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.d
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/fasting/presentation/plan_progress_bar.dart';
 import 'package:eatwise/features/fasting/presentation/today_budget_row.dart';
+import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart'
+    show selectedDateProvider;
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/presentation/window_editor_sheet.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
@@ -586,7 +588,12 @@ class _TimerBody extends ConsumerWidget {
         const TodayMetricGrid(),
         const SizedBox(height: AppSpacing.s6),
         // 底部一行三色 mini signal-card（蛋白/碳水/热量，点按跳数据页）。
-        MiniSignalCards(onTap: () => context.go('/data')),
+        MiniSignalCards(
+          onTap: () {
+            ref.read(selectedDateProvider.notifier).backToToday();
+            context.go('/data');
+          },
+        ),
         const SizedBox(height: AppSpacing.s8),
       ],
     );

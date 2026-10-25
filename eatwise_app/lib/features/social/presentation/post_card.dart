@@ -384,7 +384,9 @@ class _Badge extends StatelessWidget {
         children: <Widget>[
           Icon(icon, size: 14, color: color),
           const SizedBox(width: AppSpacing.s1),
-          Text(label, style: textStyles.textXs.copyWith(color: color)),
+          Flexible(
+            child: Text(label, style: textStyles.textXs.copyWith(color: color)),
+          ),
         ],
       ),
     );
@@ -421,8 +423,10 @@ class _CollapsibleText extends StatelessWidget {
           text: TextSpan(text: text, style: style),
           maxLines: maxLines,
           textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
         )..layout(maxWidth: constraints.maxWidth);
         final overflows = painter.didExceedMaxLines;
+        painter.dispose();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[

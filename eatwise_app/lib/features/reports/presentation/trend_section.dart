@@ -218,7 +218,7 @@ class _ReportTrendSectionState extends ConsumerState<ReportTrendSection> {
                 padding: const EdgeInsets.only(top: AppSpacing.s2),
                 child: Text(
                   trend.targetLine(kg: targetKg.toStringAsFixed(1)),
-                  style: textStyles.textSm.copyWith(color: colors.brandAccent),
+                  style: textStyles.textSm.copyWith(color: colors.textPrimary),
                 ),
               ),
             const SizedBox(height: AppSpacing.s4),

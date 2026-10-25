@@ -173,6 +173,9 @@
   },
   "record": {
     "page": {
+      "previousSaveFailed": "The previous entry could not be saved. Please log it again.",
+      "saveFailed": "Could not save. Your input is kept; please try again.",
+      "saving": "Logging…",
       "title": "Records",
       "confirm": "Log it",
       "loggedToday": "${count} logged today",
@@ -236,6 +239,7 @@
       "syncFailed": "This record wasn't saved — please submit again"
     },
     "photo": {
+      "close": "Close",
       "pickTitle": "Snap to recognize",
       "takePhoto": "Take photo",
       "fromGallery": "Choose from album",

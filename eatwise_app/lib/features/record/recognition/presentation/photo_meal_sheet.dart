@@ -18,6 +18,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/core/widgets/app_bottom_sheet.dart';
+import 'package:eatwise/core/widgets/busy_filled_button.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
@@ -62,6 +63,8 @@ Future<PhotoMealResult?> showPhotoMealConfirmSheet(
   return showModalBottomSheet<PhotoMealResult>(
     context: context,
     isScrollControlled: true,
+    isDismissible: false,
+    enableDrag: false,
     // 键盘避让已收进 AppBottomSheet 骨架（外层再垫会双倍扣高）。
     builder: (_) => PhotoMealConfirmSheet(
       items: items,
@@ -125,6 +128,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
   late final List<_MealRow> _rows = List<_MealRow>.of(_allRows);
 
   /// 入账在途（防连点）。
+  final _scrollController = ScrollController();
   bool _saving = false;
   bool _saveFailed = false;
   var _loggedCount = 0;
@@ -185,6 +189,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     for (final row in _allRows) {
       row.gramsController.dispose();
     }
@@ -314,7 +319,10 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
         ),
       );
     } on Object {
-      if (mounted) setState(() => _saveFailed = true);
+      if (mounted) {
+        setState(() => _saveFailed = true);
+        if (_scrollController.hasClients) _scrollController.jumpTo(0);
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -330,65 +338,78 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
 
     // 统一弹层骨架（封顶 90% + 明细内滚 + 动作行常驻底部——真机走查：
     // 条目多/键盘弹起时「全部记录」曾随内容滚出可视区）。
-    return AppBottomSheet(
-      bottomBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (_saveFailed)
-            Semantics(
-              liveRegion: true,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+    return PopScope<PhotoMealResult>(
+      canPop: !_saving && _loggedCount == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && !_saving) _closeWithResult();
+      },
+      child: AppBottomSheet(
+        scrollController: _scrollController,
+        bottomBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_rows.isNotEmpty)
+              BusyFilledButton(
+                label: s.photoLogAll,
+                busyLabel: t.record.page.saving,
+                busy: _saving,
+                onPressed: () => unawaited(_logAll()),
+              )
+            else
+              FilledButton(onPressed: null, child: Text(s.photoLogAll)),
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              spacing: AppSpacing.s2,
+              children: [
+                if (widget.showRetake && _loggedCount == 0)
+                  TextButton(
+                    onPressed: _saving
+                        ? null
+                        : () => Navigator.of(
+                            context,
+                          ).pop(const PhotoMealResult(retake: true)),
+                    child: Text(s.photoRetake),
+                  ),
+                TextButton(
+                  onPressed: _saving ? null : _closeWithResult,
+                  child: Text(
+                    _loggedCount > 0 ? t.record.photo.close : s.cancelAction,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(s.photoMealConfirmTitle, style: textStyles.textLg),
+            if (_saveFailed)
+              Semantics(
+                liveRegion: true,
                 child: Text(t.record.photo.saveFailed),
               ),
-            ),
-          Row(
-            children: <Widget>[
-              if (widget.showRetake)
-                TextButton(
-                  onPressed: _saving
-                      ? null
-                      : () => Navigator.of(
-                          context,
-                        ).pop(const PhotoMealResult(retake: true)),
-                  child: Text(s.photoRetake),
-                ),
-              TextButton(
-                onPressed: _saving
-                    ? null
-                    : () => Navigator.of(context).pop(const PhotoMealResult()),
-                child: Text(s.cancelAction),
-              ),
-              const Spacer(),
-              FilledButton(
-                onPressed: _saving || _rows.isEmpty
-                    ? null
-                    : () => unawaited(_logAll()),
-                style: FilledButton.styleFrom(
-                  backgroundColor: colors.actionPrimary,
-                  minimumSize: const Size(0, AppSpacing.s12),
-                ),
-                child: Text(s.photoLogAll, style: textStyles.textBase),
-              ),
+            const SizedBox(height: AppSpacing.s3),
+            for (final row in _rows) ...<Widget>[
+              _buildRow(t, s, colors, textStyles, radii, row),
+              const SizedBox(height: AppSpacing.s2),
             ],
-          ),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Text(s.photoMealConfirmTitle, style: textStyles.textLg),
-          const SizedBox(height: AppSpacing.s3),
-          for (final row in _rows) ...<Widget>[
-            _buildRow(t, s, colors, textStyles, radii, row),
+            // 餐次选择（与搜索确认卡/详情弹层同款；整批条目共用一个餐次）。
+            AbsorbPointer(absorbing: _saving, child: const MealTypeChips()),
             const SizedBox(height: AppSpacing.s2),
           ],
-          // 餐次选择（与搜索确认卡/详情弹层同款；整批条目共用一个餐次）。
-          AbsorbPointer(absorbing: _saving, child: const MealTypeChips()),
-          const SizedBox(height: AppSpacing.s2),
-        ],
+        ),
+      ),
+    );
+  }
+
+  void _closeWithResult() {
+    Navigator.of(context).pop(
+      PhotoMealResult(
+        loggedCount: _loggedCount,
+        pendingReviewCount: _pendingReviewCount,
       ),
     );
   }

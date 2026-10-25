@@ -184,7 +184,7 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
                   child: Text(
                     badgeText,
                     style: textStyles.textXs.copyWith(
-                      color: colors.brandAccent,
+                      color: colors.textPrimary,
                     ),
                   ),
                 ),
@@ -786,9 +786,9 @@ class _SignalBadge extends StatelessWidget {
         t.record.foodDetail.badgeRed,
       ),
     };
-    // 文字/图标取同色深阶（v1.16.0 半透明浅底徽标语言）：signalYellow
-    // 上白卡仅 1.44:1，黄灯文字/图标用 signalYellowText；底色保持落区色。
-    final textColor = switch (verdict.zone) {
+    // 图标与底色保留信号语义，正文使用高对比文字色，避免浅底上的绿/红字
+    // 低于普通字号所需的 4.5:1；黄色图标仍使用深阶。
+    final iconColor = switch (verdict.zone) {
       SignalZone.green => colors.brandPrimary,
       SignalZone.yellow => colors.signalYellowText,
       SignalZone.red => colors.signalRed,
@@ -807,9 +807,12 @@ class _SignalBadge extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(icon, color: textColor, size: 18),
+            Icon(icon, color: iconColor, size: 18),
             const SizedBox(width: AppSpacing.s1),
-            Text(label, style: textStyles.textSm.copyWith(color: textColor)),
+            Text(
+              label,
+              style: textStyles.textSm.copyWith(color: colors.textPrimary),
+            ),
           ],
         ),
       ),

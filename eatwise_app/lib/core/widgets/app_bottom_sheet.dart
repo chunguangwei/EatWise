@@ -26,6 +26,7 @@ class AppBottomSheet extends StatelessWidget {
     required this.content,
     super.key,
     this.bottomBar,
+    this.scrollController,
     this.maxHeightFactor = 0.9,
     this.contentPadding = const EdgeInsets.all(AppSpacing.s4),
     this.bottomBarPadding = const EdgeInsets.fromLTRB(
@@ -38,6 +39,9 @@ class AppBottomSheet extends StatelessWidget {
 
   /// 内容区（超高内部滚动）。
   final Widget content;
+
+  /// Optional controller for revealing inline validation after submission.
+  final ScrollController? scrollController;
 
   /// 底部动作区（确认/保存等主按钮；常驻弹层底部，null = 无动作区）。
   final Widget? bottomBar;
@@ -84,6 +88,7 @@ class AppBottomSheet extends StatelessWidget {
                   children: <Widget>[
                     Flexible(
                       child: SingleChildScrollView(
+                        controller: scrollController,
                         keyboardDismissBehavior:
                             ScrollViewKeyboardDismissBehavior.onDrag,
                         padding: contentPadding,

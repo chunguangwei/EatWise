@@ -18,6 +18,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../../support/review_capture.dart';
 import '../record_test_helper.dart';
 import 'recognition_test_fakes.dart';
 
@@ -36,6 +37,7 @@ void main() {
 
   setUpAll(() async {
     await initRecordTestTimeZones();
+    await loadReviewFont();
   });
 
   setUp(() async {
@@ -78,6 +80,7 @@ void main() {
     double width = 1080,
     double height = 2400,
     RecordEntryWriter? entryWriter,
+    ThemeData? theme,
   }) async {
     // 放大测试屏幕：明细弹层字段多，默认尺寸按钮不可点。
     tester.view.physicalSize = Size(width, height);
@@ -98,7 +101,10 @@ void main() {
             photoMealEntryWriterProvider.overrideWithValue(entryWriter),
         ],
         child: TranslationProvider(
-          child: MaterialApp(theme: AppTheme.light(), home: const RecordPage()),
+          child: MaterialApp(
+            theme: reviewTheme(theme ?? AppTheme.light()),
+            home: const RecordPage(),
+          ),
         ),
       ),
     );
@@ -505,6 +511,135 @@ void main() {
     expect((await repository.entriesForDate(DateTime.now().toUtc())), isEmpty);
     await settleUi(tester);
   });
+
+  testWidgets('长列表入账失败滚回可见错误，关闭保留已保存数量', (tester) async {
+    final outcome = await comboOutcome();
+    recognitionService.outcome = RecognitionSuccess(
+      List.filled(7, outcome.items.first),
+    );
+    var count = 0;
+    await pumpPage(
+      tester,
+      width: 360,
+      height: 640,
+      entryWriter: (draft) async {
+        if (++count == 2) throw StateError('temporary write failure');
+        return repository.addEntry(draft);
+      },
+    );
+    await pickPhotoAndRecognize(tester);
+    await Scrollable.ensureVisible(
+      tester.element(inSheet(find.byType(TextField)).last),
+    );
+    await tester.pump();
+    await tester.tap(inSheet(find.text('全部记录')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    final error = inSheet(find.text(t.record.photo.saveFailed));
+    expect(error.hitTestable(), findsOneWidget);
+    expect(inSheet(find.text('重新拍摄')), findsNothing);
+    await tester.tap(inSheet(find.text('关闭')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('已记录 1 条'), findsOneWidget);
+    expect(
+      await repository.entriesForDate(DateTime.now().toUtc()),
+      hasLength(1),
+    );
+    await tester.pump(const Duration(seconds: 11));
+    await settleUi(tester);
+  });
+
+  testWidgets('批量提交中屏蔽背景点击、下滑和系统返回', (tester) async {
+    final outcome = await comboOutcome();
+    recognitionService.outcome = RecognitionSuccess(
+      outcome.items.take(2).toList(),
+    );
+    final gate = Completer<void>();
+    var calls = 0;
+    await pumpPage(
+      tester,
+      entryWriter: (draft) async {
+        calls++;
+        if (calls == 1) await gate.future;
+        return repository.addEntry(draft);
+      },
+    );
+    await pickPhotoAndRecognize(tester);
+    await tester.tap(inSheet(find.text('全部记录')));
+    await tester.pump();
+    expect(calls, 1);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(BottomSheet), findsOneWidget);
+    await tester.drag(find.byType(BottomSheet), const Offset(0, 1000));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(BottomSheet), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(BottomSheet), findsOneWidget);
+    gate.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(calls, 2);
+    expect(
+      await repository.entriesForDate(DateTime.now().toUtc()),
+      hasLength(2),
+    );
+    expect(find.text('已记录 2 条'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 11));
+    await settleUi(tester);
+  });
+
+  for (final locale in [AppLocale.zhCn, AppLocale.en]) {
+    for (final dark in [false, true]) {
+      testWidgets('360x640 双倍字号键盘弹起底栏可用 $locale dark=$dark', (tester) async {
+        recognitionService.outcome = await comboOutcome();
+        await pumpPage(
+          tester,
+          width: 360,
+          height: 640,
+          theme: dark ? AppTheme.dark() : AppTheme.light(),
+        );
+        await pickPhotoAndRecognize(tester);
+        await LocaleSettings.setLocale(locale);
+        tester.platformDispatcher.textScaleFactorTestValue = 2;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(tester.takeException(), isNull);
+        final action = inSheet(
+          find.widgetWithText(FilledButton, t.record.photo.logAll),
+        );
+        expect(tester.getRect(action).bottom, lessThanOrEqualTo(340));
+        expect(action.hitTestable(), findsOneWidget);
+        await captureReview(
+          tester,
+          '139-photo-${locale == AppLocale.en ? 'en' : 'zh'}-${dark ? 'dark' : 'light'}',
+          boundaryFinder: find
+              .ancestor(
+                of: find.byType(BottomSheet),
+                matching: find.byType(RepaintBoundary),
+              )
+              .first,
+        );
+        await tester.tap(action);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump();
+        expect(
+          await repository.entriesForDate(DateTime.now().toUtc()),
+          hasLength(3),
+        );
+        tester.view.resetViewInsets();
+        await tester.pump(const Duration(seconds: 11));
+        await settleUi(tester);
+      });
+    }
+  }
 
   testWidgets('窄屏 360dp：名称/删除按钮始终可见，布局不溢出', (tester) async {
     recognitionService.outcome = await comboOutcome();

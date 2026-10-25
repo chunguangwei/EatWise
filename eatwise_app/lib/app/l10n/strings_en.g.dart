@@ -487,6 +487,9 @@ class _Translations$record$page$en extends Translations$record$page$zh_CN {
 	final TranslationsEn _root; // ignore: unused_field
 
 	// Translations
+	@override String get previousSaveFailed => 'The previous entry could not be saved. Please log it again.';
+	@override String get saveFailed => 'Could not save. Your input is kept; please try again.';
+	@override String get saving => 'Logging…';
 	@override String get title => 'Records';
 	@override String get confirm => 'Log it';
 	@override String loggedToday({required Object count}) => '${count} logged today';
@@ -611,6 +614,7 @@ class _Translations$record$photo$en extends Translations$record$photo$zh_CN {
 	final TranslationsEn _root; // ignore: unused_field
 
 	// Translations
+	@override String get close => 'Close';
 	@override String get pickTitle => 'Snap to recognize';
 	@override String get takePhoto => 'Take photo';
 	@override String get fromGallery => 'Choose from album';
@@ -2696,6 +2700,9 @@ extension on TranslationsEn {
 			'onboarding.ageConfirm.body' => 'This app is not directed to children under 13, and fasting features are not recommended for minors.',
 			'onboarding.ageConfirm.checkbox' => 'I confirm that I am at least 13 years old',
 			'onboarding.ageConfirm.confirm' => 'Continue',
+			'record.page.previousSaveFailed' => 'The previous entry could not be saved. Please log it again.',
+			'record.page.saveFailed' => 'Could not save. Your input is kept; please try again.',
+			'record.page.saving' => 'Logging…',
 			'record.page.title' => 'Records',
 			'record.page.confirm' => 'Log it',
 			'record.page.loggedToday' => ({required Object count}) => '${count} logged today',
@@ -2741,6 +2748,7 @@ extension on TranslationsEn {
 			'record.toast.undo' => 'Undo',
 			'record.toast.undone' => 'Undone',
 			'record.toast.syncFailed' => 'This record wasn\'t saved — please submit again',
+			'record.photo.close' => 'Close',
 			'record.photo.pickTitle' => 'Snap to recognize',
 			'record.photo.takePhoto' => 'Take photo',
 			'record.photo.fromGallery' => 'Choose from album',
@@ -3088,12 +3096,12 @@ extension on TranslationsEn {
 			'notification.fasting.eatSoon' => 'Eating window opens in 15 min',
 			'notification.fasting.eatStart' => ({required Object date}) => 'Time to eat! This fast counts toward ${date} ✅',
 			'notification.fasting.fastStart' => 'Your fasting window has started — you\'re doing great, keep it up!',
+			_ => null,
+		} ?? switch (path) {
 			'notification.water.hourly' => ({required Object ml, required Object remaining}) => 'Time for water! Aim for ${ml} ml — ${remaining} ml to go today',
 			'nutrition.data.dateSwitcher.prevDay' => 'Previous day',
 			'nutrition.data.dateSwitcher.nextDay' => 'Next day',
 			'nutrition.data.dateSwitcher.backToToday' => 'Back to today',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.data.dateSwitcher.today' => 'Today',
 			'nutrition.data.summary.allGreen' => 'Nice and steady today — give yourself a pat on the back 🌱',
 			'nutrition.data.summary.hasYellow' => 'Solid day overall — a nutrient or two needs a small top-up',
@@ -3602,12 +3610,12 @@ extension on TranslationsEn {
 			'auth.register.strengthStrong' => 'Strength: strong',
 			'auth.register.strengthTooShort' => 'Password must be at least 8 characters',
 			'auth.register.invalidUsername' => 'Username must be 3-20 letters, digits or underscores',
+			_ => null,
+		} ?? switch (path) {
 			'auth.changePassword.title' => 'Change password',
 			'auth.changePassword.oldLabel' => 'Current password',
 			'auth.changePassword.oldHint' => 'Enter your current password',
 			'auth.changePassword.oldRequired' => 'Enter your current password',
-			_ => null,
-		} ?? switch (path) {
 			'auth.changePassword.newLabel' => 'New password',
 			'auth.changePassword.newHint' => '8-64 characters with letters and digits',
 			'auth.changePassword.confirmLabel' => 'Confirm new password',

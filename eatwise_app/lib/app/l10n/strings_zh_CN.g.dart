@@ -731,6 +731,15 @@ class Translations$record$page$zh_CN {
 
 	// Translations
 
+	/// zh-CN: '上一条记录未能保存，请重新记录。'
+	String get previousSaveFailed => '上一条记录未能保存，请重新记录。';
+
+	/// zh-CN: '未能保存，输入已保留，请重试。'
+	String get saveFailed => '未能保存，输入已保留，请重试。';
+
+	/// zh-CN: '记录中…'
+	String get saving => '记录中…';
+
 	/// zh-CN: '记录'
 	String get title => '记录';
 
@@ -940,6 +949,9 @@ class Translations$record$photo$zh_CN {
 	final Translations _root; // ignore: unused_field
 
 	// Translations
+
+	/// zh-CN: '关闭'
+	String get close => '关闭';
 
 	/// zh-CN: '拍照识别食物'
 	String get pickTitle => '拍照识别食物';
@@ -4869,6 +4881,9 @@ extension on Translations {
 			'onboarding.ageConfirm.body' => '本应用不面向 13 岁以下儿童，断食功能不建议未成年人使用。',
 			'onboarding.ageConfirm.checkbox' => '我确认已年满 13 岁',
 			'onboarding.ageConfirm.confirm' => '继续',
+			'record.page.previousSaveFailed' => '上一条记录未能保存，请重新记录。',
+			'record.page.saveFailed' => '未能保存，输入已保留，请重试。',
+			'record.page.saving' => '记录中…',
 			'record.page.title' => '记录',
 			'record.page.confirm' => '确认记录',
 			'record.page.loggedToday' => ({required Object count}) => '今日已记 ${count} 笔',
@@ -4914,6 +4929,7 @@ extension on Translations {
 			'record.toast.undo' => '撤销',
 			'record.toast.undone' => '已撤销',
 			'record.toast.syncFailed' => '这条记录没被保存，请重新提交',
+			'record.photo.close' => '关闭',
 			'record.photo.pickTitle' => '拍照识别食物',
 			'record.photo.takePhoto' => '拍照',
 			'record.photo.fromGallery' => '从相册选择',
@@ -5261,12 +5277,12 @@ extension on Translations {
 			'notification.fasting.eatSoon' => '还有 15 分钟就可以进食啦',
 			'notification.fasting.eatStart' => ({required Object date}) => '可以进食啦，本次断食计入 ${date} ✅',
 			'notification.fasting.fastStart' => '断食窗口开始啦，今天也很棒，加油坚持～',
+			_ => null,
+		} ?? switch (path) {
 			'notification.water.hourly' => ({required Object ml, required Object remaining}) => '该喝水啦～建议喝 ${ml} 毫升，今天还差 ${remaining} 毫升',
 			'nutrition.data.dateSwitcher.prevDay' => '前一天',
 			'nutrition.data.dateSwitcher.nextDay' => '后一天',
 			'nutrition.data.dateSwitcher.backToToday' => '回到今天',
-			_ => null,
-		} ?? switch (path) {
 			'nutrition.data.dateSwitcher.today' => '今天',
 			'nutrition.data.summary.allGreen' => '今天的营养节奏很稳，给你点个赞 🌱',
 			'nutrition.data.summary.hasYellow' => '今天总体不错，个别营养素还差一点点',
@@ -5775,12 +5791,12 @@ extension on Translations {
 			'auth.register.strengthStrong' => '密码强度：强',
 			'auth.register.strengthTooShort' => '密码长度至少 8 位',
 			'auth.register.invalidUsername' => '用户名需为 3-20 位字母、数字或下划线',
+			_ => null,
+		} ?? switch (path) {
 			'auth.changePassword.title' => '修改密码',
 			'auth.changePassword.oldLabel' => '当前密码',
 			'auth.changePassword.oldHint' => '请输入当前密码',
 			'auth.changePassword.oldRequired' => '请输入当前密码',
-			_ => null,
-		} ?? switch (path) {
 			'auth.changePassword.newLabel' => '新密码',
 			'auth.changePassword.newHint' => '8-64 位，需包含字母和数字',
 			'auth.changePassword.confirmLabel' => '确认新密码',

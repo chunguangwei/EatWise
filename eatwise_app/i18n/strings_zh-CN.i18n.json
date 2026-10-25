@@ -173,6 +173,9 @@
   },
   "record": {
     "page": {
+      "previousSaveFailed": "上一条记录未能保存，请重新记录。",
+      "saveFailed": "未能保存，输入已保留，请重试。",
+      "saving": "记录中…",
       "title": "记录",
       "confirm": "确认记录",
       "loggedToday": "今日已记 ${count} 笔",
@@ -236,6 +239,7 @@
       "syncFailed": "这条记录没被保存，请重新提交"
     },
     "photo": {
+      "close": "关闭",
       "pickTitle": "拍照识别食物",
       "takePhoto": "拍照",
       "fromGallery": "从相册选择",

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -30,7 +31,22 @@ ThemeData reviewTheme(ThemeData theme) {
   if (_fontPath.isEmpty) return theme;
   _previousDisableShadows = debugDisableShadows;
   debugDisableShadows = false;
+  final styles = theme.extension<AppTextStyles>()!;
   return theme.copyWith(
+    extensions: [
+      ...theme.extensions.values.where((value) => value is! AppTextStyles),
+      styles.copyWith(
+        textXs: styles.textXs.copyWith(fontFamily: 'Review'),
+        textSm: styles.textSm.copyWith(fontFamily: 'Review'),
+        textBase: styles.textBase.copyWith(fontFamily: 'Review'),
+        textLg: styles.textLg.copyWith(fontFamily: 'Review'),
+        textXl: styles.textXl.copyWith(fontFamily: 'Review'),
+        text2xl: styles.text2xl.copyWith(fontFamily: 'Review'),
+        text3xl: styles.text3xl.copyWith(fontFamily: 'Review'),
+        textH1: styles.textH1.copyWith(fontFamily: 'Review'),
+        textDisplay: styles.textDisplay.copyWith(fontFamily: 'Review'),
+      ),
+    ],
     appBarTheme: theme.appBarTheme.copyWith(
       titleTextStyle: theme.appBarTheme.titleTextStyle?.copyWith(
         fontFamily: 'Review',
@@ -41,10 +57,14 @@ ThemeData reviewTheme(ThemeData theme) {
   );
 }
 
-Future<void> captureReview(WidgetTester tester, String name) async {
+Future<void> captureReview(
+  WidgetTester tester,
+  String name, {
+  Finder? boundaryFinder,
+}) async {
   if (_fontPath.isEmpty) return;
   final boundary = tester.renderObject<RenderRepaintBoundary>(
-    find.byType(RepaintBoundary).first,
+    boundaryFinder ?? find.byType(RepaintBoundary).first,
   );
   await tester.runAsync(() async {
     final image = await boundary.toImage(pixelRatio: 2);

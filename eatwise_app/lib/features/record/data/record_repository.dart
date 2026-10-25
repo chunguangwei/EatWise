@@ -113,15 +113,21 @@ final class RecordRepository {
       createdAtUtc: Value(nowIso),
       updatedAtUtc: Value(nowIso),
     );
-    await db.foodEntryDao.insertEntry(entry);
+    // 入账、聚合与结果回读必须一起成功；任何一步失败都回滚，避免 UI
+    // 收到失败后重试，却把已经落库的上一条再记一次。
+    final saved = await db.transaction(() async {
+      await db.foodEntryDao.insertEntry(entry);
+      await _recompute(draft.mealUtc);
+      return (await db.foodEntryDao.getByLocalId(localId))!;
+    });
+    // 提交成功后才开始撤销窗与上行，防止失败事务泄漏远程请求或撤销状态。
     if (online) {
       _schedulePush(localId, undoable: true);
     } else {
       // 离线也允许撤销（T2：纯本地回滚），仅记录撤销截止时刻。
-      _undoDeadlines[localId] = nowUtc.add(undoWindow);
+      _undoDeadlines[localId] = _clock().toUtc().add(undoWindow);
     }
-    await _recompute(draft.mealUtc);
-    return (await db.foodEntryDao.getByLocalId(localId))!;
+    return saved;
   }
 
   /// D-11 撤销：撤销窗内撤回该条（T3，乐观更新回滚，本地删除）。

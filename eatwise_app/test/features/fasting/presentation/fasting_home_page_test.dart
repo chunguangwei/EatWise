@@ -13,6 +13,8 @@ import 'package:eatwise/features/fasting/presentation/fasting_cycle_store.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_home_page.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
+import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart'
+    show nutritionNowProvider, selectedDateProvider;
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/data/onboarding_store.dart';
 import 'package:eatwise/features/streak/application/streak_controller.dart';
@@ -396,6 +398,30 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('ONBOARDING_STUB'), findsOneWidget);
 
+    await unmount(tester);
+  });
+
+  testWidgets('首页今日营养入口清除数据页的历史日期选择', (tester) async {
+    await pumpHome(
+      tester,
+      extraOverrides: <Override>[
+        nutritionNowProvider.overrideWithValue(DateTime(2026, 7, 28, 8)),
+      ],
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(FastingHomePage)),
+    );
+    container.read(selectedDateProvider.notifier).prevDay();
+    expect(container.read(selectedDateProvider), DateTime(2026, 7, 27));
+
+    final todayCard = find.text('今天还没记录，记一笔后信号灯会亮起来');
+    await tester.scrollUntilVisible(todayCard, 100);
+    await tester.tap(todayCard);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('DATA_STUB'), findsOneWidget);
+    expect(container.read(selectedDateProvider), DateTime(2026, 7, 28));
     await unmount(tester);
   });
 

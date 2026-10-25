@@ -12,7 +12,7 @@ import 'package:eatwise/core/analytics/consent_store.dart';
 import 'package:eatwise/core/analytics/device_identity_store.dart';
 import 'package:eatwise/core/analytics/event_queue_store.dart';
 import 'package:eatwise/core/storage/database.dart';
-import 'package:eatwise/core/storage/food_entry_dao.dart';
+import 'package:eatwise/core/storage/food_dao.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
@@ -51,23 +51,23 @@ final class _RecordingClient implements AnalyticsClient {
 final class _DelayedRecordDatabase extends AppDatabase {
   _DelayedRecordDatabase() : super(NativeDatabase.memory());
 
-  late final _DelayedRecordEntryDao _entries = _DelayedRecordEntryDao(this);
+  late final _DelayedRecordFoodDao _foods = _DelayedRecordFoodDao(this);
 
   @override
-  FoodEntryDao get foodEntryDao => _entries;
+  FoodDao get foodDao => _foods;
 }
 
-final class _DelayedRecordEntryDao extends FoodEntryDao {
-  _DelayedRecordEntryDao(super.db);
+final class _DelayedRecordFoodDao extends FoodDao {
+  _DelayedRecordFoodDao(super.db);
 
   Completer<void>? nextRead;
 
   @override
-  Future<FoodEntry?> getByLocalId(String localId) async {
+  Future<Food?> getById(String id, {String? ownerUserId}) async {
     final gate = nextRead;
     nextRead = null;
     if (gate != null) await gate.future;
-    return super.getByLocalId(localId);
+    return super.getById(id, ownerUserId: ownerUserId);
   }
 }
 
@@ -452,6 +452,157 @@ void main() {
     await settleUi(tester);
   });
 
+  testWidgets('单条记餐失败保留草稿并给出重试提示', (tester) async {
+    await pumpPage(tester);
+    await tester.enterText(find.byType(TextField).first, '米饭');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('白米饭'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.enterText(find.byType(TextField).last, '125');
+    await tester.pump();
+    await db.foodDao.deleteById('f-rice');
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+    expect(find.text('未能保存，输入已保留，请重试。'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byType(TextField).last).controller!.text,
+      '125',
+    );
+    await seedFoods(db);
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('未能保存，输入已保留，请重试。'), findsNothing);
+    final entries = await repository.entriesForDate(DateTime.now().toUtc());
+    expect(entries, hasLength(1));
+    expect(entries.single.amountG, 125);
+    await tester.pump(const Duration(seconds: 11));
+    await settleUi(tester);
+  });
+
+  testWidgets('连续录入：首单失败仍提示，保留第二草稿与输入连接', (tester) async {
+    await pumpPage(tester);
+    await tester.enterText(find.byType(TextField).first, '米饭');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('白米饭'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.enterText(find.byType(TextField).last, '100');
+    await tester.pump();
+
+    final dao = db.foodDao as _DelayedRecordFoodDao;
+    final gate = Completer<void>();
+    dao.nextRead = gate;
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.enterText(find.byType(TextField).first, '鸡蛋');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.widgetWithText(ListTile, '鸡蛋'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.enterText(find.byType(TextField).last, '50');
+    await tester.pump();
+    // 详情确认将第二份草稿带回记录页；首单在途时不会重复提交。
+    await tester.tap(find.text('确认记录').last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.byType(TextField).last);
+    await tester.pump();
+    final original = tester.state<EditableTextState>(
+      find.byType(EditableText).last,
+    );
+    const editing = TextEditingValue(
+      text: '75',
+      selection: TextSelection.collapsed(offset: 2),
+      composing: TextRange(start: 0, end: 2),
+    );
+    tester.testTextInput.updateEditingValue(editing);
+    await tester.pump();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordPage)),
+    );
+    expect(container.read(recordSelectedFoodProvider)?.id, 'f-egg');
+    expect(original.widget.focusNode.hasFocus, isTrue);
+
+    gate.completeError(StateError('injected food read failure'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('上一条记录未能保存，请重新记录。'), findsOneWidget);
+    expect(find.text('未能保存，输入已保留，请重试。'), findsNothing);
+    expect(container.read(recordSelectedFoodProvider)?.id, 'f-egg');
+    expect(container.read(recordAmountTextProvider), '75');
+    expect(container.read(recordSearchQueryProvider), '鸡蛋');
+    expect(
+      tester.state<EditableTextState>(find.byType(EditableText).last),
+      same(original),
+    );
+    expect(original.widget.focusNode.hasFocus, isTrue);
+    expect(original.widget.controller.value, editing);
+    expect(tester.testTextInput.isVisible, isTrue);
+    expect(await repository.entriesForDate(DateTime.now().toUtc()), isEmpty);
+    await settleUi(tester);
+  });
+
+  testWidgets('连续录入：首单成功保留同一份量框的新输入与 composing', (tester) async {
+    remote.mode = FakeRemoteMode.offline;
+    await pumpPage(tester);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordPage)),
+    );
+    // 常吃/识别入口的主页面草稿：提交期间仍可在原份量框继续输入。
+    container.read(recordSelectedFoodProvider.notifier).state = await db.foodDao
+        .getById('f-rice');
+    container.read(recordAmountTextProvider.notifier).state = '100';
+    await tester.pump();
+    await tester.tap(find.byType(TextField).last);
+    await tester.pump();
+    final original = tester.state<EditableTextState>(
+      find.byType(EditableText).last,
+    );
+    final dao = db.foodDao as _DelayedRecordFoodDao;
+    final gate = Completer<void>();
+    dao.nextRead = gate;
+    await tester.tap(find.text('确认记录'));
+    await tester.pump();
+    expect(original.widget.focusNode.hasFocus, isTrue);
+    const editing = TextEditingValue(
+      text: '150',
+      selection: TextSelection.collapsed(offset: 3),
+      composing: TextRange(start: 0, end: 3),
+    );
+    tester.testTextInput.updateEditingValue(editing);
+    await tester.pump();
+    expect(container.read(recordAmountTextProvider), '150');
+
+    gate.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final entries = await repository.entriesForDate(DateTime.now().toUtc());
+    expect(entries, hasLength(1));
+    expect(entries.single.amountG, 100);
+    expect(find.text('已记录'), findsOneWidget);
+    expect(container.read(recordSelectedFoodProvider)?.id, 'f-rice');
+    expect(container.read(recordAmountTextProvider), '150');
+    expect(
+      tester.state<EditableTextState>(find.byType(EditableText).last),
+      same(original),
+    );
+    expect(original.widget.focusNode.hasFocus, isTrue);
+    expect(original.widget.controller.value, editing);
+    expect(tester.testTextInput.isVisible, isTrue);
+    await settleUi(tester);
+  });
+
   testWidgets('连续录入：首单返回不得清空已输入的第二查询', (tester) async {
     await pumpPage(tester);
     await tester.enterText(find.byType(TextField).first, '米饭');
@@ -463,7 +614,7 @@ void main() {
     await tester.enterText(find.byType(TextField).last, '100');
     await tester.pump();
 
-    final dao = db.foodEntryDao as _DelayedRecordEntryDao;
+    final dao = db.foodDao as _DelayedRecordFoodDao;
     final gate = Completer<void>();
     dao.nextRead = gate;
     await tester.tap(find.text('确认记录'));
@@ -505,7 +656,7 @@ void main() {
     await tester.enterText(find.byType(TextField).last, '100');
     await tester.pump();
 
-    final dao = db.foodEntryDao as _DelayedRecordEntryDao;
+    final dao = db.foodDao as _DelayedRecordFoodDao;
     final gate = Completer<void>();
     dao.nextRead = gate;
     await tester.tap(find.text('确认记录'));
@@ -521,6 +672,14 @@ void main() {
     await tester.enterText(find.byType(TextField).last, '50');
     await tester.pump();
     await tester.tap(find.text('确认记录').last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '记录中…'))
+          .onPressed,
+      isNull,
+    );
     await tester.pump();
 
     final container = ProviderScope.containerOf(
