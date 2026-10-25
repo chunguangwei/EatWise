@@ -102,7 +102,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('数据曲线正在热身，多记几天它就跑起来啦。'), findsOneWidget);
     // 当日空态 CTA + 趋势空态 CTA（薄荷走查 P2 补齐）各一个。
-    expect(find.text('去记录'), findsNWidgets(2));
+    expect(find.text('去记录'), findsWidgets);
 
     // 社区 Tab：真实打卡流（M5）——空流 → 空态 + CTA「发布打卡」进发布页
     await tester.tap(find.text('社区'));

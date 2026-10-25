@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:eatwise/core/time/day_change.dart';
 import 'package:eatwise/features/health/data/health_gateway.dart';
 import 'package:eatwise/features/health/domain/health_activity.dart';
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart'
@@ -236,10 +237,12 @@ final class HealthSyncController extends StateNotifier<HealthSyncState> {
 
 final healthSyncControllerProvider =
     StateNotifierProvider<HealthSyncController, HealthSyncState>((ref) {
+      ref.watch(localDayProvider);
       final consentStore = ref.watch(exerciseSyncConsentStoreProvider);
       final controller = HealthSyncController(
         gateway: ref.watch(healthGatewayProvider),
         consentStore: consentStore,
+        now: ref.watch(localDayClockProvider),
       );
       if (consentStore.consented) {
         unawaited(Future<void>.microtask(controller.refresh));

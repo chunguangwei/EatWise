@@ -7,7 +7,6 @@ import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/health/domain/exercise_goals.dart';
-import 'package:eatwise/features/health/domain/health_activity.dart';
 import 'package:flutter/material.dart';
 
 /// 运动数据同步单独同意弹窗（GDPR Art.9 / PIPL §29 explicit consent，
@@ -39,21 +38,21 @@ Future<bool> showExerciseSyncConsentDialog(BuildContext context) async {
   return result ?? false;
 }
 
-/// 数据页「今日消耗」卡（阶段 D）：活动能量 + 步数 + 摄入−消耗结余。
+/// 数据页今日活动卡：活动能量、步数及来源，禁止解释为代谢结余。
 ///
 /// 薄荷走查 P2 升级：[burnGoalKcal] 非空时展示消耗目标环（X/目标 Y 千卡，
 /// 对标薄荷运动页），[stepsGoal] 非空时步数行附「X/目标 步」进度文本。
 /// 目标为纯展示口径（本地偏好），不占信号灯语义色、不参与判定。
 ///
-/// 仅在同步已开启且读取就绪时由数据页挂载；UI 只做接线，换算与结余
-/// 口径见 `features/health/domain/health_activity.dart`。
+/// 系统日汇总优先，手动记录作为缺失来源的补充，来源口径在共享 provider 中。
 class TodayBurnCard extends StatelessWidget {
   const TodayBurnCard({
     super.key,
     required this.steps,
     required this.burnKcal,
     required this.estimated,
-    this.intakeKcal,
+    this.sourceNote,
+    this.manualKcal,
     this.burnGoalKcal,
     this.stepsGoal,
     this.stepsGuide,
@@ -62,14 +61,15 @@ class TodayBurnCard extends StatelessWidget {
   /// 今日步数（null = 无数据/设备不支持，展示「—」）。
   final int? steps;
 
-  /// 活动消耗（kcal；系统活动能量或步数粗估兜底 + 手动运动合计的合并值）。
+  /// 活动参考消耗（kcal；系统活动能量优先，否则手动记录汇总）。
   final double? burnKcal;
 
   /// burnKcal 是否来自步数粗估（true 时标注「估算」）。
   final bool estimated;
 
-  /// 当日摄入（kcal；非空且有消耗时展示结余行）。
-  final double? intakeKcal;
+  /// 活动来源与手动记录分开展示，后者不再次加进系统汇总。
+  final String? sourceNote;
+  final double? manualKcal;
 
   /// 每日消耗目标（kcal；null = 不展示目标环）。
   final double? burnGoalKcal;
@@ -92,9 +92,6 @@ class TodayBurnCard extends StatelessWidget {
             kcal: burnKcal!.toStringAsFixed(0),
           )
         : t.nutrition.data.burn.kcalValue(kcal: burnKcal!.toStringAsFixed(0));
-    final balance = (burnKcal != null && intakeKcal != null)
-        ? energyBalanceKcal(intakeKcal: intakeKcal!, burnKcal: burnKcal!)
-        : null;
     final burnGoal = burnGoalKcal;
     final stepGoal = stepsGoal;
     final showGoalRing = burnGoal != null && burnKcal != null;
@@ -114,69 +111,99 @@ class TodayBurnCard extends StatelessWidget {
             style: textStyles.textSm.copyWith(color: colors.textSecondary),
           ),
           const SizedBox(height: AppSpacing.s2),
-          Row(
-            children: <Widget>[
-              if (showGoalRing) ...<Widget>[
-                _BurnGoalRing(burnKcal: burnKcal!, goalKcal: burnGoal),
-                const SizedBox(width: AppSpacing.s4),
-              ],
-              Expanded(
-                child: _Metric(
-                  label: t.nutrition.data.burn.activeEnergy,
-                  value: burnText,
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    _Metric(
-                      label: t.nutrition.data.burn.steps,
-                      value: steps?.toString() ?? '—',
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+              final columns = constraints.maxWidth >= 460 * scale
+                  ? 3
+                  : constraints.maxWidth >= 280 * scale
+                  ? 2
+                  : 1;
+              final width =
+                  (constraints.maxWidth - (columns - 1) * AppSpacing.s4) /
+                  columns;
+              return Wrap(
+                spacing: AppSpacing.s4,
+                runSpacing: AppSpacing.s4,
+                children: <Widget>[
+                  if (showGoalRing) ...<Widget>[
+                    SizedBox(
+                      width: width,
+                      child: _BurnGoalRing(
+                        burnKcal: burnKcal!,
+                        goalKcal: burnGoal,
+                      ),
                     ),
-                    if (showStepsProgress) ...<Widget>[
-                      const SizedBox(height: AppSpacing.s1),
-                      Text(
-                        t.nutrition.data.burn.stepsGoalProgress(
-                          steps: '${steps!}',
-                          goal: '$stepGoal',
-                        ),
-                        style: textStyles.textXs.copyWith(
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                    ],
-                    // 无 GMS 设备（步数「—」）→ 引导手动记运动计入消耗。
-                    if (steps == null && stepsGuide != null) ...<Widget>[
-                      const SizedBox(height: AppSpacing.s1),
-                      Text(
-                        stepsGuide!,
-                        style: textStyles.textXs.copyWith(
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                    ],
                   ],
-                ),
-              ),
-            ],
+                  SizedBox(
+                    width: width,
+                    child: _Metric(
+                      label: t.nutrition.data.burn.activeEnergy,
+                      value: burnText,
+                    ),
+                  ),
+                  SizedBox(
+                    width: width,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        _Metric(
+                          label: t.nutrition.data.burn.steps,
+                          value: steps?.toString() ?? '—',
+                        ),
+                        if (showStepsProgress) ...<Widget>[
+                          const SizedBox(height: AppSpacing.s1),
+                          Text(
+                            t.nutrition.data.burn.stepsGoalProgress(
+                              steps: '${steps!}',
+                              goal: '$stepGoal',
+                            ),
+                            style: textStyles.textXs.copyWith(
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                        ],
+                        // 无 GMS 设备（步数「—」）→ 引导手动记运动计入消耗。
+                        if (steps == null && stepsGuide != null) ...<Widget>[
+                          const SizedBox(height: AppSpacing.s1),
+                          Text(
+                            stepsGuide!,
+                            style: textStyles.textXs.copyWith(
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
-          if (balance != null) ...<Widget>[
+          const SizedBox(height: AppSpacing.s3),
+          Text(
+            t.nutrition.data.burn.scopeNote,
+            style: textStyles.textSm.copyWith(color: colors.textSecondary),
+          ),
+          if (sourceNote != null) ...[
             const SizedBox(height: AppSpacing.s2),
             Text(
-              t.nutrition.data.burn.balance(kcal: _signedKcal(balance)),
-              style: textStyles.textSm.copyWith(color: colors.textPrimary),
+              sourceNote!,
+              style: textStyles.textXs.copyWith(color: colors.textSecondary),
+            ),
+          ],
+          if (manualKcal != null) ...[
+            const SizedBox(height: AppSpacing.s2),
+            Text(
+              t.nutrition.data.burn.manualSeparate(
+                kcal: manualKcal!.toStringAsFixed(0),
+              ),
+              style: textStyles.textXs.copyWith(color: colors.textSecondary),
             ),
           ],
         ],
       ),
     );
-  }
-
-  /// 结余带符号（+120 / -80 kcal，正盈余负缺口）。
-  static String _signedKcal(double kcal) {
-    final rounded = kcal.toStringAsFixed(0);
-    return kcal >= 0 ? '+$rounded' : rounded;
   }
 }
 

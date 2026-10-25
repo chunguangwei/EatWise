@@ -177,6 +177,19 @@ describe('阶段 B 减重速率→热量缺口（computeWeightLossPlan，叠加 
   const now = new Date(Date.UTC(2026, 8, 17)); // 2026-09-17 UTC
   const dateInDays = (days: number) => new Date(now.getTime() + days * 86400000);
 
+  it('无可用缺口时不预测日期', () => {
+    expect(
+      computeWeightLossPlan({
+        currentWeightKg: 70,
+        targetWeightKg: 65,
+        targetDate: dateInDays(35),
+        tdee: 1400,
+        minKcal: 1500,
+        now,
+      }),
+    ).toBeNull();
+  });
+
   it('正常缺口：70→65 kg / 70 天 → 0.5 kg/周，日缺口 550 kcal', () => {
     const plan = computeWeightLossPlan({
       currentWeightKg: 70,
@@ -202,12 +215,12 @@ describe('阶段 B 减重速率→热量缺口（computeWeightLossPlan，叠加 
       minKcal: 1500,
       now,
     })!;
-    expect(plan.weeklyRateKg).toBe(1.0);
-    expect(plan.dailyDeficitKcal).toBeCloseTo(1100, 6);
+    expect(plan.weeklyRateKg).toBeCloseTo((700 * 7) / 7700, 6);
+    expect(plan.dailyDeficitKcal).toBe(700);
     // 2200 − 1100 = 1100 < 1500 → 下限保护到 1500（不破既有下限）
     expect(plan.targetKcal).toBe(1500);
     expect(plan.clamped).toBe(true);
-    expect(plan.reachDate).toBe(dateInDays(70).toISOString().slice(0, 10)); // 10kg ÷ 1kg/周
+    expect(plan.reachDate).toBe(dateInDays(110).toISOString().slice(0, 10));
   });
 
   it('下限保护：缺口法结果不破 minKcal', () => {
@@ -219,8 +232,9 @@ describe('阶段 B 减重速率→热量缺口（computeWeightLossPlan，叠加 
       minKcal: 1200,
       now,
     })!;
-    expect(plan.weeklyRateKg).toBe(1.0); // 5kg/5周 = 1.0 恰好不 clamp
-    expect(plan.clamped).toBe(false);
+    expect(plan.weeklyRateKg).toBeCloseTo((800 * 7) / 7700, 6);
+    expect(plan.dailyDeficitKcal).toBe(800);
+    expect(plan.clamped).toBe(true);
     expect(plan.targetKcal).toBe(1200); // 2000 − 1100 = 900 → 下限 1200
   });
 
@@ -276,7 +290,7 @@ describe('阶段 B 减重速率→热量缺口（computeWeightLossPlan，叠加 
       targetDate: new Date(Date.now() + 28 * 86400000),
     });
     expect(deficit.weightLoss).toBeDefined();
-    expect(deficit.weightLoss!.weeklyRateKg).toBeCloseTo(0.5, 1);
+    expect(deficit.weightLoss!.weeklyRateKg).toBeCloseTo(((1513.8 - 1200) * 7) / 7700, 6);
     expect(deficit.kcal).toBe(1200); // 下限保护兜底
 
     // 目标≥当前 → 回落固定 ×0.8

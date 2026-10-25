@@ -536,8 +536,8 @@ class Translations$onboarding$recommendation$zh_CN {
 	/// zh-CN: '每日热量目标约 ${kcal} kcal'
 	String dailyKcalTarget({required Object kcal}) => '每日热量目标约 ${kcal} kcal';
 
-	/// zh-CN: '你的目标节奏偏快，已按安全上限调整为每周最多减 1 kg。'
-	String get clampedNotice => '你的目标节奏偏快，已按安全上限调整为每周最多减 1 kg。';
+	/// zh-CN: '已结合减重速率与最低摄入限制调整计划；预计日期仅供参考。'
+	String get clampedNotice => '已结合减重速率与最低摄入限制调整计划；预计日期仅供参考。';
 
 	/// zh-CN: '已为你按温和节奏安排，每周最多减 0.5 kg。'
 	String get gentleNotice => '已为你按温和节奏安排，每周最多减 0.5 kg。';
@@ -1953,6 +1953,7 @@ class Translations$nutrition$data$zh_CN {
 	late final Translations$nutrition$data$proDetails$zh_CN proDetails = Translations$nutrition$data$proDetails$zh_CN.internal(_root);
 	late final Translations$nutrition$data$trend$zh_CN trend = Translations$nutrition$data$trend$zh_CN.internal(_root);
 	late final Translations$nutrition$data$burn$zh_CN burn = Translations$nutrition$data$burn$zh_CN.internal(_root);
+	late final Translations$nutrition$data$energy$zh_CN energy = Translations$nutrition$data$energy$zh_CN.internal(_root);
 }
 
 // Path: nutrition.signalCard
@@ -4183,8 +4184,8 @@ class Translations$nutrition$data$burn$zh_CN {
 
 	// Translations
 
-	/// zh-CN: '今日消耗'
-	String get title => '今日消耗';
+	/// zh-CN: '今日活动'
+	String get title => '今日活动';
 
 	/// zh-CN: '活动消耗'
 	String get activeEnergy => '活动消耗';
@@ -4198,9 +4199,6 @@ class Translations$nutrition$data$burn$zh_CN {
 	/// zh-CN: '约 ${kcal} kcal（按步数估算）'
 	String estimatedValue({required Object kcal}) => '约 ${kcal} kcal（按步数估算）';
 
-	/// zh-CN: '摄入 − 消耗结余：${kcal} kcal'
-	String balance({required Object kcal}) => '摄入 − 消耗结余：${kcal} kcal';
-
 	/// zh-CN: '${kcal} / ${goal} 千卡'
 	String goalProgress({required Object kcal, required Object goal}) => '${kcal} / ${goal} 千卡';
 
@@ -4212,6 +4210,54 @@ class Translations$nutrition$data$burn$zh_CN {
 
 	/// zh-CN: '手动记运动可计入消耗'
 	String get manualGuide => '手动记运动可计入消耗';
+
+	/// zh-CN: '活动消耗不含静息代谢，不代表全天总消耗，也不直接抵扣摄入目标。'
+	String get scopeNote => '活动消耗不含静息代谢，不代表全天总消耗，也不直接抵扣摄入目标。';
+
+	/// zh-CN: '采用系统汇总，手动记录不重复叠加'
+	String get systemSource => '采用系统汇总，手动记录不重复叠加';
+
+	/// zh-CN: '采用手动记录，消耗数值仅供参考'
+	String get manualSource => '采用手动记录，消耗数值仅供参考';
+
+	/// zh-CN: '另有手动记录 ${kcal} kcal（未叠加，可能与系统重合）'
+	String manualSeparate({required Object kcal}) => '另有手动记录 ${kcal} kcal（未叠加，可能与系统重合）';
+}
+
+// Path: nutrition.data.energy
+class Translations$nutrition$data$energy$zh_CN {
+	Translations$nutrition$data$energy$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '摄入与目标'
+	String get title => '摄入与目标';
+
+	/// zh-CN: '已记录摄入'
+	String get intake => '已记录摄入';
+
+	/// zh-CN: '每日摄入目标'
+	String get target => '每日摄入目标';
+
+	/// zh-CN: '距目标还差 ${kcal} kcal'
+	String remaining({required Object kcal}) => '距目标还差 ${kcal} kcal';
+
+	/// zh-CN: '高于目标 ${kcal} kcal'
+	String over({required Object kcal}) => '高于目标 ${kcal} kcal';
+
+	/// zh-CN: '尚无进食记录，不能据此判断实际摄入为零。'
+	String get empty => '尚无进食记录，不能据此判断实际摄入为零。';
+
+	/// zh-CN: '目标已考虑日常活动；记录可能不完整，差值不代表真实热量缺口。'
+	String get note => '目标已考虑日常活动；记录可能不完整，差值不代表真实热量缺口。';
+
+	/// zh-CN: '历史摄入与当前目标对照（历史目标未保存）'
+	String get historical => '历史摄入与当前目标对照（历史目标未保存）';
+
+	/// zh-CN: '管理身体档案与目标'
+	String get details => '管理身体档案与目标';
 }
 
 // Path: nutrition.signalCard.zone
@@ -4760,7 +4806,7 @@ extension on Translations {
 			'onboarding.recommendation.planChangeConfirm' => ({required Object date}) => '新方案将于 ${date} 00:00 生效，今天仍按当前方案计时。',
 			'onboarding.recommendation.weightLossPlan' => ({required Object rate, required Object date}) => '预计每周减 ${rate} kg · 约 ${date} 达成',
 			'onboarding.recommendation.dailyKcalTarget' => ({required Object kcal}) => '每日热量目标约 ${kcal} kcal',
-			'onboarding.recommendation.clampedNotice' => '你的目标节奏偏快，已按安全上限调整为每周最多减 1 kg。',
+			'onboarding.recommendation.clampedNotice' => '已结合减重速率与最低摄入限制调整计划；预计日期仅供参考。',
 			'onboarding.recommendation.gentleNotice' => '已为你按温和节奏安排，每周最多减 0.5 kg。',
 			'onboarding.recommendation.edNotice' => '你提到有进食障碍相关经历：减重目标已按温和节奏调整。本应用不提供医疗建议，建议同步咨询专业医生或营养师。',
 			'onboarding.science.title' => '断食原理小科普',
@@ -5240,16 +5286,28 @@ extension on Translations {
 			'nutrition.data.trend.ctaRecord' => '去记录',
 			'nutrition.data.trend.hourUnit' => '小时',
 			'nutrition.data.trend.unitLegend' => ({required Object unit}) => '单位：${unit}',
-			'nutrition.data.burn.title' => '今日消耗',
+			'nutrition.data.burn.title' => '今日活动',
 			'nutrition.data.burn.activeEnergy' => '活动消耗',
 			'nutrition.data.burn.steps' => '步数',
 			'nutrition.data.burn.kcalValue' => ({required Object kcal}) => '${kcal} kcal',
 			'nutrition.data.burn.estimatedValue' => ({required Object kcal}) => '约 ${kcal} kcal（按步数估算）',
-			'nutrition.data.burn.balance' => ({required Object kcal}) => '摄入 − 消耗结余：${kcal} kcal',
 			'nutrition.data.burn.goalProgress' => ({required Object kcal, required Object goal}) => '${kcal} / ${goal} 千卡',
 			'nutrition.data.burn.stepsGoalProgress' => ({required Object steps, required Object goal}) => '${steps} / ${goal} 步',
 			'nutrition.data.burn.goalRingLabel' => ({required Object percent}) => '今日消耗目标进度 ${percent}%',
 			'nutrition.data.burn.manualGuide' => '手动记运动可计入消耗',
+			'nutrition.data.burn.scopeNote' => '活动消耗不含静息代谢，不代表全天总消耗，也不直接抵扣摄入目标。',
+			'nutrition.data.burn.systemSource' => '采用系统汇总，手动记录不重复叠加',
+			'nutrition.data.burn.manualSource' => '采用手动记录，消耗数值仅供参考',
+			'nutrition.data.burn.manualSeparate' => ({required Object kcal}) => '另有手动记录 ${kcal} kcal（未叠加，可能与系统重合）',
+			'nutrition.data.energy.title' => '摄入与目标',
+			'nutrition.data.energy.intake' => '已记录摄入',
+			'nutrition.data.energy.target' => '每日摄入目标',
+			'nutrition.data.energy.remaining' => ({required Object kcal}) => '距目标还差 ${kcal} kcal',
+			'nutrition.data.energy.over' => ({required Object kcal}) => '高于目标 ${kcal} kcal',
+			'nutrition.data.energy.empty' => '尚无进食记录，不能据此判断实际摄入为零。',
+			'nutrition.data.energy.note' => '目标已考虑日常活动；记录可能不完整，差值不代表真实热量缺口。',
+			'nutrition.data.energy.historical' => '历史摄入与当前目标对照（历史目标未保存）',
+			'nutrition.data.energy.details' => '管理身体档案与目标',
 			'nutrition.signalCard.zone.green' => '达标',
 			'nutrition.signalCard.zone.yellow' => '适量提醒',
 			'nutrition.signalCard.zone.red' => '警示',
@@ -5718,6 +5776,8 @@ extension on Translations {
 			'auth.changePassword.oldHint' => '请输入当前密码',
 			'auth.changePassword.oldRequired' => '请输入当前密码',
 			'auth.changePassword.newLabel' => '新密码',
+			_ => null,
+		} ?? switch (path) {
 			'auth.changePassword.newHint' => '8-64 位，需包含字母和数字',
 			'auth.changePassword.confirmLabel' => '确认新密码',
 			'auth.changePassword.confirmHint' => '再次输入新密码',
@@ -5730,8 +5790,6 @@ extension on Translations {
 			'auth.error.passwordTooWeak' => '密码需 8-64 位且包含字母和数字',
 			'update.title' => '发现新版本',
 			'update.newVersion' => ({required Object version}) => '最新版本：${version}',
-			_ => null,
-		} ?? switch (path) {
 			'update.updateNow' => '立即更新',
 			'update.later' => '以后再说',
 			'update.upToDate' => '当前已是最新版本',

@@ -338,9 +338,9 @@ void main() {
     // 当日重算：TDEE 1693.8 − 1100 → 下限 1200；快照带缺口法字段。
     final goal = store.loadNutritionGoal()!;
     expect(goal.targetKcal, 1200);
-    expect(goal.weeklyRateKg, 1.0);
+    expect(goal.weeklyRateKg, closeTo((1693.8 - 1200) * 7 / 7700, 1e-9));
     expect(goal.weightLossClamped, isTrue);
-    expect(goal.reachDate, '2026-12-15'); // 20kg ÷ 1kg/周 = 140 天
+    expect(goal.reachDate, '2027-06-05'); // 20kg 按实际 493.8kcal 缺口需 312 天
     final profile = store.loadProfile()!;
     expect(profile.targetWeightKg, 50);
     expect(profile.targetDate?.toIsoString(), '2026-09-22');

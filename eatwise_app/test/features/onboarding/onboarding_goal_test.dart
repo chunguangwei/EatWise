@@ -163,10 +163,10 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.textContaining('预计每周减 1 kg'), findsOneWidget);
-    expect(find.textContaining('2026年10月6日'), findsOneWidget); // 夹取后 70 天
+    expect(find.textContaining('预计每周减 0.45 kg'), findsOneWidget);
+    expect(find.textContaining('2026年12月31日'), findsOneWidget); // 夹取后 70 天
     expect(find.textContaining('每日热量目标约 1200 kcal'), findsOneWidget);
-    expect(find.textContaining('已按安全上限调整为每周最多减 1 kg'), findsOneWidget);
+    expect(find.textContaining('已结合减重速率与最低摄入限制调整计划'), findsOneWidget);
     // 未答筛查题 → 无强化免责提示。
     expect(
       find.byKey(const ValueKey<String>('onboarding.recommendation.edNotice')),
@@ -182,9 +182,9 @@ void main() {
     final goal = store.loadNutritionGoal()!;
     expect(goal.usedFallback, isFalse);
     expect(goal.targetKcal, 1200);
-    expect(goal.weeklyRateKg, 1.0);
+    expect(goal.weeklyRateKg, closeTo((1693.8 - 1200) * 7 / 7700, 1e-9));
     expect(goal.weightLossClamped, isTrue);
-    expect(goal.reachDate, '2026-10-06');
+    expect(goal.reachDate, '2026-12-31');
     final synced = sync.completedCalls.single.profile!;
     expect(synced.targetWeightKg, 60);
     expect(synced.targetDate?.toIsoString(), '2026-08-25');
@@ -205,7 +205,7 @@ void main() {
     await tapVisible(tester, const ValueKey<String>('onboarding.goal.save'));
 
     // 温和节奏提示 + 强化免责提示。
-    expect(find.textContaining('预计每周减 0.5 kg'), findsOneWidget);
+    expect(find.textContaining('预计每周减 0.45 kg'), findsOneWidget);
     expect(find.textContaining('每周最多减 0.5 kg'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('onboarding.recommendation.edNotice')),
@@ -219,7 +219,7 @@ void main() {
     await pumpFrames(tester);
     expect(find.byType(FastingHomePage), findsOneWidget);
     final goal = store.loadNutritionGoal()!;
-    expect(goal.weeklyRateKg, 0.5);
+    expect(goal.weeklyRateKg, closeTo((1693.8 - 1200) * 7 / 7700, 1e-9));
     expect(goal.weightLossClamped, isTrue);
     // 1693.8 − 550 = 1143.8 → 下限 1200
     expect(goal.targetKcal, 1200);

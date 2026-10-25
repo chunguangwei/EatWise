@@ -271,7 +271,6 @@ void main() {
                 steps: steps,
                 burnKcal: burnKcal,
                 estimated: estimated,
-                intakeKcal: intakeKcal,
                 burnGoalKcal: burnGoalKcal,
                 stepsGoal: stepsGoal,
               ),
@@ -284,10 +283,11 @@ void main() {
 
     testWidgets('活动能量 + 步数 + 结余（摄入−消耗）', (tester) async {
       await pumpCard(tester);
-      expect(find.text('今日消耗'), findsOneWidget);
+      expect(find.text('今日活动'), findsOneWidget);
       expect(find.text('245 kcal'), findsOneWidget);
       expect(find.text('6200'), findsOneWidget);
-      expect(find.textContaining('+1255'), findsOneWidget);
+      expect(find.textContaining('+1255'), findsNothing);
+      expect(find.textContaining('结余'), findsNothing);
     });
 
     testWidgets('步数粗估兜底时标注估算', (tester) async {
@@ -303,8 +303,9 @@ void main() {
     testWidgets('英文渲染', (tester) async {
       await LocaleSettings.setLocale(AppLocale.en);
       await pumpCard(tester);
-      expect(find.text("Today's burn"), findsOneWidget);
-      expect(find.textContaining('+1255'), findsOneWidget);
+      expect(find.text("Today's activity"), findsOneWidget);
+      expect(find.textContaining('+1255'), findsNothing);
+      expect(find.textContaining('结余'), findsNothing);
     });
 
     testWidgets('薄荷走查 P2：消耗目标环（X/目标 Y）+ 步数进度行', (tester) async {

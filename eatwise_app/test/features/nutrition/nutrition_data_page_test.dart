@@ -4,6 +4,8 @@ import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_theme.dart';
+import 'package:eatwise/features/health/application/exercise_log_providers.dart';
+import 'package:eatwise/features/health/presentation/health_widgets.dart';
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart';
 import 'package:eatwise/features/nutrition/presentation/nutrition_data_page.dart';
 import 'package:eatwise/features/nutrition/presentation/pro_details.dart';
@@ -23,6 +25,7 @@ void main() {
 
   late AppDatabase db;
   late SharedPreferences prefs;
+  double manualKcal = 0;
 
   setUp(() async {
     await LocaleSettings.setLocale(AppLocale.zhCn);
@@ -41,6 +44,7 @@ void main() {
         configVersion: '1.0.0',
       ),
     );
+    manualKcal = 0;
     db = AppDatabase.memory();
     addTearDown(() async {
       await db.close();
@@ -80,6 +84,9 @@ void main() {
             sharedPreferencesProvider.overrideWithValue(prefs),
             appDatabaseProvider.overrideWithValue(db),
             nutritionNowProvider.overrideWithValue(now),
+            todayExerciseKcalProvider.overrideWith(
+              (ref) => Stream.value(manualKcal),
+            ),
           ],
           child: MaterialApp(
             theme: AppTheme.light(),
@@ -99,6 +106,25 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1));
   }
+
+  testWidgets('切换历史日期不混入今天的活动汇总', (tester) async {
+    manualKcal = 300;
+    await pumpPage(tester);
+    await tester.scrollUntilVisible(
+      find.byType(TodayBurnCard),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('300 kcal'), findsOneWidget);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(NutritionDataPage)),
+    );
+    container.read(selectedDateProvider.notifier).prevDay();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byType(TodayBurnCard), findsNothing);
+    await unmount(tester);
+  });
 
   testWidgets('信号灯四卡：三重编码（色+图标+文字）+ 大数值；建议收进徽标弹窗', (tester) async {
     // kcal 1700（85% 绿）；protein 75（75% 黄）；carb 80（40% 红）；
@@ -142,10 +168,15 @@ void main() {
     expect(find.text('适量提醒'), findsOneWidget);
     expect(find.text('警示'), findsOneWidget);
     // 信号卡、专业表与趋势大读数均展示同一真实摄入值。
-    expect(find.text('1700'), findsNWidgets(3));
+    expect(find.text('1700'), findsWidgets);
     expect(find.text('/ 目标 2000 千卡'), findsOneWidget);
     // 一句话建议不再占卡面（瘦身）；点红区碳水徽标弹详情对话框读全。
+    expect(find.textContaining('有几盏小红灯'), findsOneWidget);
     expect(find.textContaining('今天碳水太少了'), findsNothing);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('signal.zone.NutrientType.carb')),
+    );
+    await tester.pump();
     await tester.tap(
       find.byKey(const ValueKey<String>('signal.zone.NutrientType.carb')),
     );
@@ -158,7 +189,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('今天碳水太少了'), findsNothing);
     // 总结 H2：有红 → 温和引导。
-    expect(find.textContaining('有几盏小红灯'), findsOneWidget);
     // 无记录空态不出现。
     expect(find.text('去记录'), findsNothing);
 
@@ -182,6 +212,11 @@ void main() {
     await seedToday(kcal: 2000, proteinG: 100, carbG: 200, fatG: 60);
     await pumpPage(tester);
 
+    await tester.scrollUntilVisible(
+      find.byType(ProDetailsSection),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     final material = tester.widget<Material>(
       find
           .descendant(
@@ -224,7 +259,7 @@ void main() {
     await pumpPage(tester);
 
     // 当日空态 CTA + 趋势空态 CTA（薄荷走查 P2 补齐）各一个。
-    expect(find.text('去记录'), findsNWidgets(2));
+    expect(find.text('去记录'), findsWidgets);
     expect(find.text('数据曲线正在热身，多记几天它就跑起来啦。'), findsOneWidget);
     // 无信号灯图标、无专业数据区。
     expect(find.byIcon(Icons.check_circle), findsNothing);
@@ -253,7 +288,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('回到今天'), findsOneWidget);
     // 昨天无记录 → 空态（当日空态 + 趋势空态各一个 CTA）。
-    expect(find.text('去记录'), findsNWidgets(2));
+    expect(find.text('去记录'), findsWidgets);
 
     await tester.tap(find.text('回到今天'));
     await tester.pump();
@@ -269,11 +304,17 @@ void main() {
     await seedToday(kcal: 2000, proteinG: 100, carbG: 200, fatG: 60);
     await pumpPage(tester);
 
+    await tester.scrollUntilVisible(
+      find.text('近 7 日趋势'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('近 7 日趋势'), findsOneWidget);
     expect(find.text('记满几天，趋势曲线就跑起来啦'), findsNothing);
     expect(find.byType(CustomPaint), findsWidgets);
 
     // 切到断食时长：历史未持久化 → 空态引导（〔遗留〕M6 接入）。
+    await tester.ensureVisible(find.text('断食时长'));
     await tester.tap(find.text('断食时长'));
     await tester.pump();
     expect(find.text('记满几天，趋势曲线就跑起来啦'), findsOneWidget);
@@ -293,6 +334,10 @@ void main() {
     expect(find.text('Warning'), findsOneWidget);
     // 建议收进徽标弹窗：窄屏下卡面无建议长文，点开弹窗读全。
     expect(find.textContaining('Carbs are well under today'), findsNothing);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('signal.zone.NutrientType.carb')),
+    );
+    await tester.pump();
     await tester.tap(
       find.byKey(const ValueKey<String>('signal.zone.NutrientType.carb')),
     );
@@ -307,7 +352,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     // 折叠区在首屏外（Sliver 懒加载），先滚动露出再展开。
-    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    await tester.scrollUntilVisible(
+      find.text('View details'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pump();
     expect(find.text('View details'), findsOneWidget);
     await tester.tap(find.text('View details'));
@@ -316,7 +365,13 @@ void main() {
     expect(find.text('RDA ref.'), findsOneWidget);
     // 数值列去单位：目标列裸数字，旧「值+单位」拼接文本不再出现（单位进注）。
     expect(find.text('2000'), findsWidgets);
-    expect(find.text('2000 kcal'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(ProDetailsSection),
+        matching: find.text('2000 kcal'),
+      ),
+      findsNothing,
+    );
     // 截断规则（v1.13.3 追加）：表内名称/数值全部 FittedBox 兜底，
     // 窄屏整体缩放完整显示，不再「蛋…」式省略。
     expect(

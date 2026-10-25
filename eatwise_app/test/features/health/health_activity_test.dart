@@ -18,19 +18,6 @@ void main() {
     });
   });
 
-  group('energyBalanceKcal（摄入 − 消耗结余）', () {
-    test('盈余为正，缺口为负', () {
-      expect(
-        energyBalanceKcal(intakeKcal: 1500, burnKcal: 245),
-        closeTo(1255, 0.01),
-      );
-      expect(
-        energyBalanceKcal(intakeKcal: 1200, burnKcal: 1500),
-        closeTo(-300, 0.01),
-      );
-    });
-  });
-
   group('HealthTodaySummary', () {
     test('全空判定', () {
       expect(const HealthTodaySummary().isEmpty, isTrue);
@@ -41,7 +28,7 @@ void main() {
       const withEnergy = HealthTodaySummary(steps: 5000, activeEnergyKcal: 200);
       expect(withEnergy.displayBurnKcal, 200);
       const stepsOnly = HealthTodaySummary(steps: 5000);
-      expect(stepsOnly.displayBurnKcal, closeTo(120, 0.01));
+      expect(stepsOnly.displayBurnKcal, isNull);
       const none = HealthTodaySummary();
       expect(none.displayBurnKcal, isNull);
     });

@@ -3,6 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// 手动记运动领域纯函数测试：MET 系数表 / kcal 估算 / 系统+手动合并口径。
 void main() {
+  test('有效系统零值保留；非法系统值回落手动', () {
+    expect(mergeBurnKcal(systemKcal: 0, manualKcal: 180), 0);
+    expect(mergeBurnKcal(systemKcal: double.nan, manualKcal: 180), 180);
+    expect(mergeBurnKcal(systemKcal: double.infinity), isNull);
+    expect(mergeSteps(systemSteps: 0, manualSteps: 100), 0);
+  });
+
   group('MET 系数表', () {
     test('17 种常见运动齐备（含篮球/足球/乒乓球/网球/健身操补齐项），MET 均为正', () {
       expect(exerciseTypes, hasLength(17));
@@ -65,8 +72,8 @@ void main() {
   });
 
   group('mergeBurnKcal（系统活动能量 + 手动运动合计）', () {
-    test('系统 + 手动叠加', () {
-      expect(mergeBurnKcal(systemKcal: 250, manualKcal: 180), 430);
+    test('系统优先，手动作为缺失时补充', () {
+      expect(mergeBurnKcal(systemKcal: 250, manualKcal: 180), 250);
     });
 
     test('仅手动（unsupported 设备）/ 仅系统', () {
@@ -76,7 +83,7 @@ void main() {
 
     test('两者皆无或皆为 0 → null（UI 走「—」/不出卡）', () {
       expect(mergeBurnKcal(), isNull);
-      expect(mergeBurnKcal(systemKcal: 0, manualKcal: 0), isNull);
+      expect(mergeBurnKcal(systemKcal: 0, manualKcal: 0), 0);
       expect(mergeBurnKcal(systemKcal: null, manualKcal: null), isNull);
     });
   });
@@ -106,15 +113,15 @@ void main() {
   });
 
   group('mergeSteps（系统步数 + 手动/截图步数合计）', () {
-    test('系统 + 手动叠加 / 仅手动（unsupported）/ 仅系统', () {
-      expect(mergeSteps(systemSteps: 6200, manualSteps: 1466), 7666);
+    test('系统优先，手动作为缺失时补充 / 仅手动（unsupported）/ 仅系统', () {
+      expect(mergeSteps(systemSteps: 6200, manualSteps: 1466), 6200);
       expect(mergeSteps(manualSteps: 1466), 1466);
       expect(mergeSteps(systemSteps: 6200), 6200);
     });
 
     test('两者皆无或皆为 0 → null（UI 走「—」）', () {
       expect(mergeSteps(), isNull);
-      expect(mergeSteps(systemSteps: 0, manualSteps: 0), isNull);
+      expect(mergeSteps(systemSteps: 0, manualSteps: 0), 0);
       expect(mergeSteps(systemSteps: null, manualSteps: null), isNull);
     });
   });

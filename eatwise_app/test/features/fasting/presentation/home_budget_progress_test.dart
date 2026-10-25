@@ -153,7 +153,7 @@ void main() {
       await pumpHome(tester);
 
       expect(find.text('250'), findsOneWidget);
-      expect(find.text('系统活动 + 手动运动合计'), findsOneWidget);
+      expect(find.text('采用系统汇总，手动记录不重复叠加'), findsOneWidget);
       // 步数卡：系统步数 8000 + 目标进度行（默认目标 5000 步）。
       expect(find.text('8000'), findsOneWidget);
       expect(find.textContaining('/ 5000 步'), findsOneWidget);
@@ -180,7 +180,7 @@ void main() {
       expect(find.text('8000'), findsOneWidget);
       expect(find.text('250'), findsOneWidget);
       // 说明行完整不截（运动消耗的说明文案较长）。
-      expect(find.text('系统活动 + 手动运动合计'), findsOneWidget);
+      expect(find.text('采用系统汇总，手动记录不重复叠加'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
       await unmount(tester);

@@ -55,6 +55,13 @@ export function computeWeightLossPlan(input: {
 }): WeightLossPlanResult | null {
   const { currentWeightKg, targetWeightKg, targetDate, tdee, minKcal } = input;
   if (targetWeightKg == null || targetDate == null) return null;
+  if (
+    ![currentWeightKg, targetWeightKg, tdee, minKcal].every(Number.isFinite) ||
+    currentWeightKg <= 0 ||
+    targetWeightKg <= 0 ||
+    minKcal <= 0
+  )
+    return null;
   if (targetWeightKg >= currentWeightKg) return null; // 增重/维持不走缺口法
   const now = input.now ?? new Date();
   const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
@@ -63,10 +70,13 @@ export function computeWeightLossPlan(input: {
 
   const deltaKg = currentWeightKg - targetWeightKg;
   const rawRate = deltaKg / (daysToTarget / 7);
-  const clamped = rawRate > WEEKLY_RATE_MAX_KG;
-  const weeklyRateKg = Math.min(WEEKLY_RATE_MAX_KG, Math.max(WEEKLY_RATE_MIN_KG, rawRate));
-  const dailyDeficitKcal = (weeklyRateKg * KCAL_PER_KG) / 7;
-  const targetKcal = Math.max(tdee - dailyDeficitKcal, minKcal);
+  const requestedRate = Math.min(WEEKLY_RATE_MAX_KG, Math.max(WEEKLY_RATE_MIN_KG, rawRate));
+  const requestedDeficit = (requestedRate * KCAL_PER_KG) / 7;
+  const targetKcal = Math.max(tdee - requestedDeficit, minKcal);
+  const dailyDeficitKcal = tdee - targetKcal;
+  if (!Number.isFinite(dailyDeficitKcal) || dailyDeficitKcal <= 0) return null;
+  const weeklyRateKg = (dailyDeficitKcal * 7) / KCAL_PER_KG;
+  const clamped = rawRate > WEEKLY_RATE_MAX_KG || tdee - requestedDeficit < minKcal;
   const daysToReach = Math.ceil((deltaKg / weeklyRateKg) * 7);
   const reachDate = new Date(todayUtc + daysToReach * 86400000).toISOString().slice(0, 10);
   return { weeklyRateKg, dailyDeficitKcal, targetKcal, clamped, reachDate };

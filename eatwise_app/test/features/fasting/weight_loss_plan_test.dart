@@ -13,6 +13,33 @@ void main() {
   const config = NutritionRuleConfig.defaults;
 
   group('computeWeightLossPlan', () {
+    test('摄入下限限制后，速率和达成日按实际缺口计算', () {
+      final plan = computeWeightLossPlan(
+        currentWeightKg: 70,
+        targetWeightKg: 65,
+        targetDate: today.addDays(35),
+        today: today,
+        tdee: 1600,
+        minKcal: 1500,
+      )!;
+      expect(plan.dailyDeficitKcal, 100);
+      expect(plan.weeklyRateKg, closeTo(100 * 7 / 7700, 1e-9));
+      expect(plan.reachDate, today.addDays(385));
+      expect(plan.clamped, isTrue);
+    });
+    test('无可用缺口时不预测达成日期', () {
+      expect(
+        computeWeightLossPlan(
+          currentWeightKg: 70,
+          targetWeightKg: 65,
+          targetDate: today.addDays(35),
+          today: today,
+          tdee: 1400,
+          minKcal: 1500,
+        ),
+        isNull,
+      );
+    });
     test('正常缺口：70→65 kg / 70 天 → 0.5 kg/周，日缺口 550 kcal', () {
       final plan = computeWeightLossPlan(
         currentWeightKg: 70,
@@ -38,12 +65,12 @@ void main() {
         tdee: 2200,
         minKcal: 1500,
       )!;
-      expect(plan.weeklyRateKg, 1.0);
-      expect(plan.dailyDeficitKcal, closeTo(1100, 1e-9));
+      expect(plan.weeklyRateKg, closeTo(700 * 7 / 7700, 1e-9));
+      expect(plan.dailyDeficitKcal, 700);
       // 2200 − 1100 = 1100 < 1500 → 下限保护（不破既有下限常量）
       expect(plan.targetKcal, 1500);
       expect(plan.clamped, isTrue);
-      expect(plan.reachDate, today.addDays(70)); // 10kg ÷ 1kg/周
+      expect(plan.reachDate, today.addDays(110)); // 按实际 700kcal 缺口
     });
 
     test('速率恰好 1.0 kg/周不标 clamped（边界）', () {
@@ -55,8 +82,8 @@ void main() {
         tdee: 2500,
         minKcal: 1500,
       )!;
-      expect(plan.weeklyRateKg, 1.0);
-      expect(plan.clamped, isFalse);
+      expect(plan.weeklyRateKg, closeTo(1000 * 7 / 7700, 1e-9));
+      expect(plan.clamped, isTrue);
       // 2500 − 1100 = 1400 < 1500 → 下限保护
       expect(plan.targetKcal, 1500);
     });
@@ -212,8 +239,11 @@ void main() {
         config,
       );
       expect(goal.targetKcal, 1200);
-      expect(goal.weightLoss!.weeklyRateKg, 1.0);
-      expect(goal.weightLoss!.clamped, isFalse);
+      expect(
+        goal.weightLoss!.weeklyRateKg,
+        closeTo((1513.8 - 1200) * 7 / 7700, 1e-9),
+      );
+      expect(goal.weightLoss!.clamped, isTrue);
     });
 
     test('温和化路径：gentleWeightLoss → 周速率 ≤0.5 kg', () {
@@ -232,7 +262,10 @@ void main() {
         ),
         config,
       );
-      expect(goal.weightLoss!.weeklyRateKg, 0.5);
+      expect(
+        goal.weightLoss!.weeklyRateKg,
+        closeTo((1513.8 - 1200) * 7 / 7700, 1e-9),
+      );
       expect(goal.weightLoss!.clamped, isTrue);
       // 1513.8 − 550 = 963.8 → 下限 1200
       expect(goal.targetKcal, 1200);

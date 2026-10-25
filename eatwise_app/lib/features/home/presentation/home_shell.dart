@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/analytics/analytics_providers.dart';
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/core/widgets/glass.dart';
+import 'package:eatwise/features/health/application/health_sync_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -69,6 +72,13 @@ class HomeShell extends ConsumerWidget {
                 child: NavigationBar(
                   selectedIndex: navigationShell.currentIndex,
                   onDestinationSelected: (index) {
+                    if (index == 0 || index == 2) {
+                      unawaited(
+                        ref
+                            .read(healthSyncControllerProvider.notifier)
+                            .refresh(),
+                      );
+                    }
                     navigationShell.goBranch(
                       index,
                       // 再次点按当前 Tab：回分支根路由（go_router 惯例）。

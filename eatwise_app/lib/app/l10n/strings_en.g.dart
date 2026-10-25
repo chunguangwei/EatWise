@@ -391,7 +391,7 @@ class _Translations$onboarding$recommendation$en extends Translations$onboarding
 	@override String planChangeConfirm({required Object date}) => 'The new plan takes effect at 00:00 on ${date}. Today still follows your current plan.';
 	@override String weightLossPlan({required Object rate, required Object date}) => 'About ${rate} kg/week · reach your goal around ${date}';
 	@override String dailyKcalTarget({required Object kcal}) => 'Daily calorie goal ≈ ${kcal} kcal';
-	@override String get clampedNotice => 'That pace was a bit fast, so we\'ve adjusted it to a safe maximum of 1 kg per week.';
+	@override String get clampedNotice => 'The plan accounts for pace and minimum intake limits. The estimated date is a guide only.';
 	@override String get gentleNotice => 'We\'ve set a gentler pace for you — at most 0.5 kg per week.';
 	@override String get edNotice => 'You mentioned an eating-disorder history: your goal has been set to a gentler pace. This app does not provide medical advice — please consider consulting a doctor or dietitian as well.';
 }
@@ -1104,6 +1104,7 @@ class _Translations$nutrition$data$en extends Translations$nutrition$data$zh_CN 
 	@override late final _Translations$nutrition$data$proDetails$en proDetails = _Translations$nutrition$data$proDetails$en._(_root);
 	@override late final _Translations$nutrition$data$trend$en trend = _Translations$nutrition$data$trend$en._(_root);
 	@override late final _Translations$nutrition$data$burn$en burn = _Translations$nutrition$data$burn$en._(_root);
+	@override late final _Translations$nutrition$data$energy$en energy = _Translations$nutrition$data$energy$en._(_root);
 }
 
 // Path: nutrition.signalCard
@@ -2241,16 +2242,37 @@ class _Translations$nutrition$data$burn$en extends Translations$nutrition$data$b
 	final TranslationsEn _root; // ignore: unused_field
 
 	// Translations
-	@override String get title => 'Today\'s burn';
+	@override String get title => 'Today\'s activity';
 	@override String get activeEnergy => 'Active burn';
 	@override String get steps => 'Steps';
 	@override String kcalValue({required Object kcal}) => '${kcal} kcal';
 	@override String estimatedValue({required Object kcal}) => '~${kcal} kcal (estimated from steps)';
-	@override String balance({required Object kcal}) => 'Intake − burn balance: ${kcal} kcal';
 	@override String goalProgress({required Object kcal, required Object goal}) => '${kcal} / ${goal} kcal';
 	@override String stepsGoalProgress({required Object steps, required Object goal}) => '${steps} / ${goal} steps';
 	@override String goalRingLabel({required Object percent}) => 'Today\'s burn goal progress: ${percent}%';
 	@override String get manualGuide => 'Log exercise manually to count toward burn';
+	@override String get scopeNote => 'Activity energy excludes resting metabolism. It is not total daily expenditure and does not increase your food target.';
+	@override String get systemSource => 'Using the system total; manual records are not added again.';
+	@override String get manualSource => 'Using manual records; energy values are estimates.';
+	@override String manualSeparate({required Object kcal}) => 'Manual records: ${kcal} kcal (not added; may overlap the system total).';
+}
+
+// Path: nutrition.data.energy
+class _Translations$nutrition$data$energy$en extends Translations$nutrition$data$energy$zh_CN {
+	_Translations$nutrition$data$energy$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Food intake and target';
+	@override String get intake => 'Recorded intake';
+	@override String get target => 'Daily food target';
+	@override String remaining({required Object kcal}) => '${kcal} kcal below target';
+	@override String over({required Object kcal}) => '${kcal} kcal above target';
+	@override String get empty => 'No food recorded. This does not mean you have eaten nothing.';
+	@override String get note => 'Your target accounts for usual activity. Records may be incomplete; the difference is not your actual energy deficit.';
+	@override String get historical => 'Past intake compared with your current target (past targets are not stored)';
+	@override String get details => 'Manage profile and targets';
 }
 
 // Path: nutrition.signalCard.zone
@@ -2613,7 +2635,7 @@ extension on TranslationsEn {
 			'onboarding.recommendation.planChangeConfirm' => ({required Object date}) => 'The new plan takes effect at 00:00 on ${date}. Today still follows your current plan.',
 			'onboarding.recommendation.weightLossPlan' => ({required Object rate, required Object date}) => 'About ${rate} kg/week · reach your goal around ${date}',
 			'onboarding.recommendation.dailyKcalTarget' => ({required Object kcal}) => 'Daily calorie goal ≈ ${kcal} kcal',
-			'onboarding.recommendation.clampedNotice' => 'That pace was a bit fast, so we\'ve adjusted it to a safe maximum of 1 kg per week.',
+			'onboarding.recommendation.clampedNotice' => 'The plan accounts for pace and minimum intake limits. The estimated date is a guide only.',
 			'onboarding.recommendation.gentleNotice' => 'We\'ve set a gentler pace for you — at most 0.5 kg per week.',
 			'onboarding.recommendation.edNotice' => 'You mentioned an eating-disorder history: your goal has been set to a gentler pace. This app does not provide medical advice — please consider consulting a doctor or dietitian as well.',
 			'onboarding.science.title' => 'How fasting works',
@@ -3093,16 +3115,28 @@ extension on TranslationsEn {
 			'nutrition.data.trend.ctaRecord' => 'Log now',
 			'nutrition.data.trend.hourUnit' => 'h',
 			'nutrition.data.trend.unitLegend' => ({required Object unit}) => 'Unit: ${unit}',
-			'nutrition.data.burn.title' => 'Today\'s burn',
+			'nutrition.data.burn.title' => 'Today\'s activity',
 			'nutrition.data.burn.activeEnergy' => 'Active burn',
 			'nutrition.data.burn.steps' => 'Steps',
 			'nutrition.data.burn.kcalValue' => ({required Object kcal}) => '${kcal} kcal',
 			'nutrition.data.burn.estimatedValue' => ({required Object kcal}) => '~${kcal} kcal (estimated from steps)',
-			'nutrition.data.burn.balance' => ({required Object kcal}) => 'Intake − burn balance: ${kcal} kcal',
 			'nutrition.data.burn.goalProgress' => ({required Object kcal, required Object goal}) => '${kcal} / ${goal} kcal',
 			'nutrition.data.burn.stepsGoalProgress' => ({required Object steps, required Object goal}) => '${steps} / ${goal} steps',
 			'nutrition.data.burn.goalRingLabel' => ({required Object percent}) => 'Today\'s burn goal progress: ${percent}%',
 			'nutrition.data.burn.manualGuide' => 'Log exercise manually to count toward burn',
+			'nutrition.data.burn.scopeNote' => 'Activity energy excludes resting metabolism. It is not total daily expenditure and does not increase your food target.',
+			'nutrition.data.burn.systemSource' => 'Using the system total; manual records are not added again.',
+			'nutrition.data.burn.manualSource' => 'Using manual records; energy values are estimates.',
+			'nutrition.data.burn.manualSeparate' => ({required Object kcal}) => 'Manual records: ${kcal} kcal (not added; may overlap the system total).',
+			'nutrition.data.energy.title' => 'Food intake and target',
+			'nutrition.data.energy.intake' => 'Recorded intake',
+			'nutrition.data.energy.target' => 'Daily food target',
+			'nutrition.data.energy.remaining' => ({required Object kcal}) => '${kcal} kcal below target',
+			'nutrition.data.energy.over' => ({required Object kcal}) => '${kcal} kcal above target',
+			'nutrition.data.energy.empty' => 'No food recorded. This does not mean you have eaten nothing.',
+			'nutrition.data.energy.note' => 'Your target accounts for usual activity. Records may be incomplete; the difference is not your actual energy deficit.',
+			'nutrition.data.energy.historical' => 'Past intake compared with your current target (past targets are not stored)',
+			'nutrition.data.energy.details' => 'Manage profile and targets',
 			'nutrition.signalCard.zone.green' => 'On track',
 			'nutrition.signalCard.zone.yellow' => 'Heads-up',
 			'nutrition.signalCard.zone.red' => 'Warning',
@@ -3571,6 +3605,8 @@ extension on TranslationsEn {
 			'auth.changePassword.oldHint' => 'Enter your current password',
 			'auth.changePassword.oldRequired' => 'Enter your current password',
 			'auth.changePassword.newLabel' => 'New password',
+			_ => null,
+		} ?? switch (path) {
 			'auth.changePassword.newHint' => '8-64 characters with letters and digits',
 			'auth.changePassword.confirmLabel' => 'Confirm new password',
 			'auth.changePassword.confirmHint' => 'Re-enter your new password',
@@ -3583,8 +3619,6 @@ extension on TranslationsEn {
 			'auth.error.passwordTooWeak' => 'Password must be 8-64 characters with letters and digits',
 			'update.title' => 'Update available',
 			'update.newVersion' => ({required Object version}) => 'Latest version: ${version}',
-			_ => null,
-		} ?? switch (path) {
 			'update.updateNow' => 'Update now',
 			'update.later' => 'Later',
 			'update.upToDate' => 'You\'re on the latest version',

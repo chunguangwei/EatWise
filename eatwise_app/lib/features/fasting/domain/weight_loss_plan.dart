@@ -28,7 +28,7 @@ final class WeightLossPlan {
     required this.reachDate,
   });
 
-  /// 周减重速率（kg/周，夹取到 [kWeeklyRateMinKg, 上限]）。
+  /// 摄入下限保护后的实际计划速率（kg/周，可能低于请求速率下限）。
   final double weeklyRateKg;
 
   /// 日热量缺口（kcal）= weeklyRateKg × 7700 ÷ 7。
@@ -37,10 +37,10 @@ final class WeightLossPlan {
   /// 缺口法每日热量目标（kcal，含下限保护，未取整——取整由调用方统一做）。
   final double targetKcal;
 
-  /// 原始速率超安全上限被夹取（UI 提示「已按安全上限调整」）。
+  /// 受到速率上限或最低摄入限制。
   final bool clamped;
 
-  /// 预计达成日期（按夹取后速率折算；被夹取时晚于目标日期）。
+  /// 按实际计划缺口折算的参考日期；不代表真实体重变化保证。
   final LocalDate reachDate;
 
   @override
@@ -77,6 +77,15 @@ WeightLossPlan? computeWeightLossPlan({
   bool gentle = false,
 }) {
   if (targetWeightKg == null || targetDate == null) return null;
+  if (!currentWeightKg.isFinite ||
+      !targetWeightKg.isFinite ||
+      !tdee.isFinite ||
+      !minKcal.isFinite ||
+      currentWeightKg <= 0 ||
+      targetWeightKg <= 0 ||
+      minKcal <= 0) {
+    return null;
+  }
   if (targetWeightKg >= currentWeightKg) return null;
   final daysToTarget = daysBetweenLocalDate(today, targetDate);
   if (daysToTarget <= 0) return null;
@@ -84,12 +93,14 @@ WeightLossPlan? computeWeightLossPlan({
   final deltaKg = currentWeightKg - targetWeightKg;
   final rawRate = deltaKg / (daysToTarget / 7);
   final maxRate = gentle ? kGentleWeeklyRateMaxKg : kWeeklyRateMaxKg;
-  final clamped = rawRate > maxRate;
-  final weeklyRateKg = rawRate.clamp(kWeeklyRateMinKg, maxRate);
-  final dailyDeficitKcal = weeklyRateKg * kKcalPerKgBodyWeight / 7;
-  final targetKcal = (tdee - dailyDeficitKcal) < minKcal
-      ? minKcal
-      : tdee - dailyDeficitKcal;
+  final requestedRate = rawRate.clamp(kWeeklyRateMinKg, maxRate);
+  final requestedDeficit = requestedRate * kKcalPerKgBodyWeight / 7;
+  final targetKcal = (tdee - requestedDeficit).clamp(minKcal, double.infinity);
+  final dailyDeficitKcal = tdee - targetKcal;
+  // 无可用缺口时不虚构达成日期；调用方保持既有目标下限保护。
+  if (!dailyDeficitKcal.isFinite || dailyDeficitKcal <= 0) return null;
+  final weeklyRateKg = dailyDeficitKcal * 7 / kKcalPerKgBodyWeight;
+  final clamped = rawRate > maxRate || tdee - requestedDeficit < minKcal;
   final daysToReach = (deltaKg / weeklyRateKg * 7).ceil();
   return WeightLossPlan(
     weeklyRateKg: weeklyRateKg,

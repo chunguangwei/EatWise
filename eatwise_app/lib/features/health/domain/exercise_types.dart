@@ -93,21 +93,19 @@ double estimateKcalFromStepsWalk({
   return weightKg * km * kWalkKcalPerKgPerKm;
 }
 
-/// 今日消耗合并口径：系统活动能量（如有）+ 今日手动运动 kcal 合计。
-///
-/// 两者皆无 → null（UI 走「—」/不出卡）；任一侧为 0 视为无数据。
+/// 系统日汇总优先，缺失时使用手动汇总；无时间区间，不能把两者安全相加。
+/// 系统明确返回 0 是有效读数；手动 0 无法区分无记录，保留空态。
 double? mergeBurnKcal({double? systemKcal, double? manualKcal}) {
-  final system = (systemKcal != null && systemKcal > 0) ? systemKcal : null;
-  final manual = (manualKcal != null && manualKcal > 0) ? manualKcal : null;
-  if (system == null && manual == null) return null;
-  return (system ?? 0) + (manual ?? 0);
+  if (systemKcal != null && systemKcal.isFinite && systemKcal >= 0) {
+    return systemKcal;
+  }
+  return manualKcal != null && manualKcal.isFinite && manualKcal > 0
+      ? manualKcal
+      : null;
 }
 
-/// 今日步数合并口径：系统步数（HealthKit / Health Connect，如有）+
-/// 今日手动/截图落库步数合计。两者皆无 → null（UI 走「—」）。
+/// 与活动能量同样采用来源优先，避免同一段步行被系统和截图重复累计。
 int? mergeSteps({int? systemSteps, int? manualSteps}) {
-  final system = (systemSteps != null && systemSteps > 0) ? systemSteps : null;
-  final manual = (manualSteps != null && manualSteps > 0) ? manualSteps : null;
-  if (system == null && manual == null) return null;
-  return (system ?? 0) + (manual ?? 0);
+  if (systemSteps != null && systemSteps >= 0) return systemSteps;
+  return manualSteps != null && manualSteps > 0 ? manualSteps : null;
 }

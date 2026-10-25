@@ -9,12 +9,12 @@ import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
+import 'package:eatwise/features/health/application/activity_summary_provider.dart';
 import 'package:eatwise/features/health/application/exercise_goals_controller.dart';
-import 'package:eatwise/features/health/application/exercise_log_providers.dart';
 import 'package:eatwise/features/health/application/health_sync_controller.dart';
-import 'package:eatwise/features/health/domain/exercise_types.dart';
 import 'package:eatwise/features/health/presentation/health_widgets.dart';
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart';
+import 'package:eatwise/features/nutrition/presentation/daily_energy_card.dart';
 import 'package:eatwise/features/nutrition/presentation/date_switcher.dart';
 import 'package:eatwise/features/nutrition/presentation/pro_details.dart';
 import 'package:eatwise/features/nutrition/presentation/signal_cards.dart';
@@ -93,14 +93,6 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
       appBar: AppBar(
         backgroundColor: colors.bgPrimary,
         title: Text(t.home.tab.data, style: textStyles.textXl),
-        actions: <Widget>[
-          // M6 入口：趋势与深度报告二级页（/data/reports）。
-          IconButton(
-            tooltip: t.reports.entry,
-            icon: const Icon(Icons.insights_rounded),
-            onPressed: () => context.push('/data/reports'),
-          ),
-        ],
       ),
       body: SafeArea(
         // 数据页滚动深度（§4.2 scroll_depth，page=analytics）。
@@ -110,6 +102,16 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
             padding: const EdgeInsets.all(AppSpacing.s4),
             children: <Widget>[
               const DateSwitcher(),
+              const SizedBox(height: AppSpacing.s4),
+              DailyEnergyCard(
+                intakeKcal: intake != null && intake.entryCount > 0
+                    ? intake.kcal
+                    : null,
+                targetKcal: goal.targetKcal,
+                historical:
+                    dateOnly(ref.watch(selectedDateProvider)) !=
+                    dateOnly(ref.watch(nutritionNowProvider)),
+              ),
               const SizedBox(height: AppSpacing.s6),
               // 一句话总结（H2，温和品牌语气）。
               Text(
@@ -164,9 +166,14 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
                 ProDetailsSection(intake: intake, goal: goal),
               ],
               const SizedBox(height: AppSpacing.s6),
-              const TrendChartSection(),
-              // 阶段 D：今日消耗卡（运动数据同步开启且读取就绪时展示）。
               const _HealthBurnSection(),
+              const SizedBox(height: AppSpacing.s4),
+              const TrendChartSection(),
+              TextButton.icon(
+                onPressed: () => context.push('/data/reports'),
+                icon: const Icon(Icons.insights_rounded),
+                label: Text(t.reports.entry),
+              ),
               // 合规 §5.1：「非医疗建议」数据页底部常驻。
               const SizedBox(height: AppSpacing.s6),
               Text(
@@ -238,13 +245,8 @@ class _HintBanner extends StatelessWidget {
   }
 }
 
-/// 阶段 D：今日消耗卡接线（ready 时渲染 TodayBurnCard；结余 = 摄入 − 消耗，
-/// 当日无记录时只展示消耗与步数不出结余行）。
-///
-/// 消耗合并口径（手动记运动，无 GMS 设备兜底）：系统活动能量（如有）+
-/// 今日手动运动 kcal 合计；步数同样合并（系统步数 + 手动/截图落库步数，
-/// `mergeSteps`）。unsupported 设备无步数时展示「—」并附引导文案
-/// 「手动记运动可计入消耗」；off/denied 等状态下有手动运动时同样出卡。
+/// 只展示今天的活动；历史营养日期不能配上今天的系统健康汇总。
+/// 首页与本页共享 activitySummaryProvider；无系统数据时使用手动记录。
 class _HealthBurnSection extends ConsumerWidget {
   const _HealthBurnSection();
 
@@ -252,48 +254,31 @@ class _HealthBurnSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
     final state = ref.watch(healthSyncControllerProvider);
-    final manualKcal = ref.watch(todayExerciseKcalProvider).value ?? 0;
-    final manualSteps = ref.watch(todayExerciseStepsProvider).value ?? 0;
-    final unsupported = state.status == HealthSyncStatus.unsupported;
-    final hasManual = manualKcal > 0 || manualSteps > 0;
-
-    final int? steps;
-    final double? burnKcal;
-    final bool estimated;
-    if (state.status == HealthSyncStatus.ready) {
-      final today = state.today;
-      steps = mergeSteps(systemSteps: today?.steps, manualSteps: manualSteps);
-      if (today == null ||
-          (steps == null && today.displayBurnKcal == null && !hasManual)) {
-        return const SizedBox.shrink();
-      }
-      burnKcal = mergeBurnKcal(
-        systemKcal: today.displayBurnKcal,
-        manualKcal: manualKcal,
-      );
-      // 「按步数估算」标注仅在系统步数粗估真参与合并值时成立（手动/截图
-      // 步数走的是 1.036 口径，弹层内已注明估算，不叠标）。
-      estimated = today.activeEnergyKcal == null && today.steps != null;
-    } else {
-      // 非 ready：仅 unsupported 或已有手动运动/步数时出卡。
-      if (!unsupported && !hasManual) return const SizedBox.shrink();
-      // 无系统步数：有手动/截图步数则展示，否则「—」。
-      steps = mergeSteps(manualSteps: manualSteps);
-      burnKcal = mergeBurnKcal(manualKcal: manualKcal);
-      estimated = false;
+    // 历史摄入不能与今天的设备活动混在一起展示。
+    if (dateOnly(ref.watch(selectedDateProvider)) !=
+        dateOnly(ref.watch(nutritionNowProvider))) {
+      return const SizedBox.shrink();
     }
-
-    final intake = ref.watch(dayIntakeProvider);
+    final activity = ref.watch(activitySummaryProvider);
+    final steps = activity.steps;
+    final burnKcal = activity.burnKcal;
+    final unsupported = state.status == HealthSyncStatus.unsupported;
+    if (burnKcal == null && steps == null && !unsupported) {
+      return const SizedBox.shrink();
+    }
     final goals = ref.watch(exerciseGoalsProvider);
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.s6),
       child: TodayBurnCard(
         steps: steps,
         burnKcal: burnKcal,
-        estimated: estimated,
-        intakeKcal: (intake != null && intake.entryCount > 0)
-            ? intake.kcal
-            : null,
+        estimated: false,
+        sourceNote: burnKcal == null
+            ? null
+            : activity.systemEnergy
+            ? t.nutrition.data.burn.systemSource
+            : t.nutrition.data.burn.manualSource,
+        manualKcal: activity.systemEnergy ? activity.manualKcal : null,
         burnGoalKcal: goals.burnGoalKcal,
         stepsGoal: goals.stepsGoal,
         stepsGuide: unsupported && steps == null

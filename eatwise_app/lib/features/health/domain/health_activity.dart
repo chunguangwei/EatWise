@@ -24,13 +24,10 @@ final class HealthTodaySummary {
   bool get isEmpty =>
       steps == null && activeEnergyKcal == null && latestWeightKg == null;
 
-  /// 展示用活动消耗（kcal）：系统活动能量优先，缺失时按步数粗估兜底。
+  /// 仅展示设备提供的活动能量；步数不能替代实际活动能量测量。
   double? get displayBurnKcal {
     final energy = activeEnergyKcal;
-    if (energy != null) return energy;
-    final s = steps;
-    if (s == null) return null;
-    return estimateKcalFromSteps(s);
+    return energy != null && energy.isFinite && energy >= 0 ? energy : null;
   }
 }
 
@@ -41,12 +38,4 @@ final class HealthTodaySummary {
 double estimateKcalFromSteps(int steps, {double weightKg = 60}) {
   if (steps <= 0) return 0;
   return steps * 0.0004 * weightKg;
-}
-
-/// 摄入 − 消耗结余（kcal；正 = 盈余，负 = 缺口）。
-double energyBalanceKcal({
-  required double intakeKcal,
-  required double burnKcal,
-}) {
-  return intakeKcal - burnKcal;
 }

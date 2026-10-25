@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:eatwise/core/time/day_change.dart';
 import 'package:eatwise/features/health/application/health_sync_controller.dart';
 import 'package:eatwise/features/health/data/health_gateway.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -86,6 +87,40 @@ final class _FakeHealthGateway implements HealthGateway {
 /// 阶段 D consent 状态机：off → connecting → ready/denied/unsupported/error，
 /// 关闭撤销授权并清同意记录；平台通道全程 fake。
 void main() {
+  test('跨午夜丢弃昨天快照并重新读取系统汇总', () async {
+    var clock = DateTime(2026, 10, 25, 23, 59);
+    final source = _FakeHealthGateway()..granted = true;
+    final consent = InMemoryExerciseSyncConsentStore();
+    await consent.setConsented(true);
+    final container = ProviderContainer(
+      overrides: [
+        localDayClockProvider.overrideWithValue(() => clock),
+        healthGatewayProvider.overrideWithValue(source),
+        exerciseSyncConsentStoreProvider.overrideWithValue(consent),
+      ],
+    );
+    addTearDown(container.dispose);
+    final first = container.read(healthSyncControllerProvider.notifier);
+    await Future<void>.delayed(Duration.zero);
+    await first.refresh();
+    expect(
+      container.read(healthSyncControllerProvider).today?.activeEnergyKcal,
+      245,
+    );
+    clock = DateTime(2026, 10, 26);
+    source.activeEnergyKcal = 0;
+    container.read(localDayProvider.notifier).refresh();
+    final next = container.read(healthSyncControllerProvider.notifier);
+    expect(identical(first, next), isFalse);
+    expect(container.read(healthSyncControllerProvider).today, isNull);
+    await Future<void>.delayed(Duration.zero);
+    await next.refresh();
+    expect(
+      container.read(healthSyncControllerProvider).today?.activeEnergyKcal,
+      0,
+    );
+  });
+
   late _FakeHealthGateway gateway;
   late InMemoryExerciseSyncConsentStore consentStore;
 

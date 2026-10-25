@@ -93,7 +93,7 @@
       "planChangeConfirm": "The new plan takes effect at 00:00 on ${date}. Today still follows your current plan.",
       "weightLossPlan": "About ${rate} kg/week · reach your goal around ${date}",
       "dailyKcalTarget": "Daily calorie goal ≈ ${kcal} kcal",
-      "clampedNotice": "That pace was a bit fast, so we've adjusted it to a safe maximum of 1 kg per week.",
+      "clampedNotice": "The plan accounts for pace and minimum intake limits. The estimated date is a guide only.",
       "gentleNotice": "We've set a gentler pace for you — at most 0.5 kg per week.",
       "edNotice": "You mentioned an eating-disorder history: your goal has been set to a gentler pace. This app does not provide medical advice — please consider consulting a doctor or dietitian as well."
     },
@@ -700,16 +700,30 @@
         "unitLegend": "Unit: ${unit}"
       },
       "burn": {
-        "title": "Today's burn",
+        "title": "Today's activity",
         "activeEnergy": "Active burn",
         "steps": "Steps",
         "kcalValue": "${kcal} kcal",
         "estimatedValue": "~${kcal} kcal (estimated from steps)",
-        "balance": "Intake − burn balance: ${kcal} kcal",
         "goalProgress": "${kcal} / ${goal} kcal",
         "stepsGoalProgress": "${steps} / ${goal} steps",
         "goalRingLabel": "Today's burn goal progress: ${percent}%",
-        "manualGuide": "Log exercise manually to count toward burn"
+        "manualGuide": "Log exercise manually to count toward burn",
+        "scopeNote": "Activity energy excludes resting metabolism. It is not total daily expenditure and does not increase your food target.",
+        "systemSource": "Using the system total; manual records are not added again.",
+        "manualSource": "Using manual records; energy values are estimates.",
+        "manualSeparate": "Manual records: ${kcal} kcal (not added; may overlap the system total)."
+      },
+      "energy": {
+        "title": "Food intake and target",
+        "intake": "Recorded intake",
+        "target": "Daily food target",
+        "remaining": "${kcal} kcal below target",
+        "over": "${kcal} kcal above target",
+        "empty": "No food recorded. This does not mean you have eaten nothing.",
+        "note": "Your target accounts for usual activity. Records may be incomplete; the difference is not your actual energy deficit.",
+        "historical": "Past intake compared with your current target (past targets are not stored)",
+        "details": "Manage profile and targets"
       }
     },
     "signalCard": {

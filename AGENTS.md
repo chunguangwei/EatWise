@@ -24,7 +24,9 @@ flutter test                    # 门禁：全绿
 
 硬性规则：
 
-- **视觉与输入复核（2026-10-25，v1.17.6 后）**：Material 内的 `AppSurfaces.card(onMaterial:true)` 除不绘制 color/gradient，也不得绘制 boxShadow（透明内层阴影会覆盖底色，导致白卡发灰/暗卡变黑）；独立卡片保留阴影。普通绿色文字与行动按钮用 actionPrimary。食物份量统一 `parseFoodAmount/isFoodAmountInRange`（有限 0.1–5000g，与服务端 DTO 一致），禁止预览直接对未校验 double 做 round。批量拍照/语音入账在首个 await 前冻结份量，提交中锁定编辑/删除/替换/餐次。App 回归基线 1665 全绿；原生键盘走查仍须真机验证。
+- **能量口径与 Tab 整合（2026-10-25）**：`activitySummaryProvider` 为首页/数据页唯一活动汇总；系统有效值（含 0）优先，缺失回落手动，禁止直接求和导致重复计数；手动额另列。系统缺活动能量时不拿步数粗估代替。活动不含完整全天代谢，禁止“摄入−活动=结余”；摄入目标已含活动系数，不再加运动额度。历史日隐藏今日活动、注明当前目标参考。HealthSyncController 监听 localDayProvider 跨日重建，首页/数据 Tab 点击刷新。减重计划 Dart/TS 两端需按最低摄入保护后的实际缺口反推速率/日期，无正缺口返回 null，不虚构达成日。
+
+- **视觉与输入复核（2026-10-25，v1.17.6 后）**：Material 内的 `AppSurfaces.card(onMaterial:true)` 除不绘制 color/gradient，也不得绘制 boxShadow（透明内层阴影会覆盖底色，导致白卡发灰/暗卡变黑）；独立卡片保留阴影。普通绿色文字与行动按钮用 actionPrimary。食物份量统一 `parseFoodAmount/isFoodAmountInRange`（有限 0.1–5000g，与服务端 DTO 一致），禁止预览直接对未校验 double 做 round。批量拍照/语音入账在首个 await 前冻结份量，提交中锁定编辑/删除/替换/餐次。App 回归基线 1674 全绿（含能量口径整合）；原生键盘走查仍须真机验证。
 
 - **禁止 `flutter analyze`**：中文路径下 SDK bug 会崩，用 `dart analyze`。
 - **不要装回 `slang_build_runner`**：它不读 `slang.yaml`，会让 build_runner 整体失败。i18n 只有 `i18n/strings_zh-CN.i18n.json` / `strings_en.i18n.json` 两个文件（namespaces:false，多文件互相覆盖）。
