@@ -480,7 +480,7 @@ class _BarcodeContributeSheetState
             onPressed: _saving ? null : () => unawaited(_pickPhoto()),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(AppSpacing.s12),
-              foregroundColor: colors.brandPrimary,
+              foregroundColor: colors.actionPrimary,
               side: BorderSide(color: colors.brandPrimary),
             ),
             icon: const Icon(Icons.add_a_photo_rounded),
@@ -583,7 +583,7 @@ class _BarcodeContributeSheetState
       bottomBar: FilledButton(
         onPressed: _saving || _uploading ? null : () => unawaited(_onSubmit()),
         style: FilledButton.styleFrom(
-          backgroundColor: colors.brandPrimary,
+          backgroundColor: colors.actionPrimary,
           minimumSize: const Size.fromHeight(AppSpacing.s12),
         ),
         child: Text(t.submitAction, style: textStyles.textBase),
@@ -686,7 +686,7 @@ class _BarcodeContributeSheetState
                   child: Text(
                     cs.estimateBadgeOcr,
                     style: textStyles.textSm.copyWith(
-                      color: colors.bgSecondary,
+                      color: readableForeground(colors.brandAccent),
                     ),
                   ),
                 ),

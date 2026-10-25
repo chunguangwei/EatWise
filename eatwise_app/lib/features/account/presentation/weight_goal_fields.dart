@@ -260,7 +260,7 @@ class _WeightGoalFieldsState extends ConsumerState<WeightGoalFields> {
           Text(
             formatLocalDate(context, _date!),
             key: const ValueKey<String>('goal.datePreview'),
-            style: textStyles.textSm.copyWith(color: colors.brandPrimary),
+            style: textStyles.textSm.copyWith(color: colors.actionPrimary),
           ),
         ],
       ],

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
-
 import 'package:eatwise/app/l10n/strings.g.dart';
 import 'package:eatwise/core/network/api_error_text.dart';
 import 'package:eatwise/core/network/api_exception.dart';
@@ -24,6 +23,7 @@ import 'package:eatwise/features/record/domain/food_signal.dart';
 import 'package:eatwise/features/record/domain/macro_energy.dart';
 import 'package:eatwise/features/record/domain/nrv_reference.dart';
 import 'package:eatwise/features/record/domain/placeholder_food.dart';
+import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/presentation/meal_type_chips.dart';
 import 'package:eatwise/features/record/presentation/portion_input.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
@@ -136,7 +136,7 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     );
 
     // 份量预览（按输入份量 × 每 100g 值换算，与记录页结果卡同格式）。
-    final amount = double.tryParse(_amountController.text);
+    final amount = parseFoodAmount(_amountController.text);
     final preview = amount != null && amount > 0 ? amount / 100 : null;
     // 「大约需走 N 步」随选中份量实时联动；未输入份量时按每 100g 展示。
     final walkSteps = stepsFromKcal(food.kcalPer100g * (preview ?? 1));
@@ -383,7 +383,7 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               style: TextButton.styleFrom(
-                foregroundColor: colors.brandPrimary,
+                foregroundColor: colors.actionPrimary,
                 minimumSize: const Size(44, 44),
                 padding: EdgeInsets.zero,
                 visualDensity: VisualDensity.compact,

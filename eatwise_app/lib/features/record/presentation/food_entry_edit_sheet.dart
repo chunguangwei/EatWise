@@ -77,7 +77,7 @@ class _FoodEntryEditSheetState extends ConsumerState<FoodEntryEditSheet> {
     super.dispose();
   }
 
-  double? get _amountG => double.tryParse(_amountController.text.trim());
+  double? get _amountG => parseFoodAmount(_amountController.text.trim());
 
   bool get _amountValid => (_amountG ?? 0) > 0;
 

@@ -89,7 +89,7 @@ class _OnboardingGoalScreenState extends ConsumerState<OnboardingGoalScreen> {
                       context.go('/onboarding/recommendation');
                     },
               style: FilledButton.styleFrom(
-                backgroundColor: colors.brandPrimary,
+                backgroundColor: colors.actionPrimary,
                 minimumSize: const Size.fromHeight(AppSpacing.s12),
               ),
               child: Text(t.onboarding.goal.save),

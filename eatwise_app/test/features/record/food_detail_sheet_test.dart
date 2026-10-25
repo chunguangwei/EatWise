@@ -89,6 +89,20 @@ void main() {
     await tester.pump();
   }
 
+  testWidgets('超长份量输入不崩溃且不可确认', (tester) async {
+    await pumpSheet(tester, onConfirm: (_) {});
+    await tester.enterText(find.byType(TextField).first, '9' * 400);
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '确认记录'))
+          .onPressed,
+      isNull,
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
   // 自定义食物（个人库行）：详情弹层带编辑/分享/删除动作行。
   const customFood = Food(
     id: 'cf-1',

@@ -56,9 +56,17 @@ class BusyFilledButton extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.s2),
           ],
-          Text(
-            busy ? busyLabel : label,
-            style: textStyles.textBase.copyWith(color: colors.onActionPrimary),
+          Flexible(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.s2),
+              child: Text(
+                busy ? busyLabel : label,
+                textAlign: TextAlign.center,
+                style: textStyles.textBase.copyWith(
+                  color: colors.onActionPrimary,
+                ),
+              ),
+            ),
           ),
         ],
       ),

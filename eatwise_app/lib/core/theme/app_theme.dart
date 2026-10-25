@@ -47,8 +47,8 @@ abstract final class AppTheme {
       scaffoldBackgroundColor: colors.bgPrimary,
       colorScheme: ColorScheme(
         brightness: brightness,
-        primary: colors.brandPrimary,
-        onPrimary: readableForeground(colors.brandPrimary),
+        primary: colors.actionPrimary,
+        onPrimary: colors.onActionPrimary,
         secondary: colors.brandAccent,
         onSecondary: readableForeground(colors.brandAccent),
         error: colors.signalRed,
@@ -83,7 +83,7 @@ abstract final class AppTheme {
       // 次级行动按钮：品牌绿描边 48px 胶囊（连胜卡「去补签」语言）。
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: colors.brandPrimary,
+          foregroundColor: colors.actionPrimary,
           disabledForegroundColor: colors.textSecondary,
           side: BorderSide(color: colors.brandPrimary),
           minimumSize: const Size(64, AppSpacing.s12),
@@ -114,7 +114,7 @@ abstract final class AppTheme {
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: colors.brandPrimary),
+        style: TextButton.styleFrom(foregroundColor: colors.actionPrimary),
       ),
       // 弹窗/弹层圆角与卡片统一（修 M3 默认 28 vs rLg 20 分裂）。
       dialogTheme: DialogThemeData(
@@ -138,7 +138,7 @@ abstract final class AppTheme {
         behavior: SnackBarBehavior.fixed,
         backgroundColor: colors.bgSecondary,
         contentTextStyle: textStyles.textSm.copyWith(color: colors.textPrimary),
-        actionTextColor: colors.brandPrimary,
+        actionTextColor: colors.actionPrimary,
         closeIconColor: colors.textSecondary,
         showCloseIcon: true,
         elevation: 4,

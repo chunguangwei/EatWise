@@ -24,6 +24,8 @@ flutter test                    # 门禁：全绿
 
 硬性规则：
 
+- **视觉与输入复核（2026-10-25，v1.17.6 后）**：Material 内的 `AppSurfaces.card(onMaterial:true)` 除不绘制 color/gradient，也不得绘制 boxShadow（透明内层阴影会覆盖底色，导致白卡发灰/暗卡变黑）；独立卡片保留阴影。普通绿色文字与行动按钮用 actionPrimary。食物份量统一 `parseFoodAmount/isFoodAmountInRange`（有限 0.1–5000g，与服务端 DTO 一致），禁止预览直接对未校验 double 做 round。批量拍照/语音入账在首个 await 前冻结份量，提交中锁定编辑/删除/替换/餐次。App 回归基线 1665 全绿；原生键盘走查仍须真机验证。
+
 - **禁止 `flutter analyze`**：中文路径下 SDK bug 会崩，用 `dart analyze`。
 - **不要装回 `slang_build_runner`**：它不读 `slang.yaml`，会让 build_runner 整体失败。i18n 只有 `i18n/strings_zh-CN.i18n.json` / `strings_en.i18n.json` 两个文件（namespaces:false，多文件互相覆盖）。
 - **代码一致性**：提交前 `dart format .` + `dart analyze` 零 issue + `flutter test` 全绿。CI 有 Android/iOS 双端构建门禁，本地改原生配置后至少跑 `flutter build apk --debug`。

@@ -872,8 +872,8 @@ class Translations$record$amount$zh_CN {
 	/// zh-CN: '份量（克）'
 	String get label => '份量（克）';
 
-	/// zh-CN: '请输入大于 0 的份量'
-	String get invalid => '请输入大于 0 的份量';
+	/// zh-CN: '请输入 0.1–5000 克之间的份量'
+	String get invalid => '请输入 0.1–5000 克之间的份量';
 }
 
 // Path: record.nutrition
@@ -4851,7 +4851,7 @@ extension on Translations {
 			'record.search.clear' => '清空搜索',
 			'record.search.addRow' => ({required Object query}) => '添加「${query}」为自定义食物',
 			'record.amount.label' => '份量（克）',
-			'record.amount.invalid' => '请输入大于 0 的份量',
+			'record.amount.invalid' => '请输入 0.1–5000 克之间的份量',
 			'record.nutrition.kcal' => '热量',
 			'record.nutrition.protein' => '蛋白质',
 			'record.nutrition.carb' => '碳水',

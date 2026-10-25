@@ -463,7 +463,7 @@ class _TimerBody extends ConsumerWidget {
           Center(
             child: Text(
               t.fasting.home.extendedBadge(minutes: extendedMinutes),
-              style: textStyles.textXs.copyWith(color: colors.brandPrimary),
+              style: textStyles.textXs.copyWith(color: colors.actionPrimary),
             ),
           ),
         ],

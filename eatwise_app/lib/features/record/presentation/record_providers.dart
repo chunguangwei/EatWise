@@ -215,7 +215,7 @@ final Provider<NutritionSnapshot?> recordDraftNutritionProvider =
     Provider<NutritionSnapshot?>((ref) {
       final food = ref.watch(recordSelectedFoodProvider);
       if (food == null) return null;
-      final amount = double.tryParse(ref.watch(recordAmountTextProvider));
+      final amount = parseFoodAmount(ref.watch(recordAmountTextProvider));
       if (amount == null || amount <= 0) return null;
       return NutritionSnapshot.forAmount(food, amount);
     });

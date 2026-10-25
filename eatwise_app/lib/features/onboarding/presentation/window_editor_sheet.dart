@@ -73,7 +73,7 @@ class _WindowEditorSheetState extends State<WindowEditorSheet> {
         key: const ValueKey<String>('fasting.windowEditor.confirm'),
         onPressed: () => Navigator.of(context).pop(draft),
         style: FilledButton.styleFrom(
-          backgroundColor: colors.brandPrimary,
+          backgroundColor: colors.actionPrimary,
           minimumSize: const Size.fromHeight(AppSpacing.s12),
         ),
         child: Text(t.fasting.window.confirm, style: textStyles.textBase),
@@ -123,7 +123,7 @@ class _WindowEditorSheetState extends State<WindowEditorSheet> {
                   Text(
                     formatClock(_startMinutes),
                     style: textStyles.textBase.copyWith(
-                      color: colors.brandPrimary,
+                      color: colors.actionPrimary,
                     ),
                   ),
                   const Icon(Icons.expand_more),

@@ -160,6 +160,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
   /// 点选相似食物：替换为库内条目（营养用库内精准值，克重保留 AI 估算
   /// 可编辑），此后该行与命中条目同口径（直接入账，不走新建/送审）。
   void _useSimilarFood(_MealRow row, Food food) {
+    if (_saving) return;
     setState(() {
       row.item = RecognizedMealItem(
         name: food.nameZh,
@@ -191,8 +192,8 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
 
   /// 预览克数（非法输入暂回退模型估值）；保存前另行逐行校验，非法克数不入账。
   double _effectiveGrams(_MealRow row) {
-    final parsed = double.tryParse(row.gramsController.text.trim());
-    return parsed != null && parsed > 0 ? parsed : row.item.grams;
+    return parseFoodAmount(row.gramsController.text) ??
+        (isFoodAmountInRange(row.item.grams) ? row.item.grams : 0);
   }
 
   /// 行营养文本（按当前克数实时换算，US-3.1 口径）。
@@ -227,8 +228,8 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
     final s = RecordStrings.of(context);
     final t = Translations.of(context);
     for (final row in _rows) {
-      final grams = double.tryParse(row.gramsController.text.trim());
-      if (grams == null || !grams.isFinite || grams <= 0) {
+      final grams = parseFoodAmount(row.gramsController.text);
+      if (grams == null) {
         _rejectRow(s.amountInvalid);
         return;
       }
@@ -238,6 +239,11 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
         return;
       }
     }
+    // Freeze validated amounts before any async food creation or upload.
+    final pending = [
+      for (final row in _rows)
+        (row: row, grams: double.parse(row.gramsController.text.trim())),
+    ];
     setState(() => _saving = true);
     final navigator = Navigator.of(context);
     final route = ModalRoute.of(context);
@@ -249,7 +255,8 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
     // 小时智能预判；现在与搜索/详情流同款 chips，未点选时传 null 走预判。
     final mealType = ref.read(recordMealTypeProvider);
     try {
-      for (final row in List<_MealRow>.of(_rows)) {
+      for (final entry in pending) {
+        final row = entry.row;
         if (!mounted || route?.isCurrent == false) return;
         var food = row.resolvedFood ?? row.item.food;
         if (food == null) {
@@ -277,7 +284,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
         await writeEntry(
           RecordDraft(
             foodId: food.id,
-            amountG: _effectiveGrams(row),
+            amountG: entry.grams,
             mealUtc: DateTime.now().toUtc(),
             source: widget.entrySource,
             duringFast: duringFast,
@@ -343,7 +350,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
                 ? null
                 : () => unawaited(_logAll()),
             style: FilledButton.styleFrom(
-              backgroundColor: colors.brandPrimary,
+              backgroundColor: colors.actionPrimary,
               minimumSize: const Size(0, AppSpacing.s12),
             ),
             child: Text(s.photoLogAll, style: textStyles.textBase),
@@ -361,7 +368,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
             const SizedBox(height: AppSpacing.s2),
           ],
           // 餐次选择（与搜索确认卡/详情弹层同款；整批条目共用一个餐次）。
-          const MealTypeChips(),
+          AbsorbPointer(absorbing: _saving, child: const MealTypeChips()),
           const SizedBox(height: AppSpacing.s2),
         ],
       ),
@@ -408,7 +415,9 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
                 tooltip: s.cancelAction,
                 visualDensity: VisualDensity.compact,
                 constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                onPressed: () => setState(() => _rows.remove(row)),
+                onPressed: _saving
+                    ? null
+                    : () => setState(() => _rows.remove(row)),
               ),
             ],
           ),
@@ -423,7 +432,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
                     Text(
                       s.photoLabelValueTag,
                       style: textStyles.textXs.copyWith(
-                        color: colors.brandPrimary,
+                        color: colors.actionPrimary,
                       ),
                     ),
                   if (!item.isMatched)
@@ -437,7 +446,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
                     Text(
                       s.cardPleaseConfirm,
                       style: textStyles.textXs.copyWith(
-                        color: colors.signalYellow,
+                        color: colors.signalYellowText,
                       ),
                     ),
                 ],
@@ -450,6 +459,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
                 width: 112,
                 child: TextField(
                   controller: row.gramsController,
+                  readOnly: _saving,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -494,7 +504,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
             for (final candidate in _similar[row]!)
               InkWell(
                 borderRadius: radii.rSm,
-                onTap: () => _useSimilarFood(row, candidate),
+                onTap: _saving ? null : () => _useSimilarFood(row, candidate),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.s1),
                   child: Row(
@@ -511,7 +521,7 @@ class _PhotoMealConfirmSheetState extends ConsumerState<PhotoMealConfirmSheet> {
                       Text(
                         s.photoUseThisFood,
                         style: textStyles.textSm.copyWith(
-                          color: colors.brandPrimary,
+                          color: colors.actionPrimary,
                         ),
                       ),
                     ],

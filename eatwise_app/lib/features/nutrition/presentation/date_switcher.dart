@@ -24,50 +24,58 @@ class DateSwitcher extends ConsumerWidget {
     final dateLabel = DateFormat.MEd(locale).format(selected);
     final ds = t.nutrition.data.dateSwitcher;
 
-    return Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        _ArrowButton(
-          icon: Icons.chevron_left,
-          tooltip: ds.prevDay,
-          onPressed: () => ref.read(selectedDateProvider.notifier).prevDay(),
-        ),
-        Expanded(
-          child: Column(
-            children: <Widget>[
-              Text(
-                dateLabel,
-                style: textStyles.textBase.copyWith(color: colors.textPrimary),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-              if (isToday)
-                Text(
-                  ds.today,
-                  style: textStyles.textXs.copyWith(
-                    color: colors.textSecondary,
+        Row(
+          children: <Widget>[
+            _ArrowButton(
+              icon: Icons.chevron_left,
+              tooltip: ds.prevDay,
+              onPressed: () =>
+                  ref.read(selectedDateProvider.notifier).prevDay(),
+            ),
+            Expanded(
+              child: Column(
+                children: <Widget>[
+                  Text(
+                    dateLabel,
+                    style: textStyles.textBase.copyWith(
+                      color: colors.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
                   ),
-                ),
-            ],
-          ),
-        ),
-        _ArrowButton(
-          icon: Icons.chevron_right,
-          tooltip: ds.nextDay,
-          onPressed: canGoNext
-              ? () => ref.read(selectedDateProvider.notifier).nextDay()
-              : null,
+                  if (isToday)
+                    Text(
+                      ds.today,
+                      style: textStyles.textXs.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            _ArrowButton(
+              icon: Icons.chevron_right,
+              tooltip: ds.nextDay,
+              onPressed: canGoNext
+                  ? () => ref.read(selectedDateProvider.notifier).nextDay()
+                  : null,
+            ),
+          ],
         ),
         if (!isToday) ...<Widget>[
-          const SizedBox(width: AppSpacing.s2),
+          const SizedBox(height: AppSpacing.s1),
           TextButton(
             onPressed: () =>
                 ref.read(selectedDateProvider.notifier).backToToday(),
             style: TextButton.styleFrom(
               minimumSize: const Size(44, 44),
-              foregroundColor: colors.brandPrimary,
+              foregroundColor: colors.actionPrimary,
             ),
-            child: Text(ds.backToToday),
+            child: Text(ds.backToToday, textAlign: TextAlign.center),
           ),
         ],
       ],

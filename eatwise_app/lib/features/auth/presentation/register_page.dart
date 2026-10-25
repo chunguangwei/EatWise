@@ -331,7 +331,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   TextSpan(
                     text: t.legal.privacyPolicy.title,
                     style: textStyles.textSm.copyWith(
-                      color: colors.brandPrimary,
+                      color: colors.actionPrimary,
                       fontWeight: FontWeight.w500,
                     ),
                     recognizer: TapGestureRecognizer()
@@ -341,7 +341,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   TextSpan(
                     text: t.legal.userAgreement.title,
                     style: textStyles.textSm.copyWith(
-                      color: colors.brandPrimary,
+                      color: colors.actionPrimary,
                       fontWeight: FontWeight.w500,
                     ),
                     recognizer: TapGestureRecognizer()

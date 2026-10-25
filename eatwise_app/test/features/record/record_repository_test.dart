@@ -258,6 +258,37 @@ void main() {
       await repository.dispose();
     });
 
+    test('份量边界与服务端一致：非法值不得写入或改坏现有记录', () async {
+      final repository = repo();
+      addTearDown(repository.dispose);
+      final original = await repository.addEntry(draft());
+      for (final amount in [
+        double.nan,
+        double.infinity,
+        -double.infinity,
+        0.01,
+        5001.0,
+      ]) {
+        await expectLater(
+          repository.addEntry(draft(amountG: amount)),
+          throwsArgumentError,
+        );
+        await expectLater(
+          repository.updateEntry(original.localId, amountG: amount),
+          throwsArgumentError,
+        );
+      }
+      final entries = await repository.entriesForDate(draft().mealUtc);
+      expect(entries, hasLength(1));
+      expect(entries.single.amountG, 100);
+      for (final amount in [0.1, 5000.0]) {
+        expect(
+          (await repository.addEntry(draft(amountG: amount))).amountG,
+          amount,
+        );
+      }
+    });
+
     test('多条记录聚合求和；非法份量/未知食物拒绝入账', () async {
       final repository = repo();
       await repository.addEntry(draft());

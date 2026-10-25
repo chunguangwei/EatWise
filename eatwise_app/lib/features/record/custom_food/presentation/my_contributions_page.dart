@@ -400,7 +400,7 @@ class _BarcodeKindBadge extends StatelessWidget {
           const SizedBox(width: AppSpacing.s1),
           Text(
             label,
-            style: textStyles.textXs.copyWith(color: colors.brandPrimary),
+            style: textStyles.textXs.copyWith(color: colors.actionPrimary),
           ),
         ],
       ),

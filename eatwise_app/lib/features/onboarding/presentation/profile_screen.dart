@@ -118,7 +118,7 @@ class _OnboardingProfileScreenState
                       }
                     },
               style: FilledButton.styleFrom(
-                backgroundColor: colors.brandPrimary,
+                backgroundColor: colors.actionPrimary,
                 minimumSize: const Size.fromHeight(AppSpacing.s12),
               ),
               child: Text(t.onboarding.profile.save),

@@ -637,7 +637,7 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
                   child: OutlinedButton.icon(
                     onPressed: _startListening,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: colors.brandPrimary,
+                      foregroundColor: colors.actionPrimary,
                       side: BorderSide(color: colors.brandPrimary),
                     ),
                     icon: const Icon(Icons.mic),
@@ -657,7 +657,7 @@ class _VoiceListeningSheetState extends ConsumerState<_VoiceListeningSheet> {
                   child: OutlinedButton.icon(
                     onPressed: () => unawaited(_switchToOnDevice()),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: colors.brandPrimary,
+                      foregroundColor: colors.actionPrimary,
                       side: BorderSide(color: colors.brandPrimary),
                     ),
                     icon: const Icon(Icons.offline_bolt_rounded),

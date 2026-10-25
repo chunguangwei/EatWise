@@ -35,7 +35,7 @@ abstract final class AppGlass {
 /// 白卡 + shadowSm + 1px 受光描边。纯装饰零模糊，任意页面放心用。
 ///
 /// `onMaterial`：卡片外层已是 `Material(color: bgSecondary)` 时传 true——
-/// 底色由 Material 绘制，本装饰只带圆角/阴影/受光描边。**必须**这样做：
+/// 底色由 Material 绘制，本装饰只带圆角/受光描边；阴影不得盖在 Material 上。**必须**这样做：
 /// ListTile/InkWell 的水波纹画在最近 Material 祖先上，若中间 DecoratedBox
 /// 再带 color 会触发框架「ink splashes may be invisible」断言。
 abstract final class AppSurfaces {
@@ -58,7 +58,9 @@ abstract final class AppSurfaces {
               ],
             ),
       borderRadius: radius ?? AppRadii.standard.rLg,
-      boxShadow: shadows.shadowSm,
+      // This decoration sits ABOVE Material. A filled shadow would tint the
+      // whole card. Keep this layer transparent; standalone cards own shadows.
+      boxShadow: onMaterial ? null : shadows.shadowSm,
       border: Border.all(color: AppGlass.highlight(colors)),
     );
   }

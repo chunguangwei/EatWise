@@ -405,7 +405,7 @@ class SettingsPage extends ConsumerWidget {
             const SizedBox(height: AppSpacing.s2),
             TextButton(
               style: TextButton.styleFrom(
-                foregroundColor: colors.brandPrimary,
+                foregroundColor: colors.actionPrimary,
                 minimumSize: const Size(44, 44),
                 padding: EdgeInsets.zero,
               ),

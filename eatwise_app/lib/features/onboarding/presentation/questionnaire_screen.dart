@@ -124,7 +124,7 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
                             }
                           },
                     style: FilledButton.styleFrom(
-                      backgroundColor: colors.brandPrimary,
+                      backgroundColor: colors.actionPrimary,
                     ),
                     child: Text(
                       step < OnboardingController.questionCount - 1

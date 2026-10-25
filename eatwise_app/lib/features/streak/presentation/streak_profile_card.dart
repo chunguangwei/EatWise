@@ -108,7 +108,7 @@ class StreakProfileCard extends ConsumerWidget {
                   icon: const Icon(Icons.restore),
                   label: Text(t.streak.profile.mendEntry),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: colors.brandPrimary,
+                    foregroundColor: colors.actionPrimary,
                     side: BorderSide(color: colors.brandPrimary),
                     minimumSize: const Size.fromHeight(AppSpacing.s12),
                   ),

@@ -446,7 +446,7 @@ class _ExerciseScreenshotConfirmSheetState
         key: const ValueKey<String>('screenshot.save'),
         onPressed: () => unawaited(_save(t)),
         style: FilledButton.styleFrom(
-          backgroundColor: colors.brandPrimary,
+          backgroundColor: colors.actionPrimary,
           minimumSize: const Size.fromHeight(AppSpacing.s12),
         ),
         child: Text(t.record.page.confirm, style: textStyles.textBase),

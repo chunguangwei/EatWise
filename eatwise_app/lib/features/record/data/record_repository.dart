@@ -68,8 +68,12 @@ final class RecordRepository {
   /// 乐观更新入账（T1/T2）：先写本地库（UI 经流立即展示），
   /// 在线 → submitting 并启动撤销窗，窗结束上行；离线 → pending。
   Future<FoodEntry> addEntry(RecordDraft draft) async {
-    if (draft.amountG <= 0) {
-      throw ArgumentError.value(draft.amountG, 'amountG', '份量必须大于 0');
+    if (!isFoodAmountInRange(draft.amountG)) {
+      throw ArgumentError.value(
+        draft.amountG,
+        'amountG',
+        '份量必须为 0.1–5000 克的有限数值',
+      );
     }
     final food = await db.foodDao.getById(draft.foodId, ownerUserId: userId);
     if (food == null) {
@@ -169,8 +173,8 @@ final class RecordRepository {
     required double amountG,
     MealType? mealType,
   }) async {
-    if (amountG <= 0) {
-      throw ArgumentError.value(amountG, 'amountG', '份量必须大于 0');
+    if (!isFoodAmountInRange(amountG)) {
+      throw ArgumentError.value(amountG, 'amountG', '份量必须为 0.1–5000 克的有限数值');
     }
     final entry = await db.foodEntryDao.getByLocalId(localId);
     if (entry == null) {

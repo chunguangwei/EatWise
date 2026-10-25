@@ -32,6 +32,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../support/review_capture.dart';
 import 'record_test_helper.dart';
 
 /// 录制型假通道：收集上报批次（埋点断言用）。
@@ -79,6 +80,7 @@ void main() {
 
   setUpAll(() async {
     await initRecordTestTimeZones();
+    await loadReviewFont();
   });
 
   setUp(() async {
@@ -128,6 +130,7 @@ void main() {
     WidgetTester tester, {
     AnalyticsService? analytics,
     ThemeData? theme,
+    double textScale = 1,
     ValueNotifier<bool>? active,
   }) async {
     await tester.pumpWidget(
@@ -159,7 +162,13 @@ void main() {
         ],
         child: TranslationProvider(
           child: MaterialApp(
-            theme: theme ?? AppTheme.light(),
+            theme: reviewTheme(theme ?? AppTheme.light()),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: TextScaler.linear(textScale)),
+              child: child!,
+            ),
             home: active == null
                 ? const RecordPage()
                 : ValueListenableBuilder<bool>(
@@ -173,6 +182,33 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
+  }
+
+  for (final locale in [AppLocale.en, AppLocale.zhCn]) {
+    testWidgets('记录入口在360小屏大字体下完整显示 $locale', (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await LocaleSettings.setLocale(locale);
+      await pumpPage(tester, textScale: 2);
+      expect(tester.takeException(), isNull);
+      final fields = find.byType(TextField);
+      expect(tester.getRect(fields.first).bottom, lessThan(640));
+      await captureReview(tester, 'record-${locale.languageCode}-large');
+      await settleUi(tester);
+    });
+  }
+
+  for (final dark in [false, true]) {
+    testWidgets('记录页视觉基线：亮暗色常规字号 $dark', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await pumpPage(tester, theme: dark ? AppTheme.dark() : AppTheme.light());
+      expect(tester.takeException(), isNull);
+      await captureReview(tester, 'record-${dark ? 'dark' : 'light'}');
+      await settleUi(tester);
+    });
   }
 
   testWidgets('T7 同步拒绝：SnackBar 批量告知一次（计数合并，不再静默消失）', (tester) async {
@@ -223,12 +259,12 @@ void main() {
     expect(find.text('确认记录'), findsOneWidget);
     expect(find.text('热量 116 千卡'), findsNothing);
 
-    // 空份量：确认按钮禁用 + 行内「请输入大于 0 的份量」引导（替代旧的
+    // 空份量：确认按钮禁用 + 行内「请输入 0.1–5000 克之间的份量」引导（替代旧的
     // 「点了才弹错误吐司」截停链；弹层留在原地不丢上下文）。
     FilledButton confirmBtn() =>
         tester.widget<FilledButton>(find.widgetWithText(FilledButton, '确认记录'));
     expect(confirmBtn().onPressed, isNull);
-    expect(find.text('请输入大于 0 的份量'), findsOneWidget);
+    expect(find.text('请输入 0.1–5000 克之间的份量'), findsOneWidget);
     await tester.tap(find.text('确认记录'), warnIfMissed: false);
     await tester.pump();
     expect(await repository.entriesForDate(DateTime.now().toUtc()), isEmpty);

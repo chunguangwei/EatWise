@@ -30,7 +30,7 @@ Future<bool> showExerciseSyncConsentDialog(BuildContext context) async {
         ),
         FilledButton(
           onPressed: () => Navigator.pop(dialogContext, true),
-          style: FilledButton.styleFrom(backgroundColor: colors.brandPrimary),
+          style: FilledButton.styleFrom(backgroundColor: colors.actionPrimary),
           child: Text(t.settings.health.consentAgree),
         ),
       ],

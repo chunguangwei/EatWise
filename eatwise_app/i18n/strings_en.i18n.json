@@ -216,7 +216,7 @@
     },
     "amount": {
       "label": "Amount (g)",
-      "invalid": "Enter an amount greater than 0"
+      "invalid": "Enter an amount between 0.1 and 5000 g"
     },
     "nutrition": {
       "kcal": "Calories",

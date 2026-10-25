@@ -180,7 +180,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   child: Text(
                     t.auth.login.toRegister,
                     style: textStyles.textSm.copyWith(
-                      color: colors.brandPrimary,
+                      color: colors.actionPrimary,
                     ),
                   ),
                 ),

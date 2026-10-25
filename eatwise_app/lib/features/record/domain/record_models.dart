@@ -1,6 +1,16 @@
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/tables.dart';
 
+/// Match CreateEntryDto / SyncPayloadDto: reject invalid values before preview
+/// or local persistence, instead of accepting records the server will reject.
+bool isFoodAmountInRange(double amountG) =>
+    amountG.isFinite && amountG >= 0.1 && amountG <= 5000;
+
+double? parseFoodAmount(String text) {
+  final amount = double.tryParse(text.trim());
+  return amount != null && isFoodAmountInRange(amount) ? amount : null;
+}
+
 /// 营养快照（按份量换算后随 FoodEntry 落库，PRD 第五章「营养快照」；
 /// §3.2 不仲裁——由 foodId + amount 重新换算生成）。
 final class NutritionSnapshot {

@@ -149,7 +149,7 @@ void main() {
 
     await tester.enterText(find.byType(TextField), '0');
     await tester.pump();
-    expect(find.text('请输入大于 0 的份量'), findsOneWidget);
+    expect(find.text('请输入 0.1–5000 克之间的份量'), findsOneWidget);
     final button = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, '保存'),
     );

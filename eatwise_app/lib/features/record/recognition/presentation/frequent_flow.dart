@@ -65,13 +65,13 @@ class _FrequentFoodsSheet extends ConsumerWidget {
                           TextButton(
                             style: TextButton.styleFrom(
                               minimumSize: const Size(44, 48),
-                              foregroundColor: colors.brandPrimary,
+                              foregroundColor: colors.actionPrimary,
                             ),
                             onPressed: () => Navigator.of(context).pop(),
                             child: Text(
                               s.frequentEmptyCta,
                               style: textStyles.textBase.copyWith(
-                                color: colors.brandPrimary,
+                                color: colors.actionPrimary,
                               ),
                             ),
                           ),

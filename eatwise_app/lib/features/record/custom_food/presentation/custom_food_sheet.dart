@@ -566,7 +566,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
       bottomBar: FilledButton(
         onPressed: _saving ? null : () => unawaited(_onSave()),
         style: FilledButton.styleFrom(
-          backgroundColor: colors.brandPrimary,
+          backgroundColor: colors.actionPrimary,
           minimumSize: const Size.fromHeight(AppSpacing.s12),
         ),
         child: Text(
@@ -623,7 +623,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                 onPressed: _estimating ? null : () => unawaited(_onEstimate()),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(AppSpacing.s12),
-                  foregroundColor: colors.brandPrimary,
+                  foregroundColor: colors.actionPrimary,
                   side: BorderSide(color: colors.brandPrimary),
                 ),
                 icon: _estimating
@@ -653,7 +653,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                       : () => unawaited(_onPhotoOcr()),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(AppSpacing.s12),
-                    foregroundColor: colors.brandPrimary,
+                    foregroundColor: colors.actionPrimary,
                     side: BorderSide(color: colors.brandPrimary),
                   ),
                   icon: _ocrReading
@@ -708,7 +708,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                           FoodEstimateSource.photoOcr => cs.estimateBadgeOcr,
                         },
                         style: textStyles.textSm.copyWith(
-                          color: colors.bgSecondary,
+                          color: readableForeground(colors.brandAccent),
                         ),
                       ),
                       if (_estimateLow)
@@ -717,7 +717,7 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                               ? cs.estimateDubious
                               : cs.estimateLow,
                           style: textStyles.textXs.copyWith(
-                            color: colors.bgSecondary,
+                            color: readableForeground(colors.brandAccent),
                           ),
                         ),
                     ],

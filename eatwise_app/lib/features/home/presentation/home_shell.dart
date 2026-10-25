@@ -62,7 +62,7 @@ class HomeShell extends ConsumerWidget {
                   labelTextStyle: WidgetStateProperty.resolveWith((states) {
                     final base = textStyles.textXs;
                     return states.contains(WidgetState.selected)
-                        ? base.copyWith(color: colors.brandPrimary)
+                        ? base.copyWith(color: colors.actionPrimary)
                         : base.copyWith(color: colors.textSecondary);
                   }),
                 ),

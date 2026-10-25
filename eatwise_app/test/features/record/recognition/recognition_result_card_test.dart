@@ -280,7 +280,7 @@ void main() {
     await tester.tap(find.text('确认记录'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('请输入大于 0 的份量'), findsOneWidget);
+    expect(find.text('请输入 0.1–5000 克之间的份量'), findsOneWidget);
     expect((await repository.entriesForDate(DateTime.now().toUtc())).length, 3);
 
     // 输入份量后确认入账（frequent 来源）。

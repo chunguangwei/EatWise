@@ -106,7 +106,7 @@ class _ProDetailsSectionState extends ConsumerState<ProDetailsSection> {
                       Text(
                         _expanded ? pd.collapse : pd.expand,
                         style: textStyles.textSm.copyWith(
-                          color: colors.brandPrimary,
+                          color: colors.actionPrimary,
                         ),
                       ),
                       Icon(

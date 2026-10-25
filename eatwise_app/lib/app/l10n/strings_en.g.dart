@@ -570,7 +570,7 @@ class _Translations$record$amount$en extends Translations$record$amount$zh_CN {
 
 	// Translations
 	@override String get label => 'Amount (g)';
-	@override String get invalid => 'Enter an amount greater than 0';
+	@override String get invalid => 'Enter an amount between 0.1 and 5000 g';
 }
 
 // Path: record.nutrition
@@ -2704,7 +2704,7 @@ extension on TranslationsEn {
 			'record.search.clear' => 'Clear search',
 			'record.search.addRow' => ({required Object query}) => 'Add "${query}" as custom food',
 			'record.amount.label' => 'Amount (g)',
-			'record.amount.invalid' => 'Enter an amount greater than 0',
+			'record.amount.invalid' => 'Enter an amount between 0.1 and 5000 g',
 			'record.nutrition.kcal' => 'Calories',
 			'record.nutrition.protein' => 'Protein',
 			'record.nutrition.carb' => 'Carbs',

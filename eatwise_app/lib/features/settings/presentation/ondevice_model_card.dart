@@ -87,7 +87,7 @@ class OnDeviceModelCard extends ConsumerWidget {
             Text(m.downloadConfirmBody),
             TextButton(
               style: TextButton.styleFrom(
-                foregroundColor: colors.brandPrimary,
+                foregroundColor: colors.actionPrimary,
                 minimumSize: const Size(44, 44),
                 padding: EdgeInsets.zero,
               ),
@@ -108,7 +108,9 @@ class OnDeviceModelCard extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(backgroundColor: colors.brandPrimary),
+            style: FilledButton.styleFrom(
+              backgroundColor: colors.actionPrimary,
+            ),
             child: Text(m.downloadConfirmAction),
           ),
         ],

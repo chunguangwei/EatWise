@@ -219,7 +219,7 @@ class _WaterCard extends ConsumerWidget {
                           child: Text(
                             '+$ml',
                             style: textStyles.textSm.copyWith(
-                              color: colors.brandPrimary,
+                              color: colors.actionPrimary,
                             ),
                           ),
                         ),
@@ -646,7 +646,7 @@ class _WeightDialogState extends ConsumerState<_WeightDialog> {
         FilledButton(
           onPressed: () => unawaited(_save(s)),
           style: FilledButton.styleFrom(
-            backgroundColor: colors.brandPrimary,
+            backgroundColor: colors.actionPrimary,
             minimumSize: const Size(88, 48),
           ),
           child: Text(s.confirm, style: textStyles.textBase),

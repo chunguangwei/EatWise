@@ -279,7 +279,7 @@ class _ExerciseLogSheetState extends ConsumerState<_ExerciseLogSheet> {
         key: const ValueKey<String>('exercise.save'),
         onPressed: () => unawaited(_save(t)),
         style: FilledButton.styleFrom(
-          backgroundColor: colors.brandPrimary,
+          backgroundColor: colors.actionPrimary,
           minimumSize: const Size.fromHeight(AppSpacing.s12),
         ),
         child: Text(t.record.page.confirm, style: textStyles.textBase),

@@ -216,7 +216,7 @@
     },
     "amount": {
       "label": "份量（克）",
-      "invalid": "请输入大于 0 的份量"
+      "invalid": "请输入 0.1–5000 克之间的份量"
     },
     "nutrition": {
       "kcal": "热量",

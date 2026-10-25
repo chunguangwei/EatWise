@@ -302,6 +302,45 @@ void main() {
     await settleUi(tester);
   });
 
+  testWidgets('批量提交中锁定份量与删除，避免已确认内容被改写', (tester) async {
+    recordRemote.mode = FakeRemoteMode.offline;
+    recognitionService.outcome = await comboOutcome();
+    final gate = Completer<void>();
+    final drafts = <RecordDraft>[];
+    await pumpPage(
+      tester,
+      entryWriter: (draft) async {
+        drafts.add(draft);
+        await gate.future;
+        return repository.addEntry(draft);
+      },
+    );
+    await pickPhotoAndRecognize(tester);
+    await tester.tap(inSheet(find.text('全部记录')));
+    await tester.pump();
+    expect(drafts, hasLength(1));
+    expect(
+      tester
+          .widgetList<TextField>(inSheet(find.byType(TextField)))
+          .every((f) => f.readOnly),
+      isTrue,
+    );
+    expect(
+      tester
+          .widgetList<IconButton>(
+            inSheet(find.widgetWithIcon(IconButton, Icons.close)),
+          )
+          .every((b) => b.onPressed == null),
+      isTrue,
+    );
+    gate.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(drafts.map((d) => d.amountG), [200, 50, 60]);
+    await settleUi(tester);
+  });
+
   testWidgets('全部记录重复点击：在途防连点，只入账一批', (tester) async {
     recognitionService.outcome = await comboOutcome();
     await pumpPage(tester);
@@ -674,7 +713,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(await repository.entriesForDate(DateTime.now().toUtc()), isEmpty);
-    expect(find.text('请输入大于 0 的份量'), findsOneWidget);
+    expect(find.text('请输入 0.1–5000 克之间的份量'), findsOneWidget);
     expect(inSheet(find.text('确认这餐明细')), findsOneWidget);
     await settleUi(tester);
   });

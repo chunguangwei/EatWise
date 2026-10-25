@@ -207,7 +207,7 @@ class _OnDeviceRecordingSheetState
               onPressed: busy ? null : () => unawaited(_onMicTap()),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(AppSpacing.s12),
-                foregroundColor: colors.brandPrimary,
+                foregroundColor: colors.actionPrimary,
                 side: BorderSide(color: colors.brandPrimary),
               ),
               icon: busy

@@ -276,7 +276,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     final food = ref.read(recordSelectedFoodProvider);
     if (food == null) return;
     final messenger = ScaffoldMessenger.of(context);
-    final amount = double.tryParse(ref.read(recordAmountTextProvider));
+    final amount = parseFoodAmount(ref.read(recordAmountTextProvider));
     if (amount == null || amount <= 0) {
       messenger.showSnackBar(SnackBar(content: Text(s.amountInvalid)));
       return;
@@ -449,7 +449,9 @@ class _RecordPageState extends ConsumerState<RecordPage> {
           builder: (context, constraints) {
             // 高度受限（小屏 / 键盘弹起 / 结果卡展开）时隐藏饮水·体重轻量区，
             // 保证记录主流程（搜索 → 结果卡 → 确认）不溢出（〔假设〕阈值 560）。
-            final showLightSection = constraints.maxHeight >= 560;
+            final showLightSection =
+                constraints.maxHeight >= 560 &&
+                MediaQuery.textScalerOf(context).scale(14) <= 18;
             return Column(
               children: <Widget>[
                 // 「待同步 N 条」可见入口（§4.1：>0 时展示，点击进同步详情页
@@ -512,7 +514,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                 if (!keyboardVisible)
                   Padding(
                     padding: const EdgeInsets.all(AppSpacing.s4),
-                    child: Row(
+                    child: _EntryActions(
                       children: <Widget>[
                         _EntryCard(
                           icon: Icons.photo_camera_rounded,
@@ -524,7 +526,6 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                                 unawaited(startPhotoRecognition(context, ref)),
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.s2),
                         _EntryCard(
                           icon: Icons.mic_none_rounded,
                           label: s.entryVoice,
@@ -533,7 +534,6 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                             () => unawaited(startVoiceInput(context, ref)),
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.s2),
                         _EntryCard(
                           icon: Icons.favorite_border_rounded,
                           label: s.entryFrequent,
@@ -542,7 +542,6 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                             () => unawaited(startFrequentPick(context)),
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.s2),
                         _EntryCard(
                           icon: Icons.qr_code_scanner_rounded,
                           label: BarcodeStrings.of(context).entry,
@@ -551,7 +550,6 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                             () => unawaited(startBarcodeScan(context, ref)),
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.s2),
                         // 记运动（无 GMS 设备手动兜底；设备级纯本地不上行）。
                         _EntryCard(
                           icon: Icons.directions_run_rounded,
@@ -665,7 +663,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                               title: Text(
                                 s.searchAddRow(query),
                                 style: textStyles.textBase.copyWith(
-                                  color: colors.brandPrimary,
+                                  color: colors.actionPrimary,
                                 ),
                               ),
                               onTap: () => unawaited(
@@ -842,6 +840,51 @@ class _RecordPageState extends ConsumerState<RecordPage> {
   }
 }
 
+/// Keep actions readable instead of squeezing five translated labels into one row.
+class _EntryActions extends StatelessWidget {
+  const _EntryActions({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = (MediaQuery.textScalerOf(context).scale(14) / 14).clamp(
+      1.0,
+      1.5,
+    );
+    final minWidth =
+        (LocaleSettings.currentLocale == AppLocale.en ? 84 : 56) * scale;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = ((constraints.maxWidth + 8) / (minWidth + 8))
+            .floor()
+            .clamp(2, children.length);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var start = 0; start < children.length; start += columns) ...[
+              if (start > 0) const SizedBox(height: AppSpacing.s2),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var offset = 0; offset < columns; offset++) ...[
+                      if (offset > 0) const SizedBox(width: AppSpacing.s2),
+                      if (start + offset < children.length)
+                        children[start + offset]
+                      else
+                        const Spacer(),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
 /// 三入口占位卡片（≥44px 触控区，M8 基线）。
 ///
 /// [highlighted]（薄荷走查 P2）：拍照记主入口专用——主色描边 + 浅主色
@@ -879,6 +922,7 @@ class _EntryCard extends StatelessWidget {
             onTap: onTap,
             child: Container(
               constraints: const BoxConstraints(minHeight: 64),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               decoration: AppSurfaces.card(colors, shadows, onMaterial: true)
                   .copyWith(
                     border: highlighted
@@ -892,9 +936,10 @@ class _EntryCard extends StatelessWidget {
                   const SizedBox(height: AppSpacing.s1),
                   Text(
                     label,
+                    textAlign: TextAlign.center,
                     style: highlighted
                         ? textStyles.textSm.copyWith(
-                            color: colors.brandPrimary,
+                            color: colors.actionPrimary,
                             fontWeight: FontWeight.w600,
                           )
                         : textStyles.textSm,
@@ -938,7 +983,7 @@ class _SelectedFoodCard extends ConsumerWidget {
     // 份量必填引导（走查「选中后不知道下一步干嘛」）：空/非法份量 →
     // 确认禁用 + 行内提示，替代「按钮看似可点、点了才弹错误吐司」。
     final amountText = ref.watch(recordAmountTextProvider);
-    final parsedAmount = double.tryParse(amountText);
+    final parsedAmount = parseFoodAmount(amountText);
     final amountValid = parsedAmount != null && parsedAmount > 0;
 
     return Container(
