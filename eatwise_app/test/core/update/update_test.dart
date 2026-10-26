@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -875,16 +876,26 @@ void main() {
       expect(find.text('发现新版本'), findsNothing);
     });
 
-    testWidgets('强制更新调起安装后弹窗保持（未升级不放行）', (tester) async {
+    testWidgets('强制更新调起安装后可再次安装且保持禁止返回', (tester) async {
       final adapter = FakeHttpAdapter()
         ..stub(
           'https://example.com/app.apk',
           StubResponse.rawBytes(200, <int>[1, 2, 3, 4]),
+        )
+        ..stub(
+          'https://example.com/app.apk',
+          StubResponse.rawBytes(200, <int>[1, 2, 3, 4]),
         );
+      var opened = 0;
+      late Completer<void> installerOpened;
       final downloader = fakeDownloader(
         adapter: adapter,
         tempDir: makeTempDir(),
-        open: (path) async => true,
+        open: (path) async {
+          opened += 1;
+          installerOpened.complete();
+          return true;
+        },
       );
       await tester.pumpWidget(
         TranslationProvider(
@@ -909,8 +920,38 @@ void main() {
       );
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
-      await tapAndWaitDownload(tester, '立即更新');
-      expect(find.text('发现新版本'), findsOneWidget); // 未关闭
+      await tester.runAsync(() async {
+        installerOpened = Completer<void>();
+        await tester.tap(find.text('立即更新'));
+        await installerOpened.future;
+        // Opening precedes the downloader's async finally block. Drain its
+        // real-zone microtasks before pumping the resulting UI frame.
+        await Future<void>.delayed(Duration.zero);
+      });
+      await tester.pump();
+      expect(opened, 1);
+      expect(find.text('发现新版本'), findsOneWidget);
+      expect(find.text('立即更新').hitTestable(), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      expect(find.text('以后再说'), findsNothing);
+
+      // Returning from/cancelling the native installer must leave a usable
+      // installation action, while the forced update route stays mandatory.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      expect(find.byType(UpdateDialog), findsOneWidget);
+      await tester.runAsync(() async {
+        installerOpened = Completer<void>();
+        await tester.tap(find.text('立即更新'));
+        await installerOpened.future;
+        await Future<void>.delayed(Duration.zero);
+      });
+      await tester.pump();
+      expect(opened, 2);
+      expect(find.text('立即更新').hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('英文语言：标题/按钮/notes 切英文（D-15）', (tester) async {

@@ -105,7 +105,7 @@ jobs:
           PREV_TAG=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)
           if [ -n "$PREV_TAG" ]; then RANGE="$PREV_TAG..$TAG"; else RANGE="$TAG"; fi
           {
-            echo "## 更新内容"
+            echo "更新内容"
             echo
             git log --pretty=format:'- %s' "$RANGE" | grep -vE '^- chore: v[0-9]' || echo '- 稳定性改进与问题修复'
           } > release-notes.md

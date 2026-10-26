@@ -81,6 +81,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
   bool get _forced => widget.result.status == UpdateStatus.forced;
 
   Future<void> _startUpdate() async {
+    if (_phase == _UpdatePhase.downloading) return;
     final info = widget.result.info;
     // iOS：维持原跳转（App Store 占位）；当前平台门下实际不可达。
     if (widget.platform == 'ios') {
@@ -111,24 +112,35 @@ class _UpdateDialogState extends State<UpdateDialog> {
       _phase = _UpdatePhase.downloading;
       _progress = null;
     });
-    final ok = await _downloader.downloadAndInstall(
-      apkUrl,
-      fallbackUrl: info.apkUrlFallback,
-      expectedVersion: info.latestVersion,
-      onProgress: (received, total) {
-        if (!mounted) return;
-        setState(() {
-          _progress = total > 0 ? received / total : null;
-        });
-      },
-    );
+    bool ok;
+    try {
+      ok = await _downloader.downloadAndInstall(
+        apkUrl,
+        fallbackUrl: info.apkUrlFallback,
+        expectedVersion: info.latestVersion,
+        onProgress: (received, total) {
+          if (!mounted) return;
+          setState(() {
+            _progress = total > 0 ? received / total : null;
+          });
+        },
+      );
+    } on Object {
+      // Platform setup/cleanup can fail outside the downloader's IO handling.
+      // Always restore an actionable state instead of trapping the dialog busy.
+      ok = false;
+    }
     if (!mounted) return;
     if (!ok) {
       setState(() => _phase = _UpdatePhase.failed);
       return;
     }
-    // 可选更新调起安装器后关闭弹窗；强制更新保持（未升级前不放行）。
-    if (!_forced) Navigator.of(context).pop();
+    // 调起安装器不代表已安装；取消安装后强制更新仍需可再次发起。
+    if (_forced) {
+      setState(() => _phase = _UpdatePhase.idle);
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 
   /// 下载进度条（与 ondevice_model_card 同款：轨道浅灰、进度品牌绿）。
@@ -151,13 +163,17 @@ class _UpdateDialogState extends State<UpdateDialog> {
       LocaleSettings.currentLocale.languageTag,
     );
     final dialog = AlertDialog(
+      // Keep long release notes inside a bounded viewport; actions stay visible.
+      scrollable: true,
+      actionsOverflowButtonSpacing: AppSpacing.s2,
       title: Text(t.update.title),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(t.update.newVersion(version: info.latestVersion)),
-          if (notes.isNotEmpty) ...<Widget>[
+          if (_phase == _UpdatePhase.idle)
+            Text(t.update.newVersion(version: info.latestVersion)),
+          if (_phase == _UpdatePhase.idle && notes.isNotEmpty) ...<Widget>[
             const SizedBox(height: 12),
             Text(notes),
           ],
@@ -178,7 +194,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
               t.update.downloadFailed,
               style: Theme.of(
                 context,
-              ).textTheme.bodySmall?.copyWith(color: colors.signalRed),
+              ).textTheme.bodySmall?.copyWith(color: colors.textPrimary),
             ),
           ],
         ],
@@ -206,8 +222,10 @@ class _UpdateDialogState extends State<UpdateDialog> {
         ],
       },
     );
-    if (!_forced) return dialog;
-    // 强制更新：拦截系统返回，弹窗不可关闭。
-    return PopScope(canPop: false, child: dialog);
+    // 下载中既不允许返回，也不允许点遮罩关窗后继续无界面下载。
+    return PopScope(
+      canPop: !_forced && _phase != _UpdatePhase.downloading,
+      child: dialog,
+    );
   }
 }
