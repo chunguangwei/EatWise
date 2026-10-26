@@ -26,6 +26,6 @@
   Files: social.service.ts、相关 tests；复用现有人工审核数据结构。
 - [x] App 发布反馈：新增带图说明/按钮/pending 返回提示回归 → 实现；已存在 PostCard 待审状态保持可见。
   Files: compose_page.dart、compose_page_test.dart、social_test_fakes.dart、双语键。
-- [ ] 安全真机验证：确认独立 bundle/本地服务/现有样本条件，执行可验证场景；保存未验边界。
-- [ ] 同步 D-05/D-17、发布事实文案及验收文档；format/analyze/全量 App 门禁；独立审查。
-- [ ] 更新版本，提交推送，CI、后端备份部署、GitHub APK/备用源校验、iOS 构建覆盖安装与设备回读。
+- [ ] 安全真机验证（已尝试，iPhone 测试驱动被系统网络权限阻挡；输入断言未执行，待权限恢复）：确认独立 bundle/本地服务/现有样本条件，执行可验证场景；保存未验边界。
+- [x] 同步 D-05/D-17、发布事实文案及验收文档；format/analyze/全量 App 门禁；独立审查。
+- [x] 更新版本，提交推送，CI、后端备份部署、GitHub APK/备用源校验、iOS 构建覆盖安装与设备回读。
