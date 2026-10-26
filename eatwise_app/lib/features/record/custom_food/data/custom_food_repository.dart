@@ -214,6 +214,7 @@ final class CustomFoodRepository {
       proteinPer100g: Value(draft.per100g.proteinG),
       carbPer100g: Value(draft.per100g.carbG),
       fatPer100g: Value(draft.per100g.fatG),
+      source: Value(customFoodSourceName(draft.source)),
     );
     if (owned.customSyncPending) {
       await db.foodDao.upsertAll(<FoodsCompanion>[

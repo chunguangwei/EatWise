@@ -11,15 +11,13 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
 import 'package:eatwise/core/widgets/app_bottom_sheet.dart';
-import 'package:eatwise/features/fasting/domain/nutrition_rule_config.dart';
-import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
 import 'package:eatwise/features/moderation/application/admin_food_delete.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_repository.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_sheet.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_strings.dart';
-import 'package:eatwise/features/record/domain/food_signal.dart';
+import 'package:eatwise/features/record/domain/food_portion_context.dart';
 import 'package:eatwise/features/record/domain/macro_energy.dart';
 import 'package:eatwise/features/record/domain/nrv_reference.dart';
 import 'package:eatwise/features/record/domain/placeholder_food.dart';
@@ -35,7 +33,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 阶段 E 食物详情底部弹层（薄荷对标合并设计：信息分层——名称头部 →
-/// 显著热量 → 三大营养素供能比例三圆环 + 人话注释 → 红绿灯评价徽标 →
+/// 数据来源 → 每100克热量 → 三大营养素供能比例 → 本份与每日目标的关系 →
 /// 其余明细折叠区 → 份量输入直接入账）。
 ///
 /// 薄荷复盘坑位落实：不做字母评级（A~D 反直觉）、不做跨类参照物、
@@ -121,14 +119,6 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     final isAdmin = ref.watch(userMeProvider).value?.role == 'admin';
 
     final goal = ref.watch(nutritionGoalProvider);
-    final verdict = evaluateFoodSignal(
-      kcalPer100g: food.kcalPer100g,
-      proteinPer100g: food.proteinPer100g,
-      carbPer100g: food.carbPer100g,
-      fatPer100g: food.fatPer100g,
-      goal: goal,
-      config: NutritionRuleConfig.defaults,
-    );
     final breakdown = computeMacroEnergyBreakdown(
       proteinG: food.proteinPer100g,
       carbG: food.carbPer100g,
@@ -138,8 +128,11 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
     // 份量预览（按输入份量 × 每 100g 值换算，与记录页结果卡同格式）。
     final amount = parseFoodAmount(_amountController.text);
     final preview = amount != null && amount > 0 ? amount / 100 : null;
-    // 「大约需走 N 步」随选中份量实时联动；未输入份量时按每 100g 展示。
-    final walkSteps = stepsFromKcal(food.kcalPer100g * (preview ?? 1));
+    final targetPercent = portionCalorieTargetPercent(
+      amountG: amount,
+      kcalPer100g: food.kcalPer100g,
+      targetKcal: goal.targetKcal,
+    );
     // 份量必填引导（走查「不知道下一步干嘛」）：空/非法份量 → 确认禁用 +
     // 行内提示，替代「按钮看似可点、点了才报错」的截停链。
     final amountValid = preview != null;
@@ -200,13 +193,7 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
               ),
             ),
           const SizedBox(height: AppSpacing.s2),
-          // 红绿灯评价徽标（颜色 + 图标 + 文字三重编码，PRD M8/§3.3）。
-          _SignalBadge(verdict: verdict),
-          const SizedBox(height: AppSpacing.s1),
-          Text(
-            t.record.foodDetail.badgeBasis,
-            style: textStyles.textXs.copyWith(color: colors.textSecondary),
-          ),
+          _SourceNote(origin: foodDataOrigin(food)),
           const SizedBox(height: AppSpacing.s3),
           // 显著热量卡（用户最关心，薄荷分层第一位）：千卡/千焦并列。
           Container(
@@ -251,14 +238,6 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.s1),
-                // 「大约需走 N 步」（薄荷口径估算，随份量联动）。
-                Text(
-                  t.record.foodDetail.walkSteps(steps: walkSteps),
-                  style: textStyles.textXs.copyWith(
-                    color: colors.textSecondary,
-                  ),
-                ),
               ],
             ),
           ),
@@ -302,6 +281,48 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
               colors: colors,
               radii: radii,
               helperText: amountValid ? null : s.amountInvalid,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s2),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.s3),
+            decoration: BoxDecoration(
+              color: colors.bgSecondary,
+              borderRadius: radii.rSm,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  amount == null
+                      ? t.record.foodDetail.portionPrompt
+                      : targetPercent == null
+                      ? t.record.foodDetail.targetUnavailable
+                      : t.record.foodDetail.portionShare(
+                          percent: formatPortionPercent(targetPercent),
+                        ),
+                  key: targetPercent == null
+                      ? null
+                      : const ValueKey('foodDetail.portionShare'),
+                  style: textStyles.textSm.copyWith(color: colors.textPrimary),
+                ),
+                if (targetPercent != null) ...<Widget>[
+                  const SizedBox(height: AppSpacing.s1),
+                  Text(
+                    t.record.foodDetail.portionBasis(
+                      amount: amount!.toString().replaceFirst(
+                        RegExp(r'\.0$'),
+                        '',
+                      ),
+                      target: goal.targetKcal,
+                    ),
+                    style: textStyles.textXs.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           if (preview != null) ...<Widget>[
@@ -757,64 +778,38 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
   }
 }
 
-/// 红绿灯评价徽标：颜色 + 图标 + 文字三重编码（红色仅表警告，§3.3）。
-class _SignalBadge extends StatelessWidget {
-  const _SignalBadge({required this.verdict});
+/// Origin describes the saved data, without implying nutritional endorsement.
+class _SourceNote extends StatelessWidget {
+  const _SourceNote({required this.origin});
 
-  final SignalVerdict verdict;
+  final FoodDataOrigin origin;
 
   @override
   Widget build(BuildContext context) {
-    final t = Translations.of(context);
+    final t = Translations.of(context).record.foodDetail;
     final colors = Theme.of(context).extension<AppColors>()!;
     final textStyles = Theme.of(context).extension<AppTextStyles>()!;
     final radii = Theme.of(context).extension<AppRadii>()!;
-    final (color, icon, label) = switch (verdict.zone) {
-      SignalZone.green => (
-        colors.signalGreen,
-        Icons.check_circle,
-        t.record.foodDetail.badgeGreen,
-      ),
-      SignalZone.yellow => (
-        colors.signalYellow,
-        Icons.error,
-        t.record.foodDetail.badgeYellow,
-      ),
-      SignalZone.red => (
-        colors.signalRed,
-        Icons.cancel,
-        t.record.foodDetail.badgeRed,
-      ),
+    final source = switch (origin) {
+      FoodDataOrigin.library => t.sourceLibrary,
+      FoodDataOrigin.manual => t.sourceManual,
+      FoodDataOrigin.community => t.sourceCommunity,
+      FoodDataOrigin.estimated => t.sourceEstimated,
+      FoodDataOrigin.unknown => t.sourceUnknown,
     };
-    // 图标与底色保留信号语义，正文使用高对比文字色，避免浅底上的绿/红字
-    // 低于普通字号所需的 4.5:1；黄色图标仍使用深阶。
-    final iconColor = switch (verdict.zone) {
-      SignalZone.green => colors.brandPrimary,
-      SignalZone.yellow => colors.signalYellowText,
-      SignalZone.red => colors.signalRed,
-    };
-    return Semantics(
-      label: label,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.s2,
-          vertical: AppSpacing.s1,
-        ),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.14),
-          borderRadius: radii.rSm,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(icon, color: iconColor, size: 18),
-            const SizedBox(width: AppSpacing.s1),
-            Text(
-              label,
-              style: textStyles.textSm.copyWith(color: colors.textPrimary),
-            ),
-          ],
-        ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s2,
+        vertical: AppSpacing.s1,
+      ),
+      decoration: BoxDecoration(
+        color: colors.bgSecondary,
+        borderRadius: radii.rSm,
+      ),
+      child: Text(
+        t.sourceLabel(source: source),
+        style: textStyles.textSm.copyWith(color: colors.textPrimary),
       ),
     );
   }

@@ -85,6 +85,55 @@ describe('Admin posts review (e2e)', () => {
       .expect(401);
   });
 
+  it.each(['approve', 'reject'] as const)(
+    '图片帖 HTTP 链路：先待审仅本人可见，管理员 %s 后按决定展示',
+    async (action) => {
+      const author = await login(nextPhone());
+      const viewer = await login(nextPhone());
+      const body = {
+        clientRequestId: crypto.randomUUID(),
+        text: '我的午餐照片',
+        imageUrls: [`/v1/uploads/${crypto.randomUUID()}.jpg`],
+      };
+      const created = await request(server)
+        .post('/v1/posts')
+        .set(auth(author))
+        .send(body)
+        .expect(200);
+      const postId = created.body.data.id as string;
+      expect(created.body.data.auditStatus).toBe('pending');
+      expect(created.body.data.auditReason.zh).toBeTruthy();
+      expect(await feedHas(author, postId)).toBe(true);
+      expect(await feedHas(viewer, postId)).toBe(false);
+      await request(server).get(`/v1/posts/${postId}`).set(auth(viewer)).expect(404);
+      expect((await listIds('pending')).map((item) => item.id)).toContain(postId);
+
+      const replay = await request(server)
+        .post('/v1/posts')
+        .set(auth(author))
+        .send(body)
+        .expect(200);
+      expect(replay.body.data.id).toBe(postId);
+      expect(store.moderationQueue.filter((item) => item.postId === postId)).toHaveLength(1);
+
+      await request(server)
+        .post(`/v1/admin/posts/${postId}/review`)
+        .set('x-admin-token', ADMIN)
+        .send({ action, reason: action === 'reject' ? '请更换图片' : undefined })
+        .expect(200);
+      expect(await feedHas(viewer, postId)).toBe(action === 'approve');
+      await request(server)
+        .get(`/v1/posts/${postId}`)
+        .set(auth(viewer))
+        .expect(action === 'approve' ? 200 : 404);
+      const own = await request(server).get(`/v1/posts/${postId}`).set(auth(author)).expect(200);
+      expect(own.body.data.auditStatus).toBe(action === 'approve' ? 'approved' : 'rejected');
+      if (action === 'reject') expect(own.body.data.auditReason.zh).toBe('请更换图片');
+      expect(store.moderationQueue.filter((item) => item.postId === postId)).toHaveLength(0);
+      await request(server).delete(`/v1/posts/${postId}`).set(auth(author)).expect(200);
+    },
+  );
+
   it('队列四态：pending/approved/rejected/reported 各自筛选命中，非法 status → 400', async () => {
     const author = await login(nextPhone());
     const reporter = await login(nextPhone());

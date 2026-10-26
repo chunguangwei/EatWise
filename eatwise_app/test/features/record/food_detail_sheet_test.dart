@@ -22,7 +22,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 /// 阶段 E 食物详情弹层 widget 测试：信息分层（名称/热量大字/供能三圆环/
-/// 红绿灯徽标/明细折叠区）+ 份量输入实时预览 + 确认回调。
+/// 数据来源/明细折叠区）+ 份量输入实时预览及目标占比 + 确认回调。
 void main() {
   const food = Food(
     id: 'f-rice',
@@ -42,7 +42,7 @@ void main() {
     customSyncFailed: false,
   );
 
-  // 兜底口径目标（D-04 §1.6）：米饭四个 p 均远低于高侧边界 → 绿灯。
+  // 当前每日目标（D-04 §1.6），只作本份摄入占比参考。
   const goal = NutritionGoal(
     bmr: null,
     tdee: null,
@@ -122,18 +122,17 @@ void main() {
     customSyncFailed: false,
   );
 
-  testWidgets('信息分层：名称/绿灯徽标/热量大字/三圆环/人话注释/折叠区默认收起', (tester) async {
+  testWidgets('信息分层：名称/来源/热量大字/三圆环/人话注释/折叠区默认收起', (tester) async {
     await pumpSheet(tester, onConfirm: (_) {});
 
-    // 头部名称 + 红绿灯徽标（三重编码之一：文字）+ 判定依据注释。
+    // 头部名称与来源，避免将单个食物判为放心吃或不应吃。
     expect(find.text('白米饭'), findsOneWidget);
-    expect(find.text('绿灯 · 放心吃'), findsOneWidget);
-    expect(find.text('按每 100 克对照你的每日营养目标判定'), findsOneWidget);
+    expect(find.text('数据来源：食物库'), findsOneWidget);
+    expect(find.text('输入份量，查看本份占每日热量目标的比例'), findsOneWidget);
 
-    // 显著热量卡：千卡/千焦并列 + 「大约需走 N 步」（每 100g 口径）。
+    // 基础热量卡仍明确按每100g展示。
     expect(find.text('116'), findsOneWidget);
     expect(find.text('千卡 / 485 千焦 · 每 100 克'), findsOneWidget);
-    expect(find.text('大约需走 4292 步'), findsOneWidget);
 
     // 三圆环：供能占比（白米饭 蛋白质 9% / 碳水 89% / 脂肪 2%）+ 人话注释。
     expect(find.text('三大营养素供能比例'), findsOneWidget);
@@ -217,22 +216,21 @@ void main() {
     expect(find.text('别名：米饭、白饭'), findsOneWidget);
   });
 
-  testWidgets('份量输入实时预览 + 「大约需走 N 步」联动 + 确认回调带出份量', (tester) async {
+  testWidgets('份量输入实时预览 + 每日目标占比联动 + 确认回调带出份量', (tester) async {
     String? confirmed;
     await pumpSheet(tester, onConfirm: (text) => confirmed = text);
 
-    // 初始无预览；步数按每 100g 口径。
+    // 初始无本份预览，不将缺失份量回退为100g。
     expect(find.text('热量 232 千卡'), findsNothing);
-    expect(find.text('大约需走 4292 步'), findsOneWidget);
     await tester.ensureVisible(find.byType(TextField));
     await tester.pump();
     await tester.enterText(find.byType(TextField), '200');
     await tester.pump();
     expect(find.text('热量 232 千卡'), findsOneWidget);
     expect(find.text('蛋白质 5.2 克'), findsOneWidget);
-    // 200g → 232 kcal × 37 ≈ 8584 步（随份量联动）。
-    expect(find.text('大约需走 8584 步'), findsOneWidget);
-    expect(find.text('大约需走 4292 步'), findsNothing);
+    // 200g → 232 kcal，占2000 kcal当前目标的11.6%。
+    expect(find.text('本份占每日热量目标 11.6%'), findsOneWidget);
+    expect(find.text('本份 200 克 · 当前每日目标 2000 千卡'), findsOneWidget);
 
     // 明确输入框形态（真机走查「份量看不出可点改」）：「克」单位后缀 +
     // 可见描边（enabledBorder 非 BorderSide.none）。
@@ -246,10 +244,10 @@ void main() {
     expect(confirmed, '200');
   });
 
-  testWidgets('英文语言环境：名称/徽标/注释切英文', (tester) async {
+  testWidgets('英文语言环境：名称/来源/注释切英文', (tester) async {
     await pumpSheet(tester, onConfirm: (_) {}, locale: AppLocale.en);
     expect(find.text('White Rice'), findsOneWidget);
-    expect(find.text('Green · enjoy freely'), findsOneWidget);
+    expect(find.text('Data source: Food database'), findsOneWidget);
     expect(find.textContaining('2.25×'), findsOneWidget);
     expect(find.text('Nutrition per 100 g'), findsOneWidget);
   });

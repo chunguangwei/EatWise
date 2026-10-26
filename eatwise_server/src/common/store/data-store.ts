@@ -339,6 +339,16 @@ export interface ModerationQueueItem {
   createdAt: Date;
 }
 
+function sameModerationQueueItem(left: ModerationQueueItem, right: ModerationQueueItem): boolean {
+  // Snapshot clones may have different prototypes; queue identity is defined by its values.
+  return (
+    left.postId === right.postId &&
+    left.source === right.source &&
+    left.reason === right.reason &&
+    left.createdAt.getTime() === right.createdAt.getTime()
+  );
+}
+
 export interface IdempotencyRecord {
   userId: string;
   clientRequestId: string;
@@ -490,12 +500,14 @@ export class DataStore {
     const remaining = structuredClone(tx.moderationQueue);
     const removed: ModerationQueueItem[] = [];
     for (const before of snapshot.moderationQueue) {
-      const index = remaining.findIndex((after) => isDeepStrictEqual(before, after));
+      const index = remaining.findIndex((after) => sameModerationQueueItem(before, after));
       if (index >= 0) remaining.splice(index, 1);
       else removed.push(before);
     }
     for (const before of removed) {
-      const index = this.moderationQueue.findIndex((current) => isDeepStrictEqual(before, current));
+      const index = this.moderationQueue.findIndex((current) =>
+        sameModerationQueueItem(before, current),
+      );
       if (index >= 0) this.moderationQueue.splice(index, 1);
     }
     if (remaining.length > 0) {

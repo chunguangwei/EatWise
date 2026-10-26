@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'qa_environment.dart';
+
 /// 真机 UI 走查（iPhone，flutter drive）：五 tab 全覆盖 + 关键交互，
 /// 逐站打印 `@@SHOT:<name>@@` 标记供宿主脚本对齐 devicectl 截屏。
 ///
@@ -12,10 +14,12 @@ import 'package:integration_test/integration_test.dart';
 /// flutter drive \
 ///   --driver=test_driver/integration_test.dart \
 ///   --target=integration_test/ui_walkthrough_test.dart \
-///   -d <device-udid> --dart-define=API_BASE_URL=https://wcg.polin.tech:8443/v1
+///   -d <device-udid> --dart-define=EATWISE_QA=true \
+///   --dart-define=API_BASE_URL=http://<Mac局域网IP>:3011/v1
 /// ```
 ///
-/// 演示账号（App Store 审核号）：appreview / Review#2026EatWise。
+/// 仅用于独立 QA bundle + 本地 memory 服务，禁止写生产演示数据。
+/// 本地测试账号：appreview / Review#2026EatWise。
 /// 前置：中国区「无线数据」系统弹窗需由宿主侧 XCUITest 并发关闭
 /// （见 /tmp/wt_run3.sh 与 /tmp/alertdismiss）。
 void main() {
@@ -105,6 +109,7 @@ void main() {
   }
 
   testWidgets('ui walkthrough', (tester) async {
+    requireLocalQaApi();
     await app.main();
     await tester.pump(const Duration(seconds: 8));
 

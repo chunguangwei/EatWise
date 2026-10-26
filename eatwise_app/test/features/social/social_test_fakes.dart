@@ -51,6 +51,7 @@ final class FakeSocialApi extends SocialApi {
 
   Object? feedError;
   Object? createError;
+  String createAuditStatus = 'approved';
   Completer<void>? createGate;
   Object? likeError;
   Object? reportError;
@@ -112,7 +113,7 @@ final class FakeSocialApi extends SocialApi {
       text: text,
       nickname: '我',
       streakDaysAtPost: 3,
-      auditStatus: 'approved',
+      auditStatus: createAuditStatus,
       isAuthor: true,
       anonymous: anonymous,
       avatarId: avatarId,

@@ -83,12 +83,12 @@ void main() {
     final theme = dark ? AppTheme.dark() : AppTheme.light();
     final colors = theme.extension<AppColors>()!;
 
-    for (final (fat, label) in <(double, String)>[
-      (0.3, '绿灯 · 放心吃'),
-      (80, '黄灯 · 适量少吃'),
-      (100, '红灯 · 尽量别吃'),
+    for (final (source, label) in <(String, String)>[
+      ('manual', '数据来源：个人填写'),
+      ('llm-estimate', '数据来源：AI 估算，请核对数值'),
+      ('community', '数据来源：社区贡献'),
     ]) {
-      testWidgets('食物详情状态与营养徽标文字对比度 $label dark=$dark', (tester) async {
+      testWidgets('食物详情来源与份量目标文字对比度 $label dark=$dark', (tester) async {
         await tester.pumpWidget(
           ProviderScope(
             overrides: <Override>[
@@ -101,7 +101,7 @@ void main() {
                 home: Scaffold(
                   backgroundColor: colors.bgSecondary,
                   body: FoodDetailSheet(
-                    food: food.copyWith(fatPer100g: fat),
+                    food: food.copyWith(source: source),
                     onConfirm: (_) {},
                   ),
                 ),
@@ -112,6 +112,9 @@ void main() {
         await tester.pump();
         expectReadable(tester, label, colors.bgSecondary);
         expectReadable(tester, '自定义', colors.bgSecondary);
+        await tester.enterText(find.byType(TextField).first, '100');
+        await tester.pump();
+        expectReadable(tester, '本份占每日热量目标 5.8%', colors.bgSecondary);
         await tester.pumpWidget(const SizedBox());
       });
     }

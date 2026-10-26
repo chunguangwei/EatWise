@@ -24,6 +24,8 @@ flutter test                    # 门禁：全绿
 
 硬性规则：
 
+- **食物说明与图片审核（2026-10-26，v1.17.11）**：食物详情以实际份量占当前每日目标的比例替代单品红绿灯/步数折算；来源只依 source，不能用 contributionStatus=approved 推断社区（内置库纠错也会 approved）。自定义食物 UPDATE 必须同存 source；编辑旧 AI 食品仅改名称/别名不清估算标记，手改营养转 manual。新图片帖 pending 人工审核，纯文字仍直接公开；创建/队列/幂等回执同事务，所有会写帖子整行的审核/删除/举报/点赞/取消点赞共用 post 锁与 tx-bound driver。作者未公开帖显示 auditReason 中英回退，不把举报暂时下架一概称审核拒绝。i18n 隐私社区段与 docs/public 同步。原生驱动写操作仅显式 .qa 包 + EATWISE_INPUT_QA=1，独立本地 memory 服务；typeFocused 禁重新点焦点。详见 tool/NATIVE_UI_QA.md。
+
 - **创建对账与会话隔离（2026-10-26，v1.17.10）**：drift **v16** 新增 `FoodEntries.createRequestSnapshot`，首次 create 发出前冻结；响应未知时编辑/删除不得丢失原请求键，先重放原 create 绑定 serverId 再执行最新意图。匿名认领只更新本地 owner，不改冻结 wire；自定义食物先上行，foodId remap 必须参与代际判断。删除/撤销/失败回滚与日聚合同事务；缓存修复含空日期，升级标记 `daily_cache_backfill_v2_`。请求和整段同步绑定 `SessionLease`（uid + 登录 epoch），每个跨 await 后写库/写游标前检查；同账号重新登录也失效旧任务。AuthInterceptor 用普通 Interceptor + refresh singleflight，禁止在 QueuedInterceptor 的 onError 内等待经同队列重放；任务 dispose 不能丢弃同登录会话已轮换的 token。TokenStore 持久读写串行且空闲清队尾。F3 延长整段通过 `FastingPlanSync.reportExtend`，失败写原 uid 队列；匿名队列先落目标再删来源。回归基线 App **1746**、服务端内存 **356** / e2e **167** / PG **421** 全绿。
 - **断食与并发一致性（2026-10-26，v1.17.10）**：服务端 F2 与 sync 共用 `fasting-result.ts`，延长后完成原目标仍达标；sync 禁止客户端 makeup，并保护服务端既有补签。方案读写/生效按用户锁串行，食物审核、纠错、晋升和级联删除共享 food 锁且仅用 tx-bound driver。自然日序列/差值用 `addCalendarDays/calendarDaysBetween`，勿用固定 24 小时算日期；真实持续时长保持原语义，CI 以 America/New_York 验证 DST。
 

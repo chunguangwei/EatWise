@@ -99,6 +99,63 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('图片审核：选图后说明可见，移除图片恢复纯文字发布', (tester) async {
+    pickedPhoto = pngBytes;
+    await pumpCompose(tester);
+    expect(find.text('图片帖需人工审核，通过后才会公开。'), findsNothing);
+    await tester.tap(find.text('添加图片'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('图片帖需人工审核，通过后才会公开。'), findsOneWidget);
+    expect(find.text('提交审核'), findsOneWidget);
+    await tester.tap(find.byTooltip('移除图片'));
+    await tester.pump();
+    expect(find.text('图片帖需人工审核，通过后才会公开。'), findsNothing);
+    expect(find.text('发布'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('图片审核：服务端 pending 回执返回列表并确认仅自己可见', (tester) async {
+    pickedPhoto = pngBytes;
+    api.createAuditStatus = 'pending';
+    await pumpCompose(tester);
+    await tester.tap(find.text('添加图片'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.enterText(find.byType(TextField), '待审图片打卡');
+    await tester.tap(find.byType(BusyFilledButton));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('FEED'), findsOneWidget);
+    expect(find.text('已提交审核，暂时仅自己可见'), findsOneWidget);
+    expect(api.createCalls, 1);
+    await unmount(tester);
+  });
+
+  testWidgets('photo review: English hint, action and pending confirmation', (
+    tester,
+  ) async {
+    await LocaleSettings.setLocale(AppLocale.en);
+    pickedPhoto = pngBytes;
+    api.createAuditStatus = 'pending';
+    await pumpCompose(tester);
+    await tester.tap(find.text('Add photo'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(
+      find.text('Photo posts are reviewed before they become public.'),
+      findsOneWidget,
+    );
+    expect(find.text('Submit for review'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Photo check-in');
+    await tester.tap(find.byType(BusyFilledButton));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('FEED'), findsOneWidget);
+    expect(
+      find.text('Submitted for review. Only you can see it for now.'),
+      findsOneWidget,
+    );
+    await unmount(tester);
+  });
+
   testWidgets('streak 徽章：有连胜显示天数，无连胜显示引导文案（4.2）', (tester) async {
     await pumpCompose(
       tester,
@@ -226,7 +283,7 @@ void main() {
     // 上传在途：发布按钮禁用，避免发出无图帖。
     expect(
       tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, '发布'))
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '提交审核'))
           .onPressed,
       isNull,
     );
@@ -237,7 +294,7 @@ void main() {
 
     // 上传完成：发布恢复，上行 imageUrls 为服务端 URL（非本地路径）。
     await tester.enterText(find.byType(TextField), '带图打卡');
-    await tester.tap(find.text('发布'));
+    await tester.tap(find.byType(BusyFilledButton));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     expect(api.lastImageUrls, <String>['/v1/uploads/srv-1.png']);
@@ -260,7 +317,7 @@ void main() {
   testWidgets('未选图发布不带 imageUrls（纯文字路径不受上传链路影响）', (tester) async {
     await pumpCompose(tester);
     await tester.enterText(find.byType(TextField), '纯文字');
-    await tester.tap(find.text('发布'));
+    await tester.tap(find.byType(BusyFilledButton));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     expect(api.lastImageUrls, isEmpty);
@@ -275,7 +332,7 @@ void main() {
     expect(find.text('图片超过 5MB，请换一张或压缩后再传'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), '图挂了也要打卡');
-    await tester.tap(find.text('发布'));
+    await tester.tap(find.byType(BusyFilledButton));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     // 失败语义提示（不再是「上传中」），给出不带图发布选择。
@@ -297,7 +354,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     await tester.enterText(find.byType(TextField), '再想想');
-    await tester.tap(find.text('发布'));
+    await tester.tap(find.byType(BusyFilledButton));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('图片上传失败：可以不带图发布，或取消后重新上传。'), findsOneWidget);

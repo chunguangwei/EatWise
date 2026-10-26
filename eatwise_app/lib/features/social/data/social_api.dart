@@ -17,6 +17,8 @@ final class ServerPost {
     this.anonymous = false,
     this.avatarId,
     this.authorId,
+    this.auditReasonZh,
+    this.auditReasonEn,
   });
 
   final String id;
@@ -30,7 +32,14 @@ final class ServerPost {
 
   /// 审核状态（pending / approved / rejected，先审后发 D-17）。
   final String auditStatus;
+
+  /// 服务端仅向作者返回；可能是审核说明，也可能是举报后的暂时下架原因。
+  final String? auditReasonZh;
+  final String? auditReasonEn;
   final bool isAuthor;
+
+  String? auditReason({required bool english}) =>
+      english ? auditReasonEn ?? auditReasonZh : auditReasonZh ?? auditReasonEn;
 
   /// 作者 id（匿名帖对他人为 null——服务端已抹除作者身份，不可屏蔽）。
   final String? authorId;
@@ -54,6 +63,8 @@ final class ServerPost {
       likeCount: likeCount ?? this.likeCount,
       likedByMe: likedByMe ?? this.likedByMe,
       auditStatus: auditStatus ?? this.auditStatus,
+      auditReasonZh: auditReasonZh,
+      auditReasonEn: auditReasonEn,
       isAuthor: isAuthor,
       authorNickname: authorNickname,
       anonymous: anonymous,
@@ -65,6 +76,12 @@ final class ServerPost {
 
   factory ServerPost.fromJson(Map<String, dynamic> json) {
     final author = json['author'] as Map<String, dynamic>? ?? const {};
+    final reason = json['auditReason'];
+    String? reasonText(String language) {
+      final value = reason is Map ? reason[language] : null;
+      return value is String && value.trim().isNotEmpty ? value.trim() : null;
+    }
+
     return ServerPost(
       id: json['id'] as String? ?? '',
       text: json['text'] as String? ?? '',
@@ -75,6 +92,8 @@ final class ServerPost {
       likeCount: (json['likeCount'] as num?)?.toInt() ?? 0,
       likedByMe: json['likedByMe'] as bool? ?? false,
       auditStatus: json['auditStatus'] as String? ?? 'approved',
+      auditReasonZh: reasonText('zh'),
+      auditReasonEn: reasonText('en'),
       isAuthor: json['isAuthor'] as bool? ?? false,
       authorNickname: author['nickname'] as String?,
       anonymous: json['anonymous'] as bool? ?? false,

@@ -196,6 +196,10 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
       _proteinController.text = _formatNumber(edit.proteinPer100g);
       _carbController.text = _formatNumber(edit.carbPer100g);
       _fatController.text = _formatNumber(edit.fatPer100g);
+      final source = edit.source.trim().toLowerCase();
+      _estimateApplied = source == 'llm-estimate' || source == 'llmestimate';
+      // The saved source does not retain which AI engine produced these values.
+      _estimateSource = null;
     } else {
       final target = widget.correctionTarget;
       if (target != null) {
@@ -221,8 +225,8 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
   /// 文案按 [_estimateSource] 区分「置信度较低」/「估算存疑」）。
   bool _estimateLow = false;
 
-  /// 最近一次估算生效来源（端侧显示「端侧估算，请确认」徽标）。
-  FoodEstimateSource _estimateSource = FoodEstimateSource.userApi;
+  /// 本次表单中估算的渠道；既有食品仅保存了 AI 来源时不推断具体渠道。
+  FoodEstimateSource? _estimateSource;
 
   /// 估算不可用提示（503/超时/网络；降级手动填写，不阻断）。
   bool _estimateUnavailable = false;
@@ -706,6 +710,9 @@ class _CustomFoodSheetState extends ConsumerState<CustomFoodSheet> {
                             cs.estimateBadgeOnDevice,
                           FoodEstimateSource.userApi => cs.estimateBadgeUserApi,
                           FoodEstimateSource.photoOcr => cs.estimateBadgeOcr,
+                          null => Translations.of(
+                            context,
+                          ).record.foodDetail.sourceEstimated,
                         },
                         style: textStyles.textSm.copyWith(
                           color: readableForeground(colors.brandAccent),

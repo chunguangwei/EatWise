@@ -176,8 +176,26 @@ class _PostCardState extends ConsumerState<PostCard> {
                     label: t.social.feed.pendingBadge,
                     color: colors.textSecondary,
                   ),
+                if (!item.pendingSync &&
+                    post.isAuthor &&
+                    post.auditStatus == 'rejected')
+                  _Badge(
+                    icon: Icons.visibility_off_outlined,
+                    label: t.social.feed.notPublicBadge,
+                    color: colors.textPrimary,
+                  ),
               ],
             ),
+            if (!item.pendingSync &&
+                post.isAuthor &&
+                post.auditStatus == 'rejected') ...<Widget>[
+              const SizedBox(height: AppSpacing.s2),
+              Text(
+                post.auditReason(english: t.$meta.locale == AppLocale.en) ??
+                    t.social.feed.reviewReasonUnavailable,
+                style: textStyles.textSm.copyWith(color: colors.textSecondary),
+              ),
+            ],
             const SizedBox(height: AppSpacing.s2),
             // 正文：3 行截断 + 展开（4.1 打卡正文行数上限）。
             _CollapsibleText(

@@ -245,8 +245,13 @@ class _ComposePageState extends ConsumerState<ComposePage> {
         );
     if (!mounted || route?.isCurrent == false) return;
     switch (result) {
-      case PublishOk():
+      case PublishOk(:final post):
         navigator.pop();
+        if (post.auditStatus == 'pending') {
+          messenger.showSnackBar(
+            SnackBar(content: Text(t.social.compose.submittedForReview)),
+          );
+        }
       case PublishRejected(:final message):
         // 先审后发拒绝：服务端双语提示直接上屏（D-17）。
         messenger.showSnackBar(SnackBar(content: Text(message)));
@@ -545,6 +550,16 @@ class _ComposePageState extends ConsumerState<ComposePage> {
                     const SizedBox(height: AppSpacing.s2),
                     // 配图：选图即上传，上传中禁用发布；失败可重试或不带图发布。
                     _buildPhotoSection(t),
+                    if (_photo != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.s2),
+                        child: Text(
+                          t.social.compose.photoReviewHint,
+                          style: textStyles.textSm.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: AppSpacing.s2),
                     // 匿名发布 + 默认头像选择。
                     _buildAnonymousSection(t, colors, textStyles),
@@ -554,8 +569,12 @@ class _ComposePageState extends ConsumerState<ComposePage> {
             ),
             const SizedBox(height: AppSpacing.s6),
             BusyFilledButton(
-              label: t.social.compose.publish,
-              busyLabel: t.social.compose.publish,
+              label: _photo != null
+                  ? t.social.compose.submitForReview
+                  : t.social.compose.publish,
+              busyLabel: _photo != null
+                  ? t.social.compose.submitForReview
+                  : t.social.compose.publish,
               busy: _submitting || _uploading,
               onPressed: _publish,
             ),

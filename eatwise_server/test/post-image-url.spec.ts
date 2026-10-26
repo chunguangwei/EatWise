@@ -53,6 +53,7 @@ describe('Post image URL outbound filtering', () => {
     expect(created.imageUrls).toEqual(expected);
     expect(store.posts.get(created.id)?.imageUrls).toEqual(legacyUrls);
 
+    await social.adminReview(created.id, { action: 'approve' });
     const detail = (await social.getById(viewerId, created.id)) as { imageUrls: string[] };
     expect(detail.imageUrls).toEqual(expected);
 
