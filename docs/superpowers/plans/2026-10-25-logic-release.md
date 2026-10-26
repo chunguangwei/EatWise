@@ -32,5 +32,5 @@
 - [x] 服务端：回归 D-08 延长判定、拒绝客户端 makeup、并发方案唯一当前状态、审核事务；修复后跑 unit/e2e/真实 PostgreSQL。
 - [x] 自然日：补 DST 日期翻页和趋势统计回归，统一 calendar-day 运算；不替换真实持续时长。
 - [x] 集成：dart format、dart analyze 零 issue、flutter test 全绿；server lint/build/test/e2e；独立复核变更。
-- [ ] 发布：版本与说明、提交 push、CI 门禁、后端备份部署和健康检查、tag/GitHub APK、备用下载核验、iOS release 构建与可用真机覆盖更新。
-- [ ] 保存实际发布结果与未验范围，报告真实可用的版本和链接。
+- [x] 发布：版本与说明、提交 push、CI 门禁、后端备份部署和健康检查、tag/GitHub APK、备用下载核验、iOS release 构建与可用真机覆盖更新。
+- [x] 保存实际发布结果与未验范围，报告真实可用的版本和链接。
