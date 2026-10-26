@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/network/api_exception.dart';
+import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/features/record/data/remote_record_sync.dart';
@@ -26,8 +27,12 @@ final class RemoteWaterLogSync {
   bool get isOnline => _online;
 
   /// 上行该用户全部 pending 饮水记录（含 tombstone）。
-  Future<void> pushPending(AppDatabase db, String userId) async {
+  Future<void> pushPending(AppDatabase db, String userId) =>
+      withApiSession(dio, () => _pushPending(db, userId), userId: userId);
+
+  Future<void> _pushPending(AppDatabase db, String userId) async {
     final rows = await db.waterLogDao.pendingForUser(userId);
+    checkActiveSession();
     if (rows.isEmpty) return;
     for (var i = 0; i < rows.length; i += kSyncPushBatchSize) {
       final chunk = rows.sublist(
@@ -36,6 +41,7 @@ final class RemoteWaterLogSync {
             ? rows.length
             : i + kSyncPushBatchSize,
       );
+      checkActiveSession();
       await _pushChunk(db, chunk);
     }
   }
@@ -47,6 +53,7 @@ final class RemoteWaterLogSync {
         '/sync/push',
         data: <String, dynamic>{'ops': chunk.map(_opFor).toList()},
       );
+      checkActiveSession();
       _online = true;
       final parsed = syncPushResultsByRequestId(response.data);
       if (parsed == null) {
@@ -57,7 +64,9 @@ final class RemoteWaterLogSync {
       }
       byRequestId = parsed;
     } on DioException catch (e) {
+      checkActiveSession();
       final error = toApiException(e);
+      if (error is SessionChangedException) throw error;
       if (error is NetworkApiException || error is TimeoutApiException) {
         _online = false;
       }
@@ -66,53 +75,59 @@ final class RemoteWaterLogSync {
       }
       return;
     }
-    for (final row in chunk) {
-      final result = byRequestId[row.clientRequestId];
-      if (result == null) {
-        await _writeError(db, row, 'MISSING_RESULT');
-        continue;
-      }
-      final status = result['status'];
-      final code = syncPushErrorCode(result);
-      if (status == 'applied') {
-        if (row.deleted) {
+    await db.transaction(() async {
+      checkActiveSession();
+      for (final row in chunk) {
+        checkActiveSession();
+        final result = byRequestId[row.clientRequestId];
+        if (result == null) {
+          await _writeError(db, row, 'MISSING_RESULT');
+          continue;
+        }
+        final status = result['status'];
+        final code = syncPushErrorCode(result);
+        if (status == 'applied') {
+          if (row.deleted) {
+            await db.waterLogDao.deleteLog(row.localId);
+          } else {
+            final rawServerId = syncPushServerEntry(result)?['id'];
+            if (rawServerId is! String || rawServerId.isEmpty) {
+              await _writeError(db, row, kInvalidPushResponse);
+              continue;
+            }
+            await db.waterLogDao.applyServerRow(
+              row.localId,
+              WaterLogsCompanion(
+                serverId: Value(rawServerId),
+                syncState: Value(WaterSyncState.synced),
+                lastError: const Value(null),
+              ),
+            );
+          }
+        } else if (row.deleted && status == 'error' && code == 'NOT_FOUND') {
+          await db.waterLogDao.deleteLog(row.localId);
+        } else if (!row.deleted &&
+            status == 'error' &&
+            code == 'VALIDATION_ERROR') {
           await db.waterLogDao.deleteLog(row.localId);
         } else {
-          final rawServerId = syncPushServerEntry(result)?['id'];
-          if (rawServerId is! String || rawServerId.isEmpty) {
-            await _writeError(db, row, kInvalidPushResponse);
-            continue;
-          }
-          await db.waterLogDao.applyServerRow(
-            row.localId,
-            WaterLogsCompanion(
-              serverId: Value(rawServerId),
-              syncState: Value(WaterSyncState.synced),
-              lastError: const Value(null),
-            ),
+          await _writeError(
+            db,
+            row,
+            status == 'conflict' && code.isEmpty
+                ? 'VERSION_CONFLICT'
+                : code.isEmpty
+                ? kInvalidPushResponse
+                : code,
           );
         }
-      } else if (row.deleted && status == 'error' && code == 'NOT_FOUND') {
-        await db.waterLogDao.deleteLog(row.localId);
-      } else if (!row.deleted &&
-          status == 'error' &&
-          code == 'VALIDATION_ERROR') {
-        await db.waterLogDao.deleteLog(row.localId);
-      } else {
-        await _writeError(
-          db,
-          row,
-          status == 'conflict' && code.isEmpty
-              ? 'VERSION_CONFLICT'
-              : code.isEmpty
-              ? kInvalidPushResponse
-              : code,
-        );
       }
-    }
+      checkActiveSession();
+    });
   }
 
   Future<void> _writeError(AppDatabase db, WaterLog row, String code) {
+    checkActiveSession();
     return db.waterLogDao.applyServerRow(
       row.localId,
       WaterLogsCompanion(

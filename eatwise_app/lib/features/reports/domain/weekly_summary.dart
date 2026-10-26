@@ -1,3 +1,4 @@
+import 'package:eatwise/core/time/calendar_day.dart';
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart'
     show dateOnly, localDateOf;
 
@@ -64,10 +65,10 @@ WeeklySummary computeWeeklySummary({
   required int targetKcal,
 }) {
   final today = dateOnly(now);
-  final thisMonday = today.subtract(Duration(days: today.weekday - 1));
-  final weekStart = thisMonday.subtract(const Duration(days: 7));
-  final weekEnd = thisMonday.subtract(const Duration(days: 1));
-  final prevStart = weekStart.subtract(const Duration(days: 7));
+  final thisMonday = addCalendarDays(today, -(today.weekday - 1));
+  final weekStart = addCalendarDays(thisMonday, -7);
+  final weekEnd = addCalendarDays(thisMonday, -1);
+  final prevStart = addCalendarDays(weekStart, -7);
 
   var qualified = 0;
   var prevQualified = 0;
@@ -77,12 +78,10 @@ WeeklySummary computeWeeklySummary({
   DateTime? lastWeighDay;
 
   for (var i = 0; i < 7; i++) {
-    final day = weekStart.add(Duration(days: i));
+    final day = addCalendarDays(weekStart, i);
     final key = localDateOf(day);
     if (qualifiedDates.contains(key)) qualified++;
-    if (qualifiedDates.contains(
-      localDateOf(prevStart.add(Duration(days: i))),
-    )) {
+    if (qualifiedDates.contains(localDateOf(addCalendarDays(prevStart, i)))) {
       prevQualified++;
     }
     final kcal = kcalByDate[key];

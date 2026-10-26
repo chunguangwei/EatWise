@@ -102,7 +102,7 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
-  /// 已软删、已上行（持 serverId）待 delete op 上行的行（同 [pendingEntries]
+  /// 已软删、已上行或 create 结果未知的行（同 [pendingEntries]
   /// 供 retryPending 扫尾；delete ack 后物理清除）。
   Future<List<FoodEntry>> deletePendingEntries(String userId) {
     return (select(foodEntries)
@@ -110,7 +110,7 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
             (e) =>
                 e.userId.equals(userId) &
                 e.deleted.equals(true) &
-                e.serverId.isNotNull(),
+                (e.serverId.isNotNull() | e.createRequestSnapshot.isNotNull()),
           )
           ..orderBy(<OrderingTerm Function(FoodEntries)>[
             (e) => OrderingTerm.asc(e.updatedAtUtc),
@@ -227,6 +227,27 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
       )
       ..orderBy(<OrderingTerm>[OrderingTerm.asc(foodEntries.localDate)]);
     return query.map((row) => row.read(foodEntries.localDate)!).get();
+  }
+
+  /// 修复日期取有效记录与已有缓存的并集。旧版删除最后一条记录后若
+  /// 中断于聚合更新之前，该日期只剩缓存，不能只扫描记录表。
+  Future<List<String>> datesWithNutritionData(
+    String userId, {
+    String? fromDate,
+  }) async {
+    final dates = await datesWithEntries(userId, fromDate: fromDate);
+    final query = selectOnly(dailyNutritionCaches)
+      ..addColumns(<Expression<Object>>[dailyNutritionCaches.date])
+      ..where(
+        dailyNutritionCaches.userId.equals(userId) &
+            (fromDate == null
+                ? const Constant(true)
+                : dailyNutritionCaches.date.isBiggerOrEqualValue(fromDate)),
+      );
+    final cachedDates = await query
+        .map((row) => row.read(dailyNutritionCaches.date)!)
+        .get();
+    return <String>{...dates, ...cachedDates}.toList()..sort();
   }
 
   /// 某日记录的最新本地修改时间（UTC ISO8601；缓存过期判定用——

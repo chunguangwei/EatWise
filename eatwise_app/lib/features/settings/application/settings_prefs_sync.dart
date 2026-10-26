@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:eatwise/core/network/api_exception.dart';
+import 'package:eatwise/core/network/network_providers.dart';
+import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/features/account/application/weight_unit_controller.dart';
 import 'package:eatwise/features/account/domain/weight_unit.dart';
 import 'package:eatwise/features/auth/application/auth_controller.dart';
@@ -42,7 +45,23 @@ final class SettingsPrefsSync {
     required this.readLastSyncedAt,
     required this.saveLastSyncedAt,
     DateTime Function()? now,
+    this.captureSession,
   }) : _now = now ?? DateTime.now;
+
+  final SessionLease? Function()? captureSession;
+
+  Future<void> _inSession(Future<void> Function() work) async {
+    final lease = SessionLease.current ?? captureSession?.call();
+    try {
+      if (lease == null) {
+        await work();
+      } else {
+        await lease.run(work);
+      }
+    } on SessionChangedException {
+      // Keep the original account's dirty snapshot for its next session.
+    }
+  }
 
   final UserApi api;
   final bool Function() isLoggedIn;
@@ -65,10 +84,14 @@ final class SettingsPrefsSync {
   bool _isCurrentUser(String uid) => isLoggedIn() && userId() == uid;
 
   /// 本地变更先落待上行快照，再尽力上行；失败由 [flushDirty] 重试。
-  Future<void> push() async {
+  Future<void> push() => _inSession(_push);
+
+  Future<void> _push() async {
+    checkActiveSession();
     if (_applying || !isLoggedIn()) return;
     final uid = userId();
     await saveDirtyPayload(uid, jsonEncode(collectLocal()));
+    checkActiveSession();
     await flushDirty();
   }
 
@@ -80,7 +103,7 @@ final class SettingsPrefsSync {
     final active = _activeFlush;
     if (active != null) return active;
 
-    final future = _drainFlush();
+    final future = _inSession(_drainFlush);
     _activeFlush = future;
     unawaited(
       future.whenComplete(() {
@@ -92,6 +115,7 @@ final class SettingsPrefsSync {
 
   Future<void> _drainFlush() async {
     while (_flushRequested) {
+      checkActiveSession();
       _flushRequested = false;
       if (!isLoggedIn()) return;
       final uid = userId();
@@ -113,6 +137,8 @@ final class SettingsPrefsSync {
             'syncedAt': syncedAt.toIso8601String(),
           },
         });
+        checkActiveSession();
+        if (!_isCurrentUser(uid)) return;
         if (me.id.isNotEmpty && me.id != uid) {
           debugPrint('SettingsPrefsSync: 上行响应账号已变化，保留原账号待上行快照');
           continue;
@@ -121,6 +147,7 @@ final class SettingsPrefsSync {
           me.settingsPrefs?['syncedAt'] as String? ?? '',
         );
         await saveLastSyncedAt(uid, stamped ?? syncedAt);
+        checkActiveSession();
         if (readDirtyPayload(uid) == raw) {
           await saveDirtyPayload(uid, null);
         }
@@ -131,12 +158,16 @@ final class SettingsPrefsSync {
   }
 
   /// 登录成功 / 启动恢复会话后下行：远端更新才应用，缺键不动。
-  Future<void> pull() async {
+  Future<void> pull() => _inSession(_pull);
+
+  Future<void> _pull() async {
+    checkActiveSession();
     if (!isLoggedIn()) return;
     final uid = userId();
     if (readDirtyPayload(uid) != null) return;
     try {
       final me = await api.getMe();
+      checkActiveSession();
       if (!_isCurrentUser(uid) || (me.id.isNotEmpty && me.id != uid)) return;
       if (readDirtyPayload(uid) != null) return;
       final prefs = me.settingsPrefs;
@@ -224,6 +255,7 @@ final settingsPrefsSyncProvider = Provider<SettingsPrefsSync>((ref) {
   final memorySyncedAt = <String, DateTime>{};
   final sync = SettingsPrefsSync(
     api: ref.watch(userApiProvider),
+    captureSession: () => SessionLease.capture(ref.read(apiDioProvider)),
     isLoggedIn: () {
       try {
         return ref.read(authControllerProvider).status == AuthStatus.loggedIn;

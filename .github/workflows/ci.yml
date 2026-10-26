@@ -47,6 +47,11 @@ jobs:
       - name: 测试（全绿门禁）
         run: flutter test --reporter expanded
 
+      - name: 夏令时自然日回归
+        env:
+          TZ: America/New_York
+        run: flutter test test/core/time/calendar_day_regression_test.dart --reporter expanded
+
   build-android:
     name: Android 构建门禁（assembleDebug）
     runs-on: ubuntu-latest

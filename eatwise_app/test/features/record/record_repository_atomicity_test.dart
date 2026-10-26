@@ -120,6 +120,38 @@ void main() {
     expect(synced.single.localId, saved.localId);
   });
 
+  for (final operation in ['edit', 'delete', 'undo']) {
+    test('$operation 聚合失败时记录与缓存一起回滚，且不发送远程请求', () async {
+      final repo = repository();
+      final saved = await repo.addEntry(draft);
+      db.entries.afterNextRecompute = () async {
+        throw StateError('一次性聚合失败');
+      };
+      final Future<Object?> mutation;
+      switch (operation) {
+        case 'edit':
+          mutation = repo.updateEntry(saved.localId, amountG: 200);
+        case 'delete':
+          mutation = repo.deleteEntry(saved.localId);
+        default:
+          mutation = repo.undo(saved.localId);
+      }
+      await expectLater(mutation, throwsStateError);
+      final current = await db.entries.getByLocalId(saved.localId);
+      expect(current, saved);
+      final daily = (await db.entries.getDailyNutrition(
+        'anonymous',
+        '2026-07-28',
+      ))!;
+      expect(daily.entryCount, 1);
+      expect(daily.kcal, 116);
+      expect(remote.pushCount, 0);
+      if (operation == 'undo') {
+        expect(await repo.undo(saved.localId), isTrue);
+      }
+    });
+  }
+
   for (final online in [true, false]) {
     test('${online ? '在线' : '离线'}慢写入完成后仍享有完整撤销窗', () async {
       if (!online) remote.mode = FakeRemoteMode.offline;

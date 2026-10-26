@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/network_providers.dart';
+import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/features/auth/application/auth_controller.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/fasting/domain/fasting_types.dart';
@@ -146,8 +147,24 @@ final class RemoteProfileSyncService implements ProfileSyncService {
     this._patchMe,
     this._isLoggedIn,
     this._prefs,
-    this._userId,
-  );
+    this._userId, {
+    this.captureSession,
+  });
+
+  final SessionLease? Function()? captureSession;
+
+  Future<void> _inSession(Future<void> Function() work) async {
+    final lease = SessionLease.current ?? captureSession?.call();
+    try {
+      if (lease == null) {
+        await work();
+      } else {
+        await lease.run(work);
+      }
+    } on SessionChangedException {
+      // Keep the original account's dirty snapshot for its next session.
+    }
+  }
 
   final Future<UserMeView> Function(Map<String, Object?> patch) _patchMe;
   final bool Function() _isLoggedIn;
@@ -213,10 +230,11 @@ final class RemoteProfileSyncService implements ProfileSyncService {
   }
 
   /// 手动解除 400 退避；不删除 dirty payload，直接按原内容重试。
-  Future<void> retryFailedNow() async {
+  Future<void> retryFailedNow() => _inSession(() async {
     await _prefs.remove(_failedKey(_userId()));
+    checkActiveSession();
     await flushDirty();
-  }
+  });
 
   @override
   Future<void> flushDirty() {
@@ -225,7 +243,7 @@ final class RemoteProfileSyncService implements ProfileSyncService {
     final active = _activeFlush;
     if (active != null) return active;
 
-    final future = _drainFlush();
+    final future = _inSession(_drainFlush);
     _activeFlush = future;
     unawaited(
       future.whenComplete(() {
@@ -237,6 +255,7 @@ final class RemoteProfileSyncService implements ProfileSyncService {
 
   Future<void> _drainFlush() async {
     while (_flushRequested) {
+      checkActiveSession();
       _flushRequested = false;
       if (!_isLoggedIn()) return;
       final uid = _userId();
@@ -249,32 +268,40 @@ final class RemoteProfileSyncService implements ProfileSyncService {
         raw = _prefs.getString(anonKey);
         if (raw == null) continue;
         await _prefs.setString(key, raw);
+        checkActiveSession();
         await _prefs.remove(anonKey);
+        checkActiveSession();
       }
 
       final failedRaw = _prefs.getString(failedKey);
       if (failedRaw == raw) continue;
       if (failedRaw != null) await _prefs.remove(failedKey);
+      checkActiveSession();
 
       final Map<String, Object?> patch;
       try {
         patch = Map<String, Object?>.from(jsonDecode(raw) as Map);
       } on Object {
         await _prefs.remove(key);
+        checkActiveSession();
         await _prefs.remove(failedKey);
         continue;
       }
       if (patch.isEmpty) {
         await _prefs.remove(key);
+        checkActiveSession();
         await _prefs.remove(failedKey);
         continue;
       }
 
       try {
         final me = await _patchMe(patch);
+        checkActiveSession();
+        if (!_isLoggedIn() || _userId() != uid) return;
         if (me.id.isNotEmpty && me.id != uid) continue;
         if (_prefs.getString(key) == raw) {
           await _prefs.remove(key);
+          checkActiveSession();
           if (_prefs.getString(failedKey) == raw) {
             await _prefs.remove(failedKey);
           }
@@ -327,5 +354,6 @@ final profileSyncServiceProvider = Provider<ProfileSyncService>((ref) {
         return 'anonymous';
       }
     },
+    captureSession: () => SessionLease.capture(ref.read(apiDioProvider)),
   );
 });

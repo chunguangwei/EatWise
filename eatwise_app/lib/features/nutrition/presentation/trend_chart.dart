@@ -1,9 +1,9 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
-
 import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/time/calendar_day.dart';
 import 'package:eatwise/core/widgets/chart_labels.dart';
 import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/core/widgets/quiet_tabs.dart';
@@ -44,7 +44,7 @@ class _TrendChartSectionState extends ConsumerState<TrendChartSection> {
     final latest = latestIndex < 0 ? null : values[latestIndex]!;
     final unit = _showFasting ? trend.hourUnit : t.record.nutrition.kcalUnit;
     final labels = List<String>.generate(7, (i) {
-      final date = end.subtract(Duration(days: 6 - i));
+      final date = addCalendarDays(end, -(6 - i));
       return DateFormat.Md(
         Localizations.localeOf(context).toString(),
       ).format(date);

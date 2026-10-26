@@ -1656,6 +1656,9 @@ class Translations$common$error$zh_CN {
 
 	// Translations
 
+	/// zh-CN: '登录状态已变化，请重试。'
+	String get sessionChanged => '登录状态已变化，请重试。';
+
 	/// zh-CN: '网络连接失败，请检查网络后重试'
 	String get network => '网络连接失败，请检查网络后重试';
 
@@ -5189,6 +5192,7 @@ extension on Translations {
 			'common.action.undo' => '撤销',
 			'common.action.retry' => '重试',
 			'common.action.confirm' => '确定',
+			'common.error.sessionChanged' => '登录状态已变化，请重试。',
 			'common.error.network' => '网络连接失败，请检查网络后重试',
 			'common.error.timeout' => '请求超时，请稍后重试',
 			'fasting.home.title' => '断食计时',
@@ -5276,9 +5280,9 @@ extension on Translations {
 			'home.profile.emptySubtitle' => '方案、目标与更多设置会陆续搬进来。',
 			'notification.fasting.eatSoon' => '还有 15 分钟就可以进食啦',
 			'notification.fasting.eatStart' => ({required Object date}) => '可以进食啦，本次断食计入 ${date} ✅',
-			'notification.fasting.fastStart' => '断食窗口开始啦，今天也很棒，加油坚持～',
 			_ => null,
 		} ?? switch (path) {
+			'notification.fasting.fastStart' => '断食窗口开始啦，今天也很棒，加油坚持～',
 			'notification.water.hourly' => ({required Object ml, required Object remaining}) => '该喝水啦～建议喝 ${ml} 毫升，今天还差 ${remaining} 毫升',
 			'nutrition.data.dateSwitcher.prevDay' => '前一天',
 			'nutrition.data.dateSwitcher.nextDay' => '后一天',
@@ -5790,9 +5794,9 @@ extension on Translations {
 			'auth.register.strengthMedium' => '密码强度：中',
 			'auth.register.strengthStrong' => '密码强度：强',
 			'auth.register.strengthTooShort' => '密码长度至少 8 位',
-			'auth.register.invalidUsername' => '用户名需为 3-20 位字母、数字或下划线',
 			_ => null,
 		} ?? switch (path) {
+			'auth.register.invalidUsername' => '用户名需为 3-20 位字母、数字或下划线',
 			'auth.changePassword.title' => '修改密码',
 			'auth.changePassword.oldLabel' => '当前密码',
 			'auth.changePassword.oldHint' => '请输入当前密码',

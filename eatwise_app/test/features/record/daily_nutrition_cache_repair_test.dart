@@ -149,6 +149,57 @@ void main() {
       expect(await db.foodEntryDao.getDailyNutrition('u-1', ancient), isNull);
     });
 
+    for (final tombstone in [false, true]) {
+      test(
+        '存量${tombstone ? 'tombstone' : '物理删除'}遗留非零缓存：近7天清零、全量修复历史，重复运行幂等',
+        () async {
+          final today = todayKey();
+          final old = daysAgoKey(30);
+          for (final date in [today, old]) {
+            await db.foodEntryDao.insertEntry(
+              entry(localId: 'stale-$date', localDate: date).toCompanion(true),
+            );
+            await db.foodEntryDao.recomputeDailyNutrition(
+              'u-1',
+              date,
+              updatedAtUtc: '2026-09-19T03:00:00.000Z',
+            );
+            // 真实旧版中断后的落库状态：记录删除已提交，聚合还停在 232 kcal。
+            if (tombstone) {
+              await db.foodEntryDao.markDeleted('stale-$date');
+            } else {
+              await db.foodEntryDao.deleteEntry('stale-$date');
+            }
+          }
+          expect(
+            (await db.foodEntryDao.getDailyNutrition('u-1', today))!.kcal,
+            232,
+          );
+          expect(await repair.repairRecent('u-1'), 1);
+          final recent = (await db.foodEntryDao.getDailyNutrition(
+            'u-1',
+            today,
+          ))!;
+          expect(recent.entryCount, 0);
+          expect(recent.kcal, 0);
+          expect(recent.proteinG, 0);
+          expect(recent.carbG, 0);
+          expect(recent.fatG, 0);
+          expect(
+            (await db.foodEntryDao.getDailyNutrition('u-1', old))!.kcal,
+            232,
+          );
+          expect(await repair.repairAll('u-1'), 1);
+          expect(
+            (await db.foodEntryDao.getDailyNutrition('u-1', old))!.kcal,
+            0,
+          );
+          expect(await repair.repairRecent('u-1'), 0);
+          expect(await repair.repairAll('u-1'), 0);
+        },
+      );
+    }
+
     test('tombstone 记录不占归属日（删除后日期不产生缓存）', () async {
       final today = todayKey();
       await db.foodEntryDao.insertEntry(
@@ -193,7 +244,7 @@ void main() {
       expect(cache!.entryCount, 1);
       expect(cache.kcal, 232);
       // 全量回填完成标记已落（下轮走廉价窗口）。
-      expect(prefs.getBool('daily_cache_backfill_v1_u-1'), isTrue);
+      expect(prefs.getBool('daily_cache_backfill_v2_u-1'), isTrue);
 
       // 标记后：今日记录被本地修改使缓存过期 → 下轮 syncNow 近 7 天窗口兜住。
       final futureIso = DateTime.now()
@@ -212,6 +263,39 @@ void main() {
       expect(refreshed!.kcal, 500);
 
       await repo.dispose();
+    });
+
+    test('旧全量回填标记已完成：升级仍修复近7天之外的删除残留缓存', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'daily_cache_backfill_v1_u-1': true,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final old = daysAgoKey(30);
+      await db.foodEntryDao.insertEntry(
+        entry(localId: 'old-deleted', localDate: old).toCompanion(true),
+      );
+      await db.foodEntryDao.recomputeDailyNutrition(
+        'u-1',
+        old,
+        updatedAtUtc: '2026-09-19T03:00:00.000Z',
+      );
+      await db.foodEntryDao.deleteEntry('old-deleted');
+      final repo = RecordRepository(
+        db: db,
+        remote: FakeRecordRemote(),
+        location: tz.UTC,
+        userId: 'u-1',
+      );
+      addTearDown(repo.dispose);
+      final engine = RecordSyncEngine(
+        repository: repo,
+        prefs: prefs,
+        cacheRepair: repair,
+      );
+      await engine.syncNow();
+      final cache = (await db.foodEntryDao.getDailyNutrition('u-1', old))!;
+      expect(cache.entryCount, 0);
+      expect(cache.kcal, 0);
     });
 
     test('登录态 syncNow：存量占位行回查补名 + onFoodsBackfilled 回调', () async {

@@ -14,6 +14,14 @@ sealed class ApiException implements Exception {
   String toString() => '$runtimeType($code): $message';
 }
 
+/// 本地异步任务所属会话已结束；保留待同步数据，等待原账号重新登录。
+final class SessionChangedException extends ApiException {
+  const SessionChangedException() : super(message: 'Session changed');
+
+  @override
+  String get code => 'SESSION_CHANGED';
+}
+
 /// 网络层失败：连接失败/无网/DNS 等（未收到响应）。
 final class NetworkApiException extends ApiException {
   const NetworkApiException([String message = '网络连接失败'])
@@ -86,6 +94,9 @@ ApiException toApiException(Object error) {
 
 /// DioException → 领域异常：解析错误信封 {error:{code,message,details}, meta}。
 ApiException apiExceptionFromDio(DioException error) {
+  if (error.error is SessionChangedException) {
+    return error.error! as SessionChangedException;
+  }
   switch (error.type) {
     case DioExceptionType.connectionTimeout:
     case DioExceptionType.sendTimeout:

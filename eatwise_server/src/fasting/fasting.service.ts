@@ -6,6 +6,7 @@ import { STORE_DRIVER, StoreDriver } from '../common/store/store-driver';
 import { newId, payloadHash } from '../common/utils/id.util';
 import { addDays, isValidDateStr, localDateOf, zonedTimeToUtc } from '../common/utils/time.util';
 import { StreakService } from '../streak/streak.service';
+import { judgeFastingResult } from './fasting-result';
 
 export const MAX_EXTEND_MINUTES = 240; // D-10：累计 ≤4h
 export const EXTEND_STEP_MINUTES = 30; // D-10：步进 30min
@@ -73,32 +74,42 @@ export class FastingService {
 
   /** 当前方案（无则 16:8 12:00–20:00 兜底，D-03）；到达 effectiveDate 的 pending 翻转为 current（D-06） */
   async getCurrentPlan(userId: string, tz: string): Promise<FastingPlanEntity> {
-    const plans = await this.driver.listFastingPlansByUser(userId);
-    const today = localDateOf(new Date(), tz);
-    for (const p of plans.filter((p) => p.status === 'pending' && p.effectiveDate <= today)) {
-      const current = plans.find((c) => c.status === 'current');
-      if (current) {
-        current.status = 'expired';
-        await this.driver.saveFastingPlan(current);
+    return this.driver.runInTransaction([`fasting-plan:${userId}`], async (tx) => {
+      const plans = await tx.listFastingPlansByUser(userId);
+      const today = localDateOf(new Date(), tz);
+      const latestFirst = (a: FastingPlanEntity, b: FastingPlanEntity) =>
+        b.effectiveDate.localeCompare(a.effectiveDate) ||
+        b.updatedAt.getTime() - a.updatedAt.getTime() ||
+        b.createdAt.getTime() - a.createdAt.getTime() ||
+        b.id.localeCompare(a.id);
+      const due = plans
+        .filter((p) => p.status === 'pending' && p.effectiveDate <= today)
+        .sort(latestFirst);
+      const current = due[0] ?? plans.filter((p) => p.status === 'current').sort(latestFirst)[0];
+      // 到期转正与旧版本重复 current 的收敛均在同一用户锁内。
+      for (const p of plans) {
+        if (p.status !== 'current' && !due.includes(p)) continue;
+        const status = p.id === current?.id ? 'current' : 'expired';
+        if (p.status === status) continue;
+        p.status = status;
+        p.updatedAt = new Date();
+        await tx.saveFastingPlan(p);
       }
-      p.status = 'current';
-      await this.driver.saveFastingPlan(p);
-    }
-    const current = plans.find((p) => p.status === 'current');
-    if (current) return current;
-    return {
-      id: 'default',
-      userId,
-      planType: '16:8',
-      eatingWindowStart: '12:00',
-      eatingWindowEnd: '20:00',
-      effectiveDate: today,
-      status: 'current',
-      clientRequestId: null,
-      version: 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+      if (current) return current;
+      return {
+        id: 'default',
+        userId,
+        planType: '16:8',
+        eatingWindowStart: '12:00',
+        eatingWindowEnd: '20:00',
+        effectiveDate: today,
+        status: 'current',
+        clientRequestId: null,
+        version: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    });
   }
 
   /**
@@ -112,30 +123,32 @@ export class FastingService {
    * 既有 pending 行（旧客户端登记）保留 getCurrentPlan 到期翻转逻辑兜底。
    */
   async putCurrentPlan(userId: string, tz: string, planType: string, start: string, end: string) {
-    const plans = await this.driver.listFastingPlansByUser(userId);
-    const now = new Date();
-    for (const p of plans) {
-      if (p.status === 'current' || p.status === 'pending') {
-        p.status = 'expired';
-        p.updatedAt = now;
-        await this.driver.saveFastingPlan(p);
+    return this.driver.runInTransaction([`fasting-plan:${userId}`], async (tx) => {
+      const plans = await tx.listFastingPlansByUser(userId);
+      const now = new Date();
+      for (const p of plans) {
+        if (p.status === 'current' || p.status === 'pending') {
+          p.status = 'expired';
+          p.updatedAt = now;
+          await tx.saveFastingPlan(p);
+        }
       }
-    }
-    const current: FastingPlanEntity = {
-      id: newId(),
-      userId,
-      planType,
-      eatingWindowStart: start,
-      eatingWindowEnd: end,
-      effectiveDate: localDateOf(now, tz),
-      status: 'current',
-      clientRequestId: null,
-      version: 1,
-      createdAt: now,
-      updatedAt: now,
-    };
-    await this.driver.saveFastingPlan(current);
-    return { current: this.planView(current), pending: null };
+      const current: FastingPlanEntity = {
+        id: newId(),
+        userId,
+        planType,
+        eatingWindowStart: start,
+        eatingWindowEnd: end,
+        effectiveDate: localDateOf(now, tz),
+        status: 'current',
+        clientRequestId: null,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await tx.saveFastingPlan(current);
+      return { current: this.planView(current), pending: null };
+    });
   }
 
   /** F1 当前断食状态（首页计时环数据源） */
@@ -322,17 +335,10 @@ export class FastingService {
         }
 
         const actualEnd = endedAt;
-        const earlyByMs = record.plannedEndAt.getTime() - actualEnd.getTime();
-        if (earlyByMs <= 0) {
-          record.result = 'completed';
-          record.isQualified = true;
-        } else if (earlyByMs <= toleranceMs) {
-          record.result = 'ended_early';
-          record.isQualified = true;
-        } else {
-          record.result = 'broken';
-          record.isQualified = false;
-        }
+        Object.assign(
+          record,
+          judgeFastingResult(record.plannedEndAt, actualEnd, record.extendedMinutes, toleranceMs),
+        );
         record.actualEndAt = actualEnd;
         record.fastedMinutes = Math.max(
           0,

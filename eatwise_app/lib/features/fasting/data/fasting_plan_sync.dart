@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/network_providers.dart';
+import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/core/time/timezone_bootstrap.dart';
 import 'package:eatwise/features/auth/application/auth_providers.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_api.dart';
@@ -37,10 +38,26 @@ class FastingPlanSync {
     required this.userId,
     this.onboardingStore,
     this.onPlanApplied,
+    this.captureSession,
     int Function()? nowUtc,
     tz.Location Function()? location,
   }) : nowUtc = nowUtc ?? _defaultNowUtc,
        location = location ?? _defaultLocation;
+
+  final SessionLease? Function()? captureSession;
+
+  Future<void> _inSession(Future<void> Function() work) async {
+    final lease = SessionLease.current ?? captureSession?.call();
+    try {
+      if (lease == null) {
+        await work();
+      } else {
+        await lease.run(work);
+      }
+    } on SessionChangedException {
+      // Keep the original account's dirty snapshot for its next session.
+    }
+  }
 
   /// 方案上行接口（timer 侧 F3 上报也复用同一实例）。
   final FastingPlanApi api;
@@ -99,11 +116,12 @@ class FastingPlanSync {
   /// 失败静默（脏标记保留，[flush] 在同步轮重试），不阻断本地计时主流程。
   void markDirtyAndTryFlush(FastingPlan plan) {
     unawaited(
-      () async {
+      _inSession(() async {
         final uid = userId();
         await prefs.setString(_dirtyKey(uid), jsonEncode(_encode(plan)));
+        checkActiveSession();
         await flush();
-      }().onError<Object>((e, _) {
+      }).onError<Object>((e, _) {
         // 网络/装配失败：脏标记已落（或下次写入补落），同步轮重试。
         debugPrint('FastingPlanSync: 上行失败（已忽略，待同步重试） $e');
       }),
@@ -123,7 +141,10 @@ class FastingPlanSync {
   ///   进行中周期锚点冻结由计时主控保证（新方案只作用于下一周期，
   ///   D-06「当日已记录数据不回算」精神保留）；本地已登记的 pendingPlan
   ///   （T12 次日生效）被服务端 LWW 取代，一并清除。
-  Future<void> pull() async {
+  Future<void> pull() => _inSession(_pull);
+
+  Future<void> _pull() async {
+    checkActiveSession();
     final uid = userId();
     // 匿名 GET 必 401；未登录无从回填。
     if (uid == 'anonymous') return;
@@ -136,6 +157,7 @@ class FastingPlanSync {
     }
     try {
       final remote = await api.fetchCurrentPlanMeta();
+      checkActiveSession();
       if (remote == null || userId() != uid) return;
       final local = store.loadActivePlan();
       if (local != null) {
@@ -188,6 +210,49 @@ class FastingPlanSync {
     }
   }
 
+  /// 计时器发起一次延长；失败保留原幂等键供同步轮重试。
+  Future<void> reportExtend({
+    required String clientRequestId,
+    required int extendMinutes,
+  }) async {
+    final uid = userId();
+    if (uid == 'anonymous') return;
+    final lease = SessionLease.current ?? captureSession?.call();
+    var recordId = kPendingRecordId;
+    void checkOwner() {
+      checkActiveSession();
+      if (userId() != uid) throw const SessionChangedException();
+    }
+
+    Future<bool> send() async {
+      checkOwner();
+      recordId = await api.fetchActiveRecordId() ?? recordId;
+      checkOwner();
+      if (recordId == kPendingRecordId) return false;
+      await api.extendFast(
+        clientRequestId: clientRequestId,
+        recordId: recordId,
+        extendMinutes: extendMinutes,
+      );
+      checkOwner();
+      return true;
+    }
+
+    try {
+      if (await (lease == null ? send() : lease.run(send))) return;
+    } on Object catch (e) {
+      debugPrint('FastingPlanSync: 延长上报失败，转入队列 $e');
+    }
+    // 会话在查询/上报期间失效时，仍为原账号保存原请求，禁止重新读取 uid
+    // 把 A 的延长挂到 B。已成功但回执丢失也由相同幂等键安全重放。
+    await _queueExtend(
+      uid,
+      recordId: recordId,
+      clientRequestId: clientRequestId,
+      extendMinutes: extendMinutes,
+    );
+  }
+
   /// F3 延长上报入队（timer 侧 fire-and-forget 上报失败时调用；匿名也入队，
   /// 登录后首轮同步迁移上行与脏方案同口径）。
   ///
@@ -198,8 +263,20 @@ class FastingPlanSync {
     required String recordId,
     required String clientRequestId,
     required int extendMinutes,
+  }) => _queueExtend(
+    userId(),
+    recordId: recordId,
+    clientRequestId: clientRequestId,
+    extendMinutes: extendMinutes,
+  );
+
+  Future<void> _queueExtend(
+    String uid, {
+    required String recordId,
+    required String clientRequestId,
+    required int extendMinutes,
   }) async {
-    final key = _extendKey(userId());
+    final key = _extendKey(uid);
     final queue =
         _decodeQueue(prefs.getString(key)) ?? <Map<String, Object?>>[];
     if (queue.any((e) => e['clientRequestId'] == clientRequestId)) return;
@@ -216,17 +293,22 @@ class FastingPlanSync {
   ///
   /// 方案 PUT 失败抛 ApiException（由 RecordSyncEngine 吞掉保留脏标记）；
   /// 延长队列逐项自处理：成功/终态码清项，网络类失败保留。
-  Future<void> flush() async {
+  Future<void> flush() => _inSession(_flush);
+
+  Future<void> _flush() async {
+    checkActiveSession();
     final uid = userId();
     // 匿名 PUT 必 401；脏标记保留，登录后首轮同步迁移并上行。
     if (uid == 'anonymous') return;
     Object? putFailure;
     try {
       await _flushDirtyPlan(uid);
+      checkActiveSession();
     } on Object catch (e) {
       // 方案上行失败不阻断延长队列重放；末尾按原契约重抛。
       putFailure = e;
     }
+    checkActiveSession();
     await _flushExtendQueue(uid);
     if (putFailure != null) throw putFailure;
   }
@@ -249,7 +331,9 @@ class FastingPlanSync {
         raw = prefs.getString(anonKey);
         if (raw == null) return;
         await prefs.setString(key, raw);
+        checkActiveSession();
         await prefs.remove(anonKey);
+        checkActiveSession();
       }
       final plan = _decode(raw);
       if (plan == null) {
@@ -257,6 +341,7 @@ class FastingPlanSync {
         return;
       }
       await api.putCurrent(plan);
+      checkActiveSession();
       // compare-and-delete：PUT 在途期间用户又改方案（raw 被覆写）时保留
       // 脏标记给下一轮，绝不误擦未上行的新方案。
       if (prefs.getString(key) == raw) {
@@ -281,12 +366,16 @@ class FastingPlanSync {
         ...?_decodeQueue(anonRaw),
       ];
       raw = merged.isEmpty ? null : jsonEncode(merged);
-      await prefs.remove(anonKey);
       if (raw == null) {
         await prefs.remove(key);
+        checkActiveSession();
+        await prefs.remove(anonKey);
         return;
       }
       await prefs.setString(key, raw);
+      checkActiveSession();
+      await prefs.remove(anonKey);
+      checkActiveSession();
     }
     if (raw == null) return;
     final queue = _decodeQueue(raw);
@@ -296,12 +385,14 @@ class FastingPlanSync {
     }
     final remaining = <Map<String, Object?>>[];
     for (final item in queue) {
+      checkActiveSession();
       try {
         var recordId = item['recordId']! as String;
         if (recordId == kPendingRecordId) {
           // 入队时未取到服务端记录 ID（fetchActiveRecordId 也失败）：
           // 重放前补解析；解析失败按网络类失败保留。
           final resolved = await api.fetchActiveRecordId();
+          checkActiveSession();
           if (resolved == null) {
             remaining.add(item);
             continue;
@@ -314,6 +405,7 @@ class FastingPlanSync {
           recordId: recordId,
           extendMinutes: item['extendMinutes']! as int,
         );
+        checkActiveSession();
       } on ApiException catch (e) {
         if (kExtendTerminalCodes.contains(e.code)) {
           debugPrint(
@@ -324,6 +416,7 @@ class FastingPlanSync {
         }
       }
     }
+    checkActiveSession();
     if (remaining.isEmpty) {
       await prefs.remove(key);
     } else {
@@ -371,6 +464,7 @@ final Provider<FastingPlanSync?> fastingPlanSyncProvider =
       try {
         return FastingPlanSync(
           api: FastingPlanApi(ref.watch(apiDioProvider)),
+          captureSession: () => SessionLease.capture(ref.read(apiDioProvider)),
           prefs: ref.watch(sharedPreferencesProvider),
           userId: () {
             try {

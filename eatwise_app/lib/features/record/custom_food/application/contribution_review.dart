@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
 import 'package:eatwise/features/record/custom_food/domain/contribution_review_logic.dart';
@@ -250,22 +251,33 @@ final class ContributionReviewSync {
 
   /// 拉取一轮并应用状态迁移；返回本轮新产生的驳回通知（食物名）。
   /// 并发去抖；网络/业务异常上抛由调用方容错（保持现状下轮重试）。
-  Future<List<String>> syncNow() async {
+  Future<List<String>> syncNow() {
+    final remote = this.remote;
+    if (remote is RemoteCustomFoodApi) {
+      return withApiSession(remote.dio, _syncNow, userId: userId);
+    }
+    return _syncNow();
+  }
+
+  Future<List<String>> _syncNow() async {
     if (_syncing || userId == 'anonymous') return const <String>[];
     _syncing = true;
     try {
       final current = await _fetchAll();
+      checkActiveSession();
       final known = store.loadKnown();
       final transitions = diffContributionTransitions(known, current);
       final notices = <RejectedNotice>[];
       for (final t in transitions) {
         switch (t.to) {
           case FoodContributionStatus.approved:
+            checkActiveSession();
             await db.foodDao.setContributionStatus(
               t.foodId,
               'approved',
               ownerUserId: userId,
             );
+            checkActiveSession();
             onStatusApplied?.call(t.foodId);
           case FoodContributionStatus.rejected:
             // 纠错驳回：目标食物仍在共享库、记录不动（服务端同口径）——
@@ -319,6 +331,7 @@ final class ContributionReviewSync {
       );
       final sharedGhosts = <String>{};
       for (final foodId in ghosts) {
+        checkActiveSession();
         final row = await db.foodDao.getById(foodId, ownerUserId: userId);
         if (row == null) continue;
         if (!row.isCustom) {
@@ -329,11 +342,13 @@ final class ContributionReviewSync {
           // 非本人贡献物，下架通知只对贡献者有意义）。
           // 占位行（名称==id，下行合成）永不在此路径（contributionStatus
           // 恒 null 进不了 ghost 集），双保险显式排除。
+          checkActiveSession();
           await db.foodDao.setContributionStatus(
             foodId,
             null,
             ownerUserId: userId,
           );
+          checkActiveSession();
           onStatusApplied?.call(foodId);
           if (isPlaceholderFood(row)) continue;
           sharedGhosts.add(foodId);
@@ -349,21 +364,26 @@ final class ContributionReviewSync {
       // 旧反查结构性看不到它）：同一批 batch-get，查无 → 自定义行按
       // 下架口径清记录+删行+通知（同管理员删候选），共享行整行静默移除。
       final inListIds = <String>[];
+      checkActiveSession();
       for (final r in await db.foodDao.contributedRows(ownerUserId: userId)) {
         if (serverFoodIds.contains(r.id)) inListIds.add(r.id);
       }
       final verifyIds = <String>{...sharedGhosts, ...inListIds}.toList();
       if (verifyIds.isNotEmpty && existingFoodIdsFn != null) {
         try {
+          checkActiveSession();
           final existing = await existingFoodIdsFn!(verifyIds);
+          checkActiveSession();
           for (final foodId in sharedGhosts) {
             if (existing.contains(foodId)) continue;
+            checkActiveSession();
             final row = await db.foodDao.getById(foodId, ownerUserId: userId);
             if (row == null) continue;
             await _removeSharedGhost(foodId);
           }
           for (final foodId in inListIds) {
             if (existing.contains(foodId)) continue;
+            checkActiveSession();
             final row = await db.foodDao.getById(foodId, ownerUserId: userId);
             if (row == null || isPlaceholderFood(row)) continue;
             if (row.isCustom) {
@@ -378,9 +398,12 @@ final class ContributionReviewSync {
           debugPrint('[ContributionReview] 幽灵共享行核验失败（下轮重试）：$e');
         }
       }
+      checkActiveSession();
       await store.saveKnown(knownStatusMapOf(current));
       if (notices.isNotEmpty) {
+        checkActiveSession();
         await store.appendNotices(notices);
+        checkActiveSession();
         onNoticesAdded?.call();
       }
       return notices.map((final n) => n.name).toList();
@@ -396,13 +419,16 @@ final class ContributionReviewSync {
 
   /// 本地行存在且状态与权威终态不一致才改写（幂等：已对齐零写入）。
   Future<void> _reconcileStatus(String foodId, String status) async {
+    checkActiveSession();
     final food = await db.foodDao.getById(foodId, ownerUserId: userId);
     if (food != null && food.contributionStatus != status) {
+      checkActiveSession();
       await db.foodDao.setContributionStatus(
         foodId,
         status,
         ownerUserId: userId,
       );
+      checkActiveSession();
       onStatusApplied?.call(foodId);
     }
   }
@@ -411,6 +437,7 @@ final class ContributionReviewSync {
     final all = <FoodContribution>[];
     var page = 1;
     while (true) {
+      checkActiveSession();
       final result = await remote.getContributions(page: page, pageSize: 50);
       all.addAll(result.items);
       if (!result.hasMore) return all;
@@ -420,74 +447,106 @@ final class ContributionReviewSync {
 
   /// 驳回落地：删记录 + 重算聚合 + 标记食物；返回驳回通知
   ///（食物行缺失回退 foodId，不隐藏事件）。
-  Future<RejectedNotice> _applyRejection(String foodId) async {
-    final food = await db.foodDao.getById(foodId, ownerUserId: userId);
-    final entries = await db.foodEntryDao.entriesForFood(userId, foodId);
-    final dates = <String>{};
-    for (final entry in entries) {
-      await db.foodEntryDao.deleteEntry(entry.localId);
-      dates.add(entry.localDate);
-    }
-    final nowIso = _clock().toUtc().toIso8601String();
-    for (final date in dates) {
-      await db.foodEntryDao.recomputeDailyNutrition(
-        userId,
-        date,
-        updatedAtUtc: nowIso,
-      );
-    }
-    await db.foodDao.setContributionStatus(
-      foodId,
-      'rejected',
-      ownerUserId: userId,
-    );
-    onStatusApplied?.call(foodId);
-    return RejectedNotice(name: food?.nameZh ?? foodId);
-  }
+  Future<RejectedNotice> _applyRejection(String foodId) =>
+      _changeFood(foodId, () async {
+        checkActiveSession();
+        final food = await db.foodDao.getById(foodId, ownerUserId: userId);
+        checkActiveSession();
+        final entries = await db.foodEntryDao.entriesForFood(userId, foodId);
+        final dates = <String>{};
+        for (final entry in entries) {
+          checkActiveSession();
+          await db.foodEntryDao.deleteEntry(entry.localId);
+          dates.add(entry.localDate);
+        }
+        final nowIso = _clock().toUtc().toIso8601String();
+        for (final date in dates) {
+          checkActiveSession();
+          await db.foodEntryDao.recomputeDailyNutrition(
+            userId,
+            date,
+            updatedAtUtc: nowIso,
+          );
+        }
+        checkActiveSession();
+        await db.foodDao.setContributionStatus(
+          foodId,
+          'rejected',
+          ownerUserId: userId,
+        );
+        checkActiveSession();
+        return RejectedNotice(name: food?.nameZh ?? foodId);
+      });
 
   /// 下架落地（对齐服务端删候选级联：软删记录 + 软删食物行）：删记录 +
   /// 重算聚合 + 删本地食物行；返回下架通知（custom/barcode 内容下架语义，
   /// 记录清法同驳回——tombstone/物理删口径由 foodEntryDao.deleteEntry 承担）。
-  Future<RejectedNotice> _applyRemoval(String foodId, String name) async {
-    final entries = await db.foodEntryDao.entriesForFood(userId, foodId);
-    final dates = <String>{};
-    for (final entry in entries) {
-      await db.foodEntryDao.deleteEntry(entry.localId);
-      dates.add(entry.localDate);
-    }
-    final nowIso = _clock().toUtc().toIso8601String();
-    for (final date in dates) {
-      await db.foodEntryDao.recomputeDailyNutrition(
-        userId,
-        date,
-        updatedAtUtc: nowIso,
-      );
-    }
-    await db.foodDao.deleteById(foodId, ownerUserId: userId, customOnly: true);
-    onStatusApplied?.call(foodId);
-    return RejectedNotice(name: name, removed: true);
-  }
+  Future<RejectedNotice> _applyRemoval(String foodId, String name) =>
+      _changeFood(foodId, () async {
+        checkActiveSession();
+        final entries = await db.foodEntryDao.entriesForFood(userId, foodId);
+        final dates = <String>{};
+        for (final entry in entries) {
+          checkActiveSession();
+          await db.foodEntryDao.deleteEntry(entry.localId);
+          dates.add(entry.localDate);
+        }
+        final nowIso = _clock().toUtc().toIso8601String();
+        for (final date in dates) {
+          checkActiveSession();
+          await db.foodEntryDao.recomputeDailyNutrition(
+            userId,
+            date,
+            updatedAtUtc: nowIso,
+          );
+        }
+        checkActiveSession();
+        await db.foodDao.deleteById(
+          foodId,
+          ownerUserId: userId,
+          customOnly: true,
+        );
+        checkActiveSession();
+        return RejectedNotice(name: name, removed: true);
+      });
 
   /// 幽灵共享行整行移除（服务端已删核验后）：引用记录物理删 + 归属日聚合
   /// 重算 + 删行 + 失效名称缓存。静默（不下架通知——非本人贡献物）。
   /// 服务端级联 tombstone 尚未下行的记录：下轮 pull tombstone 对账已无
   /// 本地行，幂等空转。
-  Future<void> _removeSharedGhost(String foodId) async {
-    final entries = await db.foodEntryDao.entriesForFood(userId, foodId);
-    final dates = <String>{};
-    for (final entry in entries) {
-      await db.foodEntryDao.deleteEntry(entry.localId);
-      dates.add(entry.localDate);
-    }
-    final nowIso = _clock().toUtc().toIso8601String();
-    for (final date in dates) {
-      await db.foodEntryDao.recomputeDailyNutrition(
-        userId,
-        date,
-        updatedAtUtc: nowIso,
-      );
-    }
-    await db.foodDao.deleteById(foodId);
+  Future<void> _removeSharedGhost(String foodId) =>
+      _changeFood(foodId, () async {
+        checkActiveSession();
+        final entries = await db.foodEntryDao.entriesForFood(userId, foodId);
+        final dates = <String>{};
+        for (final entry in entries) {
+          checkActiveSession();
+          await db.foodEntryDao.deleteEntry(entry.localId);
+          dates.add(entry.localDate);
+        }
+        final nowIso = _clock().toUtc().toIso8601String();
+        for (final date in dates) {
+          checkActiveSession();
+          await db.foodEntryDao.recomputeDailyNutrition(
+            userId,
+            date,
+            updatedAtUtc: nowIso,
+          );
+        }
+        checkActiveSession();
+        await db.foodDao.deleteById(foodId);
+        checkActiveSession();
+      });
+
+  Future<T> _changeFood<T>(String foodId, Future<T> Function() change) async {
+    final result = await db.transaction(() async {
+      checkActiveSession();
+      final result = await change();
+      checkActiveSession();
+      return result;
+    });
+    checkActiveSession();
     onStatusApplied?.call(foodId);
+    return result;
   }
 }

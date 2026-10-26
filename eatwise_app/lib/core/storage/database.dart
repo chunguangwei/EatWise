@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -55,7 +56,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   Future<bool> _tableExists(String name) async {
     final row = await customSelect(
@@ -165,6 +166,30 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from >= 2 && await _tableExists('fasting_records')) {
           await m.addColumn(fastingRecords, fastingRecords.lastError);
+        }
+      }
+      // v16：未知 create 的原请求与后续意图分开持久化。旧版没有发出标记，
+      // 对无 serverId 的未同步行保守冻结现值，避免升级后的编辑/删除换掉
+      // 原幂等键；若旧版已改过载荷，后续 pull 按该键绑定服务端行再更新。
+      if (from < 16 && await _tableExists('food_entries')) {
+        await m.addColumn(foodEntries, foodEntries.createRequestSnapshot);
+        final unresolved =
+            await (select(foodEntries)..where(
+                  (entry) =>
+                      entry.serverId.isNull() &
+                      entry.syncStatus.equalsValue(SyncStatus.synced).not(),
+                ))
+                .get();
+        for (final entry in unresolved) {
+          await (update(
+            foodEntries,
+          )..where((row) => row.localId.equals(entry.localId))).write(
+            FoodEntriesCompanion(
+              createRequestSnapshot: Value(
+                jsonEncode(entry.copyWith(deleted: false).toJson()),
+              ),
+            ),
+          );
         }
       }
     },

@@ -1,10 +1,12 @@
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:eatwise/core/network/api_config.dart';
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/auth_interceptor.dart';
 import 'package:eatwise/core/network/cert_pinning.dart';
+import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/core/network/token_store.dart';
 
 /// 通用请求头（契约 §1.4/§1.7）：
@@ -64,6 +66,35 @@ final class ErrorMappingInterceptor extends Interceptor {
   }
 }
 
+/// Capture identity synchronously before Dio schedules or queues interceptors.
+/// Otherwise a queued A request could first see credentials after B logs in.
+final class _SessionDio extends DioForNative {
+  _SessionDio(super.options, this.tokenStore);
+
+  final TokenStore? tokenStore;
+
+  @override
+  Future<Response<T>> fetch<T>(RequestOptions requestOptions) {
+    final store = tokenStore;
+    final target = requestOptions.uri;
+    final api = Uri.parse(options.baseUrl);
+    if (store != null &&
+        requestOptions.extra['skipAuth'] != true &&
+        (target.scheme == 'http' || target.scheme == 'https') &&
+        (api.scheme == 'http' || api.scheme == 'https') &&
+        target.hasAuthority &&
+        api.hasAuthority &&
+        target.userInfo.isEmpty &&
+        target.origin == api.origin) {
+      requestOptions.extra.putIfAbsent(
+        requestSessionLeaseKey,
+        () => SessionLease.current ?? SessionLease(store),
+      );
+    }
+    return super.fetch<T>(requestOptions);
+  }
+}
+
 /// dio 实例工厂：装配请求头 → 认证（401 refresh 重放）→ 信封解包 → 错误映射。
 ///
 /// [localeTag]/[timezoneName] 由集成方注入（slang 当前语言 / tz.local）；
@@ -79,13 +110,14 @@ Dio createApiDio({
   Uint8List? pinnedCertDer,
 }) {
   final resolvedConfig = config ?? ApiConfig();
-  final dio = Dio(
+  final dio = _SessionDio(
     BaseOptions(
       baseUrl: resolvedConfig.baseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 15),
       contentType: Headers.jsonContentType,
     ),
+    tokenStore,
   );
   if (pinnedCertDer != null) {
     applyCertPinning(dio, pinnedCertDer);
@@ -97,6 +129,7 @@ Dio createApiDio({
     ),
   );
   if (tokenStore != null) {
+    dio.options.extra[sessionTokenStoreKey] = tokenStore;
     // 裸 Dio 仅用于 /auth/refresh（共享 BaseOptions，无拦截器防循环）。
     final refreshDio = Dio(dio.options);
     if (pinnedCertDer != null) {

@@ -156,7 +156,7 @@ export class EntryPayloadDto {
   fastedMinutes?: number;
 
   @IsOptional()
-  @IsIn(['completed', 'ended_early', 'broken', 'makeup']) // on_track 不经本通道
+  @IsIn(['completed', 'ended_early', 'broken']) // on_track/makeup 不经客户端上行
   result?: string;
 
   @IsOptional()

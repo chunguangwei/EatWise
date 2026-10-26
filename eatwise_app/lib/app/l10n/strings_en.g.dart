@@ -940,6 +940,7 @@ class _Translations$common$error$en extends Translations$common$error$zh_CN {
 	final TranslationsEn _root; // ignore: unused_field
 
 	// Translations
+	@override String get sessionChanged => 'Your sign-in session changed. Please try again.';
 	@override String get network => 'Network connection failed. Check your connection and try again.';
 	@override String get timeout => 'Request timed out. Please try again.';
 }
@@ -3008,6 +3009,7 @@ extension on TranslationsEn {
 			'common.action.undo' => 'Undo',
 			'common.action.retry' => 'Retry',
 			'common.action.confirm' => 'OK',
+			'common.error.sessionChanged' => 'Your sign-in session changed. Please try again.',
 			'common.error.network' => 'Network connection failed. Check your connection and try again.',
 			'common.error.timeout' => 'Request timed out. Please try again.',
 			'fasting.home.title' => 'Fasting Timer',
@@ -3095,9 +3097,9 @@ extension on TranslationsEn {
 			'home.profile.emptySubtitle' => 'Plans, goals and more settings are moving in soon.',
 			'notification.fasting.eatSoon' => 'Eating window opens in 15 min',
 			'notification.fasting.eatStart' => ({required Object date}) => 'Time to eat! This fast counts toward ${date} ✅',
-			'notification.fasting.fastStart' => 'Your fasting window has started — you\'re doing great, keep it up!',
 			_ => null,
 		} ?? switch (path) {
+			'notification.fasting.fastStart' => 'Your fasting window has started — you\'re doing great, keep it up!',
 			'notification.water.hourly' => ({required Object ml, required Object remaining}) => 'Time for water! Aim for ${ml} ml — ${remaining} ml to go today',
 			'nutrition.data.dateSwitcher.prevDay' => 'Previous day',
 			'nutrition.data.dateSwitcher.nextDay' => 'Next day',
@@ -3609,9 +3611,9 @@ extension on TranslationsEn {
 			'auth.register.strengthMedium' => 'Strength: medium',
 			'auth.register.strengthStrong' => 'Strength: strong',
 			'auth.register.strengthTooShort' => 'Password must be at least 8 characters',
-			'auth.register.invalidUsername' => 'Username must be 3-20 letters, digits or underscores',
 			_ => null,
 		} ?? switch (path) {
+			'auth.register.invalidUsername' => 'Username must be 3-20 letters, digits or underscores',
 			'auth.changePassword.title' => 'Change password',
 			'auth.changePassword.oldLabel' => 'Current password',
 			'auth.changePassword.oldHint' => 'Enter your current password',

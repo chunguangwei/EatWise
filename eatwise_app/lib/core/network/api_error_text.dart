@@ -12,6 +12,7 @@ String apiErrorDisplayMessage(Translations t, ApiException e) {
     // 同步时窗自愈码（本地已写 approved）：人话引导走纠错入口。
     FoodApprovedSharedApiException() => t.record.customFood.approvedSharedHint,
     BusinessApiException() => e.message,
+    SessionChangedException() => t.common.error.sessionChanged,
     TimeoutApiException() => t.common.error.timeout,
     NetworkApiException() => t.common.error.network,
   };

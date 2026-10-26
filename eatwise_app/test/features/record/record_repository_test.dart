@@ -300,9 +300,12 @@ void main() {
       expect(daily!.entryCount, 2);
       expect(daily.kcal, closeTo(260, 0.01));
 
-      expect(() => repository.addEntry(draft(amountG: 0)), throwsArgumentError);
-      expect(
-        () => repository.addEntry(draft(foodId: 'f-unknown')),
+      await expectLater(
+        repository.addEntry(draft(amountG: 0)),
+        throwsArgumentError,
+      );
+      await expectLater(
+        repository.addEntry(draft(foodId: 'f-unknown')),
         throwsArgumentError,
       );
       await repository.dispose();

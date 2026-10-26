@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/network_providers.dart';
+import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/features/fasting/domain/fasting_result_mapping.dart';
@@ -51,8 +52,12 @@ final class RemoteFastingRecordSync {
   bool get isOnline => _online;
 
   /// 上行该用户全部 pending 断食记录（含 tombstone）。
-  Future<void> pushPending(AppDatabase db, String userId) async {
+  Future<void> pushPending(AppDatabase db, String userId) =>
+      withApiSession(dio, () => _pushPending(db, userId), userId: userId);
+
+  Future<void> _pushPending(AppDatabase db, String userId) async {
     final rows = await db.fastingRecordDao.pendingForUser(userId);
+    checkActiveSession();
     if (rows.isEmpty) return;
     for (var i = 0; i < rows.length; i += kSyncPushBatchSize) {
       final chunk = rows.sublist(
@@ -61,6 +66,7 @@ final class RemoteFastingRecordSync {
             ? rows.length
             : i + kSyncPushBatchSize,
       );
+      checkActiveSession();
       await _pushChunk(db, chunk);
     }
   }
@@ -72,6 +78,7 @@ final class RemoteFastingRecordSync {
         '/sync/push',
         data: <String, dynamic>{'ops': chunk.map(_opFor).toList()},
       );
+      checkActiveSession();
       _online = true;
       final parsed = syncPushResultsByRequestId(response.data);
       if (parsed == null) {
@@ -82,7 +89,9 @@ final class RemoteFastingRecordSync {
       }
       byRequestId = parsed;
     } on DioException catch (e) {
+      checkActiveSession();
       final error = toApiException(e);
+      if (error is SessionChangedException) throw error;
       if (error is NetworkApiException || error is TimeoutApiException) {
         _online = false;
       }
@@ -91,43 +100,49 @@ final class RemoteFastingRecordSync {
       }
       return;
     }
-    for (final row in chunk) {
-      final result = byRequestId[row.clientRequestId];
-      if (result == null) {
-        await _writeError(db, row, 'MISSING_RESULT');
-        continue;
-      }
-      final status = result['status'];
-      final code = syncPushErrorCode(result);
-      if (status == 'applied') {
-        if (row.deleted) {
+    await db.transaction(() async {
+      checkActiveSession();
+      for (final row in chunk) {
+        checkActiveSession();
+        final result = byRequestId[row.clientRequestId];
+        if (result == null) {
+          await _writeError(db, row, 'MISSING_RESULT');
+          continue;
+        }
+        final status = result['status'];
+        final code = syncPushErrorCode(result);
+        if (status == 'applied') {
+          if (row.deleted) {
+            await db.fastingRecordDao.deleteRecord(row.localId);
+          } else {
+            final rawServerId = syncPushServerEntry(result)?['id'];
+            if (rawServerId is! String || rawServerId.isEmpty) {
+              await _writeError(db, row, kInvalidPushResponse);
+              continue;
+            }
+            await db.fastingRecordDao.markSynced(row.localId, rawServerId);
+            await _clearError(db, row);
+          }
+        } else if (row.deleted && status == 'error' && code == 'NOT_FOUND') {
           await db.fastingRecordDao.deleteRecord(row.localId);
         } else {
-          final rawServerId = syncPushServerEntry(result)?['id'];
-          if (rawServerId is! String || rawServerId.isEmpty) {
-            await _writeError(db, row, kInvalidPushResponse);
-            continue;
-          }
-          await db.fastingRecordDao.markSynced(row.localId, rawServerId);
-          await _clearError(db, row);
+          await _writeError(
+            db,
+            row,
+            status == 'conflict' && code.isEmpty
+                ? 'VERSION_CONFLICT'
+                : code.isEmpty
+                ? kInvalidPushResponse
+                : code,
+          );
         }
-      } else if (row.deleted && status == 'error' && code == 'NOT_FOUND') {
-        await db.fastingRecordDao.deleteRecord(row.localId);
-      } else {
-        await _writeError(
-          db,
-          row,
-          status == 'conflict' && code.isEmpty
-              ? 'VERSION_CONFLICT'
-              : code.isEmpty
-              ? kInvalidPushResponse
-              : code,
-        );
       }
-    }
+      checkActiveSession();
+    });
   }
 
   Future<void> _writeError(AppDatabase db, FastingRecord row, String code) {
+    checkActiveSession();
     return (db.update(
       db.fastingRecords,
     )..where((r) => r.localId.equals(row.localId))).write(

@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/network/api_exception.dart';
+import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/features/record/custom_food/data/custom_food_remote.dart';
 import 'package:eatwise/features/record/custom_food/domain/custom_food_models.dart';
@@ -323,32 +324,51 @@ final class CustomFoodRepository {
   /// food_entries.foodId 引用——离线期间用临时 id（custom-*）记账的记录
   /// 上行时服务端 snapshotOf 需按服务端 id 查到食物，不重映射会让这些
   /// 记录永远卡 pending。
-  Future<int> retryPending([String? ownerUserId]) async {
+  Future<int> retryPending([String? ownerUserId]) {
+    final remote = this.remote;
+    if (remote is RemoteCustomFoodApi) {
+      return withApiSession(
+        remote.dio,
+        () => _retryPending(ownerUserId),
+        userId: ownerUserId ?? userId,
+      );
+    }
+    return _retryPending(ownerUserId);
+  }
+
+  Future<int> _retryPending(String? ownerUserId) async {
     final owner = ownerUserId ?? userId;
     if (owner == 'anonymous') return 0;
     final rows = await db.foodDao.pendingCustomFoods(ownerUserId: owner);
+    checkActiveSession();
     var synced = 0;
     for (final row in rows) {
+      checkActiveSession();
       if (row.customSyncFailed) continue;
       try {
         final serverId = await remote.createCustom(
           _draftFromRow(row),
           clientRequestId: row.customClientRequestId,
         );
-        if (serverId.isNotEmpty && serverId != row.id) {
-          await db.transaction(() async {
+        checkActiveSession();
+        await db.transaction(() async {
+          checkActiveSession();
+          if (serverId.isNotEmpty && serverId != row.id) {
             await db.foodDao.remapCustomFoodId(
               row.id,
               serverId,
               ownerUserId: owner,
             );
             await db.foodEntryDao.remapFoodId(row.id, serverId);
-          });
-        } else {
-          await db.foodDao.markCustomSynced(row.id, ownerUserId: owner);
-        }
+          } else {
+            await db.foodDao.markCustomSynced(row.id, ownerUserId: owner);
+          }
+          checkActiveSession();
+        });
         synced++;
       } on ApiException catch (e) {
+        checkActiveSession();
+        if (e is SessionChangedException) rethrow;
         if (e is NetworkApiException || e is TimeoutApiException) break;
         if (e is! BusinessApiException) continue;
         if (e.isRetryable || e.httpStatus == 401 || e.httpStatus == 403) {

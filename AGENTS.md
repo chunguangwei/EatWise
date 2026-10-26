@@ -24,6 +24,9 @@ flutter test                    # 门禁：全绿
 
 硬性规则：
 
+- **创建对账与会话隔离（2026-10-26，v1.17.10）**：drift **v16** 新增 `FoodEntries.createRequestSnapshot`，首次 create 发出前冻结；响应未知时编辑/删除不得丢失原请求键，先重放原 create 绑定 serverId 再执行最新意图。匿名认领只更新本地 owner，不改冻结 wire；自定义食物先上行，foodId remap 必须参与代际判断。删除/撤销/失败回滚与日聚合同事务；缓存修复含空日期，升级标记 `daily_cache_backfill_v2_`。请求和整段同步绑定 `SessionLease`（uid + 登录 epoch），每个跨 await 后写库/写游标前检查；同账号重新登录也失效旧任务。AuthInterceptor 用普通 Interceptor + refresh singleflight，禁止在 QueuedInterceptor 的 onError 内等待经同队列重放；任务 dispose 不能丢弃同登录会话已轮换的 token。TokenStore 持久读写串行且空闲清队尾。F3 延长整段通过 `FastingPlanSync.reportExtend`，失败写原 uid 队列；匿名队列先落目标再删来源。回归基线 App **1746**、服务端内存 **356** / e2e **167** / PG **421** 全绿。
+- **断食与并发一致性（2026-10-26，v1.17.10）**：服务端 F2 与 sync 共用 `fasting-result.ts`，延长后完成原目标仍达标；sync 禁止客户端 makeup，并保护服务端既有补签。方案读写/生效按用户锁串行，食物审核、纠错、晋升和级联删除共享 food 锁且仅用 tx-bound driver。自然日序列/差值用 `addCalendarDays/calendarDaysBetween`，勿用固定 24 小时算日期；真实持续时长保持原语义，CI 以 America/New_York 验证 DST。
+
 - **产品与设计复核（2026-10-25，v1.17.9）**：RecordRepository.addEntry 插入/聚合/回读同事务，成功后才登记上行与撤销窗口；单条错误按草稿代际显示，原焦点且搜索/草稿代际均未变才 unfocus。拍照/语音批量确认禁 barrier/drag 退出，PopScope 保存中禁返回，部分成功退出要返回累计数，失败滚到可见提示；按钮以全宽主行动+可换行次操作适配小屏2倍字。首页“今日”语义入口先 backToToday；正文截断 TextPainter 必须和 Text 共用 TextScaler；正常文字用高对比语义token，勿直接以装饰红/橙/绿作小字。
 
 

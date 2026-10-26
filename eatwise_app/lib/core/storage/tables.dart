@@ -27,6 +27,10 @@ class FoodEntries extends Table {
   /// 幂等键（UUIDv4）：每次上行操作生成，重试复用同一键（§2.2）。
   TextColumn get clientRequestId => text()();
 
+  /// 首次 create 发出前冻结的 FoodEntry JSON；收到明确回执前不可改写。
+  /// 当前行保存用户最新编辑/删除意图，重启后先用此快照对账原 create。
+  TextColumn get createRequestSnapshot => text().nullable()();
+
   /// 四态同步状态（§1.1）。
   TextColumn get syncStatus => textEnum<SyncStatus>()();
 

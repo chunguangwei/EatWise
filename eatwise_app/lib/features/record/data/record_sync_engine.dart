@@ -1,4 +1,5 @@
 import 'package:eatwise/core/network/api_exception.dart';
+import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
 import 'package:eatwise/features/fasting/data/remote_fasting_record_sync.dart';
 import 'package:eatwise/features/health/data/remote_exercise_log_sync.dart';
@@ -44,7 +45,24 @@ final class RecordSyncEngine {
     this.cacheRepair,
     this.anonymousMigrator,
     this.onFoodsBackfilled,
-  });
+  }) : _session = repository.remote is RemoteRecordSync
+           ? SessionLease.capture((repository.remote as RemoteRecordSync).dio)
+           : null;
+
+  final SessionLease? _session;
+  bool _disposed = false;
+  bool get _active =>
+      !_disposed && !repository.isDisposed && (_session?.isCurrent ?? true);
+
+  void dispose() {
+    _disposed = true;
+    _session?.dispose();
+  }
+
+  void _checkActive() {
+    if (!_active) throw const SessionChangedException();
+    checkActiveSession();
+  }
 
   /// 记录仓储。
   final RecordRepository repository;
@@ -104,7 +122,7 @@ final class RecordSyncEngine {
 
   /// 聚合缓存全量回填完成标记（每用户每安装一次；标记后每次 syncNow
   /// 只跑近 7 天廉价窗口，兜住标记后新增的边缘情况）。
-  static const String _cacheBackfillDonePrefix = 'daily_cache_backfill_v1_';
+  static const String _cacheBackfillDonePrefix = 'daily_cache_backfill_v2_';
 
   String get _tokenKey => '$_tokenKeyPrefix${repository.userId}';
 
@@ -112,6 +130,20 @@ final class RecordSyncEngine {
 
   /// 触发一轮同步（并发去抖：在途时直接返回）。
   Future<void> syncNow() async {
+    if (!_active) return;
+    try {
+      final session = _session;
+      if (session == null) {
+        await _syncNow();
+      } else {
+        await session.run(_syncNow);
+      }
+    } on SessionChangedException {
+      // Original account keeps its pending work for its next login.
+    }
+  }
+
+  Future<void> _syncNow() async {
     if (_syncing) return;
     _syncing = true;
     try {
@@ -126,6 +158,7 @@ final class RecordSyncEngine {
           // 迁移失败降级为「维持现状」，下轮 syncNow 重试（标记未落）。
         }
       }
+      _checkActive();
       // 断食方案上行（进食窗口自选）：脏标记存在时 PUT（仅登录态——
       // 匿名必 401，脏标记保留待登录后同步轮迁移上行）。失败保留重试。
       try {
@@ -136,6 +169,7 @@ final class RecordSyncEngine {
         // 记录上行全部轮不到（徽标残留嫌疑路径）。
         debugPrint('[Sync] planSync.flush 失败（下轮重试）：$e');
       }
+      _checkActive();
       // 断食方案下行收敛（v1.13.28 多端一致性）：flush 后拉一轮——他端
       // 改过方案（服务端 updatedAt 更新且窗口不同）时按 D-06 登记次日
       // 生效 pending；本地脏标记存在时 pull 自身短路（上行为准）。
@@ -144,6 +178,7 @@ final class RecordSyncEngine {
       } on Object catch (e) {
         debugPrint('[Sync] planSync.pull 失败（下轮重试）：$e');
       }
+      _checkActive();
       // 身体档案/引导状态上行（v1.13.31 脏标记制）：脏键存在时 PATCH，
       // 失败保留下轮重试（离线期 onboarding/档案变更不再永久丢失）。
       try {
@@ -151,11 +186,13 @@ final class RecordSyncEngine {
       } on Object catch (e) {
         debugPrint('[Sync] profileSync.flushDirty 失败（下轮重试）：$e');
       }
+      _checkActive();
       try {
         await settingsPrefsSync?.flushDirty();
       } on Object catch (e) {
         debugPrint('[Sync] settingsPrefs.flushDirty 失败（下轮重试）：$e');
       }
+      _checkActive();
       try {
         // 自定义食物先上行（饮食记录引用其服务端 id，颠倒顺序会让
         // 引用本地临时 id 的记录上行 4xx）。
@@ -163,6 +200,7 @@ final class RecordSyncEngine {
       } on Object catch (e) {
         debugPrint('[Sync] customFood.retryPending 失败（下轮重试）：$e');
       }
+      _checkActive();
       // 贡献审核状态感知（仅登录态）先于记录上行：approved 去「审核中」
       // 标记；rejected 清理本地记录（含 pending，防驳回后上行重建）并入队
       // 一次性驳回通知。失败不阻塞记录上行。
@@ -174,6 +212,7 @@ final class RecordSyncEngine {
           debugPrint('[Sync] contributionReview.syncNow 失败（下轮重试）：$e');
         }
       }
+      _checkActive();
       // 管理员「待审批」提醒（2026-10-04 拍板）：仅 admin 用户拉计数，
       // 新贡献到达（计数上升）时本地即时通知；失败保留下轮重试。
       if (repository.userId != 'anonymous') {
@@ -183,8 +222,11 @@ final class RecordSyncEngine {
           debugPrint('[Sync] adminPendingAlert.syncNow 失败（下轮重试）：$e');
         }
       }
+      _checkActive();
       await repository.retryPending();
+      _checkActive();
       await waterSync?.pushPending(repository.db, repository.userId);
+      _checkActive();
       // 运动记录上行（2026-09-19 拍板）：与饮水同链（仅登录态——匿名推送
       // 必 401，本地 pending 保留待登录后由登录成功触发的同步轮上行）。
       if (repository.userId != 'anonymous') {
@@ -195,6 +237,7 @@ final class RecordSyncEngine {
           // 失败保留下次重试。
         }
       }
+      _checkActive();
       // 断食记录上行（2026-09-29 拍板全量进 /sync）：与运动同链仅登录态。
       // 与 F2 并行——F2 带 streak 结算语义，本通道是记录数据通道（服务端
       // 按归属日幂等去重，两条链不产生重复行）。
@@ -208,6 +251,7 @@ final class RecordSyncEngine {
           debugPrint('[Sync] fastingRecord pushPending 失败（下轮重试）：$e');
         }
       }
+      _checkActive();
       // 体重记录推拉（阶段 C）：仅登录态（匿名推送必 401，本地已可用）。
       final weightSync = this.weightSync;
       final weightStore = this.weightStore;
@@ -221,6 +265,7 @@ final class RecordSyncEngine {
           // 失败保留下次重试。
         }
       }
+      _checkActive();
       final remote = repository.remote;
       if (remote is RemoteRecordSync) {
         final token = await remote.pullDown(
@@ -228,9 +273,11 @@ final class RecordSyncEngine {
           repository.userId,
           prefs.getString(_tokenKey),
         );
+        _checkActive();
         if (token != null) {
           await prefs.setString(_tokenKey, token);
         }
+        _checkActive();
         // 占位食物行回查（仅登录态——batch-get 需 JWT；匿名占位行保留待
         // 登录后同步轮补名）：本轮下行新落的占位 + 存量「名称=foodId」行
         // 一并扫描（升级自愈），命中即写真名，失效 UI 缓存。
@@ -240,6 +287,7 @@ final class RecordSyncEngine {
               repository.db,
               userId: repository.userId,
             );
+            _checkActive();
             if (resolved > 0) onFoodsBackfilled?.call();
           } on Object catch (e) {
             // 失败保留下轮重试（占位行不动，不阻断下行主链）。
@@ -255,7 +303,7 @@ final class RecordSyncEngine {
       // 不会被重算，必须在每轮同步后主动扫描（纯本地操作，后台执行，
       // recompute 幂等）。首次全量回填（prefs 标记），之后每次只校验
       // 近 7 天廉价窗口。失败静默，下轮 syncNow 重试。
-      await _repairDailyCaches();
+      if (_active) await _repairDailyCaches();
       _syncing = false;
     }
   }
@@ -268,6 +316,7 @@ final class RecordSyncEngine {
       final doneKey = '$_cacheBackfillDonePrefix$userId';
       if (prefs.getBool(doneKey) != true) {
         await repair.repairAll(userId);
+        _checkActive();
         await prefs.setBool(doneKey, true);
       } else {
         await repair.repairRecent(userId);

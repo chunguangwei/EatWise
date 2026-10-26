@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/food_entry_dao.dart';
 import 'package:eatwise/core/storage/providers.dart';
+import 'package:eatwise/core/time/calendar_day.dart';
 import 'package:eatwise/core/time/day_change.dart';
 import 'package:eatwise/features/fasting/domain/daily_nutrition.dart';
 import 'package:eatwise/features/fasting/domain/fasting_result_mapping.dart'
@@ -66,12 +67,12 @@ class SelectedDateController extends Notifier<DateTime> {
 
   /// 前一天。
   void prevDay() {
-    state = state.subtract(const Duration(days: 1));
+    state = addCalendarDays(state, -1);
   }
 
   /// 后一天；已到今天则不动作（PRD M4：不可超今天）。
   void nextDay() {
-    if (canGoNext) state = state.add(const Duration(days: 1));
+    if (canGoNext) state = addCalendarDays(state, 1);
   }
 
   /// 回到今天。
@@ -203,7 +204,7 @@ final Provider<DaySummaryTone> daySummaryProvider = Provider<DaySummaryTone>((
 final StreamProvider<List<DailyNutritionCache>> weeklyTrendProvider =
     StreamProvider<List<DailyNutritionCache>>((ref) {
       final end = ref.watch(selectedDateProvider);
-      final start = end.subtract(const Duration(days: 6));
+      final start = addCalendarDays(end, -6);
       return ref
           .watch(nutritionDataSourceProvider)
           .watchRange(localDateOf(start), localDateOf(end));
@@ -220,7 +221,7 @@ final Provider<List<double?>> weeklyKcalProvider = Provider<List<double?>>((
       if (c.entryCount > 0) c.date: c.kcal,
   };
   return List<double?>.generate(7, (i) {
-    final date = localDateOf(end.subtract(Duration(days: 6 - i)));
+    final date = localDateOf(addCalendarDays(end, -(6 - i)));
     return byDate[date];
   });
 });
@@ -232,7 +233,7 @@ final StreamProvider<List<FastingRecord>> weeklyFastingRecordsProvider =
       final db = ref.watch(appDatabaseProvider);
       final userId = ref.watch(currentUserIdProvider);
       final end = ref.watch(selectedDateProvider);
-      final start = end.subtract(const Duration(days: 6));
+      final start = addCalendarDays(end, -6);
       return (db.select(db.fastingRecords)..where(
             (r) =>
                 r.userId.equals(userId) &
@@ -259,7 +260,7 @@ final Provider<List<double?>> weeklyFastingHoursProvider =
             r.attributionDate: r.actualSec / 3600,
       };
       return List<double?>.generate(7, (i) {
-        final date = localDateOf(end.subtract(Duration(days: 6 - i)));
+        final date = localDateOf(addCalendarDays(end, -(6 - i)));
         return byDate[date];
       });
     });

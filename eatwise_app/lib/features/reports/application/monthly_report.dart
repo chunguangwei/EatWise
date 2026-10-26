@@ -1,3 +1,4 @@
+import 'package:eatwise/core/time/calendar_day.dart';
 import 'package:eatwise/features/fasting/domain/daily_nutrition.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart'
@@ -100,7 +101,7 @@ MonthlyReport computeMonthlyReport({
   DateTime? lastWeighDay;
 
   for (var i = 0; i < daysInMonth; i++) {
-    final day = first.add(Duration(days: i));
+    final day = addCalendarDays(first, i);
     final key = localDateOf(day);
     if (qualifiedDates.contains(key)) qualified++;
     final hours = fastingHoursByDate[key];

@@ -574,25 +574,8 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     final delta = after.extendedMinutes - before.extendedMinutes;
     final sync = ref.read(fastingPlanSyncProvider);
     if (sync == null) return; // 同步栈未装配（测试/预览）：本地延长照旧生效
-    String recordId = FastingPlanSync.kPendingRecordId;
     try {
-      recordId = await sync.api.fetchActiveRecordId() ?? recordId;
-      if (recordId != FastingPlanSync.kPendingRecordId) {
-        await sync.api.extendFast(
-          clientRequestId: clientRequestId,
-          recordId: recordId,
-          extendMinutes: delta,
-        );
-        return;
-      }
-    } on Object catch (e) {
-      debugPrint('FastingTimer: F3 延长上报失败，转入队列 $e');
-    }
-    // 未取到 recordId 或 extend 调用失败：入队由同步轮重放（recordId
-    // 已知则直接带上，未知由 flush 重放前补解析）。
-    try {
-      await sync.queueExtend(
-        recordId: recordId,
+      await sync.reportExtend(
         clientRequestId: clientRequestId,
         extendMinutes: delta,
       );

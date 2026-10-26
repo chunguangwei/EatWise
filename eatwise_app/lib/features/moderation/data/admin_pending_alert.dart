@@ -1,4 +1,5 @@
 import 'package:eatwise/app/l10n/strings.g.dart';
+import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/core/notification/notification_service.dart';
 import 'package:eatwise/core/notification/notification_types.dart';
 import 'package:eatwise/features/moderation/data/moderation_api.dart';
@@ -70,11 +71,15 @@ final class AdminPendingAlertSync {
     final uid = userId();
     if (uid == 'anonymous' || !isAdmin()) return;
     final count = await remote.fetchPendingCount();
+    checkActiveSession();
+    if (userId() != uid || !isAdmin()) return;
     final key = '$_lastSeenPrefix$uid';
     final last = prefs.getInt(key);
     if (last == null) {
       // 首轮静默建基线：存量队列不轰炸。
       await prefs.setInt(key, count);
+      checkActiveSession();
+      if (userId() != uid || !isAdmin()) return;
       onCountChanged?.call();
       return;
     }
@@ -86,8 +91,12 @@ final class AdminPendingAlertSync {
         channel: channel,
       );
     }
+    checkActiveSession();
+    if (userId() != uid || !isAdmin()) return;
     if (count != last) {
       await prefs.setInt(key, count);
+      checkActiveSession();
+      if (userId() != uid || !isAdmin()) return;
       onCountChanged?.call();
     }
   }

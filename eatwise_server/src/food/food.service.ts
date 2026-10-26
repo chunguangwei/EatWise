@@ -166,32 +166,34 @@ export class FoodService {
    * 名称/营养校验与 createCustomFood 同口径（trim 后 1-50 字 / isPer100gInRange）。
    */
   async updateCustomFood(userId: string, foodId: string, dto: UpdateCustomFoodDto) {
-    const food = await this.driver.findCustomFoodById(foodId);
-    if (!food || food.userId !== userId) throw err.notFound();
+    return this.driver.runInTransaction([`food-candidate:${foodId}`], async (tx) => {
+      const food = await tx.findCustomFoodById(foodId);
+      if (!food || food.userId !== userId) throw err.notFound();
 
-    const nameZh = dto.nameZh.trim();
-    if (nameZh.length < 1 || nameZh.length > 50) {
-      throw err.validation({ nameZh: 'trimmed length must be 1-50' });
-    }
-    if (!isPer100gInRange(dto.per100g)) {
-      throw err.validation({ per100g: 'out of range (kcal 0-900, macros 0-100)' });
-    }
+      const nameZh = dto.nameZh.trim();
+      if (nameZh.length < 1 || nameZh.length > 50) {
+        throw err.validation({ nameZh: 'trimmed length must be 1-50' });
+      }
+      if (!isPer100gInRange(dto.per100g)) {
+        throw err.validation({ per100g: 'out of range (kcal 0-900, macros 0-100)' });
+      }
 
-    await this.driver.updateCustomFood(foodId, {
-      nameZh,
-      nameEn: dto.nameEn?.trim() || nameZh, // 〔假设〕未给英文名时回退中文名（同 create）
-      aliases: [...(dto.aliasesZh ?? []), ...(dto.aliasesEn ?? [])]
-        .map((a) => a.trim())
-        .filter(Boolean),
-      kcalPer100g: dto.per100g.kcal,
-      proteinPer100g: dto.per100g.proteinG,
-      carbsPer100g: dto.per100g.carbG,
-      fatPer100g: dto.per100g.fatG,
-      source: dto.source,
+      await tx.updateCustomFood(foodId, {
+        nameZh,
+        nameEn: dto.nameEn?.trim() || nameZh, // 〔假设〕未给英文名时回退中文名（同 create）
+        aliases: [...(dto.aliasesZh ?? []), ...(dto.aliasesEn ?? [])]
+          .map((a) => a.trim())
+          .filter(Boolean),
+        kcalPer100g: dto.per100g.kcal,
+        proteinPer100g: dto.per100g.proteinG,
+        carbsPer100g: dto.per100g.carbG,
+        fatPer100g: dto.per100g.fatG,
+        source: dto.source,
+      });
+      const updated = await tx.findCustomFoodById(foodId);
+      if (!updated) throw err.notFound();
+      return this.customView(updated);
     });
-    const updated = await this.driver.findCustomFoodById(foodId);
-    if (!updated) throw err.notFound();
-    return this.customView(updated);
   }
 
   /**
@@ -204,14 +206,16 @@ export class FoodService {
    * 不做幂等：重删第二次 404（资源已不存在的自然语义）。
    */
   async deleteCustomFood(userId: string, foodId: string) {
-    const food = await this.driver.findCustomFoodById(foodId);
-    if (!food || food.userId !== userId) throw err.notFound();
+    return this.driver.runInTransaction([`food-candidate:${foodId}`], async (tx) => {
+      const food = await tx.findCustomFoodById(foodId);
+      if (!food || food.userId !== userId) throw err.notFound();
 
-    await this.assertNotUnderSharedReview(foodId);
+      await this.assertNotUnderSharedReview(foodId, undefined, tx);
 
-    await this.driver.softDeleteCustomFood(foodId);
-    const deletedEntries = await this.driver.softDeleteFoodEntriesByFood(userId, foodId);
-    return { deleted: true, deletedEntries };
+      await tx.softDeleteCustomFood(foodId);
+      const deletedEntries = await tx.softDeleteFoodEntriesByFood(userId, foodId);
+      return { deleted: true, deletedEntries };
+    });
   }
 
   /**
@@ -221,11 +225,13 @@ export class FoodService {
    * deleteCustomFood 口径，先撤销/等审核落定）；行不存在/已删 → 404（重删 404）。
    */
   async adminDeleteFood(foodId: string) {
-    await this.assertNotUnderSharedReview(foodId);
+    return this.driver.runInTransaction([`food-candidate:${foodId}`], async (tx) => {
+      await this.assertNotUnderSharedReview(foodId, undefined, tx);
 
-    await this.driver.softDeleteFoodById(foodId);
-    const deletedEntries = await this.driver.softDeleteAllFoodEntriesByFood(foodId);
-    return { deleted: true, deletedEntries };
+      await tx.softDeleteFoodById(foodId);
+      const deletedEntries = await tx.softDeleteAllFoodEntriesByFood(foodId);
+      return { deleted: true, deletedEntries };
+    });
   }
 
   /**
@@ -235,8 +241,12 @@ export class FoodService {
    * (createdAt asc) 单行查询，最早行恰为被删行（典型：转正后又有人提纠错）
    * 时会漏检更新的 pending 孪生，删完留幽灵候选在池里。
    */
-  private async assertNotUnderSharedReview(foodId: string, exceptId?: string) {
-    const pending = await this.driver.listFoodCandidates('pending');
+  private async assertNotUnderSharedReview(
+    foodId: string,
+    exceptId?: string,
+    driver: StoreDriver = this.driver,
+  ) {
+    const pending = await driver.listFoodCandidates('pending');
     if (pending.some((c) => c.foodId === foodId && (!exceptId || c.id !== exceptId))) {
       throw err.foodUnderReview();
     }
@@ -369,6 +379,7 @@ export class FoodService {
       [
         `idempotency:${userId}:${endpoint}:${dto.clientRequestId}`,
         `food-correction:${userId}:${foodId}`,
+        `food-candidate:${foodId}`,
       ],
       async (tx) => {
         const hit = await tx.findIdempotencyRecord(userId, endpoint, dto.clientRequestId);
@@ -566,47 +577,46 @@ export class FoodService {
     dto: ReviewFoodCandidateDto,
     reviewedBy?: string | null,
   ) {
-    const candidate = await this.driver.findFoodCandidateById(candidateId);
-    if (!candidate) throw err.notFound();
+    return this.withCandidateTransaction(candidateId, async (candidate, tx) => {
+      if (dto.action === 'reject') {
+        // 幂等驳回：重复驳回返回当前状态（首次 reason 不覆写）
+        if (candidate.status === 'rejected') return this.candidateView(candidate, tx);
+        if (candidate.status !== 'pending') {
+          throw err.conflict({ status: candidate.status });
+        }
+        await tx.updateFoodCandidateStatus(candidateId, 'rejected', dto.reason, reviewedBy);
+        if (candidate.kind !== 'correction') {
+          // 乐观入账联动：清除贡献者引用该食物的记录（软删，随 sync/pull 下行）
+          await tx.softDeleteFoodEntriesByFood(candidate.userId, candidate.foodId);
+        }
+        return this.candidateView(await this.mustGetCandidate(candidateId, tx), tx);
+      }
 
-    if (dto.action === 'reject') {
-      // 幂等驳回：重复驳回返回当前状态（首次 reason 不覆写）
-      if (candidate.status === 'rejected') return this.candidateView(candidate);
       if (candidate.status !== 'pending') {
         throw err.conflict({ status: candidate.status });
       }
-      await this.driver.updateFoodCandidateStatus(candidateId, 'rejected', dto.reason, reviewedBy);
-      if (candidate.kind !== 'correction') {
-        // 乐观入账联动：清除贡献者引用该食物的记录（软删，随 sync/pull 下行）
-        await this.driver.softDeleteFoodEntriesByFood(candidate.userId, candidate.foodId);
+
+      if (candidate.kind === 'correction') {
+        // 数据纠错：目标共享行存在且建议值完整才应用；异常态 → 404（不动候选状态，审核可重试）
+        if (!candidate.suggestion || !(await tx.findFoodById(candidate.foodId))) {
+          throw err.notFound();
+        }
+        await tx.applyFoodCorrection(candidate.foodId, candidate.suggestion);
+        await tx.updateFoodCandidateStatus(candidateId, 'approved', undefined, reviewedBy);
+        return this.candidateView(await this.mustGetCandidate(candidateId, tx), tx);
       }
-      return this.candidateView(await this.mustGetCandidate(candidateId));
-    }
 
-    if (candidate.status !== 'pending') {
-      throw err.conflict({ status: candidate.status });
-    }
-
-    if (candidate.kind === 'correction') {
-      // 数据纠错：目标共享行存在且建议值完整才应用；异常态 → 404（不动候选状态，审核可重试）
-      if (!candidate.suggestion || !(await this.driver.findFoodById(candidate.foodId))) {
-        throw err.notFound();
-      }
-      await this.driver.applyFoodCorrection(candidate.foodId, candidate.suggestion);
-      await this.driver.updateFoodCandidateStatus(candidateId, 'approved', undefined, reviewedBy);
-      return this.candidateView(await this.mustGetCandidate(candidateId));
-    }
-
-    // 食物已被删除等异常态 → 404（此时不动候选状态，审核可重试）
-    if (!(await this.driver.findCustomFoodById(candidate.foodId))) throw err.notFound();
-    // 原子晋升：id 不变转共享（既有 FoodEntry 引用不断链）；条码候选把 barcode 写入共享行，
-    // 后续扫码优先命中自有库。再落候选终态
-    await this.driver.promoteCustomFoodToShared(
-      candidate.foodId,
-      candidate.kind === 'barcode' ? candidate.barcode : null,
-    );
-    await this.driver.updateFoodCandidateStatus(candidateId, 'approved', undefined, reviewedBy);
-    return this.candidateView(await this.mustGetCandidate(candidateId));
+      // 食物已被删除等异常态 → 404（此时不动候选状态，审核可重试）
+      if (!(await tx.findCustomFoodById(candidate.foodId))) throw err.notFound();
+      // 原子晋升：id 不变转共享（既有 FoodEntry 引用不断链）；条码候选把 barcode 写入共享行，
+      // 后续扫码优先命中自有库。再落候选终态
+      await tx.promoteCustomFoodToShared(
+        candidate.foodId,
+        candidate.kind === 'barcode' ? candidate.barcode : null,
+      );
+      await tx.updateFoodCandidateStatus(candidateId, 'approved', undefined, reviewedBy);
+      return this.candidateView(await this.mustGetCandidate(candidateId, tx), tx);
+    });
   }
 
   /**
@@ -620,28 +630,38 @@ export class FoodService {
    * 候选不存在 → 404（重删 404 自然语义，不做幂等）。
    */
   async deleteFoodCandidate(candidateId: string) {
-    const candidate = await this.driver.findFoodCandidateById(candidateId);
-    if (!candidate) throw err.notFound();
+    return this.withCandidateTransaction(candidateId, async (candidate, tx) => {
+      if (candidate.kind !== 'correction') {
+        // 同食物行还有其它 pending 候选（含纠错孪生）时不动内容——审核结论
+        // 要回写该行；排除被删行自身（撤下 pending = 合法删除）。
+        await this.assertNotUnderSharedReview(candidate.foodId, candidateId, tx);
+        // approved 行已晋升共享、可被任意用户记录引用：下架=跨用户级联
+        // （adminDeleteFood 同口径）；pending/rejected 仍是贡献者私有行。
+        if (candidate.status === 'approved') {
+          await tx.softDeleteAllFoodEntriesByFood(candidate.foodId);
+        } else {
+          await tx.softDeleteFoodEntriesByFood(candidate.userId, candidate.foodId);
+        }
+        try {
+          await tx.softDeleteFoodById(candidate.foodId);
+        } catch (e) {
+          if (!(e instanceof BusinessException) || e.code !== 'NOT_FOUND') throw e;
+        }
+      }
+      await tx.deleteFoodCandidateById(candidateId);
+      return { deleted: true };
+    });
+  }
 
-    if (candidate.kind !== 'correction') {
-      // 同食物行还有其它 pending 候选（含纠错孪生）时不动内容——审核结论
-      // 要回写该行；排除被删行自身（撤下 pending = 合法删除）。
-      await this.assertNotUnderSharedReview(candidate.foodId, candidateId);
-      // approved 行已晋升共享、可被任意用户记录引用：下架=跨用户级联
-      // （adminDeleteFood 同口径）；pending/rejected 仍是贡献者私有行。
-      if (candidate.status === 'approved') {
-        await this.driver.softDeleteAllFoodEntriesByFood(candidate.foodId);
-      } else {
-        await this.driver.softDeleteFoodEntriesByFood(candidate.userId, candidate.foodId);
-      }
-      try {
-        await this.driver.softDeleteFoodById(candidate.foodId);
-      } catch (e) {
-        if (!(e instanceof BusinessException) || e.code !== 'NOT_FOUND') throw e;
-      }
-    }
-    await this.driver.deleteFoodCandidateById(candidateId);
-    return { deleted: true };
+  /** 锁前只取不可变 foodId；状态必须在锁内重读，与贡献/纠错/食物删除共用锁。 */
+  private async withCandidateTransaction<T>(
+    candidateId: string,
+    work: (candidate: FoodCandidateEntity, tx: StoreDriver) => Promise<T>,
+  ): Promise<T> {
+    const candidate = await this.mustGetCandidate(candidateId);
+    return this.driver.runInTransaction([`food-candidate:${candidate.foodId}`], async (tx) =>
+      work(await this.mustGetCandidate(candidateId, tx), tx),
+    );
   }
 
   /** 状态落库后回读（驱动侧 version+1 / updatedAt 已生效），不存在视为内部异常 */

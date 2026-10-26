@@ -6,6 +6,7 @@ import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_shadows.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/time/calendar_day.dart';
 import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_types.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
@@ -47,9 +48,7 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
       ref.read(healthSyncControllerProvider.notifier).refresh();
       final selected = ref.read(selectedDateProvider);
       final now = DateTime.now();
-      final dateOffset = DateUtils.dateOnly(
-        selected,
-      ).difference(DateUtils.dateOnly(now)).inDays;
+      final dateOffset = calendarDaysBetween(selected, now);
       ref
           .read(analyticsServiceProvider)
           .trackExpose(
@@ -77,9 +76,10 @@ class _NutritionDataPageState extends ConsumerState<NutritionDataPage> {
     final isLocalEstimate =
         ref.watch(dayCacheProvider).valueOrNull?.isLocalEstimate ?? false;
     // 信号卡曝光去重日期键（§4.1：attribute_date 变化重计）。
-    final dateOffset = DateUtils.dateOnly(
+    final dateOffset = calendarDaysBetween(
       ref.watch(selectedDateProvider),
-    ).difference(DateUtils.dateOnly(DateTime.now())).inDays;
+      DateTime.now(),
+    );
 
     final summaryText = switch (tone) {
       DaySummaryTone.empty => t.nutrition.data.summary.empty,

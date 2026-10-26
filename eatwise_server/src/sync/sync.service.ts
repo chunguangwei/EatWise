@@ -16,6 +16,7 @@ import { NutritionService, round1 } from '../nutrition/nutrition.service';
 import { StreakService } from '../streak/streak.service';
 import { isValidDateStr, localDateOf } from '../common/utils/time.util';
 import { CreateEntryDto, SyncOpDto } from './sync.dto';
+import { judgeFastingResult } from '../fasting/fasting-result';
 
 const SYNC_TOKEN_TTL_MS = 30 * 24 * 3600 * 1000; // syncToken 有效期 30 天〔假设〕
 
@@ -39,27 +40,6 @@ export class SyncService {
   /** D-08 破窗容差（与 FastingService 同配置热调，默认 15 分钟） */
   private get fastingToleranceMs(): number {
     return Number(this.config.get('FASTING_TOLERANCE_MINUTES', 15)) * 60 * 1000;
-  }
-
-  /**
-   * fastingRecord 结算对齐（2026-09-30 拍板 C）：不采信客户端 payload 的
-   * result/isQualified，统一按**记录自身锚点**重算早退（与 F2 endFast 同
-   * 口径）——方案分叉期「本地按 A 方案判 completed、服务端按 B 方案锚点
-   * 判 broken」的歧义不再入库；makeup 仅服务端补签产生，payload 声称
-   * makeup 时透传（客户端映射不产生 makeup）。
-   */
-  private judgeFastingResult(
-    plannedEndAt: Date,
-    actualEndAt: Date,
-    payloadResult: string,
-  ): { result: FastingRecordEntity['result']; isQualified: boolean } {
-    if (payloadResult === 'makeup') return { result: 'makeup', isQualified: true };
-    const earlyByMs = plannedEndAt.getTime() - actualEndAt.getTime();
-    if (earlyByMs <= 0) return { result: 'completed', isQualified: true };
-    if (earlyByMs <= this.fastingToleranceMs) {
-      return { result: 'ended_early', isQualified: true };
-    }
-    return { result: 'broken', isQualified: false };
   }
 
   // ===== E1 单条创建（幂等，D-20）=====
@@ -554,12 +534,7 @@ export class SyncService {
   }
 
   /** create 允许的结果集（仅关闭周期；on_track 进行中不经本通道上行） */
-  private static readonly FASTING_SYNC_RESULTS = new Set([
-    'completed',
-    'ended_early',
-    'broken',
-    'makeup',
-  ]);
+  private static readonly FASTING_SYNC_RESULTS = new Set(['completed', 'ended_early', 'broken']);
 
   private async applyFastingRecordCreate(
     userId: string,
@@ -604,6 +579,13 @@ export class SyncService {
     const actualStartAt =
       parsedActualStart && !Number.isNaN(parsedActualStart.getTime()) ? parsedActualStart : null;
     const extendedMinutes = typeof p.extendedMinutes === 'number' ? p.extendedMinutes : 0;
+    if (!Number.isInteger(extendedMinutes) || extendedMinutes < 0 || extendedMinutes > 240) {
+      return {
+        clientRequestId: op.clientRequestId,
+        status: 'error',
+        error: { code: 'VALIDATION_ERROR' },
+      };
+    }
     const fastedMinutes =
       typeof p.fastedMinutes === 'number'
         ? p.fastedMinutes
@@ -614,7 +596,23 @@ export class SyncService {
             ),
           );
     const records = await driver.listFastingRecordsByUser(userId);
-    const judged = this.judgeFastingResult(plannedEndAt, actualEndAt, result);
+    const judged = judgeFastingResult(
+      plannedEndAt,
+      actualEndAt,
+      extendedMinutes,
+      this.fastingToleranceMs,
+    );
+    // 补签是扣卡事务产生的服务端权威标记；客户端终态不能覆盖或顶替它。
+    const makeup = records.find(
+      (r) => !r.deletedAt && r.attributionDate === attributionDate && r.result === 'makeup',
+    );
+    if (makeup) {
+      return {
+        clientRequestId: op.clientRequestId,
+        status: 'applied',
+        serverEntry: this.fastingRecordView(makeup),
+      };
+    }
     const dupByKey = records.find((r) => r.clientRequestId === op.clientRequestId);
     if (dupByKey) {
       const same =
@@ -717,6 +715,13 @@ export class SyncService {
         : undefined);
     if (!record) {
       return { clientRequestId: op.clientRequestId, status: 'error', error: { code: 'NOT_FOUND' } };
+    }
+    if (record.result === 'makeup') {
+      return {
+        clientRequestId: op.clientRequestId,
+        status: 'error',
+        error: { code: 'VALIDATION_ERROR' },
+      };
     }
     if (!record.deletedAt) {
       record.deletedAt = new Date();

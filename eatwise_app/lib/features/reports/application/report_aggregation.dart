@@ -1,3 +1,4 @@
+import 'package:eatwise/core/time/calendar_day.dart';
 import 'package:eatwise/features/fasting/domain/daily_nutrition.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_rule_config.dart';
@@ -21,7 +22,7 @@ List<double?> alignDailySeries({
 }) {
   final last = dateOnly(end);
   return List<double?>.generate(days, (i) {
-    final date = localDateOf(last.subtract(Duration(days: days - 1 - i)));
+    final date = localDateOf(addCalendarDays(last, -(days - 1 - i)));
     return byDate[date];
   });
 }
@@ -57,7 +58,7 @@ List<FastingDayState> alignFastingDayStates({
 }) {
   final last = dateOnly(end);
   return List<FastingDayState>.generate(days, (i) {
-    final key = localDateOf(last.subtract(Duration(days: days - 1 - i)));
+    final key = localDateOf(addCalendarDays(last, -(days - 1 - i)));
     final qualified = qualifiedByDate[key];
     if (qualified != null) {
       return qualified
@@ -123,26 +124,26 @@ List<TrendPoint> bucketDailySeries({
   required TrendBucket bucket,
 }) {
   final last = dateOnly(end);
-  final first = last.subtract(Duration(days: days - 1));
+  final first = addCalendarDays(last, -(days - 1));
 
   // 计算桶边界（升序的 [start, end] 闭区间列表）。
   final ranges = <({DateTime start, DateTime end})>[];
   switch (bucket) {
     case TrendBucket.day:
       for (var i = 0; i < days; i++) {
-        final d = first.add(Duration(days: i));
+        final d = addCalendarDays(first, i);
         ranges.add((start: d, end: d));
       }
     case TrendBucket.week:
       // 从终点向前切 7 日块，保证末块结束于今天；首块可能不满 7 天。
       var blockEnd = last;
       while (!blockEnd.isBefore(first)) {
-        final blockStart = blockEnd.subtract(const Duration(days: 6));
+        final blockStart = addCalendarDays(blockEnd, -6);
         ranges.add((
           start: blockStart.isBefore(first) ? first : blockStart,
           end: blockEnd,
         ));
-        blockEnd = blockStart.subtract(const Duration(days: 1));
+        blockEnd = addCalendarDays(blockStart, -1);
       }
       ranges.sort((a, b) => a.start.compareTo(b.start));
     case TrendBucket.month:
@@ -170,11 +171,7 @@ TrendPoint _aggregateRange(
   var sum = 0.0;
   var count = 0;
   var total = 0;
-  for (
-    var day = start;
-    !day.isAfter(end);
-    day = day.add(const Duration(days: 1))
-  ) {
+  for (var day = start; !day.isAfter(end); day = addCalendarDays(day, 1)) {
     total++;
     final v = byDate[localDateOf(day)];
     if (v != null) {
@@ -342,7 +339,7 @@ GrowthSummary computeGrowthSummary({
   required Map<String, double> weightByDate,
 }) {
   final last = dateOnly(end);
-  final first = last.subtract(Duration(days: days - 1));
+  final first = addCalendarDays(last, -(days - 1));
 
   var qualified = 0;
   var recorded = 0;
@@ -352,7 +349,7 @@ GrowthSummary computeGrowthSummary({
   DateTime? lastWeighDay;
 
   for (var i = 0; i < days; i++) {
-    final day = first.add(Duration(days: i));
+    final day = addCalendarDays(first, i);
     final key = localDateOf(day);
     if (qualifiedDates.contains(key)) qualified++;
     if ((entryCountByDate[key] ?? 0) > 0) recorded++;
@@ -426,8 +423,8 @@ WeeklyReportStats computeWeeklyReport({
   NutritionRuleConfig config = NutritionRuleConfig.defaults,
 }) {
   final today = dateOnly(now);
-  final weekStart = today.subtract(Duration(days: today.weekday - 1));
-  final sunday = weekStart.add(const Duration(days: 6));
+  final weekStart = addCalendarDays(today, -(today.weekday - 1));
+  final sunday = addCalendarDays(weekStart, 6);
   final weekEnd = sunday.isAfter(today) ? today : sunday;
 
   var qualified = 0;
@@ -438,7 +435,7 @@ WeeklyReportStats computeWeeklyReport({
   for (
     var day = weekStart;
     !day.isAfter(weekEnd);
-    day = day.add(const Duration(days: 1))
+    day = addCalendarDays(day, 1)
   ) {
     final key = localDateOf(day);
     if (qualifiedDates.contains(key)) qualified++;

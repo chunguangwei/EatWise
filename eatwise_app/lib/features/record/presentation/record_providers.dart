@@ -158,7 +158,7 @@ final StreamProvider<List<Food>> recordFoodSearchProvider =
 /// 下行后拉「我的贡献」应用审核状态迁移）。
 final Provider<RecordSyncEngine> recordSyncEngineProvider =
     Provider<RecordSyncEngine>((ref) {
-      return RecordSyncEngine(
+      final engine = RecordSyncEngine(
         repository: ref.watch(recordRepositoryProvider),
         prefs: ref.watch(sharedPreferencesProvider),
         waterSync: ref.watch(waterLogSyncProvider),
@@ -181,6 +181,8 @@ final Provider<RecordSyncEngine> recordSyncEngineProvider =
           ref.invalidate(recordFoodSearchProvider);
         },
       );
+      ref.onDispose(engine.dispose);
+      return engine;
     });
 
 /// 匿名 → 登录数据换挂迁移器（审计#1；挂 recordSyncEngineProvider，

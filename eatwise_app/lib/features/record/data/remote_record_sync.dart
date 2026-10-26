@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/network/api_exception.dart';
+import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/core/storage/tables.dart';
@@ -131,7 +132,17 @@ final class RemoteRecordSync implements RecordRemote {
 
   /// 批量上行（≤[kSyncPushBatchSize]/批，分批串行，§2.3）。
   /// 返回与 [entries] 等长、同序的逐条结果。
-  Future<List<PushOutcome>> pushBatch(List<FoodEntry> entries) async {
+  Future<List<PushOutcome>> pushBatch(List<FoodEntry> entries) =>
+      withApiSession(
+        dio,
+        () => _pushBatch(entries),
+        userId: entries.isEmpty ? null : entries.first.userId,
+      );
+
+  Future<List<PushOutcome>> _pushBatch(List<FoodEntry> entries) async {
+    if (entries.any((entry) => entry.userId != entries.first.userId)) {
+      throw const SessionChangedException();
+    }
     final outcomes = <PushOutcome>[];
     for (var i = 0; i < entries.length; i += kSyncPushBatchSize) {
       final chunk = entries.sublist(
@@ -151,6 +162,7 @@ final class RemoteRecordSync implements RecordRemote {
         '/sync/push',
         data: <String, dynamic>{'ops': chunk.map(_opFor).toList()},
       );
+      checkActiveSession();
       _online = true;
       final body = response.data ?? const <String, dynamic>{};
       final byRequestId = syncPushResultsByRequestId(body);
@@ -277,7 +289,10 @@ final class RemoteRecordSync implements RecordRemote {
   // ===== 下行 =====
 
   /// 拉一页增量（首次同步不传 [syncToken] → 全量，§2.4）。
-  Future<SyncPullPage> pullPage({String? syncToken, int limit = 200}) async {
+  Future<SyncPullPage> pullPage({String? syncToken, int limit = 200}) =>
+      withApiSession(dio, () => _pullPage(syncToken: syncToken, limit: limit));
+
+  Future<SyncPullPage> _pullPage({String? syncToken, int limit = 200}) async {
     try {
       final response = await dio.get<Map<String, dynamic>>(
         '/sync/pull',
@@ -286,6 +301,7 @@ final class RemoteRecordSync implements RecordRemote {
           'limit': limit,
         },
       );
+      checkActiveSession();
       _online = true;
       final body = response.data ?? const <String, dynamic>{};
       final nextToken = body['syncToken'];
@@ -326,8 +342,19 @@ final class RemoteRecordSync implements RecordRemote {
   /// 全量扫存量占位（升级自愈：旧版本落的「名称=foodId」行补名）。
   /// 返回本轮补名成功的条数（>0 时调用方失效相关 UI 缓存）。
   /// 离线/未登录/接口失败 → 返回 0，占位保留下轮重试（不阻断下行主链）。
-  Future<int> backfillPlaceholderFoods(AppDatabase db, {String? userId}) async {
+  Future<int> backfillPlaceholderFoods(AppDatabase db, {String? userId}) =>
+      withApiSession(
+        dio,
+        () => _backfillPlaceholderFoods(db, userId: userId),
+        userId: userId,
+      );
+
+  Future<int> _backfillPlaceholderFoods(
+    AppDatabase db, {
+    String? userId,
+  }) async {
     final rows = await db.foodDao.placeholderRows();
+    checkActiveSession();
     if (rows.isEmpty) return 0;
     var resolved = 0;
     for (var i = 0; i < rows.length; i += 200) {
@@ -351,6 +378,7 @@ final class RemoteRecordSync implements RecordRemote {
         '/foods/batch-get',
         data: <String, dynamic>{'ids': chunk.map((f) => f.id).toList()},
       );
+      checkActiveSession();
       _online = true;
       items = (response.data?['items'] as List<dynamic>? ?? const <dynamic>[])
           .cast<Map<String, dynamic>>();
@@ -390,7 +418,11 @@ final class RemoteRecordSync implements RecordRemote {
         ),
       );
     }
-    await db.foodDao.upsertAll(companions);
+    await db.transaction(() async {
+      checkActiveSession();
+      await db.foodDao.upsertAll(companions);
+      checkActiveSession();
+    });
     return companions.length;
   }
 
@@ -402,7 +434,14 @@ final class RemoteRecordSync implements RecordRemote {
   /// 防丢约束：change 缺 foodId/快照或时间无法解析时跳过，游标回到首个
   /// 跳过页之前等待重试；同轮其余好行仍落库。hasMore 但 token 不前进时
   /// 中断并保留重试游标，避免死循环。食物行缺失但带快照时合成占位行。
-  Future<String?> pullDown(
+  Future<String?> pullDown(AppDatabase db, String userId, String? syncToken) =>
+      withApiSession(
+        dio,
+        () => _pullDown(db, userId, syncToken),
+        userId: userId,
+      );
+
+  Future<String?> _pullDown(
     AppDatabase db,
     String userId,
     String? syncToken,
@@ -437,29 +476,37 @@ final class RemoteRecordSync implements RecordRemote {
     while (hasMore) {
       final pageTokenBefore = token;
       final page = await pullPage(syncToken: token);
+      checkActiveSession();
       var pageSkipped = false;
-      for (final change in page.changes) {
-        final result = await _applyChange(db, userId, change);
-        pageSkipped = result.skipped || pageSkipped;
-        final affected = result.affectedDate;
-        if (affected != null) affectedDates.add(affected);
-      }
-      for (final change in page.waterLogChanges) {
-        pageSkipped =
-            await _applyWaterChange(db, userId, change) || pageSkipped;
-      }
-      for (final change in page.exerciseLogChanges) {
-        pageSkipped =
-            await _applyExerciseChange(db, userId, change) || pageSkipped;
-      }
-      for (final change in page.fastingRecordChanges) {
-        await _applyFastingRecordChange(db, userId, change);
-      }
-      // 自定义食物最后应用：服务端删除自定义食物会级联软删引用记录，
-      // 记录 tombstone（上方 entry changes）先落库，食物行再移除。
-      for (final change in page.customFoodChanges) {
-        await _applyCustomFoodChange(db, userId, change);
-      }
+      await db.transaction(() async {
+        checkActiveSession();
+        for (final change in page.changes) {
+          checkActiveSession();
+          final result = await _applyChange(db, userId, change);
+          pageSkipped = result.skipped || pageSkipped;
+          final affected = result.affectedDate;
+          if (affected != null) affectedDates.add(affected);
+        }
+        for (final change in page.waterLogChanges) {
+          pageSkipped =
+              await _applyWaterChange(db, userId, change) || pageSkipped;
+        }
+        for (final change in page.exerciseLogChanges) {
+          pageSkipped =
+              await _applyExerciseChange(db, userId, change) || pageSkipped;
+        }
+        for (final change in page.fastingRecordChanges) {
+          await _applyFastingRecordChange(db, userId, change);
+        }
+        // 自定义食物最后应用：服务端删除自定义食物会级联软删引用记录，
+        // 记录 tombstone（上方 entry changes）先落库，食物行再移除。
+        for (final change in page.customFoodChanges) {
+          await _applyCustomFoodChange(db, userId, change);
+        }
+        // Roll back the entire page if logout occurs during any DAO await.
+        checkActiveSession();
+      });
+      checkActiveSession();
       if (pageSkipped && !hasSkippedPage) {
         firstSkippedPageToken = pageTokenBefore;
         hasSkippedPage = true;
@@ -482,12 +529,14 @@ final class RemoteRecordSync implements RecordRemote {
     // 聚合缓存重算（§2.6 本地预估；下行 insert/update/tombstone 即时生效）。
     final nowIso = DateTime.now().toUtc().toIso8601String();
     for (final localDate in affectedDates) {
+      checkActiveSession();
       await db.foodEntryDao.recomputeDailyNutrition(
         userId,
         localDate,
         updatedAtUtc: nowIso,
       );
     }
+    checkActiveSession();
     return hasSkippedPage ? firstSkippedPageToken : token;
   }
 
@@ -670,7 +719,30 @@ final class RemoteRecordSync implements RecordRemote {
     }
     local ??= await db.foodEntryDao.getByServerId(serverId);
     if (local != null && local.syncStatus != SyncStatus.synced) {
-      // 本地有未上行修改：不被下行覆盖（§2.4），上行冲突由 push 处理。
+      if (local.userId == userId &&
+          local.serverId == null &&
+          clientRequestId == local.clientRequestId) {
+        // 创建回执可能丢失，或旧版已改写原 payload。按原幂等键找回
+        // 服务端身份，只绑定元数据，保留本地最新份量/tombstone 意图。
+        // 换键后下一次上行是 update/delete，不再重复 create。
+        await db.foodEntryDao.updateEntry(
+          local.localId,
+          FoodEntriesCompanion(
+            serverId: Value(serverId),
+            serverVersion: Value((change['version'] as num?)?.toInt() ?? 1),
+            serverUpdatedAt: Value(
+              change['updatedAt'] is String
+                  ? change['updatedAt'] as String
+                  : null,
+            ),
+            createRequestSnapshot: const Value(null),
+            clientRequestId: Value(_uuid()),
+            syncStatus: const Value(SyncStatus.pending),
+            lastError: const Value(null),
+          ),
+        );
+      }
+      // 未同步内容不被下行覆盖（§2.4），后续上行以当前用户意图收敛。
       return (skipped: false, affectedDate: null);
     }
     final rawFoodId = change['foodId'];

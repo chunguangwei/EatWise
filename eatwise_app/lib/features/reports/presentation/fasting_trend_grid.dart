@@ -3,6 +3,7 @@ import 'package:eatwise/core/theme/app_colors.dart';
 import 'package:eatwise/core/theme/app_radii.dart';
 import 'package:eatwise/core/theme/app_spacing.dart';
 import 'package:eatwise/core/theme/app_text_styles.dart';
+import 'package:eatwise/core/time/calendar_day.dart';
 import 'package:eatwise/features/reports/application/report_aggregation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
@@ -32,7 +33,7 @@ class FastingTrendGrid extends StatelessWidget {
     final legend = t.reports.trend.fastingLegend;
     final locale = Localizations.localeOf(context).toString();
     final days = states.length;
-    final start = end.subtract(Duration(days: days - 1));
+    final start = addCalendarDays(end, -(days - 1));
 
     // 无记录灰 = 轨道暗纹同口径（亮 0.12 / 暗 0.22，与已下线的闭合环组件同源）。
     final noRecordColor = colors.textSecondary.withValues(
@@ -66,7 +67,7 @@ class FastingTrendGrid extends StatelessWidget {
           ),
           itemCount: days,
           itemBuilder: (context, i) {
-            final date = start.add(Duration(days: i));
+            final date = addCalendarDays(start, i);
             final state = states[i];
             final dateKey = DateFormat('yyyy-MM-dd').format(date);
             return Tooltip(

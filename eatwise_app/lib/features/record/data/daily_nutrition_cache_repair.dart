@@ -1,4 +1,6 @@
+import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/core/storage/database.dart';
+import 'package:eatwise/core/time/calendar_day.dart';
 import 'package:eatwise/features/record/data/water_log_repository.dart'
     show localDateKey;
 
@@ -23,32 +25,39 @@ class DailyNutritionCacheRepair {
 
   final DateTime Function() _clock;
 
-  /// 全量回填：有记录的归属日中，缓存缺失或过期的全部重算。返回重算天数。
+  /// 全量回填：记录与缓存日期并集内，缺失/过期/空日残留的缓存全部重算。返回重算天数。
   Future<int> repairAll(String userId) => _repair(userId);
 
   /// 近 [days] 天（含今天）廉价校验：窗口内缓存缺失/过期才重算。返回重算天数。
   Future<int> repairRecent(String userId, {int days = 7}) {
-    final from = _clock().toLocal().subtract(Duration(days: days - 1));
+    final from = addCalendarDays(_clock().toLocal(), 1 - days);
     return _repair(userId, fromDate: localDateKey(from));
   }
 
   Future<int> _repair(String userId, {String? fromDate}) async {
-    final dates = await db.foodEntryDao.datesWithEntries(
+    checkActiveSession();
+    final dates = await db.foodEntryDao.datesWithNutritionData(
       userId,
       fromDate: fromDate,
     );
     var repaired = 0;
     final nowIso = _clock().toUtc().toIso8601String();
     for (final date in dates) {
-      if (await _needsRepair(userId, date)) {
+      checkActiveSession();
+      final changed = await db.transaction(() async {
+        checkActiveSession();
+        if (!await _needsRepair(userId, date)) return false;
         await db.foodEntryDao.recomputeDailyNutrition(
           userId,
           date,
           updatedAtUtc: nowIso,
         );
-        repaired++;
-      }
+        checkActiveSession();
+        return true;
+      });
+      if (changed) repaired++;
     }
+
     return repaired;
   }
 
@@ -61,7 +70,15 @@ class DailyNutritionCacheRepair {
       userId,
       localDate,
     );
-    if (maxUpdated == null) return false;
+    if (maxUpdated == null) {
+      // 记录已物理删/全是 tombstone，仍有非零缓存就是旧版中断残留。
+      // 保留零值缓存，避免后续每次同步重复修复同一天。
+      return cache.entryCount != 0 ||
+          cache.kcal != 0 ||
+          cache.proteinG != 0 ||
+          cache.carbG != 0 ||
+          cache.fatG != 0;
+    }
     return cache.updatedAtUtc.compareTo(maxUpdated) < 0;
   }
 }

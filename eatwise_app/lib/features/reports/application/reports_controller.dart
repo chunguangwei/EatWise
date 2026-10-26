@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
 import 'package:eatwise/core/storage/tables.dart';
+import 'package:eatwise/core/time/calendar_day.dart';
 import 'package:eatwise/core/time/day_change.dart';
 import 'package:eatwise/features/fasting/domain/daily_nutrition.dart';
 import 'package:eatwise/features/fasting/domain/fasting_result_mapping.dart'
@@ -219,7 +220,7 @@ final Provider<({String from, String to})> reportWindowProvider =
     Provider<({String from, String to})>((ref) {
       final range = ref.watch(reportRangeProvider);
       final end = dateOnly(ref.watch(reportsNowProvider));
-      final start = end.subtract(Duration(days: range.days - 1));
+      final start = addCalendarDays(end, -(range.days - 1));
       return (from: localDateOf(start), to: localDateOf(end));
     });
 
@@ -483,7 +484,7 @@ final FutureProvider<WeeklyReportStats> weeklyReportProvider =
       ref.watch(_nutritionCacheTableChangesProvider);
       ref.watch(weightLogRevisionProvider);
       final now = dateOnly(ref.watch(reportsNowProvider));
-      final weekStart = now.subtract(Duration(days: now.weekday - 1));
+      final weekStart = addCalendarDays(now, -(now.weekday - 1));
       final from = localDateOf(weekStart);
       final to = localDateOf(now);
       final source = ref.watch(reportsDataSourceProvider);
@@ -517,10 +518,10 @@ final FutureProvider<WeeklySummary> weeklySummaryProvider =
       ref.watch(_nutritionCacheTableChangesProvider);
       ref.watch(weightLogRevisionProvider);
       final now = dateOnly(ref.watch(reportsNowProvider));
-      final thisMonday = now.subtract(Duration(days: now.weekday - 1));
-      final lastMonday = thisMonday.subtract(const Duration(days: 7));
-      final lastSunday = thisMonday.subtract(const Duration(days: 1));
-      final prevMonday = lastMonday.subtract(const Duration(days: 7));
+      final thisMonday = addCalendarDays(now, -(now.weekday - 1));
+      final lastMonday = addCalendarDays(thisMonday, -7);
+      final lastSunday = addCalendarDays(thisMonday, -1);
+      final prevMonday = addCalendarDays(lastMonday, -7);
       final source = ref.watch(reportsDataSourceProvider);
       final caches = await source.nutritionRange(
         localDateOf(lastMonday),

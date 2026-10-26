@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:eatwise/core/network/api_exception.dart';
+import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/features/record/data/water_log_repository.dart'
     show localDateKey;
 import 'package:eatwise/features/reports/application/weight_log_store.dart';
@@ -28,10 +29,15 @@ final class RemoteWeightLogSync {
   bool get isOnline => _online;
 
   /// 一轮完整同步：先上行删除（tombstone），再上行 pending，最后下行合并。
-  Future<void> sync(WeightLogStore store) async {
+  Future<void> sync(WeightLogStore store) =>
+      withApiSession(dio, () => _sync(store), userId: store.userId);
+
+  Future<void> _sync(WeightLogStore store) async {
     await pushDeletions(store);
+    checkActiveSession();
     if (!_online) return; // 上行已判离线：后续跳过，下轮重试
     await pushPending(store);
+    checkActiveSession();
     if (!_online) return; // 上行已判离线：下行跳过，下轮重试
     await pullDown(store);
   }
@@ -39,8 +45,12 @@ final class RemoteWeightLogSync {
   /// 上行该用户全部待删除体重记录（tombstone，按日期升序）：
   /// DELETE /v1/weight-logs/:id（幂等，重复删除 200；他人/缺行 404）。
   /// ack 或 404（服务端本无此行/已被删）→ 本地物理清除。
-  Future<void> pushDeletions(WeightLogStore store) async {
+  Future<void> pushDeletions(WeightLogStore store) =>
+      withApiSession(dio, () => _pushDeletions(store), userId: store.userId);
+
+  Future<void> _pushDeletions(WeightLogStore store) async {
     for (final entry in store.pendingDeletions()) {
+      checkActiveSession();
       final date = entry.key;
       final serverId = entry.value.serverId;
       if (serverId == null) {
@@ -50,10 +60,13 @@ final class RemoteWeightLogSync {
       }
       try {
         await dio.delete<Map<String, dynamic>>('/weight-logs/$serverId');
+        checkActiveSession();
         _online = true;
         await store.purgeDeleted(date);
       } on DioException catch (e) {
+        checkActiveSession();
         final error = toApiException(e);
+        if (error is SessionChangedException) throw error;
         if (error is NetworkApiException || error is TimeoutApiException) {
           _online = false;
           return; // 离线：整批保持 tombstone，下轮 syncNow 重试
@@ -68,8 +81,12 @@ final class RemoteWeightLogSync {
   }
 
   /// 上行该用户全部 pending 体重记录（按日期升序，同日覆写服务端收敛）。
-  Future<void> pushPending(WeightLogStore store) async {
+  Future<void> pushPending(WeightLogStore store) =>
+      withApiSession(dio, () => _pushPending(store), userId: store.userId);
+
+  Future<void> _pushPending(WeightLogStore store) async {
     for (final entry in store.pendingEntries()) {
+      checkActiveSession();
       final date = entry.key;
       final log = entry.value;
       try {
@@ -82,6 +99,7 @@ final class RemoteWeightLogSync {
             'bodyFatPct': log.bodyFatPct,
           },
         );
+        checkActiveSession();
         _online = true;
         await store.markSynced(
           date,
@@ -89,7 +107,9 @@ final class RemoteWeightLogSync {
           serverId: response.data?['id'] as String?,
         );
       } on DioException catch (e) {
+        checkActiveSession();
         final error = toApiException(e);
+        if (error is SessionChangedException) throw error;
         if (error is NetworkApiException || error is TimeoutApiException) {
           _online = false;
           return; // 离线：整批保持 pending，下轮 syncNow 重试
@@ -105,6 +125,16 @@ final class RemoteWeightLogSync {
     WeightLogStore store, {
     String from = '1970-01-01',
     String? to,
+  }) => withApiSession(
+    dio,
+    () => _pullDown(store, from: from, to: to),
+    userId: store.userId,
+  );
+
+  Future<void> _pullDown(
+    WeightLogStore store, {
+    required String from,
+    String? to,
   }) async {
     final effectiveTo = to ?? localDateKey(_now());
     try {
@@ -112,6 +142,7 @@ final class RemoteWeightLogSync {
         '/weight-logs',
         queryParameters: <String, dynamic>{'from': from, 'to': effectiveTo},
       );
+      checkActiveSession();
       _online = true;
       final data = response.data ?? const <String, dynamic>{};
       final logs = (data['logs'] as List<dynamic>? ?? const <dynamic>[])
@@ -138,7 +169,9 @@ final class RemoteWeightLogSync {
               .where((entry) => entry.date.isNotEmpty);
       await store.mergeRemote(logs, tombstones: tombstones);
     } on DioException catch (e) {
+      checkActiveSession();
       final error = toApiException(e);
+      if (error is SessionChangedException) throw error;
       if (error is NetworkApiException || error is TimeoutApiException) {
         _online = false;
       }

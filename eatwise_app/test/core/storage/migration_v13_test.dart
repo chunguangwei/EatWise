@@ -86,7 +86,7 @@ void main() {
     final db = AppDatabase(NativeDatabase(dbFile));
     addTearDown(() async => db.close());
 
-    expect(db.schemaVersion, 15);
+    expect(db.schemaVersion, 16);
 
     // 历史行完整保留：serverId 缺省 null、deleted 缺省 false。
     final pending = (await db.fastingRecordDao.getByLocalId('u-1-2026-07-30'))!;
@@ -107,7 +107,7 @@ void main() {
 
     // 升级后的 user_version 落为 14（重开不再重复迁移；v14 为 Foods 自定义食物终态收敛列）。
     final versionRow = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(versionRow.data['user_version'], 15);
+    expect(versionRow.data['user_version'], 16);
   });
 }
 

@@ -547,6 +547,7 @@
       "confirm": "OK"
     },
     "error": {
+      "sessionChanged": "Your sign-in session changed. Please try again.",
       "network": "Network connection failed. Check your connection and try again.",
       "timeout": "Request timed out. Please try again."
     }

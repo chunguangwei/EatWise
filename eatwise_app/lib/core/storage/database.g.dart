@@ -1081,6 +1081,17 @@ class $FoodEntriesTable extends FoodEntries
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _createRequestSnapshotMeta =
+      const VerificationMeta('createRequestSnapshot');
+  @override
+  late final GeneratedColumn<String> createRequestSnapshot =
+      GeneratedColumn<String>(
+        'create_request_snapshot',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   late final GeneratedColumnWithTypeConverter<SyncStatus, String> syncStatus =
       GeneratedColumn<String>(
@@ -1315,6 +1326,7 @@ class $FoodEntriesTable extends FoodEntries
     userId,
     serverId,
     clientRequestId,
+    createRequestSnapshot,
     syncStatus,
     localVersion,
     serverVersion,
@@ -1381,6 +1393,15 @@ class $FoodEntriesTable extends FoodEntries
       );
     } else if (isInserting) {
       context.missing(_clientRequestIdMeta);
+    }
+    if (data.containsKey('create_request_snapshot')) {
+      context.handle(
+        _createRequestSnapshotMeta,
+        createRequestSnapshot.isAcceptableOrUnknown(
+          data['create_request_snapshot']!,
+          _createRequestSnapshotMeta,
+        ),
+      );
     }
     if (data.containsKey('local_version')) {
       context.handle(
@@ -1553,6 +1574,10 @@ class $FoodEntriesTable extends FoodEntries
         DriftSqlType.string,
         data['${effectivePrefix}client_request_id'],
       )!,
+      createRequestSnapshot: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}create_request_snapshot'],
+      ),
       syncStatus: $FoodEntriesTable.$convertersyncStatus.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -1674,6 +1699,10 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
   /// 幂等键（UUIDv4）：每次上行操作生成，重试复用同一键（§2.2）。
   final String clientRequestId;
 
+  /// 首次 create 发出前冻结的 FoodEntry JSON；收到明确回执前不可改写。
+  /// 当前行保存用户最新编辑/删除意图，重启后先用此快照对账原 create。
+  final String? createRequestSnapshot;
+
   /// 四态同步状态（§1.1）。
   final SyncStatus syncStatus;
 
@@ -1743,6 +1772,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
     required this.userId,
     this.serverId,
     required this.clientRequestId,
+    this.createRequestSnapshot,
     required this.syncStatus,
     required this.localVersion,
     this.serverVersion,
@@ -1774,6 +1804,9 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
       map['server_id'] = Variable<String>(serverId);
     }
     map['client_request_id'] = Variable<String>(clientRequestId);
+    if (!nullToAbsent || createRequestSnapshot != null) {
+      map['create_request_snapshot'] = Variable<String>(createRequestSnapshot);
+    }
     {
       map['sync_status'] = Variable<String>(
         $FoodEntriesTable.$convertersyncStatus.toSql(syncStatus),
@@ -1826,6 +1859,9 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
           ? const Value.absent()
           : Value(serverId),
       clientRequestId: Value(clientRequestId),
+      createRequestSnapshot: createRequestSnapshot == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createRequestSnapshot),
       syncStatus: Value(syncStatus),
       localVersion: Value(localVersion),
       serverVersion: serverVersion == null && nullToAbsent
@@ -1868,6 +1904,9 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
       userId: serializer.fromJson<String>(json['userId']),
       serverId: serializer.fromJson<String?>(json['serverId']),
       clientRequestId: serializer.fromJson<String>(json['clientRequestId']),
+      createRequestSnapshot: serializer.fromJson<String?>(
+        json['createRequestSnapshot'],
+      ),
       syncStatus: $FoodEntriesTable.$convertersyncStatus.fromJson(
         serializer.fromJson<String>(json['syncStatus']),
       ),
@@ -1905,6 +1944,9 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
       'userId': serializer.toJson<String>(userId),
       'serverId': serializer.toJson<String?>(serverId),
       'clientRequestId': serializer.toJson<String>(clientRequestId),
+      'createRequestSnapshot': serializer.toJson<String?>(
+        createRequestSnapshot,
+      ),
       'syncStatus': serializer.toJson<String>(
         $FoodEntriesTable.$convertersyncStatus.toJson(syncStatus),
       ),
@@ -1940,6 +1982,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
     String? userId,
     Value<String?> serverId = const Value.absent(),
     String? clientRequestId,
+    Value<String?> createRequestSnapshot = const Value.absent(),
     SyncStatus? syncStatus,
     int? localVersion,
     Value<int?> serverVersion = const Value.absent(),
@@ -1966,6 +2009,9 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
     userId: userId ?? this.userId,
     serverId: serverId.present ? serverId.value : this.serverId,
     clientRequestId: clientRequestId ?? this.clientRequestId,
+    createRequestSnapshot: createRequestSnapshot.present
+        ? createRequestSnapshot.value
+        : this.createRequestSnapshot,
     syncStatus: syncStatus ?? this.syncStatus,
     localVersion: localVersion ?? this.localVersion,
     serverVersion: serverVersion.present
@@ -2000,6 +2046,9 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
       clientRequestId: data.clientRequestId.present
           ? data.clientRequestId.value
           : this.clientRequestId,
+      createRequestSnapshot: data.createRequestSnapshot.present
+          ? data.createRequestSnapshot.value
+          : this.createRequestSnapshot,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -2049,6 +2098,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
           ..write('userId: $userId, ')
           ..write('serverId: $serverId, ')
           ..write('clientRequestId: $clientRequestId, ')
+          ..write('createRequestSnapshot: $createRequestSnapshot, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('localVersion: $localVersion, ')
           ..write('serverVersion: $serverVersion, ')
@@ -2080,6 +2130,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
     userId,
     serverId,
     clientRequestId,
+    createRequestSnapshot,
     syncStatus,
     localVersion,
     serverVersion,
@@ -2110,6 +2161,7 @@ class FoodEntry extends DataClass implements Insertable<FoodEntry> {
           other.userId == this.userId &&
           other.serverId == this.serverId &&
           other.clientRequestId == this.clientRequestId &&
+          other.createRequestSnapshot == this.createRequestSnapshot &&
           other.syncStatus == this.syncStatus &&
           other.localVersion == this.localVersion &&
           other.serverVersion == this.serverVersion &&
@@ -2138,6 +2190,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
   final Value<String> userId;
   final Value<String?> serverId;
   final Value<String> clientRequestId;
+  final Value<String?> createRequestSnapshot;
   final Value<SyncStatus> syncStatus;
   final Value<int> localVersion;
   final Value<int?> serverVersion;
@@ -2165,6 +2218,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
     this.userId = const Value.absent(),
     this.serverId = const Value.absent(),
     this.clientRequestId = const Value.absent(),
+    this.createRequestSnapshot = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.localVersion = const Value.absent(),
     this.serverVersion = const Value.absent(),
@@ -2193,6 +2247,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
     required String userId,
     this.serverId = const Value.absent(),
     required String clientRequestId,
+    this.createRequestSnapshot = const Value.absent(),
     required SyncStatus syncStatus,
     this.localVersion = const Value.absent(),
     this.serverVersion = const Value.absent(),
@@ -2235,6 +2290,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
     Expression<String>? userId,
     Expression<String>? serverId,
     Expression<String>? clientRequestId,
+    Expression<String>? createRequestSnapshot,
     Expression<String>? syncStatus,
     Expression<int>? localVersion,
     Expression<int>? serverVersion,
@@ -2263,6 +2319,8 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
       if (userId != null) 'user_id': userId,
       if (serverId != null) 'server_id': serverId,
       if (clientRequestId != null) 'client_request_id': clientRequestId,
+      if (createRequestSnapshot != null)
+        'create_request_snapshot': createRequestSnapshot,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (localVersion != null) 'local_version': localVersion,
       if (serverVersion != null) 'server_version': serverVersion,
@@ -2293,6 +2351,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
     Value<String>? userId,
     Value<String?>? serverId,
     Value<String>? clientRequestId,
+    Value<String?>? createRequestSnapshot,
     Value<SyncStatus>? syncStatus,
     Value<int>? localVersion,
     Value<int?>? serverVersion,
@@ -2321,6 +2380,8 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
       userId: userId ?? this.userId,
       serverId: serverId ?? this.serverId,
       clientRequestId: clientRequestId ?? this.clientRequestId,
+      createRequestSnapshot:
+          createRequestSnapshot ?? this.createRequestSnapshot,
       syncStatus: syncStatus ?? this.syncStatus,
       localVersion: localVersion ?? this.localVersion,
       serverVersion: serverVersion ?? this.serverVersion,
@@ -2360,6 +2421,11 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
     }
     if (clientRequestId.present) {
       map['client_request_id'] = Variable<String>(clientRequestId.value);
+    }
+    if (createRequestSnapshot.present) {
+      map['create_request_snapshot'] = Variable<String>(
+        createRequestSnapshot.value,
+      );
     }
     if (syncStatus.present) {
       map['sync_status'] = Variable<String>(
@@ -2443,6 +2509,7 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntry> {
           ..write('userId: $userId, ')
           ..write('serverId: $serverId, ')
           ..write('clientRequestId: $clientRequestId, ')
+          ..write('createRequestSnapshot: $createRequestSnapshot, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('localVersion: $localVersion, ')
           ..write('serverVersion: $serverVersion, ')
@@ -6138,6 +6205,7 @@ typedef $$FoodEntriesTableCreateCompanionBuilder =
       required String userId,
       Value<String?> serverId,
       required String clientRequestId,
+      Value<String?> createRequestSnapshot,
       required SyncStatus syncStatus,
       Value<int> localVersion,
       Value<int?> serverVersion,
@@ -6167,6 +6235,7 @@ typedef $$FoodEntriesTableUpdateCompanionBuilder =
       Value<String> userId,
       Value<String?> serverId,
       Value<String> clientRequestId,
+      Value<String?> createRequestSnapshot,
       Value<SyncStatus> syncStatus,
       Value<int> localVersion,
       Value<int?> serverVersion,
@@ -6239,6 +6308,11 @@ class $$FoodEntriesTableFilterComposer
 
   ColumnFilters<String> get clientRequestId => $composableBuilder(
     column: $table.clientRequestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createRequestSnapshot => $composableBuilder(
+    column: $table.createRequestSnapshot,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6398,6 +6472,11 @@ class $$FoodEntriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get createRequestSnapshot => $composableBuilder(
+    column: $table.createRequestSnapshot,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => ColumnOrderings(column),
@@ -6545,6 +6624,11 @@ class $$FoodEntriesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get createRequestSnapshot => $composableBuilder(
+    column: $table.createRequestSnapshot,
+    builder: (column) => column,
+  );
+
   GeneratedColumnWithTypeConverter<SyncStatus, String> get syncStatus =>
       $composableBuilder(
         column: $table.syncStatus,
@@ -6680,6 +6764,7 @@ class $$FoodEntriesTableTableManager
                 Value<String> userId = const Value.absent(),
                 Value<String?> serverId = const Value.absent(),
                 Value<String> clientRequestId = const Value.absent(),
+                Value<String?> createRequestSnapshot = const Value.absent(),
                 Value<SyncStatus> syncStatus = const Value.absent(),
                 Value<int> localVersion = const Value.absent(),
                 Value<int?> serverVersion = const Value.absent(),
@@ -6707,6 +6792,7 @@ class $$FoodEntriesTableTableManager
                 userId: userId,
                 serverId: serverId,
                 clientRequestId: clientRequestId,
+                createRequestSnapshot: createRequestSnapshot,
                 syncStatus: syncStatus,
                 localVersion: localVersion,
                 serverVersion: serverVersion,
@@ -6736,6 +6822,7 @@ class $$FoodEntriesTableTableManager
                 required String userId,
                 Value<String?> serverId = const Value.absent(),
                 required String clientRequestId,
+                Value<String?> createRequestSnapshot = const Value.absent(),
                 required SyncStatus syncStatus,
                 Value<int> localVersion = const Value.absent(),
                 Value<int?> serverVersion = const Value.absent(),
@@ -6763,6 +6850,7 @@ class $$FoodEntriesTableTableManager
                 userId: userId,
                 serverId: serverId,
                 clientRequestId: clientRequestId,
+                createRequestSnapshot: createRequestSnapshot,
                 syncStatus: syncStatus,
                 localVersion: localVersion,
                 serverVersion: serverVersion,

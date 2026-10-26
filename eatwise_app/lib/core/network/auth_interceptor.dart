@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:eatwise/core/network/api_exception.dart';
+import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/core/network/token_store.dart';
 
 /// 认证拦截器（契约 §1.2 / 规格 §7.1）：
@@ -8,7 +10,7 @@ import 'package:eatwise/core/network/token_store.dart';
 /// - onError：仅当前 API 同源请求的 401 可触发单飞 `POST /auth/refresh`，
 ///   换新令牌后**重放原请求一次**（复用同一 clientRequestId，幂等保证重放安全）；
 ///   refresh 失败 → 清会话并回调 [onSessionCleared]（跳登录）。
-final class AuthInterceptor extends QueuedInterceptor {
+final class AuthInterceptor extends Interceptor {
   AuthInterceptor({
     required this.tokenStore,
     required this.refreshDio,
@@ -34,6 +36,7 @@ final class AuthInterceptor extends QueuedInterceptor {
   /// 单飞刷新：并发 401 共享同一次 refresh，避免旧 refreshToken
   /// 重放触发 Reuse Detection 全端登出（契约 §1.2）。
   Future<bool>? _refreshing;
+  int? _refreshingEpoch;
 
   bool _skipAuth(RequestOptions options) => options.extra['skipAuth'] == true;
 
@@ -85,12 +88,43 @@ final class AuthInterceptor extends QueuedInterceptor {
     RequestInterceptorHandler handler,
   ) async {
     if (!_skipAuth(options) && _isApiRequest(options)) {
-      final token = await tokenStore.accessToken;
+      final lease =
+          options.extra[requestSessionLeaseKey] as SessionLease? ??
+          SessionLease.current ??
+          SessionLease(tokenStore);
+      options.extra[requestSessionLeaseKey] = lease;
+      final snapshot = await tokenStore.snapshot();
+      if (!lease.isCurrent || snapshot.epoch != lease.epoch) {
+        handler.reject(_sessionChanged(options));
+        return;
+      }
+      final token = snapshot.accessToken;
+      options.headers.remove('Authorization');
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
       }
     }
     handler.next(options);
+  }
+
+  DioException _sessionChanged(RequestOptions options) => DioException(
+    requestOptions: options,
+    type: DioExceptionType.cancel,
+    error: const SessionChangedException(),
+  );
+
+  @override
+  void onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) {
+    final lease =
+        response.requestOptions.extra[requestSessionLeaseKey] as SessionLease?;
+    if (lease != null && !lease.isCurrent) {
+      handler.reject(_sessionChanged(response.requestOptions));
+      return;
+    }
+    handler.next(response);
   }
 
   @override
@@ -99,6 +133,11 @@ final class AuthInterceptor extends QueuedInterceptor {
     ErrorInterceptorHandler handler,
   ) async {
     final options = err.requestOptions;
+    final lease = options.extra[requestSessionLeaseKey] as SessionLease?;
+    if (lease != null && !lease.isCurrent) {
+      handler.next(_sessionChanged(options));
+      return;
+    }
     final is401 = err.response?.statusCode == 401;
     if (!is401 ||
         _skipAuth(options) ||
@@ -108,7 +147,21 @@ final class AuthInterceptor extends QueuedInterceptor {
       handler.next(err);
       return;
     }
-    if (await _refresh()) {
+    if (lease == null) {
+      handler.next(err);
+      return;
+    }
+    // Another request may already have refreshed this session before this 401
+    // arrived. Reuse the new token instead of rotating again.
+    final snapshot = await tokenStore.snapshot();
+    if (!lease.isCurrent || snapshot.epoch != lease.epoch) {
+      handler.next(_sessionChanged(options));
+      return;
+    }
+    final alreadyRotated =
+        snapshot.accessToken != null &&
+        options.headers['Authorization'] != 'Bearer ${snapshot.accessToken}';
+    if (alreadyRotated || await _refresh(lease)) {
       try {
         final response = await _replay(options);
         handler.resolve(response);
@@ -122,42 +175,54 @@ final class AuthInterceptor extends QueuedInterceptor {
   }
 
   /// 刷新令牌；无可刷新会话或刷新失败 → 清会话并通知登出。
-  Future<bool> _refresh() {
-    return _refreshing ??= _doRefresh().whenComplete(() => _refreshing = null);
+  Future<bool> _refresh(SessionLease lease) {
+    if (_refreshingEpoch == lease.epoch && _refreshing != null) {
+      return _refreshing!;
+    }
+    final future = _doRefresh(lease.epoch);
+    _refreshingEpoch = lease.epoch;
+    _refreshing = future;
+    return future.whenComplete(() {
+      if (identical(_refreshing, future)) {
+        _refreshing = null;
+        _refreshingEpoch = null;
+      }
+    });
   }
 
-  Future<bool> _doRefresh() async {
-    final refreshToken = await tokenStore.refreshToken;
-    if (refreshToken == null || refreshToken.isEmpty) {
-      // 从未登录：无会话可清，直接放行 401（由调用方按业务错误处理）。
+  Future<bool> _doRefresh(int epoch) async {
+    final snapshot = await tokenStore.snapshot();
+    if (tokenStore.sessionEpoch != epoch || snapshot.epoch != epoch) {
       return false;
     }
+    final refreshToken = snapshot.refreshToken;
+    if (refreshToken == null || refreshToken.isEmpty) return false;
     try {
       final response = await refreshDio.post<Map<String, dynamic>>(
         '/auth/refresh',
         data: <String, dynamic>{'refreshToken': refreshToken},
       );
+      // Refresh belongs to the login session, not the initiating task. Once the
+      // server rotates credentials, disposing that task must not discard them.
+      // Every original/replayed request still checks its own lease separately.
+      if (tokenStore.sessionEpoch != epoch) return false;
       final data = response.data?['data'];
       if (data is Map<String, dynamic> &&
           data['accessToken'] is String &&
           data['refreshToken'] is String) {
-        await tokenStore.saveTokens(
+        return tokenStore.rotateIfCurrent(
+          epoch: epoch,
           accessToken: data['accessToken']! as String,
           refreshToken: data['refreshToken']! as String,
         );
-        return true;
       }
-      // 响应形态非法（非约定信封）：服务端异常版本/中间件——保守保留
-      // 会话下轮重试，不按「失效」误清。
       return false;
     } on DioException catch (e) {
-      // 只在服务端明确拒绝时清会话（401：令牌失效/重放/吊销，契约 §1.2）；
-      // 网络错误/超时/5xx（弱网、服务端部署重启窗）保留会话下轮重试——
-      // 旧实现 catch 所有 DioException 都清会话，App 内更新后的冷启动若
-      // 撞上部署重启窗/弱网，refresh 单次失败即误清登录态（真机走查：
-      // v1.13.21 更新后「登录态丢失需要重新登录」根因）。
-      if (e.response?.statusCode == 401) {
-        await tokenStore.clear();
+      // Only an explicit rejection of this still-current session can log out.
+      // Offline/5xx and late responses retain the user's current credentials.
+      if (e.response?.statusCode == 401 &&
+          tokenStore.sessionEpoch == epoch &&
+          await tokenStore.clearIfCurrent(epoch)) {
         onSessionCleared?.call();
       }
       return false;
