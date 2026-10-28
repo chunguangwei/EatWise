@@ -16,6 +16,8 @@ import 'package:eatwise/features/record/data/water_log_repository.dart';
 import 'package:eatwise/features/record/domain/record_models.dart';
 import 'package:eatwise/features/record/presentation/record_page.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
+import 'package:eatwise/features/streak/application/streak_controller.dart'
+    show currentUserIdProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -73,6 +75,7 @@ void main() {
     repository = RecordRepository(
       db: db,
       remote: recordRemote,
+      userId: 'u-1',
       location: tz.getLocation('Asia/Shanghai'),
     );
     // 估算链路：已配置用户自配 API（两级路由的第二级），由 userClient 决定成败。
@@ -114,6 +117,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
+          currentUserIdProvider.overrideWithValue('u-1'),
           recordRepositoryProvider.overrideWithValue(repository),
           waterLogRepositoryProvider.overrideWithValue(
             WaterLogRepository(db: db),
@@ -305,7 +309,7 @@ void main() {
 
     expect(find.text('添加自定义食物'), findsNothing); // 弹层关闭
     expect(find.text('确认记录'), findsOneWidget); // 结果卡回填
-    final saved = await db.foodDao.searchFoods('手工丸子');
+    final saved = await db.foodDao.searchFoods('手工丸子', ownerUserId: 'u-1');
     expect(saved, hasLength(1));
     expect(saved.single.isCustom, isTrue);
     expect(saved.single.customSyncPending, isFalse);
@@ -415,7 +419,7 @@ void main() {
 
     expect(find.text('已保存到本机，联网后自动同步'), findsOneWidget);
     expect(find.text('确认记录'), findsOneWidget); // 离线也回填结果卡
-    final saved = await db.foodDao.searchFoods('手工丸子');
+    final saved = await db.foodDao.searchFoods('手工丸子', ownerUserId: 'u-1');
     expect(saved, hasLength(1));
     expect(saved.single.customSyncPending, isTrue);
     expect(saved.single.customClientRequestId, isNotEmpty);

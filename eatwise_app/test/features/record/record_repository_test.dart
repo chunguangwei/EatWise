@@ -56,6 +56,37 @@ void main() {
     await db.close();
   });
 
+  test(
+    'live location changes new attribution without dropping the undo window',
+    () async {
+      final repository = RecordRepository(
+        db: db,
+        remote: remote,
+        location: location,
+        locationResolver: () => location,
+      );
+      addTearDown(repository.dispose);
+      final first = await repository.addEntry(draft());
+      location = tz.getLocation('America/New_York');
+      final second = await repository.addEntry(draft());
+      expect(first.localDate, '2026-07-28');
+      expect(second.localDate, '2026-07-28');
+      // UTC 04:00 is midnight in New York; use a timestamp on the prior date.
+      final prior = await repository.addEntry(
+        RecordDraft(
+          foodId: 'f-rice',
+          amountG: 100,
+          mealUtc: DateTime.utc(2026, 7, 28, 1),
+          source: EntrySource.manual,
+        ),
+      );
+      expect(prior.localDate, '2026-07-27');
+      expect(repository.location.name, 'America/New_York');
+      await repository.undo(first.localId);
+      expect(await db.foodEntryDao.getByLocalId(first.localId), isNull);
+    },
+  );
+
   group('四态迁移', () {
     test('T1+T4 在线确认 → submitting，撤销窗结束自动上行 → synced 回填', () async {
       final repository = repo(undoWindow: const Duration(milliseconds: 30));

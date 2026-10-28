@@ -69,12 +69,13 @@ class _ComposePageState extends ConsumerState<ComposePage> {
   }
 
   Future<void> _pickPhoto() async {
+    if (_submitting) return;
     FocusManager.instance.primaryFocus?.unfocus();
     try {
       final bytes = await ref
           .read(composePhotoPickerProvider)
           .pick(PhotoSource.gallery);
-      if (bytes == null || !mounted) return;
+      if (bytes == null || !mounted || _submitting) return;
       setState(() {
         _photo = bytes;
         _photoUrl = null;
@@ -87,6 +88,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
 
   /// 上传图片（U1）。失败只影响配图，不阻断文字发布路径。
   Future<void> _uploadPhoto(Uint8List bytes) async {
+    if (_submitting) return;
     final seq = ++_uploadSeq;
     setState(() {
       _uploading = true;
@@ -118,7 +120,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
     final messenger = ScaffoldMessenger.of(context);
     final service = ref.read(postPolishServiceProvider);
     final text = _controller.text.trim();
-    if (service == null || _polishing || text.isEmpty) return;
+    if (service == null || _polishing || _submitting || text.isEmpty) return;
     final revision = _textRevision;
     // 润色期间收键盘：模型推理可能持续数秒，键盘悬空占屏。
     FocusManager.instance.primaryFocus?.unfocus();
@@ -174,6 +176,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
   /// 撤销润色：回填润色前原文（输入区旁常驻「撤销润色」按钮触发）。
   /// 快照在任何后续编辑时作废（onChanged），不会覆盖用户新文字。
   void _undoPolish() {
+    if (_submitting) return;
     final original = _prePolishText;
     if (original == null) return;
     setState(() {
@@ -186,6 +189,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
   }
 
   Future<void> _publish() async {
+    if (_submitting || _polishing) return;
     final t = Translations.of(context);
     FocusManager.instance.primaryFocus?.unfocus();
     final text = _controller.text.trim();
@@ -197,70 +201,70 @@ class _ComposePageState extends ConsumerState<ComposePage> {
       return;
     }
     if (_uploading) {
-      // 上传在途：等传完再发，避免发出缺图帖。
       messenger.showSnackBar(
         SnackBar(content: Text(t.social.compose.photoUploading)),
       );
       return;
     }
-    if (_photo != null && _photoUrl == null) {
-      // 上传失败不阻断文字发布：用户选「不带图发布」则丢弃失败配图按纯
-      // 文字帖继续，取消则保留配图与就地重试入口。
-      final dropPhoto = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          content: Text(t.social.compose.photoUploadFailedBody),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(t.common.action.cancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: Text(t.social.compose.publishWithoutPhoto),
-            ),
-          ],
-        ),
-      );
-      if (dropPhoto != true || !mounted) return;
-      setState(() {
-        _photo = null;
-        _uploadError = null;
-      });
-    }
-    setState(() => _submitting = true);
+    // Freeze every submitted field before the first await, including the
+    // confirmation that permits publishing after an image upload failed.
+    final hasPhoto = _photo != null;
+    final imageUrl = _photoUrl;
+    final anonymous = _anonymous;
+    final avatarId = anonymous ? _avatarId : null;
     final navigator = Navigator.of(context);
     final route = ModalRoute.of(context);
     final streakDays = ref.read(streakControllerProvider).currentStreak;
-    final result = await ref
-        .read(feedControllerProvider.notifier)
-        .publish(
-          text: text,
-          imageUrls: _photoUrl == null
-              ? const <String>[]
-              : <String>[_photoUrl!],
-          streakDays: streakDays > 0 ? streakDays : null,
-          anonymous: _anonymous,
-          avatarId: _anonymous ? _avatarId : null,
+    setState(() => _submitting = true);
+    try {
+      if (hasPhoto && imageUrl == null) {
+        final dropPhoto = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            content: Text(t.social.compose.photoUploadFailedBody),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: Text(t.common.action.cancel),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: Text(t.social.compose.publishWithoutPhoto),
+              ),
+            ],
+          ),
         );
-    if (!mounted || route?.isCurrent == false) return;
-    switch (result) {
-      case PublishOk(:final post):
-        navigator.pop();
-        if (post.auditStatus == 'pending') {
-          messenger.showSnackBar(
-            SnackBar(content: Text(t.social.compose.submittedForReview)),
+        if (!mounted || route?.isCurrent == false || dropPhoto != true) return;
+        // Omit the image only from this request; a failed publication must
+        // preserve the original photo and upload retry controls in the draft.
+      }
+      final result = await ref
+          .read(feedControllerProvider.notifier)
+          .publish(
+            text: text,
+            imageUrls: imageUrl == null ? const <String>[] : <String>[imageUrl],
+            streakDays: streakDays > 0 ? streakDays : null,
+            anonymous: anonymous,
+            avatarId: avatarId,
           );
-        }
-      case PublishRejected(:final message):
-        // 先审后发拒绝：服务端双语提示直接上屏（D-17）。
-        messenger.showSnackBar(SnackBar(content: Text(message)));
-        setState(() => _submitting = false);
-      case PublishFailed():
-        messenger.showSnackBar(
-          SnackBar(content: Text(t.social.compose.publishFailed)),
-        );
-        setState(() => _submitting = false);
+      if (!mounted || route?.isCurrent == false) return;
+      switch (result) {
+        case PublishOk(:final post):
+          navigator.pop();
+          if (post.auditStatus == 'pending') {
+            messenger.showSnackBar(
+              SnackBar(content: Text(t.social.compose.submittedForReview)),
+            );
+          }
+        case PublishRejected(:final message):
+          messenger.showSnackBar(SnackBar(content: Text(message)));
+        case PublishFailed():
+          messenger.showSnackBar(
+            SnackBar(content: Text(t.social.compose.publishFailed)),
+          );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
   }
 
@@ -274,7 +278,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
     final photo = _photo;
     if (photo == null) {
       return OutlinedButton.icon(
-        onPressed: _pickPhoto,
+        onPressed: _submitting ? null : _pickPhoto,
         icon: const Icon(Icons.photo_library_rounded),
         label: Text(t.social.compose.addPhoto),
         style: OutlinedButton.styleFrom(
@@ -320,14 +324,16 @@ class _ComposePageState extends ConsumerState<ComposePage> {
               child: IconButton.filled(
                 icon: const Icon(Icons.close),
                 tooltip: t.social.compose.removePhoto,
-                onPressed: () => setState(() {
-                  // 递增代际作废在途上传，已上传的图不回收（帖子里可复用）。
-                  _uploadSeq++;
-                  _photo = null;
-                  _photoUrl = null;
-                  _uploading = false;
-                  _uploadError = null;
-                }),
+                onPressed: _submitting
+                    ? null
+                    : () => setState(() {
+                        // 递增代际作废在途上传，已上传的图不回收（帖子里可复用）。
+                        _uploadSeq++;
+                        _photo = null;
+                        _photoUrl = null;
+                        _uploading = false;
+                        _uploadError = null;
+                      }),
               ),
             ),
           ],
@@ -345,7 +351,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
                 ),
               ),
               TextButton.icon(
-                onPressed: () => _uploadPhoto(photo),
+                onPressed: _submitting ? null : () => _uploadPhoto(photo),
                 icon: const Icon(Icons.refresh, size: 18),
                 label: Text(t.social.compose.retryUpload),
               ),
@@ -367,7 +373,7 @@ class _ComposePageState extends ConsumerState<ComposePage> {
       children: <Widget>[
         SwitchListTile.adaptive(
           value: _anonymous,
-          onChanged: (v) => setState(() => _anonymous = v),
+          onChanged: _submitting ? null : (v) => setState(() => _anonymous = v),
           title: Text(t.social.compose.anonymous, style: textStyles.textBase),
           subtitle: Text(
             t.social.feed.anonymousPoster,
@@ -396,7 +402,9 @@ class _ComposePageState extends ConsumerState<ComposePage> {
                       // 头像无语义名（纯图形），无障碍按序号播报。
                       label: '${t.social.compose.pickAvatar} ${i + 1}',
                       child: InkWell(
-                        onTap: () => setState(() => _avatarId = i),
+                        onTap: _submitting
+                            ? null
+                            : () => setState(() => _avatarId = i),
                         customBorder: const CircleBorder(),
                         child: CircleAvatar(
                           radius: 22,
@@ -428,157 +436,170 @@ class _ComposePageState extends ConsumerState<ComposePage> {
     final shadows = Theme.of(context).extension<AppShadows>()!;
     final streak = ref.watch(streakControllerProvider);
 
-    return Scaffold(
-      backgroundColor: colors.bgPrimary,
-      appBar: AppBar(
+    return PopScope(
+      canPop: !_submitting,
+      child: Scaffold(
         backgroundColor: colors.bgPrimary,
-        title: Text(t.social.compose.title, style: textStyles.textXl),
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.s4),
-          children: <Widget>[
-            // streak 徽章（D-12：打卡带连续天数；0 不显示数字徽章，改引导文案 4.2）。
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.s3),
-              decoration: BoxDecoration(
-                color: colors.brandAccent.withValues(alpha: 0.12),
-                borderRadius: radii.rMd,
-              ),
-              child: Row(
-                children: <Widget>[
-                  Icon(Icons.local_fire_department, color: colors.brandAccent),
-                  const SizedBox(width: AppSpacing.s2),
-                  Expanded(
-                    child: Text(
-                      streak.currentStreak > 0
-                          ? t.social.compose.streakBadge(
-                              days: streak.currentStreak,
-                            )
-                          : t.social.compose.noStreak,
-                      style: textStyles.textSm,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.s4),
-            // 输入卡（白卡承载：正文输入 + AI 润色 + 配图 + 匿名开关；
-            // 输入框装饰由主题 inputDecorationTheme 统一 rMd 填充描边）。
-            // Material 在外（ListTile 水波纹/背景需要 Material 祖先，与
-            // _ProfileHeaderCard 同构），阴影走内层 Container 装饰。
-            Material(
-              color: colors.bgSecondary,
-              borderRadius: radii.rLg,
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.s4),
-                decoration: AppSurfaces.card(colors, shadows, onMaterial: true),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+        appBar: AppBar(
+          backgroundColor: colors.bgPrimary,
+          title: Text(t.social.compose.title, style: textStyles.textXl),
+        ),
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(AppSpacing.s4),
+            children: <Widget>[
+              // streak 徽章（D-12：打卡带连续天数；0 不显示数字徽章，改引导文案 4.2）。
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.s3),
+                decoration: BoxDecoration(
+                  color: colors.brandAccent.withValues(alpha: 0.12),
+                  borderRadius: radii.rMd,
+                ),
+                child: Row(
                   children: <Widget>[
-                    // 文字输入（≤500 字计数，契约 §3.9 C1）。
-                    TextField(
-                      controller: _controller,
-                      maxLines: 6,
-                      maxLength: maxChars,
-                      buildCounter:
-                          (
-                            context, {
-                            required currentLength,
-                            required isFocused,
-                            maxLength,
-                          }) => Text(
-                            t.social.compose.charCount(n: currentLength),
-                            style: textStyles.textXs.copyWith(
-                              color: colors.textSecondary,
-                            ),
-                          ),
-                      // 点输入框外任意处收键盘（iOS 无返回手势收起，缺它键盘关不掉）。
-                      onTapOutside: (_) =>
-                          FocusManager.instance.primaryFocus?.unfocus(),
-                      // 任何编辑作废润色前快照（撤销入口随之消失，不会覆盖新文字）。
-                      onChanged: (_) {
-                        _textRevision++;
-                        if (_prePolishText != null) _prePolishText = null;
-                        setState(() {});
-                      },
-                      decoration: InputDecoration(
-                        hintText: t.social.compose.hint,
+                    Icon(
+                      Icons.local_fire_department,
+                      color: colors.brandAccent,
+                    ),
+                    const SizedBox(width: AppSpacing.s2),
+                    Expanded(
+                      child: Text(
+                        streak.currentStreak > 0
+                            ? t.social.compose.streakBadge(
+                                days: streak.currentStreak,
+                              )
+                            : t.social.compose.noStreak,
+                        style: textStyles.textSm,
                       ),
                     ),
-                    // AI 润色（端侧视觉模型；服务为 null = 开关关/模型未就绪 →
-                    // 隐藏入口）；润色成功后出现常驻「撤销润色」，继续编辑即消失。
-                    if (ref.watch(postPolishServiceProvider) !=
-                        null) ...<Widget>[
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton.icon(
-                          onPressed:
-                              _polishing || _controller.text.trim().isEmpty
-                              ? null
-                              : _polish,
-                          icon: _polishing
-                              ? const SizedBox(
-                                  height: 14,
-                                  width: 14,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.auto_fix_high_rounded,
-                                  size: 18,
-                                ),
-                          label: Text(switch ((_polishing, _polishPhase)) {
-                            (true, PostPolishPhase.loadingModel) =>
-                              t.social.compose.polishLoadingModel,
-                            (true, _) => t.social.compose.polishInferring,
-                            (false, _) => t.social.compose.polish,
-                          }),
-                        ),
-                      ),
-                      if (_prePolishText != null)
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton.icon(
-                            onPressed: _undoPolish,
-                            icon: const Icon(Icons.undo, size: 18),
-                            label: Text(t.social.compose.polishUndo),
-                          ),
-                        ),
-                    ],
-                    const SizedBox(height: AppSpacing.s2),
-                    // 配图：选图即上传，上传中禁用发布；失败可重试或不带图发布。
-                    _buildPhotoSection(t),
-                    if (_photo != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: AppSpacing.s2),
-                        child: Text(
-                          t.social.compose.photoReviewHint,
-                          style: textStyles.textSm.copyWith(
-                            color: colors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: AppSpacing.s2),
-                    // 匿名发布 + 默认头像选择。
-                    _buildAnonymousSection(t, colors, textStyles),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.s6),
-            BusyFilledButton(
-              label: _photo != null
-                  ? t.social.compose.submitForReview
-                  : t.social.compose.publish,
-              busyLabel: _photo != null
-                  ? t.social.compose.submitForReview
-                  : t.social.compose.publish,
-              busy: _submitting || _uploading,
-              onPressed: _publish,
-            ),
-          ],
+              const SizedBox(height: AppSpacing.s4),
+              // 输入卡（白卡承载：正文输入 + AI 润色 + 配图 + 匿名开关；
+              // 输入框装饰由主题 inputDecorationTheme 统一 rMd 填充描边）。
+              // Material 在外（ListTile 水波纹/背景需要 Material 祖先，与
+              // _ProfileHeaderCard 同构），阴影走内层 Container 装饰。
+              Material(
+                color: colors.bgSecondary,
+                borderRadius: radii.rLg,
+                child: Container(
+                  padding: const EdgeInsets.all(AppSpacing.s4),
+                  decoration: AppSurfaces.card(
+                    colors,
+                    shadows,
+                    onMaterial: true,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      // 文字输入（≤500 字计数，契约 §3.9 C1）。
+                      TextField(
+                        controller: _controller,
+                        readOnly: _submitting,
+                        maxLines: 6,
+                        maxLength: maxChars,
+                        buildCounter:
+                            (
+                              context, {
+                              required currentLength,
+                              required isFocused,
+                              maxLength,
+                            }) => Text(
+                              t.social.compose.charCount(n: currentLength),
+                              style: textStyles.textXs.copyWith(
+                                color: colors.textSecondary,
+                              ),
+                            ),
+                        // 点输入框外任意处收键盘（iOS 无返回手势收起，缺它键盘关不掉）。
+                        onTapOutside: (_) =>
+                            FocusManager.instance.primaryFocus?.unfocus(),
+                        // 任何编辑作废润色前快照（撤销入口随之消失，不会覆盖新文字）。
+                        onChanged: (_) {
+                          _textRevision++;
+                          if (_prePolishText != null) _prePolishText = null;
+                          setState(() {});
+                        },
+                        decoration: InputDecoration(
+                          hintText: t.social.compose.hint,
+                        ),
+                      ),
+                      // AI 润色（端侧视觉模型；服务为 null = 开关关/模型未就绪 →
+                      // 隐藏入口）；润色成功后出现常驻「撤销润色」，继续编辑即消失。
+                      if (ref.watch(postPolishServiceProvider) !=
+                          null) ...<Widget>[
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed:
+                                _polishing ||
+                                    _submitting ||
+                                    _controller.text.trim().isEmpty
+                                ? null
+                                : _polish,
+                            icon: _polishing
+                                ? const SizedBox(
+                                    height: 14,
+                                    width: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.auto_fix_high_rounded,
+                                    size: 18,
+                                  ),
+                            label: Text(switch ((_polishing, _polishPhase)) {
+                              (true, PostPolishPhase.loadingModel) =>
+                                t.social.compose.polishLoadingModel,
+                              (true, _) => t.social.compose.polishInferring,
+                              (false, _) => t.social.compose.polish,
+                            }),
+                          ),
+                        ),
+                        if (_prePolishText != null)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: _submitting ? null : _undoPolish,
+                              icon: const Icon(Icons.undo, size: 18),
+                              label: Text(t.social.compose.polishUndo),
+                            ),
+                          ),
+                      ],
+                      const SizedBox(height: AppSpacing.s2),
+                      // 配图：选图即上传，上传中禁用发布；失败可重试或不带图发布。
+                      _buildPhotoSection(t),
+                      if (_photo != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: AppSpacing.s2),
+                          child: Text(
+                            t.social.compose.photoReviewHint,
+                            style: textStyles.textSm.copyWith(
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: AppSpacing.s2),
+                      // 匿名发布 + 默认头像选择。
+                      _buildAnonymousSection(t, colors, textStyles),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.s6),
+              BusyFilledButton(
+                label: _photo != null
+                    ? t.social.compose.submitForReview
+                    : t.social.compose.publish,
+                busyLabel: _photo != null
+                    ? t.social.compose.submitForReview
+                    : t.social.compose.publish,
+                busy: _submitting || _uploading || _polishing,
+                onPressed: _publish,
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -10,7 +10,7 @@ import { allowedPostImageUrls, CreatePostDto, ReviewPostDto } from './social.dto
 
 const FEED_PAGE_MAX = 50;
 
-/** 管理端队列筛选口径（reported=被举报待处理：reportCount>0 且当前 rejected） */
+/** 管理端队列筛选口径（reported=被举报待处理：存在未处理 report 队列） */
 export type AdminPostFilter = 'pending' | 'approved' | 'rejected' | 'reported';
 
 /**
@@ -232,8 +232,8 @@ export class SocialService {
 
   /**
    * 管理端：审核队列查询（x-admin-token 端点 /v1/admin/posts）。
-   * 状态口径：pending=图片待人工审核；approved=已上架；rejected=已拒绝（不含举报）；
-   * reported=被举报待处理（reportCount>0 且当前 rejected，举报即下架后的复核队列）。
+   * 状态口径：pending=图片待人工审核；approved=已上架；rejected=已拒绝且无待复核举报；
+   * reported=被举报待处理（存在未处理 report 队列，举报即下架后的复核队列）。
    */
   async adminList(status: AdminPostFilter | undefined, limit = 20, cursor?: string) {
     limit = clampPageLimit(limit, 20, FEED_PAGE_MAX);
@@ -255,8 +255,13 @@ export class SocialService {
     const hasMore = start + limit < visible.length;
     const last = page[page.length - 1];
     const names = await this.authorNames(page);
+    const reportPendingIds = new Set(
+      (await this.driver.listModerationQueue())
+        .filter((q) => q.source === 'report')
+        .map((q) => q.postId),
+    );
     return {
-      items: page.map((p) => this.adminPostView(p, names)),
+      items: page.map((p) => this.adminPostView(p, names, reportPendingIds.has(p.id))),
       pageInfo: {
         nextCursor:
           hasMore && last
@@ -272,7 +277,7 @@ export class SocialService {
   /**
    * 管理端：审核决定（version+1，auditReason 记录操作原因）。
    * approve：pending/rejected（含 reported）→ approved 上架恢复；
-   * reject：pending/approved → rejected 下架（reason 透传给作者，〔假设〕双语同文案）。
+   * reject：pending/approved 或待复核举报 → rejected 下架（reason 透传给作者，〔假设〕双语同文案）。
    * 同状态重复审核 → 409 CONFLICT；已删除帖 → 410。
    */
   async adminReview(id: string, dto: ReviewPostDto) {
@@ -283,7 +288,10 @@ export class SocialService {
       if (dto.action === 'approve' && post.auditStatus === 'approved') {
         throw err.conflict({ auditStatus: post.auditStatus });
       }
-      if (dto.action === 'reject' && post.auditStatus === 'rejected') {
+      const reportPending = (await tx.listModerationQueue()).some(
+        (q) => q.postId === post.id && q.source === 'report',
+      );
+      if (dto.action === 'reject' && post.auditStatus === 'rejected' && !reportPending) {
         throw err.conflict({ auditStatus: post.auditStatus });
       }
 
@@ -330,7 +338,11 @@ export class SocialService {
   }
 
   /** 管理端视图：含举报计数与审核原因（管理端可见，不受作者可见性约束）。 */
-  private adminPostView(post: PostEntity, names: Map<string, string | null>) {
+  private adminPostView(
+    post: PostEntity,
+    names: Map<string, string | null>,
+    reportPending = false,
+  ) {
     return {
       id: post.id,
       text: post.text,
@@ -342,6 +354,7 @@ export class SocialService {
       likeCount: post.likeCount,
       auditStatus: post.auditStatus,
       auditReason: post.auditReason,
+      reportPending,
       reportCount: post.reportCount,
       reportedAt: post.reportedAt ? post.reportedAt.toISOString() : null,
       version: post.version,

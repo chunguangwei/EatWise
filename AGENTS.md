@@ -24,6 +24,8 @@ flutter test                    # 门禁：全绿
 
 硬性规则：
 
+- **复核修复（2026-10-28）**：drift **v17** 的 Foods 增冻结创建载荷、编辑代际、稳定原本地身份；未知 ACK 必须先用原键/原 wire 确认再 PATCH 新意图。下行只能凭同 owner 的原 clientRequestId 绑定，禁止按名称猜；dirty 食品不覆盖，remap 与 entry 引用同事务。RecordRepository.addEntry 同事务解析原身份到最终 food.id 后生成快照入账；聚合更新/删除/回滚一律按记录持久 localDate，不能旅行后用当前时区重新推旧日。原生 `eatwise/system_timezone` 提供 IANA，事件/前台刷新统一 tz.local；记录仓储用 resolver 动态读取且不重建（保留撤销窗），单次入账冻结一次时区。举报结案以 outstanding queue 为准，确认下架与出队同 post 锁事务，保留历史 reportCount。社区提交前冻结整份稿件，失败保留原图；“不带图发布”仅影响当次请求。
+
 - **更新弹窗长文案（2026-10-26，v1.17.12）**：`UpdateDialog` 必须用受限滚动区容纳长说明，actions 留在滚动区外；长日志只在初始确认阶段展示，下载/失败阶段突出当前状态。下载期 PopScope 禁返回/遮罩关闭，所有异常必须恢复可操作的失败态。调起安装器不等于完成安装，强制更新需恢复再次安装入口并保持禁关闭。回归需用真实 showDialog 路由，覆盖 320/360 小屏、横屏、中英亮暗和 2 倍字，实际拖到最后一行验证正文不压按钮。Release 文案写简短纯文本用户改动，测试/部署统计留 docs/qa，不塞入应用更新弹窗。
 
 - **食物说明与图片审核（2026-10-26，v1.17.11）**：食物详情以实际份量占当前每日目标的比例替代单品红绿灯/步数折算；来源只依 source，不能用 contributionStatus=approved 推断社区（内置库纠错也会 approved）。自定义食物 UPDATE 必须同存 source；编辑旧 AI 食品仅改名称/别名不清估算标记，手改营养转 manual。新图片帖 pending 人工审核，纯文字仍直接公开；创建/队列/幂等回执同事务，所有会写帖子整行的审核/删除/举报/点赞/取消点赞共用 post 锁与 tx-bound driver。作者未公开帖显示 auditReason 中英回退，不把举报暂时下架一概称审核拒绝。i18n 隐私社区段与 docs/public 同步。原生驱动写操作仅显式 .qa 包 + EATWISE_INPUT_QA=1，独立本地 memory 服务；typeFocused 禁重新点焦点。详见 tool/NATIVE_UI_QA.md。

@@ -228,12 +228,13 @@ void main() {
           reportsDataSourceProvider.overrideWithValue(_FakeSource()),
           nutritionGoalProvider.overrideWithValue(_goal),
           fastingCycleStoreProvider.overrideWithValue(cycleStore),
+          reportActiveFastingDateProvider.overrideWithValue('2026-07-28'),
         ],
       );
       addTearDown(container.dispose);
       await container.read(reportFastingProvider.future);
 
-      // 今天（7/28）无终态记录 → 进行中。
+      // 计时链路确认归属为今天（7/28），无终态记录 → 进行中。
       final states = container.read(fastingDayStatesProvider);
       expect(states.last, FastingDayState.inProgress);
       // 既有终态记录日不受影响。

@@ -447,8 +447,8 @@ export abstract class StoreDriver {
   /** 打卡流可见集：未删除 && (approved || 本人)，createdAt 倒序 + id 倒序 */
   abstract findFeedPosts(viewerId: string): Promise<PostEntity[]>;
 
-  /** 管理端审核队列口径：pending / approved / rejected(=rejected 且 reportCount==0) /
-   * reported(=rejected 且 reportCount>0) / 全部(缺省)；均未删除，createdAt 倒序 + id 倒序 */
+  /** 管理端审核队列口径：pending / approved / rejected(=rejected 且无未处理举报) /
+   * reported(=存在未处理 report 队列) / 全部(缺省)；均未删除，createdAt 倒序 + id 倒序 */
   abstract listPostsForAdmin(filter: PostAdminFilter | undefined): Promise<PostEntity[]>;
 
   /** 点赞：幂等（postId+userId 唯一），首次 likeCount+1/version+1/updatedAt=now；帖子不存在 → NOT_FOUND */
@@ -1356,6 +1356,9 @@ export class MemoryStoreDriver extends StoreDriver {
   }
 
   listPostsForAdmin(filter: PostAdminFilter | undefined): Promise<PostEntity[]> {
+    const reportedIds = new Set(
+      this.store.moderationQueue.filter((q) => q.source === 'report').map((q) => q.postId),
+    );
     const match = (p: PostEntity): boolean => {
       switch (filter) {
         case 'pending':
@@ -1363,9 +1366,9 @@ export class MemoryStoreDriver extends StoreDriver {
         case 'approved':
           return p.auditStatus === 'approved';
         case 'rejected':
-          return p.auditStatus === 'rejected' && p.reportCount === 0;
+          return p.auditStatus === 'rejected' && !reportedIds.has(p.id);
         case 'reported':
-          return p.auditStatus === 'rejected' && p.reportCount > 0;
+          return reportedIds.has(p.id);
         default:
           return true;
       }

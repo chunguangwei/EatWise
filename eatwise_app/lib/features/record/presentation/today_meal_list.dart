@@ -155,83 +155,100 @@ class _EntryRow extends ConsumerWidget {
     final underReview =
         food?.isCustom == true && food?.contributionStatus == 'pending';
 
+    Widget description({required bool stacked}) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          name,
+          style: textStyles.textBase.copyWith(color: colors.textPrimary),
+          maxLines: stacked ? null : 1,
+          overflow: stacked ? null : TextOverflow.ellipsis,
+        ),
+        if (underReview)
+          Container(
+            margin: const EdgeInsets.only(top: AppSpacing.s1),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s2,
+              vertical: AppSpacing.s1,
+            ),
+            decoration: BoxDecoration(
+              color: colors.brandAccent.withValues(alpha: 0.14),
+              borderRadius: radii.rSm,
+            ),
+            child: Text(
+              cs.badgePending,
+              style: textStyles.textXs.copyWith(color: colors.textPrimary),
+            ),
+          ),
+        Text(
+          '${entry.amountG.round()} ${t.record.nutrition.gramUnit}',
+          style: textStyles.textSm.copyWith(color: colors.textSecondary),
+        ),
+      ],
+    );
+    final energy = Text(
+      '${entry.kcal.round()} ${t.record.nutrition.kcalUnit}',
+      style: textStyles.textSm.copyWith(
+        color: colors.textPrimary,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+    final actions = <Widget>[
+      if (food != null)
+        IconButton(
+          icon: const Icon(Icons.edit_rounded),
+          iconSize: 20,
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+          color: colors.textSecondary,
+          tooltip: t.record.today.editEntry,
+          onPressed: () => unawaited(
+            showFoodEntryEditSheet(context, entry).whenComplete(
+              () => ref.read(recordMealTypeProvider.notifier).state = null,
+            ),
+          ),
+        ),
+      IconButton(
+        icon: const Icon(Icons.delete_outline_rounded),
+        iconSize: 20,
+        constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+        color: colors.textSecondary,
+        tooltip: t.record.today.deleteEntry,
+        onPressed: () => unawaited(_confirmDelete(context, ref)),
+      ),
+    ];
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.s4,
         vertical: AppSpacing.s1,
       ),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final stacked =
+              constraints.maxWidth < 480 &&
+              MediaQuery.textScalerOf(context).scale(14) > 18;
+          if (stacked) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  name,
-                  style: textStyles.textBase.copyWith(
-                    color: colors.textPrimary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (underReview)
-                  Container(
-                    margin: const EdgeInsets.only(top: AppSpacing.s1),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.s2,
-                      vertical: AppSpacing.s1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colors.brandAccent.withValues(alpha: 0.14),
-                      borderRadius: radii.rSm,
-                    ),
-                    child: Text(
-                      cs.badgePending,
-                      style: textStyles.textXs.copyWith(
-                        color: colors.textPrimary,
-                      ),
-                    ),
-                  ),
-                Text(
-                  '${entry.amountG.round()} ${t.record.nutrition.gramUnit}',
-                  style: textStyles.textSm.copyWith(
-                    color: colors.textSecondary,
-                  ),
+              children: [
+                description(stacked: true),
+                const SizedBox(height: AppSpacing.s1),
+                Wrap(
+                  spacing: AppSpacing.s2,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [energy, ...actions],
                 ),
               ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.s2),
-          Text(
-            '${entry.kcal.round()} ${t.record.nutrition.kcalUnit}',
-            style: textStyles.textSm.copyWith(
-              color: colors.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
-            maxLines: 1,
-          ),
-          if (food != null)
-            IconButton(
-              icon: const Icon(Icons.edit_rounded),
-              iconSize: 20,
-              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-              color: colors.textSecondary,
-              tooltip: t.record.today.editEntry,
-              onPressed: () => unawaited(
-                showFoodEntryEditSheet(context, entry).whenComplete(
-                  () => ref.read(recordMealTypeProvider.notifier).state = null,
-                ),
-              ),
-            ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline_rounded),
-            iconSize: 20,
-            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-            color: colors.textSecondary,
-            tooltip: t.record.today.deleteEntry,
-            onPressed: () => unawaited(_confirmDelete(context, ref)),
-          ),
-        ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: description(stacked: false)),
+              const SizedBox(width: AppSpacing.s2),
+              energy,
+              ...actions,
+            ],
+          );
+        },
       ),
     );
   }

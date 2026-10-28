@@ -166,6 +166,39 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         requiredDuringInsert: false,
         defaultValue: const Constant(''),
       );
+  static const VerificationMeta _customCreateRequestSnapshotMeta =
+      const VerificationMeta('customCreateRequestSnapshot');
+  @override
+  late final GeneratedColumn<String> customCreateRequestSnapshot =
+      GeneratedColumn<String>(
+        'custom_create_request_snapshot',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _customOriginLocalIdMeta =
+      const VerificationMeta('customOriginLocalId');
+  @override
+  late final GeneratedColumn<String> customOriginLocalId =
+      GeneratedColumn<String>(
+        'custom_origin_local_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _customLocalVersionMeta =
+      const VerificationMeta('customLocalVersion');
+  @override
+  late final GeneratedColumn<int> customLocalVersion = GeneratedColumn<int>(
+    'custom_local_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _customSyncFailCountMeta =
       const VerificationMeta('customSyncFailCount');
   @override
@@ -219,6 +252,9 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     source,
     customSyncPending,
     customClientRequestId,
+    customCreateRequestSnapshot,
+    customOriginLocalId,
+    customLocalVersion,
     customSyncFailCount,
     customSyncFailed,
     contributionStatus,
@@ -348,6 +384,33 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         ),
       );
     }
+    if (data.containsKey('custom_create_request_snapshot')) {
+      context.handle(
+        _customCreateRequestSnapshotMeta,
+        customCreateRequestSnapshot.isAcceptableOrUnknown(
+          data['custom_create_request_snapshot']!,
+          _customCreateRequestSnapshotMeta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_origin_local_id')) {
+      context.handle(
+        _customOriginLocalIdMeta,
+        customOriginLocalId.isAcceptableOrUnknown(
+          data['custom_origin_local_id']!,
+          _customOriginLocalIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_local_version')) {
+      context.handle(
+        _customLocalVersionMeta,
+        customLocalVersion.isAcceptableOrUnknown(
+          data['custom_local_version']!,
+          _customLocalVersionMeta,
+        ),
+      );
+    }
     if (data.containsKey('custom_sync_fail_count')) {
       context.handle(
         _customSyncFailCountMeta,
@@ -440,6 +503,18 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         DriftSqlType.string,
         data['${effectivePrefix}custom_client_request_id'],
       )!,
+      customCreateRequestSnapshot: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_create_request_snapshot'],
+      ),
+      customOriginLocalId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_origin_local_id'],
+      ),
+      customLocalVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}custom_local_version'],
+      )!,
       customSyncFailCount: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}custom_sync_fail_count'],
@@ -505,6 +580,15 @@ class Food extends DataClass implements Insertable<Food> {
   /// 自定义食物上行幂等键（UUIDv4，/foods/custom 重试复用，§2.2）。
   final String customClientRequestId;
 
+  /// 首次 create 的冻结请求；ACK 未知时必须复用原键与原载荷。
+  final String? customCreateRequestSnapshot;
+
+  /// 稳定本地身份，服务端下行绑定/晚ACK及重启后仍可定位原临时行。
+  final String? customOriginLocalId;
+
+  /// 本地编辑代际，旧上行回执不能清除新编辑的 dirty 状态。
+  final int customLocalVersion;
+
   /// 自定义食物上行连续业务失败计数（终态收敛，v1.13.31：同一幂等键连续
   /// ≥5 次业务错误（VALIDATION/PAYLOAD_MISMATCH 等永败码）→ 转
   /// [customSyncFailed] 停重试，防永败项每轮重复上行 + 引用记录成片卡死）。
@@ -533,6 +617,9 @@ class Food extends DataClass implements Insertable<Food> {
     required this.source,
     required this.customSyncPending,
     required this.customClientRequestId,
+    this.customCreateRequestSnapshot,
+    this.customOriginLocalId,
+    required this.customLocalVersion,
     required this.customSyncFailCount,
     required this.customSyncFailed,
     this.contributionStatus,
@@ -556,6 +643,15 @@ class Food extends DataClass implements Insertable<Food> {
     map['source'] = Variable<String>(source);
     map['custom_sync_pending'] = Variable<bool>(customSyncPending);
     map['custom_client_request_id'] = Variable<String>(customClientRequestId);
+    if (!nullToAbsent || customCreateRequestSnapshot != null) {
+      map['custom_create_request_snapshot'] = Variable<String>(
+        customCreateRequestSnapshot,
+      );
+    }
+    if (!nullToAbsent || customOriginLocalId != null) {
+      map['custom_origin_local_id'] = Variable<String>(customOriginLocalId);
+    }
+    map['custom_local_version'] = Variable<int>(customLocalVersion);
     map['custom_sync_fail_count'] = Variable<int>(customSyncFailCount);
     map['custom_sync_failed'] = Variable<bool>(customSyncFailed);
     if (!nullToAbsent || contributionStatus != null) {
@@ -582,6 +678,14 @@ class Food extends DataClass implements Insertable<Food> {
       source: Value(source),
       customSyncPending: Value(customSyncPending),
       customClientRequestId: Value(customClientRequestId),
+      customCreateRequestSnapshot:
+          customCreateRequestSnapshot == null && nullToAbsent
+          ? const Value.absent()
+          : Value(customCreateRequestSnapshot),
+      customOriginLocalId: customOriginLocalId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(customOriginLocalId),
+      customLocalVersion: Value(customLocalVersion),
       customSyncFailCount: Value(customSyncFailCount),
       customSyncFailed: Value(customSyncFailed),
       contributionStatus: contributionStatus == null && nullToAbsent
@@ -612,6 +716,13 @@ class Food extends DataClass implements Insertable<Food> {
       customClientRequestId: serializer.fromJson<String>(
         json['customClientRequestId'],
       ),
+      customCreateRequestSnapshot: serializer.fromJson<String?>(
+        json['customCreateRequestSnapshot'],
+      ),
+      customOriginLocalId: serializer.fromJson<String?>(
+        json['customOriginLocalId'],
+      ),
+      customLocalVersion: serializer.fromJson<int>(json['customLocalVersion']),
       customSyncFailCount: serializer.fromJson<int>(
         json['customSyncFailCount'],
       ),
@@ -639,6 +750,11 @@ class Food extends DataClass implements Insertable<Food> {
       'source': serializer.toJson<String>(source),
       'customSyncPending': serializer.toJson<bool>(customSyncPending),
       'customClientRequestId': serializer.toJson<String>(customClientRequestId),
+      'customCreateRequestSnapshot': serializer.toJson<String?>(
+        customCreateRequestSnapshot,
+      ),
+      'customOriginLocalId': serializer.toJson<String?>(customOriginLocalId),
+      'customLocalVersion': serializer.toJson<int>(customLocalVersion),
       'customSyncFailCount': serializer.toJson<int>(customSyncFailCount),
       'customSyncFailed': serializer.toJson<bool>(customSyncFailed),
       'contributionStatus': serializer.toJson<String?>(contributionStatus),
@@ -660,6 +776,9 @@ class Food extends DataClass implements Insertable<Food> {
     String? source,
     bool? customSyncPending,
     String? customClientRequestId,
+    Value<String?> customCreateRequestSnapshot = const Value.absent(),
+    Value<String?> customOriginLocalId = const Value.absent(),
+    int? customLocalVersion,
     int? customSyncFailCount,
     bool? customSyncFailed,
     Value<String?> contributionStatus = const Value.absent(),
@@ -678,6 +797,13 @@ class Food extends DataClass implements Insertable<Food> {
     source: source ?? this.source,
     customSyncPending: customSyncPending ?? this.customSyncPending,
     customClientRequestId: customClientRequestId ?? this.customClientRequestId,
+    customCreateRequestSnapshot: customCreateRequestSnapshot.present
+        ? customCreateRequestSnapshot.value
+        : this.customCreateRequestSnapshot,
+    customOriginLocalId: customOriginLocalId.present
+        ? customOriginLocalId.value
+        : this.customOriginLocalId,
+    customLocalVersion: customLocalVersion ?? this.customLocalVersion,
     customSyncFailCount: customSyncFailCount ?? this.customSyncFailCount,
     customSyncFailed: customSyncFailed ?? this.customSyncFailed,
     contributionStatus: contributionStatus.present
@@ -714,6 +840,15 @@ class Food extends DataClass implements Insertable<Food> {
       customClientRequestId: data.customClientRequestId.present
           ? data.customClientRequestId.value
           : this.customClientRequestId,
+      customCreateRequestSnapshot: data.customCreateRequestSnapshot.present
+          ? data.customCreateRequestSnapshot.value
+          : this.customCreateRequestSnapshot,
+      customOriginLocalId: data.customOriginLocalId.present
+          ? data.customOriginLocalId.value
+          : this.customOriginLocalId,
+      customLocalVersion: data.customLocalVersion.present
+          ? data.customLocalVersion.value
+          : this.customLocalVersion,
       customSyncFailCount: data.customSyncFailCount.present
           ? data.customSyncFailCount.value
           : this.customSyncFailCount,
@@ -743,6 +878,9 @@ class Food extends DataClass implements Insertable<Food> {
           ..write('source: $source, ')
           ..write('customSyncPending: $customSyncPending, ')
           ..write('customClientRequestId: $customClientRequestId, ')
+          ..write('customCreateRequestSnapshot: $customCreateRequestSnapshot, ')
+          ..write('customOriginLocalId: $customOriginLocalId, ')
+          ..write('customLocalVersion: $customLocalVersion, ')
           ..write('customSyncFailCount: $customSyncFailCount, ')
           ..write('customSyncFailed: $customSyncFailed, ')
           ..write('contributionStatus: $contributionStatus')
@@ -766,6 +904,9 @@ class Food extends DataClass implements Insertable<Food> {
     source,
     customSyncPending,
     customClientRequestId,
+    customCreateRequestSnapshot,
+    customOriginLocalId,
+    customLocalVersion,
     customSyncFailCount,
     customSyncFailed,
     contributionStatus,
@@ -788,6 +929,10 @@ class Food extends DataClass implements Insertable<Food> {
           other.source == this.source &&
           other.customSyncPending == this.customSyncPending &&
           other.customClientRequestId == this.customClientRequestId &&
+          other.customCreateRequestSnapshot ==
+              this.customCreateRequestSnapshot &&
+          other.customOriginLocalId == this.customOriginLocalId &&
+          other.customLocalVersion == this.customLocalVersion &&
           other.customSyncFailCount == this.customSyncFailCount &&
           other.customSyncFailed == this.customSyncFailed &&
           other.contributionStatus == this.contributionStatus);
@@ -808,6 +953,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
   final Value<String> source;
   final Value<bool> customSyncPending;
   final Value<String> customClientRequestId;
+  final Value<String?> customCreateRequestSnapshot;
+  final Value<String?> customOriginLocalId;
+  final Value<int> customLocalVersion;
   final Value<int> customSyncFailCount;
   final Value<bool> customSyncFailed;
   final Value<String?> contributionStatus;
@@ -827,6 +975,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     this.source = const Value.absent(),
     this.customSyncPending = const Value.absent(),
     this.customClientRequestId = const Value.absent(),
+    this.customCreateRequestSnapshot = const Value.absent(),
+    this.customOriginLocalId = const Value.absent(),
+    this.customLocalVersion = const Value.absent(),
     this.customSyncFailCount = const Value.absent(),
     this.customSyncFailed = const Value.absent(),
     this.contributionStatus = const Value.absent(),
@@ -847,6 +998,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     this.source = const Value.absent(),
     this.customSyncPending = const Value.absent(),
     this.customClientRequestId = const Value.absent(),
+    this.customCreateRequestSnapshot = const Value.absent(),
+    this.customOriginLocalId = const Value.absent(),
+    this.customLocalVersion = const Value.absent(),
     this.customSyncFailCount = const Value.absent(),
     this.customSyncFailed = const Value.absent(),
     this.contributionStatus = const Value.absent(),
@@ -873,6 +1027,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Expression<String>? source,
     Expression<bool>? customSyncPending,
     Expression<String>? customClientRequestId,
+    Expression<String>? customCreateRequestSnapshot,
+    Expression<String>? customOriginLocalId,
+    Expression<int>? customLocalVersion,
     Expression<int>? customSyncFailCount,
     Expression<bool>? customSyncFailed,
     Expression<String>? contributionStatus,
@@ -894,6 +1051,12 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       if (customSyncPending != null) 'custom_sync_pending': customSyncPending,
       if (customClientRequestId != null)
         'custom_client_request_id': customClientRequestId,
+      if (customCreateRequestSnapshot != null)
+        'custom_create_request_snapshot': customCreateRequestSnapshot,
+      if (customOriginLocalId != null)
+        'custom_origin_local_id': customOriginLocalId,
+      if (customLocalVersion != null)
+        'custom_local_version': customLocalVersion,
       if (customSyncFailCount != null)
         'custom_sync_fail_count': customSyncFailCount,
       if (customSyncFailed != null) 'custom_sync_failed': customSyncFailed,
@@ -917,6 +1080,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Value<String>? source,
     Value<bool>? customSyncPending,
     Value<String>? customClientRequestId,
+    Value<String?>? customCreateRequestSnapshot,
+    Value<String?>? customOriginLocalId,
+    Value<int>? customLocalVersion,
     Value<int>? customSyncFailCount,
     Value<bool>? customSyncFailed,
     Value<String?>? contributionStatus,
@@ -938,6 +1104,10 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       customSyncPending: customSyncPending ?? this.customSyncPending,
       customClientRequestId:
           customClientRequestId ?? this.customClientRequestId,
+      customCreateRequestSnapshot:
+          customCreateRequestSnapshot ?? this.customCreateRequestSnapshot,
+      customOriginLocalId: customOriginLocalId ?? this.customOriginLocalId,
+      customLocalVersion: customLocalVersion ?? this.customLocalVersion,
       customSyncFailCount: customSyncFailCount ?? this.customSyncFailCount,
       customSyncFailed: customSyncFailed ?? this.customSyncFailed,
       contributionStatus: contributionStatus ?? this.contributionStatus,
@@ -992,6 +1162,19 @@ class FoodsCompanion extends UpdateCompanion<Food> {
         customClientRequestId.value,
       );
     }
+    if (customCreateRequestSnapshot.present) {
+      map['custom_create_request_snapshot'] = Variable<String>(
+        customCreateRequestSnapshot.value,
+      );
+    }
+    if (customOriginLocalId.present) {
+      map['custom_origin_local_id'] = Variable<String>(
+        customOriginLocalId.value,
+      );
+    }
+    if (customLocalVersion.present) {
+      map['custom_local_version'] = Variable<int>(customLocalVersion.value);
+    }
     if (customSyncFailCount.present) {
       map['custom_sync_fail_count'] = Variable<int>(customSyncFailCount.value);
     }
@@ -1024,6 +1207,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
           ..write('source: $source, ')
           ..write('customSyncPending: $customSyncPending, ')
           ..write('customClientRequestId: $customClientRequestId, ')
+          ..write('customCreateRequestSnapshot: $customCreateRequestSnapshot, ')
+          ..write('customOriginLocalId: $customOriginLocalId, ')
+          ..write('customLocalVersion: $customLocalVersion, ')
           ..write('customSyncFailCount: $customSyncFailCount, ')
           ..write('customSyncFailed: $customSyncFailed, ')
           ..write('contributionStatus: $contributionStatus, ')
@@ -5677,6 +5863,9 @@ typedef $$FoodsTableCreateCompanionBuilder =
       Value<String> source,
       Value<bool> customSyncPending,
       Value<String> customClientRequestId,
+      Value<String?> customCreateRequestSnapshot,
+      Value<String?> customOriginLocalId,
+      Value<int> customLocalVersion,
       Value<int> customSyncFailCount,
       Value<bool> customSyncFailed,
       Value<String?> contributionStatus,
@@ -5698,6 +5887,9 @@ typedef $$FoodsTableUpdateCompanionBuilder =
       Value<String> source,
       Value<bool> customSyncPending,
       Value<String> customClientRequestId,
+      Value<String?> customCreateRequestSnapshot,
+      Value<String?> customOriginLocalId,
+      Value<int> customLocalVersion,
       Value<int> customSyncFailCount,
       Value<bool> customSyncFailed,
       Value<String?> contributionStatus,
@@ -5802,6 +5994,21 @@ class $$FoodsTableFilterComposer extends Composer<_$AppDatabase, $FoodsTable> {
 
   ColumnFilters<String> get customClientRequestId => $composableBuilder(
     column: $table.customClientRequestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customCreateRequestSnapshot => $composableBuilder(
+    column: $table.customCreateRequestSnapshot,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customOriginLocalId => $composableBuilder(
+    column: $table.customOriginLocalId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get customLocalVersion => $composableBuilder(
+    column: $table.customLocalVersion,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5925,6 +6132,21 @@ class $$FoodsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get customCreateRequestSnapshot => $composableBuilder(
+    column: $table.customCreateRequestSnapshot,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customOriginLocalId => $composableBuilder(
+    column: $table.customOriginLocalId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get customLocalVersion => $composableBuilder(
+    column: $table.customLocalVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get customSyncFailCount => $composableBuilder(
     column: $table.customSyncFailCount,
     builder: (column) => ColumnOrderings(column),
@@ -6003,6 +6225,21 @@ class $$FoodsTableAnnotationComposer
 
   GeneratedColumn<String> get customClientRequestId => $composableBuilder(
     column: $table.customClientRequestId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customCreateRequestSnapshot => $composableBuilder(
+    column: $table.customCreateRequestSnapshot,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customOriginLocalId => $composableBuilder(
+    column: $table.customOriginLocalId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get customLocalVersion => $composableBuilder(
+    column: $table.customLocalVersion,
     builder: (column) => column,
   );
 
@@ -6089,6 +6326,10 @@ class $$FoodsTableTableManager
                 Value<String> source = const Value.absent(),
                 Value<bool> customSyncPending = const Value.absent(),
                 Value<String> customClientRequestId = const Value.absent(),
+                Value<String?> customCreateRequestSnapshot =
+                    const Value.absent(),
+                Value<String?> customOriginLocalId = const Value.absent(),
+                Value<int> customLocalVersion = const Value.absent(),
                 Value<int> customSyncFailCount = const Value.absent(),
                 Value<bool> customSyncFailed = const Value.absent(),
                 Value<String?> contributionStatus = const Value.absent(),
@@ -6108,6 +6349,9 @@ class $$FoodsTableTableManager
                 source: source,
                 customSyncPending: customSyncPending,
                 customClientRequestId: customClientRequestId,
+                customCreateRequestSnapshot: customCreateRequestSnapshot,
+                customOriginLocalId: customOriginLocalId,
+                customLocalVersion: customLocalVersion,
                 customSyncFailCount: customSyncFailCount,
                 customSyncFailed: customSyncFailed,
                 contributionStatus: contributionStatus,
@@ -6129,6 +6373,10 @@ class $$FoodsTableTableManager
                 Value<String> source = const Value.absent(),
                 Value<bool> customSyncPending = const Value.absent(),
                 Value<String> customClientRequestId = const Value.absent(),
+                Value<String?> customCreateRequestSnapshot =
+                    const Value.absent(),
+                Value<String?> customOriginLocalId = const Value.absent(),
+                Value<int> customLocalVersion = const Value.absent(),
                 Value<int> customSyncFailCount = const Value.absent(),
                 Value<bool> customSyncFailed = const Value.absent(),
                 Value<String?> contributionStatus = const Value.absent(),
@@ -6148,6 +6396,9 @@ class $$FoodsTableTableManager
                 source: source,
                 customSyncPending: customSyncPending,
                 customClientRequestId: customClientRequestId,
+                customCreateRequestSnapshot: customCreateRequestSnapshot,
+                customOriginLocalId: customOriginLocalId,
+                customLocalVersion: customLocalVersion,
                 customSyncFailCount: customSyncFailCount,
                 customSyncFailed: customSyncFailed,
                 contributionStatus: contributionStatus,

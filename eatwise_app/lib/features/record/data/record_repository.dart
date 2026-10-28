@@ -38,7 +38,8 @@ final class RecordRepository {
   RecordRepository({
     required this.db,
     required this.remote,
-    required this.location,
+    required this._location,
+    this._locationResolver,
     this.undoWindow = const Duration(seconds: 10),
     DateTime Function()? clock,
     this.userId = 'anonymous',
@@ -54,7 +55,11 @@ final class RecordRepository {
   final RecordRemote remote;
 
   /// 设备时区（归属日换算，D-07）。
-  final tz.Location location;
+  final tz.Location _location;
+  final tz.Location Function()? _locationResolver;
+
+  /// Read at use time so travel does not recreate this repository or its undo timers.
+  tz.Location get location => _locationResolver?.call() ?? _location;
   final DateTime Function() _clock;
   // 固定构造时的登录代际；旧 Timer 不得在同账号重新登录后借新令牌发送。
   final SessionLease? _session;
@@ -91,51 +96,61 @@ final class RecordRepository {
         '份量必须为 0.1–5000 克的有限数值',
       );
     }
-    final food = await db.foodDao.getById(draft.foodId, ownerUserId: userId);
-    _checkActive();
-    if (food == null) {
-      throw ArgumentError.value(draft.foodId, 'foodId', '食物不存在于食物库');
-    }
-    final snapshot = NutritionSnapshot.forAmount(food, draft.amountG);
-    final nowUtc = _clock().toUtc();
-    final nowIso = nowUtc.toIso8601String();
     final localId = _uuid();
     final online = remote.isOnline;
-    final entry = FoodEntriesCompanion(
-      localId: Value(localId),
-      userId: Value(userId),
-      clientRequestId: Value(_uuid()),
-      syncStatus: Value(online ? SyncStatus.submitting : SyncStatus.pending),
-      serverId: const Value(null),
-      serverVersion: const Value(null),
-      serverUpdatedAt: const Value(null),
-      retryCount: const Value(0),
-      lastError: const Value(null),
-      deleted: const Value(false),
-      datetimeUtc: Value(draft.mealUtc.toUtc().toIso8601String()),
-      localDate: Value(_localDateOf(draft.mealUtc)),
-      foodId: Value(draft.foodId),
-      amountG: Value(draft.amountG),
-      kcal: Value(snapshot.kcal),
-      proteinG: Value(snapshot.proteinG),
-      carbG: Value(snapshot.carbG),
-      fatG: Value(snapshot.fatG),
-      source: Value(draft.source),
-      note: Value(draft.note),
-      duringFast: Value(draft.duringFast),
-      // 餐次（优化点 2）：未显式选择时按就餐时间本地小时智能预判。
-      mealType: Value(
-        draft.mealType ?? suggestMealType(_localHourOf(draft.mealUtc)),
-      ),
-      createdAtUtc: Value(nowIso),
-      updatedAtUtc: Value(nowIso),
-    );
+    final mealLocal = tz.TZDateTime.from(draft.mealUtc.toUtc(), location);
+    final attributedDate = localDateOf(
+      draft.mealUtc.toUtc().millisecondsSinceEpoch ~/ 1000,
+      mealLocal.location,
+    ).toIsoString();
     // 入账、聚合与结果回读必须一起成功；任何一步失败都回滚，避免 UI
     // 收到失败后重试，却把已经落库的上一条再记一次。
     final saved = await _transaction(() async {
       _checkActive();
+      // Resolve the current owned identity and nutrition inside this same
+      // transaction: create ACK/downlink may have remapped a stale detail id.
+      final food =
+          await db.foodDao.getById(draft.foodId, ownerUserId: userId) ??
+          await db.foodDao.customFoodByIdentity(
+            draft.foodId,
+            ownerUserId: userId,
+          );
+      _checkActive();
+      if (food == null) {
+        throw ArgumentError.value(draft.foodId, 'foodId', '食物不存在于食物库');
+      }
+      final snapshot = NutritionSnapshot.forAmount(food, draft.amountG);
+      final nowUtc = _clock().toUtc();
+      final nowIso = nowUtc.toIso8601String();
+      final entry = FoodEntriesCompanion(
+        localId: Value(localId),
+        userId: Value(userId),
+        clientRequestId: Value(_uuid()),
+        syncStatus: Value(online ? SyncStatus.submitting : SyncStatus.pending),
+        serverId: const Value(null),
+        serverVersion: const Value(null),
+        serverUpdatedAt: const Value(null),
+        retryCount: const Value(0),
+        lastError: const Value(null),
+        deleted: const Value(false),
+        datetimeUtc: Value(draft.mealUtc.toUtc().toIso8601String()),
+        localDate: Value(attributedDate),
+        foodId: Value(food.id),
+        amountG: Value(draft.amountG),
+        kcal: Value(snapshot.kcal),
+        proteinG: Value(snapshot.proteinG),
+        carbG: Value(snapshot.carbG),
+        fatG: Value(snapshot.fatG),
+        source: Value(draft.source),
+        note: Value(draft.note),
+        duringFast: Value(draft.duringFast),
+        // 餐次（优化点 2）：未显式选择时按就餐时间本地小时智能预判。
+        mealType: Value(draft.mealType ?? suggestMealType(mealLocal.hour)),
+        createdAtUtc: Value(nowIso),
+        updatedAtUtc: Value(nowIso),
+      );
       await db.foodEntryDao.insertEntry(entry);
-      await _recompute(draft.mealUtc);
+      await _recompute(attributedDate);
       final result = (await db.foodEntryDao.getByLocalId(localId))!;
       _checkActive();
       return result;
@@ -185,7 +200,7 @@ final class RecordRepository {
           localVersion: entry.localVersion + 1,
         );
       }
-      await _recompute(DateTime.parse(entry.datetimeUtc));
+      await _recompute(entry.localDate);
       _checkActive();
       return true;
     });
@@ -254,7 +269,7 @@ final class RecordRepository {
           ),
         );
       }
-      await _recompute(DateTime.parse(entry.datetimeUtc));
+      await _recompute(entry.localDate);
       final result = (await db.foodEntryDao.getByLocalId(localId))!;
       _checkActive();
       return result;
@@ -413,7 +428,7 @@ final class RecordRepository {
         final frozen = entry.createRequestSnapshot;
         if (entry.deleted && entry.serverId == null && frozen == null) {
           await db.foodEntryDao.deleteEntry(localId);
-          await _recompute(DateTime.parse(entry.datetimeUtc));
+          await _recompute(entry.localDate);
           return null;
         }
         if (!entry.deleted && entry.syncStatus == SyncStatus.synced) {
@@ -486,7 +501,7 @@ final class RecordRepository {
               current.serverId == null) {
             if (current.deleted) {
               await db.foodEntryDao.deleteEntry(localId);
-              await _recompute(DateTime.parse(current.datetimeUtc));
+              await _recompute(current.localDate);
               return false;
             }
             await db.foodEntryDao.updateEntry(
@@ -513,7 +528,7 @@ final class RecordRepository {
           case PushAck():
             if (current.deleted) {
               await db.foodEntryDao.deleteEntry(localId);
-              await _recompute(DateTime.parse(current.datetimeUtc));
+              await _recompute(current.localDate);
               break;
             }
             await db.foodEntryDao.updateEntry(
@@ -536,7 +551,7 @@ final class RecordRepository {
               break;
             }
             await db.foodEntryDao.deleteEntry(localId);
-            await _recompute(DateTime.parse(current.datetimeUtc));
+            await _recompute(current.localDate);
             if (!current.deleted) {
               failure = RecordSyncFailure(localId: localId, code: outcome.code);
             }
@@ -604,10 +619,10 @@ final class RecordRepository {
   }
 
   /// 重算该记录归属日的聚合缓存（份量修改/撤销/回滚后实时刷新）。
-  Future<void> _recompute(DateTime mealUtc) {
+  Future<void> _recompute(String persistedLocalDate) {
     return db.foodEntryDao.recomputeDailyNutrition(
       userId,
-      _localDateOf(mealUtc),
+      persistedLocalDate,
       updatedAtUtc: _clock().toUtc().toIso8601String(),
     );
   }
@@ -624,11 +639,6 @@ final class RecordRepository {
   /// 写入侧（repo.location=Asia/Shanghai）与进程本地日期分叉，曾致
   /// 「今日记录」在 CI 查不到（v1.14.0 CI 红根因）。
   String localDateKeyOf(DateTime utc) => _localDateOf(utc);
-
-  /// 就餐时间按设备时区换算的本地小时（餐次智能预判用，0–23）。
-  int _localHourOf(DateTime utc) {
-    return tz.TZDateTime.from(utc.toUtc(), location).hour;
-  }
 
   /// UUIDv4（幂等键/本地主键用，§1.2/§2.2）。
   String _uuid() {

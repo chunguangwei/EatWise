@@ -60,6 +60,41 @@ void main() {
     );
   });
 
+  test(
+    'changing device region rebuilds scheduling and preserves active UTC anchors',
+    () async {
+      prefs = await seedActivePlanPrefs(startedAtUtc: bjtUtc(27, 12));
+      clock = FakeClock(bjtUtc(28, 0));
+      final region = StateProvider<tz.Location>((ref) => bjt);
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          fastingCycleStoreProvider.overrideWithValue(cycleStore),
+          fastingNotificationSchedulerProvider.overrideWithValue(scheduler),
+          fastingClockProvider.overrideWithValue(clock.call),
+          deviceLocationProvider.overrideWith((ref) => ref.watch(region)),
+        ],
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen(
+        fastingTimerControllerProvider,
+        (_, _) {},
+      );
+      addTearDown(subscription.close);
+      final before = container.read(fastingTimerControllerProvider).cycle!;
+      final previousSchedules = scheduler.rescheduleCalls.length;
+      container.read(region.notifier).state = tz.getLocation(
+        'America/New_York',
+      );
+      final after = container.read(fastingTimerControllerProvider).cycle!;
+      expect(scheduler.rescheduleCalls.length, greaterThan(previousSchedules));
+      expect(after.startUtc, before.startUtc);
+      expect(after.plannedEndUtc, before.plannedEndUtc);
+      expect(after.eatWindowEndUtc, before.eatWindowEndUtc);
+      expect(cycleStore.loadActiveCycle()!.plannedEndUtc, before.plannedEndUtc);
+    },
+  );
+
   group('状态解析（注入时钟）', () {
     test('无方案 → NO_PLAN，无快照', () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});

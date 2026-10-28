@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:eatwise/core/network/api_client.dart';
 import 'package:eatwise/core/network/api_config.dart';
 import 'package:eatwise/core/storage/database.dart';
@@ -15,6 +16,8 @@ void main() {
   late FakeHttpAdapter adapter;
   late RemoteRecordSync remote;
   late AppDatabase db;
+
+  setUpAll(initRecordTestTimeZones);
 
   FoodEntry makeEntry({
     String localId = 'l-1',
@@ -309,6 +312,37 @@ void main() {
       await seedFoods(db);
     });
 
+    test(
+      'location changes affect subsequent pull attribution on the same sync instance',
+      () async {
+        var location = tz.getLocation('Asia/Shanghai');
+        final sync = RemoteRecordSync(
+          dio: remote.dio,
+          location: location,
+          locationResolver: () => location,
+        );
+        stubPull([entryView()], syncToken: 'st_first');
+        await sync.pullDown(db, 'u-1', null);
+        expect(
+          await db.foodEntryDao.entriesForDate('u-1', '2026-07-27'),
+          hasLength(1),
+        );
+        location = tz.getLocation('America/New_York');
+        stubPull([
+          entryView(id: 'srv-2', clientRequestId: 'c-2'),
+        ], syncToken: 'st_second');
+        await sync.pullDown(db, 'u-1', 'st_first');
+        expect(
+          await db.foodEntryDao.entriesForDate('u-1', '2026-07-26'),
+          hasLength(1),
+        );
+        expect(
+          await db.foodEntryDao.entriesForDate('u-1', '2026-07-27'),
+          hasLength(1),
+        );
+      },
+    );
+
     test('翻页拉取直到 hasMore=false，落库为 synced，返回末页 token', () async {
       stubPull(<Map<String, dynamic>>[entryView()], hasMore: true);
       stubPull(<Map<String, dynamic>>[
@@ -528,6 +562,58 @@ void main() {
       expect(await db.foodEntryDao.getByServerId('srv-1'), isNotNull);
     });
 
+    for (final tombstone in [false, true]) {
+      test('已确认serverId的dirty PATCH不被下行${tombstone ? '删除' : '旧值'}覆盖', () async {
+        await db.foodDao.upsertAll([
+          FoodsCompanion(
+            id: const Value('cf-dirty'),
+            nameZh: const Value('本地最新'),
+            nameEn: const Value('Latest'),
+            kcalPer100g: const Value(200),
+            proteinPer100g: const Value(5),
+            carbPer100g: const Value(10),
+            fatPer100g: const Value(2),
+            isCustom: const Value(true),
+            ownerUserId: const Value('u-1'),
+            customSyncPending: const Value(true),
+            customLocalVersion: const Value(2),
+          ),
+        ]);
+        adapter.stub(
+          '/sync/pull',
+          StubResponse.json(
+            200,
+            StubResponse.envelope(<String, dynamic>{
+              'changes': <dynamic>[],
+              'customFoodChanges': [
+                tombstone
+                    ? {
+                        'tombstone': {'id': 'cf-dirty'},
+                      }
+                    : {
+                        'id': 'cf-dirty',
+                        'nameZh': '云端旧值',
+                        'nameEn': 'Old',
+                        'kcalPer100g': 100,
+                        'proteinPer100g': 5,
+                        'carbsPer100g': 10,
+                        'fatPer100g': 2,
+                      },
+              ],
+              'syncToken': 'st_1',
+              'hasMore': false,
+            }),
+          ),
+        );
+        expect(await remote.pullDown(db, 'u-1', 'st_0'), 'st_1');
+        final local = (await db.foodDao.getById('cf-dirty'))!;
+        expect(local.nameZh, '本地最新');
+        expect(local.customSyncPending, isTrue);
+        expect(local.customClientRequestId, isEmpty);
+        expect(local.customLocalVersion, 2);
+      });
+    }
+
     test('自定义食物下行持久化 owner/source，个人行不对其他账号搜索可见', () async {
       adapter.stub(
         '/sync/pull',
@@ -595,6 +681,31 @@ void main() {
           'isCustom': true,
         };
       }
+
+      test('补名回执不能覆盖已确认serverId但待PATCH的本地草稿', () async {
+        await db.foodDao.upsertAll([
+          FoodsCompanion.insert(
+            id: 'cf-dirty-placeholder',
+            nameZh: 'cf-dirty-placeholder',
+            nameEn: 'cf-dirty-placeholder',
+            kcalPer100g: 200,
+            proteinPer100g: 5,
+            carbPer100g: 10,
+            fatPer100g: 2,
+            isCustom: const Value(true),
+            ownerUserId: const Value('u-1'),
+            customSyncPending: const Value(true),
+            customLocalVersion: const Value(2),
+          ),
+        ]);
+        stubBatchGet([batchGetItem('cf-dirty-placeholder', '旧名称')]);
+        expect(await remote.backfillPlaceholderFoods(db, userId: 'u-1'), 0);
+        final local = (await db.foodDao.getById('cf-dirty-placeholder'))!;
+        expect(local.nameZh, 'cf-dirty-placeholder');
+        expect(local.kcalPer100g, 200);
+        expect(local.customSyncPending, isTrue);
+        expect(local.customLocalVersion, 2);
+      });
 
       test('占位行回查命中 → 补真名/真营养/翻正 isCustom；引用记录不动', () async {
         // 下行缺失食物 → 占位行（名称=id）。

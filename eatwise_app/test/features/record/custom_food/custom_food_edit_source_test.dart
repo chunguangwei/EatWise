@@ -122,14 +122,12 @@ void main() {
       final saved = await repository.save(_draft(original));
       final updated = await repository.update(saved.food, _draft(next));
       expect(updated.source, customFoodSourceName(next));
-      expect(
-        updated.customClientRequestId,
-        isNot(saved.food.customClientRequestId),
-      );
+      expect(updated.customClientRequestId, saved.food.customClientRequestId);
       expect(remote.updates, isEmpty);
       remote.delegate.mode = FakeCustomFoodMode.success;
       expect(await repository.retryPending(), 1);
-      expect(remote.creates.single.source, next);
+      expect(remote.creates.single.source, original);
+      expect(remote.updates.single.source, next);
       expect(
         (await db.foodDao.getById('srv-food-1'))!.source,
         customFoodSourceName(next),

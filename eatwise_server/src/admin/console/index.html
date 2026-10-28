@@ -848,17 +848,24 @@
         if (!append) tbody.innerHTML = '';
         items.forEach(function (p) {
           var tr = document.createElement('tr');
-          // 被举报待处理（rejected + reportCount>0）单独标记，便于区分机审拒绝
-          var badge =
-            p.auditStatus === 'rejected' && p.reportCount > 0
-              ? '<span class="badge reported">被举报</span>'
-              : '<span class="badge ' +
-                p.auditStatus +
-                '">' +
-                POST_STATUS_LABEL[p.auditStatus] +
-                '</span>';
+          // 待复核状态由服务端未处理举报队列确定
+          var badge = p.reportPending
+            ? '<span class="badge reported">被举报</span>'
+            : '<span class="badge ' +
+              p.auditStatus +
+              '">' +
+              POST_STATUS_LABEL[p.auditStatus] +
+              '</span>';
           var actions;
-          if (p.auditStatus === 'pending') {
+          if (p.reportPending) {
+            actions =
+              '<button class="btn" onclick="reviewPost(\'' +
+              p.id +
+              "','approve')\">恢复上架</button> " +
+              '<button class="btn danger" onclick="reviewPost(\'' +
+              p.id +
+              "','reject')\">确认下架</button>";
+          } else if (p.auditStatus === 'pending') {
             actions =
               '<button class="btn" onclick="reviewPost(\'' +
               p.id +

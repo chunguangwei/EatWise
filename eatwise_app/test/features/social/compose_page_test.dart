@@ -246,6 +246,163 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('发布中冻结文字图片匿名头像，失败后恢复完整草稿', (tester) async {
+    pickedPhoto = pngBytes;
+    api.createGate = Completer<void>();
+    api.createError = networkException;
+    await pumpCompose(tester);
+    await tester.enterText(find.byType(TextField), '冻结稿件');
+    await tester.tap(find.text('添加图片'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.ensureVisible(find.byType(SwitchListTile));
+    await tester.tap(find.byType(SwitchListTile));
+    await tester.pump();
+    await tester.ensureVisible(find.byType(BusyFilledButton));
+    await tester.tap(find.byType(BusyFilledButton));
+    await tester.pump();
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.readOnly || field.enabled == false, isTrue);
+    expect(
+      tester.widget<SwitchListTile>(find.byType(SwitchListTile)).onChanged,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<IconButton>(
+            find
+                .ancestor(
+                  of: find.byTooltip('移除图片'),
+                  matching: find.byType(IconButton),
+                )
+                .first,
+          )
+          .onPressed,
+      isNull,
+    );
+    // Native back must not discard the only frozen draft during publication.
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byType(ComposePage), findsOneWidget);
+    expect(
+      ModalRoute.of(tester.element(find.byType(ComposePage)))!.isCurrent,
+      isTrue,
+    );
+    expect(api.createCalls, 1);
+    expect(api.lastAnonymous, isTrue);
+    expect(api.lastImageUrls, isNotEmpty);
+    for (final avatar in find.byType(CircleAvatar).evaluate()) {
+      final ink = find.ancestor(
+        of: find.byWidget(avatar.widget),
+        matching: find.byType(InkWell),
+      );
+      if (ink.evaluate().isNotEmpty) {
+        expect(tester.widget<InkWell>(ink.first).onTap, isNull);
+      }
+    }
+    api.createGate!.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final restored = tester.widget<TextField>(find.byType(TextField));
+    expect(restored.readOnly, isFalse);
+    expect(restored.controller!.text, '冻结稿件');
+    expect(
+      tester.widget<SwitchListTile>(find.byType(SwitchListTile)).onChanged,
+      isNotNull,
+    );
+    expect(
+      tester
+          .widget<IconButton>(
+            find
+                .ancestor(
+                  of: find.byTooltip('移除图片'),
+                  matching: find.byType(IconButton),
+                )
+                .first,
+          )
+          .onPressed,
+      isNotNull,
+    );
+    expect(find.text('发布失败，请稍后重试'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('提交首帧双击只发送一次发布请求', (tester) async {
+    api.createGate = Completer<void>();
+    await pumpCompose(tester);
+    await tester.enterText(find.byType(TextField), '一次发布');
+    await tester.tap(find.byType(BusyFilledButton));
+    await tester.tap(find.byType(BusyFilledButton));
+    await tester.pump();
+    expect(api.createCalls, 1);
+    api.createGate!.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await unmount(tester);
+  });
+
+  testWidgets('无图发布确认等待期间冻结草稿，取消后恢复', (tester) async {
+    pickedPhoto = pngBytes;
+    await pumpCompose(tester, uploadError: networkException);
+    await tester.enterText(find.byType(TextField), '仍保留原稿');
+    await tester.tap(find.text('添加图片'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.ensureVisible(find.byType(BusyFilledButton));
+    await tester.tap(find.byType(BusyFilledButton));
+    await tester.pump(const Duration(milliseconds: 350));
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.readOnly || field.enabled == false, isTrue);
+    await tester.tap(find.text('取消').last);
+    await tester.pumpAndSettle();
+    expect(api.createCalls, 0);
+    final restored = tester.widget<TextField>(find.byType(TextField));
+    expect(restored.readOnly, isFalse);
+    expect(restored.controller!.text, '仍保留原稿');
+    expect(find.byTooltip('移除图片'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('不带图发布失败仍保留原图片与上传重试草稿', (tester) async {
+    pickedPhoto = pngBytes;
+    api.createError = networkException;
+    await pumpCompose(tester, uploadError: networkException);
+    await tester.enterText(find.byType(TextField), '保留图文稿');
+    await tester.tap(find.text('添加图片'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.ensureVisible(find.byType(BusyFilledButton));
+    await tester.tap(find.byType(BusyFilledButton));
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(find.text('不带图发布'));
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(api.lastImageUrls, isEmpty);
+    expect(find.byTooltip('移除图片'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      '保留图文稿',
+    );
+    expect(find.text('发布失败，请稍后重试'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('发布遇到非API异常也恢复草稿和操作', (tester) async {
+    api.createError = StateError('unexpected transport failure');
+    await pumpCompose(tester);
+    await tester.enterText(find.byType(TextField), '异常后保留稿件');
+    await tester.tap(find.byType(BusyFilledButton));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.takeException(), isNull);
+    expect(find.text('发布失败，请稍后重试'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      '异常后保留稿件',
+    );
+    expect(
+      tester.widget<BusyFilledButton>(find.byType(BusyFilledButton)).busy,
+      isFalse,
+    );
+    await unmount(tester);
+  });
+
   testWidgets('发布中打开新页面：旧完成回调不得将其关闭', (tester) async {
     final gate = Completer<void>();
     api.createGate = gate;

@@ -56,6 +56,7 @@ final planVersionProvider = StateProvider<int>((ref) => 0);
 /// 与落库侧（tz.local）口径分裂——非上海时区设备归属日/窗口显示与入库
 /// 不一致。
 final deviceLocationProvider = Provider<tz.Location>((ref) {
+  ref.watch(systemTimezoneRevisionProvider);
   return deviceLocationFallback();
 });
 

@@ -101,6 +101,7 @@ void main() {
     isCustom: false,
     source: 'manual',
     customSyncPending: false,
+    customLocalVersion: 0,
     customClientRequestId: '',
     customSyncFailCount: 0,
     customSyncFailed: false,

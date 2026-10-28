@@ -311,6 +311,9 @@ final class FeedController extends Notifier<FeedState> {
       if (!_isCurrent(context)) return const PublishFailed();
       _removeById(localId);
       return const PublishFailed();
+    } on Object {
+      if (_isCurrent(context)) _removeById(localId);
+      return const PublishFailed();
     }
   }
 

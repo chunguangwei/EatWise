@@ -887,27 +887,40 @@ class _EntryActions extends StatelessWidget {
         final columns = ((constraints.maxWidth + 8) / (minWidth + 8))
             .floor()
             .clamp(2, children.length);
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var start = 0; start < children.length; start += columns) ...[
-              if (start > 0) const SizedBox(height: AppSpacing.s2),
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (var offset = 0; offset < columns; offset++) ...[
-                      if (offset > 0) const SizedBox(width: AppSpacing.s2),
-                      if (start + offset < children.length)
-                        children[start + offset]
-                      else
-                        const Spacer(),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ],
+        // Keep all secondary entry methods reachable at large text sizes while
+        // reserving space for search, the draft and its primary confirmation.
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.35,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (
+                  var start = 0;
+                  start < children.length;
+                  start += columns
+                ) ...[
+                  if (start > 0) const SizedBox(height: AppSpacing.s2),
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (var offset = 0; offset < columns; offset++) ...[
+                          if (offset > 0) const SizedBox(width: AppSpacing.s2),
+                          if (start + offset < children.length)
+                            children[start + offset]
+                          else
+                            const Spacer(),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         );
       },
     );

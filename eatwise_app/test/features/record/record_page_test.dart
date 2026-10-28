@@ -55,20 +55,24 @@ final class _DelayedRecordDatabase extends AppDatabase {
 
   @override
   FoodDao get foodDao => _foods;
+  // Delay before the real SQLite transaction starts, so a pending UI save does
+  // not artificially hold the database lock and block the next search draft.
+  @override
+  Future<T> transaction<T>(
+    Future<T> Function() action, {
+    bool requireNew = false,
+  }) async {
+    final gate = _foods.nextRead;
+    _foods.nextRead = null;
+    if (gate != null) await gate.future;
+    return super.transaction(action, requireNew: requireNew);
+  }
 }
 
 final class _DelayedRecordFoodDao extends FoodDao {
   _DelayedRecordFoodDao(super.db);
 
   Completer<void>? nextRead;
-
-  @override
-  Future<Food?> getById(String id, {String? ownerUserId}) async {
-    final gate = nextRead;
-    nextRead = null;
-    if (gate != null) await gate.future;
-    return super.getById(id, ownerUserId: ownerUserId);
-  }
 }
 
 /// M3 记录页 widget 测试：主流程（搜索 → 选食物 → 份量实时重算 →

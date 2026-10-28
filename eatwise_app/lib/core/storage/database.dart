@@ -56,7 +56,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   Future<bool> _tableExists(String name) async {
     final row = await customSelect(
@@ -191,6 +191,17 @@ class AppDatabase extends _$AppDatabase {
             ),
           );
         }
+      }
+      // v17：保留旧 pending 的原幂等键；首次重试/编辑前冻结旧行内容。
+      if (from < 17 && await _tableExists('foods')) {
+        await m.addColumn(foods, foods.customCreateRequestSnapshot);
+        await m.addColumn(foods, foods.customLocalVersion);
+        await m.addColumn(foods, foods.customOriginLocalId);
+        await customStatement(
+          'UPDATE foods SET custom_origin_local_id = id '
+          'WHERE is_custom = 1 AND custom_sync_pending = 1 '
+          "AND custom_client_request_id != ''",
+        );
       }
     },
   );

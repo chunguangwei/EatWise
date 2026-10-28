@@ -28,6 +28,7 @@ void main() {
     isCustom: true,
     source: 'manual',
     customSyncPending: false,
+    customLocalVersion: 0,
     customClientRequestId: 'contrast-request',
     customSyncFailCount: 0,
     customSyncFailed: false,

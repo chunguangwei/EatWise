@@ -189,6 +189,7 @@ final class FastingTimerController extends Notifier<FastingTimerState> {
     // 方案写入信号量：一键启动/换方案登记时 +1（onboardingStoreProvider 是
     // 普通 Provider，watch 它不会因键值写入触发重建）。uid 变化也必须重建，
     // 防止上一账号的周期/方案留在新会话。
+    ref.watch(deviceLocationProvider);
     ref.watch(planVersionProvider);
     ref.watch(currentUserIdProvider);
     final onboardStore = ref.read(onboardingStoreProvider);

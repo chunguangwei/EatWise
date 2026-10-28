@@ -20,6 +20,7 @@ void main() {
     isCustom: false,
     source: 'manual',
     customSyncPending: false,
+    customLocalVersion: 0,
     customClientRequestId: 'req-$id',
     customSyncFailCount: 0,
     customSyncFailed: false,

@@ -7,8 +7,9 @@ import 'package:eatwise/core/time/day_change.dart';
 import 'package:eatwise/features/fasting/domain/daily_nutrition.dart';
 import 'package:eatwise/features/fasting/domain/fasting_result_mapping.dart'
     show isRealFastResult;
+import 'package:eatwise/features/fasting/domain/fasting_types.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart'
-    show fastingCycleStoreProvider;
+    show fastingTimerControllerProvider;
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart'
     show nutritionGoalProvider;
 import 'package:eatwise/features/nutrition/application/nutrition_data_controller.dart'
@@ -301,8 +302,29 @@ final Provider<Map<String, double>> fastingHoursByDateProvider =
       };
     });
 
+/// 当前周期的正式归属日；语义投影避免倒计时每秒触发整份报告重算。
+final reportActiveFastingDateProvider = Provider<String?>((ref) {
+  try {
+    return ref.watch(
+      fastingTimerControllerProvider.select((timer) {
+        if (timer.state != FastingState.fasting &&
+            timer.state != FastingState.fastingExtended) {
+          return null;
+        }
+        final snapshot = timer.snapshot;
+        return snapshot?.cycle == null
+            ? null
+            : snapshot?.attributionPreview?.toIsoString();
+      }),
+    );
+  } on Object {
+    // 未装配计时链路的预览/测试不从残留 prefs 猜测进行中状态。
+    return null;
+  }
+});
+
 /// 断食趋势日状态序列（长度 = 窗口天数，末位 = 今天）：
-/// 达标/未达标/无记录三态 + 进行中第四态（今天有进行中周期且无终态记录）。
+/// 周期归属日在窗口内且无终态记录时，才显示进行中第四态。
 ///
 /// tombstone（deleted）行不算记录——删除后该日回落「无记录」而非断签。
 final Provider<List<FastingDayState>> fastingDayStatesProvider =
@@ -314,16 +336,7 @@ final Provider<List<FastingDayState>> fastingDayStatesProvider =
         for (final r in records ?? const <FastingRecord>[])
           if (!r.deleted) r.attributionDate: r.qualified,
       };
-      final todayKey = localDateOf(end);
-      String? inProgressDate;
-      try {
-        if (ref.watch(fastingCycleStoreProvider).loadActiveCycle() != null &&
-            !qualifiedByDate.containsKey(todayKey)) {
-          inProgressDate = todayKey;
-        }
-      } on Object {
-        // 周期存储未装配（测试/预览）：按无进行中周期处理。
-      }
+      final inProgressDate = ref.watch(reportActiveFastingDateProvider);
       return alignFastingDayStates(
         end: end,
         days: range.days,

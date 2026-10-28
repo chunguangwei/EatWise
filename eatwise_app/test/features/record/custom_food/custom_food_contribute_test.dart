@@ -9,6 +9,8 @@ import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/data/water_log_repository.dart';
 import 'package:eatwise/features/record/presentation/record_page.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
+import 'package:eatwise/features/streak/application/streak_controller.dart'
+    show currentUserIdProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,6 +39,7 @@ void main() {
     repository = RecordRepository(
       db: db,
       remote: recordRemote,
+      userId: 'u-1',
       location: tz.getLocation('Asia/Shanghai'),
     );
     addTearDown(() async {
@@ -69,6 +72,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
+          currentUserIdProvider.overrideWithValue('u-1'),
           recordRepositoryProvider.overrideWithValue(repository),
           waterLogRepositoryProvider.overrideWithValue(
             WaterLogRepository(db: db),
@@ -141,7 +145,7 @@ void main() {
 
     // contribute 幂等上行一次，状态落本地（pending）。
     expect(customRemote.receivedContributeIds, hasLength(1));
-    final saved = await db.foodDao.searchFoods('手工丸子');
+    final saved = await db.foodDao.searchFoods('手工丸子', ownerUserId: 'u-1');
     expect(saved, hasLength(1));
     expect(saved.single.contributionStatus, 'pending');
 
@@ -164,7 +168,7 @@ void main() {
     expect(find.text('食物名称未通过审核，无法贡献到共享食物库'), findsOneWidget);
     expect(find.text('已提交审核'), findsNothing);
 
-    final saved = await db.foodDao.searchFoods('手工丸子');
+    final saved = await db.foodDao.searchFoods('手工丸子', ownerUserId: 'u-1');
     expect(saved.single.contributionStatus, 'rejected');
 
     await search(tester, '手工丸子');
@@ -189,7 +193,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('已提交审核'), findsOneWidget);
     expect(customRemote.receivedContributeIds, hasLength(1));
-    final saved = await db.foodDao.searchFoods('手工丸子');
+    final saved = await db.foodDao.searchFoods('手工丸子', ownerUserId: 'u-1');
     expect(saved.single.contributionStatus, 'pending');
 
     // 状态标签立即可见。
@@ -210,10 +214,14 @@ void main() {
           carbPer100g: const Value(10),
           fatPer100g: const Value(5),
           isCustom: const Value(true),
+          ownerUserId: const Value('u-1'),
           contributionStatus: status == null
               ? const Value.absent()
               : Value(status),
         );
+    await pumpPage(tester);
+    // Seed display states after the initial account reconciliation; review
+    // synchronization behavior is covered by contribution_review_sync_test.
     await db.foodDao.upsertAll(<FoodsCompanion>[
       food('c-none', '未贡献食物'),
       food('c-pending', '审核中食物', status: 'pending'),
@@ -226,15 +234,19 @@ void main() {
         status: 'approved',
       ).copyWith(isCustom: const Value(false)),
     ]);
-    await pumpPage(tester);
 
-    await search(tester, '标签测试');
-
-    expect(find.text('自定义'), findsOneWidget);
-    expect(find.text('审核中'), findsOneWidget);
-    expect(find.text('已共享'), findsOneWidget);
-    expect(find.text('未通过'), findsOneWidget);
-    expect(find.text('社区'), findsOneWidget);
+    // Each result is brought into the viewport; the keyboard and signed-in
+    // sync banner can leave later lazy list rows outside the rendered area.
+    for (final entry in {
+      '未贡献食物': '自定义',
+      '审核中食物': '审核中',
+      '已共享食物': '已共享',
+      '未通过食物': '未通过',
+      '社区食物': '社区',
+    }.entries) {
+      await search(tester, entry.key);
+      expect(find.text(entry.value), findsOneWidget);
+    }
     await settleUi(tester);
   });
 }

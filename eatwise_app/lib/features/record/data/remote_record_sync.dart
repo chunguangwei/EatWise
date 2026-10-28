@@ -102,13 +102,21 @@ String syncPushErrorCode(Map<String, dynamic> result) {
 /// - 下行：GET /sync/pull（syncToken 增量，§2.4），落 drift 时
 ///   不覆盖本地 pending/submitting/conflicted 记录（§2.4 防腐）。
 final class RemoteRecordSync implements RecordRemote {
-  RemoteRecordSync({required this.dio, required this.location});
+  RemoteRecordSync({
+    required this.dio,
+    required this._location,
+    this._locationResolver,
+  });
 
   /// 已装配 dio。
   final Dio dio;
 
   /// 设备时区（归属日换算，D-07）。
-  final tz.Location location;
+  final tz.Location _location;
+  final tz.Location Function()? _locationResolver;
+
+  /// Resolve each pull/write using the current verified system region.
+  tz.Location get location => _locationResolver?.call() ?? _location;
   final Random _random = Random();
 
   bool _online = true;
@@ -418,12 +426,25 @@ final class RemoteRecordSync implements RecordRemote {
         ),
       );
     }
+    var written = 0;
     await db.transaction(() async {
       checkActiveSession();
-      await db.foodDao.upsertAll(companions);
+      for (final companion in companions) {
+        final local = await db.foodDao.getById(companion.id.value);
+        checkActiveSession();
+        if (local != null &&
+            (local.customSyncPending ||
+                (local.isCustom &&
+                    local.ownerUserId != null &&
+                    local.ownerUserId != userId))) {
+          continue;
+        }
+        await db.foodDao.upsertAll([companion]);
+        written++;
+      }
       checkActiveSession();
     });
-    return companions.length;
+    return written;
   }
 
   /// 增量下行入库：游标翻页直到 hasMore=false，返回最新 syncToken
@@ -876,6 +897,32 @@ final class RemoteRecordSync implements RecordRemote {
     final nameZh = rawNameZh is String ? rawNameZh : null;
     final nameEn = rawNameEn is String ? rawNameEn : null;
     if (id == null || nameZh == null || nameEn == null) return;
+    // A server-provided request identity can confirm an unknown legacy create
+    // without guessing names/nutrition or the original wire payload.
+    final requestId = change['clientRequestId'];
+    if (requestId is String && requestId.isNotEmpty) {
+      final unresolved = await db.foodDao.unresolvedCustomByRequest(
+        requestId,
+        ownerUserId: userId,
+      );
+      checkActiveSession();
+      if (unresolved != null) {
+        if (unresolved.id != id) {
+          await db.foodDao.remapCustomFoodId(
+            unresolved.id,
+            id,
+            ownerUserId: userId,
+          );
+        }
+        await db.foodDao.acknowledgeCustomCreate(
+          id,
+          ownerUserId: userId,
+          sentVersion: -1,
+        );
+        checkActiveSession();
+        return; // Preserve latest intent and retry it with PATCH.
+      }
+    }
     final local = await db.foodDao.getById(id);
     if (local != null &&
         local.isCustom &&
@@ -904,6 +951,7 @@ final class RemoteRecordSync implements RecordRemote {
         source: rawSource is String ? Value(rawSource) : const Value.absent(),
         customSyncPending: const Value(false),
         customClientRequestId: const Value(''),
+        customCreateRequestSnapshot: const Value(null),
         customSyncFailCount: const Value(0),
         customSyncFailed: const Value(false),
       ),

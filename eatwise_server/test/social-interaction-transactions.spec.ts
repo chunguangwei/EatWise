@@ -60,6 +60,48 @@ for (const backend of ['memory', 'prisma'] as const) {
       return (await driver.listModerationQueue()).filter((item) => item.postId === id);
     }
 
+    it('举报确认下架结案保留历史并进入已拒绝列表', async () => {
+      const post = await createPost();
+      await social.report(viewer, post.id, 'spam');
+      expect(
+        (await social.adminList('reported')).items.find((p) => p.id === post.id),
+      ).toMatchObject({ reportPending: true });
+      const reportedAt = (await driver.findPostById(post.id))!.reportedAt;
+      const result = await social.adminReview(post.id, { action: 'reject', reason: '确认广告' });
+      expect(result).toMatchObject({
+        auditStatus: 'rejected',
+        reportCount: 1,
+        reportPending: false,
+        auditReason: { zh: '确认广告' },
+      });
+      expect((await driver.findPostById(post.id))!.reportedAt).toEqual(reportedAt);
+      expect(await queueFor(post.id)).toHaveLength(0);
+      expect((await social.adminList('reported')).items.map((p) => p.id)).not.toContain(post.id);
+      expect((await social.adminList('rejected')).items.map((p) => p.id)).toContain(post.id);
+      await expect(social.adminReview(post.id, { action: 'reject' })).rejects.toMatchObject({
+        code: 'CONFLICT',
+      });
+      await social.adminReview(post.id, { action: 'approve' });
+      await social.report(author, post.id, 'new report');
+      expect(
+        (await social.adminList('reported')).items.find((p) => p.id === post.id),
+      ).toMatchObject({ reportPending: true, reportCount: 2 });
+    });
+
+    it('举报确认下架出队失败时原因和状态完整回滚', async () => {
+      const post = await createPost();
+      await social.report(viewer, post.id, 'spam');
+      const before = await driver.findPostById(post.id);
+      jest
+        .spyOn(prototype, 'removeModerationByPost')
+        .mockRejectedValueOnce(new Error('dequeue failed'));
+      await expect(
+        social.adminReview(post.id, { action: 'reject', reason: '确认广告' }),
+      ).rejects.toThrow('dequeue failed');
+      expect(await driver.findPostById(post.id)).toEqual(before);
+      expect(await queueFor(post.id)).toHaveLength(1);
+    });
+
     // 在首个操作读完旧快照后暂停；第二个操作要么等待同一把锁，要么真的完成。
     // 以这两个确定事件释放首操作，不依赖 sleep，也不会让正确实现死锁。
     async function contend(first: () => Promise<unknown>, second: () => Promise<unknown>) {

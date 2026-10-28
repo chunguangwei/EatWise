@@ -280,6 +280,35 @@ describe('Admin posts review (e2e)', () => {
     expect((await listIds('approved')).map((i) => i.id)).toContain(postId);
   });
 
+  it('举报确认下架结案后进入 rejected，保留历史与正式原因，重复决定冲突', async () => {
+    const author = await login(nextPhone());
+    const reporter = await login(nextPhone());
+    const postId = await createPost(author, '确认下架测试');
+    await request(server)
+      .post(`/v1/posts/${postId}/report`)
+      .set(auth(reporter))
+      .send({ reason: '广告' })
+      .expect(200);
+    const res = await request(server)
+      .post(`/v1/admin/posts/${postId}/review`)
+      .set('x-admin-token', ADMIN)
+      .send({ action: 'reject', reason: '确认广告' })
+      .expect(200);
+    expect(res.body.data).toMatchObject({
+      reportPending: false,
+      reportCount: 1,
+      auditReason: { zh: '确认广告' },
+    });
+    expect((await listIds('reported')).map((i) => i.id)).not.toContain(postId);
+    expect((await listIds('rejected')).map((i) => i.id)).toContain(postId);
+    expect(await feedHas(reporter, postId)).toBe(false);
+    await request(server)
+      .post(`/v1/admin/posts/${postId}/review`)
+      .set('x-admin-token', ADMIN)
+      .send({ action: 'reject' })
+      .expect(409);
+  });
+
   it('审核不存在的帖 → 404；非法 action → 400', async () => {
     await request(server)
       .post('/v1/admin/posts/p_notexist/review')

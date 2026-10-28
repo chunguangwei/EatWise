@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -49,11 +50,8 @@ final class CustomFoodDeleteResult {
 
 /// 自定义食物仓储（K2：远端直调 + 本地 drift 落库）。
 ///
-/// 离线策略〔假设〕：/sync/push ops 协议未支持 foodCustom entity（服务端
-/// sync.service 仅识别 entry/waterLog），故不走 op 队列——保存时直调
-/// /foods/custom；网络失败则仅落本地并置 customSyncPending，联网后经
-/// [retryPending] 以原 clientRequestId 幂等重试（由自定义食物流程入口
-///  opportunistic 触发，待主代理决定是否挂进 syncNow 链路）。
+/// 创建请求先落本地并冻结原键/原载荷；ACK 确认后再 PATCH 最新草稿。
+/// customSyncPending 同时覆盖创建与编辑，下次同步由 retryPending 补传。
 final class CustomFoodRepository {
   CustomFoodRepository({
     required this.db,
@@ -72,7 +70,7 @@ final class CustomFoodRepository {
   final CustomFoodRemote remote;
 
   /// 服务端存续核验（POST /foods/batch-get 命中集；null = 不核验，
-  /// 404 一律按「同步时窗晋升共享」旧口径处理）。
+  /// 404 不推断晋升，保留本地草稿并提示错误）。
   ///
   /// 为什么需要核验（走查）：owner 删除吃 404 的旧假设「404 ⇒ 晋升共享」
   /// 在「管理台手工软删该行 / 他端已删」时不成立——已删食物会被错误地
@@ -81,47 +79,52 @@ final class CustomFoodRepository {
 
   static final Random _random = Random.secure();
 
-  /// 保存自定义食物：先远端（幂等 clientRequestId），离线降级本地 pending；
-  /// 本地落库后立即可搜可记。
-  Future<CustomFoodSaveResult> save(CustomFoodDraft draft) async {
-    final clientRequestId = _uuid();
-    var localId = 'custom-$clientRequestId';
-    var pending = false;
-    try {
-      final serverId = await remote.createCustom(
-        draft,
-        clientRequestId: clientRequestId,
-      );
-      // 远端成功：以服务端 ID 为本地主键（与 K1 搜索结果一致）。
-      if (serverId.isNotEmpty) localId = serverId;
-    } on ApiException catch (e) {
-      if (e is NetworkApiException || e is TimeoutApiException) {
-        pending = true; // 离线：仅落本地，联网后 retryPending 上行
-      } else {
-        rethrow; // 4xx/5xx 业务错误上抛 UI 提示
-      }
-    }
-    await db.foodDao.upsertAll(<FoodsCompanion>[
-      FoodsCompanion(
-        id: Value(localId),
-        nameZh: Value(draft.nameZh),
-        nameEn: Value(draft.nameEn ?? draft.nameZh),
-        aliasesZh: Value(jsonEncode(draft.aliasesZh)),
-        aliasesEn: Value(jsonEncode(draft.aliasesEn)),
-        kcalPer100g: Value(draft.per100g.kcal),
-        proteinPer100g: Value(draft.per100g.proteinG),
-        carbPer100g: Value(draft.per100g.carbG),
-        fatPer100g: Value(draft.per100g.fatG),
-        isCustom: const Value(true),
-        ownerUserId: Value(userId),
-        source: Value(customFoodSourceName(draft.source)),
-        customSyncPending: Value(pending),
-        customClientRequestId: Value(pending ? clientRequestId : ''),
-      ),
-    ]);
-    final food = await db.foodDao.getById(localId, ownerUserId: userId);
-    return CustomFoodSaveResult(food: food!, uploaded: !pending);
+  // Database-scoped locks survive provider/repository recreation. Local edits
+  // remain immediate; only transport is serialized for a food identity.
+  static final _locks = Expando<Map<String, Future<Food?>>>();
+  Map<String, Future<Food?>> get _uploads =>
+      _locks[db] ??= <String, Future<Food?>>{};
+
+  Future<T> _inSession<T>(Future<T> Function() work) {
+    final api = remote;
+    return api is RemoteCustomFoodApi
+        ? withApiSession(api.dio, work, userId: userId)
+        : work();
   }
+
+  /// Persist identity and the exact first request before any network await.
+  Future<CustomFoodSaveResult> save(CustomFoodDraft draft) =>
+      _inSession(() async {
+        final key = _uuid();
+        final localId = 'custom-$key';
+        await db.foodDao.upsertAll([
+          _draftCompanion(localId, draft).copyWith(
+            isCustom: const Value(true),
+            ownerUserId: Value(userId),
+            customSyncPending: const Value(true),
+            customClientRequestId: Value(key),
+            customOriginLocalId: Value(localId),
+            customCreateRequestSnapshot: Value(_encodeDraft(draft)),
+          ),
+        ]);
+        checkActiveSession();
+        Food? food;
+        try {
+          if (userId != 'anonymous') food = await _upload(localId, userId);
+        } on ApiException catch (e) {
+          if (e is! NetworkApiException && e is! TimeoutApiException) rethrow;
+        }
+        checkActiveSession();
+        food ??= await db.foodDao.customFoodByIdentity(
+          localId,
+          ownerUserId: userId,
+        );
+        checkActiveSession();
+        return CustomFoodSaveResult(
+          food: food!,
+          uploaded: !food.customSyncPending,
+        );
+      });
 
   /// 贡献自定义食物为共享候选（幂等 clientRequestId）。
   ///
@@ -141,6 +144,7 @@ final class CustomFoodRepository {
     String? evidenceImageUrl,
   }) async {
     await _requireOwnedFood(foodId);
+    checkActiveSession();
     try {
       final status = await remote.contribute(
         foodId,
@@ -168,7 +172,9 @@ final class CustomFoodRepository {
 
   Future<Food> _requireOwnedFood(String foodId, {String? ownerUserId}) async {
     final owner = ownerUserId ?? userId;
-    final food = await db.foodDao.getById(foodId);
+    final food =
+        await db.foodDao.customFoodByIdentity(foodId, ownerUserId: owner) ??
+        await db.foodDao.getById(foodId);
     final legacyAnonymous = owner == 'anonymous' && food?.ownerUserId == null;
     if (food == null ||
         !food.isCustom ||
@@ -190,56 +196,272 @@ final class CustomFoodRepository {
     return remote.submitCorrection(foodId, draft, clientRequestId: _uuid());
   }
 
-  /// 编辑自定义食物（PATCH，无幂等键）：先本地后远端。
-  ///
-  /// companion 只带上行可编辑列——drift insertOnConflictUpdate 跳过缺省列，
-  /// isCustom/contributionStatus 等标记不受扰动。
-  /// 网络/超时错误静默〔已定口径：自定义食物行主要服务创建者设备，
-  /// 离线编辑保留本地值，下次联网不重试（更新 LWW 无语义可重放）〕；
-  /// 4xx/5xx 业务错误上抛 UI 提示。返回编辑后的最新本地行。
-  ///
-  /// pending 行（离线新建尚未上行）例外：服务端还没有这条行，PATCH 必 404——
-  /// 只改本地并**轮换 customClientRequestId**：retryPending 以行当前内容 +
-  /// 该键重放 create，若沿用旧键，「离线新建 → 编辑 → 联网重放」会用旧幂等键
-  /// 带新内容打服务端（首次注册的是旧内容）→ PAYLOAD_MISMATCH 永久卡 pending。
-  Future<Food> update(Food food, CustomFoodDraft draft) async {
-    final owned = await _requireOwnedFood(food.id);
-    final companion = FoodsCompanion(
-      id: Value(food.id),
-      nameZh: Value(draft.nameZh),
-      nameEn: Value(draft.nameEn ?? draft.nameZh),
-      aliasesZh: Value(jsonEncode(draft.aliasesZh)),
-      aliasesEn: Value(jsonEncode(draft.aliasesEn)),
-      kcalPer100g: Value(draft.per100g.kcal),
-      proteinPer100g: Value(draft.per100g.proteinG),
-      carbPer100g: Value(draft.per100g.carbG),
-      fatPer100g: Value(draft.per100g.fatG),
-      source: Value(customFoodSourceName(draft.source)),
-    );
-    if (owned.customSyncPending) {
-      await db.foodDao.upsertAll(<FoodsCompanion>[
-        companion.copyWith(customClientRequestId: Value(_uuid())),
+  /// Persist latest intent first. An unresolved create keeps its original
+  /// identity and payload, then uploads the latest edit with PATCH after ACK.
+  Future<Food> update(Food food, CustomFoodDraft draft) => _inSession(() async {
+    late Food owned;
+    late Food updated;
+    await db.transaction(() async {
+      checkActiveSession();
+      owned = await _requireOwnedFood(food.id);
+      checkActiveSession();
+      final snapshot =
+          owned.customCreateRequestSnapshot ??
+          (owned.customClientRequestId.isNotEmpty
+              ? _encodeDraft(_draftFromRow(owned))
+              : null);
+      await db.foodDao.upsertAll([
+        _draftCompanion(owned.id, draft).copyWith(
+          customSyncPending: const Value(true),
+          customCreateRequestSnapshot: Value(snapshot),
+          customLocalVersion: Value(owned.customLocalVersion + 1),
+          customSyncFailCount: const Value(0),
+          customSyncFailed: const Value(false),
+        ),
       ]);
-      return (await db.foodDao.getById(food.id, ownerUserId: userId))!;
-    }
-    await db.foodDao.upsertAll(<FoodsCompanion>[companion]);
-    try {
-      await remote.updateCustom(food.id, draft);
-    } on ApiException catch (e) {
-      if (e is BusinessApiException && e.code == 'NOT_FOUND') {
-        // 同步时窗：审核通过后本地行还没翻 approved（秒批/离线审批），
-        // 服务端已晋升共享（isCustom=false）→ 404。自愈：本地写 approved
-        // （动作行门控随即隐藏），改抛专用码给 UI 出人话引导。
-        await db.foodDao.setContributionStatus(
-          food.id,
-          'approved',
-          ownerUserId: userId,
-        );
-        throw const FoodApprovedSharedApiException();
+      checkActiveSession();
+      updated = (await db.foodDao.getById(owned.id, ownerUserId: userId))!;
+      checkActiveSession();
+    });
+    // Do not wait on a create whose response is still unknown. Its upload loop
+    // will observe the new generation once the original ACK arrives.
+    if (owned.customClientRequestId.isEmpty &&
+        userId != 'anonymous' &&
+        !_uploads.containsKey(
+          _lockKey(owned.customOriginLocalId ?? owned.id, userId),
+        )) {
+      try {
+        final result = await _upload(owned.id, userId);
+        if (result != null) return result;
+      } on ApiException catch (e) {
+        if (e is! NetworkApiException && e is! TimeoutApiException) rethrow;
       }
-      if (e is! NetworkApiException && e is! TimeoutApiException) rethrow;
     }
-    return (await db.foodDao.getById(food.id, ownerUserId: userId))!;
+    checkActiveSession();
+    return updated;
+  });
+
+  FoodsCompanion _draftCompanion(String id, CustomFoodDraft draft) =>
+      FoodsCompanion(
+        id: Value(id),
+        nameZh: Value(draft.nameZh),
+        nameEn: Value(draft.nameEn ?? draft.nameZh),
+        aliasesZh: Value(jsonEncode(draft.aliasesZh)),
+        aliasesEn: Value(jsonEncode(draft.aliasesEn)),
+        kcalPer100g: Value(draft.per100g.kcal),
+        proteinPer100g: Value(draft.per100g.proteinG),
+        carbPer100g: Value(draft.per100g.carbG),
+        fatPer100g: Value(draft.per100g.fatG),
+        source: Value(customFoodSourceName(draft.source)),
+      );
+
+  String _encodeDraft(CustomFoodDraft draft) => jsonEncode({
+    'nameZh': draft.nameZh,
+    'nameEn': draft.nameEn,
+    'aliasesZh': draft.aliasesZh,
+    'aliasesEn': draft.aliasesEn,
+    'kcal': draft.per100g.kcal,
+    'protein': draft.per100g.proteinG,
+    'carb': draft.per100g.carbG,
+    'fat': draft.per100g.fatG,
+    'source': customFoodSourceName(draft.source),
+  });
+
+  CustomFoodDraft _decodeDraft(String snapshot) {
+    final json = jsonDecode(snapshot) as Map<String, dynamic>;
+    return CustomFoodDraft(
+      nameZh: json['nameZh'] as String,
+      nameEn: json['nameEn'] as String?,
+      aliasesZh: (json['aliasesZh'] as List).cast<String>(),
+      aliasesEn: (json['aliasesEn'] as List).cast<String>(),
+      per100g: NutritionSnapshot(
+        kcal: (json['kcal'] as num).toDouble(),
+        proteinG: (json['protein'] as num).toDouble(),
+        carbG: (json['carb'] as num).toDouble(),
+        fatG: (json['fat'] as num).toDouble(),
+      ),
+      source: json['source'] == 'llm-estimate'
+          ? CustomFoodSource.llmEstimate
+          : CustomFoodSource.manual,
+    );
+  }
+
+  bool _sameDraft(Food row, CustomFoodDraft draft) =>
+      row.nameZh == draft.nameZh &&
+      row.nameEn == (draft.nameEn ?? draft.nameZh) &&
+      row.aliasesZh == jsonEncode(draft.aliasesZh) &&
+      row.aliasesEn == jsonEncode(draft.aliasesEn) &&
+      row.kcalPer100g == draft.per100g.kcal &&
+      row.proteinPer100g == draft.per100g.proteinG &&
+      row.carbPer100g == draft.per100g.carbG &&
+      row.fatPer100g == draft.per100g.fatG &&
+      row.source == customFoodSourceName(draft.source);
+
+  String _lockKey(String id, String owner) => '$owner/$id';
+
+  Future<Food?> _upload(String id, String owner) async {
+    final row = await db.foodDao.customFoodByIdentity(id, ownerUserId: owner);
+    checkActiveSession();
+    if (row == null) return null;
+    final key = _lockKey(row.customOriginLocalId ?? row.id, owner);
+    final running = _uploads[key];
+    if (running != null) return running;
+    final completion = Completer<Food?>();
+    final future = completion.future;
+    _uploads[key] = future;
+    completion.complete(_uploadLoop(row.id, owner));
+    return future.whenComplete(() {
+      _uploads.removeWhere((_, value) => identical(value, future));
+    });
+  }
+
+  Future<Food?> _prepareUploadRow(String id, String owner) => db.transaction(
+    () async {
+      checkActiveSession();
+      final row = await db.foodDao.customFoodByIdentity(id, ownerUserId: owner);
+      checkActiveSession();
+      if (row == null ||
+          row.customClientRequestId.isEmpty ||
+          row.customCreateRequestSnapshot != null) {
+        return row;
+      }
+      await db.foodDao.freezeLegacyCustomCreate(
+        row.id,
+        ownerUserId: owner,
+        snapshot: _encodeDraft(_draftFromRow(row)),
+        originLocalId: row.customOriginLocalId ?? row.id,
+      );
+      checkActiveSession();
+      return db.foodDao.getById(row.id, ownerUserId: owner);
+    },
+  );
+
+  Future<Food?> _uploadLoop(String id, String owner) async {
+    var currentId = id;
+    while (true) {
+      checkActiveSession();
+      final row = await _prepareUploadRow(currentId, owner);
+      checkActiveSession();
+      if (row == null ||
+          !row.isCustom ||
+          row.ownerUserId != owner ||
+          !row.customSyncPending ||
+          row.customSyncFailed) {
+        return row;
+      }
+      currentId = row.id;
+      final sent = row;
+      try {
+        if (sent.customClientRequestId.isNotEmpty) {
+          final serverId = await remote.createCustom(
+            _decodeDraft(sent.customCreateRequestSnapshot!),
+            clientRequestId: sent.customClientRequestId,
+          );
+          checkActiveSession();
+          if (serverId.isEmpty) throw const NetworkApiException();
+          final oldId = currentId;
+          await db.transaction(() async {
+            checkActiveSession();
+            final latest = await db.foodDao.customFoodByIdentity(
+              oldId,
+              ownerUserId: owner,
+            );
+            checkActiveSession();
+            if (latest == null || latest.ownerUserId != owner) return;
+            if (serverId != latest.id) {
+              await db.foodDao.remapCustomFoodId(
+                latest.id,
+                serverId,
+                ownerUserId: owner,
+              );
+            }
+            await db.foodDao.acknowledgeCustomCreate(
+              serverId,
+              ownerUserId: owner,
+              sentVersion:
+                  _sameDraft(
+                    sent,
+                    _decodeDraft(sent.customCreateRequestSnapshot!),
+                  )
+                  ? sent.customLocalVersion
+                  : -1,
+            );
+            checkActiveSession();
+          });
+          // Both old and new identities refer to this same active transport.
+          currentId = serverId;
+        } else {
+          await remote.updateCustom(currentId, _draftFromRow(sent));
+          checkActiveSession();
+          await db.foodDao.markCustomSynced(
+            currentId,
+            ownerUserId: owner,
+            sentVersion: sent.customLocalVersion,
+          );
+          checkActiveSession();
+        }
+      } on ApiException catch (e) {
+        checkActiveSession();
+        if (e is SessionChangedException) rethrow;
+        if (sent.customClientRequestId.isNotEmpty) {
+          final confirmed = await db.foodDao.customFoodByIdentity(
+            currentId,
+            ownerUserId: owner,
+          );
+          checkActiveSession();
+          if (confirmed != null && confirmed.customClientRequestId.isEmpty) {
+            currentId = confirmed.id;
+            continue; // Exact downlink identity supersedes a late/lost create ACK.
+          }
+        }
+
+        if (e is BusinessApiException &&
+            e.code == 'NOT_FOUND' &&
+            sent.customClientRequestId.isEmpty) {
+          final existing = await existingFoodIdsFn?.call([currentId]);
+          checkActiveSession();
+          final latest = await db.foodDao.getById(
+            currentId,
+            ownerUserId: owner,
+          );
+          checkActiveSession();
+          if (latest?.customLocalVersion == sent.customLocalVersion) {
+            if (existing?.contains(currentId) == true) {
+              await db.foodDao.setContributionStatus(
+                currentId,
+                'approved',
+                ownerUserId: owner,
+              );
+              checkActiveSession();
+            }
+            // Missing server rows stop automatic retries but retain local data
+            // and the ordinary delete/manual retry actions.
+            await db.foodDao.writeCustomSyncFailure(
+              currentId,
+              ownerUserId: owner,
+              failCount: sent.customSyncFailCount + 1,
+              failed: true,
+              sentVersion: sent.customLocalVersion,
+            );
+          }
+          if (existing?.contains(currentId) == true) {
+            throw const FoodApprovedSharedApiException();
+          }
+          rethrow;
+        }
+        if (e is BusinessApiException && _isPermanentFailure(e)) {
+          await db.foodDao.writeCustomSyncFailure(
+            currentId,
+            ownerUserId: owner,
+            failCount: sent.customSyncFailCount + 1,
+            failed: sent.customSyncFailCount + 1 >= kTerminalFailThreshold,
+            sentVersion: sent.customLocalVersion,
+          );
+          checkActiveSession();
+        }
+        rethrow;
+      }
+    }
   }
 
   /// 删除自定义食物（DELETE）：先远端后本地——409 FOOD_UNDER_REVIEW /
@@ -258,15 +480,53 @@ final class CustomFoodRepository {
     Food food, {
     required RecordRepository recordRepository,
     required String userId,
+  }) => _inSession(() async {
+    var target = await _requireOwnedFood(food.id, ownerUserId: userId);
+    checkActiveSession();
+    final running =
+        _uploads[_lockKey(target.customOriginLocalId ?? target.id, userId)];
+    if (running != null) {
+      target = await running ?? target;
+      checkActiveSession();
+    }
+    final latest = await db.foodDao.getById(target.id, ownerUserId: userId);
+    checkActiveSession();
+    if (latest != null &&
+        latest.customClientRequestId.isNotEmpty &&
+        userId != 'anonymous') {
+      target = await _upload(latest.id, userId) ?? latest;
+      checkActiveSession();
+    }
+    final key = _lockKey(target.customOriginLocalId ?? target.id, userId);
+    final gate = Completer<Food?>();
+    _uploads[key] = gate.future;
+    try {
+      return await _delete(
+        target,
+        recordRepository: recordRepository,
+        userId: userId,
+      );
+    } finally {
+      _uploads.removeWhere((candidate, _) => candidate == key);
+      gate.complete();
+    }
+  });
+
+  Future<CustomFoodDeleteResult> _delete(
+    Food food, {
+    required RecordRepository recordRepository,
+    required String userId,
   }) async {
     await _requireOwnedFood(food.id, ownerUserId: userId);
     try {
-      await remote.deleteCustom(food.id);
+      if (userId != 'anonymous') await remote.deleteCustom(food.id);
+      checkActiveSession();
     } on ApiException catch (e) {
       if (e is BusinessApiException && e.code == 'NOT_FOUND') {
         final verify = existingFoodIdsFn;
         if (verify != null) {
           final existing = await verify(<String>[food.id]);
+          checkActiveSession();
           if (existing.contains(food.id)) {
             // 同步时窗内服务端已晋升共享 → 404：自愈写 approved，
             // 本地行/历史记录一律不动（共享食物不该被本地删除）。
@@ -282,13 +542,7 @@ final class CustomFoodRepository {
             alreadyGone: true,
           );
         }
-        // 未装配核验：保持旧口径（一律按晋升共享处理）。
-        await db.foodDao.setContributionStatus(
-          food.id,
-          'approved',
-          ownerUserId: userId,
-        );
-        throw const FoodApprovedSharedApiException();
+        rethrow;
       }
       rethrow;
     }
@@ -305,8 +559,10 @@ final class CustomFoodRepository {
     String userId,
   ) async {
     final entries = await db.foodEntryDao.entriesForFood(userId, food.id);
+    checkActiveSession();
     for (final e in entries) {
       await recordRepository.deleteEntry(e.localId);
+      checkActiveSession();
     }
     await db.foodDao.deleteById(food.id, ownerUserId: userId, customOnly: true);
     return entries.length;
@@ -347,42 +603,17 @@ final class CustomFoodRepository {
       checkActiveSession();
       if (row.customSyncFailed) continue;
       try {
-        final serverId = await remote.createCustom(
-          _draftFromRow(row),
-          clientRequestId: row.customClientRequestId,
-        );
+        final result = await _upload(row.id, owner);
         checkActiveSession();
-        await db.transaction(() async {
-          checkActiveSession();
-          if (serverId.isNotEmpty && serverId != row.id) {
-            await db.foodDao.remapCustomFoodId(
-              row.id,
-              serverId,
-              ownerUserId: owner,
-            );
-            await db.foodEntryDao.remapFoodId(row.id, serverId);
-          } else {
-            await db.foodDao.markCustomSynced(row.id, ownerUserId: owner);
-          }
-          checkActiveSession();
-        });
-        synced++;
+        if (result != null && !result.customSyncPending) synced++;
       } on ApiException catch (e) {
         checkActiveSession();
         if (e is SessionChangedException) rethrow;
         if (e is NetworkApiException || e is TimeoutApiException) break;
-        if (e is! BusinessApiException) continue;
-        if (e.isRetryable || e.httpStatus == 401 || e.httpStatus == 403) {
+        if (e is BusinessApiException &&
+            (e.isRetryable || e.httpStatus == 401 || e.httpStatus == 403)) {
           break;
         }
-        if (!_isPermanentFailure(e)) continue;
-        final failCount = row.customSyncFailCount + 1;
-        await db.foodDao.writeCustomSyncFailure(
-          row.id,
-          ownerUserId: owner,
-          failCount: failCount,
-          failed: failCount >= kTerminalFailThreshold,
-        );
       }
     }
     return synced;
@@ -402,15 +633,25 @@ final class CustomFoodRepository {
   static const int kTerminalFailThreshold = 5;
 
   /// 手动重试终态失败的自定义食物（详情页「重试同步」）。
-  Future<bool> retryFailedNow(String foodId) async {
+  Future<bool> retryFailedNow(String foodId) => _inSession(() async {
     if (userId == 'anonymous') return false;
-    final before = await db.foodDao.getById(foodId, ownerUserId: userId);
+    final before = await db.foodDao.customFoodByIdentity(
+      foodId,
+      ownerUserId: userId,
+    );
+    checkActiveSession();
     if (before == null || !before.isCustom) return false;
-    await db.foodDao.resetCustomSyncFailure(foodId, ownerUserId: userId);
+    await db.foodDao.resetCustomSyncFailure(before.id, ownerUserId: userId);
+    checkActiveSession();
     await retryPending();
-    final after = await db.foodDao.getById(foodId, ownerUserId: userId);
+    checkActiveSession();
+    final after = await db.foodDao.customFoodByIdentity(
+      foodId,
+      ownerUserId: userId,
+    );
+    checkActiveSession();
     return after == null || !after.customSyncPending;
-  }
+  });
 
   /// Foods 行 → 上行草稿（retryPending 用），保留创建时来源。
   CustomFoodDraft _draftFromRow(Food row) {

@@ -64,7 +64,7 @@ void main() {
     final db = AppDatabase(NativeDatabase(dbFile));
     addTearDown(() async => db.close());
 
-    expect(db.schemaVersion, 16);
+    expect(db.schemaVersion, 17);
     final legacy = (await db.foodDao.getById('cf-legacy'))!;
     expect(legacy.nameZh, '历史私房菜');
     expect(legacy.customSyncPending, isTrue);
@@ -74,7 +74,7 @@ void main() {
     expect((await db.foodDao.getById('shared-legacy'))!.ownerUserId, isNull);
 
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.data['user_version'], 16);
+    expect(version.data['user_version'], 17);
     for (final table in <String>[
       'water_logs',
       'exercise_logs',

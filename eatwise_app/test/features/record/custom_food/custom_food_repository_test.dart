@@ -36,7 +36,13 @@ void main() {
   setUp(() {
     db = AppDatabase.memory();
     remote = FakeCustomFoodRemote();
-    repository = CustomFoodRepository(db: db, remote: remote, userId: 'u-1');
+    repository = CustomFoodRepository(
+      db: db,
+      remote: remote,
+      userId: 'u-1',
+      existingFoodIdsFn: (ids) async =>
+          remote.approvedShared ? ids.toSet() : <String>{},
+    );
   });
 
   tearDown(() async {
@@ -193,16 +199,26 @@ void main() {
     expect(entry!.foodId, 'srv-food-1');
   });
 
-  test('业务错误（4xx 校验拒绝）：上抛且不落库', () async {
+  test('业务错误（4xx 校验拒绝）：上抛且保留可重试草稿', () async {
     remote.mode = FakeCustomFoodMode.success;
     final rejecting = _RejectingRemote();
-    final rejectingRepo = CustomFoodRepository(db: db, remote: rejecting);
+    final rejectingRepo = CustomFoodRepository(
+      db: db,
+      remote: rejecting,
+      userId: 'u-1',
+    );
 
     await expectLater(
       rejectingRepo.save(draft),
       throwsA(isA<BusinessApiException>()),
     );
-    expect(await db.foodDao.searchFoods('燕窝羹', ownerUserId: 'u-1'), isEmpty);
+    expect(
+      (await db.foodDao.searchFoods(
+        '燕窝羹',
+        ownerUserId: 'u-1',
+      )).single.customSyncPending,
+      isTrue,
+    );
   });
 
   test('贡献成功：返回候选状态并落本地 contributionStatus', () async {
@@ -325,7 +341,7 @@ void main() {
     expect(remote.receivedUpdateIds, <String>['${saved.food.id}|冰糖燕窝羹']);
   });
 
-  test('编辑 pending 行（离线新建未上行）：不发 PATCH，轮换幂等键防重放错配', () async {
+  test('编辑 pending 行（离线新建未上行）：不发 PATCH，冻结创建原键后补传最新编辑', () async {
     // 离线新建 → 行 pending（服务端无此行，PATCH 必 404）；恢复在线后编辑。
     remote.mode = FakeCustomFoodMode.offline;
     final saved = await repository.save(draft);
@@ -336,12 +352,11 @@ void main() {
 
     expect(updated.nameZh, '冰糖燕窝羹');
     expect(updated.customSyncPending, isTrue); // 仍待创建上行
-    // 幂等键必须轮换：retryPending 以最新内容重放 create，沿用旧键会因
-    // 首次注册的是旧内容触发 PAYLOAD_MISMATCH 永久卡 pending。
-    expect(updated.customClientRequestId, isNot(oldKey));
+    // 创建先用原键及冻结内容确认身份，随后 PATCH 当前编辑。
+    expect(updated.customClientRequestId, oldKey);
     expect(remote.receivedUpdateIds, isEmpty); // 未对缺失行发 PATCH
 
-    // 联网重放成功（新键 + 编辑后内容），临时行重映射为服务端 id 转 synced。
+    // 原创建重放确认后，临时行重映射并补传当前编辑。
     expect(await repository.retryPending(), 1);
     expect(await db.foodDao.getById(saved.food.id), isNull); // custom-* 临时行已重映射
     final row = await db.foodDao.getById('srv-food-1');
@@ -355,7 +370,7 @@ void main() {
 
     final updated = await repository.update(saved.food, edited);
 
-    // 已定口径：自定义行主要服务创建者设备，离线编辑保留本地值不重试。
+    // 离线编辑保留最新草稿并排队下次 PATCH。
     expect(updated.nameZh, '冰糖燕窝羹');
     expect((await db.foodDao.getById(saved.food.id))!.nameZh, '冰糖燕窝羹');
     expect(remote.receivedUpdateIds, isEmpty);

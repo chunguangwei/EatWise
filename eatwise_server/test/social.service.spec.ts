@@ -226,7 +226,7 @@ describe('社区打卡（M5 P1 / D-17 先审后发）', () => {
     );
   });
 
-  it('管理端队列：reported 口径（reportCount>0 且 rejected）→ approve 恢复上架并清队列', async () => {
+  it('管理端队列：reported 口径（未处理举报队列）→ approve 恢复上架并清队列', async () => {
     const post = (await createPost(userId, '待复核')) as { id: string };
     const pending = (await createPost(userId, '兼职推广引流')) as { id: string };
     store.posts.get(pending.id)!.auditStatus = 'pending'; // 开放模式下手工构造待审态

@@ -24,6 +24,8 @@ import 'package:eatwise/features/record/presentation/record_page.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/recognition/data/ondevice_label_ocr_service.dart';
 import 'package:eatwise/features/social/application/feed_controller.dart';
+import 'package:eatwise/features/streak/application/streak_controller.dart'
+    show currentUserIdProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -70,6 +72,7 @@ void main() {
     repository = RecordRepository(
       db: db,
       remote: FakeRecordRemote(),
+      userId: 'u-1',
       location: tz.getLocation('Asia/Shanghai'),
     );
     scannerGateway = FakeBarcodeScannerGateway();
@@ -110,6 +113,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
+          currentUserIdProvider.overrideWithValue('u-1'),
           recordRepositoryProvider.overrideWithValue(repository),
           waterLogRepositoryProvider.overrideWithValue(
             WaterLogRepository(db: db),

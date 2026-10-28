@@ -53,7 +53,11 @@ import 'package:timezone/timezone.dart' as tz;
 final Provider<RecordRemote> recordRemoteProvider = Provider<RecordRemote>((
   ref,
 ) {
-  return RemoteRecordSync(dio: ref.watch(apiDioProvider), location: tz.local);
+  return RemoteRecordSync(
+    dio: ref.watch(apiDioProvider),
+    location: tz.local,
+    locationResolver: () => tz.local,
+  );
 });
 
 /// M3 记录仓库。
@@ -70,6 +74,7 @@ final Provider<RecordRepository> recordRepositoryProvider =
         db: ref.watch(appDatabaseProvider),
         remote: ref.watch(recordRemoteProvider),
         location: tz.local,
+        locationResolver: () => tz.local,
         userId: ref.watch(currentUserIdProvider),
       );
       ref.onDispose(() => unawaited(repo.dispose()));

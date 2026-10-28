@@ -1642,10 +1642,9 @@ export class PrismaStore extends StoreDriver {
     if (filter === 'pending' || filter === 'approved') where.auditStatus = filter;
     else if (filter === 'rejected') {
       where.auditStatus = 'rejected';
-      where.reportCount = 0;
+      where.moderationEntries = { none: { source: 'report' } };
     } else if (filter === 'reported') {
-      where.auditStatus = 'rejected';
-      where.reportCount = { gt: 0 };
+      where.moderationEntries = { some: { source: 'report' } };
     }
     try {
       const rows = await this.prisma.post.findMany({

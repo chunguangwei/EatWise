@@ -57,7 +57,7 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   restoreLocalePreference(prefs);
   // 时区装配（D-07：UTC 存储本地渲染，M2 引擎锚点换算依赖）：装载数据 +
-  // 把 tz.local 设为设备时区（offset 匹配）——只 init 不 set 时 tz.local
+  // 把 tz.local 设为设备 IANA 时区——只 init 不 set 时 tz.local
   // 恒 UTC，餐次预判/归属日/X-Timezone 三口径全部错位（真机走查根因）。
   // 失败不阻断启动：bootstrapTimezone 内部回落 UTC。
   Uint8List? tzfBytes;
@@ -68,6 +68,7 @@ Future<void> main() async {
     // 防御：时区数据缺失按 UTC 渲染，引导主流程不阻断。
   }
   bootstrapTimezone(tzfBytes);
+  await refreshSystemTimezone();
   // 会话恢复后再按 uid 读取引导完成态，避免旧全局键提前迁入 anonymous。
   final gate = OnboardingGate(completed: false);
   // D-18：首启隐私门禁（§4.1：未同意主隐私政策 → /legal/consent，
@@ -141,6 +142,9 @@ Future<void> main() async {
       }),
     ],
   );
+  SystemTimezoneObserver(
+    onRefresh: () => container.read(localDayProvider.notifier).refresh(),
+  ).start();
   handleSessionCleared = () =>
       container.read(authControllerProvider.notifier).onSessionCleared();
   await container.read(authControllerProvider.notifier).restore();

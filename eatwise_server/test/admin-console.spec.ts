@@ -128,6 +128,36 @@ describe('Admin console rendering regressions', () => {
     expect(created.filter((item) => item.tagName === 'select')).toHaveLength(0);
   });
 
+  it('举报待复核提供恢复和确认下架；结案历史举报显示已拒绝', () => {
+    const tbody = element('tbody');
+    const sandbox = evaluateSections(
+      {
+        document: documentFor('postRows', tbody, []),
+        POST_STATUS_LABEL: { rejected: '已拒绝' },
+        fmtTime: () => '-',
+      },
+      [
+        escSection,
+        ['function renderPostRows(items, append) {', 'async function reviewPost(id, action)'],
+      ],
+    );
+    const post = {
+      id: 'reported',
+      auditStatus: 'rejected',
+      author: { id: 'author' },
+      text: 'test',
+      imageUrls: [],
+      reportCount: 1,
+    };
+    sandbox.renderPostRows([{ ...post, reportPending: true }], false);
+    expect(tbody.children[0].innerHTML).toContain('恢复上架');
+    expect(tbody.children[0].innerHTML).toContain('确认下架');
+    sandbox.renderPostRows([{ ...post, reportPending: false }], false);
+    expect(tbody.children[1].innerHTML).toContain('已拒绝');
+    expect(tbody.children[1].innerHTML).not.toContain('确认下架');
+    expect(tbody.children[1].innerHTML).not.toContain('badge reported');
+  });
+
   it('角色控件仅保留在用户列表', () => {
     expect(consoleHtml.match(/var roleCell = tr\.querySelector\('\.roleCell'\);/g)).toHaveLength(1);
     const tbody = element('tbody');

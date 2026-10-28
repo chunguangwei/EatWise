@@ -13,6 +13,8 @@ import 'package:eatwise/features/record/presentation/record_page.dart';
 import 'package:eatwise/features/record/presentation/record_providers.dart';
 import 'package:eatwise/features/record/recognition/domain/engine_availability.dart';
 import 'package:eatwise/features/record/recognition/domain/recognition_models.dart';
+import 'package:eatwise/features/streak/application/streak_controller.dart'
+    show currentUserIdProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -48,6 +50,7 @@ void main() {
     repository = RecordRepository(
       db: db,
       remote: recordRemote,
+      userId: 'u-1',
       location: tz.getLocation('Asia/Shanghai'),
     );
     photoGateway = FakePhotoPickerGateway();
@@ -89,6 +92,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
+          currentUserIdProvider.overrideWithValue('u-1'),
           recordRepositoryProvider.overrideWithValue(repository),
           aiEngineAvailabilityFnProvider.overrideWithValue(
             () async => AiEngineAvailability.ondeviceReady,
@@ -257,7 +261,7 @@ void main() {
     expect(entries.map((e) => e.amountG), containsAll(<double>[200, 60]));
 
     // 薯片已自动建成自定义食物（模型估值入库，isCustom）。
-    final saved = await db.foodDao.searchFoods('薯片');
+    final saved = await db.foodDao.searchFoods('薯片', ownerUserId: 'u-1');
     expect(saved, hasLength(1));
     expect(saved.single.isCustom, isTrue);
     expect(saved.single.kcalPer100g, 536);
@@ -389,7 +393,7 @@ void main() {
     await tester.pump();
 
     var entries = await repository.entriesForDate(DateTime.now().toUtc());
-    final saved = await db.foodDao.searchFoods('薯片');
+    final saved = await db.foodDao.searchFoods('薯片', ownerUserId: 'u-1');
     expect(saved, hasLength(1));
     expect(entries.single.foodId, saved.single.id);
     expect(customRemote.receivedRequestIds, hasLength(1));
@@ -426,7 +430,10 @@ void main() {
     expect(entries.every((e) => e.source == EntrySource.photo), isTrue);
     expect(customRemote.receivedRequestIds, hasLength(1));
     expect(customRemote.receivedContributeIds, hasLength(1));
-    expect(await db.foodDao.searchFoods('薯片'), hasLength(1));
+    expect(
+      await db.foodDao.searchFoods('薯片', ownerUserId: 'u-1'),
+      hasLength(1),
+    );
 
     // 批量入账仍走既有仓储撤销口径。
     final chips = entries.singleWhere((e) => e.foodId == saved.single.id);
@@ -461,7 +468,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
 
-    final saved = await db.foodDao.searchFoods('薯片');
+    final saved = await db.foodDao.searchFoods('薯片', ownerUserId: 'u-1');
     expect(saved, hasLength(1));
     expect(customRemote.receivedRequestIds, hasLength(1));
     expect(customRemote.receivedContributeIds, hasLength(1));
@@ -475,7 +482,10 @@ void main() {
 
     final entries = await repository.entriesForDate(DateTime.now().toUtc());
     expect(entries.single.foodId, saved.single.id);
-    expect(await db.foodDao.searchFoods('薯片'), hasLength(1));
+    expect(
+      await db.foodDao.searchFoods('薯片', ownerUserId: 'u-1'),
+      hasLength(1),
+    );
     expect(customRemote.receivedRequestIds, hasLength(1));
     expect(customRemote.receivedContributeIds, hasLength(1));
     expect(find.text('已记录 1 条（1 条待审核）'), findsOneWidget);
@@ -792,7 +802,7 @@ void main() {
     expect(entries.single.foodId, 'f-chicken');
     expect(entries.single.amountG, 150);
     expect(entries.single.source, EntrySource.photo);
-    expect(await db.foodDao.searchFoods('鸡胸沙拉'), isEmpty);
+    expect(await db.foodDao.searchFoods('鸡胸沙拉', ownerUserId: 'u-1'), isEmpty);
     expect(customRemote.receivedContributeIds, isEmpty);
     await settleUi(tester);
   });
@@ -827,7 +837,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
 
-    expect(await db.foodDao.searchFoods('牛肉炒时蔬'), isEmpty);
+    expect(await db.foodDao.searchFoods('牛肉炒时蔬', ownerUserId: 'u-1'), isEmpty);
     expect(customRemote.receivedContributeIds, isEmpty);
     expect(await repository.entriesForDate(DateTime.now().toUtc()), isEmpty);
     expect(find.text('营养数值异常，请检查或删除该条后再记录'), findsOneWidget);

@@ -148,6 +148,16 @@ class Foods extends Table {
   TextColumn get customClientRequestId =>
       text().withDefault(const Constant(''))();
 
+  /// 首次 create 的冻结请求；ACK 未知时必须复用原键与原载荷。
+  TextColumn get customCreateRequestSnapshot => text().nullable()();
+
+  /// 稳定本地身份，服务端下行绑定/晚ACK及重启后仍可定位原临时行。
+  TextColumn get customOriginLocalId => text().nullable()();
+
+  /// 本地编辑代际，旧上行回执不能清除新编辑的 dirty 状态。
+  IntColumn get customLocalVersion =>
+      integer().withDefault(const Constant(0))();
+
   /// 自定义食物上行连续业务失败计数（终态收敛，v1.13.31：同一幂等键连续
   /// ≥5 次业务错误（VALIDATION/PAYLOAD_MISMATCH 等永败码）→ 转
   /// [customSyncFailed] 停重试，防永败项每轮重复上行 + 引用记录成片卡死）。
