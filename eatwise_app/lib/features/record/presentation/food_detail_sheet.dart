@@ -541,6 +541,8 @@ class _FoodDetailSheetState extends ConsumerState<FoodDetailSheet> {
       context: context,
       isScrollControlled: true,
       // 键盘避让已收进 AppBottomSheet 骨架（外层再垫会双倍扣高）。
+      useSafeArea: true,
+      useRootNavigator: true,
       builder: (_) => CustomFoodSheet(editTarget: _food),
     );
     if (result == null || !mounted || route?.isCurrent == false) return;

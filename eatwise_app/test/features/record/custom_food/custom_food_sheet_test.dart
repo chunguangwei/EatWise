@@ -190,6 +190,67 @@ void main() {
     await settleUi(tester);
   });
 
+  testWidgets('真实弹层安全区：高状态栏不覆盖标题', (tester) async {
+    await pumpPage(tester);
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.padding = const FakeViewPadding(top: 80, bottom: 24);
+    tester.view.viewPadding = const FakeViewPadding(top: 80, bottom: 24);
+    await tester.pump();
+    await openSheet(tester);
+    expect(tester.getRect(find.text('添加自定义食物')).top, greaterThanOrEqualTo(80));
+    await settleUi(tester);
+  });
+
+  testWidgets('AI 保存异常在弹层内可见且保存中禁用按钮', (tester) async {
+    await pumpPage(tester);
+    await openSheet(tester, query: '青椒土豆片');
+    await tester.tap(find.text('AI 估算'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    final gate = Completer<void>();
+    customRemote.createGate = gate;
+    await tapSave(tester);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '保存'))
+          .onPressed,
+      isNull,
+    );
+    gate.completeError(StateError('test storage/transport failure'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+    expect(find.text('未能保存，输入已保留，请重试。'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextFormField>(find.byType(TextFormField).first)
+          .controller!
+          .text,
+      '青椒土豆片',
+    );
+    await settleUi(tester);
+  });
+
+  testWidgets('截图中的低置信度 AI 数值可以保存并保留估算来源', (tester) async {
+    userClient.result = const FoodEstimate(
+      per100g: NutritionSnapshot(kcal: 20, proteinG: 1.2, carbG: 25, fatG: 0.3),
+      confidence: 'low',
+    );
+    await pumpPage(tester);
+    await openSheet(tester, query: '青椒土豆片');
+    await tester.tap(find.text('AI 估算'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tapSave(tester);
+    expect(find.text('添加自定义食物'), findsNothing);
+    final rows = await db.foodDao.searchFoods('青椒土豆片', ownerUserId: 'u-1');
+    expect(rows, hasLength(1));
+    expect(rows.single.source, 'llm-estimate');
+    expect(rows.single.kcalPer100g, 20);
+    expect(rows.single.carbPer100g, 25);
+    await settleUi(tester);
+  });
+
   testWidgets('空表单校验：菜名与四营养必填，合法零值除外', (tester) async {
     await pumpPage(tester);
     await openSheet(tester);
