@@ -46,28 +46,43 @@ final class RemoteFoodSearch {
     // 贡献的自定义食物（本地 isCustom=true 且已贡献），保留 isCustom，
     // 搜索行标签显示「已共享」而非「社区」（审核晋升 id 不变，服务端
     // approve 后 isCustom 转 false，仅本地标记可区分）。
-    final companions = <FoodsCompanion>[];
-    for (final item in remoteItems) {
-      var companion = _toCompanion(item);
-      if (item['source'] == 'community' && item['isCustom'] != true) {
-        final id = item['id'] as String?;
-        final existing = id == null ? null : await db.foodDao.getById(id);
+    await db.transaction(() async {
+      for (final item in remoteItems) {
+        var companion = _toCompanion(item);
+        final existing = await db.foodDao.getById(companion.id.value);
+        // Search can finish after a newer local edit. Read and cache in one
+        // transaction so the old response cannot overwrite that dirty draft.
         if (existing != null &&
             existing.isCustom &&
-            existing.contributionStatus != null) {
-          companion = companion.copyWith(isCustom: const Value(true));
+            existing.ownerUserId == userId &&
+            existing.customSyncPending) {
+          continue;
         }
+        if (item['source'] == 'community' &&
+            item['isCustom'] != true &&
+            existing != null &&
+            existing.isCustom &&
+            existing.ownerUserId == userId &&
+            existing.contributionStatus != null) {
+          // An author-only marker must retain its owner; another account's
+          // shared result must use the server's globally visible identity.
+          companion = companion.copyWith(
+            isCustom: const Value(true),
+            ownerUserId: Value(userId),
+          );
+        }
+        await db.foodDao.upsertAll([companion]);
       }
-      companions.add(companion);
-    }
-    await db.foodDao.upsertAll(companions);
-    // 本地命中在前，远端新增按服务端相关度序追加（按 id 去重）。
-    final localIds = local.map((f) => f.id).toSet();
-    final merged = List<Food>.of(local);
-    for (final item in remoteItems) {
-      final id = item['id'] as String?;
-      if (id == null || localIds.contains(id)) continue;
-      final food = await db.foodDao.getById(id);
+    });
+    // Keep ranking but return the current visible rows, not the snapshots read
+    // before the network await (which can precede an edit or promotion).
+    final ids = <String>{
+      ...local.map((food) => food.id),
+      ...remoteItems.map((item) => item['id']! as String),
+    };
+    final merged = <Food>[];
+    for (final id in ids) {
+      final food = await db.foodDao.getById(id, ownerUserId: userId);
       if (food != null) merged.add(food);
     }
     return merged.take(limit).toList();

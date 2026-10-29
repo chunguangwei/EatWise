@@ -310,16 +310,20 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     } on Object {
       if (mounted) {
         setState(() => _failedDraftRevision = confirmedDraftRevision);
-        if (_draftRevision != confirmedDraftRevision) {
-          messenger.hideCurrentSnackBar();
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(
-                Translations.of(context).record.page.previousSaveFailed,
-              ),
+        // Inline feedback can be below the fold inside the result card,
+        // especially after dismissing the details sheet or with the keyboard.
+        // Always acknowledge a failed write without clearing/focusing a draft.
+        final messages = Translations.of(context).record.page;
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              _draftRevision == confirmedDraftRevision
+                  ? messages.saveFailed
+                  : messages.previousSaveFailed,
             ),
-          );
-        }
+          ),
+        );
       }
       return;
     }

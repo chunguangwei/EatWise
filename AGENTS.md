@@ -24,6 +24,8 @@ flutter test                    # 门禁：全绿
 
 硬性规则：
 
+- **共享食品入账（2026-10-29，v1.17.14）**：搜索缓存保留本人 `isCustom` 作者标记时必须同时保留 owner；其他账号/无 owner 的社区命中按共享行缓存。启动修复旧 `source=community + owner NULL + isCustom` 损坏元数据，不按 approved 推断共享。搜索缓存同事务保护当前账号 dirty 草稿，返回当前可见行而非网络 await 前快照。已确认 community 食品不受遗留个人 pending 标记阻塞记餐上行。单条本地写入失败必须显示可见反馈并保留草稿，不能仅依赖滚动卡片底部错误。
+
 - **复核修复（2026-10-28）**：drift **v17** 的 Foods 增冻结创建载荷、编辑代际、稳定原本地身份；未知 ACK 必须先用原键/原 wire 确认再 PATCH 新意图。下行只能凭同 owner 的原 clientRequestId 绑定，禁止按名称猜；dirty 食品不覆盖，remap 与 entry 引用同事务。RecordRepository.addEntry 同事务解析原身份到最终 food.id 后生成快照入账；聚合更新/删除/回滚一律按记录持久 localDate，不能旅行后用当前时区重新推旧日。原生 `eatwise/system_timezone` 提供 IANA，事件/前台刷新统一 tz.local；记录仓储用 resolver 动态读取且不重建（保留撤销窗），单次入账冻结一次时区。举报结案以 outstanding queue 为准，确认下架与出队同 post 锁事务，保留历史 reportCount。社区提交前冻结整份稿件，失败保留原图；“不带图发布”仅影响当次请求。
 
 - **更新弹窗长文案（2026-10-26，v1.17.12）**：`UpdateDialog` 必须用受限滚动区容纳长说明，actions 留在滚动区外；长日志只在初始确认阶段展示，下载/失败阶段突出当前状态。下载期 PopScope 禁返回/遮罩关闭，所有异常必须恢复可操作的失败态。调起安装器不等于完成安装，强制更新需恢复再次安装入口并保持禁关闭。回归需用真实 showDialog 路由，覆盖 320/360 小屏、横屏、中英亮暗和 2 倍字，实际拖到最后一行验证正文不压按钮。Release 文案写简短纯文本用户改动，测试/部署统计留 docs/qa，不塞入应用更新弹窗。

@@ -68,6 +68,18 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    beforeOpen: (_) async {
+      // Older remote search retained the author-only isCustom flag while
+      // clearing its owner on promotion. source=community is server-confirmed
+      // shared identity, unlike contributionStatus (also used for corrections).
+      // Repair metadata only, including already-v17 databases and offline use.
+      if (await _tableExists('foods')) {
+        await customStatement(
+          'UPDATE foods SET is_custom = 0 WHERE is_custom = 1 '
+          "AND owner_user_id IS NULL AND source = 'community'",
+        );
+      }
+    },
     onUpgrade: (m, from, to) async {
       // v2：新增 FastingRecords（M5 streak 结算 / M6 趋势数据源）。
       if (from < 2) {

@@ -441,7 +441,9 @@ final class RecordRepository {
           );
           if (_disposed ||
               food == null ||
-              (food.customSyncPending && !food.customSyncFailed)) {
+              (food.source != 'community' &&
+                  food.customSyncPending &&
+                  !food.customSyncFailed)) {
             return null;
           }
         }

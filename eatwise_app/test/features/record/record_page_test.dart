@@ -471,7 +471,14 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(tester.takeException(), isNull);
-    expect(find.text('未能保存，输入已保留，请重试。'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(SnackBar),
+        matching: find.text('未能保存，输入已保留，请重试。'),
+      ),
+      findsOneWidget,
+      reason: '保存失败必须有可见反馈，不能只藏在卡片滚动区底部',
+    );
     expect(
       tester.widget<TextField>(find.byType(TextField).last).controller!.text,
       '125',
