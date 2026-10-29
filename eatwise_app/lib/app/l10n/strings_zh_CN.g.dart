@@ -2611,8 +2611,8 @@ class Translations$settings$health$zh_CN {
 	/// zh-CN: '读取中…'
 	String get statusConnecting => '读取中…';
 
-	/// zh-CN: '已授权'
-	String get statusReady => '已授权';
+	/// zh-CN: '已连接'
+	String get statusReady => '已连接';
 
 	/// zh-CN: '未授权，可在系统健康设置中开启后重试'
 	String get statusDenied => '未授权，可在系统健康设置中开启后重试';
@@ -5624,7 +5624,7 @@ extension on Translations {
 			'settings.health.consentAgree' => '同意并开启',
 			'settings.health.consentDecline' => '暂不同意',
 			'settings.health.statusConnecting' => '读取中…',
-			'settings.health.statusReady' => '已授权',
+			'settings.health.statusReady' => '已连接',
 			'settings.health.statusDenied' => '未授权，可在系统健康设置中开启后重试',
 			'settings.health.statusUnsupported' => '当前设备不支持系统健康数据（未检测到 Health Connect / 健康服务）',
 			'settings.health.statusError' => '读取失败，请稍后重试',

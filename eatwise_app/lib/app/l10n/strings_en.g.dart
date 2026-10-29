@@ -1434,7 +1434,7 @@ class _Translations$settings$health$en extends Translations$settings$health$zh_C
 	@override String get consentAgree => 'Agree & turn on';
 	@override String get consentDecline => 'Not now';
 	@override String get statusConnecting => 'Reading…';
-	@override String get statusReady => 'Authorized';
+	@override String get statusReady => 'Connected';
 	@override String get statusDenied => 'Not authorized — enable it in the system health settings and retry';
 	@override String get statusUnsupported => 'System health data unavailable on this device (Health Connect not found)';
 	@override String get statusError => 'Read failed — please try again later';
@@ -3404,7 +3404,7 @@ extension on TranslationsEn {
 			'settings.health.consentAgree' => 'Agree & turn on',
 			'settings.health.consentDecline' => 'Not now',
 			'settings.health.statusConnecting' => 'Reading…',
-			'settings.health.statusReady' => 'Authorized',
+			'settings.health.statusReady' => 'Connected',
 			'settings.health.statusDenied' => 'Not authorized — enable it in the system health settings and retry',
 			'settings.health.statusUnsupported' => 'System health data unavailable on this device (Health Connect not found)',
 			'settings.health.statusError' => 'Read failed — please try again later',

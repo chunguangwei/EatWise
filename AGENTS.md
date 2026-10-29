@@ -24,6 +24,8 @@ flutter test                    # 门禁：全绿
 
 硬性规则：
 
+- **同步与健康复核（2026-10-29）**：待上传计数及手动结果使用 `FoodEntryDao.pendingUploads` 同口径，包含未确认的删除（有 serverId 或未知 create 快照），排除已同步 tombstone，防离线删除停重试或假成功。搜索整段绑定 `withApiSession` 的 uid/epoch，缓存事务每个 await 后检查会话并回滚过期写入。健康 READ 权限保留 `bool?`：iOS 的 null 是不可查询，不能判 denied；用户已单独同意时尝试读取，只有明确 false 才拒绝，空数据不代表获授权，UI 用“已连接”。
+
 - **待同步重试（2026-10-29，v1.17.15）**：顶部待同步提示必须执行真实同步，显示网络/超时/登录/服务异常或仍待同步的准确结果，不得接 comingSoon。RecordSyncEngine.singleflight 让所有入口等待同一轮完成，后台默认吞可恢复 API 错误，手动 propagateErrors=true；成功以持久队列清空且无拒绝回滚为准。手动反馈绑定 uid/epoch/仓储/页面可见性，旧会话不得弹到新账号。登录且前台有待上传食物记录时每30秒重试，后台/注销/清空/dispose取消，恢复前台有pending立即重试；D-11撤销窗仍由原timer保留，不强制提前上传。
 
 - **共享食品入账（2026-10-29，v1.17.14）**：搜索缓存保留本人 `isCustom` 作者标记时必须同时保留 owner；其他账号/无 owner 的社区命中按共享行缓存。启动修复旧 `source=community + owner NULL + isCustom` 损坏元数据，不按 approved 推断共享。搜索缓存同事务保护当前账号 dirty 草稿，返回当前可见行而非网络 await 前快照。已确认 community 食品不受遗留个人 pending 标记阻塞记餐上行。单条本地写入失败必须显示可见反馈并保留草稿，不能仅依赖滚动卡片底部错误。

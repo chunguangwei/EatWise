@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' show Value;
+import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/core/storage/database.dart';
 
 /// 食物搜索（D-16）：本地优先 + 远端 K1 补充。
@@ -22,22 +23,28 @@ final class RemoteFoodSearch {
   final String userId;
 
   /// 搜索（本地优先，远端补充合入本地缓存）。
-  Future<List<Food>> search(String query, {int limit = 20}) async {
+  Future<List<Food>> search(String query, {int limit = 20}) =>
+      withApiSession(dio, () => _search(query, limit: limit), userId: userId);
+
+  Future<List<Food>> _search(String query, {required int limit}) async {
     final local = await db.foodDao.searchFoods(
       query,
       limit: limit,
       ownerUserId: userId,
     );
+    checkActiveSession();
     List<Map<String, dynamic>> remoteItems;
     try {
       final response = await dio.get<Map<String, dynamic>>(
         '/foods/search',
         queryParameters: <String, dynamic>{'q': query, 'limit': limit},
       );
+      checkActiveSession();
       final body = response.data ?? const <String, dynamic>{};
       remoteItems = (body['items'] as List<dynamic>? ?? const <dynamic>[])
           .cast<Map<String, dynamic>>();
     } on DioException {
+      checkActiveSession();
       return local; // 离线/未登录/服务端异常：本地结果兜底
     }
     if (remoteItems.isEmpty) return local;
@@ -47,9 +54,11 @@ final class RemoteFoodSearch {
     // 搜索行标签显示「已共享」而非「社区」（审核晋升 id 不变，服务端
     // approve 后 isCustom 转 false，仅本地标记可区分）。
     await db.transaction(() async {
+      checkActiveSession();
       for (final item in remoteItems) {
         var companion = _toCompanion(item);
         final existing = await db.foodDao.getById(companion.id.value);
+        checkActiveSession();
         // Search can finish after a newer local edit. Read and cache in one
         // transaction so the old response cannot overwrite that dirty draft.
         if (existing != null &&
@@ -72,8 +81,10 @@ final class RemoteFoodSearch {
           );
         }
         await db.foodDao.upsertAll([companion]);
+        checkActiveSession();
       }
     });
+    checkActiveSession();
     // Keep ranking but return the current visible rows, not the snapshots read
     // before the network await (which can precede an edit or promotion).
     final ids = <String>{
@@ -83,6 +94,7 @@ final class RemoteFoodSearch {
     final merged = <Food>[];
     for (final id in ids) {
       final food = await db.foodDao.getById(id, ownerUserId: userId);
+      checkActiveSession();
       if (food != null) merged.add(food);
     }
     return merged.take(limit).toList();

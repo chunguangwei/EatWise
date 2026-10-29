@@ -110,6 +110,7 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
             (e) =>
                 e.userId.equals(userId) &
                 e.deleted.equals(true) &
+                e.syncStatus.equalsValue(SyncStatus.synced).not() &
                 (e.serverId.isNotNull() | e.createRequestSnapshot.isNotNull()),
           )
           ..orderBy(<OrderingTerm Function(FoodEntries)>[
@@ -141,17 +142,24 @@ class FoodEntryDao extends DatabaseAccessor<AppDatabase>
         .get();
   }
 
-  /// 「待同步 N 条」计数流（§4.1：pending + submitting + conflicted > 0 时
-  /// 展示入口；删除窗内的新增同样计入）。
+  /// 待上行的创建/编辑/删除共用查询，保证提示和自动重试口径一致。
+  /// 服务端已确认的 tombstone，以及从未发出的本地撤销，不需要上传。
+  Expression<bool> _needsUpload(String userId) =>
+      foodEntries.userId.equals(userId) &
+      foodEntries.syncStatus.equalsValue(SyncStatus.synced).not() &
+      (foodEntries.deleted.equals(false) |
+          foodEntries.serverId.isNotNull() |
+          foodEntries.createRequestSnapshot.isNotNull());
+
+  Future<List<FoodEntry>> pendingUploads(String userId) =>
+      (select(foodEntries)..where((e) => _needsUpload(userId))).get();
+
+  /// 「待同步 N 条」计数流，包含尚未获服务器确认的删除请求。
   Stream<int> watchPendingCount(String userId) {
     final count = foodEntries.localId.count();
     final query = selectOnly(foodEntries)
       ..addColumns(<Expression<Object>>[count])
-      ..where(
-        foodEntries.userId.equals(userId) &
-            foodEntries.deleted.equals(false) &
-            foodEntries.syncStatus.equalsValue(SyncStatus.synced).not(),
-      );
+      ..where(_needsUpload(userId));
     return query.map((row) => row.read(count) ?? 0).watchSingle();
   }
 

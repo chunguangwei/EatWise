@@ -1033,7 +1033,7 @@
       "consentAgree": "Agree & turn on",
       "consentDecline": "Not now",
       "statusConnecting": "Reading…",
-      "statusReady": "Authorized",
+      "statusReady": "Connected",
       "statusDenied": "Not authorized — enable it in the system health settings and retry",
       "statusUnsupported": "System health data unavailable on this device (Health Connect not found)",
       "statusError": "Read failed — please try again later",

@@ -5,7 +5,6 @@ import 'package:eatwise/core/llm/ondevice/ondevice_providers.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
-import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/time/day_change.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
@@ -567,13 +566,8 @@ final recordManualSyncProvider = Provider<Future<PendingSyncResult> Function()>(
               ref.read(recordSyncEngineProvider).syncNow(propagateErrors: true),
           readErrors: () async {
             if (!current()) return const [];
-            final rows = await repository.db.foodEntryDao.pendingEntries(
+            final rows = await repository.db.foodEntryDao.pendingUploads(
               repository.userId,
-              statuses: const {
-                SyncStatus.pending,
-                SyncStatus.submitting,
-                SyncStatus.conflicted,
-              },
             );
             return rows.map((row) => row.lastError).toList();
           },

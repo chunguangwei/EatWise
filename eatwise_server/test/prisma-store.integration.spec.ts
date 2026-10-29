@@ -1296,7 +1296,15 @@ describePg('PrismaStore auth / 食物搜索 / 候选 / 晋升（集成，真实 
     const old = candidate({ status: 'approved', createdAt: new Date('2026-09-01T00:00:00Z') });
     const mid = candidate({ status: 'pending', createdAt: new Date('2026-09-02T00:00:00Z') });
     const late = candidate({ status: 'pending', createdAt: new Date('2026-09-03T00:00:00Z') });
-    for (const c of [old, mid, late]) await store.createFoodCandidate(c);
+    for (const c of [old, mid, late]) {
+      await store.createFoodCandidate(c);
+      // Production creation uses the database clock. Seed distinct persisted
+      // times for this ordering test; same-ms inserts otherwise sort by random id.
+      await prisma.foodCandidate.update({
+        where: { id: c.id },
+        data: { createdAt: c.createdAt },
+      });
+    }
 
     expect((await store.findFoodCandidateById(mid.id))!.foodId).toBe(mid.foodId);
     expect(await store.findFoodCandidateById('fc_missing')).toBeNull();
