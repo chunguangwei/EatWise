@@ -9,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// 平台通道 fake（HealthGateway 接口即 mock 点，不触真实 MethodChannel）。
 final class _FakeHealthGateway implements HealthGateway {
   bool supported = true;
-  bool granted = false;
+  bool? granted = false;
 
   /// requestAuthorization 的系统应答（用户是否授权）。
   bool grantResult = true;
@@ -40,7 +40,7 @@ final class _FakeHealthGateway implements HealthGateway {
   }
 
   @override
-  Future<bool> hasAuthorization() async {
+  Future<bool?> hasAuthorization() async {
     authorizationChecks++;
     if (throwOnAuthorizationCheck) throw StateError('auth check failed');
     return granted;
@@ -315,6 +315,75 @@ void main() {
     final controller = build(consented: false);
     await controller.refresh();
     expect(controller.state.status, HealthSyncStatus.off);
+  });
+
+  test('iOS 授权状态未知：已同意后刷新仍读取数据，不再次请求授权', () async {
+    final controller = build();
+    addTearDown(controller.dispose);
+    await controller.enable();
+    gateway.granted = null;
+    gateway.steps = 7200;
+
+    await controller.refresh();
+
+    expect(controller.state.status, HealthSyncStatus.ready);
+    expect(controller.state.today?.steps, 7200);
+    expect(gateway.authorizationRequests, 1);
+  });
+
+  test('iOS 授权状态未知：冷启动读取为空保留无数据快照', () async {
+    gateway.granted = null;
+    gateway.steps = null;
+    gateway.activeEnergyKcal = null;
+    gateway.weightKg = null;
+    await consentStore.setConsented(true);
+    final container = buildContainer();
+    final controller = container.read(healthSyncControllerProvider.notifier);
+    await Future<void>.delayed(Duration.zero);
+    await controller.refresh();
+
+    expect(controller.state.status, HealthSyncStatus.ready);
+    expect(controller.state.today, isNotNull);
+    expect(controller.state.today?.steps, isNull);
+    expect(controller.state.today?.activeEnergyKcal, isNull);
+    expect(controller.state.today?.latestWeightKg, isNull);
+    expect(gateway.authorizationRequests, 0);
+  });
+
+  test('iOS 授权状态未知也不能跳过用户同意', () async {
+    gateway.granted = null;
+    final controller = build();
+    addTearDown(controller.dispose);
+
+    await controller.refresh();
+
+    expect(controller.state.status, HealthSyncStatus.off);
+    expect(gateway.authorizationChecks, 0);
+    expect(gateway.dataReads, 0);
+  });
+
+  test('未知授权读取期间关闭：迟到快照不得恢复数据', () async {
+    gateway.granted = null;
+    final controller = build(consented: true);
+    addTearDown(controller.dispose);
+    final started = Completer<void>();
+    final gate = Completer<void>();
+    gateway.stepsStarted = started;
+    gateway.stepsGate = gate;
+    final refreshing = controller.refresh();
+    // A denied-state regression must fail without hanging on stepsStarted.
+    await Future.any([started.future, refreshing]);
+    expect(gateway.stepsReads, 1);
+
+    await controller.disable();
+    gate.complete();
+    await refreshing;
+
+    expect(consentStore.consented, isFalse);
+    expect(controller.state.status, HealthSyncStatus.off);
+    expect(controller.state.today, isNull);
+    expect(gateway.energyReads, 0);
+    expect(gateway.weightReads, 0);
   });
 
   test('refresh 已同意但授权被系统侧撤销 → denied', () async {

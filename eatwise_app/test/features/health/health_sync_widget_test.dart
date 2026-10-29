@@ -186,7 +186,7 @@ void main() {
     expect(consentStore.consented, isFalse);
   });
 
-  testWidgets('同意并开启 → 已授权 + 今日预览（步数/消耗/体重）', (tester) async {
+  testWidgets('同意并开启 → 已连接 + 今日预览（步数/消耗/体重）', (tester) async {
     await pumpSection(tester);
 
     await tester.tap(find.byType(Switch));
@@ -196,7 +196,7 @@ void main() {
 
     expect(consentStore.consented, isTrue);
     expect(syncSwitch(tester).value, isTrue);
-    expect(find.text('已授权'), findsOneWidget);
+    expect(find.text('已连接'), findsOneWidget);
     expect(find.textContaining('步数 6200'), findsOneWidget);
     expect(find.textContaining('活动消耗 245 kcal'), findsOneWidget);
     expect(find.textContaining('最新体重 66.5 kg'), findsOneWidget);

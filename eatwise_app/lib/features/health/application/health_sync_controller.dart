@@ -67,8 +67,8 @@ final healthGatewayProvider = Provider<HealthGateway>((ref) {
 /// - off：未开启（或无单独同意）；
 /// - connecting：已同意，正在检查支持态/授权/读取；
 /// - unsupported：设备不支持（Android 未装 Health Connect 等）；
-/// - denied：系统授权被拒（iOS 健康 App 内被关也落此态）；
-/// - ready：已授权且读取成功（[HealthSyncState.today] 为最新快照）；
+/// - denied：系统明确返回未授权（iOS 不公开只读授权状态）；
+/// - ready：读取完成（[HealthSyncState.today] 为最新快照，可无可读数据）；
 /// - error：支持态/授权检查或读取失败（可重试）。
 enum HealthSyncStatus { off, connecting, unsupported, denied, ready, error }
 
@@ -185,7 +185,9 @@ final class HealthSyncController extends StateNotifier<HealthSyncState> {
       if (!await _guardSupported(operation) || !_isCurrent(operation)) return;
       final granted = await _gateway.hasAuthorization();
       if (!_isCurrent(operation)) return;
-      if (!granted) {
+      // HealthKit 不公开 READ 授权；已有单独同意时尝试读取，空结果
+      // 保留为无数据。只有平台明确返回 false 才判定拒绝。
+      if (granted == false) {
         _setState(
           const HealthSyncState(status: HealthSyncStatus.denied),
           operation,

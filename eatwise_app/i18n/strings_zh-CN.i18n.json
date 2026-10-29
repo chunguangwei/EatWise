@@ -1032,7 +1032,7 @@
       "consentAgree": "同意并开启",
       "consentDecline": "暂不同意",
       "statusConnecting": "读取中…",
-      "statusReady": "已授权",
+      "statusReady": "已连接",
       "statusDenied": "未授权，可在系统健康设置中开启后重试",
       "statusUnsupported": "当前设备不支持系统健康数据（未检测到 Health Connect / 健康服务）",
       "statusError": "读取失败，请稍后重试",

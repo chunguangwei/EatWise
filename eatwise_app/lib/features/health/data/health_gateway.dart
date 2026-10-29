@@ -11,8 +11,8 @@ abstract interface class HealthGateway {
   /// （iOS：HealthKit；Android：Health Connect 已安装且 SDK 可用）。
   Future<bool> isSupported();
 
-  /// 当前是否已持有读取授权（null 视为未授权）。
-  Future<bool> hasAuthorization();
+  /// 当前读取授权状态；iOS 不公开只读授权，返回 null（未知）。
+  Future<bool?> hasAuthorization();
 
   /// 向系统申请读取授权（步数/活动能量/体重，均为 READ）。
   Future<bool> requestAuthorization();
@@ -65,13 +65,9 @@ final class HealthPackageGateway implements HealthGateway {
   }
 
   @override
-  Future<bool> hasAuthorization() async {
+  Future<bool?> hasAuthorization() async {
     await _ensureConfigured();
-    final granted = await _health.hasPermissions(
-      _types,
-      permissions: _permissions,
-    );
-    return granted ?? false;
+    return _health.hasPermissions(_types, permissions: _permissions);
   }
 
   @override
