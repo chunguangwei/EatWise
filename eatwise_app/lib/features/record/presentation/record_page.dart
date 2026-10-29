@@ -17,6 +17,7 @@ import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/core/widgets/state_views.dart';
 import 'package:eatwise/features/fasting/presentation/fasting_timer_controller.dart';
 import 'package:eatwise/features/health/presentation/exercise_log_sheet.dart';
+import 'package:eatwise/features/record/application/pending_sync.dart';
 import 'package:eatwise/features/record/barcode/presentation/barcode_flow.dart';
 import 'package:eatwise/features/record/barcode/presentation/barcode_strings.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
@@ -418,6 +419,44 @@ class _RecordPageState extends ConsumerState<RecordPage> {
     }
   }
 
+  bool _manualSyncBusy = false;
+
+  Future<void> _retryPending() async {
+    if (_manualSyncBusy) return;
+    final repository = ref.read(recordRepositoryProvider);
+    final route = ModalRoute.of(context);
+    final action = ref.read(recordManualSyncProvider);
+    setState(() => _manualSyncBusy = true);
+    PendingSyncResult result;
+    try {
+      result = await action();
+    } on Object {
+      result = PendingSyncResult.failed;
+    }
+    if (!mounted) return;
+    setState(() => _manualSyncBusy = false);
+    if (result == PendingSyncResult.cancelled ||
+        !identical(repository, ref.read(recordRepositoryProvider)) ||
+        route?.isCurrent == false ||
+        !TickerMode.valuesOf(context).enabled) {
+      return;
+    }
+    final s = Translations.of(context).record.manualSync;
+    final message = switch (result) {
+      PendingSyncResult.success => s.success,
+      PendingSyncResult.network => s.network,
+      PendingSyncResult.timeout => s.timeout,
+      PendingSyncResult.login => s.login,
+      PendingSyncResult.server => s.server,
+      PendingSyncResult.pending => s.pending,
+      PendingSyncResult.rejected => s.rejected,
+      PendingSyncResult.failed || PendingSyncResult.cancelled => s.failed,
+    };
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<Food?>(recordSelectedFoodProvider, (previous, next) {
@@ -483,8 +522,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                 MediaQuery.textScalerOf(context).scale(14) <= 18;
             return Column(
               children: <Widget>[
-                // 「待同步 N 条」可见入口（§4.1：>0 时展示，点击进同步详情页
-                // ——详情页由主代理集成，当前占位提示）。
+                // 「待同步 N 条」可见入口：点击等待真实同步结果。
                 if (pendingCount > 0 && !keyboardVisible)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(
@@ -501,9 +539,7 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                         borderRadius: radii.rMd,
                         child: InkWell(
                           borderRadius: radii.rMd,
-                          onTap: () => ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(SnackBar(content: Text(s.comingSoon))),
+                          onTap: _manualSyncBusy ? null : _retryPending,
                           child: Container(
                             constraints: const BoxConstraints(minHeight: 48),
                             padding: const EdgeInsets.symmetric(
@@ -512,10 +548,20 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                             ),
                             child: Row(
                               children: <Widget>[
-                                Icon(
-                                  Icons.cloud_upload_rounded,
-                                  color: colors.brandAccent,
-                                ),
+                                if (_manualSyncBusy)
+                                  SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: colors.brandAccent,
+                                    ),
+                                  )
+                                else
+                                  Icon(
+                                    Icons.cloud_upload_rounded,
+                                    color: colors.brandAccent,
+                                  ),
                                 const SizedBox(width: AppSpacing.s2),
                                 Expanded(
                                   child: Text(

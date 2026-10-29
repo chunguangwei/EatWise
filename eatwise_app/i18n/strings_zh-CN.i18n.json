@@ -190,6 +190,16 @@
       "other": "其他"
     },
     "unknownFood": "未知食物",
+    "manualSync": {
+      "success": "待同步记录已上传",
+      "network": "网络连接失败，请检查网络后重试",
+      "timeout": "同步请求超时，请稍后重试",
+      "login": "请先登录后同步记录",
+      "server": "同步服务暂不可用，请稍后重试",
+      "pending": "仍有记录待同步，请稍后重试",
+      "rejected": "部分记录未能通过服务器校验，请重新记录",
+      "failed": "同步未完成，请稍后重试"
+    },
     "syncRejectedBatch": "${count} 条记录未能通过服务器校验，已从本地移除，请重新记录",
     "today": {
       "title": "今日记录",

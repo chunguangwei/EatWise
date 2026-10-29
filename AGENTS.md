@@ -24,6 +24,8 @@ flutter test                    # 门禁：全绿
 
 硬性规则：
 
+- **待同步重试（2026-10-29，v1.17.15）**：顶部待同步提示必须执行真实同步，显示网络/超时/登录/服务异常或仍待同步的准确结果，不得接 comingSoon。RecordSyncEngine.singleflight 让所有入口等待同一轮完成，后台默认吞可恢复 API 错误，手动 propagateErrors=true；成功以持久队列清空且无拒绝回滚为准。手动反馈绑定 uid/epoch/仓储/页面可见性，旧会话不得弹到新账号。登录且前台有待上传食物记录时每30秒重试，后台/注销/清空/dispose取消，恢复前台有pending立即重试；D-11撤销窗仍由原timer保留，不强制提前上传。
+
 - **共享食品入账（2026-10-29，v1.17.14）**：搜索缓存保留本人 `isCustom` 作者标记时必须同时保留 owner；其他账号/无 owner 的社区命中按共享行缓存。启动修复旧 `source=community + owner NULL + isCustom` 损坏元数据，不按 approved 推断共享。搜索缓存同事务保护当前账号 dirty 草稿，返回当前可见行而非网络 await 前快照。已确认 community 食品不受遗留个人 pending 标记阻塞记餐上行。单条本地写入失败必须显示可见反馈并保留草稿，不能仅依赖滚动卡片底部错误。
 
 - **复核修复（2026-10-28）**：drift **v17** 的 Foods 增冻结创建载荷、编辑代际、稳定原本地身份；未知 ACK 必须先用原键/原 wire 确认再 PATCH 新意图。下行只能凭同 owner 的原 clientRequestId 绑定，禁止按名称猜；dirty 食品不覆盖，remap 与 entry 引用同事务。RecordRepository.addEntry 同事务解析原身份到最终 food.id 后生成快照入账；聚合更新/删除/回滚一律按记录持久 localDate，不能旅行后用当前时区重新推旧日。原生 `eatwise/system_timezone` 提供 IANA，事件/前台刷新统一 tz.local；记录仓储用 resolver 动态读取且不重建（保留撤销窗），单次入账冻结一次时区。举报结案以 outstanding queue 为准，确认下架与出队同 post 锁事务，保留历史 reportCount。社区提交前冻结整份稿件，失败保留原图；“不带图发布”仅影响当次请求。

@@ -1,43 +1,78 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
-/// 前台回切同步触发器（2026-09-30 真机走查：同一账号 Android 记的记录，
-/// iOS 要杀掉 App 重开才出现——旧口径 syncNow 只有冷启动/登录/本地记账
-/// 动作触发，iOS 用户不杀进程，回前台没有任何同步机会）。
-///
-/// `AppLifecycleState.resumed` 时触发一轮 RecordSyncEngine.syncNow
-///（先上行 pending 再增量下行；引擎自身在途去抖），[minInterval] 最小
-/// 间隔节流（前台高频切换不重复打全量推拉），仅登录态（与 main 冷启动
-/// 触发块同口径——匿名态下行通道本就关闭）。
-///
-/// 依赖以回调注入（生产在 main.dart 接线到 ProviderContainer），
-/// 便于单测不装配引擎。
+/// 登录用户的前台同步：普通下行按分钟节流，待上传记录每 30 秒重试。
+/// 条件变化由订阅方调用 [updateConditions]；订阅方销毁时须 [dispose]。
 class ForegroundSyncObserver extends WidgetsBindingObserver {
   ForegroundSyncObserver({
     required this.isLoggedIn,
     required this.triggerSync,
+    this.hasPending = _noPending,
+    AppLifecycleState initialState = AppLifecycleState.resumed,
     DateTime Function()? now,
-  }) : _now = now ?? DateTime.now;
+  }) : _foreground = initialState == AppLifecycleState.resumed,
+       _now = now ?? DateTime.now;
 
-  /// 登录态判定（匿名态下行通道关闭，不触发）。
+  static bool _noPending() => false;
+
   final bool Function() isLoggedIn;
-
-  /// 同步触发回调（生产接线 RecordSyncEngine.syncNow）。
+  final bool Function() hasPending;
   final void Function() triggerSync;
-
   final DateTime Function() _now;
 
-  /// 最小触发间隔。
   static const Duration minInterval = Duration(minutes: 1);
+  static const Duration retryInterval = Duration(seconds: 30);
 
   DateTime _lastTriggered = DateTime.fromMillisecondsSinceEpoch(0);
+  bool _foreground;
+  bool _disposed = false;
+  Timer? _retryTimer;
+
+  bool get _shouldRetry =>
+      !_disposed && _foreground && isLoggedIn() && hasPending();
+
+  /// 激活待上传条件时立即重试；后续计数变化保留既有重试时钟。
+  void updateConditions() {
+    if (!_shouldRetry) {
+      _retryTimer?.cancel();
+      _retryTimer = null;
+      return;
+    }
+    if (_retryTimer != null) return;
+    _retryTimer = Timer.periodic(retryInterval, (_) {
+      // 即使订阅通知尚未到达，也再次核对登录与 pending，防止匿名上行。
+      if (!_shouldRetry) {
+        updateConditions();
+        return;
+      }
+      _trigger();
+    });
+    _trigger();
+  }
+
+  void _trigger() {
+    _lastTriggered = _now();
+    triggerSync();
+  }
+
+  void dispose() {
+    _disposed = true;
+    _retryTimer?.cancel();
+    _retryTimer = null;
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) return;
-    if (!isLoggedIn()) return;
-    final now = _now();
-    if (now.difference(_lastTriggered) < minInterval) return;
-    _lastTriggered = now;
-    triggerSync();
+    if (_disposed) return;
+    _foreground = state == AppLifecycleState.resumed;
+    if (_shouldRetry) {
+      updateConditions();
+      return;
+    }
+    updateConditions();
+    if (!_foreground || !isLoggedIn()) return;
+    if (_now().difference(_lastTriggered) < minInterval) return;
+    _trigger();
   }
 }

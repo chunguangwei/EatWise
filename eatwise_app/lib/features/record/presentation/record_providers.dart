@@ -5,6 +5,7 @@ import 'package:eatwise/core/llm/ondevice/ondevice_providers.dart';
 import 'package:eatwise/core/network/network_providers.dart';
 import 'package:eatwise/core/storage/database.dart';
 import 'package:eatwise/core/storage/providers.dart';
+import 'package:eatwise/core/storage/sync_status.dart';
 import 'package:eatwise/core/storage/tables.dart';
 import 'package:eatwise/core/time/day_change.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
@@ -15,6 +16,7 @@ import 'package:eatwise/features/moderation/application/moderation_controller.da
     show adminPendingAlertSyncProvider;
 import 'package:eatwise/features/onboarding/application/onboarding_controller.dart';
 import 'package:eatwise/features/onboarding/application/profile_sync.dart';
+import 'package:eatwise/features/record/application/pending_sync.dart';
 import 'package:eatwise/features/record/custom_food/presentation/custom_food_providers.dart';
 import 'package:eatwise/features/record/data/anonymous_data_migrator.dart';
 import 'package:eatwise/features/record/data/daily_nutrition_cache_repair.dart';
@@ -544,3 +546,47 @@ final StreamProvider<int> todayDuringFastCountProvider = StreamProvider<int>((
     return Stream<int>.value(0);
   }
 });
+
+/// User initiated retry, injectable for UI tests.
+final recordManualSyncProvider = Provider<Future<PendingSyncResult> Function()>(
+  (ref) {
+    final repository = ref.watch(recordRepositoryProvider);
+    final tokenStore = ref.watch(tokenStoreProvider);
+    var active = true;
+    ref.onDispose(() => active = false);
+    return () async {
+      if (repository.userId == 'anonymous') return PendingSyncResult.login;
+      final epoch = tokenStore.sessionEpoch;
+      bool current() =>
+          active && !repository.isDisposed && tokenStore.sessionEpoch == epoch;
+      var rejected = false;
+      final subscription = repository.failures.listen((_) => rejected = true);
+      try {
+        final result = await retryPendingRecords(
+          sync: () =>
+              ref.read(recordSyncEngineProvider).syncNow(propagateErrors: true),
+          readErrors: () async {
+            if (!current()) return const [];
+            final rows = await repository.db.foodEntryDao.pendingEntries(
+              repository.userId,
+              statuses: const {
+                SyncStatus.pending,
+                SyncStatus.submitting,
+                SyncStatus.conflicted,
+              },
+            );
+            return rows.map((row) => row.lastError).toList();
+          },
+          wasRejected: () => rejected,
+        );
+        return current() ? result : PendingSyncResult.cancelled;
+      } on Object {
+        return current()
+            ? PendingSyncResult.failed
+            : PendingSyncResult.cancelled;
+      } finally {
+        await subscription.cancel();
+      }
+    };
+  },
+);

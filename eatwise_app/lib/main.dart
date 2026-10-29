@@ -169,15 +169,8 @@ Future<void> main() async {
       // 防御：方案同步未装配时跳过。
     }
   }
-  // 前台回切触发同步（真机走查：iOS 不杀进程，他端新记录要杀 App 重开
-  // 才出现——resumed 时补一轮 syncNow，1 分钟节流，仅登录态）。
-  WidgetsBinding.instance.addObserver(
-    ForegroundSyncObserver(
-      isLoggedIn: () => container.read(authGateProvider).loggedIn,
-      triggerSync: () =>
-          unawaited(container.read(recordSyncEngineProvider).syncNow()),
-    ),
-  );
+  // 订阅 pending 与登录变化；容器销毁时清理 timer 与所有监听。
+  container.read(_foregroundSyncLifecycleProvider);
   // 冷启动引擎预热（真机反馈：重启后端侧开关持久化为开但没人触发
   // 预热，首拍仍吃视觉重建数秒）——等首个模型快照落地后「开关开 +
   // 模型 ready」即后台 load（只 load 不推理，失败静默不阻断启动）。
@@ -210,6 +203,27 @@ Future<void> main() async {
     ),
   );
 }
+
+/// 同步触发器与 ProviderContainer 同生命周期，不在页面切换时重复注册。
+final _foregroundSyncLifecycleProvider = Provider<void>((ref) {
+  final authGate = ref.read(authGateProvider);
+  final observer = ForegroundSyncObserver(
+    isLoggedIn: () => authGate.loggedIn,
+    hasPending: () => (ref.read(recordPendingCountProvider).value ?? 0) > 0,
+    initialState:
+        WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed,
+    triggerSync: () => unawaited(ref.read(recordSyncEngineProvider).syncNow()),
+  );
+  WidgetsBinding.instance.addObserver(observer);
+  authGate.addListener(observer.updateConditions);
+  ref.listen(recordPendingCountProvider, (_, _) => observer.updateConditions());
+  observer.updateConditions();
+  ref.onDispose(() {
+    authGate.removeListener(observer.updateConditions);
+    WidgetsBinding.instance.removeObserver(observer);
+    observer.dispose();
+  });
+});
 
 class EatWiseApp extends StatefulWidget {
   const EatWiseApp({

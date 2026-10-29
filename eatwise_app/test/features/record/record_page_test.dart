@@ -20,6 +20,7 @@ import 'package:eatwise/core/theme/app_theme.dart';
 import 'package:eatwise/core/widgets/glass.dart';
 import 'package:eatwise/features/fasting/domain/nutrition_goal.dart';
 import 'package:eatwise/features/fasting/presentation/mini_signal_cards.dart';
+import 'package:eatwise/features/record/application/pending_sync.dart';
 import 'package:eatwise/features/record/data/record_remote.dart';
 import 'package:eatwise/features/record/data/record_repository.dart';
 import 'package:eatwise/features/record/data/water_log_repository.dart';
@@ -136,11 +137,14 @@ void main() {
     ThemeData? theme,
     double textScale = 1,
     ValueNotifier<bool>? active,
+    Future<PendingSyncResult> Function()? manualSync,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
           recordRepositoryProvider.overrideWithValue(repository),
+          if (manualSync != null)
+            recordManualSyncProvider.overrideWithValue(manualSync),
           aiEngineAvailabilityFnProvider.overrideWithValue(
             () async => AiEngineAvailability.ondeviceReady,
           ),
@@ -214,6 +218,84 @@ void main() {
       await settleUi(tester);
     });
   }
+
+  testWidgets('待同步入口实际重试、在途防重复、网络原因可见', (tester) async {
+    remote.mode = FakeRemoteMode.offline;
+    final food = (await db.select(db.foods).get()).first;
+    await repository.addEntry(
+      RecordDraft(
+        foodId: food.id,
+        amountG: 100,
+        mealUtc: DateTime.now().toUtc(),
+        source: EntrySource.manual,
+      ),
+    );
+    final done = Completer<PendingSyncResult>();
+    var calls = 0;
+    await pumpPage(
+      tester,
+      manualSync: () {
+        calls++;
+        return done.future;
+      },
+    );
+    final banner = find.text('还有 1 条记录在路上，联网后自动同步');
+    expect(banner, findsOneWidget);
+    await tester.tap(banner);
+    await tester.pump();
+    await tester.tap(banner);
+    await tester.pump();
+    expect(calls, 1);
+    done.complete(PendingSyncResult.network);
+    await tester.pump();
+    expect(find.text('网络连接失败，请检查网络后重试'), findsOneWidget);
+    await settleUi(tester);
+  });
+
+  testWidgets('匿名待同步记录提示登录，保留本地记录', (tester) async {
+    remote.mode = FakeRemoteMode.offline;
+    final food = (await db.select(db.foods).get()).first;
+    await repository.addEntry(
+      RecordDraft(
+        foodId: food.id,
+        amountG: 100,
+        mealUtc: DateTime.now().toUtc(),
+        source: EntrySource.manual,
+      ),
+    );
+    await pumpPage(tester);
+    await tester.tap(find.text('还有 1 条记录在路上，联网后自动同步'));
+    await tester.pump();
+    expect(find.text('请先登录后同步记录'), findsOneWidget);
+    expect(await db.foodEntryDao.pendingEntries('anonymous'), hasLength(1));
+    expect(remote.pushCount, 0);
+    await settleUi(tester);
+  });
+
+  testWidgets('离开记录页后不展示旧同步结果', (tester) async {
+    remote.mode = FakeRemoteMode.offline;
+    final food = (await db.select(db.foods).get()).first;
+    await repository.addEntry(
+      RecordDraft(
+        foodId: food.id,
+        amountG: 100,
+        mealUtc: DateTime.now().toUtc(),
+        source: EntrySource.manual,
+      ),
+    );
+    final active = ValueNotifier(true);
+    addTearDown(active.dispose);
+    final done = Completer<PendingSyncResult>();
+    await pumpPage(tester, active: active, manualSync: () => done.future);
+    await tester.tap(find.text('还有 1 条记录在路上，联网后自动同步'));
+    await tester.pump();
+    active.value = false;
+    await tester.pump();
+    done.complete(PendingSyncResult.network);
+    await tester.pump();
+    expect(find.text('网络连接失败，请检查网络后重试'), findsNothing);
+    await settleUi(tester);
+  });
 
   testWidgets('T7 同步拒绝：SnackBar 批量告知一次（计数合并，不再静默消失）', (tester) async {
     // 离线入账两条（本地乐观落库），随后上行被服务端校验拒绝（T7 回滚）。

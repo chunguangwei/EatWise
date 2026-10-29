@@ -96,6 +96,7 @@ class _Translations$record$en extends Translations$record$zh_CN {
 	@override late final _Translations$record$page$en page = _Translations$record$page$en._(_root);
 	@override late final _Translations$record$meal$en meal = _Translations$record$meal$en._(_root);
 	@override String get unknownFood => 'Unknown food';
+	@override late final _Translations$record$manualSync$en manualSync = _Translations$record$manualSync$en._(_root);
 	@override String syncRejectedBatch({required Object count}) => '${count} record(s) didn\'t pass server validation and were removed — please log them again';
 	@override late final _Translations$record$today$en today = _Translations$record$today$en._(_root);
 	@override late final _Translations$record$entries$en entries = _Translations$record$entries$en._(_root);
@@ -509,6 +510,23 @@ class _Translations$record$meal$en extends Translations$record$meal$zh_CN {
 	@override String get dinner => 'Dinner';
 	@override String get snack => 'Snack';
 	@override String get other => 'Other';
+}
+
+// Path: record.manualSync
+class _Translations$record$manualSync$en extends Translations$record$manualSync$zh_CN {
+	_Translations$record$manualSync$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get success => 'Pending records uploaded';
+	@override String get network => 'Network connection failed. Check your connection and try again.';
+	@override String get timeout => 'Sync timed out. Please try again later.';
+	@override String get login => 'Please sign in to sync your records.';
+	@override String get server => 'Sync service is temporarily unavailable. Please try again later.';
+	@override String get pending => 'Some records are still pending. Please try again later.';
+	@override String get rejected => 'Some records were rejected by the server. Please record them again.';
+	@override String get failed => 'Sync could not complete. Please try again later.';
 }
 
 // Path: record.today
@@ -2725,6 +2743,14 @@ extension on TranslationsEn {
 			'record.meal.snack' => 'Snack',
 			'record.meal.other' => 'Other',
 			'record.unknownFood' => 'Unknown food',
+			'record.manualSync.success' => 'Pending records uploaded',
+			'record.manualSync.network' => 'Network connection failed. Check your connection and try again.',
+			'record.manualSync.timeout' => 'Sync timed out. Please try again later.',
+			'record.manualSync.login' => 'Please sign in to sync your records.',
+			'record.manualSync.server' => 'Sync service is temporarily unavailable. Please try again later.',
+			'record.manualSync.pending' => 'Some records are still pending. Please try again later.',
+			'record.manualSync.rejected' => 'Some records were rejected by the server. Please record them again.',
+			'record.manualSync.failed' => 'Sync could not complete. Please try again later.',
 			'record.syncRejectedBatch' => ({required Object count}) => '${count} record(s) didn\'t pass server validation and were removed — please log them again',
 			'record.today.title' => 'Today\'s log',
 			'record.today.deleteEntry' => 'Delete this entry?',
@@ -3099,6 +3125,8 @@ extension on TranslationsEn {
 			'home.tab.home' => 'Home',
 			'home.tab.record' => 'Log',
 			'home.tab.data' => 'Stats',
+			_ => null,
+		} ?? switch (path) {
 			'home.tab.community' => 'Community',
 			'home.tab.profile' => 'Me',
 			'home.data.emptyTitle' => 'Your trends are warming up — log a few days to get them moving.',
@@ -3107,8 +3135,6 @@ extension on TranslationsEn {
 			'home.community.emptyTitle' => 'Waiting for today\'s first check-in to show up.',
 			'home.community.emptySubtitle' => 'Check-ins and challenges are on the way.',
 			'home.community.cta' => 'Check in',
-			_ => null,
-		} ?? switch (path) {
 			'home.community.comingSoon' => 'Community is coming soon — stay tuned',
 			'home.profile.emptyTitle' => 'Your profile is under construction',
 			'home.profile.emptySubtitle' => 'Plans, goals and more settings are moving in soon.',
@@ -3613,6 +3639,8 @@ extension on TranslationsEn {
 			'auth.logout' => 'Sign out',
 			'auth.logoutConfirm' => 'Sign out now? Unsynced records stay on this device.',
 			'auth.loggedOut' => 'Signed out',
+			_ => null,
+		} ?? switch (path) {
 			'auth.register.title' => 'Sign up',
 			'auth.register.subtitle' => 'Create an account to get started',
 			'auth.register.usernameLabel' => 'Username',
@@ -3621,8 +3649,6 @@ extension on TranslationsEn {
 			'auth.register.passwordHint' => '8-64 characters with letters and digits',
 			'auth.register.confirmPasswordLabel' => 'Confirm password',
 			'auth.register.confirmPasswordHint' => 'Re-enter your password',
-			_ => null,
-		} ?? switch (path) {
 			'auth.register.register' => 'Sign up',
 			'auth.register.registering' => 'Signing up…',
 			'auth.register.passwordMismatch' => 'Passwords do not match',

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:eatwise/core/network/api_exception.dart';
 import 'package:eatwise/core/network/session_lease.dart';
 import 'package:eatwise/features/fasting/data/fasting_plan_sync.dart';
@@ -126,26 +128,34 @@ final class RecordSyncEngine {
 
   String get _tokenKey => '$_tokenKeyPrefix${repository.userId}';
 
-  bool _syncing = false;
+  Future<void>? _inFlight;
 
-  /// 触发一轮同步（并发去抖：在途时直接返回）。
-  Future<void> syncNow() async {
-    if (!_active) return;
-    try {
+  /// Every trigger joins the same round. Manual callers wait for its actual
+  /// outcome; background triggers keep recoverable API failures silent.
+  Future<void> syncNow({bool propagateErrors = false}) async {
+    if (!_active) {
+      if (propagateErrors) throw const SessionChangedException();
+      return;
+    }
+    var task = _inFlight;
+    if (task == null) {
+      final completion = Completer<void>();
+      task = completion.future;
+      _inFlight = task;
       final session = _session;
-      if (session == null) {
-        await _syncNow();
-      } else {
-        await session.run(_syncNow);
-      }
-    } on SessionChangedException {
-      // Original account keeps its pending work for its next login.
+      completion.complete(session == null ? _syncNow() : session.run(_syncNow));
+    }
+    try {
+      await task;
+    } on ApiException {
+      if (propagateErrors) rethrow;
+      // Pending data stays with its original account for the next attempt.
+    } finally {
+      if (identical(_inFlight, task)) _inFlight = null;
     }
   }
 
   Future<void> _syncNow() async {
-    if (_syncing) return;
-    _syncing = true;
     try {
       // 匿名数据换挂（审计#1）先于一切上行/下行：登录首轮把试用期的
       // anonymous 名下记录并入真实 uid（否则 pending 永远不上行、
@@ -295,8 +305,6 @@ final class RecordSyncEngine {
           }
         }
       }
-    } on ApiException {
-      // 网络/服务端失败：保持现状，下次触发重试（§4.2）。
     } finally {
       // 聚合缓存存量回填（v1.12.5 走查盲区修复）：**不依赖 pull 有无新
       // 变更，也不依赖在线**——旧版本下行遗留记录游标已越过，缓存永远
@@ -304,7 +312,6 @@ final class RecordSyncEngine {
       // recompute 幂等）。首次全量回填（prefs 标记），之后每次只校验
       // 近 7 天廉价窗口。失败静默，下轮 syncNow 重试。
       if (_active) await _repairDailyCaches();
-      _syncing = false;
     }
   }
 

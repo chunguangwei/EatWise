@@ -190,6 +190,16 @@
       "other": "Other"
     },
     "unknownFood": "Unknown food",
+    "manualSync": {
+      "success": "Pending records uploaded",
+      "network": "Network connection failed. Check your connection and try again.",
+      "timeout": "Sync timed out. Please try again later.",
+      "login": "Please sign in to sync your records.",
+      "server": "Sync service is temporarily unavailable. Please try again later.",
+      "pending": "Some records are still pending. Please try again later.",
+      "rejected": "Some records were rejected by the server. Please record them again.",
+      "failed": "Sync could not complete. Please try again later."
+    },
     "syncRejectedBatch": "${count} record(s) didn't pass server validation and were removed — please log them again",
     "today": {
       "title": "Today's log",

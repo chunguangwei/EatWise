@@ -106,6 +106,8 @@ class Translations$record$zh_CN {
 	/// zh-CN: '未知食物'
 	String get unknownFood => '未知食物';
 
+	late final Translations$record$manualSync$zh_CN manualSync = Translations$record$manualSync$zh_CN.internal(_root);
+
 	/// zh-CN: '${count} 条记录未能通过服务器校验，已从本地移除，请重新记录'
 	String syncRejectedBatch({required Object count}) => '${count} 条记录未能通过服务器校验，已从本地移除，请重新记录';
 
@@ -778,6 +780,39 @@ class Translations$record$meal$zh_CN {
 
 	/// zh-CN: '其他'
 	String get other => '其他';
+}
+
+// Path: record.manualSync
+class Translations$record$manualSync$zh_CN {
+	Translations$record$manualSync$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '待同步记录已上传'
+	String get success => '待同步记录已上传';
+
+	/// zh-CN: '网络连接失败，请检查网络后重试'
+	String get network => '网络连接失败，请检查网络后重试';
+
+	/// zh-CN: '同步请求超时，请稍后重试'
+	String get timeout => '同步请求超时，请稍后重试';
+
+	/// zh-CN: '请先登录后同步记录'
+	String get login => '请先登录后同步记录';
+
+	/// zh-CN: '同步服务暂不可用，请稍后重试'
+	String get server => '同步服务暂不可用，请稍后重试';
+
+	/// zh-CN: '仍有记录待同步，请稍后重试'
+	String get pending => '仍有记录待同步，请稍后重试';
+
+	/// zh-CN: '部分记录未能通过服务器校验，请重新记录'
+	String get rejected => '部分记录未能通过服务器校验，请重新记录';
+
+	/// zh-CN: '同步未完成，请稍后重试'
+	String get failed => '同步未完成，请稍后重试';
 }
 
 // Path: record.today
@@ -4928,6 +4963,14 @@ extension on Translations {
 			'record.meal.snack' => '加餐',
 			'record.meal.other' => '其他',
 			'record.unknownFood' => '未知食物',
+			'record.manualSync.success' => '待同步记录已上传',
+			'record.manualSync.network' => '网络连接失败，请检查网络后重试',
+			'record.manualSync.timeout' => '同步请求超时，请稍后重试',
+			'record.manualSync.login' => '请先登录后同步记录',
+			'record.manualSync.server' => '同步服务暂不可用，请稍后重试',
+			'record.manualSync.pending' => '仍有记录待同步，请稍后重试',
+			'record.manualSync.rejected' => '部分记录未能通过服务器校验，请重新记录',
+			'record.manualSync.failed' => '同步未完成，请稍后重试',
 			'record.syncRejectedBatch' => ({required Object count}) => '${count} 条记录未能通过服务器校验，已从本地移除，请重新记录',
 			'record.today.title' => '今日记录',
 			'record.today.deleteEntry' => '删除这条记录？',
@@ -5302,6 +5345,8 @@ extension on Translations {
 			'home.tab.home' => '首页',
 			'home.tab.record' => '记录',
 			'home.tab.data' => '数据',
+			_ => null,
+		} ?? switch (path) {
 			'home.tab.community' => '社区',
 			'home.tab.profile' => '我的',
 			'home.data.emptyTitle' => '数据曲线正在热身，多记几天它就跑起来啦。',
@@ -5310,8 +5355,6 @@ extension on Translations {
 			'home.community.emptyTitle' => '这里在等今天第一口美食登场。',
 			'home.community.emptySubtitle' => '打卡流与挑战赛正在筹备中。',
 			'home.community.cta' => '发布打卡',
-			_ => null,
-		} ?? switch (path) {
 			'home.community.comingSoon' => '社区功能即将上线，敬请期待',
 			'home.profile.emptyTitle' => '个人中心正在装修',
 			'home.profile.emptySubtitle' => '方案、目标与更多设置会陆续搬进来。',
@@ -5816,6 +5859,8 @@ extension on Translations {
 			'auth.logout' => '退出登录',
 			'auth.logoutConfirm' => '确定退出登录吗？未同步的记录会保留在本机。',
 			'auth.loggedOut' => '已退出登录',
+			_ => null,
+		} ?? switch (path) {
 			'auth.register.title' => '注册',
 			'auth.register.subtitle' => '创建账号后即可开始使用',
 			'auth.register.usernameLabel' => '用户名',
@@ -5824,8 +5869,6 @@ extension on Translations {
 			'auth.register.passwordHint' => '8-64 位，需包含字母和数字',
 			'auth.register.confirmPasswordLabel' => '确认密码',
 			'auth.register.confirmPasswordHint' => '再次输入密码',
-			_ => null,
-		} ?? switch (path) {
 			'auth.register.register' => '注册',
 			'auth.register.registering' => '注册中…',
 			'auth.register.passwordMismatch' => '两次输入的密码不一致',
